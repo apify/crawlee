@@ -822,7 +822,7 @@ describe('Apify.RequestList', () => {
             return (memory.heapUsed + memory.external) / 1024 / 1024;
         }
         const sources = [];
-        for (let i = 0; i < 1e6; i++) {
+        for (let i = 0; i < 1e5; i++) {
             sources.push({ url: `https://example.com?page=${i}` });
         }
         const startingMemory = getMemoryInMbytes();

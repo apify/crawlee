@@ -276,8 +276,13 @@ export class RequestList {
      * @ignore
      */
     async _addPersistedRequests(persistedRequests) {
-        // We don't need the sources so there's no point in keeping them.
+        // We don't need the sources so we purge them to
+        // prevent them from hanging in memory.
+        for (let i = 0; i < this.sources.length; i++) {
+            delete this.sources[i];
+        }
         this.sources = [];
+
         this.areRequestsPersisted = true;
         const requestStream = compression.createDecompress(persistedRequests);
         for await (const request of requestStream) {
@@ -297,7 +302,11 @@ export class RequestList {
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
         const sourcesCount = this.sources.length;
         for (let i = 0; i < sourcesCount; i++) {
-            const source = this.sources.shift();
+            const source = this.sources[i];
+            // Using delete here to drop the original object ASAP to free memory
+            // .pop would reverse the array and .shift is SLOW.
+            delete this.sources[i];
+
             if (source.requestsFromUrl) {
                 const fetchedRequests = await this._fetchRequestsFromUrl(source);
                 await this._addFetchedRequests(source, fetchedRequests);
@@ -305,6 +314,10 @@ export class RequestList {
                 this._addRequest(source);
             }
         }
+
+        // Drop the original array full of empty indexes.
+        this.sources = [];
+
         if (this.sourcesFunction) {
             try {
                 const sourcesFromFunction = await this.sourcesFunction();
