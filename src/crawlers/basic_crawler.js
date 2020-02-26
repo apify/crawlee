@@ -163,7 +163,7 @@ const DEFAULT_OPTIONS = {
  *     handleRequestFunction: async ({ request }) => {
  *         // 'request' contains an instance of the Request class
  *         // Here we simply fetch the HTML of the page and store it to a dataset
- *         const { body } = await Apify.utils.requestAsBrowser(request.url);
+ *         const { body } = await Apify.utils.requestAsBrowser(request);
  *         await Apify.pushData({
  *             url: request.url,
  *             html: body,
