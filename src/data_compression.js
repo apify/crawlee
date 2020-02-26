@@ -59,9 +59,17 @@ class ToJsonStream extends stream.Transform {
  */
 exports.compressData = async (data) => {
     checkParamOrThrow(data, 'data', 'Array');
+    const batchSize = 1000;
+    let offset = 0;
+    const batchedData = [];
+    while (offset < data.length) {
+        const items = data.slice(offset);
+        batchedData.push(items);
+        offset += batchSize;
+    }
     const { chunks, collector } = createChunkCollector();
     await pipeline(
-        stream.Readable.from(data),
+        stream.Readable.from(batchedData),
         new ToJsonStream(),
         zlib.createBrotliCompress(),
         collector,

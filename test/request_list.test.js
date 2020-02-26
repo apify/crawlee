@@ -822,13 +822,14 @@ describe('Apify.RequestList', () => {
             return (memory.heapUsed + memory.external) / 1024 / 1024;
         }
         const sources = [];
-        for (let i = 0; i < 1e5; i++) {
+        for (let i = 0; i < 1e4; i++) {
             sources.push({ url: `https://example.com?page=${i}` });
         }
         const startingMemory = getMemoryInMbytes();
         console.log(startingMemory, 'MB');
 
-        const rl = new Apify.RequestList({ sources });
+        process.env.APIFY_LOCAL_STORAGE_DIR = 'tmp';
+        const rl = new Apify.RequestList({ sources, persistRequestsKey: 'y' });
         const instanceMemory = getMemoryInMbytes();
         console.log(instanceMemory, 'MB');
 
