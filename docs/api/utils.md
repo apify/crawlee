@@ -76,6 +76,8 @@ await Apify.utils.enqueueLinks({
 
     -   **`[.page]`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object. Either `page` or `$` option must
         be provided.
+    -   **`[.limit]`**: `Number` - Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
+        be provided.
     -   **`[.$]`**: `CheerioStatic` - [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML. Either `page` or `$` option must be
         provided.
     -   **`.requestQueue`**: [`RequestQueue`](/docs/api/request-queue) - A request queue to which the URLs will be enqueued.

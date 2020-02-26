@@ -101,6 +101,7 @@ export async function enqueueLinks(options = {}) {
     const {
         page,
         $,
+        limit,
         selector = 'a',
         requestQueue,
         baseUrl,
@@ -121,6 +122,7 @@ export async function enqueueLinks(options = {}) {
     if (page && $) {
         throw new Error('Only one of the parameters "options.page" or "options.$" must be provided!');
     }
+    checkParamOrThrow(limit, 'limit', 'Maybe Number');
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
@@ -137,7 +139,7 @@ export async function enqueueLinks(options = {}) {
     if (transformRequestFunction) {
         requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
     }
-    const requests = createRequests(requestOptions, pseudoUrlInstances);
+    const requests = createRequests(requestOptions, pseudoUrlInstances).slice(0, limit);
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 
