@@ -2,10 +2,11 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from 'apify-shared/log';
 import _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
-import Request from './request';
+import Request from './request'; // eslint-disable-line import/no-duplicates
 import events from './events';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
+import compression from './data_compression';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -15,9 +16,11 @@ import { RequestOptions } from './request';
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
+const CONTENT_TYPE_BINARY = 'application/octet-stream';
+
 /**
  * @typedef {Object} RequestListOptions
- * @property {Array<RequestOptions|Request>} sources
+ * @property {Array<RequestOptions|Request>} [sources]
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
@@ -171,17 +174,30 @@ export class RequestList {
     constructor(options = {}) {
         checkParamOrThrow(options, 'options', 'Object');
 
-        const { sources, persistStateKey, persistRequestsKey, persistSourcesKey, state, keepDuplicateUrls = false } = options;
+        const {
+            sources,
+            sourcesFunction,
+            persistStateKey,
+            persistRequestsKey,
+            persistSourcesKey,
+            state,
+            keepDuplicateUrls = false,
+        } = options;
 
         // TODO Deprecated 02/2020
         log.deprecated('RequestList: options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
 
-        checkParamOrThrow(sources, 'options.sources', 'Array');
+        checkParamOrThrow(sources, 'options.sources', 'Maybe Array');
+        checkParamOrThrow(sourcesFunction, 'options.sourcesFunction', 'Maybe Function');
         checkParamOrThrow(state, 'options.state', 'Maybe Object');
         checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
         checkParamOrThrow(persistRequestsKey, 'options.persistRequestsKey', 'Maybe String');
         checkParamOrThrow(persistSourcesKey, 'options.persistSourcesKey', 'Maybe String');
         checkParamOrThrow(keepDuplicateUrls, 'options.keepDuplicateUrls', 'Maybe Boolean');
+
+        if (!(sources || sourcesFunction)) {
+            throw new Error('RequestList: At least one of "sources" or "sourcesFunction" must be provided.');
+        }
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
@@ -218,7 +234,8 @@ export class RequestList {
         this.isLoading = false;
         this.isInitialized = false;
         // Will be empty after initialization to save memory.
-        this.sources = sources;
+        this.sources = sources || [];
+        this.sourcesFunction = sourcesFunction;
     }
 
     /**
@@ -233,29 +250,14 @@ export class RequestList {
         }
         this.isLoading = true;
 
-        const [state, requests] = await this._loadStateAndRequests();
+        const [state, persistedRequests] = await this._loadStateAndPersistedRequests();
 
         // Add persisted requests / new sources in a memory efficient way because with very
         // large lists, we were running OOM.
-        if (requests) {
-            // We don't need sources so there's no point in keeping them.
-            this.sources = [];
-            this.areRequestsPersisted = true;
-            for (let i = 0; i < requests.length; i++) {
-                const request = requests.shift();
-                this._addRequest(request);
-            }
+        if (persistedRequests) {
+            await this._addPersistedRequests(persistedRequests);
         } else {
-            // We'll load all sources in sequence to ensure that they get loaded in the right order.
-            for (let i = 0; i < this.sources.length; i++) {
-                const source = this.sources.shift();
-                if (source.requestsFromUrl) {
-                    const fetchedRequests = await this._fetchRequestsFromUrl(source);
-                    await this._addFetchedRequests(source, fetchedRequests);
-                } else {
-                    this._addRequest(source);
-                }
-            }
+            await this._addRequestsFromSources();
         }
 
         this._restoreState(state);
@@ -263,6 +265,57 @@ export class RequestList {
         if (this.persistRequestsKey && !this.areRequestsPersisted) await this._persistRequests();
         if (this.persistStateKey) {
             events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.persistState.bind(this));
+        }
+    }
+
+    /**
+     * Adds previously persisted Requests, as retrieved from the key-value store.
+     * This needs to be done in a memory efficient way. We should update the input
+     * to a Stream once apify-client supports streams.
+     * @param {Buffer} persistedRequests
+     * @ignore
+     */
+    async _addPersistedRequests(persistedRequests) {
+        // We don't need the sources so there's no point in keeping them.
+        this.sources = [];
+        this.areRequestsPersisted = true;
+        const requestStream = compression.createDecompress(persistedRequests);
+        for await (const request of requestStream) {
+            this._addRequest(request);
+        }
+    }
+
+    /**
+     * Add Requests from both options.sources and options.sourcesFunction.
+     * This function is called only when persisted sources were not loaded.
+     * We need to avoid keeping both sources and requests in memory
+     * to reduce memory footprint with very large sources.
+     * @returns {Promise<void>}
+     * @ignore
+     */
+    async _addRequestsFromSources() {
+        // We'll load all sources in sequence to ensure that they get loaded in the right order.
+        const sourcesCount = this.sources.length;
+        for (let i = 0; i < sourcesCount; i++) {
+            const source = this.sources.shift();
+            if (source.requestsFromUrl) {
+                const fetchedRequests = await this._fetchRequestsFromUrl(source);
+                await this._addFetchedRequests(source, fetchedRequests);
+            } else {
+                this._addRequest(source);
+            }
+        }
+        if (this.sourcesFunction) {
+            try {
+                const sourcesFromFunction = await this.sourcesFunction();
+                const sourcesFromFunctionCount = sourcesFromFunction.length;
+                for (let i = 0; i < sourcesFromFunctionCount; i++) {
+                    const source = sourcesFromFunction.shift();
+                    this._addRequest(source);
+                }
+            } catch (err) {
+                throw new Error(`RequestList: Loading requests with sourcesFunction failed. Cause:\n${err.stack}`);
+            }
         }
     }
 
@@ -297,10 +350,8 @@ export class RequestList {
      * @ignore
      */
     async _persistRequests() {
-        const serializedRequests = await new Promise((resolve, reject) => {
-
-        });
-        await setValue(this.persistRequestsKey, this.sources);
+        const serializedRequests = await compression.compressData(this.requests);
+        await setValue(this.persistRequestsKey, serializedRequests, { contentType: CONTENT_TYPE_BINARY });
         this.areRequestsPersisted = true;
     }
 
@@ -370,9 +421,9 @@ export class RequestList {
      * @return {Promise<Array>}
      * @ignore
      */
-    async _loadStateAndRequests() {
+    async _loadStateAndPersistedRequests() {
         let state;
-        let requests;
+        let persistedRequests;
         if (this.initialState) {
             state = this.initialState;
             log.debug('RequestList: Loaded state from options.state argument.');
@@ -381,12 +432,11 @@ export class RequestList {
             if (state) log.debug('RequestList: Loaded state from key value store using the persistStateKey.');
         }
         if (this.persistRequestsKey) {
-            [state, requests] = await Promise.all([state, getValue(this.persistRequestsKey)]);
-            if (requests) {
-                log.debug('RequestList: Loaded requests from key value store using the persistRequestsKey.');
-            }
+            persistedRequests = await getValue(this.persistRequestsKey);
+            if (persistedRequests) log.debug('RequestList: Loaded requests from key value store using the persistRequestsKey.');
         }
-        return [state, requests];
+        // Unwraps "state" promise if needed, otherwise no-op.
+        return Promise.all([state, persistedRequests]);
     }
 
     /**
