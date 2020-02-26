@@ -63,7 +63,7 @@
         "content-type": "^1.0.4",
         "express": "^4.17.1",
         "fs-extra": "^8.1.0",
-        "htmlparser2": "^3.10.1",
+        "htmlparser2": "^4.1.0",
         "iconv-lite": "^0.5.0",
         "jquery": "^3.4.1",
         "mime-types": "^2.1.24",
