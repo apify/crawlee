@@ -23,6 +23,11 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  * @property {Array<RequestOptions|Request>} [sources]
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
+ *
+ *  **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
+ *  This is a measure to prevent memory leaks in situations when millions of sources are
+ *  added.
+ *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
  *  which will instruct `RequestList` to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response.
@@ -105,6 +110,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *   `uniqueKey`s however. It is the user's responsibility to ensure uniqueness of their unique keys
  *   if they wish to keep more than just a single copy in the `RequestList`.
  */
+
 /**
  * Represents a static list of URLs to crawl.
  * The URLs can be provided either in code or parsed from a text file hosted on the web.
@@ -744,6 +750,10 @@ export class RequestList {
  *  An array of sources of URLs for the {@link RequestList}. It can be either an array of plain objects
  *  that define at least the `url` property, or an array of instances of the {@link Request} class.
  *
+ *  **IMPORTANT:** The `sources` array will be consumed (left empty) after {@link RequestList} initializes.
+ *  This is a measure to prevent memory leaks in situations when millions of sources are
+ *  added.
+ *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
  *  which will instruct {@link RequestList} to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response. In this case you can limit the URLs
@@ -779,7 +789,7 @@ export const openRequestList = async (listName, sources, options = {}) => {
 };
 
 /**
- * Represents state of a {RequestList}. It can be used to resume a {RequestList} which has been previously processed.
+ * Represents state of a {@link RequestList}. It can be used to resume a {@link RequestList} which has been previously processed.
  * You can obtain the state by calling {@link RequestList#getState} and receive an object with
  * the following structure:
  *

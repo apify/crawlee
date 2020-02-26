@@ -11,11 +11,20 @@ import { Readable } from 'stream';
 
 const pipeline = util.promisify(stream.pipeline);
 
+/**
+ * Transforms an array of items to a JSON in a streaming
+ * fashion to save memory. It operates in batches to speed
+ * up the process.
+ * @ignore
+ */
 class ArrayToJson extends stream.Readable {
     constructor(data, options = {}) {
         super(options);
+        const {
+            batchSize = 10000,
+        } = options;
         this.offset = 0;
-        this.batchSize = options.batchSize || 10000;
+        this.batchSize = batchSize;
         this.data = data;
         this.push('[');
     }
@@ -23,55 +32,26 @@ class ArrayToJson extends stream.Readable {
     _read() {
         const items = this.data.slice(this.offset, this.offset + this.batchSize);
         if (items.length) {
-            const json = JSON.stringify(items);
-            // Strip brackets.
-            const itemString = json.substring(1, json.length - 1);
-            if (this.offset > 0) this.push(',', 'utf8');
-            this.push(itemString, 'utf8');
-            this.offset += this.batchSize;
+            try {
+                const json = JSON.stringify(items);
+                // Strip brackets to flatten the batch.
+                const itemString = json.substring(1, json.length - 1);
+                if (this.offset > 0) this.push(',', 'utf8');
+                this.push(itemString, 'utf8');
+                this.offset += this.batchSize;
+            } catch (err) {
+                this.destroy(err);
+            }
         } else {
             this.push(']');
             this.push(null);
+            this.destroy();
         }
     }
 }
 
 /**
- * Simple stream that transforms a stream of values
- * into a valid JSON by adding brackets and commas.
- * @ignore
- */
-// class ToJsonStream extends stream.Transform {
-//     constructor() {
-//         super({ autoDestroy: true, writableObjectMode: true });
-//         this.push('[');
-//         this.isFirstItem = true;
-//     }
-//
-//     _transform(item, nil, callback) {
-//         let json;
-//         try {
-//             json = JSON.stringify(item);
-//         } catch (err) {
-//             callback(err);
-//         }
-//         if (this.isFirstItem) {
-//             const chunk = Buffer.from(json, 'utf8');
-//             callback(null, chunk);
-//             this.isFirstItem = false;
-//         } else {
-//             const chunk = Buffer.from(`,${json}`, 'utf8');
-//             callback(null, chunk);
-//         }
-//     }
-//
-//     _flush(callback) {
-//         callback(null, ']');
-//     }
-// }
-
-/**
- * Uses Brotli compression to take an array of values, which can be anything
+ * Uses Gzip compression to take an array of values, which can be anything
  * from entries in a Dataset to Requests in a RequestList and compresses
  * them to a Buffer in a memory-efficient way (streaming one by one). Ideally,
  * the largest chunk of memory consumed will be the final compressed Buffer.

@@ -611,6 +611,9 @@ const requestList = await Apify.openRequestList('my-name', sources);
     [`RequestList`](/docs/api/request-list). It can be either an array of plain objects that define at least the `url` property, or an array of
     instances of the [`Request`](/docs/api/request) class.
 
+    **IMPORTANT:** The `sources` array will be consumed (left empty) after [`RequestList`](/docs/api/request-list) initializes. This is a measure to
+    prevent memory leaks in situations when millions of sources are added.
+
 Additionally, the `requestsFromUrl` property may be used instead of `url`, which will instruct [`RequestList`](/docs/api/request-list) to download the
 source URLs from a given remote location. The URLs will be parsed from the received response. In this case you can limit the URLs using `regex`
 parameter containing regular expression pattern for URLs to be included.

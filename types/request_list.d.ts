@@ -5,6 +5,11 @@ export const REQUESTS_PERSISTENCE_KEY: "REQUEST_LIST_REQUESTS";
  * @property {Array<RequestOptions|Request>} [sources]
  *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
  *  define the `url` property, or an array of instances of the {@link Request} class.
+ *
+ *  **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
+ *  This is a measure to prevent memory leaks in situations when millions of sources are
+ *  added.
+ *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
  *  which will instruct `RequestList` to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response.
@@ -334,6 +339,11 @@ export type RequestListOptions = {
     /**
      * An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
      * define the `url` property, or an array of instances of the {@link Request} class.
+     *
+     * **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
+     * This is a measure to prevent memory leaks in situations when millions of sources are
+     * added.
+     *
      * Additionally, the `requestsFromUrl` property may be used instead of `url`,
      * which will instruct `RequestList` to download the source URLs from a given remote location.
      * The URLs will be parsed from the received response.
@@ -429,7 +439,7 @@ export type RequestListOptions = {
     keepDuplicateUrls?: boolean;
 };
 /**
- * Represents state of a {RequestList}. It can be used to resume a {RequestList} which has been previously processed.
+ * Represents state of a {@link RequestList}. It can be used to resume a {@link RequestList} which has been previously processed.
  * You can obtain the state by calling {@link RequestList#getState} and receive an object with
  * the following structure:
  *
