@@ -9,7 +9,7 @@ title: RequestListOptions
 
 ### `sources`
 
-**Type**: [`SourceInput`](/docs/typedefs/source-input)
+**Type**: [`Array<(RequestOptions|Request)>`](/docs/typedefs/request-options)
 
 An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that define the `url` property, or an array of instances
 of the [`Request`](/docs/api/request) class.
