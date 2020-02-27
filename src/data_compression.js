@@ -30,22 +30,22 @@ class ArrayToJson extends stream.Readable {
     }
 
     _read() {
-        const items = this.data.slice(this.offset, this.offset + this.batchSize);
-        if (items.length) {
-            try {
+        try {
+            const items = this.data.slice(this.offset, this.offset + this.batchSize);
+            if (items.length) {
                 const json = JSON.stringify(items);
                 // Strip brackets to flatten the batch.
                 const itemString = json.substring(1, json.length - 1);
                 if (this.offset > 0) this.push(',', 'utf8');
                 this.push(itemString, 'utf8');
                 this.offset += this.batchSize;
-            } catch (err) {
-                this.destroy(err);
+            } else {
+                this.push(']');
+                this.push(null);
+                this.destroy();
             }
-        } else {
-            this.push(']');
-            this.push(null);
-            this.destroy();
+        } catch (err) {
+            this.destroy(err);
         }
     }
 }
