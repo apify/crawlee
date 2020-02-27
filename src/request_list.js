@@ -192,7 +192,9 @@ export class RequestList {
         } = options;
 
         // TODO Deprecated 02/2020
-        log.deprecated('RequestList: options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
+        if (persistSourcesKey) {
+            log.deprecated('RequestList: options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
+        }
 
         checkParamOrThrow(sources, 'options.sources', 'Maybe Array');
         checkParamOrThrow(sourcesFunction, 'options.sourcesFunction', 'Maybe Function');
