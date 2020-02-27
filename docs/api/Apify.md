@@ -610,8 +610,9 @@ const requestList = await Apify.openRequestList('my-name', sources);
     If `null`, the list will not be persisted and will only be stored in memory. Process restart will then cause the list to be crawled again from the
     beginning. We suggest always using a name.
 
--   **`sources`**: `SourceInput` | `Array<string>` - An array of sources of URLs for the [`RequestList`](/docs/api/request-list). It can be either an
-    array of plain objects that define at least the `url` property, or an array of instances of the [`Request`](/docs/api/request) class.
+-   **`sources`**: [`Array<(RequestOptions|Request|string)>`](/docs/typedefs/request-options) - An array of sources of URLs for the
+    [`RequestList`](/docs/api/request-list). It can be either an array of strings, plain objects that define at least the `url` property, or an array
+    of [`Request`](/docs/api/request) instances.
 
     **IMPORTANT:** The `sources` array will be consumed (left empty) after [`RequestList`](/docs/api/request-list) initializes. This is a measure to
     prevent memory leaks in situations when millions of sources are added.

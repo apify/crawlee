@@ -9,10 +9,10 @@ title: RequestListOptions
 
 ### `sources`
 
-**Type**: [`Array<(RequestOptions|Request)>`](/docs/typedefs/request-options)
+**Type**: [`Array<(RequestOptions|Request|string)>`](/docs/typedefs/request-options)
 
-An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that define the `url` property, or an array of instances
-of the [`Request`](/docs/api/request) class.
+An array of sources of URLs for the [`RequestList`](/docs/api/request-list). It can be either an array of strings, plain objects that define at least
+the `url` property, or an array of [`Request`](/docs/api/request) instances.
 
 **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes. This is a measure to prevent memory leaks in
 situations when millions of sources are added.
@@ -23,7 +23,10 @@ remote location. The URLs will be parsed from the received response.
 ```
 [
     // A single URL
-    { method: 'GET', url: 'http://example.com/a/b' },
+    'http://example.com/a/b',
+
+    // Modify Request options
+    { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
 
     // Batch import of URLs from a file hosted on the web,
     // where the URLs should be requested using the HTTP POST request
@@ -55,6 +58,34 @@ you to fetch and parse those URLs only once, saving valuable time when your acto
 If both [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) and
 [`RequestListOptions.sourcesFunction`](/docs/typedefs/request-list-options#sourcesfunction) are provided, the sources returned by the function will be
 added after the `sources`.
+
+**Example:**
+
+```javascript
+// Let's say we want to scrape URLs extracted from sitemaps.
+
+const sourcesFunction = async () => {
+    // With super large sitemaps, this operation could take very long
+    // and big websites typically have multiple sitemaps.
+    const sitemaps = await downloadHugeSitemaps();
+    return parseUrlsFromSitemaps(sitemaps);
+};
+
+// Sitemaps can change in real-time, so it's important to persist
+// the URLs we collected. Otherwise we might lose our scraping
+// state in case of an actor migration / failure / time-out.
+const requestList = new RequestList({
+    sourcesFunction,
+    persistStateKey: 'state-key',
+    persistRequestsKey: 'requests-key',
+});
+
+// The sourcesFunction is called now and the Requests are persisted.
+// If something goes wrong and we need to start again, RequestList
+// will load the persisted Requests from storage and will NOT
+// call the sourcesFunction again, saving time and resources.
+await requestList.initialize();
+```
 
 ---
 

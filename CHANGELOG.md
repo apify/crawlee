@@ -13,6 +13,7 @@
   in scenarios with very large amount of `Request` instances.
 - **DEPRECATED:** `RequestListOptions.persistSourcesKey` is now deprecated. Please use
   `RequestListOptions.persistRequestsKey`.
+- `RequestList.sources` can now be an array of `string` URLs as well.
 - Added `sourcesFunction` to `RequestListOptions`. It enables dynamic fetching of sources
   and will only be called if persisted `Requests` were not retrieved from key-value store.
   Use it to reduce memory spikes and also to make sure that your sources are not re-created
