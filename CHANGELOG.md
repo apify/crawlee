@@ -7,10 +7,10 @@
   is `true` by default and forces the function to use a HTTP parser that is less strict than
   default Node 12 parser, but also less secure. It is needed to be able to bypass certain
   anti-scraping walls and fetch websites that do not comply with HTTP spec.
-- **BREAKING:** `RequestList` now consumes the `sources` array on initialization. If you need
-  to use the sources somewhere else, make a copy. This change was added as one of several
-  measures to improve memory management of `RequestList` in scenarios with very large amount
-  of `Request` instances.
+- **BREAKING:** `RequestList` now removes all the elements from the `sources` array on
+  initialization. If you need to use the sources somewhere else, make a copy. This change
+  was added as one of several measures to improve memory management of `RequestList`
+  in scenarios with very large amount of `Request` instances.
 - **DEPRECATED:** `RequestListOptions.persistSourcesKey` is now deprecated. Please use
   `RequestListOptions.persistRequestsKey`.
 - Added `sourcesFunction` to `RequestListOptions`. It enables dynamic fetching of sources
