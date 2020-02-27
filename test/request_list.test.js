@@ -798,10 +798,9 @@ describe('Apify.RequestList', () => {
         test('should throw on invalid parameters', async () => {
             const args = [
                 [],
-                ['x', []],
-                ['x', [6]],
-                ['x', [[]], {}],
-                ['x', [[]], []],
+                ['x', {}],
+                ['x', 6, {}],
+                ['x', [], []],
             ];
             for (const arg of args) {
                 try {

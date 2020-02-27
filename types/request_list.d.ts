@@ -2,9 +2,9 @@ export const STATE_PERSISTENCE_KEY: "REQUEST_LIST_STATE";
 export const REQUESTS_PERSISTENCE_KEY: "REQUEST_LIST_REQUESTS";
 /**
  * @typedef RequestListOptions
- * @property {Array<RequestOptions|Request>} [sources]
- *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
- *  define the `url` property, or an array of instances of the {@link Request} class.
+ * @property {Array<RequestOptions|Request|string>} [sources]
+ *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
+ *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
  *
  *  **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
  *  This is a measure to prevent memory leaks in situations when millions of sources are
@@ -17,7 +17,10 @@ export const REQUESTS_PERSISTENCE_KEY: "REQUEST_LIST_REQUESTS";
  * ```
  * [
  *     // A single URL
- *     { method: 'GET', url: 'http://example.com/a/b' },
+ *     'http://example.com/a/b',
+ *
+ *     // Modify Request options
+ *     { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
  *
  *     // Batch import of URLs from a file hosted on the web,
  *     // where the URLs should be requested using the HTTP POST request
@@ -43,6 +46,33 @@ export const REQUESTS_PERSISTENCE_KEY: "REQUEST_LIST_REQUESTS";
  *
  *   If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
  *   the sources returned by the function will be added after the `sources`.
+ *
+ *   **Example:**
+ *   ```javascript
+ *   // Let's say we want to scrape URLs extracted from sitemaps.
+ *
+ *   const sourcesFunction = async () => {
+ *       // With super large sitemaps, this operation could take very long
+ *       // and big websites typically have multiple sitemaps.
+ *       const sitemaps = await downloadHugeSitemaps();
+ *       return parseUrlsFromSitemaps(sitemaps);
+ *   }
+ *
+ *   // Sitemaps can change in real-time, so it's important to persist
+ *   // the URLs we collected. Otherwise we might lose our scraping
+ *   // state in case of an actor migration / failure / time-out.
+ *   const requestList = new RequestList({
+ *       sourcesFunction,
+ *       persistStateKey: 'state-key',
+ *       persistRequestsKey: 'requests-key',
+ *   })
+ *
+ *   // The sourcesFunction is called now and the Requests are persisted.
+ *   // If something goes wrong and we need to start again, RequestList
+ *   // will load the persisted Requests from storage and will NOT
+ *   // call the sourcesFunction again, saving time and resources.
+ *   await requestList.initialize();
+ *   ```
  * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
@@ -139,7 +169,7 @@ export const REQUESTS_PERSISTENCE_KEY: "REQUEST_LIST_REQUESTS";
  * const requestList = new Apify.RequestList({
  *     sources: [
  *         // Separate requests
- *         { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
+ *         { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
  *         { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
  *
  *         // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
@@ -172,7 +202,7 @@ export class RequestList {
     areRequestsPersisted: boolean;
     isLoading: boolean;
     isInitialized: boolean;
-    sources: (Request | RequestOptions)[];
+    sources: (string | Request | RequestOptions)[];
     sourcesFunction: Function;
     /**
      * Loads all remote sources of URLs and potentially starts periodic state persistence.
@@ -294,12 +324,13 @@ export class RequestList {
     _fetchRequestsFromUrl(source: any): Promise<RequestOptions[]>;
     /**
      * Adds given request.
-     * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
-     * creates a `Request` instance.
+     * If the `source` parameter is a string or plain object and not an instance
+     * of a `Request`, then the function creates a `Request` instance.
      *
+     * @param {string|Request|object} source
      * @ignore
      */
-    _addRequest(opts: any): void;
+    _addRequest(source: any): void;
     /**
      * Helper function that validates unique key.
      * Throws an error if uniqueKey is not a non-empty string.
@@ -332,11 +363,11 @@ export class RequestList {
      */
     handledCount(): number;
 }
-export function openRequestList(listName: string | null, sources: any, options?: RequestListOptions | undefined): Promise<RequestList>;
+export function openRequestList(listName: string | null, sources: (string | Request | RequestOptions)[], options?: RequestListOptions | undefined): Promise<RequestList>;
 export type RequestListOptions = {
     /**
-     * An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
-     * define the `url` property, or an array of instances of the {@link Request} class.
+     * An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
+     * plain objects that define at least the `url` property, or an array of {@link Request} instances.
      *
      * **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
      * This is a measure to prevent memory leaks in situations when millions of sources are
@@ -349,7 +380,10 @@ export type RequestListOptions = {
      * ```
      * [
      * // A single URL
-     * { method: 'GET', url: 'http://example.com/a/b' },
+     * 'http://example.com/a/b',
+     *
+     * // Modify Request options
+     * { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
      *
      * // Batch import of URLs from a file hosted on the web,
      * // where the URLs should be requested using the HTTP POST request
@@ -364,7 +398,7 @@ export type RequestListOptions = {
      * ]
      * ```
      */
-    sources?: (Request | RequestOptions)[];
+    sources?: (string | Request | RequestOptions)[];
     /**
      * A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
      * was not able to fetch their persisted version (see {@link RequestListOptions.persistRequestsKey}).
@@ -377,6 +411,33 @@ export type RequestListOptions = {
      *
      * If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
      * the sources returned by the function will be added after the `sources`.
+     *
+     * **Example:**
+     * ```javascript
+     * // Let's say we want to scrape URLs extracted from sitemaps.
+     *
+     * const sourcesFunction = async () => {
+     * // With super large sitemaps, this operation could take very long
+     * // and big websites typically have multiple sitemaps.
+     * const sitemaps = await downloadHugeSitemaps();
+     * return parseUrlsFromSitemaps(sitemaps);
+     * }
+     *
+     * // Sitemaps can change in real-time, so it's important to persist
+     * // the URLs we collected. Otherwise we might lose our scraping
+     * // state in case of an actor migration / failure / time-out.
+     * const requestList = new RequestList({
+     * sourcesFunction,
+     * persistStateKey: 'state-key',
+     * persistRequestsKey: 'requests-key',
+     * })
+     *
+     * // The sourcesFunction is called now and the Requests are persisted.
+     * // If something goes wrong and we need to start again, RequestList
+     * // will load the persisted Requests from storage and will NOT
+     * // call the sourcesFunction again, saving time and resources.
+     * await requestList.initialize();
+     * ```
      */
     sourcesFunction?: Function;
     /**

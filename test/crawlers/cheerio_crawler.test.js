@@ -715,7 +715,7 @@ describe('CheerioCrawler', () => {
 
         beforeEach(async () => {
             await localStorageEmulator.clean();
-            requestList = await Apify.openRequestList('test', sources);
+            requestList = await Apify.openRequestList('test', sources.slice());
         });
 
         test('should work', async () => {

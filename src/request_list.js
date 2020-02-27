@@ -21,9 +21,9 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
 /**
  * @typedef RequestListOptions
- * @property {Array<RequestOptions|Request>} [sources]
- *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
- *  define the `url` property, or an array of instances of the {@link Request} class.
+ * @property {Array<RequestOptions|Request|string>} [sources]
+ *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
+ *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
  *
  *  **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
  *  This is a measure to prevent memory leaks in situations when millions of sources are
@@ -36,7 +36,10 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  * ```
  * [
  *     // A single URL
- *     { method: 'GET', url: 'http://example.com/a/b' },
+ *     'http://example.com/a/b',
+ *
+ *     // Modify Request options
+ *     { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
  *
  *     // Batch import of URLs from a file hosted on the web,
  *     // where the URLs should be requested using the HTTP POST request
@@ -62,6 +65,33 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *
  *   If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
  *   the sources returned by the function will be added after the `sources`.
+ *
+ *   **Example:**
+ *   ```javascript
+ *   // Let's say we want to scrape URLs extracted from sitemaps.
+ *
+ *   const sourcesFunction = async () => {
+ *       // With super large sitemaps, this operation could take very long
+ *       // and big websites typically have multiple sitemaps.
+ *       const sitemaps = await downloadHugeSitemaps();
+ *       return parseUrlsFromSitemaps(sitemaps);
+ *   }
+ *
+ *   // Sitemaps can change in real-time, so it's important to persist
+ *   // the URLs we collected. Otherwise we might lose our scraping
+ *   // state in case of an actor migration / failure / time-out.
+ *   const requestList = new RequestList({
+ *       sourcesFunction,
+ *       persistStateKey: 'state-key',
+ *       persistRequestsKey: 'requests-key',
+ *   })
+ *
+ *   // The sourcesFunction is called now and the Requests are persisted.
+ *   // If something goes wrong and we need to start again, RequestList
+ *   // will load the persisted Requests from storage and will NOT
+ *   // call the sourcesFunction again, saving time and resources.
+ *   await requestList.initialize();
+ *   ```
  * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
@@ -159,7 +189,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  * const requestList = new Apify.RequestList({
  *     sources: [
  *         // Separate requests
- *         { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
+ *         { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
  *         { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
  *
  *         // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
@@ -192,7 +222,9 @@ export class RequestList {
         } = options;
 
         // TODO Deprecated 02/2020
-        log.deprecated('RequestList: options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
+        if (persistSourcesKey) {
+            log.deprecated('RequestList: options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
+        }
 
         checkParamOrThrow(sources, 'options.sources', 'Maybe Array');
         checkParamOrThrow(sourcesFunction, 'options.sourcesFunction', 'Maybe Function');
@@ -260,7 +292,7 @@ export class RequestList {
         const [state, persistedRequests] = await this._loadStateAndPersistedRequests();
 
         // Add persisted requests / new sources in a memory efficient way because with very
-        // large lists, we were running OOM.
+        // large lists, we were running out of memory.
         if (persistedRequests) {
             await this._addPersistedRequests(persistedRequests);
         } else {
@@ -622,17 +654,26 @@ export class RequestList {
 
     /**
      * Adds given request.
-     * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
-     * creates a `Request` instance.
+     * If the `source` parameter is a string or plain object and not an instance
+     * of a `Request`, then the function creates a `Request` instance.
      *
+     * @param {string|Request|object} source
      * @ignore
      */
-    _addRequest(opts) {
-        const hasUniqueKey = !!opts.uniqueKey;
+    _addRequest(source) {
+        let request;
+        const type = typeof source;
+        if (type === 'string') {
+            request = new Request({ url: source });
+        } else if (source instanceof Request) {
+            request = source;
+        } else if (source && type === 'object') {
+            request = new Request(source);
+        } else {
+            throw new Error(`RequestList: Cannot create Request from type: ${type}`);
+        }
 
-        const request = opts instanceof Request
-            ? opts
-            : new Request(opts);
+        const hasUniqueKey = !!source.uniqueKey;
 
         // Add index to uniqueKey if duplicates are to be kept
         if (this.keepDuplicateUrls && !hasUniqueKey) {
@@ -745,9 +786,9 @@ export class RequestList {
  *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
- * @param {(SourceInput|string[])} sources
- *  An array of sources of URLs for the {@link RequestList}. It can be either an array of plain objects
- *  that define at least the `url` property, or an array of instances of the {@link Request} class.
+ * @param {Array<RequestOptions|Request|string>} sources
+ *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
+ *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
  *
  *  **IMPORTANT:** The `sources` array will be consumed (left empty) after {@link RequestList} initializes.
  *  This is a measure to prevent memory leaks in situations when millions of sources are
@@ -770,12 +811,8 @@ export class RequestList {
  */
 export const openRequestList = async (listName, sources, options = {}) => {
     checkParamOrThrow(listName, 'listName', 'String | Null');
-    checkParamOrThrow(sources, 'sources', '[Object | String]');
-    if (!sources.length) throw new Error('Parameter sources must not be an empty array.');
+    checkParamOrThrow(sources, 'sources', 'Array');
     checkParamOrThrow(options, 'options', 'Object');
-
-    // Support both an array of strings and array of objects.
-    if (typeof sources[0] === 'string') sources = sources.map(url => ({ url }));
 
     const rl = new RequestList({
         ...options,

@@ -48,8 +48,8 @@ const requestList = await Apify.openRequestList('my-request-list', [
 const requestList = new Apify.RequestList({
     sources: [
         // Separate requests
-        { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
-        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' } },
+        { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
+        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
 
         // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
         // Note that all URLs must start with http:// or https://
