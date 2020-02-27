@@ -161,6 +161,7 @@
             "examples/puppeteer-sitemap",
             "examples/screenshots",
             "examples/call-actor",
+            "examples/forms",
             "examples/synchronous-run"
         ]
     }
