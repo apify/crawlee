@@ -6,7 +6,7 @@ import log from './utils_log';
 import events from './events';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
-import { compressData, createDecompress } from './data_compression';
+import { serializeArray, createDeserialize } from './serialization';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -323,7 +323,7 @@ export class RequestList {
         this.sources = [];
 
         this.areRequestsPersisted = true;
-        const requestStream = createDecompress(persistedRequests);
+        const requestStream = createDeserialize(persistedRequests);
         for await (const request of requestStream) {
             this._addRequest(request);
         }
@@ -402,7 +402,7 @@ export class RequestList {
      * @ignore
      */
     async _persistRequests() {
-        const serializedRequests = await compressData(this.requests);
+        const serializedRequests = await serializeArray(this.requests);
         await setValue(this.persistRequestsKey, serializedRequests, { contentType: CONTENT_TYPE_BINARY });
         this.areRequestsPersisted = true;
     }

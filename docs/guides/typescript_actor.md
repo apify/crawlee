@@ -6,7 +6,8 @@ title: TypeScript Actors
 Apify SDK supports TypeScript by covering public APIs with type declarations. This
 allows writing code with auto-completion for TypeScript and JavaScript code alike.
 Besides that, actors written in TypeScript can take advantage of compile-time
-type-checking and avoid many mistakes.
+type-checking and avoid many coding mistakes, while providing documentation for
+functions, parameters and return values.
 
 Setting up a TypeScript project
 =============================
@@ -19,8 +20,8 @@ To use TypeScript in your actors, you'll need the following prerequisites.
     npm install --dev typescript
     ```
 
-    Type can be a development dependency in your project, as shown above. There's no
-    need to pollute your production environment or your system's package repository
+    TypeScript can be a development dependency in your project, as shown above. There's no
+    need to pollute your production environment or your system's global repository
     with TypeScript.
 
 2. A build script invoking `tsc` and a correctly specified `main` entry point defined
@@ -29,24 +30,20 @@ To use TypeScript in your actors, you'll need the following prerequisites.
    ```json
    {
      "scripts": {
-       "build": "tsc"
+       "build": "tsc -p tsconfig.json"
      },
      "main": "build/main.js"
    }
    ```
 
-3. Type declarations for NodeJS, and optionally Cheerio, or Puppeteer (or both), so
-   you can take advantage of type-checking in all the features you'll use:
+3. Type declarations for NodeJS, so you can take advantage of type-checking in all the features you'll use:
 
    ```shell script
-   npm install --dev @types/node @types/cheerio @types/puppeteer
+   npm install --dev @types/node
    ```
 
-   If you're using other JavaScript packages in your actor, you'll want to include their
-   type declarations too (if they are available).
-
 4. TypeScript configuration file allowing `tsc` to understand your project layout and
-   the features used in your project and a targeted language level:
+   the features used in your project:
 
    ```json
    {
@@ -54,17 +51,16 @@ To use TypeScript in your actors, you'll need the following prerequisites.
            "target": "es2018",
            "module": "commonjs",
            "moduleResolution": "node",
+           "strict": true,
+           "noImplicityAny": false,
+           "strictNullChecks": false,
            "lib": [
                "es2018",
                "es2018.asynciterable",
                "dom",
                "dom.iterable"
            ],
-           "types": [
-               "node",
-               "cheerio"
-           ],
-           "esModuleInterop": true,
+           "rootDir": "src/",
            "outDir": "build/"
        },
        "include": [
@@ -73,54 +69,66 @@ To use TypeScript in your actors, you'll need the following prerequisites.
    }
    ```
 
-   NOTE: You'll need to mention `cheerio` in `tsconfig.json` explicitly, but you don't
-   need to do so for `puppeteer`. The reason is that the `cheerio` module exports only
-   one function. Puppeteer's type declarations explicitly export all the types required.
+   Place the content above inside a `tsconfig.json` in your root folder.
+
+   Also, if you are a VSCode user that is using JavaScript, create a `jsconfig.json` with the same content, adding `"checkJs": true` to `"compilerOptions"`, so you can enjoy using the types in your `.js` source files.
 
 Auto-completion
 ==============
 
 IDE auto-completion should work in most places. That's true even if you are writting
 actors in pure JavaScript. For time constraints, we left out the amendment of an
-internal API for the time being, and these need to be added as SDK developers write
+internal API for the time being, and these need to be added as the SDK developers write
 new and enhance old code.
 
 SDK Documentation
 =================
 
-SDK documentation has grown a lot. There is a new API Reference section and one
-sub-section:
+SDK documentation has grown a lot. There is a new API Reference section **Type definitions**
+that holds documentation for all constructible types, function parameters and
+return types, in the Apify SDK.
 
-- **Compiler options** in the **Type definitions** sidebar - Holds documentation for
-  all constructible types in SDK.
-- **User-Functions** sidebar - Holds documentation for user-provided functions like
-  `CheerioHandlePage`, `PuppeteerHandlePage`, `DatasetConsumer`, `DatasetMapper`, etc.
-  and their associated value-types `CheerioHandlePageInput`, etc.
-
-Expanding and enhancing documentation in those new places and adding more
-details may be a potential priority.
-
-Problems
+Caveats
 ========
 
-TypeScript sometimes generates invalid or incorrect declarations from JSDoc comments
-until TypeScript developers fix these problems. This needs to be handled in the future,
-though all critical errors have been avoided or fixed already. Examples:
+As of version 0.20, the generated typings, due to JSDoc limitations, have some properties
+and parameters annotated with `any` type, therefore the settings `noImplicitAny` and `strictNullChecks`, set to `true`, may not be advised. You may try enabling them, but it might hinder development because of the need for typecasts to be able to compile, your mileage may vary.
 
-- TypeScript does not handle `@extends` and `@typedef {BaseType}` as expected
-- In `types/session_pool/session_pool.d.ts`, it adds methods from the base-class
-  `EventEmitter` and changes their return types, so they are not compatible with the
-  `EventEmitter` (i.e., `addListener(): SessionPool`, instead of `addListener(): this`).
+Besides the _implicit any_ errors that might occur in the code when writing in TypeScript, the
+current typings doesn't offer generics that make outputs type-safe, so you need to declare your
+types, as such:
 
-How to `launchPuppeteer()`
-==========================
+```typescript
+interface MySchema {
+    expectedParam1?: string;
+    expectedParam2?: number;
+}
 
-We are not able to `@extend` puppeteer's `LaunchOptions` as mentioned above and
-JSDoc considers intersection types a syntactic error.
-For this reason we left out the original launch options from our declarations and
-let users to handle types in his code.
+const input: MySchema = await Apify.getInput(); // getInput returns Promise<any> here
 
-You can just cast a as PuppeteerOptions after the object, as such:
+if (!input?.expectedParam1) { // input is MySchema now and you can check in a type-safe way
+    throw new Error('Missing expectedParam1');
+}
+```
+
+There are also other places where you need to explicitly provide your interface / type, like in Dataset iterators (`map`, `reduce`, `forEach`):
+
+```typescript
+interface ExpectedShape {
+    id: string;
+    someFields: Fields[];
+}
+
+const dataset = await Apify.openDataset();
+await dataset.forEach((item: ExpectedShape) => {
+    // deal with item.id / item.someFields
+    // otherwise item is "any"
+})
+```
+
+When using `launchPuppeteer()`, puppeteer's `LaunchOptions` needs to be
+provided as an intersection using `&`, with the `LaunchPuppeteerOptions`,
+so you can have all the options available:
 
 ```typescript
 // manually import the types from puppeteer
@@ -130,5 +138,3 @@ import { LaunchPuppeteerOptions } from 'apify'
 Apify.launchPuppeteer({ } as PuppeteerOptions & LaunchPuppeteerOptions)
 // should show all available options intersected
 ```
-
-or slap an `as any` for limited time

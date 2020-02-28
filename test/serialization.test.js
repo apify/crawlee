@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import util from 'util';
 import zlib from 'zlib';
-import { compressData, decompressData, createDecompress } from '../build/data_compression';
+import { serializeArray, deserializeArray, createDeserialize } from '../build/serialization';
 
 const TEST_JSON_PATH = path.join(__dirname, 'data', 'sample.json.gz');
 
@@ -15,7 +15,7 @@ describe('Data Compression:', () => {
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
-        const compressed = await compressData(expectedArray);
+        const compressed = await serializeArray(expectedArray);
         const decompressed = await gunzip(compressed);
         const decompressedJson = decompressed.toString('utf8');
         const receivedArray = JSON.parse(decompressedJson);
@@ -30,7 +30,7 @@ describe('Data Compression:', () => {
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
-        const receivedArray = await decompressData(compressedTestJson);
+        const receivedArray = await deserializeArray(compressedTestJson);
 
         // Compare objects, to avoid errors with /n /t and other insignificant
         // characters in the JSON strings.
@@ -42,8 +42,8 @@ describe('Data Compression:', () => {
         for (let i = 0; i < 10000; i++) {
             data.push({ [`${Math.random()}`]: Math.random() });
         }
-        const compressed = await compressData(data);
-        const decompressed = await decompressData(compressed);
+        const compressed = await serializeArray(data);
+        const decompressed = await deserializeArray(compressed);
         expect(decompressed).toEqual(data);
     });
 
@@ -52,7 +52,7 @@ describe('Data Compression:', () => {
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
-        const decompress = createDecompress(compressedTestJson);
+        const decompress = createDeserialize(compressedTestJson);
         const receivedArray = [];
         for await (const item of decompress) {
             receivedArray.push(item);

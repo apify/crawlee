@@ -7,6 +7,7 @@ import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
 import * as requestUtils from '../build/utils_request';
+import { deserializeArray } from '../build/serialization';
 
 describe('Apify.RequestList', () => {
     let ll;
@@ -576,7 +577,7 @@ describe('Apify.RequestList', () => {
 
             await requestList.initialize();
             expect(requestList.areRequestsPersisted).toBe(true);
-            const requests = await decompressData(persistedRequests);
+            const requests = await deserializeArray(persistedRequests);
             expect(requestList.requests).toHaveLength(5);
             expect(requests).toEqual(requestList.requests);
 
