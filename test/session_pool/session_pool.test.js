@@ -258,6 +258,26 @@ describe('SessionPool - testing session pool', () => {
         newSessionPool.teardown();
     });
 
+    test('should persist state on teardown', async () => {
+        const persistStateKey = 'my-session-pool';
+        const persistStateKeyValueStoreId = 'my-key-value-store-for-sessions';
+
+        const newSessionPool = await Apify.openSessionPool({
+            maxPoolSize: 1,
+            persistStateKeyValueStoreId,
+            persistStateKey,
+        });
+
+        await newSessionPool.teardown();
+
+        const kvStore = await Apify.openKeyValueStore(newSessionPool.persistStateKeyValueStoreId);
+        const state = await kvStore.getValue(newSessionPool.persistStateKey);
+
+        expect(newSessionPool.persistStateKeyValueStoreId).toBeDefined();
+        expect(newSessionPool.persistStateKey).toBeDefined();
+        expect(state).toBeDefined();
+    });
+
     test('should createSessionFunction work', async () => {
         let isCalled;
         const createSessionFunction = (sessionPool2) => {
