@@ -36,7 +36,8 @@
     "homepage": "https://sdk.apify.com/",
     "files": [
         "build",
-        "types"
+        "types",
+        "types-apify"
     ],
     "scripts": {
         "build": "npm run clean && tsc -p tsconfig.json && node ./tools/typescript_fixes.js",
