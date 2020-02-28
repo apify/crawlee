@@ -2,12 +2,11 @@ import _ from 'underscore';
 import sinon from 'sinon';
 import log from '../build/utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
-import { decompressData } from '../build/data_compression';
+import { deserializeArray } from '../build/serialization';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
 import * as requestUtils from '../build/utils_request';
-import { deserializeArray } from '../build/serialization';
 
 describe('Apify.RequestList', () => {
     let ll;
