@@ -202,8 +202,9 @@ export class SessionPool extends EventEmitter {
      * Removes listener from `persistState` event.
      * This function should be called after you are done with using the `SessionPool` instance.
      */
-    teardown() {
+    async teardown() {
         events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
+        await this.persistState();
     }
 
     /**
