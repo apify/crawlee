@@ -12,7 +12,7 @@ functions, parameters and return values.
 Setting up a TypeScript project
 =============================
 
-To use TypeScript in your actors, you'll need the following pre-requisites.
+To use TypeScript in your actors, you'll need the following prerequisites.
 
 1. TypeScript compiler `tsc` installed somewhere:
 
