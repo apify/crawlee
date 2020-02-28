@@ -62,7 +62,7 @@ class ArrayToJson extends stream.Readable {
  * @returns {Promise<Buffer>}
  * @ignore
  */
-export const compressData = async (data) => {
+export const serializeArray = async (data) => {
     checkParamOrThrow(data, 'data', 'Array');
     const { chunks, collector } = createChunkCollector();
     await pipeline(
@@ -85,7 +85,7 @@ export const compressData = async (data) => {
  * @returns {Promise<Array>}
  * @ignore
  */
-export const decompressData = async (compressedData) => {
+export const deserializeArray = async (compressedData) => {
     checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
     const { chunks, collector } = createChunkCollector({ fromValuesStream: true });
     await pipeline(
@@ -108,7 +108,7 @@ export const decompressData = async (compressedData) => {
  * @returns {Readable}
  * @ignore
  */
-export const createDecompress = (compressedData) => {
+export const createDeserialize = (compressedData) => {
     checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
     const streamArray = StreamArray.withParser();
     const destination = pluckValue(streamArray);

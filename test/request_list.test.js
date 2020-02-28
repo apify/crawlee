@@ -6,7 +6,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
-import { decompressData } from '../build/data_compression';
+import { deserializeArray } from '../build/serialization';
 
 describe('Apify.RequestList', () => {
     let ll;
@@ -576,7 +576,7 @@ describe('Apify.RequestList', () => {
 
             await requestList.initialize();
             expect(requestList.areRequestsPersisted).toBe(true);
-            const requests = await decompressData(persistedRequests);
+            const requests = await deserializeArray(persistedRequests);
             expect(requestList.requests).toHaveLength(5);
             expect(requests).toEqual(requestList.requests);
 
