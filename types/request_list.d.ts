@@ -1,19 +1,15 @@
 export const STATE_PERSISTENCE_KEY: "REQUEST_LIST_STATE";
-export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
-/**
- * @typedef RequestListInput
- * @property {string} [method]
- * @property {string} [requestsFromUrl]
- * @property {RegExp} [regex]
- */
-/**
- * @typedef {Array<(RequestListInput|RequestOptions|Request)>} SourceInput
- */
+export const REQUESTS_PERSISTENCE_KEY: "REQUEST_LIST_REQUESTS";
 /**
  * @typedef RequestListOptions
- * @property {SourceInput} sources
- *  An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
- *  define the `url` property, or an array of instances of the {@link Request} class.
+ * @property {Array<RequestOptions|Request|string>} [sources]
+ *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
+ *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
+ *
+ *  **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
+ *  This is a measure to prevent memory leaks in situations when millions of sources are
+ *  added.
+ *
  *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
  *  which will instruct `RequestList` to download the source URLs from a given remote location.
  *  The URLs will be parsed from the received response.
@@ -21,7 +17,10 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  * ```
  * [
  *     // A single URL
- *     { method: 'GET', url: 'http://example.com/a/b' },
+ *     'http://example.com/a/b',
+ *
+ *     // Modify Request options
+ *     { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
  *
  *     // Batch import of URLs from a file hosted on the web,
  *     // where the URLs should be requested using the HTTP POST request
@@ -35,6 +34,45 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
  * ]
  * ```
+ * @property {Function} [sourcesFunction]
+ *   A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
+ *   was not able to fetch their persisted version (see {@link RequestListOptions.persistRequestsKey}).
+ *   It must return an `Array` of {@link Request} or {@link RequestOptions}.
+ *
+ *   This is very useful in a scenario when getting the sources is a resource intensive or time consuming
+ *   task, such as fetching URLs from multiple sitemaps or parsing URLs from large datasets. Using the
+ *   `sourcesFunction` in combination with `persistStateKey` and `persistRequestsKey` will allow you to
+ *   fetch and parse those URLs only once, saving valuable time when your actor migrates or restarts.
+ *
+ *   If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
+ *   the sources returned by the function will be added after the `sources`.
+ *
+ *   **Example:**
+ *   ```javascript
+ *   // Let's say we want to scrape URLs extracted from sitemaps.
+ *
+ *   const sourcesFunction = async () => {
+ *       // With super large sitemaps, this operation could take very long
+ *       // and big websites typically have multiple sitemaps.
+ *       const sitemaps = await downloadHugeSitemaps();
+ *       return parseUrlsFromSitemaps(sitemaps);
+ *   }
+ *
+ *   // Sitemaps can change in real-time, so it's important to persist
+ *   // the URLs we collected. Otherwise we might lose our scraping
+ *   // state in case of an actor migration / failure / time-out.
+ *   const requestList = new RequestList({
+ *       sourcesFunction,
+ *       persistStateKey: 'state-key',
+ *       persistRequestsKey: 'requests-key',
+ *   })
+ *
+ *   // The sourcesFunction is called now and the Requests are persisted.
+ *   // If something goes wrong and we need to start again, RequestList
+ *   // will load the persisted Requests from storage and will NOT
+ *   // call the sourcesFunction again, saving time and resources.
+ *   await requestList.initialize();
+ *   ```
  * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
@@ -43,13 +81,14 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *
  *   If `persistStateKey` is not set, `RequestList` will always start from the beginning,
  *   and all the source URLs will be crawled again.
- * @property {string} [persistSourcesKey]
+ * @property {string} [persistRequestsKey]
  *   Identifies the key in the default key-value store under which the `RequestList` persists its
- *   sources (i.e. the lists of URLs) during the {@link RequestList#initialize} call.
+ *   Requests during the {@link RequestList#initialize} call.
  *   This is necessary if `persistStateKey` is set and the source URLs might potentially change,
- *   to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.
+ *   to ensure consistency of the source URLs and state object. However, it comes with some
+ *   storage and performance overheads.
  *
- *   If `persistSourcesKey` is not set, {@link RequestList#initialize} will always fetch the sources
+ *   If `persistRequestsKey` is not set, {@link RequestList#initialize} will always fetch the sources
  *   from their origin, check that they are consistent with the restored state (if any)
  *   and throw an error if they are not.
  * @property {RequestListState} [state]
@@ -109,17 +148,28 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *
  * The internal state is closely tied to the provided sources (URLs). If the sources change on actor restart, the state will become corrupted and
  * `RequestList` will raise an exception. This typically happens when the sources is a list of URLs downloaded from the web.
- * In such case, use the `persistSourcesKey` option in conjunction with `persistStateKey`,
+ * In such case, use the `persistRequestsKey` option in conjunction with `persistStateKey`,
  * to make the `RequestList` store the initial sources to the default key-value store and load them after restart,
  * which will prevent any issues that a live list of URLs might cause.
  *
- * **Example usage:**
- *
+ * **Basic usage:**
  * ```javascript
+ * // Use a helper function to simplify request list initialization.
+ * // State and sources are automatically persisted.
+ * const requestList = await Apify.openRequestList('my-request-list', [
+ *     'http://www.example.com/page-1',
+ *     { url: 'http://www.example.com/page-2', method: 'POST', userData: { foo: 'bar' }},
+ *     { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
+ * ]);
+ * ```
+ *
+ * **Advanced usage:**
+ * ```javascript
+ * // Use the constructor to get more control over the initialization.
  * const requestList = new Apify.RequestList({
  *     sources: [
  *         // Separate requests
- *         { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
+ *         { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
  *         { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
  *
  *         // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
@@ -127,25 +177,11 @@ export const SOURCES_PERSISTENCE_KEY: "REQUEST_LIST_SOURCES";
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
  *
- *     // Ensure both the sources and crawling state of the request list is persisted,
- *     // so that on actor restart, the crawling will continue where it left off
+ *     // Persist only state in cases where the original sources are immutable to improve performance.
  *     persistStateKey: 'my-state',
- *     persistSourcesKey: 'my-sources'
  * });
  *
- * // This call loads and parses the URLs from the remote file.
  * await requestList.initialize();
- *
- * // Get requests from list
- * const request1 = await requestList.fetchNextRequest();
- * const request2 = await requestList.fetchNextRequest();
- * const request3 = await requestList.fetchNextRequest();
- *
- * // Mark some of them as handled
- * await requestList.markRequestHandled(request1);
- *
- * // If processing fails then reclaim it back to the list
- * await requestList.reclaimRequest(request2);
  * ```
  */
 export class RequestList {
@@ -159,14 +195,15 @@ export class RequestList {
     inProgress: {};
     reclaimed: {};
     persistStateKey: string;
-    persistSourcesKey: string;
+    persistRequestsKey: any;
     initialState: RequestListState;
     keepDuplicateUrls: boolean;
     isStatePersisted: boolean;
-    areSourcesPersisted: boolean;
+    areRequestsPersisted: boolean;
     isLoading: boolean;
     isInitialized: boolean;
-    sources: any;
+    sources: (string | Request | RequestOptions)[];
+    sourcesFunction: Function;
     /**
      * Loads all remote sources of URLs and potentially starts periodic state persistence.
      * This function must be called before you can start using the instance in a meaningful way.
@@ -174,6 +211,23 @@ export class RequestList {
      * @returns {Promise<void>}
      */
     initialize(): Promise<void>;
+    /**
+     * Adds previously persisted Requests, as retrieved from the key-value store.
+     * This needs to be done in a memory efficient way. We should update the input
+     * to a Stream once apify-client supports streams.
+     * @param {Buffer} persistedRequests
+     * @ignore
+     */
+    _addPersistedRequests(persistedRequests: Buffer): Promise<void>;
+    /**
+     * Add Requests from both options.sources and options.sourcesFunction.
+     * This function is called only when persisted sources were not loaded.
+     * We need to avoid keeping both sources and requests in memory
+     * to reduce memory footprint with very large sources.
+     * @returns {Promise<void>}
+     * @ignore
+     */
+    _addRequestsFromSources(): Promise<void>;
     /**
      * Persists the current state of the `RequestList` into the default {@link KeyValueStore}.
      * The state is persisted automatically in regular intervals, but calling this method manually
@@ -186,13 +240,13 @@ export class RequestList {
     persistState(): Promise<void>;
     /**
      * Unlike persistState(), this is used only internally, since the sources
-     * are automatically persisted at RequestList initialization (if the persistSourcesKey is set),
+     * are automatically persisted at RequestList initialization (if the persistRequestsKey is set),
      * but there's no reason to persist it again afterwards, because RequestList is immutable.
      *
      * @return {Promise<void>}
      * @ignore
      */
-    _persistSources(): Promise<void>;
+    _persistRequests(): Promise<void>;
     /**
      * Restores RequestList state from a state object.
      *
@@ -201,13 +255,13 @@ export class RequestList {
      */
     _restoreState(state: RequestListState): void;
     /**
-     * Attempts to load state and sources using the `RequestList` configuration
-     * and returns a tuple of [state, sources] where each may be null if not loaded.
+     * Attempts to load state and requests using the `RequestList` configuration
+     * and returns a tuple of [state, requests] where each may be null if not loaded.
      *
      * @return {Promise<Array<(RequestListState|null)>>}
      * @ignore
      */
-    _loadStateAndSources(): Promise<(RequestListState | null)[]>;
+    _loadStateAndPersistedRequests(): Promise<(RequestListState | null)[]>;
     /**
      * Returns an object representing the internal state of the `RequestList` instance.
      * Note that the object's fields can change in future releases.
@@ -270,12 +324,13 @@ export class RequestList {
     _fetchRequestsFromUrl(source: any): Promise<RequestOptions[]>;
     /**
      * Adds given request.
-     * If the `opts` parameter is a plain object and not an instance of a `Request`, then the function
-     * creates a `Request` instance.
+     * If the `source` parameter is a string or plain object and not an instance
+     * of a `Request`, then the function creates a `Request` instance.
      *
+     * @param {string|Request|object} source
      * @ignore
      */
-    _addRequest(opts: any): void;
+    _addRequest(source: any): void;
     /**
      * Helper function that validates unique key.
      * Throws an error if uniqueKey is not a non-empty string.
@@ -308,17 +363,16 @@ export class RequestList {
      */
     handledCount(): number;
 }
-export function openRequestList(listName: string | null, sources: string[] | (Request | RequestOptions | RequestListInput)[], options?: RequestListOptions | undefined): Promise<RequestList>;
-export type RequestListInput = {
-    method?: string;
-    requestsFromUrl?: string;
-    regex?: RegExp;
-};
-export type SourceInput = (Request | RequestOptions | RequestListInput)[];
+export function openRequestList(listName: string | null, sources: (string | Request | RequestOptions)[], options?: RequestListOptions | undefined): Promise<RequestList>;
 export type RequestListOptions = {
     /**
-     * An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that
-     * define the `url` property, or an array of instances of the {@link Request} class.
+     * An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
+     * plain objects that define at least the `url` property, or an array of {@link Request} instances.
+     *
+     * **IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes.
+     * This is a measure to prevent memory leaks in situations when millions of sources are
+     * added.
+     *
      * Additionally, the `requestsFromUrl` property may be used instead of `url`,
      * which will instruct `RequestList` to download the source URLs from a given remote location.
      * The URLs will be parsed from the received response.
@@ -326,7 +380,10 @@ export type RequestListOptions = {
      * ```
      * [
      * // A single URL
-     * { method: 'GET', url: 'http://example.com/a/b' },
+     * 'http://example.com/a/b',
+     *
+     * // Modify Request options
+     * { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
      *
      * // Batch import of URLs from a file hosted on the web,
      * // where the URLs should be requested using the HTTP POST request
@@ -341,7 +398,48 @@ export type RequestListOptions = {
      * ]
      * ```
      */
-    sources: (Request | RequestOptions | RequestListInput)[];
+    sources?: (string | Request | RequestOptions)[];
+    /**
+     * A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
+     * was not able to fetch their persisted version (see {@link RequestListOptions.persistRequestsKey}).
+     * It must return an `Array` of {@link Request} or {@link RequestOptions}.
+     *
+     * This is very useful in a scenario when getting the sources is a resource intensive or time consuming
+     * task, such as fetching URLs from multiple sitemaps or parsing URLs from large datasets. Using the
+     * `sourcesFunction` in combination with `persistStateKey` and `persistRequestsKey` will allow you to
+     * fetch and parse those URLs only once, saving valuable time when your actor migrates or restarts.
+     *
+     * If both {@link RequestListOptions.sources} and {@link RequestListOptions.sourcesFunction} are provided,
+     * the sources returned by the function will be added after the `sources`.
+     *
+     * **Example:**
+     * ```javascript
+     * // Let's say we want to scrape URLs extracted from sitemaps.
+     *
+     * const sourcesFunction = async () => {
+     * // With super large sitemaps, this operation could take very long
+     * // and big websites typically have multiple sitemaps.
+     * const sitemaps = await downloadHugeSitemaps();
+     * return parseUrlsFromSitemaps(sitemaps);
+     * }
+     *
+     * // Sitemaps can change in real-time, so it's important to persist
+     * // the URLs we collected. Otherwise we might lose our scraping
+     * // state in case of an actor migration / failure / time-out.
+     * const requestList = new RequestList({
+     * sourcesFunction,
+     * persistStateKey: 'state-key',
+     * persistRequestsKey: 'requests-key',
+     * })
+     *
+     * // The sourcesFunction is called now and the Requests are persisted.
+     * // If something goes wrong and we need to start again, RequestList
+     * // will load the persisted Requests from storage and will NOT
+     * // call the sourcesFunction again, saving time and resources.
+     * await requestList.initialize();
+     * ```
+     */
+    sourcesFunction?: Function;
     /**
      * Identifies the key in the default key-value store under which `RequestList` periodically stores its
      * state (i.e. which URLs were crawled and which not).
@@ -354,15 +452,16 @@ export type RequestListOptions = {
     persistStateKey?: string;
     /**
      * Identifies the key in the default key-value store under which the `RequestList` persists its
-     * sources (i.e. the lists of URLs) during the {@link RequestList#initialize} call.
+     * Requests during the {@link RequestList#initialize} call.
      * This is necessary if `persistStateKey` is set and the source URLs might potentially change,
-     * to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.
+     * to ensure consistency of the source URLs and state object. However, it comes with some
+     * storage and performance overheads.
      *
-     * If `persistSourcesKey` is not set, {@link RequestList#initialize} will always fetch the sources
+     * If `persistRequestsKey` is not set, {@link RequestList#initialize} will always fetch the sources
      * from their origin, check that they are consistent with the restored state (if any)
      * and throw an error if they are not.
      */
-    persistSourcesKey?: string;
+    persistRequestsKey?: string;
     /**
      * The state object that the `RequestList` will be initialized from.
      * It is in the form as returned by `RequestList.getState()`, such as follows:
@@ -399,7 +498,7 @@ export type RequestListOptions = {
     keepDuplicateUrls?: boolean;
 };
 /**
- * Represents state of a {RequestList}. It can be used to resume a {RequestList} which has been previously processed.
+ * Represents state of a {@link RequestList}. It can be used to resume a {@link RequestList} which has been previously processed.
  * You can obtain the state by calling {@link RequestList#getState} and receive an object with
  * the following structure:
  *

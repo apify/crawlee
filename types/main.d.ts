@@ -127,7 +127,7 @@ export { LaunchPuppeteerOptions } from "./puppeteer";
 export { LaunchPuppeteerFunction, PuppeteerPoolOptions } from "./puppeteer_pool";
 export { InterceptHandler } from "./puppeteer_request_interception";
 export { RequestOptions } from "./request";
-export { RequestListInput, SourceInput, RequestListOptions, RequestListState } from "./request_list";
+export { RequestListOptions, RequestListState } from "./request_list";
 export { QueueOperationInfo } from "./request_queue";
 export { SessionState, SessionOptions } from "./session_pool/session";
 export { CreateSession, SessionPoolOptions } from "./session_pool/session_pool";

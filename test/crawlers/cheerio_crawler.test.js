@@ -157,6 +157,7 @@ describe('CheerioCrawler', () => {
             { url: 'http://example.com/?q=5' },
             { url: 'http://example.com/?q=6' },
         ];
+        const sourcesCopy = JSON.parse(JSON.stringify(sources));
         const processed = [];
         const failed = [];
         const requestList = new Apify.RequestList({ sources });
@@ -183,7 +184,7 @@ describe('CheerioCrawler', () => {
 
         processed.sort(comparator);
         processed.forEach((request, id) => {
-            expect(request.url).toEqual(sources[id].url);
+            expect(request.url).toEqual(sourcesCopy[id].url);
             expect(request.userData.title).toBe('Example Domain');
             expect(typeof request.userData.html).toBe('string');
             expect(request.userData.html.length).not.toBe(0);
@@ -506,7 +507,7 @@ describe('CheerioCrawler', () => {
         expect(handledRequests).toEqual(contentTypes.length);
     });
 
-    describe('should works with all content types from options.additionalMimeTypes', () => {
+    describe('should work with all content types from options.additionalMimeTypes', () => {
         const handlePageInvocationParams = [];
         let handleFailedInvocationCount = 0;
         beforeAll(async () => {
@@ -515,6 +516,7 @@ describe('CheerioCrawler', () => {
                 { url: `http://${HOST}:${port}/xml-type` },
                 { url: `http://${HOST}:${port}/image-type` },
             ];
+            const sourceCount = sources.length;
             const requestList = new Apify.RequestList({ sources });
             await requestList.initialize();
             const crawler = new Apify.CheerioCrawler({
@@ -531,7 +533,7 @@ describe('CheerioCrawler', () => {
             await crawler.run();
 
             expect(handleFailedInvocationCount).toBe(0);
-            expect(handlePageInvocationParams.length).toEqual(sources.length);
+            expect(handlePageInvocationParams.length).toEqual(sourceCount);
         });
         test('when response is application/json', async () => {
             const jsonRequestParams = handlePageInvocationParams[0];
@@ -713,7 +715,7 @@ describe('CheerioCrawler', () => {
 
         beforeEach(async () => {
             await localStorageEmulator.clean();
-            requestList = await Apify.openRequestList('test', sources);
+            requestList = await Apify.openRequestList('test', sources.slice());
         });
 
         test('should work', async () => {

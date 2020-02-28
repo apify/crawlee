@@ -26,42 +26,41 @@ the `persistState` event that is periodically emitted by [`Apify.events`](/docs/
 
 The internal state is closely tied to the provided sources (URLs). If the sources change on actor restart, the state will become corrupted and
 `RequestList` will raise an exception. This typically happens when the sources is a list of URLs downloaded from the web. In such case, use the
-`persistSourcesKey` option in conjunction with `persistStateKey`, to make the `RequestList` store the initial sources to the default key-value store
+`persistRequestsKey` option in conjunction with `persistStateKey`, to make the `RequestList` store the initial sources to the default key-value store
 and load them after restart, which will prevent any issues that a live list of URLs might cause.
 
-**Example usage:**
+**Basic usage:**
 
 ```javascript
+// Use a helper function to simplify request list initialization.
+// State and sources are automatically persisted.
+const requestList = await Apify.openRequestList('my-request-list', [
+    'http://www.example.com/page-1',
+    { url: 'http://www.example.com/page-2', method: 'POST', userData: { foo: 'bar' } },
+    { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
+]);
+```
+
+**Advanced usage:**
+
+```javascript
+// Use the constructor to get more control over the initialization.
 const requestList = new Apify.RequestList({
     sources: [
         // Separate requests
-        { url: 'http://www.example.com/page-1', method: 'GET', headers: {} },
-        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' } },
+        { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
+        { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
 
         // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
         // Note that all URLs must start with http:// or https://
         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
     ],
 
-    // Ensure both the sources and crawling state of the request list is persisted,
-    // so that on actor restart, the crawling will continue where it left off
+    // Persist only state in cases where the original sources are immutable to improve performance.
     persistStateKey: 'my-state',
-    persistSourcesKey: 'my-sources',
 });
 
-// This call loads and parses the URLs from the remote file.
 await requestList.initialize();
-
-// Get requests from list
-const request1 = await requestList.fetchNextRequest();
-const request2 = await requestList.fetchNextRequest();
-const request3 = await requestList.fetchNextRequest();
-
-// Mark some of them as handled
-await requestList.markRequestHandled(request1);
-
-// If processing fails then reclaim it back to the list
-await requestList.reclaimRequest(request2);
 ```
 
 ---

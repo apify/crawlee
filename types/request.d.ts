@@ -8,7 +8,7 @@ export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExt
 export function hashPayload(payload: any): string;
 export default Request;
 /**
- * Specifies required and optional fields for constructing a [`Request`](../api/request).
+ * Specifies required and optional fields for constructing a {@link Request}.
  */
 export type RequestOptions = {
     /**

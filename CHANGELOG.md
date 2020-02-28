@@ -7,10 +7,21 @@
   is `true` by default and forces the function to use a HTTP parser that is less strict than
   default Node 12 parser, but also less secure. It is needed to be able to bypass certain
   anti-scraping walls and fetch websites that do not comply with HTTP spec.
+- **BREAKING:** `RequestList` now removes all the elements from the `sources` array on
+  initialization. If you need to use the sources somewhere else, make a copy. This change
+  was added as one of several measures to improve memory management of `RequestList`
+  in scenarios with very large amount of `Request` instances.
+- **DEPRECATED:** `RequestListOptions.persistSourcesKey` is now deprecated. Please use
+  `RequestListOptions.persistRequestsKey`.
+- `RequestList.sources` can now be an array of `string` URLs as well.
+- Added `sourcesFunction` to `RequestListOptions`. It enables dynamic fetching of sources
+  and will only be called if persisted `Requests` were not retrieved from key-value store.
+  Use it to reduce memory spikes and also to make sure that your sources are not re-created
+  on actor restarts.
 - Improved `Apify.launchPuppeteer()` code to prevent triggering bugs in Puppeteer by passing
   more than required options to `puppeteer.launch()`.
-- Documented `BasicCrawler.autoscaledPool` property,
-  and added `CheerioCrawler.autoscaledPool` and `PuppeteerCrawler.autoscaledPool` properties.
+- Documented `BasicCrawler.autoscaledPool` property, and added `CheerioCrawler.autoscaledPool`
+  and `PuppeteerCrawler.autoscaledPool` properties.
 - Added TypeScript typings and typedef documentation for all entities used throughout SDK.
 - Upgraded `proxy-chain` NPM package from 0.2.7 to 0.3.3
 

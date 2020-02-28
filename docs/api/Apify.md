@@ -296,7 +296,8 @@ the variables are not defined or are invalid, the corresponding value in the res
 
 ## `Apify.getInput()`
 
-**Returns**: `Promise<(object|null)>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(object|string|Buffer|null)>` - Returns a promise that resolves to an object, string or
+[`Buffer`](https://nodejs.org/api/buffer.html), depending on the MIME content type of the record, or `null` if the record is missing.
 
 Gets the actor input value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -337,7 +338,8 @@ second.
 
 ## `Apify.getValue(key)`
 
-**Returns**: `Promise<(object|null)>` - Returns a promise that resolves once the record is stored.
+**Returns**: `Promise<(object|string|Buffer|null)>` - Returns a promise that resolves to an object, string or
+[`Buffer`](https://nodejs.org/api/buffer.html), depending on the MIME content type of the record, or `null` if the record is missing.
 
 Gets a value from the default [`KeyValueStore`](/docs/api/key-value-store) associated with the current actor run.
 
@@ -452,7 +454,7 @@ The `Apify.main()` function performs the following actions:
   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
   it sets up a connection to listen for platform events.
   For example, to get a notification about an imminent migration to another server.
-  See [](apify#apifyevents) for details.
+  See [`Apify.events`](/docs/api/apify#events) for details.
   </li>
   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
@@ -608,9 +610,12 @@ const requestList = await Apify.openRequestList('my-name', sources);
     If `null`, the list will not be persisted and will only be stored in memory. Process restart will then cause the list to be crawled again from the
     beginning. We suggest always using a name.
 
--   **`sources`**: [`SourceInput`](/docs/typedefs/source-input) | `Array<string>` - An array of sources of URLs for the
-    [`RequestList`](/docs/api/request-list). It can be either an array of plain objects that define at least the `url` property, or an array of
-    instances of the [`Request`](/docs/api/request) class.
+-   **`sources`**: [`Array<(RequestOptions|Request|string)>`](/docs/typedefs/request-options) - An array of sources of URLs for the
+    [`RequestList`](/docs/api/request-list). It can be either an array of strings, plain objects that define at least the `url` property, or an array
+    of [`Request`](/docs/api/request) instances.
+
+    **IMPORTANT:** The `sources` array will be consumed (left empty) after [`RequestList`](/docs/api/request-list) initializes. This is a measure to
+    prevent memory leaks in situations when millions of sources are added.
 
 Additionally, the `requestsFromUrl` property may be used instead of `url`, which will instruct [`RequestList`](/docs/api/request-list) to download the
 source URLs from a given remote location. The URLs will be parsed from the received response. In this case you can limit the URLs using `regex`
@@ -620,8 +625,8 @@ For details, see the [`RequestListOptions.sources`](/docs/typedefs/request-list-
 
 -   **`[options]`**: [`RequestListOptions`](/docs/typedefs/request-list-options) - The [`RequestList`](/docs/api/request-list) options. Note that the
     `listName` parameter supersedes the [`RequestListOptions.persistStateKey`](/docs/typedefs/request-list-options#persiststatekey) and
-    [`RequestListOptions.persistSourcesKey`](/docs/typedefs/request-list-options#persistsourceskey) options and the `sources` parameter supersedes the
-    [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) option.
+    [`RequestListOptions.persistRequestsKey`](/docs/typedefs/request-list-options#persistrequestskey) options and the `sources` parameter supersedes
+    the [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) option.
 
 ---
 
@@ -731,7 +736,7 @@ For more information, see [`Apify.openKeyValueStore()`](/docs/api/apify#openkeyv
       <li>If `null`, the record in the key-value store is deleted.</li>
       <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
       <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
-      or [](https://nodejs.org/api/buffer.html).</li>
+      or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
     </ul>
     For any other value an error will be thrown.
 -   **`[options]`**: `Object`

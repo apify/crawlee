@@ -171,7 +171,7 @@ export const getEnv = () => {
  *   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
  *   it sets up a connection to listen for platform events.
  *   For example, to get a notification about an imminent migration to another server.
- *   See [](apify#apifyevents) for details.
+ *   See {@link Apify.events} for details.
  *   </li>
  *   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
  *   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>

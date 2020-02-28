@@ -5,8 +5,9 @@ title: RequestListState
 
 <a name="requestliststate"></a>
 
-Represents state of a {RequestList}. It can be used to resume a {RequestList} which has been previously processed. You can obtain the state by calling
-[`RequestList.getState()`](/docs/api/request-list#getstate) and receive an object with the following structure:
+Represents state of a [`RequestList`](/docs/api/request-list). It can be used to resume a [`RequestList`](/docs/api/request-list) which has been
+previously processed. You can obtain the state by calling [`RequestList.getState()`](/docs/api/request-list#getstate) and receive an object with the
+following structure:
 
 ```
 {

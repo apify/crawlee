@@ -182,7 +182,7 @@ export class KeyValueStore {
      * content type are automatically parsed and returned as a JavaScript object.
      * Similarly, records with `text/plain` content types are returned as a string.
      * For all other content types, the value is returned as a raw
-     * [](https://nodejs.org/api/buffer.html) instance.
+     * [`Buffer`](https://nodejs.org/api/buffer.html) instance.
      *
      * If the record does not exist, the function resolves to `null`.
      *
@@ -200,7 +200,7 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @returns {Promise<(object|Buffer|string|null)>}
      *   Returns a promise that resolves to an object, string
-     *   or [](https://nodejs.org/api/buffer.html), depending
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
     getValue(key) {
@@ -235,7 +235,7 @@ export class KeyValueStore {
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      * If you set custom content type, `value` must be either a string or
-     * [](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
+     * [`Buffer`](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
      *
      * If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
      * regardless whether the record existed or not.
@@ -255,7 +255,7 @@ export class KeyValueStore {
      *     <li>If `null`, the record in the key-value store is deleted.</li>
      *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
      *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-     *     or [](https://nodejs.org/api/buffer.html).</li>
+     *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]
@@ -630,9 +630,11 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  *
  * @param {string} key
  *   Unique record key.
- * @returns {Promise<(object|null)>}
- *   Returns a promise that resolves once the record is stored.
- *
+ * @returns {Promise<object|string|Buffer|null>}
+ *   Returns a promise that resolves to an object, string
+ *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
+ *   on the MIME content type of the record, or `null`
+ *   if the record is missing.
  * @memberof module:Apify
  * @name getValue
  * @function
@@ -671,7 +673,7 @@ export const getValue = async (key) => {
  *     <li>If `null`, the record in the key-value store is deleted.</li>
  *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
  *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
- *     or [](https://nodejs.org/api/buffer.html).</li>
+ *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
  *   </ul>
  *   For any other value an error will be thrown.
  * @param {Object} [options]
@@ -706,8 +708,11 @@ export const setValue = async (key, value, options) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and {@link KeyValueStore#getValue}.
  *
- * @returns {Promise<(object|null)>}
- *   Returns a promise that resolves once the record is stored.
+ * @returns {Promise<object|string|Buffer|null>}
+ *   Returns a promise that resolves to an object, string
+ *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
+ *   on the MIME content type of the record, or `null`
+ *   if the record is missing.
  * @memberof module:Apify
  * @name getInput
  * @function
@@ -721,9 +726,9 @@ export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || 
  * @param {string} key
  *   Current {KeyValue} key being processed.
  * @param {number} index
- *   Position of the current key in {KeyValuestore}.
+ *   Position of the current key in {@link KeyValueStore}.
  * @param {object} info
- *   Information about the current {KeyValueStore} entry.
+ *   Information about the current {@link KeyValueStore} entry.
  * @param {number} info.size
  *   Size of the value associated with the current key in bytes.
  */

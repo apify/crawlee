@@ -81,7 +81,7 @@ export class KeyValueStore {
      * content type are automatically parsed and returned as a JavaScript object.
      * Similarly, records with `text/plain` content types are returned as a string.
      * For all other content types, the value is returned as a raw
-     * [](https://nodejs.org/api/buffer.html) instance.
+     * [`Buffer`](https://nodejs.org/api/buffer.html) instance.
      *
      * If the record does not exist, the function resolves to `null`.
      *
@@ -99,7 +99,7 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @returns {Promise<(object|Buffer|string|null)>}
      *   Returns a promise that resolves to an object, string
-     *   or [](https://nodejs.org/api/buffer.html), depending
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
     getValue(key: string): Promise<any>;
@@ -124,7 +124,7 @@ export class KeyValueStore {
      * await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
      * ```
      * If you set custom content type, `value` must be either a string or
-     * [](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
+     * [`Buffer`](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
      *
      * If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds
      * regardless whether the record existed or not.
@@ -144,7 +144,7 @@ export class KeyValueStore {
      *     <li>If `null`, the record in the key-value store is deleted.</li>
      *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
      *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-     *     or [](https://nodejs.org/api/buffer.html).</li>
+     *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
      *   </ul>
      *   For any other value an error will be thrown.
      * @param {Object} [options]

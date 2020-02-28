@@ -80,14 +80,14 @@ await store.drop();
 
 ## `keyValueStore.getValue(key)`
 
-**Returns**: `Promise<(object|Buffer|string|null)>` - Returns a promise that resolves to an object, string or [](https://nodejs.org/api/buffer.html),
-depending on the MIME content type of the record.
+**Returns**: `Promise<(object|Buffer|string|null)>` - Returns a promise that resolves to an object, string or
+[`Buffer`](https://nodejs.org/api/buffer.html), depending on the MIME content type of the record.
 
 Gets a value from the key-value store.
 
 The function returns a `Promise` that resolves to the record value, whose JavaScript type depends on the MIME content type of the record. Records with
 the `application/json` content type are automatically parsed and returned as a JavaScript object. Similarly, records with `text/plain` content types
-are returned as a string. For all other content types, the value is returned as a raw [](https://nodejs.org/api/buffer.html) instance.
+are returned as a string. For all other content types, the value is returned as a raw [`Buffer`](https://nodejs.org/api/buffer.html) instance.
 
 If the record does not exist, the function resolves to `null`.
 
@@ -132,7 +132,7 @@ const store = await Apify.openKeyValueStore('my-text-store');
 await store.setValue('RESULTS', 'my text data', { contentType: 'text/plain' });
 ```
 
-If you set custom content type, `value` must be either a string or [](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
+If you set custom content type, `value` must be either a string or [`Buffer`](https://nodejs.org/api/buffer.html), otherwise an error will be thrown.
 
 If `value` is `null`, the record is deleted instead. Note that the `setValue()` function succeeds regardless whether the record existed or not.
 
@@ -150,7 +150,7 @@ stored!
       <li>If `null`, the record in the key-value store is deleted.</li>
       <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
       <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-      or [](https://nodejs.org/api/buffer.html).</li>
+      or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
     </ul>
     For any other value an error will be thrown.
 -   **`[options]`**: `Object`

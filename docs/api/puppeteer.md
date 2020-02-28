@@ -72,7 +72,7 @@ await page.goto('http://example.com');
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`handler`**: [`InterceptHandler`](/docs/typedefs/intercept-handler) - Request interception handler.
 
 ---
@@ -87,7 +87,7 @@ Removes request interception handler for given page.
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`handler`**: [`InterceptHandler`](/docs/typedefs/intercept-handler) - Request interception handler.
 
 ---
@@ -106,7 +106,7 @@ performance.
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`request`**: [`Request`](/docs/api/request)
 -   **`gotoOptions`**: `DirectNavigationOptions` - Custom options for `page.goto()`.
 
@@ -122,7 +122,7 @@ Scrolls to the bottom of a page, or until it times out. Loads dynamic content wh
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`[options]`**: `Object`
     -   **`[.timeoutSecs]`**: `number` <code> = 0</code> - How many seconds to scroll for. If 0, will scroll until bottom of page.
     -   **`[.waitForSecs]`**: `number` <code> = 4</code> - How many seconds to wait for no new content to load before exit.
@@ -139,7 +139,7 @@ Saves a full screenshot and HTML of the current page into a Key-Value store.
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`[options]`**: `Object`
     -   **`[.key]`**: `string` <code> = &quot;SNAPSHOT&quot;</code> - Key under which the screenshot and HTML will be saved. `.jpg` will be appended
         for screenshot and `.html` for HTML.
@@ -269,7 +269,7 @@ File contents are cached for up to 10 files to limit file system access.
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`filePath`**: `string` - File path
 -   **`[options]`**: `Object`
     -   **`[.surviveNavigations]`**: `boolean` - Enables the injected script to survive page navigations and reloads without need to be re-injected
@@ -284,8 +284,8 @@ File contents are cached for up to 10 files to limit file system access.
 
 **Returns**: `Promise<*>`
 
-Injects the [](https://jquery.com/) library into a Puppeteer page. jQuery is often useful for various web scraping and crawling tasks. For example, it
-can help extract text from HTML elements using CSS selectors.
+Injects the [jQuery](https://jquery.com/) library into a Puppeteer page. jQuery is often useful for various web scraping and crawling tasks. For
+example, it can help extract text from HTML elements using CSS selectors.
 
 Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with other libraries included by the
 page that use the same variable name (e.g. another version of jQuery). This can affect functionality of page's scripts.
@@ -301,11 +301,12 @@ const title = await page.evaluate(() => {
 });
 ```
 
-Note that `injectJQuery()` does not affect the Puppeteer's [](https://pptr.dev/#?product=Puppeteer&show=api-pageselector) function in any way.
+Note that `injectJQuery()` does not affect the Puppeteer's [`page.$()`](https://pptr.dev/#?product=Puppeteer&show=api-pageselector) function in any
+way.
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 
 ---
 
@@ -315,7 +316,7 @@ Note that `injectJQuery()` does not affect the Puppeteer's [](https://pptr.dev/#
 
 **Returns**: `Promise<*>`
 
-Injects the [](https://underscorejs.org/) library into a Puppeteer page.
+Injects the [Underscore](https://underscorejs.org/) library into a Puppeteer page.
 
 Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with libraries included by the
 page that use the same variable name. This can affect functionality of page's scripts.
@@ -380,7 +381,7 @@ await page.goto('https://cnn.com');
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`[options]`**: `Object`
     -   **`[.urlPatterns]`**: `Array<string>` - The patterns of URLs to block from being loaded by the browser. Only `*` can be used as a wildcard. It
         is also automatically added to the beginning and end of the pattern. This limitation is enforced by the DevTools protocol. `.png` is the same
@@ -406,7 +407,7 @@ mitigated in future iterations of this feature.
 
 **Params**
 
--   **`page`**: `Page` - Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+-   **`page`**: `Page` - Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
 -   **`cache`**: `Object` - Object in which responses are stored
 -   **`responseUrlRules`**: `Array<(string|RegExp)>` - List of rules that are used to check if the response should be cached. String rules are
     compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
@@ -428,7 +429,7 @@ Compiles a Puppeteer script into an async function that may be executed at any t
 }
 ```
 
-Where `page` is a Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) and `request` is a [`Request`](/docs/api/request).
+Where `page` is a Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) and `request` is a [`Request`](/docs/api/request).
 
 The function is compiled by using the `scriptString` parameter as the function's body, so any limitations to function bodies apply. Return value of
 the compiled function is the return value of the function body = the `scriptString` parameter.

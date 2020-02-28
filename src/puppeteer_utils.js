@@ -27,7 +27,7 @@ const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.s
  * The function should be called on a newly-created page object before navigating to the target crawled page.
  *
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @return {Promise<void>}
  * @memberOf puppeteer
  * @ignore
@@ -78,7 +78,7 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  * File contents are cached for up to 10 files to limit file system access.
  *
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {string} filePath File path
  * @param {Object} [options]
  * @param {boolean} [options.surviveNavigations]
@@ -105,7 +105,7 @@ const injectFile = async (page, filePath, options = {}) => {
 };
 
 /**
- * Injects the [](https://jquery.com/) library into a Puppeteer page.
+ * Injects the [jQuery](https://jquery.com/) library into a Puppeteer page.
  * jQuery is often useful for various web scraping and crawling tasks.
  * For example, it can help extract text from HTML elements using CSS selectors.
  *
@@ -124,11 +124,11 @@ const injectFile = async (page, filePath, options = {}) => {
  * ```
  *
  * Note that `injectJQuery()` does not affect the Puppeteer's
- * [](https://pptr.dev/#?product=Puppeteer&show=api-pageselector)
+ * [`page.$()`](https://pptr.dev/#?product=Puppeteer&show=api-pageselector)
  * function in any way.
  *
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @return {Promise<*>}
  * @memberOf puppeteer
  */
@@ -138,7 +138,7 @@ const injectJQuery = (page) => {
 };
 
 /**
- * Injects the [](https://underscorejs.org/) library into a Puppeteer page.
+ * Injects the [Underscore](https://underscorejs.org/) library into a Puppeteer page.
  *
  * Beware that the injected Underscore object will be set to the `window._` variable and thus it might cause conflicts with
  * libraries included by the page that use the same variable name.
@@ -230,7 +230,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
  * ```
  *
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} [options]
  * @param {string[]} [options.urlPatterns]
  *   The patterns of URLs to block from being loaded by the browser.
@@ -282,7 +282,7 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
  *   This issue should be resolved or atleast mitigated in future iterations of this feature.
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} cache
  *   Object in which responses are stored
  * @param {Array<(string|RegExp)>} responseUrlRules
@@ -349,7 +349,7 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  *    request: Request,
  * }
  * ```
- * Where `page` is a Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+ * Where `page` is a Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
  * and `request` is a {@link Request}.
  *
  * The function is compiled by using the `scriptString` parameter as the function's body,
@@ -396,7 +396,7 @@ const compileScript = (scriptString, context = Object.create(null)) => {
  * browser cache which degrades performance.
  *
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Request} request
  * @param {DirectNavigationOptions} gotoOptions Custom options for `page.goto()`.
  * @return {Promise<(Response | null)>}
@@ -441,7 +441,7 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
  * Scrolls to the bottom of a page, or until it times out.
  * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} [options]
  * @param {number} [options.timeoutSecs=0]
  *   How many seconds to scroll for. If 0, will scroll until bottom of page.
@@ -510,7 +510,7 @@ export const infiniteScroll = async (page, options = {}) => {
 /**
  * Saves a full screenshot and HTML of the current page into a Key-Value store.
  * @param {Page} page
- *   Puppeteer [](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Object} [options]
  * @param {string} [options.key=SNAPSHOT]
  *   Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.

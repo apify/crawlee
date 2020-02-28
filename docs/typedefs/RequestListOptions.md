@@ -9,16 +9,24 @@ title: RequestListOptions
 
 ### `sources`
 
-**Type**: [`SourceInput`](/docs/typedefs/source-input)
+**Type**: [`Array<(RequestOptions|Request|string)>`](/docs/typedefs/request-options)
 
-An array of sources of URLs for the `RequestList`. It can be either an array of plain objects that define the `url` property, or an array of instances
-of the [`Request`](/docs/api/request) class. Additionally, the `requestsFromUrl` property may be used instead of `url`, which will instruct
-`RequestList` to download the source URLs from a given remote location. The URLs will be parsed from the received response.
+An array of sources of URLs for the [`RequestList`](/docs/api/request-list). It can be either an array of strings, plain objects that define at least
+the `url` property, or an array of [`Request`](/docs/api/request) instances.
+
+**IMPORTANT:** The `sources` array will be consumed (left empty) after `RequestList` initializes. This is a measure to prevent memory leaks in
+situations when millions of sources are added.
+
+Additionally, the `requestsFromUrl` property may be used instead of `url`, which will instruct `RequestList` to download the source URLs from a given
+remote location. The URLs will be parsed from the received response.
 
 ```
 [
     // A single URL
-    { method: 'GET', url: 'http://example.com/a/b' },
+    'http://example.com/a/b',
+
+    // Modify Request options
+    { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
 
     // Batch import of URLs from a file hosted on the web,
     // where the URLs should be requested using the HTTP POST request
@@ -35,6 +43,52 @@ of the [`Request`](/docs/api/request) class. Additionally, the `requestsFromUrl`
 
 ---
 
+### `sourcesFunction`
+
+**Type**: `function`
+
+A function that will be called to get the sources for the `RequestList`, but only if `RequestList` was not able to fetch their persisted version (see
+[`RequestListOptions.persistRequestsKey`](/docs/typedefs/request-list-options#persistrequestskey)). It must return an `Array` of
+[`Request`](/docs/api/request) or [`RequestOptions`](/docs/typedefs/request-options).
+
+This is very useful in a scenario when getting the sources is a resource intensive or time consuming task, such as fetching URLs from multiple
+sitemaps or parsing URLs from large datasets. Using the `sourcesFunction` in combination with `persistStateKey` and `persistRequestsKey` will allow
+you to fetch and parse those URLs only once, saving valuable time when your actor migrates or restarts.
+
+If both [`RequestListOptions.sources`](/docs/typedefs/request-list-options#sources) and
+[`RequestListOptions.sourcesFunction`](/docs/typedefs/request-list-options#sourcesfunction) are provided, the sources returned by the function will be
+added after the `sources`.
+
+**Example:**
+
+```javascript
+// Let's say we want to scrape URLs extracted from sitemaps.
+
+const sourcesFunction = async () => {
+    // With super large sitemaps, this operation could take very long
+    // and big websites typically have multiple sitemaps.
+    const sitemaps = await downloadHugeSitemaps();
+    return parseUrlsFromSitemaps(sitemaps);
+};
+
+// Sitemaps can change in real-time, so it's important to persist
+// the URLs we collected. Otherwise we might lose our scraping
+// state in case of an actor migration / failure / time-out.
+const requestList = new RequestList({
+    sourcesFunction,
+    persistStateKey: 'state-key',
+    persistRequestsKey: 'requests-key',
+});
+
+// The sourcesFunction is called now and the Requests are persisted.
+// If something goes wrong and we need to start again, RequestList
+// will load the persisted Requests from storage and will NOT
+// call the sourcesFunction again, saving time and resources.
+await requestList.initialize();
+```
+
+---
+
 ### `persistStateKey`
 
 **Type**: `string`
@@ -46,15 +100,15 @@ If `persistStateKey` is not set, `RequestList` will always start from the beginn
 
 ---
 
-### `persistSourcesKey`
+### `persistRequestsKey`
 
 **Type**: `string`
 
-Identifies the key in the default key-value store under which the `RequestList` persists its sources (i.e. the lists of URLs) during the
+Identifies the key in the default key-value store under which the `RequestList` persists its Requests during the
 [`RequestList.initialize()`](/docs/api/request-list#initialize) call. This is necessary if `persistStateKey` is set and the source URLs might
 potentially change, to ensure consistency of the source URLs and state object. However, it comes with some storage and performance overheads.
 
-If `persistSourcesKey` is not set, [`RequestList.initialize()`](/docs/api/request-list#initialize) will always fetch the sources from their origin,
+If `persistRequestsKey` is not set, [`RequestList.initialize()`](/docs/api/request-list#initialize) will always fetch the sources from their origin,
 check that they are consistent with the restored state (if any) and throw an error if they are not.
 
 ---
