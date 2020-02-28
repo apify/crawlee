@@ -11,12 +11,12 @@ import * as fsExtra from 'fs-extra';
 import * as mime from 'mime-types';
 import * as os from 'os';
 import * as path from 'path';
-import * as requestPromise from 'request-promise-native';
 import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
 import { USER_AGENT_LIST } from './constants';
+import * as requestUtils from './utils_request';
 import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
 
@@ -412,8 +412,9 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
     checkParamOrThrow(url, 'url', 'String');
     checkParamOrThrow(encoding, 'string', 'String');
     checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+    const { requestAsBrowser } = requestUtils;
 
-    const string = await requestPromise.get({ url, encoding });
+    const { body: string } = await requestAsBrowser({ url, encoding });
     return extractUrls({ string, urlRegExp });
 };
 

@@ -33,8 +33,6 @@ New requests are only dispatched when there is enough free CPU and memory availa
 **Example usage:**
 
 ```javascript
-const rp = require('request-promise-native');
-
 // Prepare a list of URLs to crawl
 const requestList = new Apify.RequestList({
     sources: [{ url: 'http://www.example.com/page-1' }, { url: 'http://www.example.com/page-2' }],
@@ -47,9 +45,10 @@ const crawler = new Apify.BasicCrawler({
     handleRequestFunction: async ({ request }) => {
         // 'request' contains an instance of the Request class
         // Here we simply fetch the HTML of the page and store it to a dataset
+        const { body } = await Apify.utils.requestAsBrowser(request);
         await Apify.pushData({
             url: request.url,
-            html: await rp(request.url),
+            html: body,
         });
     },
 });

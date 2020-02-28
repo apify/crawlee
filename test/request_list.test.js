@@ -1,12 +1,12 @@
 import _ from 'underscore';
-import request from 'request-promise-native';
 import sinon from 'sinon';
 import log from '../build/utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
+import { deserializeArray } from '../build/serialization';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
-import { deserializeArray } from '../build/serialization';
+import * as requestUtils from '../build/utils_request';
 
 describe('Apify.RequestList', () => {
     let ll;
@@ -154,14 +154,14 @@ describe('Apify.RequestList', () => {
     );
 
     test('should use regex parameter to parse urls', async () => {
-        const mock = sinon.mock(request);
+        const mock = sinon.mock(requestUtils);
         const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
         const listArr = ['https://example.com', 'HTTP://google.com'];
 
-        mock.expects('get')
+        mock.expects('requestAsBrowser')
             .once()
             .withArgs({ url: 'http://example.com/list-1', encoding: 'utf8' })
-            .returns(Promise.resolve(listStr));
+            .resolves({ body: listStr });
 
         const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
         const requestList = new Apify.RequestList({

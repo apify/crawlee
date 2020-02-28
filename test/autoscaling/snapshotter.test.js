@@ -90,9 +90,9 @@ describe('Snapshotter', () => {
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
         const cpuSnapshots = snapshotter.getCpuSample();
 
-        expect(cpuSnapshots.length).toBeGreaterThan(2);
-        expect(memorySnapshots.length).toBeGreaterThan(2);
-        expect(eventLoopSnapshots.length).toBeGreaterThan(4);
+        expect(cpuSnapshots.length).toBeGreaterThanOrEqual(2);
+        expect(memorySnapshots.length).toBeGreaterThanOrEqual(2);
+        expect(eventLoopSnapshots.length).toBeGreaterThanOrEqual(4);
     });
 
     test('correctly marks CPU overloaded using Platform event', async () => {
