@@ -122,7 +122,7 @@ export class SessionPool extends EventEmitter {
      * Removes listener from `persistState` event.
      * This function should be called after you are done with using the `SessionPool` instance.
      */
-    teardown(): void;
+    teardown(): Promise<void>;
     /**
      * Removes `Session` instance from `SessionPool`.
      * @param {Session} session  - Session to be removed
