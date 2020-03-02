@@ -307,7 +307,7 @@ class BasicCrawler {
             await this.isRunningPromise;
         } finally {
             if (this.useSessionPool) {
-                this.sessionPool.teardown();
+                await this.sessionPool.teardown();
             }
 
             this.stats.stopLogging();

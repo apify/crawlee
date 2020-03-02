@@ -311,9 +311,9 @@ class PuppeteerCrawler {
             await this.isRunningPromise;
         } finally {
             if (this.useSessionPool) {
-                this.sessionPool.teardown();
+                await this.sessionPool.teardown();
             }
-            this.puppeteerPool.destroy();
+            await this.puppeteerPool.destroy();
         }
     }
 
