@@ -1,4 +1,4 @@
-0.20.0 /
+0.20.0 / 2020-03-03
 ====================
 - **BREAKING:** `Apify.utils.requestAsBrowser()` no longer aborts request on status code 406
   or when other than `text/html` type is received. Use `options.abortFunction` if you want to
@@ -18,12 +18,18 @@
   and will only be called if persisted `Requests` were not retrieved from key-value store.
   Use it to reduce memory spikes and also to make sure that your sources are not re-created
   on actor restarts.
+- Updated `stealth` hiding of `webdriver` to avoid recent detections.
+- `Apify.utils.log` now points to an updated logger instance which prints colored logs (in TTY)
+  and supports overriding with custom loggers.
 - Improved `Apify.launchPuppeteer()` code to prevent triggering bugs in Puppeteer by passing
   more than required options to `puppeteer.launch()`.
 - Documented `BasicCrawler.autoscaledPool` property, and added `CheerioCrawler.autoscaledPool`
   and `PuppeteerCrawler.autoscaledPool` properties.
+- `SessionPool` now persists state on `teardown`. Before, it only persisted state every minute.
+  This ensures that after a crawler finishes, the state is correctly persisted.
 - Added TypeScript typings and typedef documentation for all entities used throughout SDK.
-- Upgraded `proxy-chain` NPM package from 0.2.7 to 0.3.3
+- Upgraded `proxy-chain` NPM package from 0.2.7 to 0.4.1 and many other dependencies
+- Removed all usage of the now deprecated `request` package.
 
 0.19.1 / 2020-01-30
 ====================
