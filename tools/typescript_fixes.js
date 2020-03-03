@@ -138,7 +138,7 @@ const traverseDirs = async (dir, filter, handleFile) => {
     return types;
 };
 
-const EXCLUDED_FROM_EXPORT = [/^(Session(Pool)?)$/, /^RequestList$/, /Local$/];
+const EXCLUDED_FROM_EXPORT = [/^Session$/, /^RequestList$/, /Local$/];
 
 /**
  * Blindly extracts exported typenames from a `*.d.ts` file.

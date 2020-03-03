@@ -132,7 +132,7 @@ export { RequestListOptions, RequestListState } from "./request_list";
 export { RequestQueue, QueueOperationInfo } from "./request_queue";
 export { CookieParseError } from "./session_pool/errors";
 export { SessionState, SessionOptions } from "./session_pool/session";
-export { CreateSession, SessionPoolOptions } from "./session_pool/session_pool";
+export { SessionPool, CreateSession, SessionPoolOptions } from "./session_pool/session_pool";
 export { StealthOptions } from "./stealth/stealth";
 export { ActorRun } from "./typedefs";
 export { MemoryInfo } from "./utils";
