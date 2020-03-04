@@ -623,7 +623,7 @@ export const openKeyValueStore = (storeIdOrName, options = {}) => {
  * const value = await store.getValue('my-key');
  * ```
  *
- * To store the value to the default-key value store, you can use the {@link Apify#setValue} function.
+ * To store the value to the default key-value store, you can use the {@link Apify#setValue} function.
  *
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
@@ -660,7 +660,7 @@ export const getValue = async (key) => {
  * await store.setValue('OUTPUT', { foo: "bar" });
  * ```
  *
- * To get a value from the default-key value store, you can use the  {@link Apify#getValue} function.
+ * To get a value from the default key-value store, you can use the  {@link Apify#getValue} function.
  *
  * For more information, see  {@link Apify#openKeyValueStore}
  * and  {@link KeyValueStore#getValue}.
