@@ -758,7 +758,7 @@ export class RequestList {
  *
  * {@link RequestList} represents a list of URLs to crawl, which is always stored in memory.
  * To enable picking up where left off after a process restart, the request list sources
- * are persisted to the key value store at initialization of the list. Then, while crawling,
+ * are persisted to the key-value store at initialization of the list. Then, while crawling,
  * a small state object is regularly persisted to keep track of the crawling status.
  *
  * For more details and code examples, see the {@link RequestList} class.
@@ -777,11 +777,11 @@ export class RequestList {
  *
  * @param {string|null} listName
  *   Name of the request list to be opened. Setting a name enables the `RequestList`'s state to be persisted
- *   in the key value store. This is useful in case of a restart or migration. Since `RequestList` is only
+ *   in the key-value store. This is useful in case of a restart or migration. Since `RequestList` is only
  *   stored in memory, a restart or migration wipes it clean. Setting a name will enable the `RequestList`'s
  *   state to survive those situations and continue where it left off.
  *
- *   The name will be used as a prefix in key value store, producing keys such as `NAME-REQUEST_LIST_STATE`
+ *   The name will be used as a prefix in key-value store, producing keys such as `NAME-REQUEST_LIST_STATE`
  *   and `NAME-REQUEST_LIST_SOURCES`.
  *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
