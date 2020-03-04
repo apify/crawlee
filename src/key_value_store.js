@@ -123,7 +123,7 @@ export const maybeStringify = (value, options) => {
  * ```
  * {APIFY_LOCAL_STORAGE_DIR}/key_value_stores/{STORE_ID}/{INDEX}.{EXT}
  * ```
- * Note that `{STORE_ID}` is the name or ID of the key-value store. The default key value store has ID: `default`,
+ * Note that `{STORE_ID}` is the name or ID of the key-value store. The default key-value store has ID: `default`,
  * unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
@@ -305,7 +305,7 @@ export class KeyValueStore {
 
     /**
      * Returns a URL for the given key that may be used to publicly
-     * access the value in the remote key value store.
+     * access the value in the remote key-value store.
      *
      * @param {string} key
      * @return {string}
@@ -315,7 +315,7 @@ export class KeyValueStore {
     }
 
     /**
-     * Iterates over key value store keys, yielding each in turn to an `iteratee` function.
+     * Iterates over key-value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
      * is the record key, `index` is a zero-based index of the key in the current iteration
      * (regardless of `options.exclusiveStartKey`) and `info` is an object that contains a single property `size`
@@ -332,7 +332,7 @@ export class KeyValueStore {
      * });
      * ```
      *
-     * @param {KeyConsumer} iteratee A function that is called for every key in the key value store.
+     * @param {KeyConsumer} iteratee A function that is called for every key in the key-value store.
      * @param {Object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
@@ -598,7 +598,7 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
 export const openKeyValueStore = (storeIdOrName, options = {}) => {
     checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
     checkParamOrThrow(options, 'options', 'Object');
-    ensureTokenOrLocalStorageEnvExists('key value store');
+    ensureTokenOrLocalStorageEnvExists('key-value store');
 
     const { forceCloud = false } = options;
     checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
