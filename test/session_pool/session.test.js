@@ -176,6 +176,23 @@ describe('Session - testing session behaviour ', () => {
         expect(session.getCookieString(url)).toBe('cookie1=my-cookie; cookie2=your-cookie');
     });
 
+    test('get state should work', async () => {
+        const url = 'https://example.com';
+        const cookies = [
+            { name: 'cookie1', value: 'my-cookie' },
+            { name: 'cookie2', value: 'your-cookie' },
+        ];
+
+        const newSession = await sessionPool.getSession();
+        newSession.setPuppeteerCookies(cookies, url);
+
+        const state = sessionPool.getState();
+        expect(state).toBeInstanceOf(Object);
+        expect(state).toHaveProperty('usableSessionsCount');
+        expect(state).toHaveProperty('retiredSessionsCount');
+        expect(state).toHaveProperty('sessions');
+    });
+
     describe('.putResponse & .getCookieString', () => {
         test('should set and update cookies from "set-cookie" header', () => {
             const headers = {};
