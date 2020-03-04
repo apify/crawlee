@@ -14,6 +14,9 @@ import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
+// CONSTANTS
+const MAX_AGES_SECS = 3000;
+
 /**
  * Persistable {@link Session} state.
  * @typedef SessionState
@@ -65,7 +68,7 @@ export class Session {
         const {
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
-            maxAgeSecs = 3000,
+            maxAgeSecs = MAX_AGES_SECS,
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
@@ -76,7 +79,7 @@ export class Session {
             sessionPool,
         } = options;
 
-        const { expiresAt = new Date(Date.now() + (maxAgeSecs * 1000)) } = options;
+        const { expiresAt = this._calculateNewDate() } = options;
 
         // Validation
         checkParamOrThrow(id, 'options.id', 'String');
@@ -298,10 +301,11 @@ export class Session {
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie) {
+        const expiresDate = puppeteerCookie.expires ? puppeteerCookie.expires : this._calculateNewDate();
         return new Cookie({
             key: puppeteerCookie.name,
             value: puppeteerCookie.value,
-            expires: new Date(puppeteerCookie.expires),
+            expires: expiresDate,
             domain: puppeteerCookie.domain,
             path: puppeteerCookie.path,
             secure: puppeteerCookie.secure,
@@ -337,5 +341,14 @@ export class Session {
         for (const cookie of cookies) {
             this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
         }
+    }
+
+    /**
+     * Calculate new date
+     * @private
+     * @return {Date} - calculated date now and  max ages secs constant.
+     */
+    _calculateNewDate() {
+        return new Date(Date.now() + (MAX_AGES_SECS * 1000));
     }
 }
