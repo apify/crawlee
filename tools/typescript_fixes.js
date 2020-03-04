@@ -138,7 +138,7 @@ const traverseDirs = async (dir, filter, handleFile) => {
     return types;
 };
 
-// const EXCLUDED_FROM_EXPORT = [/Session/, /RequestList/, /Local$/];
+const EXCLUDED_FROM_EXPORT = [/^Session$/, /^RequestList$/, /Local$/];
 
 /**
  * Blindly extracts exported typenames from a `*.d.ts` file.
@@ -150,10 +150,9 @@ const readTypes = (filepath) => {
     const inputByLine = input.split('\n');
     const types = [];
     for (const line of inputByLine) {
-        const matches = line.match(/^export type ([^<\s]+)/); // get exported types without generic Export<T>
+        const matches = line.match(/^export (?:type|class) ([^<\s]+)/); // get exported types without generic Export<T>
         debug('readTypes', !!matches, line);
-        // && !EXCLUDED_FROM_EXPORT.some(s => s.test(matches[1]))
-        if (matches) {
+        if (matches && !EXCLUDED_FROM_EXPORT.some(s => s.test(matches[1]))) {
             types.push(matches[1]);
         }
     }
