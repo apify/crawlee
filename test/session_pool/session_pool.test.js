@@ -143,6 +143,22 @@ describe('SessionPool - testing session pool', () => {
         );
     });
 
+    test('get state should work', async () => {
+        const url = 'https://example.com';
+        const cookies = [
+            { name: 'cookie1', value: 'my-cookie' },
+            { name: 'cookie2', value: 'your-cookie' },
+        ];
+
+        const newSession = await sessionPool.getSession();
+        newSession.setPuppeteerCookies(cookies, url);
+
+        const state = sessionPool.getState();
+        expect(state).toBeInstanceOf(Object);
+        expect(state).toHaveProperty('usableSessionsCount');
+        expect(state).toHaveProperty('retiredSessionsCount');
+        expect(state).toHaveProperty('sessions');
+    });
 
     test('should persist state and recreate it from storage', async () => {
         await sessionPool.getSession();
