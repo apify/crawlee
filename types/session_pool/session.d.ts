@@ -181,6 +181,12 @@ export class Session {
      * @private
      */
     _setCookies(cookies: Cookie[], url: string): void;
+    /**
+     * Calculate default cookie expiration date
+     * @private
+     * @return {Date} - calculated date by default session max age seconds.
+     */
+    _getDefaultCookieExpirationDate(): Date;
 }
 /**
  * Persistable {@link Session} state.
