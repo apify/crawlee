@@ -15,7 +15,7 @@ import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
 // CONSTANTS
-const MAX_AGES_SECS = 3000;
+const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
 
 /**
  * Persistable {@link Session} state.
@@ -68,7 +68,7 @@ export class Session {
         const {
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
-            maxAgeSecs = MAX_AGES_SECS,
+            maxAgeSecs = DEFAULT_SESSION_MAX_AGE_SECS,
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
@@ -79,7 +79,7 @@ export class Session {
             sessionPool,
         } = options;
 
-        const { expiresAt = this._calculateNewDate() } = options;
+        const { expiresAt = this._getDefaultCookieExpirationDate() } = options;
 
         // Validation
         checkParamOrThrow(id, 'options.id', 'String');
@@ -301,11 +301,12 @@ export class Session {
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie) {
-        const expiresDate = puppeteerCookie.expires ? puppeteerCookie.expires : this._calculateNewDate();
+        const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
+        const expires = isExpiresValid ? puppeteerCookie.expires : this._getDefaultCookieExpirationDate();
         return new Cookie({
             key: puppeteerCookie.name,
             value: puppeteerCookie.value,
-            expires: expiresDate,
+            expires,
             domain: puppeteerCookie.domain,
             path: puppeteerCookie.path,
             secure: puppeteerCookie.secure,
@@ -344,11 +345,11 @@ export class Session {
     }
 
     /**
-     * Calculate new date
+     * Calculate default cookie expiration date
      * @private
-     * @return {Date} - calculated date now and  max ages secs constant.
+     * @return {Date} - calculated date by default session max age seconds.
      */
-    _calculateNewDate() {
-        return new Date(Date.now() + (MAX_AGES_SECS * 1000));
+    _getDefaultCookieExpirationDate() {
+        return new Date(Date.now() + (DEFAULT_SESSION_MAX_AGE_SECS * 1000));
     }
 }
