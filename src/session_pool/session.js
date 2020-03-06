@@ -345,11 +345,11 @@ export class Session {
     }
 
     /**
-     * Calculate default cookie expiration date
+     * Calculate cookie expiration date
      * @private
-     * @return {Date} - calculated date by default session max age seconds.
+     * @return {Date} - calculated date by session max age seconds.
      */
     _getDefaultCookieExpirationDate() {
-        return new Date(Date.now() + (DEFAULT_SESSION_MAX_AGE_SECS * 1000));
+        return new Date(Date.now() + (this.maxAgeSecs * 1000));
     }
 }
