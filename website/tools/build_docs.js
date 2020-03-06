@@ -1,13 +1,11 @@
 const decamelize = require('decamelize');
-const fs = require('fs');
+const fs = require('fs-extra');
 const jsdoc2md = require('jsdoc-to-markdown'); // eslint-disable-line
 const path = require('path');
 const prettier = require('prettier'); // eslint-disable-line
 const readline = require('readline');
-const { promisify } = require('util');
 const prettierConfig = require('./prettier.config');
 
-const writeFile = promisify(fs.writeFile);
 const BASE_URL = '/docs';
 
 /* eslint-disable no-shadow */
@@ -156,7 +154,7 @@ const main = async () => {
         const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
         const header = getHeader(title);
         const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, prettierConfig);
-        await writeFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
+        await fs.outputFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
     });
 
     await Promise.all(examplePromises);
@@ -197,34 +195,36 @@ const main = async () => {
 
     const output = jsdoc2md.renderSync(getRenderOptions(template, finalData));
     const markdown = generateFinalMarkdown(mainModule, output, entityMap);
-    fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${mainModule}.md`), markdown);
+    await fs.outputFile(path.resolve(sourceFilesOutputDir, `${mainModule}.md`), markdown);
 
     // create a doc file file for each class
-    classNames.forEach((className) => {
+    const cPs = classNames.map(async (className) => {
         const template = `{{#class name="${className}"}}{{>docs}}{{/class}}`;
         console.log(`Rendering ${className}, template: ${template}`); // eslint-disable-line no-console
         const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
         const markdown = generateFinalMarkdown(className, output, entityMap);
-        fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${className}.md`), markdown);
+        await fs.outputFile(path.resolve(sourceFilesOutputDir, `${className}.md`), markdown);
     });
 
     // create a doc file file for each namespace
-    namespaces.forEach((name) => {
+    const nPs = namespaces.map(async (name) => {
         const template = `{{#namespace name="${name}"}}{{>docs}}{{/namespace}}`;
         console.log(`Rendering ${name}, template: ${template}`); // eslint-disable-line no-console
         const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
         const markdown = generateFinalMarkdown(name, output, entityMap);
-        fs.writeFileSync(path.resolve(sourceFilesOutputDir, `${name}.md`), markdown);
+        await fs.outputFile(path.resolve(sourceFilesOutputDir, `${name}.md`), markdown);
     });
 
     // create a doc file for each type
-    typedefs.forEach((name) => {
+    const tPs = typedefs.map(async (name) => {
         const template = `{{#identifier name="${name}"}}{{>docs}}{{/identifier}}`;
         console.log(`Rendering ${name}, template: ${template}`); // eslint-disable-line no-console
         const output = jsdoc2md.renderSync(getRenderOptions(template, templateData));
         const markdown = generateFinalMarkdown(name, output, entityMap);
-        fs.writeFileSync(path.resolve(typeFilesOutputDir, `${name}.md`), markdown);
+        await fs.outputFile(path.resolve(typeFilesOutputDir, `${name}.md`), markdown);
     });
+
+    await Promise.all([...cPs, ...nPs, ...tPs]);
 };
 
-main();
+main().then(() => console.log('All docs built succesfully.'));
