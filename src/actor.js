@@ -171,7 +171,7 @@ export const getEnv = () => {
  *   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
  *   it sets up a connection to listen for platform events.
  *   For example, to get a notification about an imminent migration to another server.
- *   See [](apify#apifyevents) for details.
+ *   See {@link Apify.events} for details.
  *   </li>
  *   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
  *   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
@@ -195,7 +195,7 @@ export const getEnv = () => {
  *
  * If the user function returns a promise, it is considered asynchronous:
  * ```javascript
- * const request = require('request-promise-native');
+ * const { requestAsBrowser } = require('some-request-library');
  *
  * Apify.main(() => {
  *   // My asynchronous function that returns a promise
@@ -208,7 +208,7 @@ export const getEnv = () => {
  * To simplify your code, you can take advantage of the `async`/`await` keywords:
  *
  * ```javascript
- * const request = require('request-promise-native');
+ * const request = require('some-request-library');
  *
  * Apify.main(async () => {
  *   // My asynchronous function

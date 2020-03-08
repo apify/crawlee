@@ -1,4 +1,8 @@
-0.20.0 /
+NEXT
+====================
+
+
+0.20.0 / 2020-03-03
 ====================
 - **BREAKING:** `Apify.utils.requestAsBrowser()` no longer aborts request on status code 406
   or when other than `text/html` type is received. Use `options.abortFunction` if you want to
@@ -7,12 +11,29 @@
   is `true` by default and forces the function to use a HTTP parser that is less strict than
   default Node 12 parser, but also less secure. It is needed to be able to bypass certain
   anti-scraping walls and fetch websites that do not comply with HTTP spec.
+- **BREAKING:** `RequestList` now removes all the elements from the `sources` array on
+  initialization. If you need to use the sources somewhere else, make a copy. This change
+  was added as one of several measures to improve memory management of `RequestList`
+  in scenarios with very large amount of `Request` instances.
+- **DEPRECATED:** `RequestListOptions.persistSourcesKey` is now deprecated. Please use
+  `RequestListOptions.persistRequestsKey`.
+- `RequestList.sources` can now be an array of `string` URLs as well.
+- Added `sourcesFunction` to `RequestListOptions`. It enables dynamic fetching of sources
+  and will only be called if persisted `Requests` were not retrieved from key-value store.
+  Use it to reduce memory spikes and also to make sure that your sources are not re-created
+  on actor restarts.
+- Updated `stealth` hiding of `webdriver` to avoid recent detections.
+- `Apify.utils.log` now points to an updated logger instance which prints colored logs (in TTY)
+  and supports overriding with custom loggers.
 - Improved `Apify.launchPuppeteer()` code to prevent triggering bugs in Puppeteer by passing
   more than required options to `puppeteer.launch()`.
-- Documented `BasicCrawler.autoscaledPool` property,
-  and added `CheerioCrawler.autoscaledPool` and `PuppeteerCrawler.autoscaledPool` properties.
+- Documented `BasicCrawler.autoscaledPool` property, and added `CheerioCrawler.autoscaledPool`
+  and `PuppeteerCrawler.autoscaledPool` properties.
+- `SessionPool` now persists state on `teardown`. Before, it only persisted state every minute.
+  This ensures that after a crawler finishes, the state is correctly persisted.
 - Added TypeScript typings and typedef documentation for all entities used throughout SDK.
-- Upgraded `proxy-chain` NPM package from 0.2.7 to 0.3.3
+- Upgraded `proxy-chain` NPM package from 0.2.7 to 0.4.1 and many other dependencies
+- Removed all usage of the now deprecated `request` package.
 
 0.19.1 / 2020-01-30
 ====================
