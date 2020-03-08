@@ -52,6 +52,8 @@ import { RequestTransform } from './shared';
  * @param {Page} [options.page]
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
+ * @param {Number} [options.limit]
+ *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
  * @param {CheerioStatic} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
@@ -139,7 +141,9 @@ export async function enqueueLinks(options = {}) {
     if (transformRequestFunction) {
         requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
     }
-    const requests = createRequests(requestOptions, pseudoUrlInstances).slice(0, limit);
+    let requests = createRequests(requestOptions, pseudoUrlInstances);
+    if (limit) requests = requests.slice(0, limit);
+
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 

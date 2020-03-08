@@ -35,6 +35,8 @@
  * @param {Page} [options.page]
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
+ * @param {Number} [options.limit]
+ *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
  * @param {CheerioStatic} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
@@ -82,6 +84,7 @@
  */
 export function enqueueLinks(options?: {
     page?: Page;
+    limit?: number;
     $?: CheerioStatic;
     requestQueue: RequestQueue;
     selector?: string;
