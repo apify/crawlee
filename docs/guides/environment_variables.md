@@ -8,7 +8,7 @@ The following is a list of the environment variables used by Apify SDK that are 
 ## `APIFY_HEADLESS`
 If set to `1`, web browsers launched by Apify SDK will run in the headless mode. You can still override
 this setting in the code, e.g. by passing the `headless: true` option to the
-[`Apify.launchPuppeteer()`](/docs/api/apify#apifylaunchpuppeteeroptions) function. But having this setting
+[`Apify.launchPuppeteer()`](/docs/api/apify#launchpuppeteer) function. But having this setting
 in an environment variable allows you to develop the crawler locally in headful mode to simplify the debugging,
 and only run the crawler in headless mode once you deploy it to the Apify Cloud. By default, the browsers
 are launched in headful mode, i.e. with windows.
