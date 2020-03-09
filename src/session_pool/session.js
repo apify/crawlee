@@ -79,7 +79,7 @@ export class Session {
             sessionPool,
         } = options;
 
-        const { expiresAt = this._getDefaultCookieExpirationDate() } = options;
+        const { expiresAt = this._getDefaultCookieExpirationDate(maxAgeSecs) } = options;
 
         // Validation
         checkParamOrThrow(id, 'options.id', 'String');
@@ -264,8 +264,9 @@ export class Session {
      * @param {string} url
      */
     setPuppeteerCookies(cookies, url) {
+        const that = this;
         try {
-            this._setCookies(cookies.map(this._puppeteerCookieToTough), url);
+            this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(that)), url);
         } catch (e) {
             // if invalid cookies are provided just log the exception. No need to retry the request automatically.
             log.exception(e, 'Session: Could not set cookies in puppeteer format.');
@@ -302,7 +303,7 @@ export class Session {
      */
     _puppeteerCookieToTough(puppeteerCookie) {
         const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
-        const expires = isExpiresValid ? puppeteerCookie.expires : this._getDefaultCookieExpirationDate();
+        const expires = isExpiresValid ? new Date(puppeteerCookie.expires) : this._getDefaultCookieExpirationDate(this.maxAgeSecs);
         return new Cookie({
             key: puppeteerCookie.name,
             value: puppeteerCookie.value,
@@ -346,10 +347,9 @@ export class Session {
 
     /**
      * Calculate cookie expiration date
-     * @private
      * @return {Date} - calculated date by session max age seconds.
      */
-    _getDefaultCookieExpirationDate() {
-        return new Date(Date.now() + (this.maxAgeSecs * 1000));
+    _getDefaultCookieExpirationDate(maxAgeSecs) {
+        return new Date(Date.now() + (maxAgeSecs * 1000));
     }
 }
