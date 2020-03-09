@@ -26,16 +26,10 @@ jobs:
     - script: .travis/check-user-agent.js
   include:
   - stage: test
-    name: Lint&Docs
+    name: Lint&User-Agent
     node_js: '10'
     script:
-    - "(cd website && npm install --no-package-lock)"
-    - npm run lint && node .travis/check-docs.js
-  - stage: test
-    name: Check User-Agent
-    node_js: '10'
-    script:
-    - node .travis/check-user-agent.js
+    - npm run lint && node .travis/check-user-agent.js
   - stage: deploy
     if: (branch = master AND type != pull_request) OR tag =~ /^v\d+\.\d+\.\d+$/
     script: skip

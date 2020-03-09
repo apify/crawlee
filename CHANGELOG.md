@@ -1,3 +1,7 @@
+NEXT
+====================
+
+
 0.20.0 / 2020-03-03
 ====================
 - **BREAKING:** `Apify.utils.requestAsBrowser()` no longer aborts request on status code 406
