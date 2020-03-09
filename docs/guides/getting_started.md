@@ -205,7 +205,7 @@ Apify.main(async () => {
 > If you're not familiar with the `async` and `await` keywords used in the example, trust that it is a native syntax in modern JavaScript and you can
 > [learn more about it here](https://nikgrozev.com/2017/10/01/async-await/).
 
-The [`requestQueue.addRequest()`](/docs/api/request-queue#requestqueueaddrequestrequest-options) function automatically converts the plain object we passed to it to a
+The [`requestQueue.addRequest()`](/docs/api/request-queue#addrequest) function automatically converts the plain object we passed to it to a
 `Request` instance, so now we have a `requestQueue` that holds one `request` which points to `https://apify.com`. Now we need the
 `handlePageFunction`.
 
@@ -543,7 +543,7 @@ It also allows you to modify the resulting `Requests` to match your crawling nee
 
 `enqueueLinks` is quite a powerful function so, like crawlers, it gets its arguments from an options object. This is useful, because you don't have to
 remember their order! But also because we can easily extend its API and add new features. You can
-[find the full reference here](/docs/api/utils#utilsenqueuelinksoptions).
+[find the full reference here](/docs/api/utils#enqueuelinks).
 
 We suggest using ES6 destructuring to grab the `enqueueLinks()` function off of the `utils` object, so you don't have to type `Apify.utils` all the
 time.
@@ -1479,7 +1479,7 @@ Apify.main(async () => {
 
 #### What's `Apify.pushData()`
 
-[`Apify.pushData()`](/docs/api/apify#apifypushdataitem) is a helper function that saves data to the default [`Dataset`](/docs/api/dataset). `Dataset` is a
+[`Apify.pushData()`](/docs/api/apify#pushdata) is a helper function that saves data to the default [`Dataset`](/docs/api/dataset). `Dataset` is a
 storage designed to hold virtually unlimited amount of data in a format similar to a table. Each time you call `Apify.pushData()` a new row in the
 table is created, with the property names serving as column titles.
 
@@ -1534,7 +1534,7 @@ const input = await Apify.getInput();
 ```
 
 On the Apify Platform, the actor's input that you can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT`
-and by calling [`Apify.getInput()`](/docs/api/apify#apifygetvaluekey) you retrieve the value from the `KeyValueStore`.
+and by calling [`Apify.getInput()`](/docs/api/apify#getvalue) you retrieve the value from the `KeyValueStore`.
 
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
