@@ -1,6 +1,6 @@
 /**
  * This example demonstrates how to read and write data to the default key-value store using
- * [`Apify.getValue()`](/docs/api/apify#apifygetvaluekey) and [`Apify.setValue()`](/docs/api/apify#apifysetvaluekey-value-options).
+ * [`Apify.getValue()`](/docs/api/apify#getvalue) and [`Apify.setValue()`](/docs/api/apify#setvalue).
  *
  * The script crawls a list of URLs using Puppeteer,
  * captures a screenshot of each page and saves it to the store. The list of URLs is
