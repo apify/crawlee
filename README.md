@@ -18,7 +18,7 @@ running on the [Apify Cloud](https://apify.com/).
 
 ## Motivation
 
-Thanks to tools like [Puppeteer](https://github.com/GoogleChrome/puppeteer) or
+Thanks to tools like [Puppeteer](https://github.com/puppeteer/puppeteer) or
 [Cheerio](https://www.npmjs.com/package/cheerio), it is easy to write Node.js code to extract data from web pages. But
 eventually things will get complicated. For example, when you try to:
 
@@ -49,7 +49,7 @@ number of web pages using the [cheerio](https://www.npmjs.com/package/cheerio) H
 efficient web crawler, but it does not work on websites that require JavaScript.
 
 - [`PuppeteerCrawler`](https://sdk.apify.com/docs/api/puppeteer-crawler) - Enables the parallel crawling of
-a large number of web pages using the headless Chrome browser and [Puppeteer](https://github.com/GoogleChrome/puppeteer).
+a large number of web pages using the headless Chrome browser and [Puppeteer](https://github.com/puppeteer/puppeteer).
 The pool of Chrome browsers is automatically scaled up and down based on available system resources.
 
 - [`PuppeteerPool`](https://sdk.apify.com/docs/api/puppeteer-pool) - Provides web browser tabs for user jobs

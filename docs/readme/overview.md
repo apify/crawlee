@@ -11,7 +11,7 @@ number of web pages using the [cheerio](https://www.npmjs.com/package/cheerio) H
 efficient web crawler, but it does not work on websites that require JavaScript.
 
 - [`PuppeteerCrawler`](https://sdk.apify.com/docs/api/puppeteer-crawler) - Enables the parallel crawling of
-a large number of web pages using the headless Chrome browser and [Puppeteer](https://github.com/GoogleChrome/puppeteer).
+a large number of web pages using the headless Chrome browser and [Puppeteer](https://github.com/puppeteer/puppeteer).
 The pool of Chrome browsers is automatically scaled up and down based on available system resources.
 
 - [`PuppeteerPool`](https://sdk.apify.com/docs/api/puppeteer-pool) - Provides web browser tabs for user jobs

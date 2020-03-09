@@ -154,7 +154,7 @@ const injectJQuery = (page) => {
  * });
  * ```
  *
- * @param {Page} page Puppeteer [Page](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-page) object.
+ * @param {Page} page Puppeteer [Page](https://github.com/puppeteer/puppeteer/blob/master/docs/api.md#class-page) object.
  * @return {Promise<*>}
  * @memberOf puppeteer
  */
@@ -563,7 +563,7 @@ let logEnqueueLinksDeprecationWarning = true;
 
 /**
  * A namespace that contains various utilities for
- * [Puppeteer](https://github.com/GoogleChrome/puppeteer) - the headless Chrome Node API.
+ * [Puppeteer](https://github.com/puppeteer/puppeteer) - the headless Chrome Node API.
  *
  * **Example usage:**
  *

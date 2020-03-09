@@ -139,7 +139,6 @@
                 "label": "Return Types",
                 "ids": [
                     "typedefs/actor-run",
-                    "typedefs/apify-call-error",
                     "typedefs/apify-env",
                     "typedefs/dataset-content",
                     "typedefs/memory-info",
