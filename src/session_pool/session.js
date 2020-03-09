@@ -264,9 +264,8 @@ export class Session {
      * @param {string} url
      */
     setPuppeteerCookies(cookies, url) {
-        const that = this;
         try {
-            this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(that)), url);
+            this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(this)), url);
         } catch (e) {
             // if invalid cookies are provided just log the exception. No need to retry the request automatically.
             log.exception(e, 'Session: Could not set cookies in puppeteer format.');
