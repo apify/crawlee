@@ -693,7 +693,7 @@ export const setValue = async (key, value, options) => {
 /**
  * Gets the actor input value from the default {@link KeyValueStore} associated with the current actor run.
  *
- * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](key-value-store#keyvaluestoregetvaluekey).
+ * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](key-value-store#getvalue).
  * For example, calling the following code:
  * ```javascript
  * const input = await Apify.getInput();
