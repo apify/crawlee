@@ -11,90 +11,53 @@ Important to mention is that both functions just return a new array with the res
 they don't update the dataset in any way.
 
 Examples for both methods are going to be demonstrated on a simple Dataset that contains results of a
-scraped page with the URL and number of h1 - h3 header elements.
+scraped page with the `URL` and number of h1 - h3 header elements under `headingCount` key.
 
 ```javascript
 const datasetItems = [
     {
         "url": "https://apify.com/",
-        "h1texts": 1,
-        "h2texts": 3,
-        "h3texts": 7
+        "headingCount": 11,
     },
     {
         "url": "https://apify.com/storage",
-        "h1texts": 1,
-        "h2texts": 4,
-        "h3texts": 3
+        "headingCount": 8,
     },
     {
         "url": "https://apify.com/proxy",
-        "h1texts": 1,
-        "h2texts": 3,
-        "h3texts": 3
+        "headingCount": 4,
     }];
 ```
-
 
 The Dataset Map method is very similar to standard mapping methods on an Array.
 It Produces a new array of values by mapping each value in the list through a transformation function
  and options parameter.
-In the incoming example is the map method used to check if are there more than 3 elements for
-a header category at each page.
+The map method used to check if are there more than 5 header elements on each page in the incoming example.
 
 ```javascript
-Apify.main(async () => {
-    const maxOfHeaders = 3;
-    const maxHeaderMessage = 'There are more than 3 of these elements here!';
+const Apify = require('apify');
 
+Apify.main(async () => {
     // open dataset
     const dataSet = await Apify.openDataset();
     // setting items to dataSet
     await dataSet.pushData(datasetItems); // <-- insert example dataset items
 
-    // call map function with iteratee function as a parameter
-    const pageHeadersStatistics = await dataSet.map((element, index) => {
-        if (element.h1texts > maxOfHeaders) element.h1texts = maxHeaderMessage;
-        if (element.h2texts > maxOfHeaders) element.h2texts = maxHeaderMessage;
-        if (element.h3texts > maxOfHeaders) element.h3texts = maxHeaderMessage;
-
-        return element;
-    });
-
+    // calling map function and filtering through mapped items
+    const pagesWithMoreThan5headers = (await dataSet.map(item => item.headingCount)).filter(count => count > 5);
 });
 ```
 
-The pageHeaderStatistic variable will consist of new items where when there are more then 3 elements for the header type
-there will be a info message instead of number of elements.
-
+The `pagesWithMoreThan5headers` variable will be array of heading counts where number of headers is greater than 5.
 
 ```javascript
-[
-  {
-    url: 'https://apify.com/',
-    h1texts: 1,
-    h2texts: 3,
-    h3texts: 'There are more than 3 of these elements here!'
-  },
-  {
-    url: 'https://apify.com/storage',
-    h1texts: 1,
-    h2texts: 'There are more than 3 of these elements here!',
-    h3texts: 3
-  },
-  {
-    url: 'https://apify.com/proxy',
-    h1texts: 1,
-    h2texts: 3,
-    h3texts: 3
-  }
-]
+[ 11, 8 ]
 ```
 
 The Dataset Reduce method does not produce a new array of values but reduces a list of values down to a single value.
 It also iterates through dataset items. It uses the "memo" argument to send the updated item to the next iteration
 because the item is reduced (through away) in each iteration.
-The reduce method is used to get the header statistics of all scraped pages (all items in the dataset) in this example.
+The reduce method is used to get the number of all headers from scraped pages (all items in the dataset) in this example.
 
 ```javascript
 const Apify = require('apify');
@@ -106,27 +69,18 @@ Apify.main(async () => {
     // setting items to dataSet
     await dataSet.pushData(datasetItems); // <-- insert example dataset items
 
-    let headerStatistics = {
-        h1: 0,
-        h2: 0,
-        h3: 0,
-    };
-
-    // call reduce function with iteratee parameter
-    const pagesHeadersStatistics = await dataSet.reduce((memo, value, index)=> {
-        memo.h1 += value.h1texts;
-        memo.h2 += value.h2texts;
-        memo.h3 += value.h3texts;
-
+    // calling reduce function and using memo to calculate number of headers
+    const pagesHeadingCount = await dataSet.reduce((memo, value)=> {
+        memo += value.headingCount;
         return memo;
-    }, headerStatistics);
+    }, 0);
 
 });
 ```
 
-The original dataset will be reduced to a single item which contains
-the number headers type (h1 - h3) for all scraped pages (all dataset items).
+The original dataset will be reduced to a single value `pagesHeadingCount` which contains
+the count of all headers  for all scraped pages (all dataset items).
 
 ```javascript
-{ h1: 3, h2: 10, h3: 13 }
+23
 ```
