@@ -27,13 +27,13 @@ jobs:
   include:
   - stage: test
     name: Lint&User-Agent
-    node_js: '10'
+    node_js: '12'
     script:
     - npm run lint && node .travis/check-user-agent.js
   - stage: deploy
     if: (branch = master AND type != pull_request) OR tag =~ /^v\d+\.\d+\.\d+$/
     script: skip
-    node_js: '10'
+    node_js: '12'
     before_deploy: node .travis/before-deploy.js
     after_deploy: node .travis/after-deploy.js
     deploy:
@@ -58,7 +58,7 @@ jobs:
       tag: latest
   - stage: images
     if: (branch = master AND type != pull_request) OR tag =~ /^v\d+\.\d+\.\d+$/
-    node_js: '10'
+    node_js: '12'
     services:
     - docker
     script:

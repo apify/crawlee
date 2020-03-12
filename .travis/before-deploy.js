@@ -8,6 +8,7 @@ const pkgJson = require(PKG_JSON_PATH);
 
 if (process.env.TRAVIS_TAG) {
     // Only latest releases will have a tag.
+    console.log('before-deploy: TRAVIS_TAG:', process.env.TRAVIS_TAG);
     console.log('before-deploy: Skipping version update, because it\'s a latest release.');
     process.exit(0);
 }
