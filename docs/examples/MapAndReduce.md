@@ -7,11 +7,12 @@ This example shows an easy usage of [Apify Dataset](https://docs.apify.com/stora
 [Reduce](https://sdk.apify.com/docs/api/dataset#reduce) methods. Both methods can be used to simplify the process of
 dataset results workflow and both can be called on the [Dataset](https://sdk.apify.com/docs/api/dataset) directly.
 
-Important to mention is that both functions just return a new array with the result,
-they don't update the dataset in any way.
+Important to mention is that both functions just return a new result
+ (map returns a new array and the reduce method basically anything),
+but both methods don't update the dataset in any way.
 
 Examples for both methods are going to be demonstrated on a simple Dataset that contains results of a
-scraped page with the `URL` and number of h1 - h3 header elements under `headingCount` key.
+scraped page with the `URL` and hypothetical number of h1 - h3 header elements under `headingCount` key.
 
 ```javascript
 const datasetItems = [
