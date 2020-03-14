@@ -96,6 +96,7 @@ const addInputOptionsOrThrow = (input, contentType, options) => {
 
 /**
  * Parsed representation of the `APIFY_XXX` environmental variables.
+ * This object is returned by the {@link Apify#getEnv} function.
  *
  * @typedef ApifyEnv
  * @property {string|null} actorId ID of the actor (APIFY_ACTOR_ID)
