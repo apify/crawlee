@@ -22,6 +22,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * @property {string} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
  * @property {string} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
  * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
+ * Any error thrown from this function will terminate the process.
  * Function receives `SessionPool` instance as a parameter
  */
 
