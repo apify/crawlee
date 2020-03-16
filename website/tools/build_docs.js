@@ -227,4 +227,4 @@ const main = async () => {
     await Promise.all([...cPs, ...nPs, ...tPs]);
 };
 
-main().then(() => console.log('All docs built succesfully.'));
+main().then(() => console.log('All docs built successfully.'));
