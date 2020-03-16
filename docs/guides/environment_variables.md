@@ -8,7 +8,7 @@ The following is a list of the environment variables used by Apify SDK that are 
 ## `APIFY_HEADLESS`
 If set to `1`, web browsers launched by Apify SDK will run in the headless mode. You can still override
 this setting in the code, e.g. by passing the `headless: true` option to the
-[`Apify.launchPuppeteer()`](/docs/api/apify#launchPuppeteer) function. But having this setting
+[`Apify.launchPuppeteer()`](/docs/api/apify#launchpuppeteer) function. But having this setting
 in an environment variable allows you to develop the crawler locally in headful mode to simplify the debugging,
 and only run the crawler in headless mode once you deploy it to the Apify Cloud. By default, the browsers
 are launched in headful mode, i.e. with windows.
@@ -16,7 +16,7 @@ are launched in headful mode, i.e. with windows.
 ## `APIFY_LOCAL_STORAGE_DIR`
 Defines the path to a local directory where [`KeyValueStore`](/docs/api/key-value-store),
 [`Dataset`](/docs/api/dataset), and [`RequestQueue`](/docs/api/request-queue) store their data.
-Typically it is set to `./apify_storage`. If omitted, you should define the [`APIFY_TOKEN`](#APIFY_TOKEN)
+Typically it is set to `./apify_storage`. If omitted, you should define the [`APIFY_TOKEN`](#apify_token)
 environment variable instead.
 
 ## `APIFY_LOG_LEVEL`
@@ -39,5 +39,5 @@ in the Apify app. This feature is optional. You can use your own proxies or no p
 ## `APIFY_TOKEN`
 The API token for your Apify Account. It is used to access the Apify API, e.g. to access cloud storage
 or to run an actor in the Apify Cloud. You can find your API token on the
-[Account - Integrations](https://my.apify.com/account#integrations) page. If omitted,
+[Account - Integrations](https://my.apify.com/account#/integrations) page. If omitted,
 you should define the `APIFY_LOCAL_STORAGE_DIR` environment variable instead.

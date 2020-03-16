@@ -109,7 +109,7 @@ class PuppeteerInstance {
  * @property {LaunchPuppeteerFunction} [launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   The function must return a promise resolving to
- *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
+ *   [`Browser`](https://github.com/puppeteer/puppeteer/blob/master/docs/api.md#class-browser) instance.
  *   See the source code on
  *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28)
  *   for the default implementation.
@@ -139,7 +139,7 @@ class PuppeteerInstance {
 
 /**
  * Manages a pool of Chrome browser instances controlled using
- * [Puppeteer](https://github.com/GoogleChrome/puppeteer).
+ * [Puppeteer](https://github.com/puppeteer/puppeteer).
  *
  * `PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies.
  * This is useful in order to facilitate rotation of proxies, cookies

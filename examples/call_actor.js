@@ -7,7 +7,7 @@
  *
  * To make the example work, you'll need an [Apify Account](https://my.apify.com/).
  * Go to [Account - Integrations](https://my.apify.com/account#/integrations) page to obtain your API token
- * and set it to the [`APIFY_TOKEN`](/docs/guides/environment-variables#APIFY_TOKEN) environment variable, or run the script using the CLI.
+ * and set it to the [`APIFY_TOKEN`](/docs/guides/environment-variables#apify_token) environment variable, or run the script using the CLI.
  * If you deploy this actor to the Apify Cloud then you can set up a scheduler for early
  * morning.
  *
