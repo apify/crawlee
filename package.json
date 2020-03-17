@@ -103,7 +103,6 @@
         "ts-jest": "^24.3.0",
         "jsdoc": "^3.5.5",
         "jsdoc-export-default-interop": "^0.3.1",
-        "jsdoc-to-markdown": "^5.0.3",
         "portastic": "^1.0.1",
         "prettier": "^1.18.2",
         "proxy": "^1.0.1",
