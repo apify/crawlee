@@ -1,5 +1,7 @@
 {{#if returns}}
-**Returns**: {{#each returns~}}
+**Returns**:
+
+{{#each returns~}}
   {{#if type~}}
   {{#if type.names}}{{>linked-type-list types=type.names delimiter=" \| " ~}}{{/if}}
   {{~#if description}} - {{{inlineLinks description}}}{{/if~}}
