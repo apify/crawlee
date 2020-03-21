@@ -60,7 +60,7 @@ app.post('/jsonError', (req, res) => {
 
 
 app.get('/mirror', (req, res) => {
-    res.send('DATA');
+    res.send('<html><head><title>Title</title></head><body>DATA</body></html>');
 });
 
 app.get('/json-type', (req, res) => {
@@ -106,18 +106,9 @@ describe('CheerioCrawler', () => {
     });
 
     test('should work', async () => {
-        const sources = [
-            { url: 'http://example.com/?q=1' },
-            { url: 'http://example.com/?q=2' },
-            { url: 'http://example.com/?q=3' },
-            { url: 'http://example.com/?q=4' },
-            { url: 'http://example.com/?q=5' },
-            { url: 'http://example.com/?q=6' },
-        ];
-        const sourcesCopy = JSON.parse(JSON.stringify(sources));
+        const requestList = await getRequestListForMirror(port);
         const processed = [];
         const failed = [];
-        const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async ({ $, html, request }) => {
             request.userData.title = $('title').text();
             request.userData.html = html;
@@ -132,17 +123,14 @@ describe('CheerioCrawler', () => {
             handleFailedRequestFunction: ({ request }) => failed.push(request),
         });
 
-        await requestList.initialize();
         await cheerioCrawler.run();
 
         expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
-        expect(processed).toHaveLength(6);
+        expect(processed).toHaveLength(3);
         expect(failed).toHaveLength(0);
 
-        processed.sort(comparator);
-        processed.forEach((request, id) => {
-            expect(request.url).toEqual(sourcesCopy[id].url);
-            expect(request.userData.title).toBe('Example Domain');
+        processed.forEach((request) => {
+            expect(request.userData.title).toBe('Title');
             expect(typeof request.userData.html).toBe('string');
             expect(request.userData.html.length).not.toBe(0);
         });
@@ -879,10 +867,4 @@ async function startExpressAppPromise(expressApp, port) {
     return new Promise((resolve) => {
         const server = expressApp.listen(port, () => resolve(server));
     });
-}
-
-function comparator(a, b) {
-    a = Number(/q=(\d+)$/.exec(a.url)[1]);
-    b = Number(/q=(\d+)$/.exec(b.url)[1]);
-    return a - b;
 }
