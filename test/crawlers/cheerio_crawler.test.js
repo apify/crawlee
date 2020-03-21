@@ -17,135 +17,92 @@ const responseMock = {
     url: 'loadedUrl',
 };
 
-const startExpressAppPromise = (app, port) => {
-    return new Promise((resolve) => {
-        const server = app.listen(port, () => resolve(server));
-    });
-};
-
 const HOST = '127.0.0.1';
 
+const responseSamples = {
+    json: { foo: 'bar' },
+    xml: '<?xml version="1.0" encoding="UTF-8"?>\n'
+        + '<items>\n'
+        + '<item>\n'
+        + '    <url>https://apify.com</url>\n'
+        + '    <title>Web Scraping, Data Extraction and Automation &#xB7; Apify</title>\n'
+        + '</item>\n'
+        + '</items>',
+    image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
+};
+
+const app = express();
+app.use(bodyParser.urlencoded({
+    extended: true,
+}));
+app.use(bodyParser.json());
+app.post('/mock', (req, res) => {
+    const { headers, statusCode, error = false, body } = req.body;
+
+    if (error) {
+        throw new Error(error);
+    }
+
+    Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
+
+    res.status(statusCode).send(body);
+});
+
+app.get('/invalidContentType', (req, res) => {
+    res.send({ some: 'json' });
+});
+
+app.post('/jsonError', (req, res) => {
+    res
+        .status(500)
+        .json({ message: 'CUSTOM_ERROR' });
+});
+
+
+app.get('/mirror', (req, res) => {
+    res.send('DATA');
+});
+
+app.get('/json-type', (req, res) => {
+    res.json(responseSamples.json);
+});
+app.get('/xml-type', (req, res) => {
+    res.type('application/xml');
+    res.send(responseSamples.xml);
+});
+app.get('/image-type', (req, res) => {
+    res.type('image/png');
+    res.send(responseSamples.image);
+});
+
+app.get('/timeout', async (req, res) => {
+    await sleep(32000);
+    res.type('html').send('<div>TEST</div>');
+});
 
 /* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
-    const comparator = (a, b) => {
-        a = Number(/q=(\d+)$/.exec(a.url)[1]);
-        b = Number(/q=(\d+)$/.exec(b.url)[1]);
-        return a - b;
-    };
-
     let logLevel;
     let server;
     let port;
-
-    async function getRequestListForMock(mockData, pathName = 'mock') {
-        const sources = [1, 2, 3, 4].map((num) => {
-            return {
-                url: `http://${HOST}:${port}/${pathName}?a=${num}`,
-                payload: JSON.stringify(mockData),
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            };
-        });
-        const requestList = new Apify.RequestList({ sources });
-        await requestList.initialize();
-        return requestList;
-    }
-
-    async function getRequestListForMirror() {
-        const sources = [
-            { url: `http://${HOST}:${port}/mirror?a=12` },
-            { url: `http://${HOST}:${port}/mirror?a=23` },
-            { url: `http://${HOST}:${port}/mirror?a=33` },
-        ];
-        const requestList = new Apify.RequestList({ sources });
-        await requestList.initialize();
-        return requestList;
-    }
-
-    const responseSamples = {
-        json: { foo: 'bar' },
-        xml: '<?xml version="1.0" encoding="UTF-8"?>\n'
-            + '<items>\n'
-            + '<item>\n'
-            + '    <url>https://apify.com</url>\n'
-            + '    <title>Web Scraping, Data Extraction and Automation &#xB7; Apify</title>\n'
-            + '</item>\n'
-            + '</items>',
-        image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
-    };
-
-
+    let localStorageEmulator;
     beforeAll(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
-        const app = express();
-        app.use(bodyParser.urlencoded({
-            extended: true,
-        }));
-        app.use(bodyParser.json());
-        app.post('/mock', (req, res) => {
-            const { headers, statusCode, error = false, body } = req.body;
-
-            if (error) {
-                throw new Error(error);
-            }
-
-            Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
-
-            res.status(statusCode).send(body);
-        });
-
-        app.get('/invalidContentType', (req, res) => {
-            res.send({ some: 'json' });
-        });
-
-        app.post('/jsonError', (req, res) => {
-            res
-                .status(500)
-                .json({ message: 'CUSTOM_ERROR' });
-        });
-
-
-        app.get('/mirror', (req, res) => {
-            res.send('DATA');
-        });
-
-        app.get('/json-type', (req, res) => {
-            res.json(responseSamples.json);
-        });
-        app.get('/xml-type', (req, res) => {
-            res.type('application/xml');
-            res.send(responseSamples.xml);
-        });
-        app.get('/image-type', (req, res) => {
-            res.type('image/png');
-            res.send(responseSamples.image);
-        });
-
-        app.get('/timeout', async (req, res) => {
-            await sleep(32000);
-            res.type('html').send('<div>TEST</div>');
-        });
-
         server = await startExpressAppPromise(app, 0);
         port = server.address().port; //eslint-disable-line
-    });
-
-    let localStorageEmulator;
-
-    beforeAll(async () => {
         localStorageEmulator = new LocalStorageDirEmulator();
         await localStorageEmulator.init();
     });
 
-    beforeEach(async () => {
+    afterEach(async () => {
         await localStorageEmulator.clean();
     });
 
     afterAll(async () => {
         log.setLevel(logLevel);
         await localStorageEmulator.destroy();
+        server.close();
     });
 
     test('should work', async () => {
@@ -294,7 +251,7 @@ describe('CheerioCrawler', () => {
 
         test('after handlePageTimeoutSecs', async () => {
             const failed = [];
-            const requestList = await getRequestListForMirror();
+            const requestList = await getRequestListForMirror(port);
             const handlePageFunction = async () => {
                 await sleep(2000);
             };
@@ -358,7 +315,7 @@ describe('CheerioCrawler', () => {
     describe('should ensure text/html Content-Type', () => {
         test('by setting a correct Accept header', async () => {
             const headers = [];
-            const requestList = await getRequestListForMirror();
+            const requestList = await getRequestListForMirror(port);
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async ({ response }) => {
@@ -390,7 +347,7 @@ describe('CheerioCrawler', () => {
                 // Mock Request to inject invalid response headers.
 
                 crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
+                    requestList: await getRequestListForMock(port, {
                         headers: {
                             'content-type': 'application/json',
                         },
@@ -418,7 +375,7 @@ describe('CheerioCrawler', () => {
             test('when statusCode >= 500 and text/html is received', async () => {
                 // sometimes if you get blocked you can get 500+ with some html inside
                 crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
+                    requestList: await getRequestListForMock(port, {
                         statusCode: 508,
                         headers: {
                             'content-type': 'text/html',
@@ -442,7 +399,7 @@ describe('CheerioCrawler', () => {
 
             test('when statusCode >= 500 and application/json is received', async () => {
                 crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({}, 'jsonError'),
+                    requestList: await getRequestListForMock(port, {}, 'jsonError'),
                     maxRequestRetries: 1,
                     handlePageFunction: async () => {
                         handlePageInvocationCount++;
@@ -461,7 +418,7 @@ describe('CheerioCrawler', () => {
             test('when 406 is received', async () => {
                 // Mock Request to respond with a 406.
                 crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
+                    requestList: await getRequestListForMock(port, {
                         headers: {
                             'content-type': 'text/plain',
                         },
@@ -731,6 +688,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('should markBad sessions after request timeout', async () => {
+            log.setLevel(log.LEVELS.OFF);
             const sessions = [];
             const failed = [];
             const cheerioCrawler = new Apify.CheerioCrawler({
@@ -754,6 +712,7 @@ describe('CheerioCrawler', () => {
             sessions.forEach((session) => {
                 expect(session.errorScore).toEqual(1);
             });
+            log.setLevel(log.LEVELS.ERROR);
         });
 
         test('should retire session on "blocked" status codes', async () => {
@@ -761,7 +720,7 @@ describe('CheerioCrawler', () => {
                 const failed = [];
                 const sessions = [];
                 const crawler = new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
+                    requestList: await getRequestListForMock(port, {
                         statusCode: code,
                         error: false,
                         headers: { 'Content-type': 'text/html' },
@@ -796,7 +755,7 @@ describe('CheerioCrawler', () => {
         test('should throw when "options.useSessionPool" false and "options.persistCookiesPerSession" is true', async () => {
             try {
                 new Apify.CheerioCrawler({
-                    requestList: await getRequestListForMock({
+                    requestList: await getRequestListForMock(port, {
 
                     }),
                     useSessionPool: false,
@@ -814,7 +773,7 @@ describe('CheerioCrawler', () => {
             const cookie = 'SESSID=abcd123';
             const requests = [];
             const crawler = new Apify.CheerioCrawler({
-                requestList: await getRequestListForMock({
+                requestList: await getRequestListForMock(port, {
                     headers: { 'set-cookie': cookie, 'content-type': 'text/html' },
                     statusCode: 200,
                 }),
@@ -862,22 +821,25 @@ describe('CheerioCrawler', () => {
             const requestListNew = new Apify.RequestList({ sources: sourcesNew });
             let sessionUsed;
             let requestUsed;
-            const handlePageFunction = async ({ session }) => {
-                sessionUsed = session;
-            };
-            const oldCall = utilsRequest.requestAsBrowser;
             const fakeCall = async (opt) => {
                 requestUsed = opt;
-                return oldCall(opt);
+                throw new Error('throwing here to abort rest of execution, its not needed');
             };
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList: requestListNew,
-                maxConcurrency: 1,
-                handlePageFunction,
+                maxRequestRetries: 0,
+                handlePageFunction: async () => {},
+                handleFailedRequestFunction: async () => {},
                 useSessionPool: true,
                 useApifyProxy: true,
             });
+
+            const oldHandleRequestF = cheerioCrawler._handleRequestFunction;
+            cheerioCrawler._handleRequestFunction = async (opts) => {
+                sessionUsed = opts.session;
+                return oldHandleRequestF.call(cheerioCrawler, opts);
+            };
 
             await requestListNew.initialize();
             await cheerioCrawler.run();
@@ -887,3 +849,40 @@ describe('CheerioCrawler', () => {
         });
     });
 });
+
+async function getRequestListForMock(port, mockData, pathName = 'mock') {
+    const sources = [1, 2, 3, 4].map((num) => {
+        return {
+            url: `http://${HOST}:${port}/${pathName}?a=${num}`,
+            payload: JSON.stringify(mockData),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        };
+    });
+    const requestList = new Apify.RequestList({ sources });
+    await requestList.initialize();
+    return requestList;
+}
+
+async function getRequestListForMirror(port) {
+    const sources = [
+        { url: `http://${HOST}:${port}/mirror?a=12` },
+        { url: `http://${HOST}:${port}/mirror?a=23` },
+        { url: `http://${HOST}:${port}/mirror?a=33` },
+    ];
+    const requestList = new Apify.RequestList({ sources });
+    await requestList.initialize();
+    return requestList;
+}
+
+async function startExpressAppPromise(app, port) {
+    return new Promise((resolve) => {
+        const server = app.listen(port, () => resolve(server));
+    });
+}
+
+function comparator(a, b) {
+    a = Number(/q=(\d+)$/.exec(a.url)[1]);
+    b = Number(/q=(\d+)$/.exec(b.url)[1]);
+    return a - b;
+}
