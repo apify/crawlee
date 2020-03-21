@@ -503,7 +503,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    describe('should use responseEncoding', () => {
+    describe('should use response encoding', () => {
         const requestList = new Apify.RequestList({
             sources: ['http://useless.x'],
         });
@@ -511,15 +511,15 @@ describe('CheerioCrawler', () => {
 
 
         test('as a fallback', async () => {
-            const responseEncoding = 'windows-1250';
-            const buf = iconv.encode(html, responseEncoding);
+            const suggestResponseEncoding = 'windows-1250';
+            const buf = iconv.encode(html, suggestResponseEncoding);
             // Ensure it's really encoded.
             expect(buf.toString('utf8')).not.toBe(html);
 
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                responseEncoding,
+                suggestResponseEncoding,
             });
 
             const stream = Readable.from([buf]);
@@ -533,15 +533,15 @@ describe('CheerioCrawler', () => {
         });
 
         test('always when using "!"', async () => {
-            const responseEncoding = 'win1250';
-            const buf = iconv.encode(html, responseEncoding);
+            const forceResponseEncoding = 'win1250';
+            const buf = iconv.encode(html, forceResponseEncoding);
             // Ensure it's really encoded.
             expect(buf.toString('utf8')).not.toBe(html);
 
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 handlePageFunction: async () => {},
-                responseEncoding: `!${responseEncoding}`,
+                forceResponseEncoding,
             });
 
             const stream = Readable.from([buf]);

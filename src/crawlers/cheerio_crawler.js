@@ -169,20 +169,23 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
  *   target="_blank">MIME types</a> you want the crawler to load and process.
  *   By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
- * @property {string} [responseEncoding]
+ * @property {string} [suggestResponseEncoding]
  *   By default `CheerioCrawler` will extract correct encoding from the HTTP response headers.
  *   Sadly, there are some websites which use invalid headers. Those are encoded using the UTF-8 encoding.
  *   If those sites actually use a different encoding, the response will be corrupted. You can use
- *   `responseEncoding` to fall back to a certain encoding, if you know that your target website uses it.
+ *   `suggestResponseEncoding` to fall back to a certain encoding, if you know that your target website uses it.
+ *   To force a certain encoding, disregarding the response headers, use {@link CheerioCrawlerOptions.forceResponseEncoding}
  *   ```
  *   // Will fall back to windows-1250 encoding if none found
- *   responseEncoding: 'windows-1250'
+ *   suggestResponseEncoding: 'windows-1250'
  *   ```
- *   You can also prepend your encoding with an exclamation mark to force use of the selected encoding
- *   even when `CheerioCrawler` able to extract a valid encoding from the response:
+ * @property {string} [forceResponseEncoding]
+ *   By default `CheerioCrawler` will extract correct encoding from the HTTP response headers. Use `forceResponseEncoding`
+ *   to force a certain encoding, disregarding the response headers.
+ *   To only provide a default for missing encodings, use {@link CheerioCrawlerOptions.suggestResponseEncoding}
  *   ```
- *   // Will use windows-1250 encoding even for responses with a set encoding
- *   responseEncoding: '!windows-1250'
+ *   // Will force windows-1250 encoding even if headers say otherwise
+ *   forceResponseEncoding: 'windows-1250'
  *   ```
  * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
@@ -315,7 +318,8 @@ class CheerioCrawler {
             apifyProxySession,
             proxyUrls,
             additionalMimeTypes = [],
-            responseEncoding,
+            suggestResponseEncoding,
+            forceResponseEncoding,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -345,7 +349,8 @@ class CheerioCrawler {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
-        checkParamOrThrow(responseEncoding, 'options.responseEncoding', 'Maybe String');
+        checkParamOrThrow(suggestResponseEncoding, 'options.suggestResponseEncoding', 'Maybe String');
+        checkParamOrThrow(forceResponseEncoding, 'options.forceResponseEncoding', 'Maybe String');
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
@@ -367,7 +372,11 @@ class CheerioCrawler {
 
         if (requestOptions) {
             this.requestOptions = requestOptions;
-            log.deprecated('CheerioCrawler: options.requestOptions is deprecated. Use options.transformRequestFunction instead.');
+            log.deprecated('CheerioCrawler: options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
+        }
+
+        if (suggestResponseEncoding && forceResponseEncoding) {
+            log.warning('CheerioCrawler: Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
         }
 
         this.handlePageFunction = handlePageFunction;
@@ -378,7 +387,8 @@ class CheerioCrawler {
         this.apifyProxyGroups = apifyProxyGroups;
         this.apifyProxySession = apifyProxySession;
         this.proxyUrls = _.shuffle(proxyUrls);
-        this.responseEncoding = responseEncoding;
+        this.suggestResponseEncoding = suggestResponseEncoding;
+        this.forceResponseEncoding = forceResponseEncoding;
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
         this.persistCookiesPerSession = persistCookiesPerSession;
@@ -608,13 +618,10 @@ class CheerioCrawler {
     }
 
     _encodeResponse(request, response, encoding) {
-        if (this.responseEncoding) {
-            const forceUserDefinedEncoding = this.responseEncoding.startsWith('!');
-            if (forceUserDefinedEncoding) {
-                encoding = this.responseEncoding.substring(1);
-            } else if (!encoding) {
-                encoding = this.responseEncoding;
-            }
+        if (this.forceResponseEncoding) {
+            encoding = this.forceResponseEncoding;
+        } else if (!encoding && this.suggestResponseEncoding) {
+            encoding = this.suggestResponseEncoding;
         }
 
         // Fall back to utf-8 if we still don't have encoding.
@@ -622,7 +629,7 @@ class CheerioCrawler {
         if (!encoding) return { response, encoding: utf8 };
 
         // This means that the encoding is one of Node.js supported
-        // encodings and thus we don't need to re-encode it.
+        // encodings and we don't need to re-encode it.
         if (Buffer.isEncoding(encoding)) return { response, encoding };
 
         // Try to re-encode a variety of unsupported encodings to utf-8
