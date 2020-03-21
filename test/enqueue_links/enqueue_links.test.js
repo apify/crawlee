@@ -57,6 +57,32 @@ describe('enqueueLinks()', () => {
             browser = null;
         });
 
+        test('works with item limit', async () => {
+            const enqueued = [];
+            const requestQueue = new RequestQueue('xxx');
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+
+            await enqueueLinks({ page, limit: 3, selector: '.click', requestQueue });
+
+            expect(enqueued).toHaveLength(3);
+
+            expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+            expect(enqueued[0].method).toBe('GET');
+            expect(enqueued[0].userData).toEqual({});
+
+            expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+            expect(enqueued[1].method).toBe('GET');
+            expect(enqueued[1].userData).toEqual({});
+
+            expect(enqueued[2].url).toBe('https://another.com/a/fifth');
+            expect(enqueued[2].method).toBe('GET');
+            expect(enqueued[2].userData).toEqual({});
+
+            expect(enqueued[3]).toBe(undefined);
+        });
+
         test('works with PseudoUrl instances', async () => {
             const enqueued = [];
             const requestQueue = new RequestQueue('xxx');
