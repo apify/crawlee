@@ -106,25 +106,6 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestAsBrowserOptions} [requestOptions]
- *   Represents the options passed to the {@link requestAsBrowser} function that makes the HTTP requests to fetch the web pages.
- *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
- *   the operation of `CheerioCrawler` and all its options. Headers will not be merged,
- *   use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
- *   correct headers or use `prepareRequestFunction` to modify your {@link Request} dynamically.
- *   If you need more granular control over your requests, use {@link BasicCrawler}.
- *
- *   The mandatory internal defaults that **CANNOT BE OVERRIDDEN** by `requestOptions`:
- *   ```
- *   {
- *       url,       // Provided by RequestList and/or RequestQueue
- *       method,    // Provided by RequestList and/or RequestQueue
- *       headers,   // Provided by RequestList and/or RequestQueue
- *       payload,   // Provided by RequestList and/or RequestQueue
- *       strictSSL, // Use ignoreSslErrors
- *       proxy,     // Use useApifyProxy or proxyUrls
- *   }
- *   ```
  * @property {PrepareRequest} [prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
@@ -188,6 +169,21 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
  *   target="_blank">MIME types</a> you want the crawler to load and process.
  *   By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
+ * @property {string} [responseEncoding]
+ *   By default `CheerioCrawler` will extract correct encoding from the HTTP response headers.
+ *   Sadly, there are some websites which use invalid headers. Those are encoded using the UTF-8 encoding.
+ *   If those sites actually use a different encoding, the response will be corrupted. You can use
+ *   `responseEncoding` to fall back to a certain encoding, if you know that your target website uses it.
+ *   ```
+ *   // Will fall back to windows-1250 encoding if none found
+ *   responseEncoding: 'windows-1250'
+ *   ```
+ *   You can also prepend your encoding with an exclamation mark to force use of the selected encoding
+ *   even when `CheerioCrawler` able to extract a valid encoding from the response:
+ *   ```
+ *   // Will use windows-1250 encoding even for responses with a set encoding
+ *   responseEncoding: '!windows-1250'
+ *   ```
  * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
  * @property {number} [maxRequestsPerCrawl]
@@ -319,6 +315,7 @@ class CheerioCrawler {
             apifyProxySession,
             proxyUrls,
             additionalMimeTypes = [],
+            responseEncoding,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -348,9 +345,11 @@ class CheerioCrawler {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
+        checkParamOrThrow(responseEncoding, 'options.responseEncoding', 'Maybe String');
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
@@ -365,7 +364,12 @@ class CheerioCrawler {
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
-        this.requestOptions = requestOptions;
+
+        if (requestOptions) {
+            this.requestOptions = requestOptions;
+            log.deprecated('CheerioCrawler: options.requestOptions is deprecated. Use options.transformRequestFunction instead.');
+        }
+
         this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
         this.requestTimeoutMillis = requestTimeoutSecs * 1000;
@@ -374,6 +378,7 @@ class CheerioCrawler {
         this.apifyProxyGroups = apifyProxyGroups;
         this.apifyProxySession = apifyProxySession;
         this.proxyUrls = _.shuffle(proxyUrls);
+        this.responseEncoding = responseEncoding;
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
         this.persistCookiesPerSession = persistCookiesPerSession;
@@ -603,11 +608,26 @@ class CheerioCrawler {
     }
 
     _encodeResponse(request, response, encoding) {
-        if (!encoding || Buffer.isEncoding(encoding)) return { response, encoding };
+        if (this.responseEncoding) {
+            const forceUserDefinedEncoding = this.responseEncoding.startsWith('!');
+            if (forceUserDefinedEncoding) {
+                encoding = this.responseEncoding.substring(1);
+            } else if (!encoding) {
+                encoding = this.responseEncoding;
+            }
+        }
 
+        // Fall back to utf-8 if we still don't have encoding.
+        const utf8 = 'utf8';
+        if (!encoding) return { response, encoding: utf8 };
+
+        // This means that the encoding is one of Node.js supported
+        // encodings and thus we don't need to re-encode it.
+        if (Buffer.isEncoding(encoding)) return { response, encoding };
+
+        // Try to re-encode a variety of unsupported encodings to utf-8
         if (iconv.encodingExists(encoding)) {
-            const finalEncoding = 'utf8';
-            const encodeStream = iconv.encodeStream(finalEncoding);
+            const encodeStream = iconv.encodeStream(utf8);
             const decodeStream = iconv.decodeStream(encoding).on('error', err => encodeStream.emit('error', err));
             response.on('error', err => decodeStream.emit('error', err));
             const encodedResponse = response.pipe(decodeStream).pipe(encodeStream);
@@ -616,7 +636,7 @@ class CheerioCrawler {
             encodedResponse.url = response.url;
             return {
                 response: encodedResponse,
-                encoding: finalEncoding,
+                encoding: utf8,
             };
         }
 
