@@ -1,6 +1,8 @@
-NEXT
+0.20.2 / 2020-03-09
 ====================
-
+- Fix an error where persistence of `SessionPool` would fail if a cookie included invalid
+  `expires` value.
+- Jumping a patch version because of an error in publishing via CI.
 
 0.20.0 / 2020-03-03
 ====================

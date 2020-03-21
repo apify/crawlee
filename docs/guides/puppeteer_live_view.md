@@ -8,7 +8,7 @@ This is useful for debugging your crawlers that run in headless mode.
 
 The live view dashboard is run on a web server that is started on a port specified by the `APIFY_CONTAINER_PORT` environment variable (typically
 4321). To enable live view, pass the `useliveView: true` option to the `puppeteerPoolOptions` of
-[`PuppeteerCrawler`](/docs/api/puppeteer-crawler#new_PuppeteerCrawler_new):
+[`PuppeteerCrawler`](/docs/api/puppeteer-crawler#new-puppeteercrawleroptions):
 
 ```js
 const crawler = new Apify.PuppeteerCrawler({

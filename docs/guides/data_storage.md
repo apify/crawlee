@@ -28,8 +28,8 @@ and output is stored in the default key-value store under the `INPUT` and `OUTPU
 although it can be any other format.
 
 In the Apify SDK, the key-value store is represented by the [`KeyValueStore`](/docs/api/key-value-store) class. In order to simplify access to the default
-key-value store, the SDK also provides [`Apify.getValue()`](/docs/api/apify#getValue) and
-[`Apify.setValue()`](/docs/api/apify#setValue) functions.
+key-value store, the SDK also provides [`Apify.getValue()`](/docs/api/apify#getvalue) and
+[`Apify.setValue()`](/docs/api/apify#setvalue) functions.
 
 In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 
@@ -83,7 +83,7 @@ Each actor run is associated with a **default dataset**, which is created exclus
 results specific for the actor run. Its usage is optional.
 
 In the Apify SDK, the dataset is represented by the [`Dataset`](/docs/api/dataset) class. In order to simplify writes to the default dataset, the SDK
-also provides the [`Apify.pushData()`](/docs/api/apify#pushData) function.
+also provides the [`Apify.pushData()`](/docs/api/apify#pushdata) function.
 
 In local configuration, the data is stored in the directory specified by the `APIFY_LOCAL_STORAGE_DIR` environment variable as follows:
 

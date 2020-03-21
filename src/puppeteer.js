@@ -159,7 +159,7 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
 /**
  * Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
  * The function has the same argument and the return value as `puppeteer.launch()`.
- * See <a href="https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
+ * See <a href="https://github.com/puppeteer/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions" target="_blank">
  * Puppeteer documentation</a> for more details.
  *
  * The `launchPuppeteer()` function alters the following Puppeteer options:
@@ -204,8 +204,8 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  * [Apify Actor documentation](https://docs.apify.com/actor/build#base-images)
  * for details.
  *
- * For an example of usage, see the [Synchronous run Example](../examples/synchronousrun)
- * or the [Puppeteer proxy Example](../examples/puppeteerwithproxy)
+ * For an example of usage, see the [Synchronous run Example](../examples/synchronous-run)
+ * or the [Puppeteer proxy Example](../examples/puppeteer-with-proxy)
  *
  * @param {LaunchPuppeteerOptions} [options]
  *   Optional settings passed to `puppeteer.launch()`. In addition to

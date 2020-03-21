@@ -140,7 +140,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
 
 /**
  * Provides a simple framework for parallel crawling of web pages
- * using headless Chrome with [Puppeteer](https://github.com/GoogleChrome/puppeteer).
+ * using headless Chrome with [Puppeteer](https://github.com/puppeteer/puppeteer).
  * The URLs to crawl are fed either from a static list of URLs
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *

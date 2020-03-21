@@ -14,6 +14,9 @@ import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
+// CONSTANTS
+const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
+
 /**
  * Persistable {@link Session} state.
  * @typedef SessionState
@@ -65,7 +68,7 @@ export class Session {
         const {
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
-            maxAgeSecs = 3000,
+            maxAgeSecs = DEFAULT_SESSION_MAX_AGE_SECS,
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
@@ -76,7 +79,7 @@ export class Session {
             sessionPool,
         } = options;
 
-        const { expiresAt = new Date(Date.now() + (maxAgeSecs * 1000)) } = options;
+        const { expiresAt = this._getDefaultCookieExpirationDate(maxAgeSecs) } = options;
 
         // Validation
         checkParamOrThrow(id, 'options.id', 'String');
@@ -262,7 +265,7 @@ export class Session {
      */
     setPuppeteerCookies(cookies, url) {
         try {
-            this._setCookies(cookies.map(this._puppeteerCookieToTough), url);
+            this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(this)), url);
         } catch (e) {
             // if invalid cookies are provided just log the exception. No need to retry the request automatically.
             log.exception(e, 'Session: Could not set cookies in puppeteer format.');
@@ -298,10 +301,12 @@ export class Session {
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie) {
+        const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
+        const expires = isExpiresValid ? new Date(puppeteerCookie.expires) : this._getDefaultCookieExpirationDate(this.maxAgeSecs);
         return new Cookie({
             key: puppeteerCookie.name,
             value: puppeteerCookie.value,
-            expires: new Date(puppeteerCookie.expires),
+            expires,
             domain: puppeteerCookie.domain,
             path: puppeteerCookie.path,
             secure: puppeteerCookie.secure,
@@ -337,5 +342,13 @@ export class Session {
         for (const cookie of cookies) {
             this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
         }
+    }
+
+    /**
+     * Calculate cookie expiration date
+     * @return {Date} - calculated date by session max age seconds.
+     */
+    _getDefaultCookieExpirationDate(maxAgeSecs) {
+        return new Date(Date.now() + (maxAgeSecs * 1000));
     }
 }
