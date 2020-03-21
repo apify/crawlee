@@ -52,6 +52,8 @@ import { RequestTransform } from './shared';
  * @param {Page} [options.page]
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
+ * @param {Number} [options.limit]
+ *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
  * @param {CheerioStatic} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
@@ -101,6 +103,7 @@ export async function enqueueLinks(options = {}) {
     const {
         page,
         $,
+        limit,
         selector = 'a',
         requestQueue,
         baseUrl,
@@ -121,6 +124,7 @@ export async function enqueueLinks(options = {}) {
     if (page && $) {
         throw new Error('Only one of the parameters "options.page" or "options.$" must be provided!');
     }
+    checkParamOrThrow(limit, 'limit', 'Maybe Number');
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
@@ -137,7 +141,9 @@ export async function enqueueLinks(options = {}) {
     if (transformRequestFunction) {
         requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
     }
-    const requests = createRequests(requestOptions, pseudoUrlInstances);
+    let requests = createRequests(requestOptions, pseudoUrlInstances);
+    if (limit) requests = requests.slice(0, limit);
+
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 
