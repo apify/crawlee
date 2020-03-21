@@ -875,9 +875,9 @@ async function getRequestListForMirror(port) {
     return requestList;
 }
 
-async function startExpressAppPromise(app, port) {
+async function startExpressAppPromise(expressApp, port) {
     return new Promise((resolve) => {
-        const server = app.listen(port, () => resolve(server));
+        const server = expressApp.listen(port, () => resolve(server));
     });
 }
 
