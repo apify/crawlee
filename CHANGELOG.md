@@ -1,5 +1,7 @@
 NEXT
 ====================
+- **DEPRECATED:** `CheerioCrawlerOptions.requestOptions` is now deprecated. Please use
+  `CheerioCrawlerOptions.prepareRequestFunction` instead.
 - Add `limit` option to `Apify.utils.enqueueLinks()` for situations when full crawls are not needed.
 - Add `responseEncoding` option to `CheerioCrawler` to allow users to provide a fall-back
   (or forced) encoding of responses in situations where websites serve invalid encoding info.

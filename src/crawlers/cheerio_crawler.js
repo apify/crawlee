@@ -371,6 +371,7 @@ class CheerioCrawler {
 
 
         if (requestOptions) {
+            // DEPRECATED 2020-03-22
             this.requestOptions = requestOptions;
             log.deprecated('CheerioCrawler: options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
         }
