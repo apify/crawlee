@@ -4,6 +4,8 @@ import { ENV_VARS } from 'apify-shared/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';
+import { Readable } from 'stream';
+import * as iconv from 'iconv-lite';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
@@ -499,6 +501,63 @@ describe('CheerioCrawler', () => {
             expect(imageRequestParams.body).toEqual(responseSamples.image);
             expect(imageRequestParams.contentType.type).toBe('image/png');
         });
+    });
+
+    describe('should use response encoding', () => {
+        const requestList = new Apify.RequestList({
+            sources: ['http://useless.x'],
+        });
+        const html = '<html>Žluťoučký kůň</html>';
+
+
+        test('as a fallback', async () => {
+            const suggestResponseEncoding = 'windows-1250';
+            const buf = iconv.encode(html, suggestResponseEncoding);
+            // Ensure it's really encoded.
+            expect(buf.toString('utf8')).not.toBe(html);
+
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                suggestResponseEncoding,
+            });
+
+            const stream = Readable.from([buf]);
+
+            const { response, encoding } = crawler._encodeResponse({}, stream);
+            expect(encoding).toBe('utf8');
+            for await (const chunk of response) {
+                const string = chunk.toString('utf8');
+                expect(string).toBe(html);
+            }
+        });
+
+        test('always when using "!"', async () => {
+            const forceResponseEncoding = 'win1250';
+            const buf = iconv.encode(html, forceResponseEncoding);
+            // Ensure it's really encoded.
+            expect(buf.toString('utf8')).not.toBe(html);
+
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                forceResponseEncoding,
+            });
+
+            const stream = Readable.from([buf]);
+
+            const { response, encoding } = crawler._encodeResponse({}, stream, 'ascii');
+            expect(encoding).toBe('utf8');
+            for await (const chunk of response) {
+                const string = chunk.toString('utf8');
+                expect(string).toBe(html);
+            }
+        });
+    });
+
+    test('should encode responses using responseEncoding', async () => {
+
+
     });
 
     describe('proxy', () => {

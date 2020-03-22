@@ -1,3 +1,9 @@
+NEXT
+====================
+- Add `limit` option to `Apify.utils.enqueueLinks()` for situations when full crawls are not needed.
+- Add `responseEncoding` option to `CheerioCrawler` to allow users to provide a fall-back
+  (or forced) encoding of responses in situations where websites serve invalid encoding info.
+
 0.20.2 / 2020-03-09
 ====================
 - Fix an error where persistence of `SessionPool` would fail if a cookie included invalid
