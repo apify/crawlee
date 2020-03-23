@@ -4,7 +4,7 @@ import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import { RequestList } from '../request_list';
-import { RequestQueue, RequestQueueLocal } from '../request_queue'; // eslint-disable-line import/no-duplicates
+import { RequestQueue } from '../request_queue'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import log from '../utils_log';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -205,7 +205,7 @@ class BasicCrawler {
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
+        checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', RequestQueue, 'Apify.RequestQueue', true);
         checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
         checkParamOrThrow(handleRequestTimeoutSecs, 'options.handleRequestTimeoutSecs', 'Number');
         checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
