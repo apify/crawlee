@@ -1,4 +1,5 @@
 import * as psTree from '@apify/ps-tree';
+import * as ApifyStorageLocal from '@apify/storage-local';
 import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -65,6 +66,19 @@ export const newClient = () => {
 };
 
 /**
+ * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
+ * @return {ApifyStorageLocal}
+ */
+const newApifyStorageLocal = () => {
+    const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
+    const opts = {
+        dbDirectoryPath: localStorageDir,
+    };
+
+    return new ApifyStorageLocal(opts);
+};
+
+/**
  * Logs info about system, node version and apify package version.
  */
 export const logSystemInfo = () => {
@@ -96,6 +110,26 @@ export const logSystemInfo = () => {
  * @name client
  */
 export const apifyClient = newClient();
+
+let apifyStorageLocal;
+/**
+ * Gets the default instance of the `ApifyStorageLocal` class provided
+ * The instance is created automatically by the Apify SDK and it is configured using the
+ * `APIFY_LOCAL_STORAGE_DIR` environment variable.
+ *
+ * The instance is lazy loaded and used for local emulation of calls to the Apify API
+ * in Apify Storages such as {@link RequestQueue}.
+ *
+ * @type {*}
+ *
+ * @memberof module:Apify
+ * @name storageLocal
+ */
+export const getApifyStorageLocal = () => {
+    if (apifyStorageLocal) return apifyStorageLocal;
+    apifyStorageLocal = newApifyStorageLocal();
+    return apifyStorageLocal;
+};
 
 /**
  * Returns a result of `Promise.resolve()`.

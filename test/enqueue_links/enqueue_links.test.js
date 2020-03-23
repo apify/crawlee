@@ -59,7 +59,7 @@ describe('enqueueLinks()', () => {
 
         test('works with item limit', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -85,7 +85,7 @@ describe('enqueueLinks()', () => {
 
         test('works with PseudoUrl instances', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -113,7 +113,7 @@ describe('enqueueLinks()', () => {
 
         test('works with Actor UI output object', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -141,7 +141,7 @@ describe('enqueueLinks()', () => {
 
         test('works with string pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -169,7 +169,7 @@ describe('enqueueLinks()', () => {
 
         test('works with RegExp pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -197,7 +197,7 @@ describe('enqueueLinks()', () => {
 
         test('works with undefined pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -225,7 +225,7 @@ describe('enqueueLinks()', () => {
 
         test('works with null pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -253,7 +253,7 @@ describe('enqueueLinks()', () => {
 
         test('works with empty pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -281,7 +281,7 @@ describe('enqueueLinks()', () => {
 
         test('throws with sparse pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -302,7 +302,7 @@ describe('enqueueLinks()', () => {
 
         test('DEPRECATED: enqueueRequestsFromClickableElements()', async () => {
             const enqueuedUrls = [];
-            const queue = new RequestQueue('xxx');
+            const queue = new RequestQueue({ id: 'xxx' });
             queue.addRequest = (request) => {
                 expect(request.method).toBe('POST');
                 enqueuedUrls.push(request.url);
@@ -337,7 +337,7 @@ describe('enqueueLinks()', () => {
 
         test('works from utils namespace', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -365,7 +365,7 @@ describe('enqueueLinks()', () => {
 
         test('works with PseudoUrl instances', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -393,7 +393,7 @@ describe('enqueueLinks()', () => {
 
         test('works with Actor UI output object', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -421,7 +421,7 @@ describe('enqueueLinks()', () => {
 
         test('works with string pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -449,7 +449,7 @@ describe('enqueueLinks()', () => {
 
         test('works with RegExp pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -477,7 +477,7 @@ describe('enqueueLinks()', () => {
 
         test('works with undefined pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -505,7 +505,7 @@ describe('enqueueLinks()', () => {
 
         test('works with null pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -533,7 +533,7 @@ describe('enqueueLinks()', () => {
 
         test('works with empty pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -561,7 +561,7 @@ describe('enqueueLinks()', () => {
 
         test('throws with sparse pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -582,7 +582,7 @@ describe('enqueueLinks()', () => {
 
         test('correctly resolves relative URLs', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -622,7 +622,7 @@ describe('enqueueLinks()', () => {
 
         test('throws on finding a relative link with no baseUrl set', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
