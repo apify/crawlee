@@ -104,7 +104,7 @@
         "jsdoc": "^3.5.5",
         "jsdoc-export-default-interop": "^0.3.1",
         "portastic": "^1.0.1",
-        "prettier": "^1.18.2",
+        "prettier": "^2.0.1",
         "proxy": "^1.0.1",
         "sinon": "^9.0.0",
         "sinon-stub-promise": "^4.0.0",
