@@ -72,7 +72,7 @@ export const newClient = () => {
 const newApifyStorageLocal = () => {
     const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
     const opts = {
-        dbDirectoryPath: localStorageDir,
+        storageDir: localStorageDir,
     };
 
     return new ApifyStorageLocal(opts);
