@@ -1,4 +1,5 @@
 import * as psTree from '@apify/ps-tree';
+import * as ApifyStorageLocal from '@apify/storage-local';
 import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -65,6 +66,27 @@ export const newClient = () => {
 };
 
 /**
+ * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
+ * @return {Promise<ApifyStorageLocal>}
+ */
+const newApifyStorageLocal = async () => {
+    const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
+    const opts = {
+        storageDir: localStorageDir,
+    };
+
+    const storage = new ApifyStorageLocal(opts);
+
+    // Temporary solution for default request queue purging
+    const defaultIdEnvVar = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
+    const queueName = process.env[defaultIdEnvVar] || LOCAL_ENV_VARS[defaultIdEnvVar];
+    const queue = await storage.requestQueues.getOrCreateQueue({ queueName });
+    await storage.requestQueues.deleteQueue({ queueId: queue.id });
+
+    return storage;
+};
+
+/**
  * Logs info about system, node version and apify package version.
  */
 export const logSystemInfo = () => {
@@ -96,6 +118,26 @@ export const logSystemInfo = () => {
  * @name client
  */
 export const apifyClient = newClient();
+
+let apifyStorageLocal;
+/**
+ * Gets the default instance of the `ApifyStorageLocal` class provided
+ * The instance is created automatically by the Apify SDK and it is configured using the
+ * `APIFY_LOCAL_STORAGE_DIR` environment variable.
+ *
+ * The instance is lazy loaded and used for local emulation of calls to the Apify API
+ * in Apify Storages such as {@link RequestQueue}.
+ *
+ * @type {*}
+ *
+ * @memberof module:Apify
+ * @name storageLocal
+ */
+export const getApifyStorageLocal = async () => {
+    if (apifyStorageLocal) return apifyStorageLocal;
+    apifyStorageLocal = await newApifyStorageLocal();
+    return apifyStorageLocal;
+};
 
 /**
  * Returns a result of `Promise.resolve()`.

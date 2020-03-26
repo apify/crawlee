@@ -3,7 +3,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from '../utils_log';
 /* eslint-disable import/no-duplicates */
-import { RequestQueue, RequestQueueLocal } from '../request_queue';
+import { RequestQueue } from '../request_queue';
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
 /* eslint-enable import/no-duplicates */
 
@@ -126,7 +126,7 @@ export async function enqueueLinks(options = {}) {
     }
     checkParamOrThrow(limit, 'limit', 'Maybe Number');
     checkParamOrThrow(selector, 'selector', 'String');
-    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', RequestQueue, 'Apify.RequestQueue');
     checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
     if (baseUrl && page) log.warning('The parameter options.baseUrl can only be used when parsing a Cheerio object. It will be ignored.');
     checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');

@@ -1,14 +1,12 @@
-import * as path from 'path';
 import * as crypto from 'crypto';
-import * as fs from 'fs-extra';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import * as LruCache from 'apify-shared/lru_cache';
 import * as ListDictionary from 'apify-shared/list_dictionary';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
 import log from './utils_log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
+import { apifyClient, getApifyStorageLocal, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -33,8 +31,7 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 // to be available to subsequent reads.
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
-const { requestQueues } = apifyClient;
-const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
+export const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
 
 /**
  * Helper function to validate params of *.addRequest().
@@ -97,7 +94,7 @@ const validateReclaimRequestParams = (request, opts) => {
  *
  * @ignore
  */
-const getRequestId = (uniqueKey) => {
+export const getRequestId = (uniqueKey) => {
     checkParamOrThrow(uniqueKey, 'uniqueKey', 'String');
 
     const str = crypto
@@ -188,20 +185,31 @@ const getRequestId = (uniqueKey) => {
  */
 export class RequestQueue {
     /**
-     * @param {string} queueId
-     * @param {string} [queueName]
-     * @param {string} [clientKey]
+     * @param {object} options
+     * @param {string} options.id
+     * @param {string} [options.name]
+     * @param {object} [options.storageClient]
+     * @param {string} [options.clientKey]
      */
-    constructor(queueId, queueName, clientKey = cryptoRandomObjectId()) {
-        checkParamOrThrow(queueId, 'queueId', 'String');
-        checkParamOrThrow(queueName, 'queueName', 'Maybe String');
+    constructor(options) {
+        const {
+            id,
+            name,
+            storageClient = apifyClient.requestQueues,
+            clientKey = cryptoRandomObjectId(),
+        } = options;
+
+        checkParamOrThrow(id, 'id', 'String');
+        checkParamOrThrow(name, 'name', 'Maybe String');
+        checkParamOrThrow(storageClient, 'storageClient', 'Object');
         checkParamOrThrow(clientKey, 'clientKey', 'String');
 
         if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
 
         this.clientKey = clientKey;
-        this.queueId = queueId;
-        this.queueName = queueName;
+        this.queueId = id;
+        this.queueName = name;
+        this.client = storageClient;
 
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
@@ -277,7 +285,7 @@ export class RequestQueue {
             };
         }
 
-        const queueOperationInfo = await requestQueues.addRequest({
+        const queueOperationInfo = await this.client.addRequest({
             request: newRequest,
             queueId: this.queueId,
             forefront,
@@ -312,7 +320,7 @@ export class RequestQueue {
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
         // Downside is that it wouldn't reflect changes from outside...
-        const obj = await requestQueues.getRequest({
+        const obj = await this.client.getRequest({
             requestId,
             queueId: this.queueId,
         });
@@ -413,7 +421,7 @@ export class RequestQueue {
 
         if (!request.handledAt) request.handledAt = new Date();
 
-        const queueOperationInfo = await requestQueues.updateRequest({
+        const queueOperationInfo = await this.client.updateRequest({
             request,
             queueId: this.queueId,
             clientKey: this.clientKey,
@@ -458,7 +466,7 @@ export class RequestQueue {
         // TODO: If request hasn't been changed since the last getRequest(),
         // we don't need to call updateRequest() and thus improve performance.
 
-        const queueOperationInfo = await requestQueues.updateRequest({
+        const queueOperationInfo = await this.client.updateRequest({
             request,
             queueId: this.queueId,
             forefront,
@@ -556,7 +564,7 @@ export class RequestQueue {
         if (!this.queryQueueHeadPromise) {
             const queryStartedAt = new Date();
 
-            this.queryQueueHeadPromise = requestQueues
+            this.queryQueueHeadPromise = this.client
                 .getHead({
                     limit,
                     queueId: this.queueId,
@@ -650,7 +658,7 @@ export class RequestQueue {
      * @return {Promise<void>}
      */
     async drop() {
-        await requestQueues.deleteQueue({
+        await this.client.deleteQueue({
             queueId: this.queueId,
         });
 
@@ -709,352 +717,7 @@ export class RequestQueue {
      * @returns {Promise<object>}
      */
     async getInfo() {
-        return requestQueues.getQueue({ queueId: this.queueId });
-    }
-}
-
-const ENOENT = 'ENOENT';
-
-/**
- * Helper function that extracts queue order number from filename.
- *
- * @ignore
- */
-const filePathToQueueOrderNo = (filepath) => {
-    const int = filepath
-        .split(path.sep).pop() // Get filename from path
-        .split('.')[0]; // Remove extension
-
-    return parseInt(int, 10);
-};
-
-/**
- * Local directory-based implementation of the `RequestQueue` class.
- * TODO: We should implement this class using the RequestQueueRemote, just replace
- * the underlying API calls with their emulation on filesystem. That will bring
- * all the goodies such as caching and will enable better and more consistent testing
- *
- * @ignore
- */
-export class RequestQueueLocal {
-    constructor(queueId, localStorageDir) {
-        checkParamOrThrow(queueId, 'queueId', 'String');
-        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
-
-        this.queueId = queueId;
-        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, queueId));
-        this.localHandledEmulationPath = path.join(this.localStoragePath, 'handled');
-        this.localPendingEmulationPath = path.join(this.localStoragePath, 'pending');
-
-        this.queueOrderNoCounter = 0; // Counter used in _getQueueOrderNo to ensure there won't be a collision.
-        this.pendingCount = 0;
-        this._handledCount = 0;
-        this.inProgressCount = 0;
-        this.requestIdToQueueOrderNo = {};
-        this.queueOrderNoInProgress = {};
-        this.requestsBeingWrittenToFile = new Map();
-
-        this.createdAt = null;
-        this.modifiedAt = null;
-        this.accessedAt = null;
-
-        this.initializationPromise = this._initialize();
-    }
-
-    async _initialize() {
-        // NOTE: This created all root dirs as necessary
-        await ensureDirExists(this.localHandledEmulationPath);
-        await ensureDirExists(this.localPendingEmulationPath);
-
-        const [handled, pending] = await Promise.all([
-            fs.readdir(this.localHandledEmulationPath),
-            fs.readdir(this.localPendingEmulationPath),
-        ]);
-
-        this.pendingCount = pending.length;
-        this._handledCount = handled.length;
-
-        const handledPaths = handled.map(filename => path.join(this.localHandledEmulationPath, filename));
-        const pendingPaths = pending.map(filename => path.join(this.localPendingEmulationPath, filename));
-        const filePaths = handledPaths.concat(pendingPaths);
-
-        const stats = await fs.stat(this.localPendingEmulationPath);
-        this.createdAt = stats.birthtime;
-        this.modifiedAt = stats.mtime;
-        this.accessedAt = stats.atime;
-
-        for (const filePath of filePaths) {
-            await this._saveRequestIdToQueueOrderNo(filePath);
-        }
-    }
-
-    async _saveRequestIdToQueueOrderNo(filepath) {
-        const str = await fs.readFile(filepath);
-        const request = JSON.parse(str);
-        this.requestIdToQueueOrderNo[request.id] = filePathToQueueOrderNo(filepath);
-    }
-
-    _getFilePath(queueOrderNo, isHandled = false) {
-        const fileName = `${queueOrderNo}.json`;
-        const dir = isHandled
-            ? this.localHandledEmulationPath
-            : this.localPendingEmulationPath;
-
-        return path.join(dir, fileName);
-    }
-
-    _getQueueOrderNo(forefront = false) {
-        const sgn = (forefront ? 1 : 2) * (10 ** 15);
-        const base = (10 ** (13)); // Date.now() returns int with 13 numbers.
-        // We always add pending count for a case that two pages are inserted at the same millisecond.
-        const now = Date.now() + this.queueOrderNoCounter++;
-        return forefront
-            ? sgn + (base - now)
-            : sgn + (base + now);
-    }
-
-    async _getRequestByQueueOrderNo(queueOrderNo) {
-        checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
-        let buffer;
-        let filePath;
-        try {
-            filePath = this._getFilePath(queueOrderNo);
-            buffer = await fs.readFile(filePath);
-        } catch (err) {
-            if (err.code !== ENOENT) throw err;
-            filePath = this._getFilePath(queueOrderNo, true);
-            buffer = await fs.readFile(filePath);
-        }
-        const json = buffer.toString();
-        if (!json) {
-            // This happens when the file is still being written.
-            // The descriptor exists, but the contents are not there yet.
-            // So let's handle it as if it didn't exist at all.
-            const error = new Error(`${ENOENT}: the file is still being written. ${filePath}`);
-            error.code = ENOENT;
-            throw error;
-        }
-        const requestOptions = JSON.parse(json);
-        return new Request(requestOptions);
-    }
-
-    async addRequest(request, opts = {}) {
-        const { newRequest, forefront } = validateAddRequestParams(request, opts);
-
-        request.uniqueKey = newRequest.uniqueKey;
-
-        await this.initializationPromise;
-        const queueOrderNo = this._getQueueOrderNo(forefront);
-
-        // Add ID as server does.
-        // TODO: This way of cloning doesn't preserve Dates!
-        const requestCopy = JSON.parse(JSON.stringify(newRequest));
-        requestCopy.id = getRequestId(request.uniqueKey);
-        request.id = requestCopy.id;
-
-        this._updateMetadata(true);
-
-        // If request already exists then don't override it!
-        if (this.requestIdToQueueOrderNo[requestCopy.id]) {
-            const existingRequest = await this.getRequest(requestCopy.id);
-            return {
-                requestId: existingRequest.id,
-                wasAlreadyHandled: existingRequest && existingRequest.handledAt,
-                wasAlreadyPresent: true,
-                request,
-            };
-        }
-
-        // We need to set this before the write begins because otherwise we'd get
-        // duplicate requests written to queue when a URL gets enqueued multiple times.
-        this.requestIdToQueueOrderNo[requestCopy.id] = queueOrderNo;
-        if (!requestCopy.handledAt) this.pendingCount++;
-
-        const filePath = this._getFilePath(queueOrderNo, !!requestCopy.handledAt);
-
-        // Lock the file until we fully dump data!
-        // This is needed for getRequest() which accesses files directly by name,
-        // so it can encounter an existing, yet empty file. fetchNextRequest() does
-        // it too, but it jumps to the next file on failure, so it's not a concern.
-        this.requestsBeingWrittenToFile.set(requestCopy.id, requestCopy);
-        await fs.writeFile(filePath, JSON.stringify(requestCopy, null, 4));
-        this.requestsBeingWrittenToFile.delete(requestCopy.id);
-
-        return {
-            requestId: requestCopy.id,
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: false,
-            request,
-        };
-    }
-
-    async getRequest(requestId) {
-        validateGetRequestParams(requestId);
-
-        await this.initializationPromise;
-        const queueOrderNo = this.requestIdToQueueOrderNo[requestId];
-
-        this._updateMetadata();
-
-        // TODO: We should update the last access time to files...
-        if (!queueOrderNo) return null;
-
-        const requestBeingWritten = this.requestsBeingWrittenToFile.get(requestId);
-        return requestBeingWritten || this._getRequestByQueueOrderNo(queueOrderNo);
-    }
-
-    async fetchNextRequest() {
-        await this.initializationPromise;
-
-        const files = await fs.readdir(this.localPendingEmulationPath);
-
-        this._updateMetadata();
-
-        let request = null;
-        while (!request && files.length) {
-            const filename = files.shift();
-            const queueOrderNo = filePathToQueueOrderNo(filename);
-
-            if (this.queueOrderNoInProgress[queueOrderNo]) continue; // eslint-disable-line
-
-            this.queueOrderNoInProgress[queueOrderNo] = true;
-            this.inProgressCount++;
-
-            // TODO: There must be a better way. This try/catch is here because there is a race condition between
-            //       between this and call to reclaimRequest() or markRequestHandled() that may move/rename/deleted
-            //       the file between fs.readdir() and this function.
-            //       Ie. the file gets listed in fs.readdir() but removed from this.queueOrderNoInProgress
-            //       meanwhile causing this to fail.
-            try {
-                request = await this._getRequestByQueueOrderNo(queueOrderNo);
-            } catch (err) {
-                delete this.queueOrderNoInProgress[queueOrderNo];
-                this.inProgressCount--;
-                if (err.code !== ENOENT) throw err;
-            }
-        }
-
-        return request;
-    }
-
-    async markRequestHandled(request) {
-        validateMarkRequestHandledParams(request);
-
-        await this.initializationPromise;
-        const queueOrderNo = this.requestIdToQueueOrderNo[request.id];
-        const source = this._getFilePath(queueOrderNo, false);
-        const dest = this._getFilePath(queueOrderNo, true);
-
-        if (!this.queueOrderNoInProgress[queueOrderNo]) {
-            throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
-        }
-
-        if (!request.handledAt) request.handledAt = new Date();
-
-        this._updateMetadata(true);
-
-        // NOTE: First write to old file and then rename to new one to do the operation atomically.
-        //       Situation where two files exists at the same time may cause race condition bugs.
-        await fs.writeFile(source, JSON.stringify(request, null, 4));
-        await fs.rename(source, dest);
-        this.pendingCount--;
-        this._handledCount++;
-        this.inProgressCount--;
-        delete this.queueOrderNoInProgress[queueOrderNo];
-
-        return {
-            requestId: request.id,
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: true,
-            request,
-        };
-    }
-
-    async reclaimRequest(request, opts = {}) {
-        const { forefront } = validateReclaimRequestParams(request, opts);
-
-        await this.initializationPromise;
-        const oldQueueOrderNo = this.requestIdToQueueOrderNo[request.id];
-        const newQueueOrderNo = this._getQueueOrderNo(forefront);
-        const source = this._getFilePath(oldQueueOrderNo);
-        const dest = this._getFilePath(newQueueOrderNo);
-
-        if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
-            throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
-        }
-
-        this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
-
-        this._updateMetadata(true);
-
-        // NOTE: First write to old file and then rename to new one to do the operation atomically.
-        //       Situation where two files exists at the same time may cause race condition bugs.
-        await fs.writeFile(source, JSON.stringify(request, null, 4));
-        await fs.rename(source, dest);
-        this.inProgressCount--;
-        delete this.queueOrderNoInProgress[oldQueueOrderNo];
-
-        return {
-            requestId: request.id,
-            wasAlreadyHandled: false,
-            wasAlreadyPresent: true,
-            request,
-        };
-    }
-
-    async isEmpty() {
-        await this.initializationPromise;
-        this._updateMetadata();
-        return this.pendingCount === this.inProgressCount;
-    }
-
-    async isFinished() {
-        await this.initializationPromise;
-        this._updateMetadata();
-        return this.pendingCount === 0;
-    }
-
-    async drop() {
-        await fs.emptyDir(this.localStoragePath);
-        queuesCache.remove(this.queueId);
-    }
-
-    async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
-            + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
-        await this.drop();
-    }
-
-    async handledCount() {
-        const { handledRequestCount } = await this.getInfo();
-        return handledRequestCount;
-    }
-
-    async getInfo() {
-        await this.initializationPromise;
-
-        const id = this.queueId;
-        const name = id === ENV_VARS.DEFAULT_REQUEST_QUEUE_ID ? null : id;
-        const result = {
-            id,
-            name,
-            userId: process.env[ENV_VARS.USER_ID] || null,
-            createdAt: this.createdAt,
-            modifiedAt: this.modifiedAt,
-            accessedAt: this.accessedAt,
-            totalRequestCount: this._handledCount + this.pendingCount,
-            handledRequestCount: this._handledCount,
-            pendingRequestCount: this.pendingCount,
-        };
-
-        this._updateMetadata();
-        return result;
-    }
-
-    _updateMetadata(isModified) {
-        const date = new Date();
-        this.accessedAt = date;
-        if (isModified) this.modifiedAt = date;
+        return this.client.getQueue({ queueId: this.queueId });
     }
 }
 
@@ -1063,10 +726,10 @@ export class RequestQueueLocal {
  *
  * @ignore
  */
-const getOrCreateQueue = async (queueIdOrName) => {
-    const existingQueue = await requestQueues.getQueue({ queueId: queueIdOrName });
+const getOrCreateQueue = async (storageClient, queueIdOrName) => {
+    const existingQueue = await storageClient.getQueue({ queueId: queueIdOrName });
     if (existingQueue) return existingQueue;
-    return requestQueues.getOrCreateQueue({ queueName: queueIdOrName });
+    return storageClient.getOrCreateQueue({ queueName: queueIdOrName });
 };
 
 /**
@@ -1092,15 +755,33 @@ const getOrCreateQueue = async (queueIdOrName) => {
  * @name openRequestQueue
  * @function
  */
-export const openRequestQueue = (queueIdOrName, options = {}) => {
+export const openRequestQueue = async (queueIdOrName, options = {}) => {
+    const { forceCloud = false } = options;
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
     checkParamOrThrow(options, 'options', 'Object');
+    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
     ensureTokenOrLocalStorageEnvExists('request queue');
 
-    const { forceCloud = false } = options;
-    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
+    const isLocal = process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud;
 
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
-        ? openLocalStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueueLocal, queuesCache)
-        : openRemoteStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueue, queuesCache, getOrCreateQueue);
+    if (!queueIdOrName) {
+        const defaultIdEnvVarName = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
+        queueIdOrName = process.env[defaultIdEnvVarName];
+        if (!queueIdOrName && isLocal) queueIdOrName = LOCAL_ENV_VARS[defaultIdEnvVarName];
+        if (!queueIdOrName) throw new Error(`The '${defaultIdEnvVarName}' environment variable is not defined.`);
+    }
+
+    const cacheKey = isLocal
+        ? `LOCAL:${queueIdOrName}`
+        : `REMOTE:${queueIdOrName}`;
+    let queue = queuesCache.get(cacheKey);
+
+    if (!queue) {
+        const storageClient = isLocal ? (await getApifyStorageLocal()).requestQueues : apifyClient.requestQueues;
+        const queueInfo = await getOrCreateQueue(storageClient, queueIdOrName);
+        queue = new RequestQueue({ ...queueInfo, storageClient });
+        queuesCache.add(cacheKey, queue);
+    }
+
+    return queue;
 };

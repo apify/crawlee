@@ -4,7 +4,7 @@ import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/key_value_store';
-import { RequestQueue, RequestQueueLocal } from '../../build/request_queue';
+import { RequestQueue } from '../../build/request_queue';
 import { sleep } from '../../build/utils';
 import events from '../../build/events';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
@@ -12,14 +12,12 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 describe('BasicCrawler', () => {
     let logLevel;
     let localStorageEmulator;
-    let LOCAL_STORAGE_DIR;
 
     beforeAll(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.OFF);
         localStorageEmulator = new LocalStorageDirEmulator();
         await localStorageEmulator.init();
-        LOCAL_STORAGE_DIR = localStorageEmulator.localStorageDir;
     });
 
     beforeEach(async () => {
@@ -254,22 +252,13 @@ describe('BasicCrawler', () => {
 
     test('should require at least one of RequestQueue and RequestList', () => {
         const requestList = new Apify.RequestList({ sources: [] });
-        const requestQueue = new RequestQueue('xxx');
+        const requestQueue = new RequestQueue({ id: 'xxx' });
         const handleRequestFunction = () => {};
 
         expect(() => new Apify.BasicCrawler({ handleRequestFunction })).toThrowError();
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestList })).not.toThrowError();
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).not.toThrowError();
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue, requestList })).not.toThrowError();
-    });
-
-    test('should also support RequestQueueLocal', () => {
-        const requestQueue = new RequestQueue('xxx');
-        const requestQueueLocal = new RequestQueueLocal('xxx', LOCAL_STORAGE_DIR);
-        const handleRequestFunction = () => {};
-
-        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).not.toThrowError();
-        expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue: requestQueueLocal })).not.toThrowError();
     });
 
     test('should correctly combine RequestList and RequestQueue', async () => {
@@ -280,7 +269,7 @@ describe('BasicCrawler', () => {
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });
-        const requestQueue = new RequestQueue('xxx');
+        const requestQueue = new RequestQueue({ id: 'xxx' });
 
         const handleRequestFunction = async ({ request }) => {
             await sleep(10);
@@ -401,7 +390,7 @@ describe('BasicCrawler', () => {
     test(
         'should say that task is not ready requestList is not set and requestQueue is empty',
         async () => {
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             requestQueue.isEmpty = () => Promise.resolve(true);
 
             const crawler = new Apify.BasicCrawler({
@@ -416,7 +405,7 @@ describe('BasicCrawler', () => {
     test(
         'should be possible to override isFinishedFunction of underlying AutoscaledPool',
         async () => {
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx' });
             const processed = [];
             const queue = [];
             let isFinished = false;
@@ -516,7 +505,7 @@ describe('BasicCrawler', () => {
     });
 
     test('should load handledRequestCount from storages', async () => {
-        const requestQueue = new RequestQueue('id');
+        const requestQueue = new RequestQueue({ id: 'id' });
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
         requestQueue.fetchNextRequest = async () => (new Apify.Request({ id: 'id', url: 'http://example.com' }));

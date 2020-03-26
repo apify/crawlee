@@ -8,7 +8,7 @@ import * as LruCache from 'apify-shared/lru_cache';
 import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import log from './utils_log';
 
-import { RequestQueue, RequestQueueLocal } from './request_queue';
+import { RequestQueue } from './request_queue';
 import Request from './request';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
@@ -173,7 +173,7 @@ const enqueueRequestsFromClickableElements = async (page, selector, purls, reque
 
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(purls, 'purls', 'Array');
-    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
+    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', RequestQueue, 'Apify.RequestQueue');
     checkParamOrThrow(requestOpts, 'requestOpts', 'Object');
 
     /* istanbul ignore next */
