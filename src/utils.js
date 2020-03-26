@@ -67,15 +67,23 @@ export const newClient = () => {
 
 /**
  * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
- * @return {ApifyStorageLocal}
+ * @return {Promise<ApifyStorageLocal>}
  */
-const newApifyStorageLocal = () => {
+const newApifyStorageLocal = async () => {
     const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
     const opts = {
         storageDir: localStorageDir,
     };
 
-    return new ApifyStorageLocal(opts);
+    const storage = new ApifyStorageLocal(opts);
+
+    // Temporary solution for default request queue purging
+    const defaultIdEnvVar = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
+    const queueName = process.env[defaultIdEnvVar] || LOCAL_ENV_VARS[defaultIdEnvVar];
+    const queue = await storage.requestQueues.getOrCreateQueue({ queueName });
+    await storage.requestQueues.deleteQueue({ queueId: queue.id });
+
+    return storage;
 };
 
 /**
@@ -125,9 +133,9 @@ let apifyStorageLocal;
  * @memberof module:Apify
  * @name storageLocal
  */
-export const getApifyStorageLocal = () => {
+export const getApifyStorageLocal = async () => {
     if (apifyStorageLocal) return apifyStorageLocal;
-    apifyStorageLocal = newApifyStorageLocal();
+    apifyStorageLocal = await newApifyStorageLocal();
     return apifyStorageLocal;
 };
 

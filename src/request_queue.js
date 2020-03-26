@@ -777,7 +777,7 @@ export const openRequestQueue = async (queueIdOrName, options = {}) => {
     let queue = queuesCache.get(cacheKey);
 
     if (!queue) {
-        const storageClient = isLocal ? getApifyStorageLocal().requestQueues : apifyClient.requestQueues;
+        const storageClient = isLocal ? (await getApifyStorageLocal()).requestQueues : apifyClient.requestQueues;
         const queueInfo = await getOrCreateQueue(storageClient, queueIdOrName);
         queue = new RequestQueue({ ...queueInfo, storageClient });
         queuesCache.add(cacheKey, queue);

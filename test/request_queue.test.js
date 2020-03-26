@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import sinon from 'sinon';
+import ApifyStorageLocal from '@apify/storage-local';
 import { ENV_VARS } from 'apify-shared/consts';
 import * as Apify from '../build/index';
 import * as utils from '../build/utils';
@@ -736,7 +737,7 @@ describe('local emulation', () => {
     });
 
     afterAll(async () => {
-        getApifyStorageLocal().closeDatabase();
+        (await getApifyStorageLocal()).closeDatabase();
         await localStorageEmulator.destroy();
     });
 
@@ -744,7 +745,7 @@ describe('local emulation', () => {
         const mockQueue = {
             id: 'some-id',
         };
-        const apifyStorageLocal = getApifyStorageLocal();
+        const apifyStorageLocal = await getApifyStorageLocal();
         const apifyStorageLocalMock = sinon.mock(apifyStorageLocal.requestQueues);
 
         apifyStorageLocalMock.expects('getQueue').twice().resolves(null);
@@ -763,6 +764,27 @@ describe('local emulation', () => {
         expect(queue.client).toBe(apifyStorageLocal.requestQueues);
 
         apifyStorageLocalMock.restore();
+    });
+
+    test('default queue gets purged on initialization', async () => {
+        const storage = new ApifyStorageLocal({
+            storageDir: process.env.APIFY_LOCAL_STORAGE_DIR,
+        });
+
+        const request = {
+            url: 'https://example.com',
+            uniqueKey: 'https://example.com',
+        };
+
+        const queue = await storage.requestQueues.getOrCreateQueue({ queueName: 'default' });
+        const { requestId } = await storage.requestQueues.addRequest({ queueId: queue.id, request });
+        storage.closeDatabase();
+
+        const apifyStorageLocal = await getApifyStorageLocal();
+        const oldQueue = await apifyStorageLocal.requestQueues.getQueue({ queueId: queue.id });
+        expect(oldQueue).toBeNull();
+        const oldRequest = await apifyStorageLocal.requestQueues.getRequest({ queueId: queue.id, requestId });
+        expect(oldRequest).toBeNull();
     });
 
     test('should work as remote', async () => {
