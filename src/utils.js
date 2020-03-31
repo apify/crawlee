@@ -83,6 +83,10 @@ const newApifyStorageLocal = async () => {
     const queue = await storage.requestQueues.getOrCreateQueue({ queueName });
     await storage.requestQueues.deleteQueue({ queueId: queue.id });
 
+    process.on('exit', () => {
+        storage.closeDatabase();
+    });
+
     return storage;
 };
 
