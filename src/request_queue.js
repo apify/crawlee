@@ -141,16 +141,9 @@ export const getRequestId = (uniqueKey) => {
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
- * that local directory as follows:
- * ```
- * {APIFY_LOCAL_STORAGE_DIR}/request_queues/{QUEUE_ID}/{STATE}/{NUMBER}.json
- * ```
- * Note that `{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID: `default`,
- * unless you override it by setting the `APIFY_DEFAULT_REQUEST_QUEUE_ID` environment variable.
- * Each request in the queue is stored as a separate JSON file, where `{STATE}` is either `handled` or `pending`,
- * and `{NUMBER}` is an integer indicating the position of the request in the queue.
+ * that directory in an SQLite database file.
  *
- * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+ * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` is not, the data is stored in the
  * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
  * option to {@link Apify#openRequestQueue} function,
@@ -169,17 +162,6 @@ export const getRequestId = (uniqueKey) => {
  * await queue.addRequest({ url: 'http://example.com/aaa' });
  * await queue.addRequest({ url: 'http://example.com/bbb' });
  * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
- *
- * // Get requests from queue
- * const request1 = await queue.fetchNextRequest();
- * const request2 = await queue.fetchNextRequest();
- * const request3 = await queue.fetchNextRequest();
- *
- * // Mark a request as handled
- * await queue.markRequestHandled(request1);
- *
- * // If processing of a request fails then reclaim it back to the queue, so that it's crawled again
- * await queue.reclaimRequest(request2);
  * ```
  * @hideconstructor
  */
@@ -189,6 +171,7 @@ export class RequestQueue {
      * @param {string} options.id
      * @param {string} [options.name]
      * @param {object} [options.storageClient]
+     * @param {boolean} [options.isLocal]
      * @param {string} [options.clientKey]
      */
     constructor(options) {
@@ -196,12 +179,14 @@ export class RequestQueue {
             id,
             name,
             storageClient = apifyClient.requestQueues,
+            isLocal = false,
             clientKey = cryptoRandomObjectId(),
         } = options;
 
         checkParamOrThrow(id, 'id', 'String');
         checkParamOrThrow(name, 'name', 'Maybe String');
         checkParamOrThrow(storageClient, 'storageClient', 'Object');
+        checkParamOrThrow(isLocal, 'isLocal', 'Boolean');
         checkParamOrThrow(clientKey, 'clientKey', 'String');
 
         if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
@@ -210,6 +195,7 @@ export class RequestQueue {
         this.queueId = id;
         this.queueName = name;
         this.client = storageClient;
+        this.isLocal = isLocal;
 
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
@@ -652,7 +638,7 @@ export class RequestQueue {
     }
 
     /**
-     * Removes the queue either from the Apify Cloud storage or from the local directory,
+     * Removes the queue either from the Apify Cloud storage or from the local database,
      * depending on the mode of operation.
      *
      * @return {Promise<void>}
@@ -662,8 +648,12 @@ export class RequestQueue {
             queueId: this.queueId,
         });
 
-        queuesCache.remove(this.queueId);
-        if (this.queueName) queuesCache.remove(this.queueName);
+        const idKey = createQueueCacheKey(this.queueId, this.isLocal);
+        queuesCache.remove(idKey);
+        if (this.queueName) {
+            const nameKey = createQueueCacheKey(this.queueName);
+            queuesCache.remove(nameKey);
+        }
     }
 
     /** @ignore */
@@ -771,17 +761,38 @@ export const openRequestQueue = async (queueIdOrName, options = {}) => {
         if (!queueIdOrName) throw new Error(`The '${defaultIdEnvVarName}' environment variable is not defined.`);
     }
 
-    const cacheKey = isLocal
-        ? `LOCAL:${queueIdOrName}`
-        : `REMOTE:${queueIdOrName}`;
+    const cacheKey = createQueueCacheKey(queueIdOrName, isLocal);
     let queue = queuesCache.get(cacheKey);
 
     if (!queue) {
         const storageClient = isLocal ? (await getApifyStorageLocal()).requestQueues : apifyClient.requestQueues;
         const queueInfo = await getOrCreateQueue(storageClient, queueIdOrName);
         queue = new RequestQueue({ ...queueInfo, storageClient });
-        queuesCache.add(cacheKey, queue);
+        addQueueToCache(queue);
     }
 
     return queue;
 };
+
+/**
+ * @param {RequestQueue} queue
+ */
+function addQueueToCache(queue) {
+    const idKey = createQueueCacheKey(queue.queueId, queue.isLocal);
+    queuesCache.add(idKey, queue);
+    if (queue.queueName) {
+        const nameKey = createQueueCacheKey(queue.queueName, queue.isLocal);
+        queuesCache.add(nameKey, queue);
+    }
+}
+
+/**
+ * @param {string} identifier
+ * @param {boolean} isLocal
+ * @return {string}
+ */
+function createQueueCacheKey(identifier, isLocal) {
+    return isLocal
+        ? `LOCAL:${identifier}`
+        : `REMOTE:${identifier}`;
+}
