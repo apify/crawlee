@@ -4,10 +4,16 @@ const jsdoc2md = require('jsdoc-to-markdown'); // eslint-disable-line
 const path = require('path');
 const prettier = require('prettier'); // eslint-disable-line
 const readline = require('readline');
+const httpRequest = require('@apify/http-request');
+const stream = require('stream');
+const { promisify } = require('util');
 const prettierConfig = require('./prettier.config');
+const sidebars = require('../sidebars.json');
 
 const BASE_URL = '/docs';
-
+const DOCS_DIR = path.join(__dirname, '..', '..', 'docs');
+const EXAMPLES_DIR_NAME = path.join(DOCS_DIR, 'examples');
+const EXAMPLES_REPO = 'https://api.github.com/repos/apifytech/actor-templates/contents/dist/examples';
 /* eslint-disable no-shadow */
 
 const classNames = [];
@@ -45,6 +51,7 @@ const getRenderOptions = (template, data) => ({
     ],
 });
 
+// eslint-disable-next-line no-unused-vars
 const readFileFromLine = async (path, lineNumber = 1) => {
     return new Promise((resolve, reject) => {
         const output = [];
@@ -132,32 +139,55 @@ const generateFinalMarkdown = (title, text, entityMap) => {
     return prettier.format(header + text, prettierConfig);
 };
 
+async function getExamplesFromRepo() {
+    await fs.emptyDir(EXAMPLES_DIR_NAME);
+    process.chdir(EXAMPLES_DIR_NAME);
+    const { body } = await httpRequest({
+        url: EXAMPLES_REPO,
+        json: true,
+    });
+    const builtExamples = await buildExamples(body);
+    await addExamplesToSidebars(builtExamples);
+}
+
+async function buildExamples(exampleLinks) {
+    const examples = [];
+    for (const example of exampleLinks) {
+        const responseStream = await httpRequest({
+            url: example.download_url,
+            stream: true,
+        });
+        try {
+            const pipeline = promisify(stream.pipeline);
+            await pipeline(responseStream, fs.createWriteStream(example.name));
+            const exampleName = example.name.split('.')[0];
+            examples.push(`examples/${exampleName.replace(/_/g, '-')}`);
+            console.log(`Rendering example ${example.name}`);
+        } catch (err) {
+            throw err;
+        }
+    }
+    return examples;
+}
+
+async function addExamplesToSidebars(examples) {
+    sidebars.examples = { Examples: examples };
+    fs.writeFileSync(path.join(__dirname, '..', 'sidebars.json'), JSON.stringify(sidebars, null, 4));
+    console.log('Saving examples to sidebars.json');
+}
+
+
 const main = async () => {
     /* input and output paths */
     const sourceFiles = path.join(__dirname, '..', '..', 'src', '**', '*.js');
-    const exampleFiles = path.join(__dirname, '..', '..', 'examples', '**', '*.js');
     const sourceFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'api');
     const typeFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'typedefs');
-    const exampleFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'examples');
 
     /* get template data */
     const templateData = await jsdoc2md.getTemplateData({ files: sourceFiles });
-    const exampleData = await jsdoc2md.getTemplateData({ files: exampleFiles });
 
     // handle examples
-    const examplePromises = exampleData.map(async (example) => {
-        const { description, meta: { filename, path: filepath, lineno } } = example;
-        const code = await readFileFromLine(path.join(filepath, filename), lineno);
-        const sep = '```';
-        const codeblock = `${sep}javascript\n${code}\n${sep}`;
-
-        const title = filename.split('.')[0].split('_').map(word => `${word[0].toUpperCase()}${word.substr(1)}`).join(' ');
-        const header = getHeader(title);
-        const markdown = prettier.format(`${header}\n${description}\n${codeblock}`, prettierConfig);
-        await fs.outputFile(path.join(exampleFilesOutputDir, `${title.replace(/\s/g, '')}.md`), markdown);
-    });
-
-    await Promise.all(examplePromises);
+    await getExamplesFromRepo();
 
     /* reduce templateData to an array of class names */
     templateData.forEach((identifier) => {
