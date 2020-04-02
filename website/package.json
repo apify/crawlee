@@ -19,6 +19,7 @@
     "fs-extra": "^8.1.0"
   },
   "dependencies": {
+    "@apify/http-request": "^1.1.5",
     "remarkable-extlink": "^1.1.0"
   }
 }
