@@ -51,24 +51,6 @@ const getRenderOptions = (template, data) => ({
     ],
 });
 
-// eslint-disable-next-line no-unused-vars
-const readFileFromLine = async (path, lineNumber = 1) => {
-    return new Promise((resolve, reject) => {
-        const output = [];
-        const rl = readline.createInterface({
-            input: fs.createReadStream(path),
-            crlfDelay: Infinity,
-        });
-        let lineCounter = 0;
-        rl.on('line', (line) => {
-            lineCounter++;
-            if (lineCounter >= lineNumber) output.push(line);
-        });
-        rl.on('close', () => resolve(output.join('\n')));
-        rl.on('error', err => reject(err));
-    });
-};
-
 const getLinkToEntity = (entityName, entityMap) => {
     const entity = entityMap.get(entityName);
     const folder = entity.kind === 'typedef' ? 'typedefs' : 'api';
