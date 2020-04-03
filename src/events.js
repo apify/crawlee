@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import * as WebSocket from 'ws';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
-import log from './utils_log';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
+import { createPrefixedNamespace } from './utils';
 
 // NOTE: This value is mentioned below in docs, if you update it here, update it there too.
 const PERSIST_STATE_INTERVAL_MILLIS = 60 * 1000;
@@ -103,6 +103,8 @@ const emitPersistStateEvent = (isMigrating = false) => {
     events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, { isMigrating });
 };
 
+const prefixed = createPrefixedNamespace('Events');
+
 /**
  * Initializes `Apify.events` event emitter by creating a connection to a websocket that provides them.
  * This is an internal function that is automatically called by `Apify.main()`.
@@ -125,7 +127,7 @@ export const initializeEvents = () => {
 
     // Locally there is no web socket to connect, so just print a log message.
     if (!eventsWsUrl) {
-        log.debug(`Apify.events: Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, no events from Apify platform will be emitted.`);
+        prefixed.log.debug(`Environment variable ${ENV_VARS.ACTOR_EVENTS_WS_URL} is not set, no events from Apify platform will be emitted.`);
         return;
     }
 
@@ -143,17 +145,17 @@ export const initializeEvents = () => {
                 emitPersistStateEvent(true);
             }
         } catch (err) {
-            log.exception(err, 'Apify.events: Cannot parse actor event');
+            prefixed.log.exception(err, 'Cannot parse actor event');
         }
     });
     eventsWs.on('error', (err) => {
         // Don't print this error as this happens in the case of very short Apify.main().
         if (err.message === 'WebSocket was closed before the connection was established') return;
 
-        log.exception(err, 'Apify.events: web socket connection failed');
+        prefixed.log.exception(err, 'web socket connection failed');
     });
     eventsWs.on('close', () => {
-        log.warning('Apify.events: web socket has been closed');
+        prefixed.log.warning('web socket has been closed');
         eventsWs = null;
     });
 };

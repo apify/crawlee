@@ -3,8 +3,7 @@ import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
-import log from '../utils_log';
+import { getMemoryInfo, isAtHome, apifyClient, createPrefixedNamespace } from '../utils';
 import events from '../events';
 
 const DEFAULT_OPTIONS = {
@@ -21,6 +20,8 @@ const DEFAULT_OPTIONS = {
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10000;
+const snapshotterPrefixed = createPrefixedNamespace('Snapshotter');
+const autoscaledPrefixed = createPrefixedNamespace('AutoscaledPool');
 
 /**
  * @typedef SnapshotterOptions
@@ -276,7 +277,7 @@ class Snapshotter {
 
             this.memorySnapshots.push(snapshot);
         } catch (err) {
-            log.exception(err, 'Snapshotter: Memory snapshot failed.');
+            snapshotterPrefixed.log.exception(err, 'Memory snapshot failed.');
         } finally {
             intervalCallback();
         }
@@ -299,7 +300,7 @@ class Snapshotter {
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes / this.maxMemoryBytes) * 100);
             const toMb = bytes => Math.round(bytes / (1024 ** 2));
-            log.warning('Memory is critically overloaded. '
+            snapshotterPrefixed.log.warning('Memory is critically overloaded. '
                 + `Using ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%). Consider increasing the actor memory.`);
             this.lastLoggedCriticalMemoryOverloadAt = now;
         }
@@ -459,7 +460,7 @@ class Snapshotter {
         } else {
             this.maxMemoryBytes = Math.ceil(totalBytes / 4);
             // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
-            log.info(`AutoscaledPool: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
+            autoscaledPrefixed.log.info(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
         }
     }
 }

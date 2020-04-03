@@ -21,11 +21,11 @@ import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
 import Request, { RequestOptions } from './request';
-/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -74,6 +74,24 @@ export const logSystemInfo = () => {
         osType: os.type(),
         nodeVersion: process.version,
     });
+};
+
+/**
+ * Generate namespaced Error and log instances
+ *
+ * @param {string} prefix
+ * @ignore
+ */
+export const createPrefixedNamespace = (prefix) => {
+    return {
+        prefix,
+        // we don't want to return `new Error` here, because it will
+        // unecessarily append this closure to the stack as Object.message
+        //
+        // this is for throwing errors with a contexted prefix
+        message: message => `${prefix}: ${message}`,
+        log: log.child({ prefix }),
+    };
 };
 
 /**

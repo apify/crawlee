@@ -6,8 +6,7 @@ import { leftpad } from 'apify-shared/utilities';
 import * as LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
-import log from './utils_log';
-import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, createPrefixedNamespace } from './utils'; // eslint-disable-line max-len
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
@@ -26,6 +25,7 @@ const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.
 
 const { datasets } = apifyClient;
 const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
+const prefixed = createPrefixedNamespace('Dataset');
 
 /**
  * Accepts a JSON serializable object as an input, validates its serializability,
@@ -45,12 +45,12 @@ export const checkAndSerialize = (item, limitBytes, index) => {
         checkParamOrThrow(item, 'item', 'Object');
         payload = JSON.stringify(item);
     } catch (err) {
-        throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
+        throw new Error(prefixed.message(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`));
     }
 
     const bytes = Buffer.byteLength(payload);
     if (bytes > limitBytes) {
-        throw new Error(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`);
+        throw new Error(prefixed.message(`Data item${s}is too large (size: ${bytes} bytes, limit: ${limitBytes} bytes)`));
     }
     return payload;
 };
@@ -274,9 +274,7 @@ export class Dataset {
             return await datasets.getItems(params);
         } catch (e) {
             if (e.message.includes('Cannot create a string longer than')) {
-                throw new Error(
-                    'dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.',
-                );
+                throw new Error(prefixed.message('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.')); // eslint-disable-line max-len
             }
             throw e;
         }
@@ -338,7 +336,7 @@ export class Dataset {
      */
     async forEach(iteratee, options = {}, index = 0) {
         if (!options.offset) options.offset = 0;
-        if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
+        if (options.format && options.format !== 'json') throw new Error(prefixed.message('Dataset.forEach/map/reduce() support only a "json" format.')); // eslint-disable-line max-len
         if (!options.limit) options.limit = DATASET_ITERATORS_DEFAULT_LIMIT;
 
         const { items, total, limit, offset } = await this.getData(options);
@@ -440,7 +438,7 @@ export class Dataset {
 
     /** @ignore */
     async delete() {
-        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+        prefixed.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
         await this.drop();
     }
@@ -514,11 +512,11 @@ export class DatasetLocal {
         checkParamOrThrow(opts.desc, 'opts.desc', 'Maybe Boolean');
 
         if (opts.format && opts.format !== 'json') {
-            throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
+            throw new Error(prefixed.message(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`));
         }
         if (opts.unwind || opts.disableBodyParser || opts.attachment || opts.bom || opts.simplified) {
             // eslint-disable-next-line max-len
-            throw new Error('Datasets with local disk storage do not support the following options: unwind, disableBodyParser, attachment, bom, simplified');
+            throw new Error(prefixed.message('Datasets with local disk storage do not support the following options: unwind, disableBodyParser, attachment, bom, simplified'));
         }
 
         if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
@@ -603,7 +601,7 @@ export class DatasetLocal {
     }
 
     async delete() {
-        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+        prefixed.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
         await this.drop();
     }
@@ -612,7 +610,7 @@ export class DatasetLocal {
      * Returns an array of item indexes for given offset and limit.
      */
     _getItemIndexes(offset = 0, limit = this.counter) {
-        if (limit === null) throw new Error('DatasetLocal must be initialized before calling this._getItemIndexes()!');
+        if (limit === null) throw new Error(prefixed.message('DatasetLocal must be initialized before calling this._getItemIndexes()!'));
         const start = offset + 1;
         const end = Math.min(offset + limit, this.counter) + 1;
         if (start > end) return [];

@@ -6,9 +6,10 @@ import * as LruCache from 'apify-shared/lru_cache';
 import * as ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
-import log from './utils_log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
+import {
+    ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep, createPrefixedNamespace,
+} from './utils';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -35,6 +36,7 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
 const { requestQueues } = apifyClient;
 const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
+const prefixed = createPrefixedNamespace('RequestQueue');
 
 /**
  * Helper function to validate params of *.addRequest().
@@ -50,7 +52,7 @@ const validateAddRequestParams = (request, opts) => {
 
     checkParamOrThrow(forefront, 'opts.forefront', 'Boolean');
 
-    if (request.id) throw new Error('Request already has the "id" field set so it cannot be added to the queue!');
+    if (request.id) throw new Error(prefixed.message('Request already has the "id" field set so it cannot be added to the queue!'));
 
     return { forefront, newRequest };
 };
@@ -197,7 +199,7 @@ export class RequestQueue {
         checkParamOrThrow(queueName, 'queueName', 'Maybe String');
         checkParamOrThrow(clientKey, 'clientKey', 'String');
 
-        if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
+        if (!clientKey) throw new Error(prefixed.message('Parameter "clientKey" must be a non-empty string!'));
 
         this.clientKey = clientKey;
         this.queueId = queueId;
@@ -347,7 +349,7 @@ export class RequestQueue {
 
         // This should never happen, but...
         if (this.inProgress.has(nextRequestId) || this.recentlyHandled.get(nextRequestId)) {
-            log.warning('Queue head returned a request that is already in progress?!', {
+            prefixed.log.warning('Queue head returned a request that is already in progress?!', {
                 nextRequestId,
                 inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
@@ -374,7 +376,7 @@ export class RequestQueue {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+            prefixed.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -386,7 +388,7 @@ export class RequestQueue {
         //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
         //    will not put the request again to queueHeadDict.
         if (request.handledAt) {
-            log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
+            prefixed.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
             this.recentlyHandled.add(nextRequestId, true);
             return null;
         }
@@ -408,7 +410,7 @@ export class RequestQueue {
         validateMarkRequestHandledParams(request);
 
         if (!this.inProgress.has(request.id)) {
-            throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
+            throw new Error(prefixed.message(`Cannot mark request ${request.id} as handled, because it is not in progress!`));
         }
 
         if (!request.handledAt) request.handledAt = new Date();
@@ -452,7 +454,7 @@ export class RequestQueue {
         const { forefront } = validateReclaimRequestParams(request, options);
 
         if (!this.inProgress.has(request.id)) {
-            throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
+            throw new Error(prefixed.message(`Cannot reclaim request ${request.id}, because it is not in progress!`));
         }
 
         // TODO: If request hasn't been changed since the last getRequest(),
@@ -472,7 +474,7 @@ export class RequestQueue {
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id)) {
-                log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                prefixed.log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
                 return;
             }
 
@@ -596,7 +598,7 @@ export class RequestQueue {
 
         // If limit was not reached in the call then there are no more requests to be returned.
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-            log.warning(`RequestQueue: Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+            prefixed.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
         const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0
             && wasLimitReached
@@ -624,7 +626,7 @@ export class RequestQueue {
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
             const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
-            log.info(`RequestQueue: Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
+            prefixed.log.info(`Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
             await sleep(delayMillis);
         }
 
@@ -660,7 +662,7 @@ export class RequestQueue {
 
     /** @ignore */
     async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+        prefixed.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
         await this.drop();
     }
@@ -830,7 +832,7 @@ export class RequestQueueLocal {
             // This happens when the file is still being written.
             // The descriptor exists, but the contents are not there yet.
             // So let's handle it as if it didn't exist at all.
-            const error = new Error(`${ENOENT}: the file is still being written. ${filePath}`);
+            const error = new Error(prefixed.message(`${ENOENT}: the file is still being written. ${filePath}`));
             error.code = ENOENT;
             throw error;
         }
@@ -946,7 +948,7 @@ export class RequestQueueLocal {
         const dest = this._getFilePath(queueOrderNo, true);
 
         if (!this.queueOrderNoInProgress[queueOrderNo]) {
-            throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
+            throw new Error(prefixed.message(`Cannot mark request ${request.id} as handled, because it is not in progress!`));
         }
 
         if (!request.handledAt) request.handledAt = new Date();
@@ -980,7 +982,7 @@ export class RequestQueueLocal {
         const dest = this._getFilePath(newQueueOrderNo);
 
         if (!this.queueOrderNoInProgress[oldQueueOrderNo]) {
-            throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
+            throw new Error(prefixed.message(`Cannot reclaim request ${request.id}, because it is not in progress!`));
         }
 
         this.requestIdToQueueOrderNo[request.id] = newQueueOrderNo;
@@ -1020,7 +1022,7 @@ export class RequestQueueLocal {
     }
 
     async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+        prefixed.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
         await this.drop();
     }

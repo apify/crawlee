@@ -1,8 +1,8 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
-import log from '../utils_log';
 import EVENTS from './events';
+import { createPrefixedNamespace } from '../utils';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
 
@@ -16,6 +16,7 @@ import { Response as PuppeteerResponse } from 'puppeteer';
 
 // CONSTANTS
 const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
+const prefixed = createPrefixedNamespace('Session');
 
 /**
  * Persistable {@link Session} state.
@@ -95,7 +96,7 @@ export class Session {
 
         // sessionPool must be instance of SessionPool.
         if (sessionPool.constructor.name !== 'SessionPool') {
-            throw new Error('Session: sessionPool must be instance of SessionPool');
+            throw new Error(prefixed.message('sessionPool must be instance of SessionPool'));
         }
 
         /**
@@ -243,7 +244,7 @@ export class Session {
             this._setCookies(cookies, response.url);
         } catch (e) {
             // if invalid Cookie header is provided just log the exception.
-            log.exception(e, 'Session: Could not get cookies from response');
+            prefixed.log.exception(e, 'Could not get cookies from response');
         }
     }
 
@@ -268,7 +269,7 @@ export class Session {
             this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(this)), url);
         } catch (e) {
             // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-            log.exception(e, 'Session: Could not set cookies in puppeteer format.');
+            prefixed.log.exception(e, 'Could not set cookies in puppeteer format.');
         }
     }
 

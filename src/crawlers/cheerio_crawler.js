@@ -10,10 +10,9 @@ import * as util from 'util';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
-import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
+import { addTimeoutToPromise, parseContentTypeFromResponse, createPrefixedNamespace } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -41,6 +40,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
         maxEventLoopOverloadedRatio: 0.7,
     },
 };
+const prefixed = createPrefixedNamespace('CheerioCrawler');
 
 /**
  * @typedef CheerioCrawlerOptions
@@ -356,14 +356,14 @@ class CheerioCrawler {
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
         // Enforce valid proxy configuration
-        if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
-        if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
+        if (proxyUrls && !proxyUrls.length) throw new Error(prefixed.message('Parameter "options.proxyUrls" of type Array must not be empty'));
+        if (useApifyProxy && proxyUrls) throw new Error(prefixed.message('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!'));
         if (persistCookiesPerSession && !useSessionPool) {
-            throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+            throw new Error(prefixed.message('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"'));
         }
 
         if (apifyProxySession && useSessionPool) {
-            throw new Error('Cannot use "options.apifyProxySession" with "options.useSessionPool"');
+            throw new Error(prefixed.message('Cannot use "options.apifyProxySession" with "options.useSessionPool"'));
         }
 
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
@@ -373,11 +373,11 @@ class CheerioCrawler {
         if (requestOptions) {
             // DEPRECATED 2020-03-22
             this.requestOptions = requestOptions;
-            log.deprecated('CheerioCrawler: options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
+            prefixed.log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
         }
 
         if (suggestResponseEncoding && forceResponseEncoding) {
-            log.warning('CheerioCrawler: Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
+            prefixed.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
         }
 
         this.handlePageFunction = handlePageFunction;
@@ -414,6 +414,9 @@ class CheerioCrawler {
             // Session pool options
             sessionPoolOptions,
             useSessionPool,
+
+            // log
+            logNamespace: prefixed,
         });
 
         this.isRunningPromise = null;
@@ -447,7 +450,7 @@ class CheerioCrawler {
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
-            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
+            prefixed.message(`request timed out after ${this.requestTimeoutMillis / 1000} seconds.`),
         );
 
         if (this.useSessionPool) {
@@ -466,7 +469,7 @@ class CheerioCrawler {
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
-                log.deprecated('CheerioCrawler: The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
+                prefixed.log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
@@ -492,7 +495,7 @@ class CheerioCrawler {
         return addTimeoutToPromise(
             this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
-            `CheerioCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
+            prefixed.message(`handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`),
         );
     }
 
@@ -542,11 +545,11 @@ class CheerioCrawler {
                 const errorResponse = JSON.parse(body);
                 let { message } = errorResponse;
                 if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                throw new Error(`${statusCode} - ${message}`);
+                throw new Error(prefixed.message(`${statusCode} - ${message}`));
             }
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+            throw new Error(prefixed.message(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`));
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
@@ -577,13 +580,13 @@ class CheerioCrawler {
 
                 if (statusCode === 406) {
                     request.noRetry = true;
-                    throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                    throw new Error(prefixed.message(`Resource ${request.url} is not available in HTML format. Skipping resource.`));
                 }
 
                 if (!this.supportedMimeTypes.has(type) && statusCode < 500) {
                     request.noRetry = true;
-                    throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type}, `
-                        + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
+                    throw new Error(prefixed.message(`Resource ${request.url} served Content-Type ${type}, `
+                        + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`));
                 }
 
                 return false;
@@ -648,7 +651,7 @@ class CheerioCrawler {
             };
         }
 
-        throw new Error(`CheerioCrawler: Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
+        throw new Error(prefixed.message(`Resource ${request.url} served with unsupported charset/encoding: ${encoding}`));
     }
 
     async _parseHtmlToDom(response) {
@@ -673,7 +676,7 @@ class CheerioCrawler {
                 const parsedType = contentTypeParser.parse(mimeType);
                 this.supportedMimeTypes.add(parsedType.type);
             } catch (err) {
-                throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
+                throw new Error(prefixed.message(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`));
             }
         });
     }
@@ -688,7 +691,7 @@ class CheerioCrawler {
         const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
 
         if (isBlocked) {
-            throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+            throw new Error(prefixed.message(`Request blocked - received ${statusCode} status code`));
         }
     }
 
@@ -699,7 +702,7 @@ class CheerioCrawler {
      */
     _handleRequestTimeout(session) {
         if (session) session.markBad();
-        throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+        throw new Error(prefixed.message(`request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`));
     }
 
     /**
@@ -711,7 +714,7 @@ class CheerioCrawler {
      */
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.exception(error, 'CheerioCrawler: Request failed and reached maximum retries', details);
+        prefixed.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 

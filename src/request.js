@@ -3,7 +3,9 @@ import * as util from 'util';
 import * as crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import log from './utils_log';
+import { createPrefixedNamespace } from './utils'; // eslint-disable-line import/no-cycle
+
+const prefixed = createPrefixedNamespace('Request');
 
 export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
     const normalizedMethod = method.toUpperCase();
@@ -11,7 +13,7 @@ export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExt
     if (!useExtendedUniqueKey) {
         if (normalizedMethod !== 'GET' && payload) {
             // Using log.deprecated to log only once. We should add log.once or some such.
-            log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
+            prefixed.log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
                 + 'This is fine. Just letting you know that if your requests point to the same URL '
                 + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
         }
@@ -130,9 +132,9 @@ class Request {
         checkParamOrThrow(keepUrlFragment, 'keepUrlFragment', 'Boolean');
         checkParamOrThrow(useExtendedUniqueKey, 'useExtendedUniqueKey', 'Boolean');
 
-        if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
+        if (method === 'GET' && payload) throw new Error(prefixed.message('Request with GET method cannot have a payload.'));
 
-        if (!url) throw new Error('The "url" option cannot be empty string.');
+        if (!url) throw new Error(prefixed.message('The "url" option cannot be empty string.'));
 
         this.id = id;
         this.url = url;
@@ -214,7 +216,7 @@ class Request {
      * @ignore
      */
     doNotRetry(message) {
-        log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
+        prefixed.log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
         this.noRetry = true;
         if (message) throw new Error(message);
     }

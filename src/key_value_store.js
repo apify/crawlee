@@ -8,9 +8,9 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
-import log from './utils_log';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
+    createPrefixedNamespace
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
 
@@ -28,6 +28,7 @@ const emptyDirPromised = promisify(fs.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
+const prefixed = createPrefixedNamespace('KeyValueStore');
 
 /**
  * Helper function to validate params of *.getValue().
@@ -36,7 +37,7 @@ const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-
  */
 const validateGetValueParams = (key) => {
     checkParamOrThrow(key, 'key', 'String');
-    if (!key) throw new Error('The "key" parameter cannot be empty');
+    if (!key) throw new Error(prefixed.message('The "key" parameter cannot be empty'));
 };
 
 /**
@@ -50,19 +51,19 @@ const validateSetValueParams = (key, value, options) => {
     checkParamOrThrow(options.contentType, 'options.contentType', 'String | Null | Undefined');
 
     if (value === null && options.contentType !== null && options.contentType !== undefined) {
-        throw new Error('The "options.contentType" parameter must not be used when removing the record.');
+        throw new Error(prefixed.message('The "options.contentType" parameter must not be used when removing the record.'));
     }
 
     if (options.contentType) {
         checkParamOrThrow(value, 'value', 'Buffer | String', 'The "value" parameter must be a String or Buffer when "options.contentType" is specified.'); // eslint-disable-line max-len
     }
 
-    if (options.contentType === '') throw new Error('Parameter options.contentType cannot be empty string.');
-    if (!key) throw new Error('The "key" parameter cannot be empty');
+    if (options.contentType === '') throw new Error(prefixed.message('Parameter options.contentType cannot be empty string.'));
+    if (!key) throw new Error(prefixed.message('The "key" parameter cannot be empty'));
 
     if (!KEY_VALUE_STORE_KEY_REGEX.test(key)) {
-        throw new Error('The "key" parameter must be at most 256 characters long and only contain the following characters: '
-            + "a-zA-Z0-9!-_.'()");
+        throw new Error(prefixed.message('The "key" parameter must be at most 256 characters long and only contain the following characters: '
+            + "a-zA-Z0-9!-_.'()"));
     }
 };
 
@@ -84,12 +85,12 @@ export const maybeStringify = (value, options) => {
             if (e.message && e.message.indexOf('Invalid string length') >= 0) {
                 e.message = 'Object is too large';
             }
-            throw new Error(`The "value" parameter cannot be stringified to JSON: ${e.message}`);
+            throw new Error(prefixed.message(`The "value" parameter cannot be stringified to JSON: ${e.message}`));
         }
 
         if (value === undefined) {
-            throw new Error('The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify an undefined value.');
+            throw new Error(prefixed.message('The "value" parameter was stringified to JSON and returned undefined. '
+                + 'Make sure you\'re not trying to stringify an undefined value.'));
         }
     }
 
@@ -298,7 +299,7 @@ export class KeyValueStore {
 
     /** @ignore */
     async delete() {
-        log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
+        prefixed.log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
         await this.drop();
     }
@@ -392,7 +393,7 @@ export class KeyValueStoreLocal {
                 ? parseBody(result.returnValue, mime.contentType(result.fileName))
                 : null;
         } catch (err) {
-            throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line
+            throw new Error(prefixed.message(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`)); // eslint-disable-line
         }
     }
 
@@ -408,7 +409,7 @@ export class KeyValueStoreLocal {
         try {
             await this._handleFile(key, unlinkPromised);
         } catch (err) {
-            throw new Error(`Error removing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+            throw new Error(prefixed.message(`Error removing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`)); // eslint-disable-line max-len
         }
 
         // In this case just delete the record.
@@ -423,12 +424,12 @@ export class KeyValueStoreLocal {
         try {
             await writeFilePromised(filePath, value);
         } catch (err) {
-            throw new Error(`Error writing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
+            throw new Error(prefixed.message(`Error writing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`)); // eslint-disable-line max-len
         }
     }
 
     async delete() {
-        log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
+        prefixed.log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
         await this.drop();
     }

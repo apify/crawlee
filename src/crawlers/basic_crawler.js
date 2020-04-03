@@ -6,10 +6,9 @@ import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-l
 import { RequestList } from '../request_list';
 import { RequestQueue, RequestQueueLocal } from '../request_queue'; // eslint-disable-line import/no-duplicates
 import events from '../events';
-import log from '../utils_log';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
-import { addTimeoutToPromise } from '../utils';
+import { addTimeoutToPromise, createPrefixedNamespace } from '../utils';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -32,17 +31,15 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @ignore
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
+const prefixed = createPrefixedNamespace('BasicCrawler');
 
 const DEFAULT_OPTIONS = {
     maxRequestRetries: 3,
     handleRequestTimeoutSecs: 60,
-    handleFailedRequestFunction: ({ request }) => {
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.error('BasicCrawler: Request failed and reached maximum retries', details);
-    },
     autoscaledPoolOptions: {},
     sessionPoolOptions: {}, // We could add sessionPool true/false config to use/not use SessionPool.
     useSessionPool: false,
+    logNamespace: prefixed,
 };
 
 /**
@@ -202,7 +199,16 @@ class BasicCrawler {
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+
+            // internal
+            logNamespace,
+        } = _.defaults({}, options, DEFAULT_OPTIONS, {
+            // this need to go inside the constructor to be able to access the logNamespace
+            handleFailedRequestFunction: ({ request }) => {
+                const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
+                logNamespace.log.error('Request failed and reached maximum retries', details);
+            },
+        });
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
         checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
@@ -216,9 +222,10 @@ class BasicCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
 
         if (!requestList && !requestQueue) {
-            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
+            throw new Error(logNamespace.message('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!')); // eslint-disable-line max-len
         }
 
+        this.logNamespace = logNamespace;
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.handleRequestFunction = handleRequestFunction;
@@ -226,7 +233,7 @@ class BasicCrawler {
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
-        this.stats = new Statistics({ logMessage: 'Crawler request statistics:' });
+        this.stats = new Statistics({ logMessage: `${logNamespace.prefix} request statistics:` });
         this.sessionPoolOptions = sessionPoolOptions;
         this.useSessionPool = useSessionPool;
 
@@ -242,7 +249,7 @@ class BasicCrawler {
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
                     if (shouldLogMaxPagesExceeded) {
-                        log.info('BasicCrawler: Crawler reached the maxRequestsPerCrawl limit of '
+                        logNamespace.log.info('Crawler reached the maxRequestsPerCrawl limit of '
                             + `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`);
                         shouldLogMaxPagesExceeded = false;
                     }
@@ -253,7 +260,7 @@ class BasicCrawler {
             },
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    log.info(`BasicCrawler: Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests `
+                    logNamespace.log.info(`Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests `
                         + 'and all requests that were in progress at that time have now finished. '
                         + `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`);
                     return true;
@@ -265,9 +272,9 @@ class BasicCrawler {
 
                 if (isFinished) {
                     const reason = isFinishedFunction
-                        ? 'BasicCrawler: Crawler\'s custom isFinishedFunction() returned true, the crawler will shut down.'
-                        : 'BasicCrawler: All the requests from request list and/or request queue have been processed, the crawler will shut down.';
-                    log.info(reason);
+                        ? 'Crawler\'s custom isFinishedFunction() returned true, the crawler will shut down.'
+                        : 'All the requests from request list and/or request queue have been processed, the crawler will shut down.';
+                    logNamespace.log.info(reason);
                 }
 
                 return isFinished;
@@ -312,7 +319,7 @@ class BasicCrawler {
 
             this.stats.stopLogging();
             const finalStats = this.stats.getCurrent();
-            log.info('Crawler final request statistics:', finalStats);
+            this.logNamespace.log.info('Final request statistics:', finalStats);
         }
     }
 
@@ -320,7 +327,7 @@ class BasicCrawler {
         await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
             .catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
-                    log.error('BasicCrawler: The crawler was paused due to migration to another host, '
+                    this.logNamespace.log.error('The crawler was paused due to migration to another host, '
                         + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
                 } else {
                     throw err;
@@ -331,11 +338,11 @@ class BasicCrawler {
             await this.requestList.persistState()
                 .catch((err) => {
                     if (err.message.includes('Cannot persist state.')) {
-                        log.error('BasicCrawler: The crawler attempted to persist its request list\'s state and failed due to missing or '
+                        this.logNamespace.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
                             + 'invalid config. Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList '
                             + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
                     } else {
-                        log.exception(err, 'BasicCrawler: An unexpected error occured when the crawler '
+                        this.logNamespace.log.exception(err, 'An unexpected error occured when the crawler '
                             + 'attempted to persist its request list\'s state.');
                     }
                 });
@@ -359,7 +366,7 @@ class BasicCrawler {
         } catch (err) {
             // If requestQueue.addRequest() fails here then we must reclaim it back to
             // the RequestList because probably it's not yet in the queue!
-            log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to the list', { request });
+            this.logNamespace.log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to the list', { request });
             await this.requestList.reclaimRequest(request);
             return null;
         }
@@ -399,7 +406,7 @@ class BasicCrawler {
             await addTimeoutToPromise(
                 this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session }),
                 this.handleRequestTimeoutMillis,
-                `BasicCrawler: handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
+                this.logNamespace.message(`handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`),
             );
             await source.markRequestHandled(request);
             this.stats.finishJob(statisticsId);
@@ -411,7 +418,7 @@ class BasicCrawler {
             try {
                 await this._requestFunctionErrorHandler(err, request, source);
             } catch (secondaryError) {
-                log.exception(secondaryError, 'BasicCrawler: runTaskFunction error handler threw an exception. '
+                this.logNamespace.log.exception(secondaryError, 'runTaskFunction error handler threw an exception. '
                     + 'This places the crawler and its underlying storages into an unknown state and crawling will be terminated. '
                     + 'This may have happened due to an internal error of Apify\'s API or due to a misconfigured crawler. '
                     + 'If you are sure that there is no error in your code, selecting "Restart on error" in the actor\'s settings'
@@ -466,9 +473,9 @@ class BasicCrawler {
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
         if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
             request.retryCount++;
-            log.exception(
+            this.logNamespace.log.exception(
                 error,
-                'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
                 _.pick(request, 'url', 'retryCount', 'id'),
             );
             return source.reclaimRequest(request);

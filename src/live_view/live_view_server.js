@@ -8,13 +8,13 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import log from '../utils_log';
-import { addTimeoutToPromise } from '../utils';
+import { addTimeoutToPromise, createPrefixedNamespace } from '../utils';
 import Snapshot from './snapshot';
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const ensureDir = promisify(fs.ensureDir);
+const prefixed = createPrefixedNamespace('LiveViewServer');
 
 const LOCAL_STORAGE_DIR = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || '';
 const DEFAULT_SCREENSHOT_DIR_PATH = path.resolve(LOCAL_STORAGE_DIR, 'live_view');
@@ -116,9 +116,9 @@ class LiveViewServer {
         try {
             await ensureDir(this.screenshotDirectoryPath);
             await promisifyServerListen(this.httpServer)(this.port);
-            log.info('Live view web server started', { publicUrl: this.liveViewUrl });
+            prefixed.log.info('Live view web server started', { publicUrl: this.liveViewUrl });
         } catch (err) {
-            log.exception(err, 'Live view web server failed to start.');
+            prefixed.log.exception(err, 'Live view web server failed to start.');
             this._isRunning = false;
         }
     }
@@ -133,8 +133,8 @@ class LiveViewServer {
         return new Promise((resolve) => {
             this.httpServer.close((err) => {
                 this._isRunning = false;
-                if (err) log.exception(err, 'Live view web server could not be stopped.');
-                else log.info('Live view web server stopped.');
+                if (err) prefixed.log.exception(err, 'Live view web server could not be stopped.');
+                else prefixed.log.info('Live view web server stopped.');
                 resolve();
             });
         });
@@ -205,7 +205,7 @@ class LiveViewServer {
      */
     async _makeSnapshot(page) {
         const pageUrl = page.url();
-        log.info('Making live view snapshot.', { pageUrl });
+        prefixed.log.info('Making live view snapshot.', { pageUrl });
         const [htmlContent, screenshot] = await Promise.all([
             page.content(),
             page.screenshot({
@@ -232,7 +232,7 @@ class LiveViewServer {
      */
     _pushSnapshot(snapshot) {
         // Send new snapshot to clients
-        log.debug('Sending live view snapshot', { createdAt: snapshot.createdAt, pageUrl: snapshot.pageUrl });
+        prefixed.log.debug('Sending live view snapshot', { createdAt: snapshot.createdAt, pageUrl: snapshot.pageUrl });
         this.socketio.emit('snapshot', snapshot);
     }
 
@@ -243,7 +243,7 @@ class LiveViewServer {
      */
     _deleteScreenshot(screenshotIndex) {
         unlink(this._getScreenshotPath(screenshotIndex))
-            .catch(err => log.exception(err, 'Cannot delete live view screenshot.'));
+            .catch(err => prefixed.log.exception(err, 'Cannot delete live view screenshot.'));
     }
 
     _setupHttpServer() {
@@ -251,8 +251,8 @@ class LiveViewServer {
 
         this.port = parseInt(containerPort, 10);
         if (!(this.port >= 0 && this.port <= 65535)) {
-            throw new Error('Cannot start LiveViewServer - invalid port specified by the '
-                + `${ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`);
+            throw new Error(prefixed.message('Cannot start LiveViewServer - invalid port specified by the '
+                + `${ENV_VARS.CONTAINER_PORT} environment variable (was "${containerPort}").`));
         }
         this.liveViewUrl = process.env[ENV_VARS.CONTAINER_URL] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL];
 
@@ -285,14 +285,14 @@ class LiveViewServer {
      */
     _socketConnectionHandler(socket) {
         this.clientCount++;
-        log.info('Live view client connected', { clientId: socket.id });
+        prefixed.log.info('Live view client connected', { clientId: socket.id });
         socket.on('disconnect', (reason) => {
             this.clientCount--;
-            log.info('Live view client disconnected', { clientId: socket.id, reason });
+            prefixed.log.info('Live view client disconnected', { clientId: socket.id, reason });
         });
         socket.on('getLastSnapshot', () => {
             if (this.lastSnapshot) {
-                log.debug('Sending live view snapshot', { createdAt: this.lastSnapshot.createdAt, pageUrl: this.lastSnapshot.pageUrl });
+                prefixed.log.debug('Sending live view snapshot', { createdAt: this.lastSnapshot.createdAt, pageUrl: this.lastSnapshot.pageUrl });
                 this.socketio.emit('snapshot', this.lastSnapshot);
             }
         });

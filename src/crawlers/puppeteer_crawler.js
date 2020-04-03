@@ -4,9 +4,8 @@ import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // 
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
-import { addTimeoutToPromise } from '../utils';
+import { addTimeoutToPromise, createPrefixedNamespace } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -21,6 +20,8 @@ import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
 // eslint-enable-line import/no-duplicates
+
+const prefixed = createPrefixedNamespace('PuppeteerCrawler');
 
 /**
  * @typedef PuppeteerCrawlerOptions
@@ -252,7 +253,7 @@ class PuppeteerCrawler {
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
         if (options.gotoTimeoutSecs && options.gotoFunction) {
-            log.warning('PuppeteerCrawler: You are using gotoTimeoutSecs with a custom gotoFunction. '
+            prefixed.log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
                 + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
         }
 
@@ -288,6 +289,9 @@ class PuppeteerCrawler {
             maxConcurrency,
             minConcurrency,
             autoscaledPoolOptions,
+
+            // log
+            logNamespace: prefixed,
         });
     }
 
@@ -353,7 +357,7 @@ class PuppeteerCrawler {
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
                 this.handlePageTimeoutMillis,
-                `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
+                prefixed.message(`handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`),
             );
 
             if (session) session.markGood();
@@ -382,7 +386,7 @@ class PuppeteerCrawler {
      */
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.exception(error, 'PuppeteerCrawler: Request failed and reached maximum retries', details);
+        prefixed.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 
