@@ -10,7 +10,7 @@ import { jsonStringifyExtended } from 'apify-shared/utilities';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
-    createPrefixedNamespace
+    createPrefixedNamespace,
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
 
