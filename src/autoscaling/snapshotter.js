@@ -20,7 +20,8 @@ const DEFAULT_OPTIONS = {
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10000;
-const snapshotterPrefixed = createPrefixedNamespace('Snapshotter');
+
+export const snapshotterPrefixed = createPrefixedNamespace('Snapshotter');
 const autoscaledPrefixed = createPrefixedNamespace('AutoscaledPool');
 
 /**
