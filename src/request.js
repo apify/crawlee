@@ -5,6 +5,8 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
 import { createLogger } from './logger';
 
+const log = createLogger('Request');
+
 export function hashPayload(payload) {
     return crypto
         .createHash('sha256')
@@ -117,9 +119,6 @@ class Request {
 
         if (!url) throw new Error('The "url" option cannot be empty string.');
 
-        const log = createLogger('Request');
-        this.log = log;
-
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
@@ -200,7 +199,7 @@ class Request {
      * @ignore
      */
     doNotRetry(message) {
-        this.log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
+        log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
         this.noRetry = true;
         if (message) throw new Error(message);
     }
@@ -215,7 +214,7 @@ class Request {
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
                 // Using log.deprecated to log only once. We should add log.once or some such.
-                this.log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
+                log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
                     + 'This is fine. Just letting you know that if your requests point to the same URL '
                     + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
             }
