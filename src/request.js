@@ -3,25 +3,7 @@ import * as util from 'util';
 import * as crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import { createPrefixedNamespace } from './utils'; // eslint-disable-line import/no-cycle
-
-const prefixed = createPrefixedNamespace('Request');
-
-export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
-    const normalizedMethod = method.toUpperCase();
-    const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
-    if (!useExtendedUniqueKey) {
-        if (normalizedMethod !== 'GET' && payload) {
-            // Using log.deprecated to log only once. We should add log.once or some such.
-            prefixed.log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
-                + 'This is fine. Just letting you know that if your requests point to the same URL '
-                + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
-        }
-        return normalizedUrl;
-    }
-    const payloadHash = payload ? hashPayload(payload) : '';
-    return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
-}
+import { createLogger } from './logger';
 
 export function hashPayload(payload) {
     return crypto
@@ -116,7 +98,6 @@ class Request {
             useExtendedUniqueKey = false,
         } = options;
 
-
         checkParamOrThrow(id, 'id', 'Maybe String');
         checkParamOrThrow(url, 'url', 'String');
         checkParamOrThrow(loadedUrl, 'url', 'Maybe String');
@@ -132,14 +113,17 @@ class Request {
         checkParamOrThrow(keepUrlFragment, 'keepUrlFragment', 'Boolean');
         checkParamOrThrow(useExtendedUniqueKey, 'useExtendedUniqueKey', 'Boolean');
 
-        if (method === 'GET' && payload) throw new Error(prefixed.message('Request with GET method cannot have a payload.'));
+        if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
-        if (!url) throw new Error(prefixed.message('The "url" option cannot be empty string.'));
+        if (!url) throw new Error('The "url" option cannot be empty string.');
+
+        const log = createLogger('Request');
+        this.log = log;
 
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
-        this.uniqueKey = uniqueKey || computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+        this.uniqueKey = uniqueKey || this._computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -216,9 +200,29 @@ class Request {
      * @ignore
      */
     doNotRetry(message) {
-        prefixed.log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
+        this.log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
         this.noRetry = true;
         if (message) throw new Error(message);
+    }
+
+    /**
+     * @ignore
+     * @private
+     */
+    _computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
+        const normalizedMethod = method.toUpperCase();
+        const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
+        if (!useExtendedUniqueKey) {
+            if (normalizedMethod !== 'GET' && payload) {
+                // Using log.deprecated to log only once. We should add log.once or some such.
+                this.log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
+                    + 'This is fine. Just letting you know that if your requests point to the same URL '
+                    + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
+            }
+            return normalizedUrl;
+        }
+        const payloadHash = payload ? hashPayload(payload) : '';
+        return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
     }
 }
 

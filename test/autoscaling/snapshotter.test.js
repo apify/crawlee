@@ -6,7 +6,7 @@ import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import log from '../../build/utils_log';
 import * as Apify from '../../build/index';
 import events from '../../build/events';
-import Snapshotter, { snapshotterPrefixed } from '../../build/autoscaling/snapshotter';
+import Snapshotter from '../../build/autoscaling/snapshotter';
 import * as utils from '../../build/utils';
 
 const toBytes = x => x * 1024 * 1024;
@@ -243,11 +243,11 @@ describe('Snapshotter', () => {
             memCurrentBytes: toBytes(7500),
         };
         let logged = false;
-        const warning = () => { logged = true; };
-        const stub = sinon.stub(snapshotterPrefixed.log, 'warning');
-        stub.callsFake(warning);
         process.env[ENV_VARS.MEMORY_MBYTES] = '10000';
         const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+        const warning = () => { logged = true; };
+        const stub = sinon.stub(snapshotter.log, 'warning');
+        stub.callsFake(warning);
 
         snapshotter._memoryOverloadWarning(memoryDataOverloaded);
         expect(logged).toBe(true);

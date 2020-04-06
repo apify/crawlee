@@ -4,10 +4,8 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { openKeyValueStore } from '../key_value_store';
 import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle
 import events from '../events';
-import { createPrefixedNamespace } from '../utils';
+import { createLogger } from '../logger';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
-
-const prefixed = createPrefixedNamespace('SessionPool');
 
 /**
  * Factory user-function which creates customized {@link Session} instances.
@@ -102,6 +100,8 @@ export class SessionPool extends EventEmitter {
         checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'String');
         checkParamOrThrow(createSessionFunction, 'options.createSessionFunction', 'Maybe Function');
 
+        this.log = createLogger('SessionPool');
+
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
         this.createSessionFunction = createSessionFunction || this._defaultCreateSessionFunction;
@@ -193,7 +193,7 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<void>}
      */
     async persistState() {
-        prefixed.log.debug('Persisting state',
+        this.log.debug('Persisting state',
             {
                 persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
                 persistStateKey: this.persistStateKey,
@@ -219,7 +219,7 @@ export class SessionPool extends EventEmitter {
         const sessionIndex = this.sessions.findIndex(storedSession => storedSession.id === session.id);
 
         const removedSession = this.sessions.splice(sessionIndex, 1);
-        prefixed.log.debug(`Removed Session - ${removedSession.id}`);
+        this.log.debug(`Removed Session - ${removedSession.id}`);
     }
 
     /**
@@ -262,7 +262,7 @@ export class SessionPool extends EventEmitter {
         const newSession = await this.createSessionFunction(this);
         this._addSession(newSession);
 
-        prefixed.log.debug(`Created new Session - ${newSession.id}`);
+        this.log.debug(`Created new Session - ${newSession.id}`);
 
         return newSession;
     }
@@ -296,7 +296,7 @@ export class SessionPool extends EventEmitter {
 
         if (!loadedSessionPool) return;
         // Invalidate old sessions and load active sessions only
-        prefixed.log.debug('Recreating state from KeyValueStore',
+        this.log.debug('Recreating state from KeyValueStore',
             {
                 persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
                 persistStateKey: this.persistStateKey,
@@ -312,7 +312,7 @@ export class SessionPool extends EventEmitter {
             }
         }
 
-        prefixed.log.debug(`${this.usableSessionsCount} active sessions loaded from KeyValueStore`);
+        this.log.debug(`${this.usableSessionsCount} active sessions loaded from KeyValueStore`);
     }
 }
 

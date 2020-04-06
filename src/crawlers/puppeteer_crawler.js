@@ -4,8 +4,9 @@ import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // 
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
-import { addTimeoutToPromise, createPrefixedNamespace } from '../utils';
+import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
+import { createLogger } from '../logger';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -20,8 +21,6 @@ import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
 // eslint-enable-line import/no-duplicates
-
-const prefixed = createPrefixedNamespace('PuppeteerCrawler');
 
 /**
  * @typedef PuppeteerCrawlerOptions
@@ -229,7 +228,7 @@ class PuppeteerCrawler {
             requestQueue,
             maxRequestRetries,
             maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
             autoscaledPoolOptions,
 
             // PuppeteerPool options and shorthands
@@ -252,8 +251,11 @@ class PuppeteerCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
+        const log = createLogger('PuppeteerCrawler');
+        this.log = log;
+
         if (options.gotoTimeoutSecs && options.gotoFunction) {
-            prefixed.log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
+            log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
                 + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
         }
 
@@ -291,7 +293,7 @@ class PuppeteerCrawler {
             autoscaledPoolOptions,
 
             // log
-            logNamespace: prefixed,
+            log,
         });
     }
 
@@ -357,7 +359,7 @@ class PuppeteerCrawler {
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
                 this.handlePageTimeoutMillis,
-                prefixed.message(`handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`),
+                `${this.log.getOptions().prefix} handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
 
             if (session) session.markGood();
@@ -386,7 +388,7 @@ class PuppeteerCrawler {
      */
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        prefixed.log.exception(error, 'Request failed and reached maximum retries', details);
+        this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 

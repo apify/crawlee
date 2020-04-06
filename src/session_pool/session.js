@@ -2,9 +2,9 @@ import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
 import EVENTS from './events';
-import { createPrefixedNamespace } from '../utils';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
+import { createLogger } from '../logger';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
@@ -16,7 +16,6 @@ import { Response as PuppeteerResponse } from 'puppeteer';
 
 // CONSTANTS
 const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
-const prefixed = createPrefixedNamespace('Session');
 
 /**
  * Persistable {@link Session} state.
@@ -94,9 +93,11 @@ export class Session {
         checkParamOrThrow(maxUsageCount, 'options.maxUsageCount', 'Number');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
 
+        this.log = createLogger('Session');
+
         // sessionPool must be instance of SessionPool.
         if (sessionPool.constructor.name !== 'SessionPool') {
-            throw new Error(prefixed.message('sessionPool must be instance of SessionPool'));
+            throw new Error('sessionPool must be instance of SessionPool');
         }
 
         /**
@@ -244,7 +245,7 @@ export class Session {
             this._setCookies(cookies, response.url);
         } catch (e) {
             // if invalid Cookie header is provided just log the exception.
-            prefixed.log.exception(e, 'Could not get cookies from response');
+            this.log.exception(e, 'Could not get cookies from response');
         }
     }
 
@@ -269,7 +270,7 @@ export class Session {
             this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(this)), url);
         } catch (e) {
             // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-            prefixed.log.exception(e, 'Could not set cookies in puppeteer format.');
+            this.log.exception(e, 'Could not set cookies in puppeteer format.');
         }
     }
 

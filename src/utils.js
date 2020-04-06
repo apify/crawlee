@@ -77,24 +77,6 @@ export const logSystemInfo = () => {
 };
 
 /**
- * Generate namespaced Error and log instances
- *
- * @param {string} prefix
- * @ignore
- */
-export const createPrefixedNamespace = (prefix) => {
-    return {
-        prefix,
-        // we don't want to return `new Error` here, because it will
-        // unecessarily append this closure to the stack as Object.message
-        //
-        // this is for throwing errors with a contexted prefix
-        message: message => `${prefix}: ${message}`,
-        log: log.child({ prefix }),
-    };
-};
-
-/**
  * Gets the default instance of the `ApifyClient` class provided
  * <a href="https://docs.apify.com/api/apify-client-js/latest"
  * target="_blank">apify-client</a> by the NPM package.

@@ -1,28 +1,14 @@
 import * as os from 'os';
-import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { getMemoryInfo, isAtHome, apifyClient, createPrefixedNamespace } from '../utils';
+import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
+import { createLogger } from '../logger';
 
-const DEFAULT_OPTIONS = {
-    eventLoopSnapshotIntervalSecs: 0.5,
-    maxBlockedMillis: 50, // 0.05
-    memorySnapshotIntervalSecs: 1,
-    clientSnapshotIntervalSecs: 1,
-    cpuSnapshotIntervalSecs: 1,
-    maxUsedMemoryRatio: 0.7,
-    maxUsedCpuRatio: 0.95,
-    snapshotHistorySecs: 30,
-    maxClientErrors: 3,
-};
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10000;
-
-export const snapshotterPrefixed = createPrefixedNamespace('Snapshotter');
-const autoscaledPrefixed = createPrefixedNamespace('AutoscaledPool');
 
 /**
  * @typedef SnapshotterOptions
@@ -88,16 +74,16 @@ class Snapshotter {
      */
     constructor(options = {}) {
         const {
-            eventLoopSnapshotIntervalSecs,
-            cpuSnapshotIntervalSecs,
-            memorySnapshotIntervalSecs,
-            clientSnapshotIntervalSecs,
-            snapshotHistorySecs,
-            maxBlockedMillis,
-            maxUsedMemoryRatio,
-            maxUsedCpuRatio,
-            maxClientErrors,
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+            eventLoopSnapshotIntervalSecs = 0.5,
+            cpuSnapshotIntervalSecs = 1,
+            memorySnapshotIntervalSecs = 1,
+            clientSnapshotIntervalSecs = 1,
+            snapshotHistorySecs = 30,
+            maxBlockedMillis = 50,
+            maxUsedMemoryRatio = 0.7,
+            maxUsedCpuRatio = 0.95,
+            maxClientErrors = 3,
+        } = options;
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
         checkParamOrThrow(memorySnapshotIntervalSecs, 'options.memorySnapshotIntervalSecs', 'Number');
@@ -109,6 +95,8 @@ class Snapshotter {
         checkParamOrThrow(maxUsedCpuRatio, 'options.maxUsedCpuRatio', 'Number');
         checkParamOrThrow(maxClientErrors, 'options.maxClientErrors', 'Number');
 
+        this.log = createLogger('Snapshotter');
+        this.autoscaledLog = createLogger('AutoscaledPool'); // not ideal, but we are cheating here
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
@@ -278,7 +266,7 @@ class Snapshotter {
 
             this.memorySnapshots.push(snapshot);
         } catch (err) {
-            snapshotterPrefixed.log.exception(err, 'Memory snapshot failed.');
+            this.log.exception(err, 'Memory snapshot failed.');
         } finally {
             intervalCallback();
         }
@@ -301,7 +289,7 @@ class Snapshotter {
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes / this.maxMemoryBytes) * 100);
             const toMb = bytes => Math.round(bytes / (1024 ** 2));
-            snapshotterPrefixed.log.warning('Memory is critically overloaded. '
+            this.log.warning('Memory is critically overloaded. '
                 + `Using ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%). Consider increasing the actor memory.`);
             this.lastLoggedCriticalMemoryOverloadAt = now;
         }
@@ -461,7 +449,7 @@ class Snapshotter {
         } else {
             this.maxMemoryBytes = Math.ceil(totalBytes / 4);
             // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
-            autoscaledPrefixed.log.info(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
+            this.autoscaledLog.info(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
         }
     }
 }
