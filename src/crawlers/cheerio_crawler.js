@@ -453,7 +453,7 @@ class CheerioCrawler {
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
-            `${this.log.getOptions().prefix} request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
+            `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
         if (this.useSessionPool) {
@@ -465,6 +465,7 @@ class CheerioCrawler {
         }
 
         request.loadedUrl = response.url;
+        const { log } = this;
 
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
         const context = {
@@ -472,7 +473,7 @@ class CheerioCrawler {
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
-                this.log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
+                log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
@@ -498,7 +499,7 @@ class CheerioCrawler {
         return addTimeoutToPromise(
             this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
-            `${this.log.getOptions().prefix} handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
+            `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
     }
 
