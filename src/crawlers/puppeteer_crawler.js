@@ -6,7 +6,7 @@ import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -251,7 +251,7 @@ class PuppeteerCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
-        const log = createLogger('PuppeteerCrawler');
+        const log = Log.child({ prefix: 'PuppeteerCrawler' });
         this.log = log;
 
         if (options.gotoTimeoutSecs && options.gotoFunction) {

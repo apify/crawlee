@@ -13,7 +13,7 @@ import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -355,7 +355,7 @@ class CheerioCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
-        const log = createLogger('CheerioCrawler');
+        const log = Log.child({ prefix: 'CheerioCrawler' });
         this.log = log;
 
         // Enforce valid proxy configuration

@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import * as WebSocket from 'ws';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
-import { createLogger } from './logger';
+import Log from './utils_log';
 
 // NOTE: This value is mentioned below in docs, if you update it here, update it there too.
 const PERSIST_STATE_INTERVAL_MILLIS = 60 * 1000;
@@ -115,7 +115,7 @@ const emitPersistStateEvent = (isMigrating = false) => {
 export const initializeEvents = () => {
     if (eventsWs) return;
 
-    const log = createLogger('Events');
+    const log = Log.child({ prefix: 'Events' });
 
     if (!persistStateInterval) {
         // This is overridable only to enable unit testing.

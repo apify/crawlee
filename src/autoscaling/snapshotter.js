@@ -4,7 +4,7 @@ import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
@@ -83,6 +83,7 @@ class Snapshotter {
             maxUsedMemoryRatio = 0.7,
             maxUsedCpuRatio = 0.95,
             maxClientErrors = 3,
+            log = Log,
         } = options;
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
@@ -95,8 +96,7 @@ class Snapshotter {
         checkParamOrThrow(maxUsedCpuRatio, 'options.maxUsedCpuRatio', 'Number');
         checkParamOrThrow(maxClientErrors, 'options.maxClientErrors', 'Number');
 
-        this.log = createLogger('Snapshotter');
-        this.autoscaledLog = createLogger('AutoscaledPool'); // not ideal, but we are cheating here
+        this.log = log.child({ prefix: 'Snapshotter' });
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
@@ -449,7 +449,7 @@ class Snapshotter {
         } else {
             this.maxMemoryBytes = Math.ceil(totalBytes / 4);
             // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
-            this.autoscaledLog.info(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
+            this.log.info(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
         }
     }
 }

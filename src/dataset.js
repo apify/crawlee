@@ -7,7 +7,7 @@ import * as LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
-import { createLogger } from './logger';
+import log from './utils_log';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
@@ -155,7 +155,7 @@ export class Dataset {
 
         this.datasetId = datasetId;
         this.datasetName = datasetName;
-        this.log = createLogger('Dataset');
+        this.log = log.child({ prefix: 'Dataset' });
     }
 
     /**
@@ -337,7 +337,7 @@ export class Dataset {
      */
     async forEach(iteratee, options = {}, index = 0) {
         if (!options.offset) options.offset = 0;
-        if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.'); // eslint-disable-line max-len
+        if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
         if (!options.limit) options.limit = DATASET_ITERATORS_DEFAULT_LIMIT;
 
         const { items, total, limit, offset } = await this.getData(options);
@@ -455,7 +455,7 @@ export class DatasetLocal {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.log = createLogger('Dataset');
+        this.log = log.child({ prefix: 'Dataset' });
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;

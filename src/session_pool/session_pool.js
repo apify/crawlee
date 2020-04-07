@@ -4,7 +4,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { openKeyValueStore } from '../key_value_store';
 import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle
 import events from '../events';
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
 
 /**
@@ -100,7 +100,7 @@ export class SessionPool extends EventEmitter {
         checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'String');
         checkParamOrThrow(createSessionFunction, 'options.createSessionFunction', 'Maybe Function');
 
-        this.log = createLogger('SessionPool');
+        this.log = Log.child({ prefix: 'SessionPool' });
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;

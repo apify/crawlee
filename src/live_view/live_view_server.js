@@ -10,7 +10,7 @@ import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { addTimeoutToPromise } from '../utils';
 import Snapshot from './snapshot';
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
@@ -85,7 +85,7 @@ class LiveViewServer {
         checkParamOrThrow(maxScreenshotFiles, 'options.snapshotTimeoutSecs', 'Number');
         checkParamOrThrow(maxScreenshotFiles, 'options.maxSnapshotFrequencySecs', 'Number');
 
-        this.log = createLogger('LiveViewServer');
+        this.log = Log.child({ prefix: 'LiveViewServer' });
         this.screenshotDirectoryPath = screenshotDirectoryPath;
         this.maxScreenshotFiles = maxScreenshotFiles;
         this.snapshotTimeoutMillis = snapshotTimeoutSecs * 1000;

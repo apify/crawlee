@@ -10,7 +10,7 @@ import Request, { RequestOptions } from './request'; // eslint-disable-line impo
 import {
     ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep,
 } from './utils';
-import { createLogger } from './logger';
+import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -201,7 +201,7 @@ export class RequestQueue {
 
         if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
 
-        this.log = createLogger('RequestQueue');
+        this.log = log.child({ prefix: 'RequestQueue' });
         this.clientKey = clientKey;
         this.queueId = queueId;
         this.queueName = queueName;
@@ -744,7 +744,7 @@ export class RequestQueueLocal {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.log = createLogger('RequestQueue');
+        this.log = log.child({ prefix: 'RequestQueue' });
         this.queueId = queueId;
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, queueId));
         this.localHandledEmulationPath = path.join(this.localStoragePath, 'handled');

@@ -6,7 +6,7 @@ import * as util from 'util';
 import * as LinkedList from 'apify-shared/linked_list';
 import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { createLogger } from './logger';
+import log from './utils_log';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
@@ -179,16 +179,15 @@ class PuppeteerPool {
         checkParamOrThrow(puppeteerOperationTimeoutSecs, 'options.puppeteerOperationTimeoutSecs', 'Number');
         checkParamOrThrow(instanceKillerIntervalMillis, 'options.instanceKillerIntervalMillis', 'Maybe Number');
 
-        const log = createLogger('PuppeteerPool');
-        this.log = log;
+        this.log = log.child({ prefix: 'PuppeteerPool' });
 
         if (instanceKillerIntervalMillis) {
-            log.deprecated('options.instanceKillerIntervalMillis is deprecated, use options.instanceKillerIntervalSecs instead.');
+            this.log.deprecated('options.instanceKillerIntervalMillis is deprecated, use options.instanceKillerIntervalSecs instead.');
         }
         checkParamOrThrow(instanceKillerIntervalSecs, 'options.instanceKillerIntervalSecs', 'Number');
         checkParamOrThrow(killInstanceAfterMillis, 'options.killInstanceAfterMillis', 'Maybe Number');
         if (killInstanceAfterMillis) {
-            log.deprecated('options.killInstanceAfterMillis is deprecated, use options.killInstanceAfterSecs instead.');
+            this.log.deprecated('options.killInstanceAfterMillis is deprecated, use options.killInstanceAfterSecs instead.');
         }
         checkParamOrThrow(killInstanceAfterSecs, 'options.killInstanceAfterSecs', 'Number');
         checkParamOrThrow(launchPuppeteerOptions, 'options.launchPuppeteerOptions', 'Maybe Object');

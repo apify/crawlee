@@ -4,7 +4,7 @@ import { Cookie, CookieJar } from 'tough-cookie';
 import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
@@ -93,12 +93,12 @@ export class Session {
         checkParamOrThrow(maxUsageCount, 'options.maxUsageCount', 'Number');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
 
-        this.log = createLogger('Session');
-
         // sessionPool must be instance of SessionPool.
         if (sessionPool.constructor.name !== 'SessionPool') {
             throw new Error('sessionPool must be instance of SessionPool');
         }
+
+        this.log = Log.child({ prefix: 'Session' });
 
         /**
          * @type {CookieJar}

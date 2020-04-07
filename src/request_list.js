@@ -3,7 +3,7 @@ import * as _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request'; // eslint-disable-line import/no-duplicates
 import events from './events';
-import { createLogger } from './logger';
+import log from './utils_log';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
 import { serializeArray, createDeserialize } from './serialization';
@@ -220,12 +220,11 @@ export class RequestList {
             keepDuplicateUrls = false,
         } = options;
 
-        const log = createLogger('RequestList');
-        this.log = log;
+        this.log = log.child({ prefix: 'RequestList' });
 
         // TODO Deprecated 02/2020
         if (persistSourcesKey) {
-            log.deprecated('options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
+            this.log.deprecated('options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
         }
 
         checkParamOrThrow(sources, 'options.sources', 'Maybe Array');
@@ -434,7 +433,7 @@ export class RequestList {
         _.keys(state.inProgress).forEach((uniqueKey) => {
             const index = this.uniqueKeyToIndex[uniqueKey];
             if (typeof index !== 'number') {
-                throw new Error('The state object is not consistent with RequestList unknown uniqueKey is present in the state.');
+                throw new Error('The state object is not consistent with RequestList. Unknown uniqueKey is present in the state.');
             }
             if (index >= state.nextIndex) {
                 deleteFromInProgress.push(uniqueKey);

@@ -1,15 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import * as _ from 'underscore';
 import Snapshotter from './snapshotter'; // eslint-disable-line import/no-duplicates
 import { weightedAvg } from '../utils';
-
-const DEFAULT_OPTIONS = {
-    currentHistorySecs: 5,
-    maxMemoryOverloadedRatio: 0.2,
-    maxEventLoopOverloadedRatio: 0.4,
-    maxCpuOverloadedRatio: 0.4,
-    maxClientOverloadedRatio: 0.3,
-};
 
 // TODO yin: Add `@property clientInfo` as in `SystemStatus._isSystemIdle()`
 /**
@@ -72,13 +63,14 @@ class SystemStatus {
      */
     constructor(options = {}) {
         const {
-            currentHistorySecs,
-            maxMemoryOverloadedRatio,
-            maxEventLoopOverloadedRatio,
-            maxCpuOverloadedRatio,
-            maxClientOverloadedRatio,
+            currentHistorySecs = 5,
+            maxMemoryOverloadedRatio = 0.2,
+            maxEventLoopOverloadedRatio = 0.4,
+            maxCpuOverloadedRatio = 0.4,
+            maxClientOverloadedRatio = 0.3,
             snapshotter,
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+        } = options;
+
 
         checkParamOrThrow(currentHistorySecs, 'options.currentHistorySecs', 'Number');
         checkParamOrThrow(maxMemoryOverloadedRatio, 'options.maxMemoryOverloadedRatio', 'Number');

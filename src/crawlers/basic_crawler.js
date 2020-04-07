@@ -9,7 +9,7 @@ import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
 import { addTimeoutToPromise } from '../utils';
-import { createLogger } from '../logger';
+import Log from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -195,7 +195,7 @@ class BasicCrawler {
             maxConcurrency,
 
             // internal
-            log = createLogger('BasicCrawler'),
+            log = Log.child({ prefix: 'BasicCrawler' }),
         } = options;
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
@@ -210,7 +210,7 @@ class BasicCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
 
         if (!requestList && !requestQueue) {
-            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!'); // eslint-disable-line max-len
+            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
         }
 
         this.log = log;
@@ -267,7 +267,7 @@ class BasicCrawler {
 
                 return isFinished;
             },
-            prefix: log.getOptions().prefix,
+            log,
         };
 
         this.autoscaledPoolOptions = _.defaults({}, basicCrawlerAutoscaledPoolConfiguration, autoscaledPoolOptions);

@@ -21,11 +21,11 @@ import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
 import Request, { RequestOptions } from './request';
-/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters

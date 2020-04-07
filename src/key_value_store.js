@@ -12,7 +12,7 @@ import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
-import { createLogger } from './logger';
+import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
@@ -171,7 +171,7 @@ export class KeyValueStore {
 
         this.storeId = storeId;
         this.storeName = storeName;
-        this.log = createLogger('KeyValueStore');
+        this.log = log.child({ prefix: 'KeyValueStore' });
     }
 
     /**
@@ -377,7 +377,7 @@ export class KeyValueStoreLocal {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
-        this.log = createLogger('KeyValueStore');
+        this.log = log.child({ prefix: 'KeyValueStore' });
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId));
         this.storeId = storeId;
         this.initializationPromise = ensureDirExists(this.localStoragePath);

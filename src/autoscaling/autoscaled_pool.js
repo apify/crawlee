@@ -1,21 +1,8 @@
-import * as _ from 'underscore';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
-import { createLogger } from '../logger';
-
-const DEFAULT_OPTIONS = {
-    maxConcurrency: 1000,
-    minConcurrency: 1,
-    desiredConcurrencyRatio: 0.90,
-    scaleUpStepRatio: 0.05,
-    scaleDownStepRatio: 0.05,
-    maybeRunIntervalSecs: 0.5,
-    loggingIntervalSecs: 60,
-    autoscaleIntervalSecs: 10,
-    prefix: '',
-};
+import Log from '../utils_log';
 
 /**
  * @typedef AutoscaledPoolOptions
@@ -127,22 +114,23 @@ class AutoscaledPool {
      */
     constructor(options = {}) {
         const {
-            maxConcurrency,
-            minConcurrency,
+            maxConcurrency = 1000,
+            minConcurrency = 1,
             desiredConcurrency,
-            desiredConcurrencyRatio,
-            scaleUpStepRatio,
-            scaleDownStepRatio,
-            maybeRunIntervalSecs,
-            loggingIntervalSecs,
-            autoscaleIntervalSecs,
+            desiredConcurrencyRatio = 0.90,
+            scaleUpStepRatio = 0.05,
+            scaleDownStepRatio = 0.05,
+            maybeRunIntervalSecs = 0.5,
+            loggingIntervalSecs = 60,
+            autoscaleIntervalSecs = 10,
             runTaskFunction,
             isFinishedFunction,
             isTaskReadyFunction,
             systemStatusOptions,
             snapshotterOptions,
-            prefix,
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+            log = Log,
+        } = options;
+
 
         checkParamOrThrow(maxConcurrency, 'options.maxConcurrency', 'Number');
         checkParamOrThrow(minConcurrency, 'options.minConcurrency', 'Number');
@@ -159,7 +147,7 @@ class AutoscaledPool {
         checkParamOrThrow(systemStatusOptions, 'options.systemStatusOptions', 'Maybe Object');
         checkParamOrThrow(snapshotterOptions, 'options.snapshotterOptions', 'Maybe Object');
 
-        this.log = createLogger(`${prefix ? `${prefix}:` : ''}AutoscaledPool`);
+        this.log = log.child('AutoscaledPool');
 
         // Configurable properties.
         this.desiredConcurrencyRatio = desiredConcurrencyRatio;
