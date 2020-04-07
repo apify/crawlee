@@ -337,7 +337,7 @@ let callMemoryWarningIssued = false;
  * @param {string} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @param {string} [options.waitSecs]
+ * @param {number} [options.waitSecs]
  *  Maximum time to wait for the actor run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
@@ -478,7 +478,7 @@ export const call = async (actId, input, options = {}) => {
  * @param {string} [options.build]
  *  Tag or number of the actor build to run (e.g. `beta` or `1.2.345`).
  *  If not provided, the run uses build tag or number from the default actor run configuration (typically `latest`).
- * @param {string} [options.waitSecs]
+ * @param {number} [options.waitSecs]
  *  Maximum time to wait for the actor task run to finish, in seconds.
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
