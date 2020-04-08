@@ -3,18 +3,16 @@ const fs = require('fs-extra');
 const jsdoc2md = require('jsdoc-to-markdown'); // eslint-disable-line
 const path = require('path');
 const prettier = require('prettier'); // eslint-disable-line
-const readline = require('readline');
 const httpRequest = require('@apify/http-request');
-const stream = require('stream');
-const { promisify } = require('util');
 const prettierConfig = require('./prettier.config');
 const sidebars = require('../sidebars.json');
+const { readStreamToString } = require('apify-shared/streams_utilities');  // eslint-disable-line
 
 const BASE_URL = '/docs';
 const DOCS_DIR = path.join(__dirname, '..', '..', 'docs');
 const EXAMPLES_DIR_NAME = path.join(DOCS_DIR, 'examples');
 const EXAMPLES_REPO = 'https://api.github.com/repos/apifytech/actor-templates/contents/dist/examples';
-/* eslint-disable no-shadow */
+
 
 const classNames = [];
 const namespaces = [];
@@ -140,11 +138,12 @@ async function buildExamples(exampleLinks) {
             stream: true,
         });
         try {
-            const pipeline = promisify(stream.pipeline);
-            await pipeline(responseStream, fs.createWriteStream(example.name));
+            console.log(`Rendering example ${example.name}`);
+            const fileContent = await readStreamToString(responseStream);
+            const markdown = prettier.format(fileContent, prettierConfig);
+            fs.writeFileSync(example.name, markdown);
             const exampleName = example.name.split('.')[0];
             examples.push(`examples/${exampleName.replace(/_/g, '-')}`);
-            console.log(`Rendering example ${example.name}`);
         } catch (err) {
             throw err;
         }
@@ -153,9 +152,9 @@ async function buildExamples(exampleLinks) {
 }
 
 async function addExamplesToSidebars(examples) {
+    console.log('Saving examples to sidebars.json');
     sidebars.examples = { Examples: examples };
     fs.writeFileSync(path.join(__dirname, '..', 'sidebars.json'), JSON.stringify(sidebars, null, 4));
-    console.log('Saving examples to sidebars.json');
 }
 
 
