@@ -47,7 +47,7 @@ const siteConfig = {
     headerLinks: [
         { search: true },
         { doc: 'guides/motivation', label: 'Guide' },
-        { doc: 'examples/basic-crawler', label: 'Examples' },
+        { doc: 'examples/accept-user-input', label: 'Examples' },
         { doc: 'api/apify', label: 'API Reference' },
         { href: repoUrl, label: 'GitHub' },
         // { page: 'help', label: 'Help' },
