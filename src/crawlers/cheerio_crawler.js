@@ -657,7 +657,7 @@ class CheerioCrawler {
                 if (err) reject(err);
                 else resolve(dom);
             });
-            const parser = new htmlparser.Parser(domHandler, { decodeEntities: true });
+            const parser = new htmlparser.WritableStream(domHandler, { decodeEntities: true });
             response.on('error', reject).pipe(parser);
         });
     }
