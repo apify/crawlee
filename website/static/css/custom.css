@@ -40,3 +40,7 @@ input#search_input_react::placeholder {
 .projectTitle {
     color: #000;
 }
+
+.function-name-prevnext {
+    text-transform: none;
+}
