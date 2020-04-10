@@ -41,6 +41,7 @@ input#search_input_react::placeholder {
     color: #000;
 }
 
-.function-name-prevnext {
+/* The prev/next buttons are capitalized by default, which makes then unreadable. This fixes it. */
+.docs-prev span, .docs-next span {
     text-transform: none;
 }
