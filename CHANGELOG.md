@@ -1,10 +1,15 @@
-NEXT
+0.20.3 / 2020-04-14
 ====================
 - **DEPRECATED:** `CheerioCrawlerOptions.requestOptions` is now deprecated. Please use
   `CheerioCrawlerOptions.prepareRequestFunction` instead.
 - Add `limit` option to `Apify.utils.enqueueLinks()` for situations when full crawls are not needed.
-- Add `responseEncoding` option to `CheerioCrawler` to allow users to provide a fall-back
-  (or forced) encoding of responses in situations where websites serve invalid encoding info.
+- Add `suggestResponseEncoding` and `forceResponseEncoding` options to `CheerioCrawler` to allow
+  users to provide a fall-back or forced encoding of responses in situations where websites
+  serve invalid encoding information in their headers.
+- Add a number of new examples and update existing ones to documentation.
+- Fix duplicate file extensions in `Apify.utils.puppeteer.saveSnapshot()` when used locally.
+- Fix encoding of multi-byte characters in `CheerioCrawler`.
+- Fix formatting of navigation buttons in documentation.
 
 0.20.2 / 2020-03-09
 ====================
