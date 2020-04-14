@@ -1,5 +1,6 @@
 import sinon from 'sinon';
 import path from 'path';
+import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
 import * as utils from '../build/utils';
@@ -376,10 +377,8 @@ describe('Apify.utils.puppeteer', () => {
 
             await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
-            const screenshotName = utils.isAtHome() ? 'TEST.jpg' : 'TEST';
-            expect(stub.calledWithExactly(screenshotName, screenshot, { contentType: 'image/jpeg' })).toBe(true);
-            const htmlName = utils.isAtHome() ? 'TEST.html' : 'TEST';
-            expect(stub.calledWithExactly(htmlName, contentHTML, { contentType: 'text/html' })).toBe(true);
+            expect(stub.calledWithExactly('TEST', screenshot, { contentType: 'image/jpeg' })).toBe(true);
+            expect(stub.calledWithExactly('TEST', contentHTML, { contentType: 'text/html' })).toBe(true);
 
             // Test saving only image
             const object2 = { setValue: async () => {} };
@@ -392,8 +391,22 @@ describe('Apify.utils.puppeteer', () => {
 
             // Default quality is 50
             const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 50 });
-            const screenshot2Name = utils.isAtHome() ? 'SNAPSHOT.jpg' : 'SNAPSHOT';
-            expect(stub2.calledOnceWithExactly(screenshot2Name, screenshot2, { contentType: 'image/jpeg' })).toBe(true);
+            expect(stub2.calledOnceWithExactly('SNAPSHOT', screenshot2, { contentType: 'image/jpeg' })).toBe(true);
+
+            // Test saving both image and html on the platform
+            process.env[ENV_VARS.IS_AT_HOME] = 1;
+
+            const object3 = { setValue: async () => {} };
+            const stub3 = sinon.stub(object3, 'setValue');
+            mock.expects('openKeyValueStore')
+                .once()
+                .withExactArgs('TEST-STORE')
+                .resolves(object3);
+
+            await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
+
+            expect(stub3.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).toBe(true);
+            expect(stub3.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).toBe(true);
 
             mock.verify();
         } finally {
