@@ -546,11 +546,11 @@ const saveSnapshot = async (page, options = {}) => {
 
         if (saveScreenshot) {
             const screenshotBuffer = await page.screenshot({ fullPage: true, screenshotQuality, type: 'jpeg' });
-            await store.setValue(`${key}.jpg`, screenshotBuffer, { contentType: 'image/jpeg' });
+            await store.setValue(key, screenshotBuffer, { contentType: 'image/jpeg' });
         }
         if (saveHtml) {
             const html = await page.content();
-            await store.setValue(`${key}.html`, html, { contentType: 'text/html' });
+            await store.setValue(key, html, { contentType: 'text/html' });
         }
     } catch (e) {
         // I like this more than having to investigate stack trace
