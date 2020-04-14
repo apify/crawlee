@@ -3,7 +3,6 @@ import path from 'path';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
-import * as utils from '../build/utils';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { utils: { log } } = Apify;
@@ -408,7 +407,6 @@ describe('Apify.utils.puppeteer', () => {
             expect(stub3.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).toBe(true);
             expect(stub3.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).toBe(true);
 
-            process.env[ENV_VARS.IS_AT_HOME] = 0;
             mock.verify();
         } finally {
             await browser.close();
