@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import path from 'path';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/key_value_store';
+import * as utils from '../build/utils';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { utils: { log } } = Apify;
@@ -375,8 +376,10 @@ describe('Apify.utils.puppeteer', () => {
 
             await Apify.utils.puppeteer.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
-            expect(stub.calledWithExactly('TEST', screenshot, { contentType: 'image/jpeg' })).toBe(true);
-            expect(stub.calledWithExactly('TEST', contentHTML, { contentType: 'text/html' })).toBe(true);
+            const screenshotName = utils.isAtHome() ? 'TEST.jpg' : 'TEST';
+            expect(stub.calledWithExactly(screenshotName, screenshot, { contentType: 'image/jpeg' })).toBe(true);
+            const htmlName = utils.isAtHome() ? 'TEST.html' : 'TEST';
+            expect(stub.calledWithExactly(htmlName, contentHTML, { contentType: 'text/html' })).toBe(true);
 
             // Test saving only image
             const object2 = { setValue: async () => {} };
@@ -389,7 +392,8 @@ describe('Apify.utils.puppeteer', () => {
 
             // Default quality is 50
             const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', screenshotQuality: 50 });
-            expect(stub2.calledOnceWithExactly('SNAPSHOT', screenshot2, { contentType: 'image/jpeg' })).toBe(true);
+            const screenshot2Name = utils.isAtHome() ? 'SNAPSHOT.jpg' : 'SNAPSHOT';
+            expect(stub2.calledOnceWithExactly(screenshot2Name, screenshot2, { contentType: 'image/jpeg' })).toBe(true);
 
             mock.verify();
         } finally {
