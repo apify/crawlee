@@ -6,6 +6,7 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as LruCache from 'apify-shared/lru_cache';
 import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { isAtHome } from './utils';
 import log from './utils_log';
 
 import { RequestQueue, RequestQueueLocal } from './request_queue';
@@ -545,12 +546,14 @@ const saveSnapshot = async (page, options = {}) => {
         const store = await openKeyValueStore(keyValueStoreName);
 
         if (saveScreenshot) {
+            const screenshotName = isAtHome() ? `${key}.jpg` : key;
             const screenshotBuffer = await page.screenshot({ fullPage: true, screenshotQuality, type: 'jpeg' });
-            await store.setValue(`${key}.jpg`, screenshotBuffer, { contentType: 'image/jpeg' });
+            await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
         if (saveHtml) {
+            const htmlName = isAtHome() ? `${key}.html` : key;
             const html = await page.content();
-            await store.setValue(`${key}.html`, html, { contentType: 'text/html' });
+            await store.setValue(htmlName, html, { contentType: 'text/html' });
         }
     } catch (e) {
         // I like this more than having to investigate stack trace
