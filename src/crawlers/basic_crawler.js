@@ -9,7 +9,7 @@ import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
 import { addTimeoutToPromise } from '../utils';
-import Log from '../utils_log';
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -195,7 +195,7 @@ class BasicCrawler {
             maxConcurrency,
 
             // internal
-            log = Log.child({ prefix: 'BasicCrawler' }),
+            log = defaultLog.child({ prefix: 'BasicCrawler' }),
         } = options;
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
@@ -222,7 +222,10 @@ class BasicCrawler {
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:` });
-        this.sessionPoolOptions = sessionPoolOptions;
+        this.sessionPoolOptions = {
+            ...sessionPoolOptions,
+            log,
+        };
         this.useSessionPool = useSessionPool;
 
         let shouldLogMaxPagesExceeded = true;

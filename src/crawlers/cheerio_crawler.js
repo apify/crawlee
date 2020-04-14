@@ -13,7 +13,7 @@ import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import Log from '../utils_log';
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -355,8 +355,7 @@ class CheerioCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
-        const log = Log.child({ prefix: 'CheerioCrawler' });
-        this.log = log;
+        this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
 
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
@@ -376,11 +375,11 @@ class CheerioCrawler {
         if (requestOptions) {
             // DEPRECATED 2020-03-22
             this.requestOptions = requestOptions;
-            log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
+            this.log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
         }
 
         if (suggestResponseEncoding && forceResponseEncoding) {
-            log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
+            this.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
         }
 
         this.handlePageFunction = handlePageFunction;
@@ -419,7 +418,7 @@ class CheerioCrawler {
             useSessionPool,
 
             // log
-            log,
+            log: this.log,
         });
 
         this.isRunningPromise = null;

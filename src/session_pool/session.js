@@ -4,7 +4,7 @@ import { Cookie, CookieJar } from 'tough-cookie';
 import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
-import Log from '../utils_log';
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
@@ -77,6 +77,7 @@ export class Session {
             errorScore = 0,
             maxUsageCount = 50,
             sessionPool,
+            log = defaultLog,
         } = options;
 
         const { expiresAt = this._getDefaultCookieExpirationDate(maxAgeSecs) } = options;
@@ -98,7 +99,7 @@ export class Session {
             throw new Error('sessionPool must be instance of SessionPool');
         }
 
-        this.log = Log.child({ prefix: 'Session' });
+        this.log = log.child({ prefix: 'Session' });
 
         /**
          * @type {CookieJar}

@@ -6,7 +6,7 @@ import * as util from 'util';
 import * as LinkedList from 'apify-shared/linked_list';
 import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import log from './utils_log';
+import defaultLog from './utils_log';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
@@ -166,6 +166,7 @@ class PuppeteerPool {
             proxyUrls,
             useLiveView = false,
             sessionPool,
+            log = defaultLog,
         } = options;
 
 

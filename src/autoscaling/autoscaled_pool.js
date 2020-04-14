@@ -2,7 +2,7 @@ import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
-import Log from '../utils_log';
+import defaultLog from '../utils_log';
 
 /**
  * @typedef AutoscaledPoolOptions
@@ -128,7 +128,7 @@ class AutoscaledPool {
             isTaskReadyFunction,
             systemStatusOptions,
             snapshotterOptions,
-            log = Log,
+            log = defaultLog,
         } = options;
 
 
@@ -147,7 +147,7 @@ class AutoscaledPool {
         checkParamOrThrow(systemStatusOptions, 'options.systemStatusOptions', 'Maybe Object');
         checkParamOrThrow(snapshotterOptions, 'options.snapshotterOptions', 'Maybe Object');
 
-        this.log = log.child('AutoscaledPool');
+        this.log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
         this.desiredConcurrencyRatio = desiredConcurrencyRatio;
@@ -174,7 +174,7 @@ class AutoscaledPool {
 
         // Create instances with correct options.
         const ssoCopy = Object.assign({}, systemStatusOptions);
-        if (!ssoCopy.snapshotter) ssoCopy.snapshotter = new Snapshotter(snapshotterOptions);
+        if (!ssoCopy.snapshotter) ssoCopy.snapshotter = new Snapshotter({ ...snapshotterOptions, log: this.log });
         this.snapshotter = ssoCopy.snapshotter;
         this.systemStatus = new SystemStatus(ssoCopy);
     }

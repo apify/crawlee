@@ -3,10 +3,10 @@ import * as util from 'util';
 import * as crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import Log from './utils_log';
+import defaultLog from './utils_log';
 
 // new properties on the Request object breaks serialization
-const log = Log.child({ prefix: 'Request' });
+const log = defaultLog.child({ prefix: 'Request' });
 
 export function hashPayload(payload) {
     return crypto

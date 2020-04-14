@@ -6,7 +6,7 @@ import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import Log from '../utils_log';
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -251,11 +251,10 @@ class PuppeteerCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
-        const log = Log.child({ prefix: 'PuppeteerCrawler' });
-        this.log = log;
+        this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
 
         if (options.gotoTimeoutSecs && options.gotoFunction) {
-            log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
+            this.log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
                 + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
         }
 
@@ -273,7 +272,10 @@ class PuppeteerCrawler {
 
         this.puppeteerPool = null; // Constructed when .run()
         this.useSessionPool = useSessionPool;
-        this.sessionPoolOptions = sessionPoolOptions;
+        this.sessionPoolOptions = {
+            ...sessionPoolOptions,
+            log: this.log,
+        };
         this.persistCookiesPerSession = persistCookiesPerSession;
 
         /** @ignore */
@@ -293,7 +295,7 @@ class PuppeteerCrawler {
             autoscaledPoolOptions,
 
             // log
-            log,
+            log: this.log,
         });
     }
 
@@ -309,6 +311,7 @@ class PuppeteerCrawler {
             this.sessionPool = await openSessionPool(this.sessionPoolOptions);
             this.puppeteerPoolOptions.sessionPool = this.sessionPool;
         }
+        this.puppeteerPoolOptions.log = this.log;
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
         try {
             this.isRunningPromise = this.basicCrawler.run();

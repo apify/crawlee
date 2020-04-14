@@ -4,7 +4,7 @@ import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
-import Log from '../utils_log';
+import defaultLog from '../utils_log';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
@@ -83,7 +83,7 @@ class Snapshotter {
             maxUsedMemoryRatio = 0.7,
             maxUsedCpuRatio = 0.95,
             maxClientErrors = 3,
-            log = Log,
+            log = defaultLog,
         } = options;
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
