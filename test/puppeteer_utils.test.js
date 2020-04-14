@@ -408,6 +408,7 @@ describe('Apify.utils.puppeteer', () => {
             expect(stub3.calledWithExactly('TEST.jpg', screenshot, { contentType: 'image/jpeg' })).toBe(true);
             expect(stub3.calledWithExactly('TEST.html', contentHTML, { contentType: 'text/html' })).toBe(true);
 
+            process.env[ENV_VARS.IS_AT_HOME] = 0;
             mock.verify();
         } finally {
             await browser.close();
