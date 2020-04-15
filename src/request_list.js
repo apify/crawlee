@@ -2,8 +2,8 @@ import { checkParamOrThrow } from 'apify-client/build/utils';
 import * as _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request'; // eslint-disable-line import/no-duplicates
-import log from './utils_log';
 import events from './events';
+import log from './utils_log';
 import { getFirstKey, publicUtils } from './utils';
 import { getValue, setValue } from './key_value_store';
 import { serializeArray, createDeserialize } from './serialization';
@@ -17,7 +17,6 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
-
 
 /**
  * @typedef RequestListOptions
@@ -221,9 +220,11 @@ export class RequestList {
             keepDuplicateUrls = false,
         } = options;
 
+        this.log = log.child({ prefix: 'RequestList' });
+
         // TODO Deprecated 02/2020
         if (persistSourcesKey) {
-            log.deprecated('RequestList: options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
+            this.log.deprecated('options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
         }
 
         checkParamOrThrow(sources, 'options.sources', 'Maybe Array');
@@ -235,7 +236,7 @@ export class RequestList {
         checkParamOrThrow(keepDuplicateUrls, 'options.keepDuplicateUrls', 'Maybe Boolean');
 
         if (!(sources || sourcesFunction)) {
-            throw new Error('RequestList: At least one of "sources" or "sourcesFunction" must be provided.');
+            throw new Error('At least one of "sources" or "sourcesFunction" must be provided.');
         }
 
         // Array of all requests from all sources, in the order as they appeared in sources.
@@ -366,7 +367,7 @@ export class RequestList {
                     this._addRequest(source);
                 }
             } catch (err) {
-                throw new Error(`RequestList: Loading requests with sourcesFunction failed. Cause:\n${err.stack}`);
+                throw new Error(`Loading requests with sourcesFunction failed. Cause:\n${err.stack}`);
             }
         }
     }
@@ -382,14 +383,14 @@ export class RequestList {
      */
     async persistState() {
         if (!this.persistStateKey) {
-            throw new Error('RequestList: Cannot persist state. options.persistStateKey is not set.');
+            throw new Error('Cannot persist state. options.persistStateKey is not set.');
         }
         if (this.isStatePersisted) return;
         try {
             await setValue(this.persistStateKey, this.getState());
             this.isStatePersisted = true;
         } catch (err) {
-            log.exception(err, 'RequestList attempted to persist state, but failed.');
+            this.log.exception(err, 'Attempted to persist state, but failed.');
         }
     }
 
@@ -421,18 +422,18 @@ export class RequestList {
             throw new Error('The state object is invalid: nextIndex must be a non-negative number.');
         }
         if (state.nextIndex > this.requests.length) {
-            throw new Error('The state object is not consistent with RequestList: too few requests loaded.');
+            throw new Error('The state object is not consistent with RequestList too few requests loaded.');
         }
         if (state.nextIndex < this.requests.length
             && this.requests[state.nextIndex].uniqueKey !== state.nextUniqueKey) {
-            throw new Error('The state object is not consistent with RequestList: the order of URLs seems to have changed.');
+            throw new Error('The state object is not consistent with RequestList the order of URLs seems to have changed.');
         }
 
         const deleteFromInProgress = [];
         _.keys(state.inProgress).forEach((uniqueKey) => {
             const index = this.uniqueKeyToIndex[uniqueKey];
             if (typeof index !== 'number') {
-                throw new Error('The state object is not consistent with RequestList: unknown uniqueKey is present in the state.');
+                throw new Error('The state object is not consistent with RequestList. Unknown uniqueKey is present in the state.');
             }
             if (index >= state.nextIndex) {
                 deleteFromInProgress.push(uniqueKey);
@@ -453,7 +454,9 @@ export class RequestList {
         // As a workaround, we just remove all inProgress requests whose index >= nextIndex,
         // since they will be crawled again.
         if (deleteFromInProgress.length) {
-            log.warning('RequestList\'s in-progress field is not consistent, skipping invalid in-progress entries', { deleteFromInProgress });
+            this.log.warning('RequestList\'s in-progress field is not consistent, skipping invalid in-progress entries', {
+                deleteFromInProgress,
+            });
             _.each(deleteFromInProgress, (uniqueKey) => {
                 delete state.inProgress[uniqueKey];
             });
@@ -478,14 +481,14 @@ export class RequestList {
         let persistedRequests;
         if (this.initialState) {
             state = this.initialState;
-            log.debug('RequestList: Loaded state from options.state argument.');
+            this.log.debug('Loaded state from options.state argument.');
         } else if (this.persistStateKey) {
             state = getValue(this.persistStateKey);
-            if (state) log.debug('RequestList: Loaded state from key value store using the persistStateKey.');
+            if (state) this.log.debug('Loaded state from key value store using the persistStateKey.');
         }
         if (this.persistRequestsKey) {
             persistedRequests = await getValue(this.persistRequestsKey);
-            if (persistedRequests) log.debug('RequestList: Loaded requests from key value store using the persistRequestsKey.');
+            if (persistedRequests) this.log.debug('Loaded requests from key value store using the persistRequestsKey.');
         }
         // Unwraps "state" promise if needed, otherwise no-op.
         return Promise.all([state, persistedRequests]);
@@ -614,7 +617,7 @@ export class RequestList {
         const fetchedCount = fetchedRequests.length;
         const importedCount = this.requests.length - originalLength;
 
-        log.info('RequestList: Fetched and loaded Requests from a remote resource.', {
+        this.log.info('Fetched and loaded Requests from a remote resource.', {
             requestsFromUrl,
             regex,
             fetchedCount,
@@ -645,7 +648,7 @@ export class RequestList {
 
         // Skip if resource contained no URLs.
         if (!urlsArr.length) {
-            log.warning('RequestList: list fetched, but it is empty.', { requestsFromUrl, regex });
+            this.log.warning('list fetched, but it is empty.', { requestsFromUrl, regex });
             return [];
         }
 
@@ -670,7 +673,7 @@ export class RequestList {
         } else if (source && type === 'object') {
             request = new Request(source);
         } else {
-            throw new Error(`RequestList: Cannot create Request from type: ${type}`);
+            throw new Error(`Cannot create Request from type: ${type}`);
         }
 
         const hasUniqueKey = !!source.uniqueKey;
@@ -688,7 +691,7 @@ export class RequestList {
             this.uniqueKeyToIndex[uniqueKey] = this.requests.length;
             this.requests.push(request);
         } else if (this.keepDuplicateUrls) {
-            log.warning(`RequestList: Duplicate uniqueKey: ${uniqueKey} found while the keepDuplicateUrls option was set. Check your sources' unique keys.`); // eslint-disable-line max-len
+            this.log.warning(`Duplicate uniqueKey: ${uniqueKey} found while the keepDuplicateUrls option was set. Check your sources' unique keys.`); // eslint-disable-line max-len
         }
     }
 

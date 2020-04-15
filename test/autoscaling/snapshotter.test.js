@@ -243,11 +243,11 @@ describe('Snapshotter', () => {
             memCurrentBytes: toBytes(7500),
         };
         let logged = false;
-        const warning = () => { logged = true; };
-        const stub = sinon.stub(log, 'warning');
-        stub.callsFake(warning);
         process.env[ENV_VARS.MEMORY_MBYTES] = '10000';
         const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+        const warning = () => { logged = true; };
+        const stub = sinon.stub(snapshotter.log, 'warning');
+        stub.callsFake(warning);
 
         snapshotter._memoryOverloadWarning(memoryDataOverloaded);
         expect(logged).toBe(true);

@@ -37,7 +37,7 @@ describe('Session - testing session behaviour ', () => {
                 err = e;
             }
             expect(err).toBeDefined(); // eslint-disable-line
-            expect(err.message.includes('Session: sessionPool must be instance of SessionPool')).toBe(true); // eslint-disable-line
+            expect(err.message.includes('sessionPool must be instance of SessionPool')).toBe(true); // eslint-disable-line
         },
     );
 

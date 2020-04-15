@@ -44,6 +44,7 @@ export default class Statistics {
         checkParamOrThrow(logIntervalSecs, 'options.logIntervalSecs', 'Number');
         checkParamOrThrow(logMessage, 'options.logMessage', 'String');
 
+
         this.logIntervalMillis = logIntervalSecs * 1000;
         this.logMessage = logMessage;
 

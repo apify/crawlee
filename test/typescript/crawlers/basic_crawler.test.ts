@@ -44,7 +44,7 @@ describe('BasicCrawler TS', () => {
                 }
             }, { forefront: true });
 
-            options.sessionPoolOptions!.sessionOptions!.userData!.userAgent === 'user-agent';
+            (options.sessionPoolOptions!.sessionOptions!.userData! as any).userAgent === 'user-agent';
         })
     });
 });
