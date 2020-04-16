@@ -608,7 +608,7 @@ describe('PuppeteerPool', () => {
                 await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
             } catch (err) {
-                expect(err.stack).toMatch('PuppeteerPool: browser.newPage() timed out.');
+                expect(err.stack).toMatch('browser.newPage() timed out.');
             }
         });
     });

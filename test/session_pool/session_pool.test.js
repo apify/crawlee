@@ -5,6 +5,7 @@ import events from '../../build/events';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import defaultLog from '../../build/utils_log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
@@ -57,9 +58,12 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.initialize();
         await sessionPool.teardown();
 
-        Object.entries(opts).forEach(([key, value]) => {
+        Object.entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        // log is appended to sessionOptions after sessionPool instantiation
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: jasmine.any(defaultLog.Log) });
+
         const store = await Apify.openKeyValueStore('TEST');
         await store.drop();
     });
@@ -83,9 +87,12 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.teardown();
 
 
-        Object.entries(opts).forEach(([key, value]) => {
+        Object.entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        // log is appended to sessionOptions after sessionPool instantiation
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: jasmine.any(defaultLog.Log) });
+
         const store = await Apify.openKeyValueStore('TEST');
         await store.drop();
     });

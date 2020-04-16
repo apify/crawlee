@@ -11,6 +11,7 @@
         "afterEach": false,
         "expect": false,
         "test": false,
-        "jest": false
+        "jest": false,
+        "jasmine": false
     }
 }

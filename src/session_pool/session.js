@@ -1,10 +1,10 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Cookie, CookieJar } from 'tough-cookie';
-import log from '../utils_log';
 import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { getCookiesFromResponse } from './session_utils';
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
@@ -77,6 +77,7 @@ export class Session {
             errorScore = 0,
             maxUsageCount = 50,
             sessionPool,
+            log = defaultLog,
         } = options;
 
         const { expiresAt = this._getDefaultCookieExpirationDate(maxAgeSecs) } = options;
@@ -95,8 +96,10 @@ export class Session {
 
         // sessionPool must be instance of SessionPool.
         if (sessionPool.constructor.name !== 'SessionPool') {
-            throw new Error('Session: sessionPool must be instance of SessionPool');
+            throw new Error('sessionPool must be instance of SessionPool');
         }
+
+        this.log = log.child({ prefix: 'Session' });
 
         /**
          * @type {CookieJar}
@@ -243,7 +246,7 @@ export class Session {
             this._setCookies(cookies, response.url);
         } catch (e) {
             // if invalid Cookie header is provided just log the exception.
-            log.exception(e, 'Session: Could not get cookies from response');
+            this.log.exception(e, 'Could not get cookies from response');
         }
     }
 
@@ -268,7 +271,7 @@ export class Session {
             this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(this)), url);
         } catch (e) {
             // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-            log.exception(e, 'Session: Could not set cookies in puppeteer format.');
+            this.log.exception(e, 'Could not set cookies in puppeteer format.');
         }
     }
 

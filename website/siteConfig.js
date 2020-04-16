@@ -108,6 +108,7 @@ const siteConfig = {
         (md) => {
             extlink(md, {
                 host: 'sdk.apify.com', // The hrefs that you DON'T want to be external
+                rel: 'noopener', // We want to keep referrer and follow for analytics on apify.com
             });
         },
     ],

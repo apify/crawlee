@@ -154,14 +154,26 @@
     },
     "examples": {
         "Examples": [
+            "examples/accept-user-input",
+            "examples/add-data-to-dataset",
             "examples/basic-crawler",
-            "examples/cheerio-crawler",
-            "examples/puppeteer-crawler",
-            "examples/puppeteer-with-proxy",
-            "examples/puppeteer-sitemap",
-            "examples/screenshots",
             "examples/call-actor",
+            "examples/capture-screenshot",
+            "examples/cheerio-crawler",
+            "examples/crawl-all-links",
+            "examples/crawl-multiple-urls",
+            "examples/crawl-relative-links",
+            "examples/crawl-single-url",
+            "examples/crawl-sitemap",
+            "examples/crawl-some-links",
             "examples/forms",
+            "examples/handle-broken-links",
+            "examples/map-and-reduce",
+            "examples/puppeteer-crawler",
+            "examples/puppeteer-recursive-crawl",
+            "examples/puppeteer-sitemap",
+            "examples/puppeteer-with-proxy",
+            "examples/screenshots",
             "examples/synchronous-run"
         ]
     }

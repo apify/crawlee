@@ -314,7 +314,7 @@ let callMemoryWarningIssued = false;
  * and several other API endpoints to obtain the output.
  *
  * @param {string} actId
- *  Either `username/actor-name` or actor ID.
+ *  Allowed formats are `username/actor-name`, `userId/actor-name` or actor ID.
  * @param {object} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
@@ -454,7 +454,7 @@ export const call = async (actId, input, options = {}) => {
  * and several other API endpoints to obtain the output.
  *
  * @param {string} taskId
- *  Either `username/task-name` or task ID.
+ *  Allowed formats are `username/task-name`, `userId/task-name` or task ID.
  * @param {object} [input]
  *  Input overrides for the actor task. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
