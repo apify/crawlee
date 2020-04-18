@@ -13,6 +13,7 @@ import { Session } from '../../build/session_pool/session';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
+import CrawlerExtension from '../../build/crawlers/crawler_extension';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -893,6 +894,64 @@ describe('CheerioCrawler', () => {
 
             expect(requestUsed.proxyUrl.includes(sessionUsed.id)).toBeTruthy();
             stub.restore();
+        });
+    });
+
+    describe('use', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+
+        class DummyExtension extends CrawlerExtension {
+            constructor(options) {
+                super({ name: 'DummyExtension' });
+                this.options = options;
+            }
+
+            getCrawlerOptions() {
+                return this.options;
+            }
+        }
+
+        beforeEach(async () => {
+            await localStorageEmulator.clean();
+            requestList = await Apify.openRequestList('test', sources.slice());
+        });
+
+        test('should throw if "CrawlerExtension" class is not used', () => {
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                handlePageFunction: async () => {
+                },
+                handleFailedRequestFunction: async () => {
+                },
+            });
+            expect(
+                () => cheerioCrawler.use({}),
+            ).toThrow('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
+        });
+
+        test('should override crawler properties', () => {
+            const prepareRequestFunction = async () => ({});
+            const extension = new DummyExtension({
+                useSessionPool: true,
+                prepareRequestFunction,
+                apifyProxyGroups: ['SHADER'],
+            });
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                useSessionPool: false,
+                maxRequestRetries: 0,
+                handlePageFunction: async () => {
+                },
+                handleFailedRequestFunction: async () => {
+                },
+            });
+            expect(cheerioCrawler.useSessionPool).toEqual(false);
+            cheerioCrawler.use(extension);
+            expect(cheerioCrawler.useSessionPool).toEqual(true);
+            expect(cheerioCrawler.prepareRequestFunction).toEqual(prepareRequestFunction);
+            expect(cheerioCrawler.apifyProxyGroups[0]).toEqual('SHADER');
         });
     });
 });
