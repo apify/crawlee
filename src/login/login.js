@@ -1,7 +1,14 @@
-import log from 'apify-shared/log';
+import log from '../utils_log';
 import {checkParamOrThrow} from 'apify-client/build/utils';
 import {getLoginFields} from './tools';
 
+/**
+ * Attempts to find login fields on page and use them for login after filling in provided credentials
+ * @param page
+ * @param username
+ * @param password
+ * @returns {Promise<void>}
+ */
 export const login = async (page, username = 'username', password = 'password') => {
     log.setLevel(log.LEVELS.DEBUG);
     checkParamOrThrow(page, 'page', 'Object');

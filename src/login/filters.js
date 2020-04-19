@@ -1,3 +1,7 @@
+/**
+ * Predicates for matching form fields against specific conditions to be met by main candidate field and surrounding fields
+ * @type {*[]}
+ */
 export const filters = [
     // 1 username patterns by priority - exact match
     // 2 password

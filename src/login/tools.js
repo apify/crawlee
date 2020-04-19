@@ -1,9 +1,35 @@
 import _ from 'underscore';
+import log from '../utils_log';
 
 import {staticAttributePatterns, otherAttributePatterns} from './consts';
 import {filters} from './filters';
 
 /**
+ * Attempts to identify login fields on page first as clustered by form elements and afterwards with no clustering if no match was found using form clusters
+ * @param {Object} page
+ * @returns {Promise<*>}
+ */
+export const getLoginFields = async page => {
+    const inputFilters = getInputFilters();
+    let loginFields;
+
+    console.log('Looking for login fields in inputs clustered by forms');
+    loginFields = await findLoginFields(page, inputFilters, true);
+
+    if (loginFields)
+        return loginFields;
+
+    console.log('Looking for login fields in all inputs, no clustering');
+    loginFields = await findLoginFields(page, inputFilters, false);
+
+    if (loginFields)
+        return loginFields;
+
+    throw Error('Could not find login inputs');
+};
+
+/**
+ * Tests inputs against patterns defined by filter and returns matching inputs as best login field candidates for given filter for further processing
  * Iterates all inputs in an input cluster testing them against provided filter function with optional extra arguments for testing patterns
  * @param {Object[]} inputCluster
  * @param {Function} filter
@@ -31,6 +57,7 @@ const reduceInputs = ({inputCluster, filter}, extras = {}) =>
     }, []);
 
 /**
+ * Helper function for initializing pattern based filters to be applied to form inputs and match most likely login fields
  * Creates a filter function using a predicate and optionally element attribute patterns to be utilized by the predicate
  * @param {Function} filter
  * @param {Object} pattern
@@ -234,28 +261,4 @@ const findLoginFields = async (page, inputFilters, forms = true) => {
     console.log('loginFields', loginFields);
 
     return loginFields;
-};
-
-/**
- * Attempts to identify login fields on page first as clustered by form elements and afterwards with no clustering if no match was found using form clusters
- * @param {Object} page
- * @returns {Promise<*>}
- */
-export const getLoginFields = async page => {
-    const inputFilters = getInputFilters();
-    let loginFields;
-
-    console.log('Looking for login fields in inputs clustered by forms');
-    loginFields = await findLoginFields(page, inputFilters, true);
-
-    if (loginFields)
-        return loginFields;
-
-    console.log('Looking for login fields in all inputs, no clustering');
-    loginFields = await findLoginFields(page, inputFilters, false);
-
-    if (loginFields)
-        return loginFields;
-
-    throw Error('Could not find login inputs');
 };
