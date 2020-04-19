@@ -1,12 +1,12 @@
 import fs from 'fs';
 import _ from 'underscore';
-import log from 'apify-shared/log';
 import { ENV_VARS } from 'apify-shared/consts';
+import log from '../build/utils_log';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
 import { SessionPool } from '../build/session_pool/session_pool';
 import { BROWSER_SESSION_KEY_NAME } from '../build/puppeteer_pool';
-import { sleep } from '../src/utils';
+import { sleep } from '../build/utils';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 
@@ -608,7 +608,7 @@ describe('PuppeteerPool', () => {
                 await pool._openNewTab(); // eslint-disable-line no-underscore-dangle
                 throw new Error('invalid error');
             } catch (err) {
-                expect(err.stack).toMatch('PuppeteerPool: browser.newPage() timed out.');
+                expect(err.stack).toMatch('browser.newPage() timed out.');
             }
         });
     });

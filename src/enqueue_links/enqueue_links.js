@@ -1,7 +1,7 @@
 import { URL } from 'url';
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import log from '../utils_log';
 /* eslint-disable import/no-duplicates */
 import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
@@ -10,10 +10,8 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Page } from 'puppeteer';
-import { RequestOptions } from '../request';
 import { QueueOperationInfo } from '../request_queue';
 import { RequestTransform } from './shared';
-import { Cheerio } from '../typedefs';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 
@@ -23,7 +21,7 @@ import { Cheerio } from '../typedefs';
  * and enqueues the URLs in their `href` attributes to the provided {@link RequestQueue}.
  * If you're looking to find URLs in JavaScript heavy pages where links are not available
  * in `href` elements, but rather navigations are triggered in click handlers
- * see [`enqueueLinksByClickingElements()`](puppeteer#puppeteer.enqueueLinksByClickingElements).
+ * see {@link puppeteer#enqueueLinksByClickingElements}.
  *
  * Optionally, the function allows you to filter the target links' URLs using an array of {@link PseudoUrl} objects
  * and override settings of the enqueued {@link Request} objects.
@@ -51,20 +49,22 @@ import { Cheerio } from '../typedefs';
  * @param {Object} options
  *   All `enqueueLinks()` parameters are passed
  *   via an options object with the following keys:
- * @param {Page} options.page
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
+ * @param {Page} [options.page]
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
- * @param {Cheerio} options.$
- *   <a href="https://github.com/cheeriojs/cheerio" target="_blank"><code>Cheerio</code></a> object with loaded HTML.
+ * @param {Number} [options.limit]
+ *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
+ * @param {CheerioStatic} [options.$]
+ *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
  *   A request queue to which the URLs will be enqueued.
- * @param {String} [options.selector='a']
+ * @param {string} [options.selector='a']
  *   A CSS selector matching links to be enqueued.
  * @param {string} [options.baseUrl]
  *   A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
  *   since the relative URL resolution is done inside the browser automatically.
- * @param {Object[]|String[]} [options.pseudoUrls]
+ * @param {Array<Object>|Array<string>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -93,15 +93,17 @@ import { Cheerio } from '../typedefs';
  *       }
  *   }
  *   ```
- * @return {Promise<QueueOperationInfo[]>}
+ * @return {Promise<Array<QueueOperationInfo>>}
  *   Promise that resolves to an array of {@link QueueOperationInfo} objects.
  * @memberOf utils
  * @name enqueueLinks
+ * @function
  */
 export async function enqueueLinks(options = {}) {
     const {
         page,
         $,
+        limit,
         selector = 'a',
         requestQueue,
         baseUrl,
@@ -122,6 +124,7 @@ export async function enqueueLinks(options = {}) {
     if (page && $) {
         throw new Error('Only one of the parameters "options.page" or "options.$" must be provided!');
     }
+    checkParamOrThrow(limit, 'limit', 'Maybe Number');
     checkParamOrThrow(selector, 'selector', 'String');
     checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
     checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
@@ -138,7 +141,9 @@ export async function enqueueLinks(options = {}) {
     if (transformRequestFunction) {
         requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
     }
-    const requests = createRequests(requestOptions, pseudoUrlInstances);
+    let requests = createRequests(requestOptions, pseudoUrlInstances);
+    if (limit) requests = requests.slice(0, limit);
+
     return addRequestsToQueueInBatches(requests, requestQueue);
 }
 
@@ -147,7 +152,7 @@ export async function enqueueLinks(options = {}) {
  *
  * @param {Page} page
  * @param {string} selector
- * @return {string[]}
+ * @return {Promise<Array<string>>}
  * @ignore
  */
 export async function extractUrlsFromPage(page, selector) {
@@ -158,7 +163,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {Cheerio} $
+ * @param {CheerioStatic} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

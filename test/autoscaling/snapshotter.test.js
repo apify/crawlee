@@ -2,8 +2,8 @@
 
 import os from 'os';
 import sinon from 'sinon';
-import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
+import log from '../../build/utils_log';
 import * as Apify from '../../build/index';
 import events from '../../build/events';
 import Snapshotter from '../../build/autoscaling/snapshotter';
@@ -42,7 +42,7 @@ describe('Snapshotter', () => {
         const clientSnapshots = snapshotter.getClientSample();
 
         expect(Array.isArray(cpuSnapshots)).toBe(true);
-        expect(cpuSnapshots).toHaveLength(2);
+        expect(cpuSnapshots.length).toBeGreaterThanOrEqual(1);
         cpuSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
             expect(typeof ss.isOverloaded).toBe('boolean');
@@ -50,7 +50,7 @@ describe('Snapshotter', () => {
         });
 
         expect(Array.isArray(memorySnapshots)).toBe(true);
-        expect(memorySnapshots).toHaveLength(2);
+        expect(memorySnapshots.length).toBeGreaterThanOrEqual(1);
         memorySnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
             expect(typeof ss.isOverloaded).toBe('boolean');
@@ -58,7 +58,7 @@ describe('Snapshotter', () => {
         });
 
         expect(Array.isArray(eventLoopSnapshots)).toBe(true);
-        expect(eventLoopSnapshots).toHaveLength(3);
+        expect(eventLoopSnapshots.length).toBeGreaterThanOrEqual(2);
         eventLoopSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
             expect(typeof ss.isOverloaded).toBe('boolean');
@@ -66,7 +66,7 @@ describe('Snapshotter', () => {
         });
 
         expect(Array.isArray(clientSnapshots)).toBe(true);
-        expect(clientSnapshots).toHaveLength(2);
+        expect(clientSnapshots.length).toBeGreaterThanOrEqual(1);
         clientSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
             expect(typeof ss.isOverloaded).toBe('boolean');
@@ -90,9 +90,9 @@ describe('Snapshotter', () => {
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
         const cpuSnapshots = snapshotter.getCpuSample();
 
-        expect(cpuSnapshots.length).toBeGreaterThan(2);
-        expect(memorySnapshots.length).toBeGreaterThan(2);
-        expect(eventLoopSnapshots.length).toBeGreaterThan(4);
+        expect(cpuSnapshots.length).toBeGreaterThanOrEqual(2);
+        expect(memorySnapshots.length).toBeGreaterThanOrEqual(2);
+        expect(eventLoopSnapshots.length).toBeGreaterThanOrEqual(4);
     });
 
     test('correctly marks CPU overloaded using Platform event', async () => {
@@ -243,11 +243,11 @@ describe('Snapshotter', () => {
             memCurrentBytes: toBytes(7500),
         };
         let logged = false;
-        const warning = () => { logged = true; };
-        const stub = sinon.stub(log, 'warning');
-        stub.callsFake(warning);
         process.env[ENV_VARS.MEMORY_MBYTES] = '10000';
         const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+        const warning = () => { logged = true; };
+        const stub = sinon.stub(snapshotter.log, 'warning');
+        stub.callsFake(warning);
 
         snapshotter._memoryOverloadWarning(memoryDataOverloaded);
         expect(logged).toBe(true);

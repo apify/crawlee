@@ -2,9 +2,9 @@ import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 
 /**
  * The default user agent used by `Apify.launchPuppeteer`.
- * Last updated on 2018-12-30.
+ * Last updated on 2020-04-08.
  */
-export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36'; // eslint-disable-line max-len
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.92 Safari/537.36'; // eslint-disable-line max-len
 
 /**
  * Exit codes for the actor process.
@@ -20,8 +20,7 @@ export const EXIT_CODES = {
 /**
  * These events are just internal for Apify package, so we don't need them in apify-shared package.
  *
- * @type {{CPU_INFO: String, SYSTEM_INFO: String, MIGRATING: String, PERSIST_STATE: String}}
- *
+ * @type {{CPU_INFO: string, SYSTEM_INFO: string, MIGRATING: string, PERSIST_STATE: string}}
  */
 export const ACTOR_EVENT_NAMES_EX = Object.assign({}, ACTOR_EVENT_NAMES, { PERSIST_STATE: 'persistState' });
 

@@ -1,15 +1,21 @@
-import _ from 'underscore';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import { Request as PuppeteerRequest, Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 
 // We use weak maps here so that the content gets discarted after page gets closed.
 const pageInterceptRequestHandlersMap = new WeakMap(); // Maps page to an array of request interception handlers.
 const pageInterceptRequestMasterHandlerMap = new WeakMap(); // Maps page to master request interception handler.
 
 /**
+ * @callback InterceptHandler
+ * @param {PuppeteerRequest} request
+ */
+
+/**
  * Executes an array for given intercept request handlers for a given request object.
  *
- * @param {Request} request Puppeteer's Request object.
- * @param {Array} interceptRequestHandlers An array of intercept request handlers.
+ * @param {PuppeteerRequest} request Puppeteer's Request object.
+ * @param {Array<InterceptHandler>} interceptRequestHandlers An array of intercept request handlers.
  * @ignore
  */
 const handleRequest = (request, interceptRequestHandlers) => {
@@ -107,9 +113,9 @@ const handleRequest = (request, interceptRequestHandlers) => {
  * ```
  *
  * @param {Page} page
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {Function} handler Request interception handler.
- * @return {Promise}
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param {InterceptHandler} handler Request interception handler.
+ * @return {Promise<void>}
  * @memberOf puppeteer
  * @name addInterceptRequestHandler
  */
@@ -142,9 +148,9 @@ export const addInterceptRequestHandler = async (page, handler) => {
  * Removes request interception handler for given page.
  *
  * @param {Page} page
- *   Puppeteer <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a> object.
- * @param {Function} handler Request interception handler.
- * @return {Promise}
+ *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param {InterceptHandler} handler Request interception handler.
+ * @return {Promise<void>}
  * @memberOf puppeteer
  * @name removeInterceptRequestHandler
  */

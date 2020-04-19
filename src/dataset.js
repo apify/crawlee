@@ -1,13 +1,13 @@
-import path from 'path';
+import * as path from 'path';
 import { promisify } from 'util';
-import fs from 'fs-extra';
-import _ from 'underscore';
+import * as fs from 'fs-extra';
+import * as _ from 'underscore';
 import { leftpad } from 'apify-shared/utilities';
-import LruCache from 'apify-shared/lru_cache';
-import log from 'apify-shared/log';
+import * as LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import log from './utils_log';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
@@ -33,8 +33,8 @@ const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Da
  * in an array to provide better error messages. Returns serialized object.
  *
  * @param {Object} item
- * @param {Number} limitBytes
- * @param {Number} [index]
+ * @param {number} limitBytes
+ * @param {number} [index]
  * @returns {string}
  * @ignore
  */
@@ -63,9 +63,9 @@ export const checkAndSerialize = (item, limitBytes, index) => {
  *
  * The function assumes that none of the items is larger than limitBytes and does not validate.
  *
- * @param {Array} items
- * @param {Number} limitBytes
- * @returns {Array}
+ * @param {Array<*>} items
+ * @param {number} limitBytes
+ * @returns {Array<*>}
  * @ignore
  */
 export const chunkBySize = (items, limitBytes) => {
@@ -104,7 +104,7 @@ export const chunkBySize = (items, limitBytes) => {
  * Typically it is used to store crawling results.
  *
  * Do not instantiate this class directly, use the
- * [`Apify.openDataset()`](apify#module_Apify.openDataset) function instead.
+ * {@link Apify#openDataset} function instead.
  *
  * `Dataset` stores its data either on local disk or in the Apify cloud,
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
@@ -119,9 +119,9 @@ export const chunkBySize = (items, limitBytes) => {
  * Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://docs.apify.com/storage/dataset" target="_blank">Apify Dataset</a>
+ * [Apify Dataset](https://docs.apify.com/storage/dataset)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to [`Apify.openDataset()`](apify#module_Apify.openDataset) function,
+ * option to {@link Apify#openDataset} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
@@ -155,6 +155,7 @@ export class Dataset {
 
         this.datasetId = datasetId;
         this.datasetName = datasetName;
+        this.log = log.child({ prefix: 'Dataset' });
     }
 
     /**
@@ -178,8 +179,7 @@ export class Dataset {
      * the items have already been saved to the dataset while other items from the source array were not.
      * To overcome this limitation, the developer may, for example, read the last item saved in the dataset
      * and re-attempt the save of the data from this item onwards to prevent duplicates.
-     *
-     * @param {Object|Array} data Object or array of objects containing data to be stored in the default dataset.
+     * @param {object|Array<object>} data Object or array of objects containing data to be stored in the default dataset.
      * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      * @return {Promise<void>}
      */
@@ -214,51 +214,51 @@ export class Dataset {
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
-     * @param {String} [options.format='json']
+     * @param {string} [options.format='json']
      *   Format of the `items` property, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
-     * @param {Number} [options.offset=0]
+     * @param {number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
-     * @param {Number} [options.limit=250000]
+     * @param {number} [options.limit=250000]
      *   Maximum number of array elements to return.
-     * @param {Boolean} [options.desc=false]
+     * @param {boolean} [options.desc=false]
      *   If `true` then the objects are sorted by `createdAt` in descending order.
      *   Otherwise they are sorted in ascending order.
-     * @param {Array} [options.fields]
+     * @param {string[]} [options.fields]
      *   An array of field names that will be included in the result. If omitted, all fields are included in the results.
-     * @param {String} [options.unwind]
+     * @param {string} [options.unwind]
      *   Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
      *   By default, the results are returned as they are.
-     * @param {Boolean} [options.disableBodyParser=false]
+     * @param {boolean} [options.disableBodyParser=false]
      *   If `true` then response from API will not be parsed.
-     * @param {Boolean} [options.attachment=false]
+     * @param {boolean} [options.attachment=false]
      *   If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web
      *   browser to download the file rather than to display it. By default, this header is not present.
-     * @param {String} [options.delimiter=',']
+     * @param {string} [options.delimiter=',']
      *   A delimiter character for CSV files, only used if `format` is `csv`.
-     * @param {Boolean} [options.bom]
+     * @param {boolean} [options.bom]
      *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
      *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
      *   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it.
-     * @param {String} [options.xmlRoot='results']
+     * @param {string} [options.xmlRoot='results']
      *   Overrides the default root element name of the XML output. By default, the root element is `results`.
-     * @param {String} [options.xmlRow='page']
+     * @param {string} [options.xmlRow='page']
      *   Overrides the default element name that wraps each page or page function result object in XML output.
      *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
-     * @param {Boolean} [options.skipHeaderRow=false]
+     * @param {boolean} [options.skipHeaderRow=false]
      *   If set to `true` then header row in CSV format is skipped.
-     * @param {Boolean} [options.clean=false]
+     * @param {boolean} [options.clean=false]
      *   If `true` then the function returns only non-empty items and skips hidden fields (i.e. fields starting with `#` character).
      *   Note that the `clean` parameter is a shortcut for `skipHidden: true` and `skipEmpty: true` options.
-     * @param {Boolean} [options.skipHidden=false]
+     * @param {boolean} [options.skipHidden=false]
      *   If `true` then the function doesn't return hidden fields (fields starting with "#" character).
-     * @param {Boolean} [options.skipEmpty=false]
+     * @param {boolean} [options.skipEmpty=false]
      *   If `true` then the function doesn't return empty items.
      *   Note that in this case the returned number of items might be lower than limit parameter and pagination must be done using the `limit` value.
-     * @param {Boolean} [options.simplified]
+     * @param {boolean} [options.simplified]
      *   If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
      *   This feature is used to emulate simplified results provided by Apify API version 1 used for
      *   the legacy Apify Crawler and it's not recommended to use it in new integrations.
-     * @param {Boolean} [options.skipFailedPages]
+     * @param {boolean} [options.skipFailedPages]
      *   If `true` then, the all the items with errorInfo property will be skipped from the output.
      *   This feature is here to emulate functionality of Apify API version 1 used for
      *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
@@ -275,9 +275,7 @@ export class Dataset {
             return await datasets.getItems(params);
         } catch (e) {
             if (e.message.includes('Cannot create a string longer than')) {
-                throw new Error(
-                    'dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.',
-                );
+                throw new Error('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
             }
             throw e;
         }
@@ -307,7 +305,7 @@ export class Dataset {
      * }
      * ```
      *
-     * @returns {Promise<Object>}
+     * @returns {Promise<object>}
      */
     async getInfo() {
         return datasets.getDataset({ datasetId: this.datasetId });
@@ -331,10 +329,10 @@ export class Dataset {
      * @param {DatasetConsumer} iteratee A function that is called for every item in the dataset.
      * @param {Object} [options] All `forEach()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
-     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys.
-     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @param {Number} [index=0] Specifies the initial index number passed to the `iteratee` function.
+     * @param {boolean} [options.desc=false] If `true` then the objects are sorted by `createdAt` in descending order.
+     * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys.
+     * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @param {number} [index=0] Specifies the initial index number passed to the `iteratee` function.
      * @return {Promise<void>}
      */
     async forEach(iteratee, options = {}, index = 0) {
@@ -363,14 +361,13 @@ export class Dataset {
      *
      * If `iteratee` returns a `Promise` then it's awaited before a next call.
      *
-     * @template T
      * @param {DatasetMapper} iteratee
-     * @param {Object} options All `map()` parameters are passed
+     * @param {Object} [options] All `map()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<T[]>}
+     * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
+     * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
+     * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @return {Promise<Array<object>>}
      */
     map(iteratee, options) {
         const result = [];
@@ -398,15 +395,14 @@ export class Dataset {
      *
      * If `iteratee()` returns a `Promise` then it's awaited before a next call.
      *
-     * @template T
      * @param {DatasetReducer} iteratee
-     * @param {T} memo Initial state of the reduction.
-     * @param {Object} options All `reduce()` parameters are passed
+     * @param {object} memo Initial state of the reduction.
+     * @param {Object} [options] All `reduce()` parameters are passed
      *   via an options object with the following keys:
-     * @param {Boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
-     * @param {Array} [options.fields] If provided then returned objects will only contain specified keys
-     * @param {String} [options.unwind] If provided then objects will be unwound based on provided field.
-     * @return {Promise<T>}
+     * @param {boolean} [options.desc=false] If `true` then the objects are sorted by createdAt in descending order.
+     * @param {string[]} [options.fields] If provided then returned objects will only contain specified keys
+     * @param {string} [options.unwind] If provided then objects will be unwound based on provided field.
+     * @return {Promise<object>}
      */
     reduce(iteratee, memo, options) {
         let currentMemo = memo;
@@ -443,7 +439,7 @@ export class Dataset {
 
     /** @ignore */
     async delete() {
-        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+        this.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
         await this.drop();
     }
@@ -459,6 +455,7 @@ export class DatasetLocal {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
+        this.log = log.child({ prefix: 'Dataset' });
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
@@ -606,7 +603,7 @@ export class DatasetLocal {
     }
 
     async delete() {
-        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+        this.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
         await this.drop();
     }
@@ -670,7 +667,7 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @param {string} [datasetIdOrName]
  *   ID or name of the dataset to be opened. If `null` or `undefined`,
  *   the function returns the default dataset associated with the actor run.
- * @param {object} [options]
+ * @param {Object} [options]
  * @param {boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
@@ -695,7 +692,7 @@ export const openDataset = (datasetIdOrName, options = {}) => {
 /**
  * Stores an object or an array of objects to the default {@link Dataset} of the current actor run.
  *
- * This is just a convenient shortcut for [`dataset.pushData()`](dataset#Dataset+pushData).
+ * This is just a convenient shortcut for {@link Dataset#pushData}.
  * For example, calling the following code:
  * ```javascript
  * await Apify.pushData({ myValue: 123 });
@@ -707,14 +704,14 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * await dataset.pushData({ myValue: 123 });
  * ```
  *
- * For more information, see [`Apify.openDataset()`](apify#module_Apify.openDataset) and [`dataset.pushData()`](dataset#Dataset+pushData)
+ * For more information, see {@link Apify#openDataset} and {@link Dataset#pushData}
  *
  * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
  * otherwise the actor process might finish before the data are stored!
  *
- * @param {Object|Array} item Object or array of objects containing data to be stored in the default dataset.
+ * @param {object} item Object or array of objects containing data to be stored in the default dataset.
  * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
- * @returns {Promise}
+ * @returns {Promise<void>}
  *
  * @memberof module:Apify
  * @name pushData
@@ -724,37 +721,36 @@ export const pushData = item => openDataset().then(dataset => dataset.pushData(i
 
 /**
  * @typedef DatasetContent
- * @property {Object[]|String[]|Buffer[]} items Dataset entries based on chosen format parameter.
- * @property {Number} total Total count of entries in the dataset.
- * @property {Number} offset Position of the first returned entry in the dataset.
- * @property {Number} count Count of dataset entries returned in this set.
- * @property {Number} limit Maximum number of dataset entries requested.
+ * @property {Array<object>} items Dataset entries based on chosen format parameter.
+ * @property {number} total Total count of entries in the dataset.
+ * @property {number} offset Position of the first returned entry in the dataset.
+ * @property {number} count Count of dataset entries returned in this set.
+ * @property {number} limit Maximum number of dataset entries requested.
  */
 
-// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
 /**
  * User-function used in the `Dataset.forEach()` API.
+ *
  * @callback DatasetConsumer
- * @param {Object} item Current {@link Dataset} entry being processed.
- * @param {Number} index Position of current {Dataset} entry.
- * @returns T
+ * @param {object} item Current {@link Dataset} entry being processed.
+ * @param {number} index Position of current {Dataset} entry.
+ * @returns {object}
  */
 
-// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
 /**
  * User-function used in the `Dataset.map()` API.
+ *
  * @callback DatasetMapper
- * @param {Object} item Currect {@link Dataset} entry being processed.
- * @param {Number} index Position of current {Dataset} entry.
- * @returns T
+ * @param {object} item Currect {@link Dataset} entry being processed.
+ * @param {number} index Position of current {Dataset} entry.
+ * @returns {object}
  */
 
-// TODO yin: Typescript candoes not understand `@callback` with generic `@template T`. Change after this is fixed
 /**
  * User-function used in the `Dataset.reduce()` API.
  * @callback DatasetReducer
- * @param {T} memo Previous state of the reduction.
- * @param {Object} item Currect {@link Dataset} entry being processed.
- * @param {Number} index Position of current {Dataset} entry.
- * @returns T
+ * @param {object} memo Previous state of the reduction.
+ * @param {object} item Currect {@link Dataset} entry being processed.
+ * @param {number} index Position of current {Dataset} entry.
+ * @returns {object}
  */

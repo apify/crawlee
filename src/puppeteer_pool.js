@@ -1,58 +1,31 @@
-import _ from 'underscore';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import util from 'util';
-import log from 'apify-shared/log';
-import LinkedList from 'apify-shared/linked_list';
-import rimraf from 'rimraf';
+import * as _ from 'underscore';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as util from 'util';
+import * as LinkedList from 'apify-shared/linked_list';
+import * as rimraf from 'rimraf';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
-
-import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer'; // eslint-disable-line no-unused-vars,import/named
+import defaultLog from './utils_log';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/order */
+import { Page, Browser } from 'puppeteer';
+import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
+import { SessionPool } from './session_pool/session_pool';
+/* eslint-enable no-unused-vars */
 
 export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 
-const DEFAULT_OPTIONS = {
-    reusePages: false,
-    // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
-    // and the default settings should just work
-    maxOpenPagesPerInstance: 50,
-    retireInstanceAfterRequestCount: 100,
-
-    puppeteerOperationTimeoutSecs: 15,
-    instanceKillerIntervalSecs: 60,
-    killInstanceAfterSecs: 300,
-
-    launchPuppeteerFunction: launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
-
-    recycleDiskCache: false,
-    useIncognitoPages: false,
-    useLiveView: false,
-};
-
 const mkdtempAsync = util.promisify(fs.mkdtemp);
 const rimrafAsync = util.promisify(rimraf);
 const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
-
-/**
- * Deletes Chrome's user data directory
- * @param {String} diskCacheDir
- * @ignore
- */
-const deleteDiskCacheDir = (diskCacheDir) => {
-    log.debug('PuppeteerPool: Deleting disk cache directory', { diskCacheDir });
-    return rimrafAsync(diskCacheDir)
-        .catch((err) => {
-            log.warning('PuppeteerPool: Cannot delete Chrome disk cache directory', { diskCacheDir, errorMessage: err.message });
-        });
-};
 
 /**
  * Internal representation of Puppeteer instance.
@@ -73,7 +46,13 @@ class PuppeteerInstance {
 }
 
 /**
- * @typedef {Object} PuppeteerPoolOptions
+ * @callback LaunchPuppeteerFunction
+ * @param {LaunchPuppeteerOptions} options
+ * @returns {Promise<Browser>}
+ */
+
+/**
+ * @typedef PuppeteerPoolOptions
  * @property {boolean} [useLiveView]
  *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
  *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
@@ -95,16 +74,15 @@ class PuppeteerInstance {
  *   it is considered retired and no more tabs will be opened. After the last tab is closed the
  *   whole browser is closed too. This parameter defines a time limit between the last tab was opened and
  *   before the browser is closed even if there are pending open tabs.
- * @property {Function} [launchPuppeteerFunction]
+ * @property {LaunchPuppeteerFunction} [launchPuppeteerFunction]
  *   Overrides the default function to launch a new Puppeteer instance.
  *   The function must return a promise resolving to
- *   [`Browser`](https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#class-browser) instance.
+ *   [`Browser`](https://github.com/puppeteer/puppeteer/blob/master/docs/api.md#class-browser) instance.
  *   See the source code on
- *   <a href="https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28" target="_blank">GitHub</a>
+ *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28)
  *   for the default implementation.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
- *   Options used by `Apify.launchPuppeteer()` to start new Puppeteer instances.
- *   See [`LaunchPuppeteerOptions`](../typedefs/launchpuppeteeroptions).
+ *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
  * @property {boolean} [recycleDiskCache=false]
  *   Enables recycling of disk cache directories by Chrome instances.
  *   When a browser instance is closed, its disk cache directory is not deleted but it's used by a newly opened browser instance.
@@ -129,7 +107,7 @@ class PuppeteerInstance {
 
 /**
  * Manages a pool of Chrome browser instances controlled using
- * <a href="https://github.com/GoogleChrome/puppeteer" target="_blank">Puppeteer</a>.
+ * [Puppeteer](https://github.com/puppeteer/puppeteer).
  *
  * `PuppeteerPool` reuses Chrome instances and tabs using specific browser rotation and retirement policies.
  * This is useful in order to facilitate rotation of proxies, cookies
@@ -168,25 +146,29 @@ class PuppeteerPool {
     /**
      * @param {PuppeteerPoolOptions} [options]
      *   All `PuppeteerPool` parameters are passed
-     *   via an options object with the following keys:
+     *   via an options object.
      */
     constructor(options = {}) {
         const {
-            maxOpenPagesPerInstance,
-            retireInstanceAfterRequestCount,
-            launchPuppeteerFunction,
-            puppeteerOperationTimeoutSecs,
+            // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
+            // and the default settings should just work
+            maxOpenPagesPerInstance = 50,
+            retireInstanceAfterRequestCount = 100,
+            launchPuppeteerFunction = launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
+            puppeteerOperationTimeoutSecs = 15,
             instanceKillerIntervalMillis,
-            instanceKillerIntervalSecs,
+            instanceKillerIntervalSecs = 60,
             killInstanceAfterMillis,
-            killInstanceAfterSecs,
+            killInstanceAfterSecs = 300,
             launchPuppeteerOptions,
-            recycleDiskCache,
-            useIncognitoPages,
+            recycleDiskCache = false,
+            useIncognitoPages = false,
             proxyUrls,
-            useLiveView,
+            useLiveView = false,
             sessionPool,
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+            log = defaultLog,
+        } = options;
+
 
         // Disabling due to memory leak.
         const reusePages = false;
@@ -197,13 +179,16 @@ class PuppeteerPool {
         checkParamOrThrow(launchPuppeteerFunction, 'options.launchPuppeteerFunction', 'Function');
         checkParamOrThrow(puppeteerOperationTimeoutSecs, 'options.puppeteerOperationTimeoutSecs', 'Number');
         checkParamOrThrow(instanceKillerIntervalMillis, 'options.instanceKillerIntervalMillis', 'Maybe Number');
+
+        this.log = log.child({ prefix: 'PuppeteerPool' });
+
         if (instanceKillerIntervalMillis) {
-            log.deprecated('PuppeteerPool: options.instanceKillerIntervalMillis is deprecated, use options.instanceKillerIntervalSecs instead.');
+            this.log.deprecated('options.instanceKillerIntervalMillis is deprecated, use options.instanceKillerIntervalSecs instead.');
         }
         checkParamOrThrow(instanceKillerIntervalSecs, 'options.instanceKillerIntervalSecs', 'Number');
         checkParamOrThrow(killInstanceAfterMillis, 'options.killInstanceAfterMillis', 'Maybe Number');
         if (killInstanceAfterMillis) {
-            log.deprecated('PuppeteerPool: options.killInstanceAfterMillis is deprecated, use options.killInstanceAfterSecs instead.');
+            this.log.deprecated('options.killInstanceAfterMillis is deprecated, use options.killInstanceAfterSecs instead.');
         }
         checkParamOrThrow(killInstanceAfterSecs, 'options.killInstanceAfterSecs', 'Number');
         checkParamOrThrow(launchPuppeteerOptions, 'options.launchPuppeteerOptions', 'Maybe Object');
@@ -216,13 +201,17 @@ class PuppeteerPool {
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
 
         // Config.
-
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.puppeteerOperationTimeoutMillis = puppeteerOperationTimeoutSecs * 1000;
         this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
+        // this is needed to avoid TS typings trying to link to the .d.ts
+        /**
+         * @type {*}
+         * @ignore
+         */
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.useIncognitoPages = useIncognitoPages;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
@@ -303,7 +292,7 @@ class PuppeteerPool {
      */
     _launchInstance() {
         const id = this.browserCounter++;
-        log.debug('PuppeteerPool: Launching new browser', { id });
+        this.log.debug('Launching new browser', { id });
 
         const browserPromise = this.launchPuppeteerFunction();
 
@@ -333,7 +322,7 @@ class PuppeteerPool {
                 instance.session = browser[BROWSER_SESSION_KEY_NAME];
             }
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: Browser launch failed', { id });
+            this.log.exception(err, 'Browser launch failed', { id });
             delete this.activeInstances[id];
             return;
         }
@@ -343,7 +332,7 @@ class PuppeteerPool {
 
         browser.on('disconnected', () => {
             // If instance.killed === true then we killed the instance so don't log it.
-            if (!instance.killed) log.error('PuppeteerPool: Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
+            if (!instance.killed) this.log.error('Puppeteer sent "disconnect" event. Maybe it crashed???', { id });
             this._retireInstance(instance);
         });
     }
@@ -356,9 +345,9 @@ class PuppeteerPool {
     _retireInstance(instance) {
         const { id } = instance;
 
-        if (!this.activeInstances[id]) return log.debug('PuppeteerPool: browser is retired already', { id });
+        if (!this.activeInstances[id]) return this.log.debug('browser is retired already', { id });
 
-        log.debug('PuppeteerPool: Retiring browser', { id });
+        this.log.debug('Retiring browser', { id });
 
         this.retiredInstances[id] = instance;
         delete this.activeInstances[id];
@@ -372,12 +361,12 @@ class PuppeteerPool {
      * @ignore
      */
     _killRetiredInstances() {
-        log.debug('PuppeteerPool: Retired browsers count', { count: _.values(this.retiredInstances).length });
+        this.log.debug('Retired browsers count', { count: _.values(this.retiredInstances).length });
 
         _.mapObject(this.retiredInstances, async (instance) => {
             // Kill instances that are more than this.killInstanceAfterMillis from last opened page
             if (Date.now() - instance.lastPageOpenedAt > this.killInstanceAfterMillis) {
-                log.debug('PuppeteerPool: killing retired browser after period of inactivity', { id: instance.id, killInstanceAfterMillis: this.killInstanceAfterMillis }); // eslint-disable-line max-len
+                this.log.debug('killing retired browser after period of inactivity', { id: instance.id, killInstanceAfterMillis: this.killInstanceAfterMillis }); // eslint-disable-line max-len
                 this._killInstance(instance);
                 return;
             }
@@ -387,11 +376,11 @@ class PuppeteerPool {
                 const pages = await browser.pages();
                 // NOTE: we are killing instance when the number of pages is less or equal to 1 because there is always about:blank page.
                 if (pages.length <= 1) {
-                    log.debug('PuppeteerPool: Killing retired browser because it has no open tabs', { id: instance.id });
+                    this.log.debug('Killing retired browser because it has no open tabs', { id: instance.id });
                     this._killInstance(instance);
                 }
             } catch (err) {
-                log.exception(err, 'PuppeteerPool: Browser.pages() failed', { id: instance.id });
+                this.log.exception(err, 'Browser.pages() failed', { id: instance.id });
                 this._killInstance(instance);
             }
         });
@@ -406,13 +395,13 @@ class PuppeteerPool {
         const { id, childProcess, killed, browserPromise } = instance;
         if (killed) return;
 
-        log.debug('PuppeteerPool: Killing browser', { id });
+        this.log.debug('Killing browser', { id });
 
         delete this.retiredInstances[id];
 
         const recycleDiskCache = () => {
             if (!instance.recycleDiskCacheDir) return;
-            log.debug('PuppeteerPool: Recycling disk cache dir', { id, diskCacheDir: instance.recycleDiskCacheDir });
+            this.log.debug('Recycling disk cache dir', { id, diskCacheDir: instance.recycleDiskCacheDir });
             this.recycledDiskCacheDirs.add(instance.recycleDiskCacheDir);
             instance.recycleDiskCacheDir = null;
         };
@@ -433,7 +422,7 @@ class PuppeteerPool {
             await browser.close();
             recycleDiskCache();
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: Cannot close the browser instance, it will be killed forcibly.', { id });
+            this.log.exception(err, 'Cannot close the browser instance, it will be killed forcibly.', { id });
         }
     }
 
@@ -503,7 +492,7 @@ class PuppeteerPool {
     /**
      * Opens new tab in one of the browsers in the pool and returns a `Promise`
      * that resolves to an instance of a Puppeteer
-     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-page" target="_blank"><code>Page</code></a>.
+     * [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page).
      *
      * @return {Promise<Page>}
      * @ignore
@@ -525,14 +514,14 @@ class PuppeteerPool {
             const page = await addTimeoutToPromise(
                 context.newPage(),
                 this.puppeteerOperationTimeoutMillis,
-                'PuppeteerPool: browser.newPage() timed out.',
+                'browser.newPage() timed out.',
             );
-            await this._focusOldestTab(browser).catch(() => log.debug('Could not focus oldest tab.'));
+            await this._focusOldestTab(browser).catch(() => this.log.debug('Could not focus oldest tab.'));
             this.pagesToInstancesMap.set(page, instance);
             return this._decoratePage(page);
         } catch (err) {
             this._retireInstance(instance);
-            const betterError = new Error(`PuppeteerPool: browser.newPage() failed: ${instance.id}.`);
+            const betterError = new Error(`browser.newPage() failed: ${instance.id}.`);
             betterError.stack = err.stack;
             throw betterError;
         }
@@ -552,18 +541,18 @@ class PuppeteerPool {
             this.closedPages.add(page);
             await originalPageClose.apply(page, args)
                 .catch((err) => {
-                    log.debug('PuppeteerPool: Page.close() failed', { errorMessage: err.message, id: instance.id });
+                    this.log.debug('Page.close() failed', { errorMessage: err.message, id: instance.id });
                 });
             const context = page.browserContext();
             if (context.isIncognito()) {
                 await context.close().catch((err) => {
-                    log.debug('PuppeteerPool: Context.close() failed', { errorMessage: err.message, id: instance.id });
+                    this.log.debug('Context.close() failed', { errorMessage: err.message, id: instance.id });
                 });
             }
         };
 
         page.once('error', (error) => {
-            log.exception(error, 'PuppeteerPool: Page crashed.');
+            this.log.exception(error, 'Page crashed.');
             page.close();
         });
 
@@ -585,6 +574,20 @@ class PuppeteerPool {
     async _focusOldestTab(browser) { // eslint-disable-line class-methods-use-this
         const pages = await browser.pages();
         if (pages.length > 1) return pages[1].bringToFront();
+    }
+
+    /**
+     * Deletes Chrome's user data directory
+     * @param {string} diskCacheDir
+     * @private
+     * @ignore
+     */
+    async _deleteDiskCacheDir(diskCacheDir) {
+        this.log.debug('Deleting disk cache directory', { diskCacheDir });
+        return rimrafAsync(diskCacheDir)
+            .catch((err) => {
+                this.log.warning('Cannot delete Chrome disk cache directory', { diskCacheDir, errorMessage: err.message });
+            });
     }
 
     /**
@@ -610,7 +613,7 @@ class PuppeteerPool {
         const closePromises = browserPromises.map(async (browserPromise) => {
             const browser = await browserPromise;
             await browser.close();
-            if (browser.recycleDiskCacheDir) await deleteDiskCacheDir(browser.recycleDiskCacheDir);
+            if (browser.recycleDiskCacheDir) await this._deleteDiskCacheDir(browser.recycleDiskCacheDir);
         });
 
         try {
@@ -618,21 +621,21 @@ class PuppeteerPool {
             // Delete all cache directories
             const dirDeletionPromises = [];
             while (this.recycledDiskCacheDirs && this.recycledDiskCacheDirs.length > 0) {
-                dirDeletionPromises.push(deleteDiskCacheDir(this.recycledDiskCacheDirs.removeFirst()));
+                dirDeletionPromises.push(this._deleteDiskCacheDir(this.recycledDiskCacheDirs.removeFirst()));
             }
             await Promise.all(dirDeletionPromises);
         } catch (err) {
-            log.exception(err, 'PuppeteerPool: Cannot close the browsers.');
+            this.log.exception(err, 'Cannot close the browsers.');
         }
         if (this.liveViewServer) {
-            await this.liveViewServer.stop().catch(err => log.exception(err, 'PuppeteerPool: Cannot close LiveViewServer.'));
+            await this.liveViewServer.stop().catch(err => this.log.exception(err, 'Cannot close LiveViewServer.'));
         }
     }
 
     /**
      * Finds a PuppeteerInstance given a Puppeteer Browser running in the instance.
      * @param {Browser} browser
-     * @return {Promise}
+     * @return {Promise<*>}
      * @ignore
      */
     async _findInstanceByBrowser(browser) {
@@ -648,13 +651,13 @@ class PuppeteerPool {
             case 1:
                 return results[0];
             default:
-                throw new Error('PuppeteerPool: Multiple instances of PuppeteerPool found using a single browser instance.');
+                throw new Error('Multiple instances of PuppeteerPool found using a single browser instance.');
         }
     }
 
     /**
      * Manually retires a Puppeteer
-     * <a href="https://pptr.dev/#?product=Puppeteer&show=api-class-browser" target="_blank"><code>Browser</code></a>
+     * [`Browser`](https://pptr.dev/#?product=Puppeteer&show=api-class-browser)
      * instance from the pool. The browser will continue to process open pages so that they may gracefully finish.
      * This is unlike `browser.close()` which will forcibly terminate the browser and all open pages will be closed.
      * @param {Browser} browser
@@ -663,7 +666,7 @@ class PuppeteerPool {
     async retire(browser) {
         const instance = await this._findInstanceByBrowser(browser);
         if (instance) return this._retireInstance(instance);
-        log.debug('PuppeteerPool: Browser is retired already');
+        this.log.debug('Browser is retired already');
     }
 
     /**
@@ -689,10 +692,10 @@ class PuppeteerPool {
                 await addTimeoutToPromise(
                     page.close(),
                     this.puppeteerOperationTimeoutMillis,
-                    'PuppeteerPool: page.close() timed out.',
+                    'page.close() timed out.',
                 );
             } catch (err) {
-                log.debug('PuppeteerPool: page.close() failed.', { reason: err && err.message });
+                this.log.debug('page.close() failed.', { reason: err && err.message });
             }
         }
     }
@@ -700,7 +703,7 @@ class PuppeteerPool {
     /**
      * Tells the connected LiveViewServer to serve a snapshot when available.
      *
-     * @param page
+     * @param {Page} page
      * @return {Promise<void>}
      */
     async serveLiveViewSnapshot(page) {
@@ -722,7 +725,7 @@ class PuppeteerPool {
         if (instance.id !== this.browserCounter - 1) return;
 
         const snapshotPromise = this.liveViewServer.serve(page)
-            .catch(err => log.debug('Live View failed to be served.', { message: err.message }));
+            .catch(err => this.log.debug('Live View failed to be served.', { message: err.message }));
         this.liveViewSnapshotsInProgress.set(page, snapshotPromise);
     }
 
@@ -743,7 +746,7 @@ class PuppeteerPool {
             } catch (e) {
                 // ignore the error, since the instance is either retired already, being retired or cannot be retired
                 // ( we cant do nothing about this at this point)
-                log.debug('Could not retire instances ', e);
+                this.log.debug('Could not retire instances ', e);
             }
         }
     }
@@ -754,7 +757,7 @@ class PuppeteerPool {
             // Run this with a delay, otherwise page.close()
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
-                log.debug('PuppeteerPool: Killing retired browser because it has no active pages', { id });
+                this.log.debug('Killing retired browser because it has no active pages', { id });
                 this._killInstance(instance);
             }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
         }

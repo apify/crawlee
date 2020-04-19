@@ -9,9 +9,9 @@ Apify SDK simplifies the development of web crawlers, scrapers, data extractors 
 It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
 to maintain queues of URLs to crawl, store crawling results to a local filesystem or into the cloud,
 rotate proxies and much more.
-The SDK is available as the <a href="https://www.npmjs.com/package/apify" target="_blank"><code>apify</code></a> NPM package.
+The SDK is available as the [`apify`](https://www.npmjs.com/package/apify) NPM package.
 It can be used either stand-alone in your own applications
-or in <a href="https://docs.apify.com/actor" target="_blank">actors</a>
-running on the <a href="https://apify.com/" target="_blank">Apify Cloud</a>.
+or in [actors](https://docs.apify.com/actor)
+running on the [Apify Cloud](https://apify.com/).
 
-**View full documentation, guides and examples on the dedicated <a href="https://sdk.apify.com" target="_blank">Apify SDK project website</a>**
+**View full documentation, guides and examples on the dedicated [Apify SDK project website](https://sdk.apify.com)**

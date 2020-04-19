@@ -3,8 +3,9 @@ import Apify from '../../build';
 import events from '../../build/events';
 
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
-import { Session } from '../../src/session_pool/session';
+import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import defaultLog from '../../build/utils_log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
@@ -55,11 +56,14 @@ describe('SessionPool - testing session pool', () => {
         };
         sessionPool = new SessionPool(opts);
         await sessionPool.initialize();
-        sessionPool.teardown();
+        await sessionPool.teardown();
 
-        Object.entries(opts).forEach(([key, value]) => {
+        Object.entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        // log is appended to sessionOptions after sessionPool instantiation
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: jasmine.any(defaultLog.Log) });
+
         const store = await Apify.openKeyValueStore('TEST');
         await store.drop();
     });
@@ -80,12 +84,15 @@ describe('SessionPool - testing session pool', () => {
 
         };
         sessionPool = await openSessionPool(opts);
-        sessionPool.teardown();
+        await sessionPool.teardown();
 
 
-        Object.entries(opts).forEach(([key, value]) => {
+        Object.entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
         });
+        // log is appended to sessionOptions after sessionPool instantiation
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: jasmine.any(defaultLog.Log) });
+
         const store = await Apify.openKeyValueStore('TEST');
         await store.drop();
     });
@@ -143,6 +150,22 @@ describe('SessionPool - testing session pool', () => {
         );
     });
 
+    test('get state should work', async () => {
+        const url = 'https://example.com';
+        const cookies = [
+            { name: 'cookie1', value: 'my-cookie' },
+            { name: 'cookie2', value: 'your-cookie' },
+        ];
+
+        const newSession = await sessionPool.getSession();
+        newSession.setPuppeteerCookies(cookies, url);
+
+        const state = sessionPool.getState();
+        expect(state).toBeInstanceOf(Object);
+        expect(state).toHaveProperty('usableSessionsCount');
+        expect(state).toHaveProperty('retiredSessionsCount');
+        expect(state).toHaveProperty('sessions');
+    });
 
     test('should persist state and recreate it from storage', async () => {
         await sessionPool.getSession();
@@ -176,7 +199,7 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.sessions).toHaveLength(loadedSessionPool.sessions.length);
         expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
         expect(sessionPool.persistStateKey).toEqual(loadedSessionPool.persistStateKey);
-        sessionPool.teardown();
+        await sessionPool.teardown();
     });
 
     test('should create only maxPoolSize number of sessions', async () => {
@@ -202,7 +225,7 @@ describe('SessionPool - testing session pool', () => {
         });
 
         afterEach(async () => {
-            sessionPool.teardown();
+            await sessionPool.teardown();
         });
 
         test('on persist event', async () => {
@@ -255,7 +278,31 @@ describe('SessionPool - testing session pool', () => {
         await newSessionPool.initialize();
         expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
 
-        newSessionPool.teardown();
+        await newSessionPool.teardown();
+    });
+
+    test('should persist state on teardown', async () => {
+        const persistStateKey = 'TEST-KEY';
+        const persistStateKeyValueStoreId = 'TEST-VALUE-STORE';
+
+        const newSessionPool = await Apify.openSessionPool({
+            maxPoolSize: 1,
+            persistStateKeyValueStoreId,
+            persistStateKey,
+        });
+
+        await newSessionPool.teardown();
+
+        const kvStore = await Apify.openKeyValueStore(newSessionPool.persistStateKeyValueStoreId);
+        const state = await kvStore.getValue(newSessionPool.persistStateKey);
+
+        expect(newSessionPool.persistStateKeyValueStoreId).toBeDefined();
+        expect(newSessionPool.persistStateKey).toBeDefined();
+        expect(state).toBeDefined();
+        expect(state).toBeInstanceOf(Object);
+        expect(state).toHaveProperty('usableSessionsCount');
+        expect(state).toHaveProperty('retiredSessionsCount');
+        expect(state).toHaveProperty('sessions');
     });
 
     test('should createSessionFunction work', async () => {
@@ -271,9 +318,9 @@ describe('SessionPool - testing session pool', () => {
         expect(session.constructor.name).toBe("Session") // eslint-disable-line
     });
 
-    it('should remove persist state event listener', () => {
+    it('should remove persist state event listener', async () => {
         expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
-        sessionPool.teardown();
+        await sessionPool.teardown();
         expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
     });
 });

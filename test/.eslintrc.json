@@ -10,6 +10,8 @@
         "beforeEach": false,
         "afterEach": false,
         "expect": false,
-        "test": false
+        "test": false,
+        "jest": false,
+        "jasmine": false
     }
 }

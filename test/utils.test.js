@@ -5,12 +5,12 @@ import path from 'path';
 import os from 'os';
 import cheerio from 'cheerio';
 import semver from 'semver';
-import requestPromise from 'request-promise-native';
 import LruCache from 'apify-shared/lru_cache';
-import log from 'apify-shared/log';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import * as utils from '../build/utils';
 import Apify from '../build/index';
+import * as utils from '../build/utils';
+import log from '../build/utils_log';
+import * as requestUtils from '../build/utils_request';
 
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {
@@ -133,11 +133,12 @@ describe('utils.getMemoryInfo()', () => {
 
         osMock
             .expects('freemem')
-            .once()
+            .atLeast(1)
             .returns(222);
 
         osMock
             .expects('totalmem')
+            .atLeast(1)
             .returns(333);
 
         try {
@@ -196,12 +197,12 @@ describe('utils.getMemoryInfo()', () => {
 
         osMock
             .expects('freemem')
-            .once()
+            .atLeast(1)
             .returns(222);
 
         osMock
             .expects('totalmem')
-            .once()
+            .atLeast(1)
             .returns(333);
 
         let browser;
@@ -504,16 +505,16 @@ describe('Apify.utils.downloadListOfUrls()', () => {
     const { downloadListOfUrls } = utils.publicUtils;
     let stub;
     beforeEach(() => {
-        stub = sinon.stub(requestPromise, 'get');
+        stub = sinon.stub(requestUtils, 'requestAsBrowser');
     });
     afterEach(() => {
-        requestPromise.get.restore();
+        requestUtils.requestAsBrowser.restore();
     });
 
     test('downloads a list of URLs', () => {
         const text = fs.readFileSync(path.join(__dirname, 'data', 'simple_url_list.txt'), 'utf8');
         const arr = text.trim().split(/[\r\n]+/g).map(u => u.trim());
-        stub.resolves(text);
+        stub.resolves({ body: text });
 
         return expect(downloadListOfUrls({
             url: 'nowhere',

@@ -15,3 +15,8 @@ pids
 yarn.lock
 package-lock.json
 tmp
+jsconfig.json
+types
+docs/api
+docs/typedefs
+docs/examples

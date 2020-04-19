@@ -8,52 +8,58 @@
       "api/apify": {
         "title": "Apify"
       },
-      "api/autoscaledpool": {
+      "api/apify-call-error": {
+        "title": "ApifyCallError"
+      },
+      "api/autoscaled-pool": {
         "title": "AutoscaledPool"
       },
-      "api/basiccrawler": {
+      "api/basic-crawler": {
         "title": "BasicCrawler"
       },
-      "api/cheeriocrawler": {
+      "api/cheerio-crawler": {
         "title": "CheerioCrawler"
+      },
+      "api/cookie-parse-error": {
+        "title": "CookieParseError"
       },
       "api/dataset": {
         "title": "Dataset"
       },
-      "api/keyvaluestore": {
+      "api/key-value-store": {
         "title": "KeyValueStore"
       },
-      "api/liveviewserver": {
+      "api/live-view-server": {
         "title": "LiveViewServer"
       },
       "api/log": {
         "title": "utils.log"
       },
-      "api/pseudourl": {
+      "api/pseudo-url": {
         "title": "PseudoUrl"
       },
       "api/puppeteer": {
         "title": "utils.puppeteer"
       },
-      "api/puppeteercrawler": {
+      "api/puppeteer-crawler": {
         "title": "PuppeteerCrawler"
       },
-      "api/puppeteerpool": {
+      "api/puppeteer-pool": {
         "title": "PuppeteerPool"
       },
       "api/request": {
         "title": "Request"
       },
-      "api/requestlist": {
+      "api/request-list": {
         "title": "RequestList"
       },
-      "api/requestqueue": {
+      "api/request-queue": {
         "title": "RequestQueue"
       },
       "api/session": {
         "title": "Session"
       },
-      "api/sessionpool": {
+      "api/session-pool": {
         "title": "SessionPool"
       },
       "api/snapshotter": {
@@ -62,67 +68,100 @@
       "api/social": {
         "title": "utils.social"
       },
-      "api/systemstatus": {
+      "api/system-status": {
         "title": "SystemStatus"
       },
       "api/utils": {
         "title": "utils"
       },
-      "examples/basiccrawler": {
-        "title": "Basic Crawler"
+      "examples/accept-user-input": {
+        "title": "Accept user input"
       },
-      "examples/callactor": {
-        "title": "Call Actor"
+      "examples/add-data-to-dataset": {
+        "title": "Add data to dataset"
       },
-      "examples/cheeriocrawler": {
-        "title": "Cheerio Crawler"
+      "examples/basic-crawler": {
+        "title": "Basic crawler"
+      },
+      "examples/call-actor": {
+        "title": "Call actor"
+      },
+      "examples/capture-screenshot": {
+        "title": "Capture a screenshot"
+      },
+      "examples/cheerio-crawler": {
+        "title": "Cheerio crawler"
+      },
+      "examples/crawl-all-links": {
+        "title": "Crawl all links on a website"
+      },
+      "examples/crawl-multiple-urls": {
+        "title": "Crawl multiple URLs"
+      },
+      "examples/crawl-relative-links": {
+        "title": "Crawl a website with relative links"
+      },
+      "examples/crawl-single-url": {
+        "title": "Crawl a single URL"
+      },
+      "examples/crawl-sitemap": {
+        "title": "Crawl a sitemap"
+      },
+      "examples/crawl-some-links": {
+        "title": "Crawl some links on a website"
       },
       "examples/forms": {
         "title": "Forms"
       },
-      "examples/helloworld": {
-        "title": "Hello World"
+      "examples/handle-broken-links": {
+        "title": "Handle broken links"
       },
-      "examples/puppeteercrawler": {
-        "title": "Puppeteer Crawler"
+      "examples/map-and-reduce": {
+        "title": "Dataset Map and Reduce methods"
       },
-      "examples/puppeteersitemap": {
-        "title": "Puppeteer Sitemap"
+      "examples/puppeteer-crawler": {
+        "title": "Puppeteer crawler"
       },
-      "examples/puppeteerwithproxy": {
-        "title": "Puppeteer With Proxy"
+      "examples/puppeteer-recursive-crawl": {
+        "title": "Puppeteer recursive crawl"
+      },
+      "examples/puppeteer-sitemap": {
+        "title": "Puppeteer sitemap"
+      },
+      "examples/puppeteer-with-proxy": {
+        "title": "Puppeteer with proxy"
       },
       "examples/screenshots": {
         "title": "Screenshots"
       },
-      "examples/synchronousrun": {
-        "title": "Synchronous Run"
+      "examples/synchronous-run": {
+        "title": "Synchronous run"
       },
-      "guides/datastorage": {
+      "guides/data-storage": {
         "title": "Data Storage"
       },
-      "guides/environmentvariables": {
+      "guides/environment-variables": {
         "title": "Environment Variables"
       },
-      "guides/quickstart": {
-        "title": "Quick Start"
-      },
-      "guides/gettingstarted": {
+      "guides/getting-started": {
         "title": "Getting Started"
       },
       "guides/motivation": {
         "title": "Motivation"
       },
-      "guides/puppeteerliveview": {
+      "guides/puppeteer-live-view": {
         "title": "Puppeteer Live View"
       },
-      "guides/sessionmanagement": {
+      "guides/quick-start": {
+        "title": "Quick Start"
+      },
+      "guides/session-management": {
         "title": "Session Management"
       },
-      "guides/typescriptactor": {
-        "title": "Typescript Actors"
+      "guides/type-script-actor": {
+        "title": "TypeScript Actors"
       },
-      "guides/whatisanactor": {
+      "guides/what-is-an-actor": {
         "title": "What is an Actor"
       },
       "readme/introduction": {
@@ -134,155 +173,159 @@
       "readme/support": {
         "title": "readme/support"
       },
-      "typedefs/actorrun": {
+      "typedefs/abort-function": {
+        "title": "AbortFunction"
+      },
+      "typedefs/actor-run": {
         "title": "ActorRun"
       },
-      "typedefs/apifycallerror": {
-        "title": "ApifyCallError"
-      },
-      "typedefs/apifyenv": {
+      "typedefs/apify-env": {
         "title": "ApifyEnv"
       },
-      "typedefs/autoscaledpooloptions": {
+      "typedefs/autoscaled-pool-options": {
         "title": "AutoscaledPoolOptions"
       },
-      "typedefs/basiccrawleroptions": {
+      "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
       },
-      "typedefs/cheeriocrawleroptions": {
+      "typedefs/cheerio-crawler-options": {
         "title": "CheerioCrawlerOptions"
       },
-      "typedefs/cheeriohandlepage": {
+      "typedefs/cheerio-handle-page": {
         "title": "CheerioHandlePage"
       },
-      "typedefs/cheeriohandlepageinputs": {
+      "typedefs/cheerio-handle-page-inputs": {
         "title": "CheerioHandlePageInputs"
       },
-      "typedefs/createsession": {
+      "typedefs/create-session": {
         "title": "CreateSession"
       },
-      "typedefs/datasetconsumer": {
+      "typedefs/dataset-consumer": {
         "title": "DatasetConsumer"
       },
-      "typedefs/datasetcontent": {
+      "typedefs/dataset-content": {
         "title": "DatasetContent"
       },
-      "typedefs/datasetmapper": {
+      "typedefs/dataset-mapper": {
         "title": "DatasetMapper"
       },
-      "typedefs/datasetreducer": {
+      "typedefs/dataset-reducer": {
         "title": "DatasetReducer"
       },
-      "typedefs/handlefailedrequest": {
+      "typedefs/handle-failed-request": {
         "title": "HandleFailedRequest"
       },
-      "typedefs/handlefailedrequestinput": {
+      "typedefs/handle-failed-request-input": {
         "title": "HandleFailedRequestInput"
       },
-      "typedefs/handlerequest": {
+      "typedefs/handle-request": {
         "title": "HandleRequest"
       },
-      "typedefs/handlerequestinputs": {
+      "typedefs/handle-request-inputs": {
         "title": "HandleRequestInputs"
       },
-      "typedefs/keyconsumer": {
+      "typedefs/intercept-handler": {
+        "title": "InterceptHandler"
+      },
+      "typedefs/key-consumer": {
         "title": "KeyConsumer"
       },
-      "typedefs/launchpuppeteer": {
+      "typedefs/launch-puppeteer": {
         "title": "LaunchPuppeteer"
       },
-      "typedefs/launchpuppeteeroptions": {
+      "typedefs/launch-puppeteer-function": {
+        "title": "LaunchPuppeteerFunction"
+      },
+      "typedefs/launch-puppeteer-options": {
         "title": "LaunchPuppeteerOptions"
       },
-      "typedefs/memoryinfo": {
+      "typedefs/logger-options": {
+        "title": "LoggerOptions"
+      },
+      "typedefs/memory-info": {
         "title": "MemoryInfo"
       },
-      "typedefs/preparerequest": {
+      "typedefs/prepare-request": {
         "title": "PrepareRequest"
       },
-      "typedefs/preparerequestinputs": {
+      "typedefs/prepare-request-inputs": {
         "title": "PrepareRequestInputs"
       },
-      "typedefs/puppeteercrawleroptions": {
+      "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
       },
-      "typedefs/puppeteergoto": {
+      "typedefs/puppeteer-goto": {
         "title": "PuppeteerGoto"
       },
-      "typedefs/puppeteergotoinputs": {
+      "typedefs/puppeteer-goto-inputs": {
         "title": "PuppeteerGotoInputs"
       },
-      "typedefs/puppeteerhandlepage": {
+      "typedefs/puppeteer-handle-page": {
         "title": "PuppeteerHandlePage"
       },
-      "typedefs/puppeteerhandlepageinputs": {
+      "typedefs/puppeteer-handle-page-inputs": {
         "title": "PuppeteerHandlePageInputs"
       },
-      "typedefs/puppeteerpooloptions": {
+      "typedefs/puppeteer-pool-options": {
         "title": "PuppeteerPoolOptions"
       },
-      "typedefs/queueoperationinfo": {
+      "typedefs/queue-operation-info": {
         "title": "QueueOperationInfo"
       },
-      "typedefs/requestasbrowseroptions": {
+      "typedefs/request-as-browser-options": {
         "title": "RequestAsBrowserOptions"
       },
-      "typedefs/requestlistoptions": {
+      "typedefs/request-list-options": {
         "title": "RequestListOptions"
       },
-      "typedefs/requestliststate": {
+      "typedefs/request-list-state": {
         "title": "RequestListState"
       },
-      "typedefs/requestoptions": {
+      "typedefs/request-options": {
         "title": "RequestOptions"
       },
-      "typedefs/requesttransform": {
+      "typedefs/request-transform": {
         "title": "RequestTransform"
       },
-      "typedefs/sessionoptions": {
+      "typedefs/session-options": {
         "title": "SessionOptions"
       },
-      "typedefs/sessionpooloptions": {
+      "typedefs/session-pool-options": {
         "title": "SessionPoolOptions"
       },
-      "typedefs/sessionstate": {
+      "typedefs/session-state": {
         "title": "SessionState"
       },
-      "typedefs/snapshotteroptions": {
+      "typedefs/snapshotter-options": {
         "title": "SnapshotterOptions"
       },
-      "typedefs/socialhandles": {
+      "typedefs/social-handles": {
         "title": "SocialHandles"
       },
-      "typedefs/stealthoptions": {
+      "typedefs/stealth-options": {
         "title": "StealthOptions"
       },
-      "typedefs/systeminfo": {
+      "typedefs/system-info": {
         "title": "SystemInfo"
       },
-      "typedefs/systemstatusoptions": {
+      "typedefs/system-status-options": {
         "title": "SystemStatusOptions"
+      },
+      "typedefs/user-func": {
+        "title": "UserFunc"
       }
     },
     "links": {
       "Guide": "Guide",
       "Examples": "Examples",
-      "Reference": "Reference",
+      "API Reference": "API Reference",
       "GitHub": "GitHub"
     },
     "categories": {
       "Guide": "Guide",
-      "Reference": "Reference",
-      "Examples": "Examples",
-      "Autoscaling Tools": "Autoscaling Tools",
+      "API Reference": "API Reference",
       "Type Definitions": "Type Definitions",
-      "Constructor Options": "Constructor Options",
-      "Crawler User-Functions": "Crawler User-Functions",
-      "Puppeteer User-Functions": "Puppeteer User-Functions",
-      "Dataset User-Functions": "Dataset User-Functions",
-      "KeyValueStore User-Functions": "KeyValueStore User-Functions",
-      "SessionPool User-Functions": "SessionPool User-Functions",
-      "Utility User-Functions": "Utility User-Functions"
+      "Examples": "Examples"
     }
   },
   "pages-strings": {

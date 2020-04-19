@@ -1,57 +1,45 @@
-import os from 'os';
-import _ from 'underscore';
+import * as os from 'os';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
+import defaultLog from '../utils_log';
 
-const DEFAULT_OPTIONS = {
-    eventLoopSnapshotIntervalSecs: 0.5,
-    maxBlockedMillis: 50, // 0.05
-    memorySnapshotIntervalSecs: 1,
-    clientSnapshotIntervalSecs: 1,
-    cpuSnapshotIntervalSecs: 1,
-    maxUsedMemoryRatio: 0.7,
-    maxUsedCpuRatio: 0.95,
-    snapshotHistorySecs: 30,
-    maxClientErrors: 3,
-};
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10000;
 
 /**
  * @typedef SnapshotterOptions
- * @property {Number} [eventLoopSnapshotIntervalSecs=0.5]
+ * @property {number} [eventLoopSnapshotIntervalSecs=0.5]
  *   Defines the interval of measuring the event loop response time.
- * @property {Number} [clientSnapshotIntervalSecs=1]
+ * @property {number} [clientSnapshotIntervalSecs=1]
  *   Defines the interval of checking the current state
  *   of the remote API client.
- * @property {Number} [maxBlockedMillis=50]
+ * @property {number} [maxBlockedMillis=50]
  *   Maximum allowed delay of the event loop in milliseconds.
  *   Exceeding this limit overloads the event loop.
- * @property {Number} [cpuSnapshotIntervalSecs=1]
+ * @property {number} [cpuSnapshotIntervalSecs=1]
  *   Defines the interval of measuring CPU usage.
  *   This is only used when running locally. On the Apify platform,
  *   the statistics are provided externally at a fixed interval.
- * @property {Number} [maxUsedCpuRatio=0.95]
+ * @property {number} [maxUsedCpuRatio=0.95]
  *   Defines the maximum usage of CPU.
  *   Exceeding this limit overloads the CPU.
- * @property {Number} [memorySnapshotIntervalSecs=1]
+ * @property {number} [memorySnapshotIntervalSecs=1]
  *   Defines the interval of measuring memory consumption.
  *   This is only used when running locally. On the Apify platform,
  *   the statistics are provided externally at a fixed interval.
  *   The measurement itself is resource intensive (25 - 50ms async).
  *   Therefore, setting this interval below 1 second is not recommended.
- * @property {Number} [maxUsedMemoryRatio=0.7]
+ * @property {number} [maxUsedMemoryRatio=0.7]
  *   Defines the maximum ratio of total memory that can be used.
  *   Exceeding this limit overloads the memory.
- * @property {Number} [maxClientErrors=1]
+ * @property {number} [maxClientErrors=1]
  *   Defines the maximum number of new rate limit errors within
  *   the given interval.
- * @property {Number} [snapshotHistorySecs=60]
+ * @property {number} [snapshotHistorySecs=60]
  *   Sets the interval in seconds for which a history of resource snapshots
  *   will be kept. Increasing this to very high numbers will affect performance.
  */
@@ -86,16 +74,17 @@ class Snapshotter {
      */
     constructor(options = {}) {
         const {
-            eventLoopSnapshotIntervalSecs,
-            cpuSnapshotIntervalSecs,
-            memorySnapshotIntervalSecs,
-            clientSnapshotIntervalSecs,
-            snapshotHistorySecs,
-            maxBlockedMillis,
-            maxUsedMemoryRatio,
-            maxUsedCpuRatio,
-            maxClientErrors,
-        } = _.defaults({}, options, DEFAULT_OPTIONS);
+            eventLoopSnapshotIntervalSecs = 0.5,
+            cpuSnapshotIntervalSecs = 1,
+            memorySnapshotIntervalSecs = 1,
+            clientSnapshotIntervalSecs = 1,
+            snapshotHistorySecs = 30,
+            maxBlockedMillis = 50,
+            maxUsedMemoryRatio = 0.7,
+            maxUsedCpuRatio = 0.95,
+            maxClientErrors = 3,
+            log = defaultLog,
+        } = options;
 
         checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
         checkParamOrThrow(memorySnapshotIntervalSecs, 'options.memorySnapshotIntervalSecs', 'Number');
@@ -107,6 +96,7 @@ class Snapshotter {
         checkParamOrThrow(maxUsedCpuRatio, 'options.maxUsedCpuRatio', 'Number');
         checkParamOrThrow(maxClientErrors, 'options.maxClientErrors', 'Number');
 
+        this.log = log.child({ prefix: 'Snapshotter' });
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
         this.memorySnapshotIntervalMillis = memorySnapshotIntervalSecs * 1000;
@@ -138,7 +128,7 @@ class Snapshotter {
 
     /**
      * Starts capturing snapshots at configured intervals.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async start() {
         await this._ensureCorrectMaxMemory();
@@ -157,7 +147,7 @@ class Snapshotter {
 
     /**
      * Stops all resource capturing.
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async stop() {
         betterClearInterval(this.eventLoopInterval);
@@ -173,8 +163,8 @@ class Snapshotter {
     /**
      * Returns a sample of latest memory snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      */
     getMemorySample(sampleDurationMillis) {
         return this._getSample(this.memorySnapshots, sampleDurationMillis);
@@ -183,8 +173,8 @@ class Snapshotter {
     /**
      * Returns a sample of latest event loop snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      */
     getEventLoopSample(sampleDurationMillis) {
         return this._getSample(this.eventLoopSnapshots, sampleDurationMillis);
@@ -193,8 +183,8 @@ class Snapshotter {
     /**
      * Returns a sample of latest CPU snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      */
     getCpuSample(sampleDurationMillis) {
         return this._getSample(this.cpuSnapshots, sampleDurationMillis);
@@ -203,8 +193,8 @@ class Snapshotter {
     /**
      * Returns a sample of latest Client snapshots, with the size of the sample defined
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     * @param {Number} sampleDurationMillis
-     * @return {Array}
+     * @param {number} sampleDurationMillis
+     * @return {Array<*>}
      */
     getClientSample(sampleDurationMillis) {
         return this._getSample(this.clientSnapshots, sampleDurationMillis);
@@ -212,9 +202,9 @@ class Snapshotter {
 
     /**
      * Finds the latest snapshots by sampleDurationMillis in the provided array.
-     * @param {Array} snapshots
-     * @param {Number} [sampleDurationMillis]
-     * @return {Array}
+     * @param {Array<*>} snapshots
+     * @param {number} [sampleDurationMillis]
+     * @return {Array<*>}
      * @ignore
      */
     _getSample(snapshots, sampleDurationMillis) { // eslint-disable-line class-methods-use-this
@@ -236,7 +226,7 @@ class Snapshotter {
     /**
      * Creates a snapshot of current memory usage
      * using the Apify platform `systemInfo` event.
-     * @param {Object} systemInfo
+     * @param {*} systemInfo
      * @ignore
      */
     _snapshotMemoryOnPlatform(systemInfo) {
@@ -257,7 +247,7 @@ class Snapshotter {
      * Creates a snapshot of current memory usage
      * using the Apify platform `systemInfo` event.
      * @param {Function} intervalCallback
-     * @return {Promise}
+     * @return {Promise<void>}
      * @ignore
      */
     async _snapshotMemoryOnLocal(intervalCallback) {
@@ -276,7 +266,7 @@ class Snapshotter {
 
             this.memorySnapshots.push(snapshot);
         } catch (err) {
-            log.exception(err, 'Snapshotter: Memory snapshot failed.');
+            this.log.exception(err, 'Memory snapshot failed.');
         } finally {
             intervalCallback();
         }
@@ -284,8 +274,8 @@ class Snapshotter {
 
     /**
      * Checks for critical memory overload and logs it to the console.
+     * @param {*} systemInfo
      * @ignore
-     * @param {Object} systemInfo
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
         const now = new Date();
@@ -299,7 +289,7 @@ class Snapshotter {
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes / this.maxMemoryBytes) * 100);
             const toMb = bytes => Math.round(bytes / (1024 ** 2));
-            log.warning('Memory is critically overloaded. '
+            this.log.warning('Memory is critically overloaded. '
                 + `Using ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%). Consider increasing the actor memory.`);
             this.lastLoggedCriticalMemoryOverloadAt = now;
         }
@@ -433,7 +423,7 @@ class Snapshotter {
     /**
      * Removes snapshots that are older than the snapshotHistorySecs option
      * from the array (destructively - in place).
-     * @param {Array} snapshots
+     * @param {Array<*>} snapshots
      * @param {Date} now
      * @ignore
      */
@@ -459,7 +449,7 @@ class Snapshotter {
         } else {
             this.maxMemoryBytes = Math.ceil(totalBytes / 4);
             // NOTE: Log as AutoscaledPool, so that users are not confused what "Snapshotter" is
-            log.info(`AutoscaledPool: Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
+            this.log.info(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. Use the ${ENV_VARS.MEMORY_MBYTES} environment variable to override it.`); // eslint-disable-line max-len
         }
     }
 }

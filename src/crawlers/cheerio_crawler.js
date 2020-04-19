@@ -1,31 +1,30 @@
 /* eslint-disable class-methods-use-this */
-import log from 'apify-shared/log';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
-import cheerio from 'cheerio';
-import contentTypeParser from 'content-type';
-import htmlparser from 'htmlparser2';
+import * as cheerio from 'cheerio';
+import * as contentTypeParser from 'content-type';
+import * as htmlparser from 'htmlparser2';
 import * as iconv from 'iconv-lite';
-import _ from 'underscore';
-import util from 'util';
+import * as _ from 'underscore';
+import * as util from 'util';
 import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import { HandleFailedRequest } from './basic_crawler';
-import Request, { RequestOptions } from '../request';
+import Request from '../request';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { Cheerio } from '../typedefs';
 import { RequestAsBrowserOptions } from '../utils_request';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
@@ -44,13 +43,13 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
 };
 
 /**
- * @typedef {Object} CheerioCrawlerOptions
+ * @typedef CheerioCrawlerOptions
  * @property {CheerioHandlePage} handlePageFunction
  *   User-provided function that performs the logic of the crawler. It is called for each page
  *   loaded and parsed by the crawler.
  *
  *   The function receives the following object as an argument:
- * ```javascript
+ * ```
  * {
  *   // The Cheerio object's function with the parsed HTML.
  *   $: Cheerio,
@@ -78,12 +77,13 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   session: Session
  * }
  * ```
+ *
  *   Type of `body` depends on the `Content-Type` header of the web page:
  *   - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
  *   - Buffer for others MIME content types
  *
  *   Parsed `Content-Type` header using
- *   <a href="https://www.npmjs.com/package/content-type" target="_blank">content-type package</a>
+ *   [content-type package](https://www.npmjs.com/package/content-type)
  *   is stored in `contentType`.
  *
  *   Cheerio is available only for HTML and XML content types.
@@ -99,32 +99,13 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   To make this work, you should **always**
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
- *   [`request.pushErrorMessage`](request#Request+pushErrorMessage) function.
+ *   {@link Request#pushErrorMessage} function.
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestAsBrowserOptions} [requestOptions]
- *   Represents the options passed to the {@link requestAsBrowser} function that makes the HTTP requests to fetch the web pages.
- *   Provided `requestOptions` are added to internal defaults that cannot be overridden to ensure
- *   the operation of `CheerioCrawler` and all its options. Headers will not be merged,
- *   use {@link RequestList} and/or {@link RequestQueue} to initialize your {@link Request} with the
- *   correct headers or use `prepareRequestFunction` to modify your {@link Request} dynamically.
- *   If you need more granular control over your requests, use {@link BasicCrawler}.
- *
- *   The mandatory internal defaults that **CANNOT BE OVERRIDDEN** by `requestOptions`:
- *   ```
- *   {
- *       url,       // Provided by RequestList and/or RequestQueue
- *       method,    // Provided by RequestList and/or RequestQueue
- *       headers,   // Provided by RequestList and/or RequestQueue
- *       payload,   // Provided by RequestList and/or RequestQueue
- *       strictSSL, // Use ignoreSslErrors
- *       proxy,     // Use useApifyProxy or proxyUrls
- *   }
- *   ```
  * @property {PrepareRequest} [prepareRequestFunction]
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
@@ -144,27 +125,27 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   this function is therefore not supported, because it would create inconsistencies where
  *   different parts of SDK would have access to a different {@link Request} instance.
  *
- * @property {Number} [handlePageTimeoutSecs=60]
+ * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, given in seconds.
- * @property {Number} [requestTimeoutSecs=30]
+ * @property {number} [requestTimeoutSecs=30]
  *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
- * @property {Boolean} [ignoreSslErrors=true]
+ * @property {boolean} [ignoreSslErrors=true]
  *   If set to true, SSL certificate errors will be ignored.
- * @property {Boolean} [useApifyProxy=false]
+ * @property {boolean} [useApifyProxy=false]
  *   If set to `true`, `CheerioCrawler` will be configured to use
- *   <a href="https://my.apify.com/proxy" target="_blank">Apify Proxy</a> for all connections.
- *   For more information, see the <a href="https://docs.apify.com/proxy" target="_blank">documentation</a>
- * @property {String[]} [apifyProxyGroups]
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy)
+ * @property {string[]} [apifyProxyGroups]
  *   An array of proxy groups to be used
- *   by the <a href="https://docs.apify.com/proxy" target="_blank">Apify Proxy</a>.
+ *   by the [Apify Proxy](https://docs.apify.com/proxy).
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {String} [apifyProxySession]
+ * @property {string} [apifyProxySession]
  *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
  *   All HTTP requests going through the proxy with the same session identifier
  *   will use the same target proxy server (i.e. the same IP address).
  *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
  *   Only applied if the `useApifyProxy` option is `true`.
- * @property {String[]} [proxyUrls]
+ * @property {string[]} [proxyUrls]
  *   An array of custom proxy URLs to be used by the `CheerioCrawler` instance.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
@@ -182,15 +163,33 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  *
- *   See <a href="https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13">source code</a>
+ *   See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
- * @property {String[]} [additionalMimeTypes]
+ * @property {string[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
  *   target="_blank">MIME types</a> you want the crawler to load and process.
  *   By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
- * @property {Number} [maxRequestRetries=3]
+ * @property {string} [suggestResponseEncoding]
+ *   By default `CheerioCrawler` will extract correct encoding from the HTTP response headers.
+ *   Sadly, there are some websites which use invalid headers. Those are encoded using the UTF-8 encoding.
+ *   If those sites actually use a different encoding, the response will be corrupted. You can use
+ *   `suggestResponseEncoding` to fall back to a certain encoding, if you know that your target website uses it.
+ *   To force a certain encoding, disregarding the response headers, use {@link CheerioCrawlerOptions.forceResponseEncoding}
+ *   ```
+ *   // Will fall back to windows-1250 encoding if none found
+ *   suggestResponseEncoding: 'windows-1250'
+ *   ```
+ * @property {string} [forceResponseEncoding]
+ *   By default `CheerioCrawler` will extract correct encoding from the HTTP response headers. Use `forceResponseEncoding`
+ *   to force a certain encoding, disregarding the response headers.
+ *   To only provide a default for missing encodings, use {@link CheerioCrawlerOptions.suggestResponseEncoding}
+ *   ```
+ *   // Will force windows-1250 encoding even if headers say otherwise
+ *   forceResponseEncoding: 'windows-1250'
+ *   ```
+ * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if either `requestFunction` or `handlePageFunction` fails.
- * @property {Number} [maxRequestsPerCrawl]
+ * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -200,19 +199,19 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   are provided by `CheerioCrawler` and cannot be overridden. Reasonable {@link Snapshotter}
  *   and {@link SystemStatus} defaults are provided to account for the fact that `cheerio`
  *   parses HTML synchronously and therefore blocks the event loop.
- * @property {Number} [minConcurrency=1]
+ * @property {number} [minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
  *
  *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
- * @property {Number} [maxConcurrency=1000]
+ * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {Boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=false]
  *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
  *   It also marks Session as bad after a request timeout.
  * @property {SessionPoolOptions} [sessionPoolOptions]
  *   Custom options passed to the underlying {@link SessionPool} constructor.
- * @property {Boolean} [persistCookiesPerSession]
+ * @property {boolean} [persistCookiesPerSession]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  *
  *   It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
@@ -221,7 +220,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
- * <a href="https://www.npmjs.com/package/cheerio" target="_blank">cheerio</a> HTML parser.
+ * [cheerio](https://www.npmjs.com/package/cheerio) HTML parser.
  * The URLs to crawl are fed either from a static list of URLs
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *
@@ -231,29 +230,29 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
- * parses the HTML content using <a href="https://www.npmjs.com/package/cheerio" target="_blank">Cheerio</a>
- * and then invokes the user-provided [`handlePageFunction()`](#new_CheerioCrawler_new) to extract page data
- * using a <a href="https://jquery.com/" target="_blank">jQuery</a>-like interface to the parsed HTML DOM.
+ * parses the HTML content using [Cheerio](https://www.npmjs.com/package/cheerio)
+ * and then invokes the user-provided {@link CheerioCrawlerOptions.handlePageFunction} to extract page data
+ * using a [jQuery](https://jquery.com/)-like interface to the parsed HTML DOM.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the [`requestList`](#new_CheerioCrawler_new)
- * or [`requestQueue`](#new_CheerioCrawler_new) constructor options, respectively.
+ * {@link RequestList} or {@link RequestQueue} instances provided by the {@link CheerioCrawlerOptions.requestList}
+ * or {@link CheerioCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both [`requestList`](#new_CheerioCrawler_new) and [`requestQueue`](#new_CheerioCrawler_new) are used,
+ * If both {@link CheerioCrawlerOptions.requestList} and {@link CheerioCrawlerOptions.requestQueue} are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * `CheerioCrawler` downloads the web pages using the {@link requestAsBrowser} utility function.
+ * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
  * You can use the `requestOptions` parameter to pass additional options to this function.
  *
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
- * use the [`additionalMimeTypes`](#new_CheerioCrawler_new) constructor option.
+ * use the {@link CheerioCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
- * For details, see {@link CheerioCrawlerOptions#handlePageFunction}.
+ * For details, see {@link CheerioCrawlerOptions.handlePageFunction}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
@@ -305,6 +304,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
 class CheerioCrawler {
     /**
      * @param {CheerioCrawlerOptions} options
+     * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options = {}) {
         const {
@@ -318,6 +318,8 @@ class CheerioCrawler {
             apifyProxySession,
             proxyUrls,
             additionalMimeTypes = [],
+            suggestResponseEncoding,
+            forceResponseEncoding,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -328,7 +330,7 @@ class CheerioCrawler {
             requestQueue,
             maxRequestRetries,
             maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
             autoscaledPoolOptions = DEFAULT_AUTOSCALED_POOL_OPTIONS,
             prepareRequestFunction,
             useSessionPool = false,
@@ -347,9 +349,14 @@ class CheerioCrawler {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
+        checkParamOrThrow(suggestResponseEncoding, 'options.suggestResponseEncoding', 'Maybe String');
+        checkParamOrThrow(forceResponseEncoding, 'options.forceResponseEncoding', 'Maybe String');
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+
+        this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
+
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
@@ -364,7 +371,17 @@ class CheerioCrawler {
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
-        this.requestOptions = requestOptions;
+
+        if (requestOptions) {
+            // DEPRECATED 2020-03-22
+            this.requestOptions = requestOptions;
+            this.log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
+        }
+
+        if (suggestResponseEncoding && forceResponseEncoding) {
+            this.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
+        }
+
         this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
         this.requestTimeoutMillis = requestTimeoutSecs * 1000;
@@ -373,11 +390,14 @@ class CheerioCrawler {
         this.apifyProxyGroups = apifyProxyGroups;
         this.apifyProxySession = apifyProxySession;
         this.proxyUrls = _.shuffle(proxyUrls);
+        this.suggestResponseEncoding = suggestResponseEncoding;
+        this.forceResponseEncoding = forceResponseEncoding;
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
 
+        /** @ignore */
         this.basicCrawler = new BasicCrawler({
             // Basic crawler options.
             requestList,
@@ -396,6 +416,9 @@ class CheerioCrawler {
             // Session pool options
             sessionPoolOptions,
             useSessionPool,
+
+            // log
+            log: this.log,
         });
 
         this.isRunningPromise = null;
@@ -404,7 +427,7 @@ class CheerioCrawler {
     /**
      * Runs the crawler. Returns promise that gets resolved once all the requests got processed.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
@@ -429,7 +452,7 @@ class CheerioCrawler {
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
-            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
+            `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
         if (this.useSessionPool) {
@@ -441,6 +464,7 @@ class CheerioCrawler {
         }
 
         request.loadedUrl = response.url;
+        const { log } = this;
 
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
         const context = {
@@ -448,7 +472,7 @@ class CheerioCrawler {
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
-                log.deprecated('CheerioCrawler: The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
+                log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
@@ -474,7 +498,7 @@ class CheerioCrawler {
         return addTimeoutToPromise(
             this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
-            `CheerioCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
+            `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
     }
 
@@ -528,7 +552,7 @@ class CheerioCrawler {
             }
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+            throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
@@ -541,7 +565,7 @@ class CheerioCrawler {
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      * @param {Request} request
-     * @param {Session?} session
+     * @param {Session} [session]
      * @ignore
      */
     _getRequestOptions(request, session) {
@@ -559,12 +583,12 @@ class CheerioCrawler {
 
                 if (statusCode === 406) {
                     request.noRetry = true;
-                    throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                    throw new Error(`Resource ${request.url} is not available in HTML format. Skipping resource.`);
                 }
 
                 if (!this.supportedMimeTypes.has(type) && statusCode < 500) {
                     request.noRetry = true;
-                    throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type}, `
+                    throw new Error(`Resource ${request.url} served Content-Type ${type}, `
                         + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
                 }
 
@@ -581,8 +605,8 @@ class CheerioCrawler {
     /**
      * Enables the use of a proxy by returning a proxy URL
      * based on configured options or null if no proxy is used.
-     * @param {Session?} session
-     * @returns {string|null}
+     * @param {Session} [session]
+     * @returns {(string|null)}
      * @ignore
      */
     _getProxyUrl(session = {}) {
@@ -601,11 +625,23 @@ class CheerioCrawler {
     }
 
     _encodeResponse(request, response, encoding) {
-        if (!encoding || Buffer.isEncoding(encoding)) return { response, encoding };
+        if (this.forceResponseEncoding) {
+            encoding = this.forceResponseEncoding;
+        } else if (!encoding && this.suggestResponseEncoding) {
+            encoding = this.suggestResponseEncoding;
+        }
 
+        // Fall back to utf-8 if we still don't have encoding.
+        const utf8 = 'utf8';
+        if (!encoding) return { response, encoding: utf8 };
+
+        // This means that the encoding is one of Node.js supported
+        // encodings and we don't need to re-encode it.
+        if (Buffer.isEncoding(encoding)) return { response, encoding };
+
+        // Try to re-encode a variety of unsupported encodings to utf-8
         if (iconv.encodingExists(encoding)) {
-            const finalEncoding = 'utf8';
-            const encodeStream = iconv.encodeStream(finalEncoding);
+            const encodeStream = iconv.encodeStream(utf8);
             const decodeStream = iconv.decodeStream(encoding).on('error', err => encodeStream.emit('error', err));
             response.on('error', err => decodeStream.emit('error', err));
             const encodedResponse = response.pipe(decodeStream).pipe(encodeStream);
@@ -614,11 +650,11 @@ class CheerioCrawler {
             encodedResponse.url = response.url;
             return {
                 response: encodedResponse,
-                encoding: finalEncoding,
+                encoding: utf8,
             };
         }
 
-        throw new Error(`CheerioCrawler: Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
+        throw new Error(`Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
     }
 
     async _parseHtmlToDom(response) {
@@ -627,14 +663,14 @@ class CheerioCrawler {
                 if (err) reject(err);
                 else resolve(dom);
             });
-            const parser = new htmlparser.Parser(domHandler, { decodeEntities: true });
+            const parser = new htmlparser.WritableStream(domHandler, { decodeEntities: true });
             response.on('error', reject).pipe(parser);
         });
     }
 
     /**
      * Checks and extends supported mime types
-     * @param {Array<String|Object>} additionalMimeTypes
+     * @param {Array<(string|Object)>} additionalMimeTypes
      * @ignore
      */
     _extendSupportedMimeTypes(additionalMimeTypes) {
@@ -643,33 +679,33 @@ class CheerioCrawler {
                 const parsedType = contentTypeParser.parse(mimeType);
                 this.supportedMimeTypes.add(parsedType.type);
             } catch (err) {
-                throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
+                throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
         });
     }
 
     /**
      * Handles blocked request
-     * @param session {Session}
-     * @param statusCode {Number}
+     * @param {Session} session
+     * @param {number} statusCode
      * @private
      */
     _throwOnBlockedRequest(session, statusCode) {
         const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
 
         if (isBlocked) {
-            throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+            throw new Error(`Request blocked - received ${statusCode} status code`);
         }
     }
 
     /**
      * Handles timeout request
-     * @param session {Session}
+     * @param {Session} session
      * @private
      */
     _handleRequestTimeout(session) {
         if (session) session.markBad();
-        throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+        throw new Error(`request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
     }
 
     /**
@@ -681,7 +717,7 @@ class CheerioCrawler {
      */
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.exception(error, 'CheerioCrawler: Request failed and reached maximum retries', details);
+        this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 
@@ -690,24 +726,38 @@ export default CheerioCrawler;
 /**
  * @typedef PrepareRequestInputs
  * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Session} [session] The current session
  */
+
 /**
  * @callback PrepareRequest
  * @param {PrepareRequestInputs} inputs Arguments passed to this callback.
- * @returns {void|Promise<void>}
+ * @returns {(void|Promise<void>)}
  */
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {Cheerio} [$] The <a href="https://cheerio.js.org/">Cheerio</a> object with parsed HTML.
- * @property {String|Buffer} body The request body of the web page.
- * @property {Object} [json] The parsed object from JSON string if the response contains the content type application/json.
- * @property {Request} request The original {Request} object.
- * @property {{ type: string, encoding: string }} contentType Parsed `Content-Type header: { type, encoding }`.
- * @property {IncomingMessage} response An instance of Node's http.IncomingMessage object,
+ * @property {CheerioSelector} [$]
+ *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
+ * @property {(string|Buffer)} body
+ *  The request body of the web page.
+ * @property {*} [json]
+ *  The parsed object from JSON string if the response contains the content type application/json.
+ * @property {Request} request
+ *   The original {@link Request} object.
+ * @property {{ type: string, encoding: string }} contentType
+ *  Parsed `Content-Type header: { type, encoding }`.
+ * @property {IncomingMessage} response
+ *   An instance of Node's http.IncomingMessage object,
  * @property {AutoscaledPool} autoscaledPool
- * @property {session} [session]
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
+ * @property {Session} [session]
  */
+
 /**
  * @callback CheerioHandlePage
  * @param {CheerioHandlePageInputs} inputs Arguments passed to this callback.

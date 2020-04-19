@@ -1,14 +1,16 @@
-import path from 'path';
-import crypto from 'crypto';
-import fs from 'fs-extra';
+import * as path from 'path';
+import * as crypto from 'crypto';
+import * as fs from 'fs-extra';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import LruCache from 'apify-shared/lru_cache';
-import ListDictionary from 'apify-shared/list_dictionary';
+import * as LruCache from 'apify-shared/lru_cache';
+import * as ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
-import log from 'apify-shared/log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
+import {
+    ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep,
+} from './utils';
+import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -111,14 +113,14 @@ const getRequestId = (uniqueKey) => {
 
 /**
  * A helper class that is used to report results from various
- * [`RequestQueue`](../api/requestqueue) functions as well as
- * [`Apify.utils.enqueueLinks()`](../api/utils#utils.enqueueLinks).
+ * {@link RequestQueue} functions as well as
+ * {@link utils#enqueueLinks}.
  *
- * @typedef {Object} QueueOperationInfo
- * @property {Boolean} wasAlreadyPresent Indicates if request was already present in the queue.
- * @property {Boolean} wasAlreadyHandled Indicates if request was already marked as handled.
- * @property {String} requestId The ID of the added request
- * @property {Object} request The original [`Request`](../api/request) object passed to the `RequestQueue` function.
+ * @typedef QueueOperationInfo
+ * @property {boolean} wasAlreadyPresent Indicates if request was already present in the queue.
+ * @property {boolean} wasAlreadyHandled Indicates if request was already marked as handled.
+ * @property {string} requestId The ID of the added request
+ * @property {Request} request The original {@link Request} object passed to the `RequestQueue` function.
  */
 
 /**
@@ -133,7 +135,7 @@ const getRequestId = (uniqueKey) => {
  * corresponding {@link Request} objects will need to have different `uniqueKey` properties.
  *
  * Do not instantiate this class directly, use the
- * [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function instead.
+ * {@link Apify#openRequestQueue} function instead.
  *
  * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}
  * and {@link PuppeteerCrawler} as a source of URLs to crawl.
@@ -154,9 +156,9 @@ const getRequestId = (uniqueKey) => {
  * and `{NUMBER}` is an integer indicating the position of the request in the queue.
  *
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
- * <a href="https://docs.apify.com/storage/request-queue" target="_blank">Apify Request Queue</a>
+ * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to [`Apify.openRequestQueue()`](apify#module_Apify.openRequestQueue) function,
+ * option to {@link Apify#openRequestQueue} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
@@ -187,6 +189,11 @@ const getRequestId = (uniqueKey) => {
  * @hideconstructor
  */
 export class RequestQueue {
+    /**
+     * @param {string} queueId
+     * @param {string} [queueName]
+     * @param {string} [clientKey]
+     */
     constructor(queueId, queueName, clientKey = cryptoRandomObjectId()) {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(queueName, 'queueName', 'Maybe String');
@@ -194,12 +201,18 @@ export class RequestQueue {
 
         if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
 
+        this.log = log.child({ prefix: 'RequestQueue' });
         this.clientKey = clientKey;
         this.queueId = queueId;
         this.queueName = queueName;
 
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
+        // Need to apply a type here to the generated TS types don't try to use types-apify
+        /**
+         * @type {*}
+         * @ignore
+         */
         this.queueHeadDict = new ListDictionary();
         this.queryQueueHeadPromise = null;
 
@@ -239,12 +252,12 @@ export class RequestQueue {
      * {@link QueueOperationInfo} object.
      *
      * To add multiple requests to the queue by extracting links from a webpage,
-     * see the [`Apify.utils.enqueueLinks()`](utils#utils.enqueueLinks) helper function.
+     * see the {@link utils#enqueueLinks} helper function.
      *
-     * @param {Request|RequestOptions} request {@link Request} object or vanilla object with request data.
+     * @param {(Request|RequestOptions)} request {@link Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
      * @param {Object} [options]
-     * @param {Boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
+     * @param {boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {Promise<QueueOperationInfo>}
      */
     async addRequest(request, options = {}) {
@@ -294,8 +307,8 @@ export class RequestQueue {
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param {String} requestId ID of the request.
-     * @return {Promise<Request>} Returns the request object, or `null` if it was not found.
+     * @param {string} requestId ID of the request.
+     * @return {Promise<(Request | null)>} Returns the request object, or `null` if it was not found.
      */
     async getRequest(requestId) {
         validateGetRequestParams(requestId);
@@ -314,17 +327,17 @@ export class RequestQueue {
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
      * Once you successfully finish processing of the request, you need to call
-     * [`requestQueue.markRequestHandled()`](#RequestQueue+markRequestHandled)
+     * {@link RequestQueue#markRequestHandled}
      * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call [`requestQueue.reclaimRequest()`](#RequestQueue+reclaimRequest) instead,
+     * call {@link RequestQueue#reclaimRequest} instead,
      * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
      *
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
      * To check whether all requests in queue were finished,
-     * use [`requestQueue.isFinished()`](#RequestQueue+isFinished) instead.
+     * use {@link RequestQueue#isFinished} instead.
      *
-     * @returns {Promise<Request>}
+     * @returns {Promise<(Request|null)>}
      * Returns the request object or `null` if there are no more pending requests.
      */
     async fetchNextRequest() {
@@ -337,7 +350,7 @@ export class RequestQueue {
 
         // This should never happen, but...
         if (this.inProgress.has(nextRequestId) || this.recentlyHandled.get(nextRequestId)) {
-            log.warning('Queue head returned a request that is already in progress?!', {
+            this.log.warning('Queue head returned a request that is already in progress?!', {
                 nextRequestId,
                 inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
@@ -364,7 +377,7 @@ export class RequestQueue {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -376,7 +389,7 @@ export class RequestQueue {
         //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
         //    will not put the request again to queueHeadDict.
         if (request.handledAt) {
-            log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
+            this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
             this.recentlyHandled.add(nextRequestId, true);
             return null;
         }
@@ -386,7 +399,7 @@ export class RequestQueue {
 
     /**
      * Marks a request that was previously returned by the
-     * [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest)
+     * {@link RequestQueue#fetchNextRequest}
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
@@ -425,15 +438,15 @@ export class RequestQueue {
 
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processed later again
-     * by another call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest).
+     * by another call to {@link RequestQueue#fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      *
      * @param {Request} request
      * @param {Object} [options]
-     * @param {Boolean} [options.forefront=false]
+     * @param {boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
-     * in the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest).
+     * in the next call to {@link RequestQueue#fetchNextRequest}.
      * By default, it's put to the end of the queue.
      * @return {Promise<QueueOperationInfo>}
      */
@@ -462,7 +475,7 @@ export class RequestQueue {
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id)) {
-                log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                this.log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
                 return;
             }
 
@@ -476,12 +489,12 @@ export class RequestQueue {
     }
 
     /**
-     * Resolves to `true` if the next call to [`requestQueue.fetchNextRequest()`](#RequestQueue+fetchNextRequest)
+     * Resolves to `true` if the next call to {@link RequestQueue#fetchNextRequest}
      * would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * If you need to ensure that there is no activity in the queue, use [`requestQueue.isFinished()`](#RequestQueue+isFinished).
+     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue#isFinished}.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isEmpty() {
         await this._ensureHeadIsNonEmpty();
@@ -494,7 +507,7 @@ export class RequestQueue {
      * the function might occasionally return a false negative,
      * but it will never return a false positive.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isFinished() {
         if (this.queueHeadDict.length() > 0 || this.inProgressCount() > 0) return false;
@@ -523,12 +536,12 @@ export class RequestQueue {
     /**
      * We always request more items than is in progress to ensure that something falls into head.
      *
-     * @param {Boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
+     * @param {boolean} [ensureConsistency=false] If true then query for queue head is retried until queueModifiedAt
      *   is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS to ensure that queue
      *   head is consistent.
-     * @param {Number} [limit] How many queue head items will be fetched.
-     * @param {Number} [iteration] Used when this function is called recursively to limit the recursion.
-     * @return {Boolean} Indicates if queue head is consistent (true) or inconsistent (false).
+     * @param {number} [limit] How many queue head items will be fetched.
+     * @param {number} [iteration] Used when this function is called recursively to limit the recursion.
+     * @return {Promise<boolean>} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
      */
     async _ensureHeadIsNonEmpty(
@@ -586,7 +599,7 @@ export class RequestQueue {
 
         // If limit was not reached in the call then there are no more requests to be returned.
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-            log.warning(`RequestQueue: Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+            this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
         const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0
             && wasLimitReached
@@ -614,7 +627,7 @@ export class RequestQueue {
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
             const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
-            log.info(`RequestQueue: Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
+            this.log.info(`Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
             await sleep(delayMillis);
         }
 
@@ -637,7 +650,7 @@ export class RequestQueue {
      * Removes the queue either from the Apify Cloud storage or from the local directory,
      * depending on the mode of operation.
      *
-     * @return {Promise}
+     * @return {Promise<void>}
      */
     async drop() {
         await requestQueues.deleteQueue({
@@ -650,7 +663,7 @@ export class RequestQueue {
 
     /** @ignore */
     async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+        this.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
         await this.drop();
     }
@@ -696,7 +709,7 @@ export class RequestQueue {
      * }
      * ```
      *
-     * @returns {Promise<Object>}
+     * @returns {Promise<object>}
      */
     async getInfo() {
         return requestQueues.getQueue({ queueId: this.queueId });
@@ -731,6 +744,7 @@ export class RequestQueueLocal {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
+        this.log = log.child({ prefix: 'RequestQueue' });
         this.queueId = queueId;
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, queueId));
         this.localHandledEmulationPath = path.join(this.localStoragePath, 'handled');
@@ -1010,7 +1024,7 @@ export class RequestQueueLocal {
     }
 
     async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+        this.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
         await this.drop();
     }
@@ -1080,6 +1094,7 @@ const getOrCreateQueue = async (queueIdOrName) => {
  * @returns {Promise<RequestQueue>}
  * @memberof module:Apify
  * @name openRequestQueue
+ * @function
  */
 export const openRequestQueue = (queueIdOrName, options = {}) => {
     checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');

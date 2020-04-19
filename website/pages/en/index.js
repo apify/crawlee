@@ -82,9 +82,9 @@ class HomeSplash extends React.Component {
                 <div className="inner">
                     <ProjectTitle/>
                     <PromoSection>
-                        <Button href={docUrl('api/apify', language)}>Read the Docs</Button>
-                        <Button href={docUrl('examples/basiccrawler', language)}>See Examples</Button>
                         <Button href="#try">Try It Out</Button>
+                        <Button href={docUrl('guides/getting-started', language)}>Learn the Basics</Button>
+                        <Button href={docUrl('examples/puppeteer-crawler', language)}>See Examples</Button>
                     </PromoSection>
                 </div>
                 <a
@@ -166,10 +166,10 @@ const EasyCrawling = () => (
         {[
             {
                 content: 'There are three main classes that you can use to start crawling the web in no time. ' +
-                    'Need to crawl plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheeriocrawler).\n' +
+                    'Need to crawl plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheerio-crawler).\n' +
                     'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
-                    'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteercrawler).\n' +
-                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basiccrawler)',
+                    'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteer-crawler).\n' +
+                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basic-crawler)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
                 title: 'Easy crawling',
@@ -182,9 +182,9 @@ const PowerfulTools = () => (
     <Block gridBlockAlign="left">
         {[
             {
-                content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/autoscaledpool) class. ' +
+                content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/autoscaled-pool) class. ' +
                     'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a [pool of proxies](https://apify.com/proxy) to avoid detection. ' +
-                    'For data storage, you can use the [`Dataset`](docs/api/dataset), [`KeyValueStore`](docs/api/keyvaluestore) and [`RequestQueue`](docs/api/requestqueue) classes.',
+                    'For data storage, you can use the [`Dataset`](docs/api/dataset), [`KeyValueStore`](docs/api/key-value-store) and [`RequestQueue`](docs/api/request-queue) classes.',
                 image: imgUrl('source_code.png'),
                 imageAlign: 'left',
                 title: 'Powerful tools',
@@ -198,7 +198,7 @@ const TryOut = () => (
     <Block id="try" background="light" gridBlockAlign="left">
         {[
             {
-                content: 'Install **Apify SDK** into a Node.js project. You must have Node.js 8 or higher installed.\n' +
+                content: 'Install **Apify SDK** into a Node.js project. You must have Node.js 10 or higher installed.\n' +
                     '```\n' +
                     'npm install apify\n' +
                     '```\n' +

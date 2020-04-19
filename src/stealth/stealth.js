@@ -1,11 +1,11 @@
-import _ from 'underscore';
-import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import * as _ from 'underscore';
+import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import hidingTricks from './hiding_tricks';
 
 /**
  * Configuration of stealth tricks for a proper hiding effect all of them should be set to true.
  * These tricks are applied only when the `stealth` option is set to `true`.
- * @typedef {Object} StealthOptions
+ * @typedef StealthOptions
  * @property {boolean} [addPlugins=true] - If plugins should be added to the navigator.
  * @property {boolean} [emulateWindowFrame=true] - Emulates window Iframe.
  * @property {boolean} [emulateWebGL=true] - Emulates graphic card.
@@ -37,7 +37,6 @@ const DEFAULT_STEALTH_OPTIONS = {
  * @param {StealthOptions} options
  * @returns {Promise<Browser>} - Instance of Browser from puppeteer package
  */
-
 export default function applyStealthToBrowser(browser, options) {
     const modifiedBrowser = browser;
     const opts = _.defaults(options, DEFAULT_STEALTH_OPTIONS);
@@ -61,11 +60,10 @@ export default function applyStealthToBrowser(browser, options) {
  * Applies stealth tricks to the puppeteer page
  * @param {Page} page
  * @param {StealthOptions} options
- * @returns {Promise}
+ * @returns {Promise<void>}
  * @private
  * @ignore
  */
-
 function applyStealthTricks(page, options) {
     const functions = Object.keys(options)
         .filter((key) => {

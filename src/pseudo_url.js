@@ -1,7 +1,7 @@
-import _ from 'underscore';
-import log from 'apify-shared/log';
+import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import Request from './request';
+import log from './utils_log';
+import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
 
 /**
  * Parses PURL into Regex string.
@@ -52,7 +52,7 @@ const parsePurl = (purl) => {
 /**
  * Represents a pseudo-URL (PURL) - an URL pattern used by web crawlers
  * to specify which URLs should the crawler visit.
- * This class is used by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
+ * This class is used by the {@link utils#enqueueLinks} function.
  *
  * A PURL is simply a URL with special directives enclosed in `[]` brackets.
  * Currently, the only supported directive is `[RegExp]`,
@@ -101,13 +101,13 @@ const parsePurl = (purl) => {
  */
 class PseudoUrl {
     /**
-     * @param {String|RegExp} purl
+     * @param {(string|RegExp)} purl
      *   A pseudo-URL string or a regular expression object.
      *   Using a `RegExp` instance enables more granular control,
      *   such as making the matching case sensitive.
      * @param {RequestOptions} requestTemplate
      *   Options for the new {@link Request} instances created for matching URLs
-     *   by the [`utils.enqueueLinks()`](utils#utils.enqueueLinks) function.
+     *   by the {@link utils#enqueueLinks} function.
      */
     constructor(purl, requestTemplate = {}) {
         checkParamOrThrow(purl, 'purl', 'String|RegExp');
@@ -127,8 +127,8 @@ class PseudoUrl {
     /**
      * Determines whether a URL matches this pseudo-URL pattern.
      *
-     * @param {String} url URL to be matched.
-     * @return {Boolean} Returns `true` if given URL matches pseudo-URL.
+     * @param {string} url URL to be matched.
+     * @return {boolean} Returns `true` if given URL matches pseudo-URL.
      */
     matches(url) {
         return _.isString(url) && url.match(this.regex) !== null;
@@ -141,7 +141,7 @@ class PseudoUrl {
      * be merged together, with the `userData` property having preference over the template.
      * This enables dynamic overriding of the template.
      *
-     * @param {string|Object} urlOrProps
+     * @param {(string|Object)} urlOrProps
      * @return {Request}
      */
     createRequest(urlOrProps) {

@@ -4,29 +4,31 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "lib": [
-            "es2018",
-            "dom"
+            "ES2018",
+            "ES2019.Object",
+            "ES2018.AsyncIterable"
         ],
-        "types": [
-            "node",
-            "cheerio"
-        ],
+        "baseUrl": "./",
         "allowJs": true,
         "checkJs": false,
         "noEmit": false,
+        "newLine": "lf",
         "declaration": true,
-        "emitDeclarationOnly": true,
-        "strict": false,
+        "emitDeclarationOnly": false,
+        "strict": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
         "noImplicitThis": true,
         "alwaysStrict": true,
-        "esModuleInterop": true,
-        "outDir": "types/"
+        "noStrictGenericChecks": true,
+        "strictNullChecks": true,
+        "allowSyntheticDefaultImports": false,
+        "esModuleInterop": false,
+        "declarationDir": "types/",
+        "outDir": "build/"
     },
     "include": [
-        "src/index.esm.js",
-        "src/utils_log.d.ts"
-    ],
-    "exclude": [
-        "src/index.js"
+        "./types-apify/**/*.d.ts",
+        "./src/**/*.js"
     ]
 }
