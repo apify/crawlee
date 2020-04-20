@@ -903,7 +903,7 @@ describe('CheerioCrawler', () => {
 
         class DummyExtension extends CrawlerExtension {
             constructor(options) {
-                super({ name: 'DummyExtension' });
+                super();
                 this.options = options;
             }
 
@@ -913,8 +913,7 @@ describe('CheerioCrawler', () => {
         }
 
         beforeEach(async () => {
-            await localStorageEmulator.clean();
-            requestList = await Apify.openRequestList('test', sources.slice());
+            requestList = await Apify.openRequestList(null, sources.slice());
         });
 
         test('should throw if "CrawlerExtension" class is not used', () => {
@@ -931,12 +930,29 @@ describe('CheerioCrawler', () => {
             ).toThrow('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
         });
 
+        test('Should throw if "CrawlerExtension" is trying to override non existing property', () => {
+            const extension = new DummyExtension({
+                doesNotExist: true,
+            });
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                handlePageFunction: async () => {},
+                handleFailedRequestFunction: async () => {},
+            });
+            expect(
+                () => cheerioCrawler.use(extension),
+            )
+                .toThrow('DummyExtension tries to set property "doesNotExist" that is not configurable on CheerioCrawler instance.');
+        });
+
         test('should override crawler properties', () => {
             const prepareRequestFunction = async () => ({});
             const extension = new DummyExtension({
                 useSessionPool: true,
                 prepareRequestFunction,
                 apifyProxyGroups: ['SHADER'],
+                handlePageFunction: undefined,
             });
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList,
@@ -951,6 +967,7 @@ describe('CheerioCrawler', () => {
             cheerioCrawler.use(extension);
             expect(cheerioCrawler.useSessionPool).toEqual(true);
             expect(cheerioCrawler.prepareRequestFunction).toEqual(prepareRequestFunction);
+            expect(cheerioCrawler.handlePageFunction).toBeUndefined();
             expect(cheerioCrawler.apifyProxyGroups[0]).toEqual('SHADER');
         });
     });

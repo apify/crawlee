@@ -442,37 +442,37 @@ class CheerioCrawler {
 
     /**
      * Function for attaching CrawlerExtensions such as the Unblockers.
-     * @param crawlerExtension - Crawler extension that overrides the crawler configuration.
+     * @param extension - Crawler extension that overrides the crawler configuration.
      */
-    use(crawlerExtension) {
-        const inheritsFromCrawlerExtension = crawlerExtension instanceof CrawlerExtension;
+    use(extension) {
+        const inheritsFromCrawlerExtension = extension instanceof CrawlerExtension;
 
         if (!inheritsFromCrawlerExtension) {
             throw new Error('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
         }
 
-        const crawlerExtensionOptions = crawlerExtension.getCrawlerOptions();
+        const extensionOptions = extension.getCrawlerOptions();
 
-        for (const [key, value] of Object.entries(crawlerExtensionOptions)) {
-            const isConfigurable = _.has(this, key);
+        for (const [key, value] of Object.entries(extensionOptions)) {
+            const isConfigurable = this.hasOwnProperty(key); // eslint-disable-line
             const originalType = typeof this[key];
             const extensionType = typeof value; // What if we want to null something? It is really needed?
-            const isSameType = originalType === extensionType;
-            const isNill = _.isUndefined(this[key]) || _.isNull(this[key]);
+            const isSameType = originalType === extensionType || value == null; // fast track for deleting keys
+            const exists = this[key] != null;
 
             if (!isConfigurable) { // Test if the property can be configured on the crawler
-                throw new Error(`${crawlerExtension.name} tries to set property "${key}" that is not configurable on CheerioCrawler instance.`);
+                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on CheerioCrawler instance.`);
             }
 
-            if (!isSameType && !isNill) { // Assuming that extensions will only add up configuration
+            if (!isSameType && exists) { // Assuming that extensions will only add up configuration
                 throw new Error(
-                    `${crawlerExtension.name} tries to set property of different type "${extensionType}". "CheerioCrawler.${key}: ${originalType}".`,
+                    `${extension.name} tries to set property of different type "${extensionType}". "CheerioCrawler.${key}: ${originalType}".`,
                 );
             }
 
-            defaultLog.warning(`${crawlerExtension.name} is overriding "CheerioCrawler.${key}: ${originalType}" with ${value}.`);
+            this.log.warning(`${extension.name} is overriding "CheerioCrawler.${key}: ${originalType}" with ${value}.`);
 
-            this[key] = value; // @TODO: Auto binding for functions?
+            this[key] = value;
         }
     }
 
