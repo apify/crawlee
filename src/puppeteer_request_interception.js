@@ -18,7 +18,7 @@ const pageInterceptRequestMasterHandlerMap = new WeakMap(); // Maps page to mast
  * @param {Array<InterceptHandler>} interceptRequestHandlers An array of intercept request handlers.
  * @ignore
  */
-const handleRequest = (request, interceptRequestHandlers) => {
+const handleRequest = async (request, interceptRequestHandlers) => {
     // If there are no intercept handlers, it means that request interception is not enabled (anymore)
     // and therefore .abort() .respond() and .continue() would throw and crash the process.
     if (!interceptRequestHandlers.length) return;
@@ -49,19 +49,20 @@ const handleRequest = (request, interceptRequestHandlers) => {
         return respond(...args);
     });
 
-    _.some(interceptRequestHandlers, (handler) => {
+    for (const handler of interceptRequestHandlers) {
         wasContinued = false;
 
-        handler(request);
-
+        await handler(request);
         // Check that one of the functions was called.
         if (!wasAborted && !wasResponded && !wasContinued) {
             throw new Error('Intercept request handler must call one of request.continue|respond|abort() methods!');
         }
 
         // If request was aborted or responded then we can finish immediately.
-        return wasAborted || wasResponded;
-    });
+        if (wasAborted || wasResponded) {
+            break;
+        }
+    }
 
     if (!wasAborted && !wasResponded) return originalContinue(accumulatedOverrides);
 };
