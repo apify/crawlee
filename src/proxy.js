@@ -11,8 +11,8 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 
 /**
  * @typedef ProxyConfigurationOptions
- * @property {Array} [groups] - List of Apify proxy group names.
- * @property {number} [sessionId] - Proxy session ID.
+ * @property {Array} [groups] - An array of proxy groups to be used
+ *   by the [Apify Proxy](https://docs.apify.com/proxy).
  * @property {string} [country] - Two letter country code according to ISO 3166-1 alpha-2.
  * @property {string} [password] - Password to your proxy.
  * @property {string} [hostname] - Hostname of your proxy.
@@ -29,7 +29,7 @@ export class ProxyConfiguration {
     /**
      * Proxy Configuration.
      *
-     * @param {ProxyConfigurationOptions} options
+     * @param {ProxyConfigurationOptions} [options] All `ProxyConfiguration` options.
      */
     constructor(options = {}) {
         const {
@@ -46,7 +46,7 @@ export class ProxyConfiguration {
         checkParamOrThrow(password, 'opts.password', 'Maybe String');
         checkParamOrThrow(hostname, 'opts.hostname', 'String', this._getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
         checkParamOrThrow(port, 'opts.port', 'Number', this._getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
-        this._validateArgumentsStructure();
+        this._validateArgumentsStructure(groups, country);
 
         this.groups = groups;
         this.country = country;
@@ -57,7 +57,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Loads all remote sources of URLs and potentially starts periodic state persistence.
+     * Loads proxy password if token is provided and checks access to apify proxy and privided proxy groups.
      * This function must be called before you can start using the instance in a meaningful way.
      *
      * @returns {Promise<void>}
@@ -66,11 +66,8 @@ export class ProxyConfiguration {
         // Set proxy password via API if token is provided
         await this._setPasswordIfToken();
 
-        // Check if user has access to apify proxy
-        await this._checkAccessRights();
-
-        // Check if user has access to selected proxy group
-        await this._checkAccessToProxyGroups();
+        // Check if user has access to apify proxy and selected proxy groups
+        await this._checkAccess();
 
         // TODO: Validate proxyUrl each of custom proxies
     }
@@ -79,17 +76,21 @@ export class ProxyConfiguration {
     /**
      * Gets information about proxy and its configuration.
      * @param {string} sessionId
+     * Apify Proxy session identifier to be used with requests.
+     * All HTTP requests going through the proxy with the same session identifier
+     * will use the same target proxy server (i.e. the same IP address).
+     * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return {object} represents information about proxy.
      */
     getInfo(sessionId) {
         const { groups, country, password, port, hostname } = this;
-        const username = this._getUsername(sessionId);
+        const url = this.getUrl(sessionId);
 
         return {
             sessionId,
+            url,
             groups,
             country,
-            username,
             password,
             hostname,
             port,
@@ -99,6 +100,10 @@ export class ProxyConfiguration {
     /**
      * Returns proxy url.
      * @param {string} sessionId
+     * Apify Proxy session identifier to be used with requests.
+     * All HTTP requests going through the proxy with the same session identifier
+     * will use the same target proxy server (i.e. the same IP address).
+     * The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return {string} - the proxy url
      */
     getUrl(sessionId) {
@@ -144,30 +149,35 @@ export class ProxyConfiguration {
      * @private
      */
     async _setPasswordIfToken() {
-        const token = process.env[ENV_VARS.TOKEN];
-        if (token && !this.password) {
-            const { proxy: { password, groups } } = await apifyClient.users.getUser({ token });
-            process.env[ENV_VARS.PROXY_PASSWORD] = password; // is this necessary here?
-            this.password = password;
-            this.availableGroups = groups;
-        } else if (!token && !this.password) {
-            throw new Error(this._getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
+        const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
+        if (!this.password) {
+            if (token) {
+                const { proxy: { password, groups } } = await apifyClient.users.getUser({ token, userId: 'me' });
+                this.password = password;
+                this.availableGroups = groups;
+            } else {
+                throw new Error(this._getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
+            }
         }
     }
 
     /**
      * Checks the status of apify proxy and
-     * throws an access denied error if the status is not "connected"
+     * throws an access denied error if the status is not "connected".
+     * Also checks if all proxy groups are available if token is provided.
      * @returns {Promise<void>}
      * @private
      */
-    async _checkAccessRights() {
+    async _checkAccess() {
+        // Check if user has access to selected proxy groups
+        await this._checkAccessToProxyGroups();
+
         const url = APIFY_PROXY_STATUS_URL;
         const proxyUrl = this.getUrl();
         const countryCode = this.country;
         const { body } = await requestAsBrowser({ url, proxyUrl, countryCode });
-        const parsedBody = JSON.parse(body);
-        if (!parsedBody.connected) this._throwApifyProxyNotConnected();
+        const { connected } = JSON.parse(body);
+        if (!connected) this._throwApifyProxyNotConnected();
     }
 
     /**
@@ -177,8 +187,8 @@ export class ProxyConfiguration {
      * @private
      */
     async _checkAccessToProxyGroups() {
-        if (this.groups && this.groups.length && this.availableGroups && this.availableGroups.length) {
-            for (const passedGroupName of this.availableGroups) {
+        if (this.groups && this.availableGroups && this.availableGroups.length) {
+            for (const passedGroupName of this.groups) {
                 if (!this.availableGroups.find(availableGroup => availableGroup.name === passedGroupName)) {
                     this._throwGroupIsNotAvailable(passedGroupName);
                 }
@@ -187,17 +197,14 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Validates if parameters groups, sessionId and country have correct structure
+     * Validates if parameters groups and country have correct structure
      * @private
      */
-    _validateArgumentsStructure() {
-        const { groups, sessionId, country } = this;
+    _validateArgumentsStructure(groups, country) {
         if (groups && groups.length) {
-            if (!groups.every(group => APIFY_PROXY_VALUE_REGEX.test(group))) this._throwInvalidProxyValueError('groups');
-        }
-        if (sessionId) {
-            if (!APIFY_PROXY_VALUE_REGEX.test(sessionId)) this._throwInvalidProxyValueError('session');
-            if (sessionId.toString().length > 50) this._throwSessionIdIsTooLong();
+            for (const group of groups) {
+                if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError(group);
+            }
         }
         if (country) {
             if (!COUNTRY_CODE_REGEX.test(country)) this._throwInvalidCountryCode(country);
@@ -221,7 +228,7 @@ export class ProxyConfiguration {
      * @private
      */
     _throwInvalidProxyValueError(param) {
-        throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
+        throw new Error(`The "${param}" group option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
     }
 
     /**
@@ -238,7 +245,7 @@ export class ProxyConfiguration {
      * @private
      */
     _throwApifyProxyNotConnected() {
-        throw new Error('You do not have access rights to Apify Proxy. It is possible that your trial is expired '
+        throw new Error('You do not have access to Apify Proxy. It is possible that your trial is expired '
             + 'or any of proxy limitation was exceeded.');
     }
 
@@ -251,28 +258,21 @@ export class ProxyConfiguration {
         throw new Error(`The proxy group "${group}" is not available for your account. Use different proxy group or `
         + 'upgrade your plan.');
     }
-
-    /**
-     * Throws passed session id is too long (max 50 chars)
-     * @private
-     */
-    _throwSessionIdIsTooLong() {
-        throw new Error('Passed "sessionId" is too long. The maximum of allowed chars is 50.');
-    }
 }
 
-/*
-* @param {ProxyConfigurationOptions} [options]
+/**
+ * Creates a proxy configuration and returns a promise resolving to an instance
+ * of the {@link ProxyConfiguration} class that is already initialized.
+ *
+* @param {ProxyConfigurationOptions} proxyConfigurationOptions
 * @returns {Promise<RequestList>}
 * @memberof module:Apify
 * @name createProxyConfiguration
 * @function
     */
-export const createProxyConfiguration = async (options = {}) => {
-    const proxyCofiguration = new ProxyConfiguration({
-        ...options,
-    });
-    await proxyCofiguration.initialize();
+export const createProxyConfiguration = async (proxyConfigurationOptions) => {
+    const proxyConfiguration = new ProxyConfiguration(proxyConfigurationOptions);
+    await proxyConfiguration.initialize();
 
-    return proxyCofiguration;
+    return proxyConfiguration;
 };
