@@ -68,7 +68,7 @@ describe('Apify.ProxyConfiguration', () => {
             throw new Error('wrong error');
         } catch (err) {
             expect(err.message).not.toBe('wrong error');
-            expect(err.message).toMatch('The "GROUP1*" option');
+            expect(err.message).toMatch('The "GROUP1*" group option');
         }
 
         // Country code
