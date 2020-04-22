@@ -474,7 +474,7 @@ class BasicCrawler {
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
         if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
             request.retryCount++;
-            log.exception(
+            this.log.exception(
                 error,
                 'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue',
                 _.pick(request, 'url', 'retryCount', 'id'),
