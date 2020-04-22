@@ -3,23 +3,10 @@ import * as util from 'util';
 import * as crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
-import log from './utils_log';
+import defaultLog from './utils_log';
 
-export function computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
-    const normalizedMethod = method.toUpperCase();
-    const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
-    if (!useExtendedUniqueKey) {
-        if (normalizedMethod !== 'GET' && payload) {
-            // Using log.deprecated to log only once. We should add log.once or some such.
-            log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
-                + 'This is fine. Just letting you know that if your requests point to the same URL '
-                + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
-        }
-        return normalizedUrl;
-    }
-    const payloadHash = payload ? hashPayload(payload) : '';
-    return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
-}
+// new properties on the Request object breaks serialization
+const log = defaultLog.child({ prefix: 'Request' });
 
 export function hashPayload(payload) {
     return crypto
@@ -114,7 +101,6 @@ class Request {
             useExtendedUniqueKey = false,
         } = options;
 
-
         checkParamOrThrow(id, 'id', 'Maybe String');
         checkParamOrThrow(url, 'url', 'String');
         checkParamOrThrow(loadedUrl, 'url', 'Maybe String');
@@ -137,7 +123,7 @@ class Request {
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
-        this.uniqueKey = uniqueKey || computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+        this.uniqueKey = uniqueKey || this._computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -217,6 +203,26 @@ class Request {
         log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
         this.noRetry = true;
         if (message) throw new Error(message);
+    }
+
+    /**
+     * @ignore
+     * @private
+     */
+    _computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
+        const normalizedMethod = method.toUpperCase();
+        const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
+        if (!useExtendedUniqueKey) {
+            if (normalizedMethod !== 'GET' && payload) {
+                // Using log.deprecated to log only once. We should add log.once or some such.
+                log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
+                    + 'This is fine. Just letting you know that if your requests point to the same URL '
+                    + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
+            }
+            return normalizedUrl;
+        }
+        const payloadHash = payload ? hashPayload(payload) : '';
+        return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
     }
 }
 

@@ -8,11 +8,11 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
 import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
-import log from './utils_log';
 import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
+import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
@@ -171,6 +171,7 @@ export class KeyValueStore {
 
         this.storeId = storeId;
         this.storeName = storeName;
+        this.log = log.child({ prefix: 'KeyValueStore' });
     }
 
     /**
@@ -298,7 +299,7 @@ export class KeyValueStore {
 
     /** @ignore */
     async delete() {
-        log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
+        this.log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
         await this.drop();
     }
@@ -376,6 +377,7 @@ export class KeyValueStoreLocal {
         checkParamOrThrow(storeId, 'storeId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
+        this.log = log.child({ prefix: 'KeyValueStore' });
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId));
         this.storeId = storeId;
         this.initializationPromise = ensureDirExists(this.localStoragePath);
@@ -428,7 +430,7 @@ export class KeyValueStoreLocal {
     }
 
     async delete() {
-        log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
+        this.log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
         await this.drop();
     }

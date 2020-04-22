@@ -6,7 +6,7 @@ import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import log from '../utils_log';
+import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -228,7 +228,7 @@ class PuppeteerCrawler {
             requestQueue,
             maxRequestRetries,
             maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
             autoscaledPoolOptions,
 
             // PuppeteerPool options and shorthands
@@ -251,8 +251,10 @@ class PuppeteerCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
+        this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
+
         if (options.gotoTimeoutSecs && options.gotoFunction) {
-            log.warning('PuppeteerCrawler: You are using gotoTimeoutSecs with a custom gotoFunction. '
+            this.log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
                 + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
         }
 
@@ -270,7 +272,10 @@ class PuppeteerCrawler {
 
         this.puppeteerPool = null; // Constructed when .run()
         this.useSessionPool = useSessionPool;
-        this.sessionPoolOptions = sessionPoolOptions;
+        this.sessionPoolOptions = {
+            ...sessionPoolOptions,
+            log: this.log,
+        };
         this.persistCookiesPerSession = persistCookiesPerSession;
 
         /** @ignore */
@@ -288,6 +293,9 @@ class PuppeteerCrawler {
             maxConcurrency,
             minConcurrency,
             autoscaledPoolOptions,
+
+            // log
+            log: this.log,
         });
     }
 
@@ -303,6 +311,7 @@ class PuppeteerCrawler {
             this.sessionPool = await openSessionPool(this.sessionPoolOptions);
             this.puppeteerPoolOptions.sessionPool = this.sessionPool;
         }
+        this.puppeteerPoolOptions.log = this.log;
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
         try {
             this.isRunningPromise = this.basicCrawler.run();
@@ -353,7 +362,7 @@ class PuppeteerCrawler {
             await addTimeoutToPromise(
                 this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
                 this.handlePageTimeoutMillis,
-                `PuppeteerCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
+                `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
 
             if (session) session.markGood();
@@ -382,7 +391,7 @@ class PuppeteerCrawler {
      */
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.exception(error, 'PuppeteerCrawler: Request failed and reached maximum retries', details);
+        this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 

@@ -6,8 +6,8 @@ import { leftpad } from 'apify-shared/utilities';
 import * as LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
-import log from './utils_log';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import log from './utils_log';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
@@ -155,6 +155,7 @@ export class Dataset {
 
         this.datasetId = datasetId;
         this.datasetName = datasetName;
+        this.log = log.child({ prefix: 'Dataset' });
     }
 
     /**
@@ -274,9 +275,7 @@ export class Dataset {
             return await datasets.getItems(params);
         } catch (e) {
             if (e.message.includes('Cannot create a string longer than')) {
-                throw new Error(
-                    'dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.',
-                );
+                throw new Error('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
             }
             throw e;
         }
@@ -440,7 +439,7 @@ export class Dataset {
 
     /** @ignore */
     async delete() {
-        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+        this.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
         await this.drop();
     }
@@ -456,6 +455,7 @@ export class DatasetLocal {
         checkParamOrThrow(datasetId, 'datasetId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
+        this.log = log.child({ prefix: 'Dataset' });
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
         this.counter = null;
         this.datasetId = datasetId;
@@ -603,7 +603,7 @@ export class DatasetLocal {
     }
 
     async delete() {
-        log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
+        this.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
         await this.drop();
     }

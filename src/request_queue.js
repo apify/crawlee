@@ -6,9 +6,11 @@ import * as LruCache from 'apify-shared/lru_cache';
 import * as ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
-import log from './utils_log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
-import { ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
+import {
+    ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep,
+} from './utils';
+import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
@@ -199,6 +201,7 @@ export class RequestQueue {
 
         if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
 
+        this.log = log.child({ prefix: 'RequestQueue' });
         this.clientKey = clientKey;
         this.queueId = queueId;
         this.queueName = queueName;
@@ -347,7 +350,7 @@ export class RequestQueue {
 
         // This should never happen, but...
         if (this.inProgress.has(nextRequestId) || this.recentlyHandled.get(nextRequestId)) {
-            log.warning('Queue head returned a request that is already in progress?!', {
+            this.log.warning('Queue head returned a request that is already in progress?!', {
                 nextRequestId,
                 inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
@@ -374,7 +377,7 @@ export class RequestQueue {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -386,7 +389,7 @@ export class RequestQueue {
         //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
         //    will not put the request again to queueHeadDict.
         if (request.handledAt) {
-            log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
+            this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
             this.recentlyHandled.add(nextRequestId, true);
             return null;
         }
@@ -472,7 +475,7 @@ export class RequestQueue {
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id)) {
-                log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                this.log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
                 return;
             }
 
@@ -596,7 +599,7 @@ export class RequestQueue {
 
         // If limit was not reached in the call then there are no more requests to be returned.
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-            log.warning(`RequestQueue: Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+            this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
         const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0
             && wasLimitReached
@@ -624,7 +627,7 @@ export class RequestQueue {
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
             const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
-            log.info(`RequestQueue: Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
+            this.log.info(`Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
             await sleep(delayMillis);
         }
 
@@ -660,7 +663,7 @@ export class RequestQueue {
 
     /** @ignore */
     async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+        this.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
         await this.drop();
     }
@@ -741,6 +744,7 @@ export class RequestQueueLocal {
         checkParamOrThrow(queueId, 'queueId', 'String');
         checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
 
+        this.log = log.child({ prefix: 'RequestQueue' });
         this.queueId = queueId;
         this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, queueId));
         this.localHandledEmulationPath = path.join(this.localStoragePath, 'handled');
@@ -1020,7 +1024,7 @@ export class RequestQueueLocal {
     }
 
     async delete() {
-        log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
+        this.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
             + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
         await this.drop();
     }

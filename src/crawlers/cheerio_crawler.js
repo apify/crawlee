@@ -12,7 +12,8 @@ import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import log from '../utils_log';
+import defaultLog from '../utils_log';
+import CrawlerExtension from './crawler_extension';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -320,7 +321,7 @@ class CheerioCrawler {
             requestQueue,
             maxRequestRetries,
             maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
             autoscaledPoolOptions = DEFAULT_AUTOSCALED_POOL_OPTIONS,
             prepareRequestFunction,
             useSessionPool = false,
@@ -342,6 +343,8 @@ class CheerioCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
+        this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
+
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
         if (proxyConfiguration && proxyUrls) throw new Error('Cannot combine "options.proxyConfiguration" with "options.proxyUrls"!');
@@ -356,11 +359,11 @@ class CheerioCrawler {
         if (requestOptions) {
             // DEPRECATED 2020-03-22
             this.requestOptions = requestOptions;
-            log.deprecated('CheerioCrawler: options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
+            this.log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
         }
 
         if (suggestResponseEncoding && forceResponseEncoding) {
-            log.warning('CheerioCrawler: Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
+            this.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
         }
 
         this.handlePageFunction = handlePageFunction;
@@ -375,6 +378,7 @@ class CheerioCrawler {
         this.proxyConfiguration = proxyConfiguration;
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
+        this.sessionPoolOptions = sessionPoolOptions;
 
         /** @ignore */
         this.basicCrawler = new BasicCrawler({
@@ -398,6 +402,9 @@ class CheerioCrawler {
 
             // proxy configuration
             proxyConfiguration,
+
+            // log
+            log: this.log,
         });
 
         this.isRunningPromise = null;
@@ -418,6 +425,42 @@ class CheerioCrawler {
     }
 
     /**
+     * Function for attaching CrawlerExtensions such as the Unblockers.
+     * @param extension - Crawler extension that overrides the crawler configuration.
+     */
+    use(extension) {
+        const inheritsFromCrawlerExtension = extension instanceof CrawlerExtension;
+
+        if (!inheritsFromCrawlerExtension) {
+            throw new Error('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
+        }
+
+        const extensionOptions = extension.getCrawlerOptions();
+
+        for (const [key, value] of Object.entries(extensionOptions)) {
+            const isConfigurable = this.hasOwnProperty(key); // eslint-disable-line
+            const originalType = typeof this[key];
+            const extensionType = typeof value; // What if we want to null something? It is really needed?
+            const isSameType = originalType === extensionType || value == null; // fast track for deleting keys
+            const exists = this[key] != null;
+
+            if (!isConfigurable) { // Test if the property can be configured on the crawler
+                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on CheerioCrawler instance.`);
+            }
+
+            if (!isSameType && exists) { // Assuming that extensions will only add up configuration
+                throw new Error(
+                    `${extension.name} tries to set property of different type "${extensionType}". "CheerioCrawler.${key}: ${originalType}".`,
+                );
+            }
+
+            this.log.warning(`${extension.name} is overriding "CheerioCrawler.${key}: ${originalType}" with ${value}.`);
+
+            this[key] = value;
+        }
+    }
+
+    /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {Object} options
@@ -431,7 +474,7 @@ class CheerioCrawler {
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session }),
             this.requestTimeoutMillis,
-            `CheerioCrawler: request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
+            `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
         if (this.useSessionPool) {
@@ -443,6 +486,7 @@ class CheerioCrawler {
         }
 
         request.loadedUrl = response.url;
+        const { log } = this;
 
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
         const context = {
@@ -450,7 +494,7 @@ class CheerioCrawler {
             // Using a getter here not to break the original API
             // and lazy load the HTML only when needed.
             get html() {
-                log.deprecated('CheerioCrawler: The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
+                log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
@@ -476,7 +520,7 @@ class CheerioCrawler {
         return addTimeoutToPromise(
             this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
-            `CheerioCrawler: handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
+            `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
     }
 
@@ -530,7 +574,7 @@ class CheerioCrawler {
             }
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`CheerioCrawler: ${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+            throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
         } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
@@ -561,12 +605,12 @@ class CheerioCrawler {
 
                 if (statusCode === 406) {
                     request.noRetry = true;
-                    throw new Error(`CheerioCrawler: Resource ${request.url} is not available in HTML format. Skipping resource.`);
+                    throw new Error(`Resource ${request.url} is not available in HTML format. Skipping resource.`);
                 }
 
                 if (!this.supportedMimeTypes.has(type) && statusCode < 500) {
                     request.noRetry = true;
-                    throw new Error(`CheerioCrawler: Resource ${request.url} served Content-Type ${type}, `
+                    throw new Error(`Resource ${request.url} served Content-Type ${type}, `
                         + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
                 }
 
@@ -627,7 +671,7 @@ class CheerioCrawler {
             };
         }
 
-        throw new Error(`CheerioCrawler: Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
+        throw new Error(`Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
     }
 
     async _parseHtmlToDom(response) {
@@ -652,7 +696,7 @@ class CheerioCrawler {
                 const parsedType = contentTypeParser.parse(mimeType);
                 this.supportedMimeTypes.add(parsedType.type);
             } catch (err) {
-                throw new Error(`CheerioCrawler: Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
+                throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
         });
     }
@@ -667,7 +711,7 @@ class CheerioCrawler {
         const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
 
         if (isBlocked) {
-            throw new Error(`CheerioCrawler: Request blocked - received ${statusCode} status code`);
+            throw new Error(`Request blocked - received ${statusCode} status code`);
         }
     }
 
@@ -678,7 +722,7 @@ class CheerioCrawler {
      */
     _handleRequestTimeout(session) {
         if (session) session.markBad();
-        throw new Error(`CheerioCrawler: request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+        throw new Error(`request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
     }
 
     /**
@@ -690,7 +734,7 @@ class CheerioCrawler {
      */
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        log.exception(error, 'CheerioCrawler: Request failed and reached maximum retries', details);
+        this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 
