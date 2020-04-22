@@ -977,7 +977,6 @@ describe('CheerioCrawler', () => {
             const extension = new DummyExtension({
                 useSessionPool: true,
                 prepareRequestFunction,
-                apifyProxyGroups: ['SHADER'],
                 handlePageFunction: undefined,
             });
             const cheerioCrawler = new Apify.CheerioCrawler({
@@ -994,7 +993,6 @@ describe('CheerioCrawler', () => {
             expect(cheerioCrawler.useSessionPool).toEqual(true);
             expect(cheerioCrawler.prepareRequestFunction).toEqual(prepareRequestFunction);
             expect(cheerioCrawler.handlePageFunction).toBeUndefined();
-            expect(cheerioCrawler.apifyProxyGroups[0]).toEqual('SHADER');
         });
     });
 });
