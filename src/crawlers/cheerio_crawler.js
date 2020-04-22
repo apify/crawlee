@@ -7,7 +7,6 @@ import * as htmlparser from 'htmlparser2';
 import * as iconv from 'iconv-lite';
 import * as _ from 'underscore';
 import * as util from 'util';
-import { getApifyProxyUrl } from '../actor';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
@@ -22,6 +21,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
+import { ProxyConfiguration } from '../proxy';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
@@ -131,20 +131,10 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
  * @property {boolean} [ignoreSslErrors=true]
  *   If set to true, SSL certificate errors will be ignored.
- * @property {boolean} [useApifyProxy=false]
- *   If set to `true`, `CheerioCrawler` will be configured to use
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `CheerioCrawler` will be configured to use
  *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
  *   For more information, see the [documentation](https://docs.apify.com/proxy)
- * @property {string[]} [apifyProxyGroups]
- *   An array of proxy groups to be used
- *   by the [Apify Proxy](https://docs.apify.com/proxy).
- *   Only applied if the `useApifyProxy` option is `true`.
- * @property {string} [apifyProxySession]
- *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
- *   All HTTP requests going through the proxy with the same session identifier
- *   will use the same target proxy server (i.e. the same IP address).
- *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- *   Only applied if the `useApifyProxy` option is `true`.
  * @property {string[]} [proxyUrls]
  *   An array of custom proxy URLs to be used by the `CheerioCrawler` instance.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
@@ -313,13 +303,13 @@ class CheerioCrawler {
             requestTimeoutSecs = 30,
             handlePageTimeoutSecs = 60,
             ignoreSslErrors = true,
-            useApifyProxy = false,
-            apifyProxyGroups,
-            apifyProxySession,
             proxyUrls,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
+
+            // Proxy configuration
+            proxyConfiguration,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -343,9 +333,6 @@ class CheerioCrawler {
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
         checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Maybe Boolean');
-        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
-        checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
-        checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
@@ -357,13 +344,9 @@ class CheerioCrawler {
 
         // Enforce valid proxy configuration
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
-        if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
+        if (proxyConfiguration && proxyUrls) throw new Error('Cannot combine "options.proxyConfiguration" with "options.proxyUrls"!');
         if (persistCookiesPerSession && !useSessionPool) {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
-        }
-
-        if (apifyProxySession && useSessionPool) {
-            throw new Error('Cannot use "options.apifyProxySession" with "options.useSessionPool"');
         }
 
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
@@ -384,14 +367,12 @@ class CheerioCrawler {
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
         this.requestTimeoutMillis = requestTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
-        this.useApifyProxy = useApifyProxy;
-        this.apifyProxyGroups = apifyProxyGroups;
-        this.apifyProxySession = apifyProxySession;
         this.proxyUrls = _.shuffle(proxyUrls);
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
         this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
+        this.proxyConfiguration = proxyConfiguration;
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
 
@@ -414,6 +395,9 @@ class CheerioCrawler {
             // Session pool options
             sessionPoolOptions,
             useSessionPool,
+
+            // proxy configuration
+            proxyConfiguration,
         });
 
         this.isRunningPromise = null;
@@ -604,13 +588,8 @@ class CheerioCrawler {
      * @ignore
      */
     _getProxyUrl(session = {}) {
-        if (this.useApifyProxy) {
-            return getApifyProxyUrl({
-                groups: this.apifyProxyGroups,
-                session: session.id || this.apifyProxySession,
-                groupsParamName: 'options.apifyProxyGroups',
-                sessionParamName: 'options.apifyProxySession',
-            });
+        if (this.proxyConfiguration) {
+            return this.proxyConfiguration.getUrl(session.id);
         }
         if (this.proxyUrls) {
             return this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
