@@ -18,6 +18,7 @@ import Request from '../request';
 import { QueueOperationInfo } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
+import { ProxyConfiguration } from '../proxy';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -198,6 +199,7 @@ class BasicCrawler {
             autoscaledPoolOptions,
             sessionPoolOptions,
             useSessionPool,
+            proxyConfiguration,
 
             // AutoscaledPool shorthands
             minConcurrency,
@@ -205,6 +207,7 @@ class BasicCrawler {
         } = _.defaults({}, options, DEFAULT_OPTIONS);
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
+        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'Apify.proxyConfiguration', true);
         checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
         checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
         checkParamOrThrow(handleRequestTimeoutSecs, 'options.handleRequestTimeoutSecs', 'Number');
@@ -221,6 +224,7 @@ class BasicCrawler {
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
+        this.proxyConfiguration = proxyConfiguration;
         this.handleRequestFunction = handleRequestFunction;
         this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
@@ -381,11 +385,16 @@ class BasicCrawler {
 
         let request;
         let session;
+        let proxy;
 
         if (this.useSessionPool) {
             [request, session] = await Promise.all([this._fetchNextRequest(), this.sessionPool.getSession()]);
         } else {
             request = await this._fetchNextRequest();
+        }
+
+        if (this.proxyConfiguration) {
+            proxy = this.proxyConfiguration.getInfo(session ? session.id : undefined);
         }
 
         if (!request) return;
@@ -397,7 +406,7 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session }),
+                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session, proxy }),
                 this.handleRequestTimeoutMillis,
                 `BasicCrawler: handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
