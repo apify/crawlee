@@ -420,7 +420,6 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
             // We want to ensure that this won't get executed again in a case that there is a subsequent request
             // for example for some asset file link from main HTML.
             if (wasCalled) {
-                await removeInterceptRequestHandler(page, interceptRequestHandler); // We wan't this to be called only for the initial request.
                 return interceptedRequest.continue();
             }
 
@@ -430,7 +429,8 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
             if (method !== 'GET') overrides.method = method;
             if (payload) overrides.postData = payload;
             if (!_.isEmpty(headers)) overrides.headers = headers;
-            await interceptedRequest.continue(overrides);
+            await removeInterceptRequestHandler(page, interceptRequestHandler);
+            interceptedRequest.continue(overrides);
         };
 
         await addInterceptRequestHandler(page, interceptRequestHandler);
