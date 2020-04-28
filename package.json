@@ -114,6 +114,6 @@
         "why-is-node-running": "^2.0.3"
     },
     "optionalDependencies": {
-        "puppeteer": "3.0.1"
+        "puppeteer": "3.0.2"
     }
 }
