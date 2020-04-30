@@ -4,6 +4,8 @@ import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as requestUtils from '../build/utils_request';
 import * as utils from '../build/utils';
+import { ProxyConfiguration } from '../build/proxy_configuration';
+import log from '../build/utils_log';
 
 const { apifyClient } = utils;
 
@@ -11,103 +13,114 @@ const groups = ['GROUP1', 'GROUP2'];
 const hostname = 'proxy.apify.com';
 const port = 8000;
 const password = 'test12345';
-const country = 'CZ';
+const countryCode = 'CZ';
 const sessionId = 538909250932;
-const basciOpts = {
+const basicOpts = {
     groups,
-    country,
+    countryCode,
     password,
     hostname,
     port,
 };
+const basicOptsProxyUrl = 'http://groups-GROUP1+GROUP2,session-538909250932,country-CZ:test12345@proxy.apify.com:8000';
+const proxyUrlNoSession = 'http://groups-GROUP1+GROUP2,country-CZ:test12345@proxy.apify.com:8000';
 
-describe('Apify.ProxyConfiguration', () => {
+describe('ProxyConfiguration', () => {
     test('should accept all options', () => {
-        const proxyConfiguration = new Apify.ProxyConfiguration(basciOpts);
+        const proxyConfiguration = new ProxyConfiguration(basicOpts);
 
-        expect(proxyConfiguration).toBeInstanceOf(Apify.ProxyConfiguration);
+        expect(proxyConfiguration).toBeInstanceOf(ProxyConfiguration);
         expect(proxyConfiguration.groups).toBe(groups);
-        expect(proxyConfiguration.country).toBe(country);
+        expect(proxyConfiguration.countryCode).toBe(countryCode);
         expect(proxyConfiguration.password).toBe(password);
         expect(proxyConfiguration.hostname).toBe(hostname);
         expect(proxyConfiguration.port).toBe(port);
     });
 
-    test('should getUrl() work', () => {
-        const proxyConfiguration = new Apify.ProxyConfiguration(basciOpts);
+    test('getUrl() should return proxy URL', () => {
+        const proxyConfiguration = new ProxyConfiguration(basicOpts);
 
-        const proxyUrl = 'http://groups-GROUP1+GROUP2,session-538909250932,country-CZ:test12345@proxy.apify.com:8000';
-        expect(proxyConfiguration.getUrl(sessionId)).toBe(proxyUrl);
+        expect(proxyConfiguration.getUrl(sessionId)).toBe(basicOptsProxyUrl);
     });
 
-    test('should getInfo() work', () => {
-        const proxyConfiguration = new Apify.ProxyConfiguration(basciOpts);
-        const url = 'http://groups-GROUP1+GROUP2,session-538909250932,country-CZ:test12345@proxy.apify.com:8000';
+    test('getInfo() should return ProxyInfo object', () => {
+        const proxyConfiguration = new ProxyConfiguration(basicOpts);
+        const url = basicOptsProxyUrl;
 
-        const proxy = {
+        const proxyInfo = {
             sessionId,
             url,
             groups,
-            country,
+            countryCode,
             password,
             hostname,
             port,
         };
-        expect(proxyConfiguration.getInfo(sessionId)).toStrictEqual(proxy);
+        expect(proxyConfiguration.getInfo(sessionId)).toStrictEqual(proxyInfo);
     });
 
-    test('should throw invalid arguments structure', () => {
-        let opts;
+    test('actor UI input schema should work', () => {
+        const apifyProxyGroups = ['GROUP1', 'GROUP2'];
+        const apifyProxyCountry = 'CZ';
+
+        const input = {
+            useApifyProxy: true,
+            apifyProxyGroups,
+            apifyProxyCountry,
+        };
+
+        const proxyConfiguration = new ProxyConfiguration(input);
+
+        expect(proxyConfiguration.groups).toStrictEqual(apifyProxyGroups);
+        expect(proxyConfiguration.countryCode).toStrictEqual(apifyProxyCountry);
+    });
+
+    test('should throw on invalid arguments structure', () => {
         // Group value
         const invalidGroups = ['GROUP1*'];
-        opts = Object.assign({}, basciOpts);
+        let opts = Object.assign({}, basicOpts);
         opts.groups = invalidGroups;
         try {
             // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new Apify.ProxyConfiguration(opts);
+            const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).not.toBe('wrong error');
-            expect(err.message).toMatch('The "GROUP1*" group option');
+            expect(err.message).toMatch('The provided proxy group name "GROUP1*"');
         }
 
         // Country code
         const invalidCountryCode = 'CZE';
-        opts = Object.assign({}, basciOpts);
-        opts.country = invalidCountryCode;
+        opts = Object.assign({}, basicOpts);
+        opts.countryCode = invalidCountryCode;
         try {
             // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new Apify.ProxyConfiguration(opts);
+            const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).not.toBe('wrong error');
-            expect(err.message).toMatch('The "CZE" option');
+            expect(err.message).toMatch('The provided country code "CZE"');
         }
     });
 
     test('should throw missing param error', () => {
-        let opts;
         // Missing hostname
-        opts = Object.assign({}, basciOpts);
+        let opts = Object.assign({}, basicOpts);
         opts.hostname = null;
         try {
             // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new Apify.ProxyConfiguration(opts);
+            const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).not.toBe('wrong error');
             expect(err.message).toMatch('Apify Proxy hostname must be provided');
         }
 
         // Missing port
-        opts = Object.assign({}, basciOpts);
+        opts = Object.assign({}, basicOpts);
         opts.port = null;
         try {
             // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new Apify.ProxyConfiguration(opts);
+            const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).not.toBe('wrong error');
             expect(err.message).toMatch('Apify Proxy port must be provided');
         }
     });
@@ -116,21 +129,20 @@ describe('Apify.ProxyConfiguration', () => {
 describe('Apify.createProxyConfiguration()', () => {
     test('should work with all options', async () => {
         const mock = sinon.mock(requestUtils);
-        const status = JSON.stringify({ connected: 'true' });
-        const proxyUrl = 'http://groups-GROUP1+GROUP2,country-CZ:test12345@proxy.apify.com:8000';
-        const countryCode = country;
+        const status = { connected: true };
+        const proxyUrl = proxyUrlNoSession;
         const url = 'http://proxy.apify.com/?format=json';
 
         mock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url, proxyUrl, countryCode })
+            .withArgs({ url, proxyUrl, countryCode, json: true })
             .resolves({ body: status });
 
-        const proxyConfiguration = await Apify.createProxyConfiguration(basciOpts);
+        const proxyConfiguration = await Apify.createProxyConfiguration(basicOpts);
 
-        expect(proxyConfiguration).toBeInstanceOf(Apify.ProxyConfiguration);
+        expect(proxyConfiguration).toBeInstanceOf(ProxyConfiguration);
         expect(proxyConfiguration.groups).toBe(groups);
-        expect(proxyConfiguration.country).toBe(country);
+        expect(proxyConfiguration.countryCode).toBe(countryCode);
         expect(proxyConfiguration.password).toBe(password);
         expect(proxyConfiguration.hostname).toBe(hostname);
         expect(proxyConfiguration.port).toBe(port);
@@ -139,25 +151,23 @@ describe('Apify.createProxyConfiguration()', () => {
     });
 
     test('should work without password (with token)', async () => {
-        const opts = basciOpts;
+        const opts = basicOpts;
         opts.password = null;
 
         const requestUtilsMock = sinon.mock(requestUtils);
-        const status = JSON.stringify({ connected: 'true' });
-        const proxyUrl = 'http://groups-GROUP1+GROUP2,country-CZ:test12345@proxy.apify.com:8000';
-        const countryCode = country;
+        const status = { connected: true };
+        const proxyUrl = proxyUrlNoSession;
         const url = 'http://proxy.apify.com/?format=json';
 
         requestUtilsMock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url, proxyUrl, countryCode })
+            .withArgs({ url, proxyUrl, countryCode, json: true })
             .resolves({ body: status });
 
         const clientUsersMock = sinon.mock(apifyClient.users);
         const token = '123456789';
         process.env.APIFY_TOKEN = token;
-        const availableGroups = [{ name: 'GROUP1' }, { name: 'GROUP2' }];
-        const data = { proxy: { password, groups: availableGroups } };
+        const data = { proxy: { password } };
 
         clientUsersMock.expects('getUser')
             .once()
@@ -167,10 +177,9 @@ describe('Apify.createProxyConfiguration()', () => {
 
         const proxyConfiguration = await Apify.createProxyConfiguration(opts);
 
-        expect(proxyConfiguration).toBeInstanceOf(Apify.ProxyConfiguration);
+        expect(proxyConfiguration).toBeInstanceOf(ProxyConfiguration);
         expect(proxyConfiguration.groups).toBe(groups);
-        expect(proxyConfiguration.availableGroups).toBe(availableGroups);
-        expect(proxyConfiguration.country).toBe(country);
+        expect(proxyConfiguration.countryCode).toBe(countryCode);
         expect(proxyConfiguration.password).toBe(password);
         expect(proxyConfiguration.hostname).toBe(hostname);
         expect(proxyConfiguration.port).toBe(port);
@@ -179,12 +188,39 @@ describe('Apify.createProxyConfiguration()', () => {
         clientUsersMock.verify();
     });
 
+    test('should show warning log', async () => {
+        const logMock = sinon.mock(log);
+        process.env.APIFY_TOKEN = '123456789';
+
+        const status = { connected: true };
+        const fakeUserObjectProxyData = { password: '987654321' };
+
+        const fakeRequestAsBrowser = async () => {
+            return { body: status };
+        };
+        const stub1 = sinon.stub(requestUtils, 'requestAsBrowser').callsFake(fakeRequestAsBrowser);
+
+        const fakeGetUser = async () => {
+            return { proxy: fakeUserObjectProxyData };
+        };
+        const stub2 = sinon.stub(apifyClient.users, 'getUser').callsFake(fakeGetUser);
+
+        // eslint-disable-next-line no-unused-vars
+        const proxyConfiguration = await Apify.createProxyConfiguration(basicOpts);
+
+        logMock.expects('warning').once();
+
+        stub1.restore();
+        stub2.restore();
+        logMock.restore();
+    });
+
     test('should throw missing password', async () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.TOKEN];
         delete LOCAL_ENV_VARS[ENV_VARS.TOKEN];
 
-        const status = JSON.stringify({ connected: 'true' });
+        const status = { connected: true };
 
         const fakeCall = async () => {
             return { body: status };
@@ -197,7 +233,6 @@ describe('Apify.createProxyConfiguration()', () => {
             const proxyConfiguration = await Apify.createProxyConfiguration();
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).not.toBe('wrong error');
             expect(err.message).toMatch('Apify Proxy password must be provided');
         }
         stub.restore();
@@ -206,9 +241,9 @@ describe('Apify.createProxyConfiguration()', () => {
     test('should throw group is not available', async () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         process.env.APIFY_TOKEN = '123456789';
-        const availableGroups = [{ name: 'GROUP1' }];
-        const status = JSON.stringify({ connected: 'true' });
-        const fakeUserObjectProxyData = { password, groups: availableGroups };
+        const connectionError = 'Invalid username: proxy group &quot;GROUP2&quot; not found or not accessible.';
+        const status = { connected: false, connectionError };
+        const fakeUserObjectProxyData = { password };
 
         const fakeRequestAsBrowser = async () => {
             return { body: status };
@@ -226,29 +261,9 @@ describe('Apify.createProxyConfiguration()', () => {
             const proxyConfiguration = await Apify.createProxyConfiguration({ groups });
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).not.toBe('wrong error');
-            expect(err.message).toMatch('The proxy group "GROUP2" is not available');
+            expect(err.message).toMatch(connectionError);
         }
         stub1.restore();
         stub2.restore();
-    });
-
-    test('should throw apify proxy access denied', async () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = password;
-        const status = JSON.stringify({ connected: false });
-        const fakeRequestAsBrowser = async () => {
-            return { body: status };
-        };
-        const stub = sinon.stub(requestUtils, 'requestAsBrowser').callsFake(fakeRequestAsBrowser);
-
-        try {
-            // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = await Apify.createProxyConfiguration();
-            throw new Error('wrong error');
-        } catch (err) {
-            expect(err.message).not.toBe('wrong error');
-            expect(err.message).toMatch('You do not have access to Apify Proxy.');
-        }
-        stub.restore();
     });
 });
