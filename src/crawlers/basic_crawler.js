@@ -18,7 +18,7 @@ import Request from '../request';
 import { QueueOperationInfo } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { ProxyConfiguration } from '../proxy';
+import { ProxyConfiguration } from '../proxy_configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -384,7 +384,7 @@ class BasicCrawler {
 
         let request;
         let session;
-        let proxy;
+        let proxyInfo;
 
         if (this.useSessionPool) {
             [request, session] = await Promise.all([this._fetchNextRequest(), this.sessionPool.getSession()]);
@@ -393,7 +393,7 @@ class BasicCrawler {
         }
 
         if (this.proxyConfiguration) {
-            proxy = this.proxyConfiguration.getInfo(session ? session.id : undefined);
+            proxyInfo = this.proxyConfiguration.getInfo(session ? session.id : undefined);
         }
 
         if (!request) return;
@@ -405,7 +405,7 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session, proxy }),
+                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session, proxyInfo }),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
@@ -476,7 +476,7 @@ class BasicCrawler {
             request.retryCount++;
             this.log.exception(
                 error,
-                'BasicCrawler: handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
                 _.pick(request, 'url', 'retryCount', 'id'),
             );
             return source.reclaimRequest(request);
