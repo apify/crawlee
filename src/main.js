@@ -12,7 +12,7 @@ import PuppeteerCrawler from './crawlers/puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
-import { ProxyConfiguration, createProxyConfiguration } from './proxy';
+import { createProxyConfiguration } from './proxy_configuration';
 import { openRequestQueue } from './request_queue';
 import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
@@ -86,7 +86,6 @@ export {
 
     openSessionPool,
 
-    ProxyConfiguration,
     createProxyConfiguration,
 
     LiveViewServer,
