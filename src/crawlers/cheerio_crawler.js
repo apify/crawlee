@@ -22,7 +22,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
-import { ProxyConfiguration } from '../proxy';
+import { ProxyConfiguration } from '../proxy_configuration';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
@@ -308,8 +308,6 @@ class CheerioCrawler {
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
-
-            // Proxy configuration
             proxyConfiguration,
 
             // Autoscaled pool shorthands
@@ -390,6 +388,7 @@ class CheerioCrawler {
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
             handleFailedRequestFunction,
+            proxyConfiguration,
 
             // Autoscaled pool options.
             minConcurrency,
@@ -399,9 +398,6 @@ class CheerioCrawler {
             // Session pool options
             sessionPoolOptions,
             useSessionPool,
-
-            // proxy configuration
-            proxyConfiguration,
 
             // log
             log: this.log,
