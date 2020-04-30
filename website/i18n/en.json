@@ -26,6 +26,9 @@
       "api/dataset": {
         "title": "Dataset"
       },
+      "api/exports": {
+        "title": "exports"
+      },
       "api/key-value-store": {
         "title": "KeyValueStore"
       },

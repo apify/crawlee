@@ -133,6 +133,28 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
             await browser.close();
         }
     });
+
+    test('should allow async handler', async () => {
+        const browser = await Apify.launchPuppeteer({ headless: true });
+
+        try {
+            const page = await browser.newPage();
+
+            await addInterceptRequestHandler(page, async (request) => {
+                await Apify.utils.sleep(100);
+                return request.continue({
+                    method: 'POST',
+                });
+            });
+
+            // Check response that it's correct.
+            const response = await page.goto('https://api.apify.com/v2/browser-info', { waitUntil: 'networkidle0' });
+            const { method } = JSON.parse(await response.text());
+            expect(method).toBe('POST');
+        } finally {
+            await browser.close();
+        }
+    });
 });
 
 describe('Apify.utils.puppeteer.removeInterceptRequestHandler()', () => {
