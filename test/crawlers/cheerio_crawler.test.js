@@ -608,7 +608,6 @@ describe('CheerioCrawler', () => {
 
         test('should work with proxyConfiguration', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const proxies = [];
             const utilsRequestMock = sinon.mock(utilsRequest);
             const status = { connected: true };
             const proxyUrl = 'http://auto:abc123@proxy.apify.com:8000';
@@ -620,7 +619,7 @@ describe('CheerioCrawler', () => {
                 .resolves({ body: status });
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
-            const proxy = proxyConfiguration.getUrl();
+            const proxyInfo = proxyConfiguration.getUrl();
 
             const crawler = new Apify.CheerioCrawler({
                 requestList,
@@ -631,7 +630,7 @@ describe('CheerioCrawler', () => {
 
             crawler._requestFunction = async ({ request }) => {
                 const opts = crawler._getRequestOptions(request);
-                proxies.push(opts.proxyUrl);
+                expect(opts.proxyUrl).toEqual(proxyInfo);
                 // it needs to return something valid
                 return { dom: {}, response: responseMock };
             };
@@ -640,10 +639,6 @@ describe('CheerioCrawler', () => {
             delete process.env[ENV_VARS.PROXY_PASSWORD];
 
             utilsRequestMock.restore();
-            expect(proxies[0]).toEqual(proxy);
-            expect(proxies[1]).toEqual(proxy);
-            expect(proxies[2]).toEqual(proxy);
-            expect(proxies[3]).toEqual(proxy);
         });
 
         test('handlePageFunction should expose the proxyInfo object', async () => {
@@ -668,8 +663,9 @@ describe('CheerioCrawler', () => {
                 handlePageFunction,
             });
 
-            crawler._handleRequestFunction = async ({ proxyInfo }) => {
-                return { proxyInfo };
+            crawler._requestFunction = async ({ request }) => {
+                // it needs to return something valid
+                return { dom: {}, response: { url: request.url } };
             };
 
             await crawler.run();
@@ -703,8 +699,9 @@ describe('CheerioCrawler', () => {
                 },
             });
 
-            crawler._handleRequestFunction = async ({ session, proxyInfo }) => {
-                return { session, proxyInfo };
+            crawler._requestFunction = async ({ request }) => {
+                // it needs to return something valid
+                return { dom: {}, response: { url: request.url } };
             };
 
             await crawler.run();
