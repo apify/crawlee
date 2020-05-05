@@ -31,6 +31,10 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  default browser headers will remove the masking this function provides.
  * @property {string} [proxyUrl]
  *  An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `RequestAsBrowser` will be configured to use
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy)
  * @property {string} [languageCode=en]
  *  Two-letter ISO 639 language code.
  * @property {string} [countryCode=US]
@@ -98,6 +102,7 @@ export const requestAsBrowser = async (options) => {
         method = 'GET',
         headers = {},
         proxyUrl,
+        proxyConfiguration,
         languageCode = 'en',
         countryCode = 'US',
         useMobileVersion = false,
@@ -126,7 +131,7 @@ export const requestAsBrowser = async (options) => {
         // Users can provide headers in lowercase so we need to make sure
         // that their values are applied, but names are kept upper-case.
         headers: mergeHeaders(headers, defaultHeaders),
-        proxyUrl,
+        proxyUrl: getProxyUrl(proxyUrl, proxyConfiguration),
         abortFunction,
         ignoreSslErrors,
         insecureHTTPParser: useInsecureHttpParser,
@@ -142,6 +147,10 @@ export const requestAsBrowser = async (options) => {
         throw e;
     }
 };
+
+function getProxyUrl(proxyUrl, proxyConfiguration) {
+    return proxyConfiguration ? proxyConfiguration.getUrl() : proxyUrl;
+}
 
 function mergeHeaders(userHeaders, defaultHeaders) {
     const headers = { ...defaultHeaders, ...userHeaders };
