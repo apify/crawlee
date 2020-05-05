@@ -6,11 +6,10 @@ import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { DEFAULT_USER_AGENT } from './constants';
 import log from './utils_log';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
-import { getApifyProxyUrl } from './actor';
 import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
 
 const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
-    'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxyGroups',
+    'proxyUrl', 'userAgent', 'proxyConfiguration',
     'apifyProxySession', 'puppeteerModule', 'stealthOptions',
 ];
 
@@ -127,14 +126,10 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {boolean} [useApifyProxy=false]
- *   If set to `true`, Puppeteer will be configured to use
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, Puppeteer will be configured to use
  *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
  *   For more information, see the [documentation](https://docs.apify.com/proxy)
- * @property {string[]} [apifyProxyGroups]
- *   An array of proxy groups to be used
- *   by the [Apify Proxy](https://docs.apify.com/proxy).
- *   Only applied if the `useApifyProxy` option is `true`.
  * @property {string} [apifyProxySession]
  *   Apify Proxy session identifier to be used by all the Chrome browsers.
  *   All HTTP requests going through the proxy with the same session identifier
@@ -221,11 +216,10 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
-    checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String|Object');
     checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Boolean');
     checkParamOrThrow(options.stealthOptions, 'options.stealthOptions', 'Maybe Object');
-    if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
+    if (options.proxyConfiguration && options.proxyUrl) throw new Error('Cannot combine "options.proxyConfiguration" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
         log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
             + 'Use options.useLiveView in PuppeteerPool for an updated version. '
@@ -244,13 +238,8 @@ export const launchPuppeteer = async (options = {}) => {
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
-    if (optsCopy.useApifyProxy) {
-        optsCopy.proxyUrl = getApifyProxyUrl({
-            groups: optsCopy.apifyProxyGroups,
-            session: optsCopy.apifyProxySession,
-            groupsParamName: 'options.apifyProxyGroups',
-            sessionParamName: 'options.apifyProxySession',
-        });
+    if (optsCopy.proxyConfiguration) {
+        optsCopy.proxyUrl = optsCopy.proxyConfiguration.getUrl(optsCopy.apifyProxySession);
     }
     if (optsCopy.defaultViewport === undefined) {
         optsCopy.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
