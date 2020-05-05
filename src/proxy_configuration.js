@@ -15,9 +15,12 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  * @property {string[]} [groups] - An array of proxy groups to be used
  *   by the [Apify Proxy](https://docs.apify.com/proxy).
  * @property {string} [countryCode] - Two letter country code according to ISO 3166-1 alpha-2.
- * @property {string} [password] - Password to your proxy.
- * @property {string} [hostname] - Hostname of your proxy.
- * @property {string} [port] - Proxy port.
+ * @property {string} [password] - Password to your proxy. This property is set using the respective env vars so
+ *  there is no need to add it manually.
+ * @property {string} [hostname] - Hostname of your proxy. This property is set using the respective env vars so
+ *  there is no need to add it manually.
+ * @property {string} [port] - Proxy port. This property is set using the respective env vars so
+ *  there is no need to add it manually.
  *
  * @property {string[]} [apifyProxyGroups] - Same option as `groups` which can be used to
  *  configurate the proxy by UI input schema. You should use the `groups` option in your crawler code.
@@ -26,9 +29,39 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  */
 
 /**
+ * The main purpose of the Proxy information object is to get all necessary information about proxy options
+ * used by crawler and configured by the {@link ProxyConfiguration} class.
+ * This object can be also returned by calling the {@link ProxyConfiguration.getInfo} method directly.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ *
+ * const proxyConfiguration = await Apify.createProxyConfiguration({
+ *   groups: ['GROUP1', 'GROUP2'] // List of Apify Proxy groups
+ *   countryCode: 'US',
+ * });
+ *
+ * // Getting proxyInfo object by calling class method directly
+ * const proxyInfo = proxyConfiguration.getInfo();
+ *
+ * // In crawler
+ * const crawler = new Apify.CheerioCrawler({
+ *   // ...
+ *   proxyConfiguration,
+ *   handlePageFunction: ({ proxyInfo }) => {
+ *      // Getting used Proxy URL
+ *       const proxyUrl = proxyInfo.url;
+ *
+ *      // Getting ID of used Session
+ *       const sessionIdentifier = proxyInfo.sessionId;
+ *   }
+ * })
+ *
+ * ```
  * @typedef ProxyInfo
- * @property {string} [sessionId] - The identifier of used {@link Session}
- * @property {string} [url] - The proxy URL
+ * @property {string} [sessionId] - The identifier of used {@link Session}.
+ * @property {string} [url] - The proxy URL.
  * @property {string[]} [groups] - An array of proxy groups to be used
  *   by the [Apify Proxy](https://docs.apify.com/proxy).
  * @property {string} [countryCode] - Two letter country code according to ISO 3166-1 alpha-2.
@@ -41,35 +74,25 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 /**
  * Creates configuration with the proxy options to be used for preventing IP address-based blocking of
  * your web crawling bots by target websites. Setting proxy configuration allows you to get proxy information
- * in your crawlers page function. It is also possible to get only the proxy URL or all proxy information by calling
- * interface methods of this class.
+ * in your crawler's page function. It is also possible to get only the proxy URL or all proxy information by calling
+ * methods of this class.
  *
  * **Example usage:**
  *
  * ```javascript
  *
- * // You can use class constructor to create the configuration
- * const proxyConfiguration = new ProxyConfiguration({
- *     groups: ['GROUP1', 'GROUP2'] // List of Apify proxy groups
- *     countryCode: 'CZ',
- *     password: 'password123' // Your Apify proxy password
- *     hostname: 'proxy.apify.com'
- *     port: 8000
+ * const proxyConfiguration = await Apify.createProxyConfiguration({
+ *   groups: ['GROUP1', 'GROUP2'] // List of Apify Proxy groups
+ *   countryCode: 'US',
  * });
  *
- * // But you have to initialize it before using
- * await proxyConfiguration.initialize();
- *
- * // Or you can just use Apify.createProxyConfiguration(opts)
- * // which returns already initialized proxy configuration
- *
- * const session = new Session(); // To get session id
- *
- * // Now you are able to get proxy URL
- * const proxyUrl = proxyConfiguration.getUrl(session.id);
- *
- * // If you want to get all options of configured proxy
- * const proxyInfo = proxyConfiguration.getInfo(session.id);
+ * const crawler = new Apify.CheerioCrawler({
+ *   // ...
+ *   proxyConfiguration,
+ *   handlePageFunction: ({ proxyInfo }) => {
+ *      const usedProxyUrl = proxyInfo.url; // Getting the Proxy URL
+ *   }
+ * })
  *
  * ```
  * @hideconstructor
@@ -91,8 +114,8 @@ export class ProxyConfiguration {
             port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]),
         } = options;
 
-        const groupsToUse = !groups && apifyProxyGroups ? apifyProxyGroups : groups;
-        const countryCodeToUse = !countryCode && apifyProxyCountry ? apifyProxyCountry : countryCode;
+        const groupsToUse = groups || apifyProxyGroups;
+        const countryCodeToUse = countryCode || apifyProxyCountry;
 
         // Validation
         checkParamOrThrow(groupsToUse, 'opts.groups', 'Maybe [String]');
@@ -112,15 +135,16 @@ export class ProxyConfiguration {
     /**
      * Loads proxy password if token is provided and checks access to Apify Proxy and provided proxy groups.
      * Also checks if country has access to Apify Proxy groups if the country code is provided.
-     * This function must be called before you can start using the instance in a meaningful way.
+     *
+     * The {@link Apify.createProxyConfiguration} method should be used to make calling this function not necessary
+     * because the method returns already initialized proxy configuration class.
+     * Otherwise this function must be called before you can start using the instance in a meaningful way.
      *
      * @returns {Promise<void>}
      */
     async initialize() {
-        // Set or checks the proxy password via API if token is provided
         await this._setPasswordIfToken();
 
-        // Check if user has access to apify proxy and selected proxy groups
         await this._checkAccess();
 
         // TODO: Validate proxyUrl each of custom proxies
@@ -170,7 +194,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Returns proxy username.
+     * Returns proxy username.
      * @return {string} the proxy username
      * @param {string} sessionId
      * @ignore
@@ -198,8 +222,8 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Checks if Apify Token is provided in env
-     *  and gets the password via API and sets it to env
+     * Checks if Apify Token is provided in env
+     * and gets the password via API and sets it to env
      * @returns {Promise<void>}
      * @ignore
      */
@@ -208,7 +232,10 @@ export class ProxyConfiguration {
         if (token) {
             const { proxy: { password } } = await apifyClient.users.getUser({ token, userId: 'me' });
             if (this.password) {
-                if (this.password !== password) log.warning('Your set Apify Proxy password does not match your Apify Token.');
+                if (this.password !== password) {
+                    log.warning('The Apify Proxy password you provided belongs to'
+                    + ' a different user than the Apify token you are using. Are you sure this is correct?.');
+                }
             } else {
                 this.password = password;
             }
@@ -218,7 +245,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Checks the status of Apify Proxy and throws an error if the status is not "connected".
+     * Checks the status of Apify Proxy and throws an error if the status is not "connected".
      * @returns {Promise<void>}
      * @ignore
      */
@@ -231,7 +258,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Validates if parameters groups and countryCode have correct structure
+     * Validates if parameters groups and countryCode have correct structure
      * @ignore
      */
     _validateArgumentStructure(groups, countryCode) {
@@ -246,7 +273,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Returns missing parameter error message.
+     * Returns missing parameter error message.
      * @param {string} param
      * @param {string} env
      * @return {string} - error message
@@ -257,7 +284,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Throws invalid proxy value error
+     * Throws invalid proxy value error
      * @param {string} param
      * @ignore
      */
@@ -266,7 +293,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Throws invalid country code error
+     * Throws invalid country code error
      * @param {string} code
      * @ignore
      */
@@ -275,7 +302,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     *  Throws Apify Proxy is not connected
+     * Throws Apify Proxy is not connected
      * @ignore
      */
     _throwApifyProxyConnectionError(errorMessage) {
@@ -284,27 +311,31 @@ export class ProxyConfiguration {
 }
 
 /**
- *  Creates a proxy configuration and returns a promise resolving to an instance
- *  of the {@link ProxyConfiguration} class that is already initialized.
+ * Creates a proxy configuration and returns a promise resolving to an instance
+ * of the {@link ProxyConfiguration} class that is already initialized.
  *
- *  Factory function which gets the {ProxyConfigurationOptions} proxyConfigurationOptions as a parameter and returns
- *  preconfigured {@link ProxyConfiguration} with already passed all check and validations so it should  be save
- *  to use it as a configuration for your crawler and call its methods.
+ * Proxy configuration is used to set all the proxy options to the crawler's page functions and use
+ * it for calling the requests according to the passed proxy configuration.
  *
- *  For more details and code examples, see the {@link ProxyConfiguration} class.
+ * For more details and code examples, see the {@link ProxyConfiguration} class.
  *
- *  ```javascript
+ * ```javascript
  *
- *  // Returns initialized proxy configuration class
- *  const proxyConfiguration = Apify.createProxyConfiguration({
- *      groups: ['GROUP1', 'GROUP2'] // List of Apify proxy groups
- *      countryCode: 'CZ',
- *      password: 'password123' // Your Apify proxy password
- *      hostname: 'proxy.apify.com'
- *      port: 8000
- *  });
+ * // Returns initialized proxy configuration class
+ * const proxyConfiguration = Apify.createProxyConfiguration({
+ *     groups: ['GROUP1', 'GROUP2'] // List of Apify proxy groups
+ *     countryCode: 'US'
+ * });
  *
- *  ```
+ * const crawler = new Apify.CheerioCrawler({
+ *   // ...
+ *   proxyConfiguration,
+ *   handlePageFunction: ({ proxyInfo }) => {
+ *       const usedProxyUrl = proxyInfo.url; // Getting the Proxy URL
+ *   }
+ * })
+ *
+ * ```
 * @param {ProxyConfigurationOptions} proxyConfigurationOptions
 * @returns {Promise<ProxyConfiguration>}
 * @memberof module:Apify
