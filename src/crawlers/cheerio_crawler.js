@@ -76,6 +76,9 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *
  *   // Session object, useful to work around anti-scraping protections
  *   session: Session
+ *
+ *   // ProxyInfo object, used to get information about used proxy options
+ *   proxyInfo: ProxyInfo
  * }
  * ```
  *
@@ -463,9 +466,10 @@ class CheerioCrawler {
      * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
      * @param {Session} options.session
+     * @param {ProxyInfo} options.proxyInfo
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool, session }) {
+    async _handleRequestFunction({ request, autoscaledPool, session, proxyInfo }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session }),
@@ -512,6 +516,7 @@ class CheerioCrawler {
             response,
             autoscaledPool,
             session,
+            proxyInfo,
         };
         return addTimeoutToPromise(
             this.handlePageFunction(context),
@@ -769,6 +774,8 @@ export default CheerioCrawler;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {proxyInfo} [ProxyInfo]
+ *   An object with proxy options used by the crawler and configured by the {@link ProxyConfiguration} class.
  */
 
 /**
