@@ -101,7 +101,7 @@ describe('ProxyConfiguration', () => {
         }
     });
 
-    test('should throw missing param error', () => {
+    test('should throw on missing param error', () => {
         // Missing hostname
         let opts = Object.assign({}, basicOpts);
         opts.hostname = null;
@@ -238,7 +238,7 @@ describe('Apify.createProxyConfiguration()', () => {
         stub.restore();
     });
 
-    test('should throw group is not available', async () => {
+    test('should throw when group is not available', async () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         process.env.APIFY_TOKEN = '123456789';
         const connectionError = 'Invalid username: proxy group &quot;GROUP2&quot; not found or not accessible.';
