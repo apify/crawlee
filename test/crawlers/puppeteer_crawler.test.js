@@ -1,7 +1,9 @@
 import { ENV_VARS } from 'apify-shared/consts';
+import sinon from 'sinon';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import * as utilsRequest from '../../build/utils_request';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
@@ -161,5 +163,105 @@ describe('PuppeteerCrawler', () => {
         await puppeteerCrawler.run();
         expect(loadedCookies).toHaveLength(4);
         loadedCookies.forEach(cookie => expect(cookie).toEqual('TEST=12321312312'));
+    });
+
+    describe('proxy', () => {
+        let requestList;
+        beforeEach(async () => {
+            requestList = new Apify.RequestList({
+                sources: [
+                    { url: 'http://example.com/?q=1' },
+                    { url: 'http://example.com/?q=2' },
+                    { url: 'http://example.com/?q=3' },
+                    { url: 'http://example.com/?q=4' },
+                ],
+            });
+            await requestList.initialize();
+        });
+
+        afterEach(() => {
+            requestList = null;
+        });
+
+        test('should work with proxyConfiguration', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                proxyConfiguration,
+            });
+
+            await puppeteerCrawler.run();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+
+            stub.restore();
+        });
+
+        test('handlePageFunction should expose the proxyInfo object', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+            const proxyObject = proxyConfiguration.getInfo();
+
+            const handlePageFunction = async ({ proxyInfo }) => {
+                expect(proxyInfo).toEqual(proxyObject);
+            };
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                handlePageFunction,
+                proxyConfiguration,
+            });
+
+            await puppeteerCrawler.run();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+
+            stub.restore();
+        });
+
+        test('session identifier should be correctly passed to the proxyInfo object', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+
+            const handlePageFunction = async ({ session, proxyInfo }) => {
+                expect(proxyInfo.sessionId).toEqual(session.id);
+            };
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                handlePageFunction,
+                proxyConfiguration,
+                useSessionPool: true,
+                sessionPoolOptions: {
+                    sessionOptions: { maxUsageCount: 1 },
+                },
+            });
+
+            await puppeteerCrawler.run();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+
+            stub.restore();
+        });
     });
 });
