@@ -1,6 +1,7 @@
 import fs from 'fs';
 import _ from 'underscore';
 import { ENV_VARS } from 'apify-shared/consts';
+import sinon from 'sinon';
 import log from '../build/utils_log';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
@@ -8,6 +9,7 @@ import { SessionPool } from '../build/session_pool/session_pool';
 import { BROWSER_SESSION_KEY_NAME } from '../build/puppeteer_pool';
 import { sleep } from '../build/utils';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
+import * as utilsRequest from '../build/utils_request';
 
 
 const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
@@ -553,13 +555,22 @@ describe('PuppeteerPool', () => {
                 if (pool) await pool.destroy();
             });
 
-            test('when used with useApifyProxy', async () => {
+            test('when used with proxyConfiguration', async () => {
+                process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+                const status = { connected: true };
+                const fakeCall = async () => {
+                    return { body: status };
+                };
+
+                const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+                const proxyConfiguration = Apify.createProxyConfiguration({
+                    groups: ['G1', 'G2'],
+                });
                 pool = new Apify.PuppeteerPool({
                     maxOpenPagesPerInstance: 1,
                     proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
                     launchPuppeteerOptions: {
-                        useApifyProxy: true,
-                        apifyProxyGroups: ['G1', 'G2'],
+                        proxyConfiguration,
                     },
                 });
 
@@ -567,8 +578,9 @@ describe('PuppeteerPool', () => {
                     await pool.newPage();
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.stack).toMatch('useApifyProxy');
+                    expect(err.stack).toMatch('proxyConfiguration');
                 }
+                stub.restore();
             });
 
             test('when empty', async () => {
