@@ -131,7 +131,7 @@ export const requestAsBrowser = async (options) => {
         // Users can provide headers in lowercase so we need to make sure
         // that their values are applied, but names are kept upper-case.
         headers: mergeHeaders(headers, defaultHeaders),
-        proxyUrl: getProxyUrl(proxyUrl, proxyConfiguration),
+        proxyUrl: proxyConfiguration ? proxyConfiguration.getUrl() : proxyUrl,
         abortFunction,
         ignoreSslErrors,
         insecureHTTPParser: useInsecureHttpParser,
@@ -147,10 +147,6 @@ export const requestAsBrowser = async (options) => {
         throw e;
     }
 };
-
-function getProxyUrl(proxyUrl, proxyConfiguration) {
-    return proxyConfiguration ? proxyConfiguration.getUrl() : proxyUrl;
-}
 
 function mergeHeaders(userHeaders, defaultHeaders) {
     const headers = { ...defaultHeaders, ...userHeaders };
