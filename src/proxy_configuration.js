@@ -29,9 +29,10 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  */
 
 /**
- * The main purpose of the Proxy information object is to get all necessary information about proxy options
- * used by crawler and configured by the {@link ProxyConfiguration} class.
- * This object can be also returned by calling the {@link ProxyConfiguration.getInfo} method directly.
+ * The main purpose of the Proxy information object is to get all information about
+ * the currently used proxy by the crawler.
+ * This object can be also returned by calling the {@link ProxyConfiguration.getInfo} the method directly
+ * if you need to know your configured options.
  *
  * **Example usage:**
  *
@@ -136,9 +137,8 @@ export class ProxyConfiguration {
      * Loads proxy password if token is provided and checks access to Apify Proxy and provided proxy groups.
      * Also checks if country has access to Apify Proxy groups if the country code is provided.
      *
-     * The {@link Apify.createProxyConfiguration} method should be used to make calling this function not necessary
-     * because the method returns already initialized proxy configuration class.
-     * Otherwise this function must be called before you can start using the instance in a meaningful way.
+     * You should use the {@link Apify.createProxyConfiguration} function to create a pre-initialized
+     * `ProxyConfiguration` instance instead of calling this manually.
      *
      * @returns {Promise<void>}
      */
