@@ -98,7 +98,7 @@ class PuppeteerInstance {
  * @property {boolean} [useIncognitoPages]
  *   With this option selected, all pages will be opened in a new incognito browser context, which means
  *   that they will not share cookies or cache and their resources will not be throttled by one another.
- * @property {SessionPool} ￿[sessionPool]
+ * @property {SessionPool} [sessionPool]
  *   Creates a pool of Session instances, that are randomly rotated.
  *   Old session is removed and new one is created instead when some session is marked as blocked.
  * @property {string[]} [proxyUrls]
