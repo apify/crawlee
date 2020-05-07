@@ -236,8 +236,7 @@ export const getMemoryInfo = async () => {
         && !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
 
     // module.exports must be here so that we can mock it.
-    const isDockerVar =
-        !isLambdaEnvironment && (await module.exports.isDocker());
+    const isDockerVar = !isLambdaEnvironment && (await module.exports.isDocker());
 
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
@@ -259,7 +258,7 @@ export const getMemoryInfo = async () => {
             - mainProcessBytes;
     } else {
         // Query both root and child processes
-        const processes = await psTreePromised(process.pid, true)
+        const processes = await psTreePromised(process.pid, true);
 
         processes.forEach((rec) => {
             // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
