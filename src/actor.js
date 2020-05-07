@@ -370,7 +370,10 @@ export const call = async (actId, input, options = {}) => {
             waitSecs,
         });
     } catch (err) {
-        throw new ApifyCallError({ id: run.id, actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
+        if (err.message.startsWith('Waiting for run to finish')) {
+            throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
+        }
+        throw err;
     }
 
     if (isRunUnsuccessful(updatedRun.status)) {
@@ -502,7 +505,10 @@ export const callTask = async (taskId, input, options = {}) => {
             waitSecs,
         });
     } catch (err) {
-        throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
+        if (err.message.startsWith('Waiting for run to finish')) {
+            throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
+        }
+        throw err;
     }
 
     if (isRunUnsuccessful(updatedRun.status)) {
