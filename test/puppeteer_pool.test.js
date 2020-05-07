@@ -563,7 +563,7 @@ describe('PuppeteerPool', () => {
                 };
 
                 const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
-                const proxyConfiguration = Apify.createProxyConfiguration({
+                const proxyConfiguration = await Apify.createProxyConfiguration({
                     groups: ['G1', 'G2'],
                 });
 
