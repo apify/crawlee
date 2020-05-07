@@ -77,7 +77,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   // Session object, useful to work around anti-scraping protections
  *   session: Session
  *
- *   // ProxyInfo object, used to get information about used proxy options
+ *   // ProxyInfo object, used to get information about currently used proxy by the crawler
  *   proxyInfo: ProxyInfo
  * }
  * ```
@@ -774,8 +774,9 @@ export default CheerioCrawler;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
- * @property {proxyInfo} [ProxyInfo]
- *   An object with proxy options used by the crawler and configured by the {@link ProxyConfiguration} class.
+ * @property {ProxyInfo} [proxyInfo]
+ *   An object with information about currently used proxy by the crawler
+ *   and configured by the {@link ProxyConfiguration} class.
  */
 
 /**
