@@ -77,7 +77,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   // Session object, useful to work around anti-scraping protections
  *   session: Session
  *
- *   // ProxyInfo object, used to get information about currently used proxy by the crawler
+ *   // ProxyInfo object with information about currently used proxy
  *   proxyInfo: ProxyInfo
  * }
  * ```
