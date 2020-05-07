@@ -566,20 +566,19 @@ describe('PuppeteerPool', () => {
                 const proxyConfiguration = Apify.createProxyConfiguration({
                     groups: ['G1', 'G2'],
                 });
-                pool = new Apify.PuppeteerPool({
-                    maxOpenPagesPerInstance: 1,
-                    proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-                    launchPuppeteerOptions: {
-                        proxyConfiguration,
-                    },
-                });
 
                 try {
-                    await pool.newPage();
+                    pool = new Apify.PuppeteerPool({
+                        maxOpenPagesPerInstance: 1,
+                        proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+                        proxyConfiguration,
+                    });
                     throw new Error('Invalid error.');
                 } catch (err) {
-                    expect(err.stack).toMatch('proxyConfiguration');
+                    expect(err.stack).toMatch('options.proxyConfiguration');
                 }
+
+                delete process.env[ENV_VARS.PROXY_PASSWORD];
                 stub.restore();
             });
 
