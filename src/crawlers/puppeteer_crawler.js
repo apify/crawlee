@@ -138,7 +138,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `CheerioCrawler` will be configured to use
+ *   If set, `PuppeteerCrawler` will be configured to use
  *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
  *   For more information, see the [documentation](https://docs.apify.com/proxy)
  */
@@ -239,7 +239,7 @@ class PuppeteerCrawler {
             // PuppeteerPool options and shorthands
             puppeteerPoolOptions,
             launchPuppeteerFunction,
-            launchPuppeteerOptions = {},
+            launchPuppeteerOptions,
 
             sessionPoolOptions = {},
             persistCookiesPerSession = false,
@@ -320,7 +320,7 @@ class PuppeteerCrawler {
         }
 
         if (this.proxyConfiguration) {
-            this.puppeteerPoolOptions.launchPuppeteerOptions.proxyConfiguration = this.proxyConfiguration;
+            this.puppeteerPoolOptions.proxyConfiguration = this.proxyConfiguration;
         }
 
         this.puppeteerPoolOptions.log = this.log;
