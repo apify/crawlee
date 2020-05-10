@@ -165,17 +165,27 @@ const main = async () => {
     const typeFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'typedefs');
 
     /* get template data */
-    const templateData = await jsdoc2md.getTemplateData({ files: sourceFiles });
+    let templateData = await jsdoc2md.getTemplateData({ files: sourceFiles });
 
     // handle examples
     await getExamplesFromRepo();
 
+    const EMPTY = {};
+
     /* reduce templateData to an array of class names */
     templateData.forEach((identifier) => {
-        if (identifier.kind === 'class' && !identifier.ignore) classNames.push(identifier.name);
+        if (identifier.kind === 'class' && !identifier.ignore) {
+            classNames.push(identifier.name);
+            if (identifier.hideconstructor) {
+                const idx = templateData.findIndex(i => i.id === `${identifier.name}()`);
+                templateData[idx] = EMPTY;
+            }
+        }
         if (identifier.kind === 'namespace' && !identifier.ignore) namespaces.push(identifier.name);
         if (identifier.kind === 'typedef' && !identifier.ignore) typedefs.push(identifier.name);
     });
+
+    templateData = templateData.filter(d => d !== EMPTY);
 
     // build a map of all available entities for link generation.
     // Apify needs to be added manually since its actually a module

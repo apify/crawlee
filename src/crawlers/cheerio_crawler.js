@@ -14,6 +14,7 @@ import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import defaultLog from '../utils_log';
+import CrawlerExtension from './crawler_extension';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -396,6 +397,7 @@ class CheerioCrawler {
         this.prepareRequestFunction = prepareRequestFunction;
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
+        this.sessionPoolOptions = sessionPoolOptions;
 
         /** @ignore */
         this.basicCrawler = new BasicCrawler({
@@ -436,6 +438,42 @@ class CheerioCrawler {
         this.autoscaledPool = this.basicCrawler.autoscaledPool;
 
         await this.isRunningPromise;
+    }
+
+    /**
+     * Function for attaching CrawlerExtensions such as the Unblockers.
+     * @param extension - Crawler extension that overrides the crawler configuration.
+     */
+    use(extension) {
+        const inheritsFromCrawlerExtension = extension instanceof CrawlerExtension;
+
+        if (!inheritsFromCrawlerExtension) {
+            throw new Error('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
+        }
+
+        const extensionOptions = extension.getCrawlerOptions();
+
+        for (const [key, value] of Object.entries(extensionOptions)) {
+            const isConfigurable = this.hasOwnProperty(key); // eslint-disable-line
+            const originalType = typeof this[key];
+            const extensionType = typeof value; // What if we want to null something? It is really needed?
+            const isSameType = originalType === extensionType || value == null; // fast track for deleting keys
+            const exists = this[key] != null;
+
+            if (!isConfigurable) { // Test if the property can be configured on the crawler
+                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on CheerioCrawler instance.`);
+            }
+
+            if (!isSameType && exists) { // Assuming that extensions will only add up configuration
+                throw new Error(
+                    `${extension.name} tries to set property of different type "${extensionType}". "CheerioCrawler.${key}: ${originalType}".`,
+                );
+            }
+
+            this.log.warning(`${extension.name} is overriding "CheerioCrawler.${key}: ${originalType}" with ${value}.`);
+
+            this[key] = value;
+        }
     }
 
     /**
