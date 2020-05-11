@@ -1,3 +1,15 @@
+NEXT
+====================
+- Add `Apify.utils.waitForRunToFinish()` which simplifies waiting for an actor run to finish.
+- Add standard prefixes to log messages to improve readability and orientation in logs.
+- Add support for `async` handlers in `Apify.utils.puppeteer.addInterceptRequestHandler()`
+- EXPERIMENTAL: Add `cheerioCrawler.use()` function to enable attaching `CrawlerExtension`
+  to the crawler to modify its behavior. A plugin that extends functionality.
+- Fix bug with cookie expiry in `SessionPool`.
+- Fix issues in documentation.
+- Updated Puppeteer to 3.0.2
+
+
 0.20.3 / 2020-04-14
 ====================
 - **DEPRECATED:** `CheerioCrawlerOptions.requestOptions` is now deprecated. Please use

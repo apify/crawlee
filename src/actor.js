@@ -2,18 +2,27 @@ import * as path from 'path';
 import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_TERMINAL_STATUSES, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import log from './utils_log';
 import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
 import { initializeEvents, stopEvents } from './events';
-import { apifyClient, addCharsetToContentType, sleep, snakeCaseToCamelCase, isAtHome, logSystemInfo, printOutdatedSdkWarning } from './utils';
+import {
+    apifyClient,
+    addCharsetToContentType,
+    sleep,
+    snakeCaseToCamelCase,
+    isAtHome,
+    logSystemInfo,
+    printOutdatedSdkWarning,
+    waitForRunToFinish,
+} from './utils';
 import { maybeStringify } from './key_value_store';
-import { ApifyCallError } from './errors';
-
-const METAMORPH_AFTER_SLEEP_MILLIS = 300000;
 
 // eslint-disable-next-line import/named,no-unused-vars,import/first
 import { ActorRun } from './typedefs';
+import { ApifyCallError } from './errors';
+
+const METAMORPH_AFTER_SLEEP_MILLIS = 300000;
 
 /**
  * Tries to parse a string with date.
@@ -24,56 +33,6 @@ import { ActorRun } from './typedefs';
 const tryParseDate = (str) => {
     const unix = Date.parse(str);
     return unix > 0 ? new Date(unix) : undefined;
-};
-
-/**
- * Waits for given run to finish. If "waitSecs" is reached then returns unfinished run.
- *
- * @ignore
- */
-const waitForRunToFinish = async ({ actId, runId, token, waitSecs, taskId }) => {
-    let updatedRun;
-
-    const { acts } = apifyClient;
-    const startedAt = Date.now();
-    const shouldRepeat = () => {
-        if (waitSecs && (Date.now() - startedAt) / 1000 >= waitSecs) return false;
-        if (updatedRun && ACT_JOB_TERMINAL_STATUSES.includes(updatedRun.status)) return false;
-
-        return true;
-    };
-
-    const getRunOpts = { actId, runId };
-    if (token) getRunOpts.token = token;
-
-    while (shouldRepeat()) {
-        getRunOpts.waitForFinish = waitSecs
-            ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
-            : 999999;
-
-        updatedRun = await acts.getRun(getRunOpts);
-
-        // It might take some time for database replicas to get up-to-date,
-        // so getRun() might return null. Wait a little bit and try it again.
-        if (!updatedRun) await sleep(250);
-    }
-
-    if (!updatedRun) {
-        throw new ApifyCallError({ id: runId, actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
-    }
-    const { status } = updatedRun;
-    if (
-        status !== ACT_JOB_STATUSES.SUCCEEDED
-        && status !== ACT_JOB_STATUSES.RUNNING
-        && status !== ACT_JOB_STATUSES.READY
-    ) {
-        const message = taskId
-            ? `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`
-            : `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${runId}`;
-        throw new ApifyCallError(updatedRun, message);
-    }
-
-    return updatedRun;
 };
 
 /**
@@ -402,12 +361,25 @@ export const call = async (actId, input, options = {}) => {
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
-    const updatedRun = await waitForRunToFinish({
-        actId,
-        runId: run.id,
-        token,
-        waitSecs,
-    });
+    let updatedRun;
+    try {
+        updatedRun = await waitForRunToFinish({
+            actorId: actId,
+            runId: run.id,
+            token,
+            waitSecs,
+        });
+    } catch (err) {
+        if (err.message.startsWith('Waiting for run to finish')) {
+            throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
+        }
+        throw err;
+    }
+
+    if (isRunUnsuccessful(updatedRun.status)) {
+        const message = `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
+        throw new ApifyCallError(updatedRun, message);
+    }
 
     // Finish if output is not requested or run haven't finished.
     const { fetchOutput = true } = options;
@@ -524,13 +496,26 @@ export const callTask = async (taskId, input, options = {}) => {
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
-    const updatedRun = await waitForRunToFinish({
-        actId: run.actId,
-        runId: run.id,
-        token,
-        waitSecs,
-        taskId,
-    });
+    let updatedRun;
+    try {
+        updatedRun = await waitForRunToFinish({
+            actorId: run.actId,
+            runId: run.id,
+            token,
+            waitSecs,
+        });
+    } catch (err) {
+        if (err.message.startsWith('Waiting for run to finish')) {
+            throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
+        }
+        throw err;
+    }
+
+    if (isRunUnsuccessful(updatedRun.status)) {
+        // TODO It should be callTask in the message, but I'm keeping it this way not to introduce a breaking change.
+        const message = `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
+        throw new ApifyCallError(updatedRun, message);
+    }
 
     // Finish if output is not requested or run haven't finished.
     const { fetchOutput = true } = options;
@@ -547,6 +532,12 @@ export const callTask = async (taskId, input, options = {}) => {
 
     return Object.assign({}, updatedRun, { output });
 };
+
+function isRunUnsuccessful(status) {
+    return status !== ACT_JOB_STATUSES.SUCCEEDED
+        && status !== ACT_JOB_STATUSES.RUNNING
+        && status !== ACT_JOB_STATUSES.READY;
+}
 
 
 /**
