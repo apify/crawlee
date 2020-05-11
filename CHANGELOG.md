@@ -1,4 +1,22 @@
-NEXT
+0.21.0 / NEXT
+====================
+This release comes with a redesigned proxy configuration. All crawlers now accept
+a `proxyConfiguration` parameter, which is an instance of `ProxyConfiguration`.
+Apify Proxy is now exclusively serviced by this class. In the next release,
+custom proxy management will move to `ProxyConfiguration` as well.
+
+- **BREAKING:** Removed `Apify.getApifyProxyUrl()`. To get an Apify Proxy url,
+  use `proxyConfiguration.getUrl([sessionId])`.
+- **BREAKING:** Removed `useApifyProxy`, `apifyProxyGroups` and `apifyProxySession` parameters
+  from all applications in the SDK. Use `proxyConfiguration` in crawlers and `proxyUrl`
+  in `requestAsBrowser` and `Apify.launchPuppeteer`.
+- Add `Apify.createProxyConfiguration()` `async` function to create `ProxyConfiguration`
+  instances. `ProxyConfiguration` itself is not exposed.
+- Add `proxyConfiguration` to `BasicCrawlerOptions`, `CheerioCrawlerOptions`
+  and `PuppeteerCrawlerOptions`.
+
+
+0.20.4 / 2020-05-11
 ====================
 - Add `Apify.utils.waitForRunToFinish()` which simplifies waiting for an actor run to finish.
 - Add standard prefixes to log messages to improve readability and orientation in logs.
@@ -7,6 +25,7 @@ NEXT
   to the crawler to modify its behavior. A plugin that extends functionality.
 - Fix bug with cookie expiry in `SessionPool`.
 - Fix issues in documentation.
+- Updated `@apify/http-request` to fix issue in the `proxy-agent` package.
 - Updated Puppeteer to 3.0.2
 
 
