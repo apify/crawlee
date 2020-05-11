@@ -1,4 +1,5 @@
 import * as psTree from '@apify/ps-tree';
+import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -230,34 +231,63 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * @function
  */
 export const getMemoryInfo = async () => {
-    const [isDockerVar, processes] = await Promise.all([
-        // module.exports must be here so that we can mock it.
-        module.exports.isDocker(),
-        // Query both root and child processes
-        psTreePromised(process.pid, true),
-    ]);
+    // lambda does *not* have `ps` and other command line tools
+    // required to extract memory usage.
+    const isLambdaEnvironment = process.platform === 'linux'
+        && !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
+
+    // module.exports must be here so that we can mock it.
+    const isDockerVar = !isLambdaEnvironment && (await module.exports.isDocker());
 
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
-    processes.forEach((rec) => {
-        // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
-        if (rec.COMMAND === 'ps' || rec.COMMAND === 'WMIC.exe') {
-            return;
-        }
-        const bytes = parseInt(rec.RSS, 10);
-        // Obtain main process' memory separately
-        if (rec.PID === `${process.pid}`) {
-            mainProcessBytes = bytes;
-            return;
-        }
-        childProcessesBytes += bytes;
-    });
+
+    if (isLambdaEnvironment) {
+        // reported in bytes
+        mainProcessBytes = process.memoryUsage().rss;
+
+        // https://stackoverflow.com/a/55914335/129415
+        childProcessesBytes = execSync('cat /proc/meminfo')
+            .toString()
+            .split(/[\n: ]/)
+            .filter(val => val.trim())[19]
+            // meminfo reports in kb, not bytes
+            * 1000
+            // the total used memory is reported by meminfo
+            // subtract memory used by the main node proces
+            // in order to infer memory used by any child processes
+            - mainProcessBytes;
+    } else {
+        // Query both root and child processes
+        const processes = await psTreePromised(process.pid, true);
+
+        processes.forEach((rec) => {
+            // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
+            if (rec.COMMAND === 'ps' || rec.COMMAND === 'WMIC.exe') {
+                return;
+            }
+            const bytes = parseInt(rec.RSS, 10);
+            // Obtain main process' memory separately
+            if (rec.PID === `${process.pid}`) {
+                mainProcessBytes = bytes;
+                return;
+            }
+            childProcessesBytes += bytes;
+        });
+    }
 
     let totalBytes;
-    let freeBytes;
     let usedBytes;
+    let freeBytes;
 
-    if (!isDockerVar) {
+    if (isLambdaEnvironment) {
+        // memory size is defined in megabytes
+        totalBytes = parseInt(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE, 10) * 1000000;
+        usedBytes = mainProcessBytes + childProcessesBytes;
+        freeBytes = totalBytes - usedBytes;
+
+        log.debug(`lambda size of ${totalBytes} with ${freeBytes} free bytes`);
+    } else if (!isDockerVar) {
         totalBytes = os.totalmem();
         freeBytes = os.freemem();
         usedBytes = totalBytes - freeBytes;
