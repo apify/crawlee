@@ -183,7 +183,7 @@ describe('PuppeteerCrawler', () => {
             requestList = null;
         });
 
-        test('should work with proxyConfiguration', async () => {
+        test('browser should launch with correct proxyUrl', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const status = { connected: true };
             const fakeCall = async () => {
@@ -191,21 +191,32 @@ describe('PuppeteerCrawler', () => {
             };
 
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
-
             const proxyConfiguration = await Apify.createProxyConfiguration();
+            const generatedProxyUrl = proxyConfiguration.getUrl();
+            let browserProxy;
+            const launchPuppeteerFunction = async (opts) => {
+                browserProxy = opts.proxyUrl;
+                const browser = await Apify.launchPuppeteer(opts);
+
+                return browser;
+            };
+
             const puppeteerCrawler = new Apify.PuppeteerCrawler({
                 requestList,
                 handlePageFunction: async () => {},
+                launchPuppeteerFunction,
                 proxyConfiguration,
             });
 
             await puppeteerCrawler.run();
             delete process.env[ENV_VARS.PROXY_PASSWORD];
 
+            expect(browserProxy).toEqual(generatedProxyUrl);
+
             stub.restore();
         });
 
-        test('handlePageFunction should expose the proxyInfo object', async () => {
+        test('handlePageFunction should expose the proxyInfo object with sessions correctly', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const status = { connected: true };
             const fakeCall = async () => {
@@ -215,37 +226,11 @@ describe('PuppeteerCrawler', () => {
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
-            const proxyObject = proxyConfiguration.getInfo();
-
-            const handlePageFunction = async ({ proxyInfo }) => {
-                expect(proxyInfo).toEqual(proxyObject);
-            };
-
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
-                requestList,
-                handlePageFunction,
-                proxyConfiguration,
-            });
-
-            await puppeteerCrawler.run();
-            delete process.env[ENV_VARS.PROXY_PASSWORD];
-
-            stub.restore();
-        });
-
-        test('session identifier should be correctly passed to the proxyInfo object', async () => {
-            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
-
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
-
-            const proxyConfiguration = await Apify.createProxyConfiguration();
-
+            const proxies = [];
+            const sessions = [];
             const handlePageFunction = async ({ session, proxyInfo }) => {
-                expect(proxyInfo.sessionId).toEqual(session.id);
+                proxies.push(proxyInfo);
+                sessions.push(session);
             };
 
             const puppeteerCrawler = new Apify.PuppeteerCrawler({
@@ -254,13 +239,18 @@ describe('PuppeteerCrawler', () => {
                 proxyConfiguration,
                 useSessionPool: true,
                 sessionPoolOptions: {
-                    sessionOptions: { maxUsageCount: 1 },
+                    maxPoolSize: 1,
                 },
             });
 
             await puppeteerCrawler.run();
-            delete process.env[ENV_VARS.PROXY_PASSWORD];
 
+            expect(proxies[0]).toEqual(proxyConfiguration.getInfo(sessions[0].id));
+            expect(proxies[1]).toEqual(proxyConfiguration.getInfo(sessions[1].id));
+            expect(proxies[2]).toEqual(proxyConfiguration.getInfo(sessions[2].id));
+            expect(proxies[3]).toEqual(proxyConfiguration.getInfo(sessions[3].id));
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
         });
     });
