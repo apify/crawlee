@@ -12,6 +12,8 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 
 /**
  * @typedef ProxyConfigurationOptions
+ * @property {string} [password] - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
+ *   environment variable, which is automatically set by the system when running the actors.
  * @property {string[]} [groups] - An array of proxy groups to be used
  *   by the [Apify Proxy](https://docs.apify.com/proxy). If not provided, the proxy will select
  *   the groups automatically.
@@ -23,13 +25,7 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *   an IP address from a random country. The country code needs to be a two letter ISO country code. See the
  *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
  *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
- * @property {string} [password] - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
- *   environment variable, which is automatically set by the system when running the actors
  *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
- * @property {string} [hostname] - Hostname of your proxy. This property is set using the respective env vars so
- *  there is no need to add it manually.
- * @property {string} [port] - Proxy port. This property is set using the respective env vars so
- *  there is no need to add it manually.
  * @property {string[]} [apifyProxyGroups] - Same option as `groups` which can be used to
  *  configurate the proxy by UI input schema. You should use the `groups` option in your crawler code.
  * @property {string} [apifyProxyCountry] - Same option as `countryCode` which can be used to

@@ -108,6 +108,9 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   If set, `BasicCrawler` will be configured to use
  *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
  *   For more information, see the [documentation](https://docs.apify.com/proxy)
+ *
+ *   The proxyConfiguration only provides access to the proxyInfo object but the `BasicCrawler` itself
+ *   is not responsible for using that proxy information to make the proxied HTTP requests.
  */
 
 /**
