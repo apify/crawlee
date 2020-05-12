@@ -64,7 +64,6 @@ afterAll(() => {
 
 describe('Apify.launchPuppeteer()', () => {
     test('throws on invalid args', () => {
-        const proxyConfiguration = new ProxyConfiguration();
         expect(Apify.launchPuppeteer('some non-object')).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer(1234)).rejects.toThrow(Error);
 
@@ -77,7 +76,6 @@ describe('Apify.launchPuppeteer()', () => {
         expect(Apify.launchPuppeteer({ proxyUrl: 'socks4://user:pass@example.com:1234' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'xxx', proxyConfiguration })).rejects.toThrow(Error);
 
         expect(Apify.launchPuppeteer({ args: 'wrong args' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ args: [12, 34] })).rejects.toThrow(Error);
@@ -203,36 +201,6 @@ describe('Apify.launchPuppeteer()', () => {
         } finally {
             spy.restore();
             if (browser) await browser.close();
-        }
-    });
-
-    test('should allow to use proxyConfiguration', async () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-        const status = { connected: true };
-        const fakeCall = async () => {
-            return { body: status };
-        };
-
-        const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
-        const proxyConfiguration = await Apify.createProxyConfiguration({
-            groups: ['GROUPyyy'],
-        });
-
-        try {
-            await Apify
-                .launchPuppeteer({
-                    proxyConfiguration,
-                    apifyProxySession: 'session_xxx',
-                    headless: true,
-                })
-                .then(browser => browser.close());
-        } finally {
-            stub.restore();
-            delete process.env[ENV_VARS.PROXY_PASSWORD];
-            delete process.env[ENV_VARS.PROXY_HOSTNAME];
-            delete process.env[ENV_VARS.PROXY_PORT];
         }
     });
 

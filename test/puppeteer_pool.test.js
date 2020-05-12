@@ -519,6 +519,48 @@ describe('PuppeteerPool', () => {
         });
     });
 
+    describe('the proxyConfiguration', () => {
+        test('correctly creates the proxyUrl', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+            const proxyConfiguration = await Apify.createProxyConfiguration({
+                groups: ['G1', 'G2'],
+            });
+
+            const optionsLog = [];
+            const pool = new Apify.PuppeteerPool({
+                maxOpenPagesPerInstance: 1,
+                proxyConfiguration,
+                launchPuppeteerFunction: async (launchOpts) => {
+                    optionsLog.push(launchOpts);
+                    return launchPuppeteer(launchOpts);
+                },
+            });
+
+            const proxyUrl = pool.proxyConfiguration.getUrl();
+            // Open 4 browsers to do rotation cycle
+            await pool.newPage();
+            await pool.newPage();
+            await pool.newPage();
+            await pool.newPage();
+            await pool.destroy();
+
+            expect(optionsLog).toHaveLength(4);
+            expect(optionsLog[0].proxyUrl).toEqual(proxyUrl);
+            expect(optionsLog[1].proxyUrl).toEqual(proxyUrl);
+            expect(optionsLog[2].proxyUrl).toEqual(proxyUrl);
+            expect(optionsLog[3].proxyUrl).toEqual(proxyUrl);
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+            stub.restore();
+        });
+    });
+
     describe('the proxyUrls parameter', () => {
         test('supports rotation of custom proxies', async () => {
             const optionsLog = [];
