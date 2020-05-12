@@ -1,10 +1,9 @@
 import * as path from 'path';
 import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, INTEGER_ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import log from './utils_log';
-import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
+import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import {
     apifyClient,
