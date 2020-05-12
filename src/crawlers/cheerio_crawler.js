@@ -424,8 +424,9 @@ class CheerioCrawler {
     }
 
     /**
+     * **EXPERIMENTAL**
      * Function for attaching CrawlerExtensions such as the Unblockers.
-     * @param extension - Crawler extension that overrides the crawler configuration.
+     * @param {CrawlerExtension} extension - Crawler extension that overrides the crawler configuration.
      */
     use(extension) {
         const inheritsFromCrawlerExtension = extension instanceof CrawlerExtension;
