@@ -8,8 +8,6 @@ import sinon from 'sinon';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as utils from '../build/utils';
-import { ProxyConfiguration } from '../build/proxy_configuration';
-import * as utilsRequest from '../build/utils_request';
 
 let prevEnvHeadless;
 let proxyServer;
