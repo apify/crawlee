@@ -176,6 +176,7 @@ export class ProxyConfiguration {
      * @return {ProxyInfo} represents information about used proxy configuration.
      */
     getInfo(sessionId) {
+        if (sessionId) this._validateSessionArgumentStructure(sessionId);
         const { groups, countryCode, password, port, hostname } = this;
         const url = this.getUrl(sessionId);
 
@@ -201,6 +202,7 @@ export class ProxyConfiguration {
      * @return {string} represents the proxy URL.
      */
     getUrl(sessionId) {
+        if (sessionId) this._validateSessionArgumentStructure(sessionId);
         const username = this._getUsername(sessionId);
         const { password, hostname, port } = this;
 
@@ -272,7 +274,15 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Validates if parameters groups and countryCode have correct structure
+     * Validates session argument correct structure
+     * @ignore
+     */
+    _validateSessionArgumentStructure(sessionId) {
+        if (!APIFY_PROXY_VALUE_REGEX.test(sessionId)) this._throwInvalidProxyValueError(sessionId);
+    }
+
+    /**
+     * Validates groups and countryCode options correct structure
      * @ignore
      */
     _validateArgumentStructure(groups, countryCode) {
