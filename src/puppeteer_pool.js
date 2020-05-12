@@ -128,23 +128,19 @@ class PuppeteerInstance {
  * **Example usage:**
  *
  * ```javascript
- * const proxyConfiguration = await Apify.createProxyConfiguration({
- *   groups: ['GROUP1', 'GROUP2'],
- *   countryCode: 'US',
- * });
- *
+ * // List of custom proxy URLs
+ * const proxyUrls = ['http://bob:pass123@proxy.example.com:1234', 'http://alice:pass123@proxy.example.com:4321'];
  * const puppeteerPool = new PuppeteerPool({
  *   launchPuppeteerFunction: () => {
- *     // Use a new proxy with a new IP address for each new Chrome instance
+ *     // Use a new custom proxy with a new IP address for each new Chrome instance
  *     return Apify.launchPuppeteer({
- *        proxyConfiguration
+ *        proxyUrls,
  *     });
  *   },
  * });
  *
  * const page1 = await puppeteerPool.newPage();
  * const page2 = await puppeteerPool.newPage();
- * const page3 = await puppeteerPool.newPage();
  *
  * // ... do something with the pages ...
  *
