@@ -62,7 +62,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool[key]).toEqual(value);
         });
         // log is appended to sessionOptions after sessionPool instantiation
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: jasmine.any(defaultLog.Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
 
         const store = await Apify.openKeyValueStore('TEST');
         await store.drop();
@@ -91,7 +91,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool[key]).toEqual(value);
         });
         // log is appended to sessionOptions after sessionPool instantiation
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: jasmine.any(defaultLog.Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
 
         const store = await Apify.openKeyValueStore('TEST');
         await store.drop();
