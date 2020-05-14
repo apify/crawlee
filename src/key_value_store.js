@@ -3,7 +3,6 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as contentTypeParser from 'content-type';
 import * as mime from 'mime-types';
-import * as LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
@@ -12,6 +11,7 @@ import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
+import globalCache from './global_cache';
 import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
@@ -27,7 +27,7 @@ const statPromised = promisify(fs.stat);
 const emptyDirPromised = promisify(fs.emptyDir);
 
 const { keyValueStores } = apifyClient;
-const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
+const storesCache = globalCache.create('key-value-store-cache', MAX_OPENED_STORES); // Open key-value stores are stored here.
 
 /**
  * Helper function to validate params of *.getValue().

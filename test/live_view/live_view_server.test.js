@@ -4,15 +4,13 @@ import fs from 'fs-extra';
 import io from 'socket.io-client';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import Apify from '../../build/index';
-import { LOCAL_STORAGE_DIR } from '../_helper';
 import LiveViewServer from '../../build/live_view/live_view_server';
 import { requestAsBrowser } from '../../build/utils_request';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 const { utils: { log } } = Apify;
-const emptyDir = promisify(fs.emptyDir);
 const readdir = promisify(fs.readdir);
 
-const LOCAL_STORAGE_SUBDIR = path.join(LOCAL_STORAGE_DIR, 'live_view');
 const PORT = LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT];
 const BASE_URL = `http://localhost:${PORT}`;
 
@@ -34,19 +32,26 @@ describe('LiveViewServer', () => {
         content: async () => 'content',
         screenshot: async () => `screenshot${count++}`,
     };
-    beforeEach(() => {
+    let localStorageDirEmulator;
+    let localStorageSubDir;
+
+    beforeAll(() => {
+        localStorageDirEmulator = new LocalStorageDirEmulator();
+    });
+
+    beforeEach(async () => {
+        const localStorageDir = await localStorageDirEmulator.init();
+        localStorageSubDir = path.join(localStorageDir, 'live_view');
         count = 0;
         lvs = new LiveViewServer({
-            screenshotDirectoryPath: LOCAL_STORAGE_SUBDIR,
+            screenshotDirectoryPath: localStorageSubDir,
             maxScreenshotFiles: 2,
             maxSnapshotFrequencySecs: 0,
         });
     });
 
-    afterEach(async () => {
-        count = null;
-        lvs = null;
-        await emptyDir(LOCAL_STORAGE_SUBDIR);
+    afterAll(async () => {
+        await localStorageDirEmulator.destroy();
     });
 
     test('should construct', async () => {
@@ -73,11 +78,11 @@ describe('LiveViewServer', () => {
         await lvs.start();
         expect(lvs.hasClients()).toBe(true);
         await lvs.serve(fakePage);
-        let files = await readdir(LOCAL_STORAGE_SUBDIR);
+        let files = await readdir(localStorageSubDir);
         expect(files.length).toBe(1);
         expect(lvs.hasClients()).toBe(false);
         await lvs.serve(fakePage);
-        files = await readdir(LOCAL_STORAGE_SUBDIR);
+        files = await readdir(localStorageSubDir);
         expect(files.length).toBe(1);
         await lvs.stop();
     });
@@ -122,7 +127,7 @@ describe('LiveViewServer', () => {
             }
             const files = await new Promise((resolve, reject) => {
                 const interval = setInterval(async () => {
-                    const files = await readdir(LOCAL_STORAGE_SUBDIR); // eslint-disable-line no-shadow
+                    const files = await readdir(localStorageSubDir); // eslint-disable-line no-shadow
                     if (files.length === 2) {
                         clearInterval(interval);
                         resolve(files);
