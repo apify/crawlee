@@ -12,18 +12,16 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 describe('BasicCrawler', () => {
     let logLevel;
     let localStorageEmulator;
-    let LOCAL_STORAGE_DIR;
+    let localStorageDir;
 
     beforeAll(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.OFF);
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
-        LOCAL_STORAGE_DIR = localStorageEmulator.localStorageDir;
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.clean();
+        localStorageDir = await localStorageEmulator.init();
     });
 
     afterAll(async () => {
@@ -265,7 +263,7 @@ describe('BasicCrawler', () => {
 
     test('should also support RequestQueueLocal', () => {
         const requestQueue = new RequestQueue('xxx');
-        const requestQueueLocal = new RequestQueueLocal('xxx', LOCAL_STORAGE_DIR);
+        const requestQueueLocal = new RequestQueueLocal('xxx', localStorageDir);
         const handleRequestFunction = () => {};
 
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).not.toThrowError();
