@@ -14,10 +14,9 @@ describe('PuppeteerCrawler', () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
     });
-    afterEach(async () => {
-        await localStorageEmulator.clean();
+    beforeEach(async () => {
+        await localStorageEmulator.init();
     });
     afterAll(async () => {
         log.setLevel(logLevel);

@@ -13,17 +13,15 @@ describe('SessionPool - testing session pool', () => {
 
     beforeAll(async () => {
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.clean();
+        await localStorageEmulator.init();
         sessionPool = await Apify.openSessionPool();
     });
 
     afterEach(async () => {
         events.removeAllListeners(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
-        await localStorageEmulator.clean();
     });
 
     afterAll(async () => {
@@ -63,9 +61,6 @@ describe('SessionPool - testing session pool', () => {
         });
         // log is appended to sessionOptions after sessionPool instantiation
         expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
-
-        const store = await Apify.openKeyValueStore('TEST');
-        await store.drop();
     });
 
     test('should work using openSessionPool', async () => {
@@ -92,9 +87,6 @@ describe('SessionPool - testing session pool', () => {
         });
         // log is appended to sessionOptions after sessionPool instantiation
         expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
-
-        const store = await Apify.openKeyValueStore('TEST');
-        await store.drop();
     });
 
     describe('should retrieve session', () => {
@@ -125,29 +117,26 @@ describe('SessionPool - testing session pool', () => {
             expect(isCalled).toBe(true); //eslint-disable-line
         });
 
-        test(
-            'should delete picked session when it is usable a create a new one',
-            async () => {
-                sessionPool.maxPoolSize = 1;
-                await sessionPool.getSession();
-                const session = sessionPool.sessions[0];
+        test('should delete picked session when it is usable a create a new one', async () => {
+            sessionPool.maxPoolSize = 1;
+            await sessionPool.getSession();
+            const session = sessionPool.sessions[0];
 
-                session.errorScore += session.maxErrorScore;
-                let isCalled = false;
-                const oldRemove = sessionPool._removeSession; //eslint-disable-line
+            session.errorScore += session.maxErrorScore;
+            let isCalled = false;
+            const oldRemove = sessionPool._removeSession; //eslint-disable-line
 
-                sessionPool._removeSession = (session) => { //eslint-disable-line
-                    isCalled = true;
-                    return oldRemove.bind(sessionPool)(session);
-                };
+            sessionPool._removeSession = (session) => { //eslint-disable-line
+                isCalled = true;
+                return oldRemove.bind(sessionPool)(session);
+            };
 
-                await sessionPool.getSession();
+            await sessionPool.getSession();
 
                 expect(isCalled).toBe(true); //eslint-disable-line
                 expect(sessionPool.sessions[0].id === session.id).toBe(false); //eslint-disable-line
-                expect(sessionPool.sessions).toHaveLength(1);
-            },
-        );
+            expect(sessionPool.sessions).toHaveLength(1);
+        });
     });
 
     test('get state should work', async () => {

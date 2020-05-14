@@ -95,11 +95,10 @@ describe('CheerioCrawler', () => {
         server = await startExpressAppPromise(app, 0);
         port = server.address().port; //eslint-disable-line
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
     });
 
-    afterEach(async () => {
-        await localStorageEmulator.clean();
+    beforeEach(async () => {
+        await localStorageEmulator.init();
     });
 
     afterAll(async () => {
@@ -533,7 +532,7 @@ describe('CheerioCrawler', () => {
             }
         });
 
-        test('always when using "!"', async () => {
+        test('always when forced', async () => {
             const forceResponseEncoding = 'win1250';
             const buf = iconv.encode(html, forceResponseEncoding);
             // Ensure it's really encoded.
@@ -554,11 +553,6 @@ describe('CheerioCrawler', () => {
                 expect(string).toBe(html);
             }
         });
-    });
-
-    test('should encode responses using responseEncoding', async () => {
-
-
     });
 
     describe('proxy', () => {
@@ -719,7 +713,6 @@ describe('CheerioCrawler', () => {
         let requestList;
 
         beforeEach(async () => {
-            await localStorageEmulator.clean();
             requestList = await Apify.openRequestList('test', sources.slice());
         });
 

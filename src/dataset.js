@@ -3,9 +3,9 @@ import { promisify } from 'util';
 import * as fs from 'fs-extra';
 import * as _ from 'underscore';
 import { leftpad } from 'apify-shared/utilities';
-import * as LruCache from 'apify-shared/lru_cache';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
+import globalCache from './global_cache';
 import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 import log from './utils_log';
 
@@ -13,7 +13,7 @@ export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 export const LOCAL_FILENAME_DIGITS = 9;
 export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
-const MAX_OPENED_STORES = 1000;
+const MAX_OPENED_DATASETS = 1000;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
 const writeFilePromised = promisify(fs.writeFile);
@@ -25,7 +25,7 @@ const emptyDirPromised = promisify(fs.emptyDir);
 const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
 
 const { datasets } = apifyClient;
-const datasetsCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open Datasets are stored here.
+const datasetsCache = globalCache.create('dataset-cache', MAX_OPENED_DATASETS); // Open Datasets are stored here.
 
 /**
  * Accepts a JSON serializable object as an input, validates its serializability,

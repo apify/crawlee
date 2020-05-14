@@ -656,11 +656,10 @@ describe('PuppeteerPool', () => {
 
         beforeAll(async () => {
             localStorageEmulator = new LocalStorageDirEmulator();
-            await localStorageEmulator.init();
         });
 
-        afterEach(async () => {
-            await localStorageEmulator.clean();
+        beforeEach(async () => {
+            await localStorageEmulator.init();
         });
 
         afterAll(async () => {

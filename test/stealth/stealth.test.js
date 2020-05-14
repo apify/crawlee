@@ -20,11 +20,10 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     beforeAll(async () => {
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.clean();
+        await localStorageEmulator.init();
     });
 
     afterAll(async () => {

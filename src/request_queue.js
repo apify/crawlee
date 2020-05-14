@@ -7,6 +7,7 @@ import * as ListDictionary from 'apify-shared/list_dictionary';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
+import globalCache from './global_cache';
 import {
     ensureDirExists, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists, sleep,
 } from './utils';
@@ -36,7 +37,7 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
 const { requestQueues } = apifyClient;
-const queuesCache = new LruCache({ maxLength: MAX_OPENED_QUEUES }); // Open queues are stored here.
+const queuesCache = globalCache.create('request-queue-cache', MAX_OPENED_QUEUES); // Open queues are stored here.
 
 /**
  * Helper function to validate params of *.addRequest().
