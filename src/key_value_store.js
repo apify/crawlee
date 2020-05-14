@@ -252,12 +252,9 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @param {(Object|string|Buffer|null)} value
      *   Record data, which can be one of the following values:
-     *   <ul>
-     *     <li>If `null`, the record in the key-value store is deleted.</li>
-     *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
-     *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-     *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
-     *   </ul>
+     *    - If `null`, the record in the key-value store is deleted.
+     *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
+     *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
      *   For any other value an error will be thrown.
      * @param {Object} [options]
      * @param {string} [options.contentType]
@@ -671,12 +668,9 @@ export const getValue = async (key) => {
  *   Unique record key.
  * @param {object} value
  *   Record data, which can be one of the following values:
- *   <ul>
- *     <li>If `null`, the record in the key-value store is deleted.</li>
- *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
- *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
- *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
- *   </ul>
+ *    - If `null`, the record in the key-value store is deleted.
+ *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
+ *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
  *   For any other value an error will be thrown.
  * @param {Object} [options]
  * @param {string} [options.contentType]
