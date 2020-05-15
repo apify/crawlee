@@ -77,8 +77,6 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
  *   By default, the function invokes {@link puppeteer#gotoExtended} with a timeout of 60 seconds.
- *   For details, see source code on
- *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L292).
  * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
@@ -94,10 +92,6 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- *
- *   See
- *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L301)
- *   for the default implementation of this function.
  * @property {number} [maxRequestRetries=3]
  *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
  * @property {number} [maxRequestsPerCrawl]
@@ -369,7 +363,7 @@ class PuppeteerCrawler {
 
 
         try {
-            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session });
+            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });
             await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
 
@@ -435,6 +429,7 @@ export default PuppeteerCrawler;
  *   to pause the crawler by calling {@link AutoscaledPool#pause}
  *   or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {ProxyInfo} [proxyInfo]
  */
 
 /**
@@ -452,6 +447,7 @@ export default PuppeteerCrawler;
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {Session} [session] `Session` object for this request.
+ * @property {ProxyInfo} [proxyInfo]
  */
 
 /**
