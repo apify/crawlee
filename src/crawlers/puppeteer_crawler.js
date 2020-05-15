@@ -338,7 +338,6 @@ class PuppeteerCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {ProxyInfo} options.proxyInfo
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
