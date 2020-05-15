@@ -339,6 +339,3 @@ export const openSessionPool = async (sessionPoolOptions) => {
     await sessionPool.initialize();
     return sessionPool;
 };
-
-export class SessionPoolOptions {
-}
