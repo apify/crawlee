@@ -90,17 +90,16 @@ class PuppeteerInstance {
  *   Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
  *
  *   Beware that the disk cache directories can consume a lot of disk space.
- *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `launchPuppeteerargs`,
+ *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `launchPuppeteer` `args`,
  *   where `X` is the approximate maximum number of bytes for disk cache.
  *
  *   Do not use the `recycleDiskCache` setting together with `--disk-cache-dir`
- *   argument in `launchPuppeteerargs`, the behavior is undefined.
+ *   argument in `launchPuppeteer` `args`, the behavior is undefined.
  * @property {boolean} [useIncognitoPages]
  *   With this option selected, all pages will be opened in a new incognito browser context, which means
  *   that they will not share cookies or cache and their resources will not be throttled by one another.
  * @property {SessionPool} [sessionPool]
- *   Creates a pool of Session instances, that are randomly rotated.
- *   Old session is removed and new one is created instead when some session is marked as blocked.
+ *   A pool of Session instances.
  * @property {string[]} [proxyUrls]
  *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
@@ -128,14 +127,12 @@ class PuppeteerInstance {
  * **Example usage:**
  *
  * ```javascript
- * // List of custom proxy URLs
- * const proxyUrls = ['http://bob:pass123@proxy.example.com:1234', 'http://alice:pass123@proxy.example.com:4321'];
  * const puppeteerPool = new PuppeteerPool({
- *   launchPuppeteerFunction: () => {
- *     // Use a new custom proxy with a new IP address for each new Chrome instance
- *     return Apify.launchPuppeteer({
- *        proxyUrls,
- *     });
+ *   launchPuppeteerOptions: {
+ *     // Use Chrome instead of Chromium
+ *     useChrome: true,
+ *     // Hide from bot detection
+ *     stealth: true,
  *   },
  * });
  *
