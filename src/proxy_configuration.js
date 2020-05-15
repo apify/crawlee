@@ -85,10 +85,14 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  */
 
 /**
- * Creates configuration with the proxy options to be used for preventing IP address-based blocking of
- * your web crawling bots by target websites. Setting proxy configuration allows you to get proxy information
- * in your crawler's page function. It is also possible to get only the proxy URL or all proxy information by calling
- * methods of this class.
+ * Configures a proxy server with the provided options. Proxy servers are used to prevent target websites from blocking
+ * your crawlers based on IP address rate limits or blacklists. Setting proxy configuration in your crawlers automatically configures
+ * them to use the selected proxies for all connections. You can get information about the currently used proxy by inspecting
+ * the {@link ProxyInfo} property in your crawler's page function. There, you can inspect the proxy's URL and other attributes.
+ *
+ * The proxy servers are managed by [Apify Proxy](https://docs.apify.com/proxy). To be able to use Apify Proxy,
+ * you need an Apify account and access to the selected proxies. If you provide no configuration option,
+ * the proxies will be managed automatically using a smart algorithm.
  *
  * **Example usage:**
  *
