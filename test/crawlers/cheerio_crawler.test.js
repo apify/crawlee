@@ -661,9 +661,6 @@ describe('CheerioCrawler', () => {
                 handlePageFunction,
                 proxyConfiguration,
                 useSessionPool: true,
-                sessionPoolOptions: {
-                    maxPoolSize: 1,
-                },
             });
 
             crawler._requestFunction = async ({ request }) => {
