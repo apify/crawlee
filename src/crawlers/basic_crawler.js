@@ -18,7 +18,7 @@ import Request from '../request';
 import { QueueOperationInfo } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { ProxyConfiguration } from '../proxy_configuration';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -43,7 +43,9 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * ```
  * {
  *   request: Request,
- *   autoscaledPool: AutoscaledPool
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
+ *   proxyInfo: ProxyInfo
  * }
  * ```
  *   where the {@link Request} instance represents the URL to crawl.
@@ -535,6 +537,7 @@ export default BasicCrawler;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {ProxyInfo} [proxyInfo]
  */
 
 /**
