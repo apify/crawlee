@@ -64,9 +64,9 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *
  * ```
  * @typedef ProxyInfo
- * @property {string} [sessionId] - The identifier of used {@link Session}.
- * @property {string} [url] - The proxy URL.
- * @property {string[]} [groups] - An array of proxy groups to be used
+ * @property {string} [sessionId] - The identifier of used {@link Session}, if used.
+ * @property {string} url - The proxy URL.
+ * @property {string[]} groups - An array of proxy groups to be used
  *   by the [Apify Proxy](https://docs.apify.com/proxy). If not provided, the proxy will select
  *   the groups automatically.
  * @property {string} [countryCode] - If set and relevant proxies are available in your Apify account, all proxied requests will
@@ -77,11 +77,11 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *   an IP address from a random country. The country code needs to be a two letter ISO country code. See the
  *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
  *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
- * @property {string} [password] - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
+ * @property {string} password - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
  *   environment variable, which is automatically set by the system when running the actors
  *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
- * @property {string} [hostname] - Hostname of your proxy.
- * @property {string} [port] - Proxy port.
+ * @property {string} hostname - Hostname of your proxy.
+ * @property {string} port - Proxy port.
  */
 
 /**
@@ -122,25 +122,23 @@ export class ProxyConfiguration {
      */
     constructor(options = {}) {
         const {
-            groups,
-            apifyProxyGroups,
+            groups = [],
+            apifyProxyGroups = [],
             countryCode,
             apifyProxyCountry,
             password = process.env[ENV_VARS.PROXY_PASSWORD],
         } = options;
 
-        const groupsToUse = groups || apifyProxyGroups;
+        const groupsToUse = groups.length ? groups : apifyProxyGroups;
         const countryCodeToUse = countryCode || apifyProxyCountry;
         const hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME];
         const port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
 
         // Validation
-        checkParamOrThrow(groupsToUse, 'opts.groups', 'Maybe [String]');
+        checkParamOrThrow(groupsToUse, 'opts.groups', '[String]');
         checkParamOrThrow(countryCodeToUse, 'opts.countryCode', 'Maybe String');
         checkParamOrThrow(password, 'opts.password', 'Maybe String');
-        checkParamOrThrow(hostname, 'opts.hostname', 'String', this._getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
-        checkParamOrThrow(port, 'opts.port', 'Number', this._getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
-        this._validateArgumentStructure(groups, countryCode);
+        this._validateArgumentStructure(groupsToUse, countryCodeToUse);
 
         this.groups = groupsToUse;
         this.countryCode = countryCodeToUse;
@@ -252,13 +250,14 @@ export class ProxyConfiguration {
             if (this.password) {
                 if (this.password !== password) {
                     log.warning('The Apify Proxy password you provided belongs to'
-                    + ' a different user than the Apify token you are using. Are you sure this is correct?.');
+                    + ' a different user than the Apify token you are using. Are you sure this is correct?');
                 }
             } else {
                 this.password = password;
             }
-        } else if (!this.password) {
-            throw new Error(this._getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
+        }
+        if (!this.password) {
+            throw new Error(`Apify Proxy password must be provided using options.password or the "${ENV_VARS.PROXY_PASSWORD}" environment variable!`);
         }
     }
 
@@ -276,7 +275,8 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Validates session argument correct structure
+     * Validates session argument structure
+     * @param {string} sessionId
      * @ignore
      */
     _validateSessionArgumentStructure(sessionId) {
@@ -285,28 +285,17 @@ export class ProxyConfiguration {
 
     /**
      * Validates groups and countryCode options correct structure
+     * @param {string[]} groups
+     * @param {string} countryCode
      * @ignore
      */
     _validateArgumentStructure(groups, countryCode) {
-        if (groups && groups.length) {
-            for (const group of groups) {
-                if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError(group);
-            }
+        for (const group of groups) {
+            if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError(group);
         }
         if (countryCode) {
             if (!COUNTRY_CODE_REGEX.test(countryCode)) this._throwInvalidCountryCode(countryCode);
         }
-    }
-
-    /**
-     * Returns missing parameter error message.
-     * @param {string} param
-     * @param {string} env
-     * @return {string} - error message
-     * @ignore
-     */
-    _getMissingParamErrorMgs(param, env) {
-        return `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
     }
 
     /**

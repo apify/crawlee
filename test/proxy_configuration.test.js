@@ -1,4 +1,3 @@
-
 import sinon from 'sinon';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
@@ -10,8 +9,8 @@ import log from '../build/utils_log';
 const { apifyClient } = utils;
 
 const groups = ['GROUP1', 'GROUP2'];
-const hostname = 'proxy.apify.com';
-const port = 8000;
+const hostname = LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME];
+const port = Number(LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
 const password = 'test12345';
 const countryCode = 'CZ';
 const sessionId = 538909250932;
@@ -19,8 +18,6 @@ const basicOpts = {
     groups,
     countryCode,
     password,
-    hostname,
-    port,
 };
 const basicOptsProxyUrl = 'http://groups-GROUP1+GROUP2,session-538909250932,country-CZ:test12345@proxy.apify.com:8000';
 const proxyUrlNoSession = 'http://groups-GROUP1+GROUP2,country-CZ:test12345@proxy.apify.com:8000';
@@ -101,35 +98,7 @@ describe('ProxyConfiguration', () => {
         }
     });
 
-    test('should throw on missing param error', () => {
-        // Missing hostname
-        let opts = Object.assign({}, basicOpts);
-        opts.hostname = null;
-        try {
-            // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new ProxyConfiguration(opts);
-            throw new Error('wrong error');
-        } catch (err) {
-            expect(err.message).toMatch('Apify Proxy hostname must be provided');
-        }
-
-        // Missing port
-        opts = Object.assign({}, basicOpts);
-        opts.port = null;
-        try {
-            // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new ProxyConfiguration(opts);
-            throw new Error('wrong error');
-        } catch (err) {
-            expect(err.message).toMatch('Apify Proxy port must be provided');
-        }
-    });
-
     test('should throw on invalid groups and countryCode args', async () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-
         expect(() => new ProxyConfiguration({ groups: [new Date()] })).toThrowError();
         expect(() => new ProxyConfiguration({ groups: [{}, 'fff', 'ccc'] })).toThrowError();
         expect(() => new ProxyConfiguration({ groups: ['ffff', 'ff-hf', 'ccc'] })).toThrowError();
@@ -148,10 +117,6 @@ describe('ProxyConfiguration', () => {
     });
 
     test('getUrl() should throw invalid session argument', () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-
         const proxyConfiguration = new ProxyConfiguration();
 
         expect(() => proxyConfiguration.getUrl('a-b')).toThrowError();
@@ -261,7 +226,6 @@ describe('Apify.createProxyConfiguration()', () => {
     test('should throw missing password', async () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         delete process.env[ENV_VARS.TOKEN];
-        delete LOCAL_ENV_VARS[ENV_VARS.TOKEN];
 
         const status = { connected: true };
 
