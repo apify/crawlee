@@ -104,6 +104,13 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `BasicCrawler` will be configured to use
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy)
+ *
+ *   The proxyConfiguration only provides access to the proxyInfo object but the `BasicCrawler` itself
+ *   is not responsible for using that proxy information to make the proxied HTTP requests.
  */
 
 /**

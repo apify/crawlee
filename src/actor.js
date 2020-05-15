@@ -1,10 +1,9 @@
 import * as path from 'path';
 import * as _ from 'underscore';
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, INTEGER_ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import log from './utils_log';
-import { EXIT_CODES, COUNTRY_CODE_REGEX } from './constants';
+import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import {
     apifyClient,
@@ -599,113 +598,6 @@ export const metamorph = async (targetActorId, input, options = {}) => {
     // Wait some time for container to be stopped.
     // NOTE: option.customAfterSleepMillis is used in tests
     await sleep(optionsCopy.customAfterSleepMillis || METAMORPH_AFTER_SLEEP_MILLIS);
-};
-
-/**
- * Constructs an Apify Proxy URL using the specified settings.
- * The proxy URL can be used from Apify actors, web browsers or any other HTTP
- * proxy-enabled applications.
- *
- * For more information, see the [Apify Proxy](https://my.apify.com/proxy) page in the app
- * or the [documentation](https://docs.apify.com/proxy).
- *
- * @param {Object} [options]
- *   Object with the props below:
- * @param {string} [options.password]
- *   User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
- *   environment variable, which is automatically set by the system when running the actors
- *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli)
- *   package and the user previously logged in (called `apify login`).
- * @param {string[]} [options.groups]
- *   Array of Apify Proxy groups to be used. If not provided, the proxy will select
- *   the groups automatically.
- * @param {string} [options.session]
- *   Apify Proxy session identifier to be used by the Chrome browser. All HTTP requests
- *   going through the proxy with the same session identifier will use the same target
- *   proxy server (i.e. the same IP address), unless using Residential proxies. The identifier
- *   can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- * @param {string} [options.country]
- *   If set and relevant proxies are available in your Apify account, all proxied requests will
- *   use IP addresses that are geolocated to the specified country. For example `GB` for IPs
- *   from Great Britain. Note that online services often have their own rules for handling
- *   geolocation and thus the country selection is a best attempt at geolocation, rather than
- *   a guaranteed hit. This parameter is optional, by default, each proxied request is assigned
- *   an IP address from a random country. The country code needs to be a two letter ISO country code. See the
- *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
- *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
- *
- * @returns {string} Returns the proxy URL, e.g. `http://auto:my_password@proxy.apify.com:8000`.
- *
- * @memberof module:Apify
- * @function
- * @name getApifyProxyUrl
- */
-export const getApifyProxyUrl = (options = {}) => {
-    // For backwards compatibility.
-    // TODO: remove this when we release v1.0.0
-    if (!options.groups && options.apifyProxyGroups) {
-        log.warning('Parameter `apifyProxyGroups` of Apify.getApifyProxyUrl() is deprecated!!! Use `groups` instead!');
-        options.groups = options.apifyProxyGroups;
-    }
-    if (!options.session && options.apifyProxySession) {
-        log.warning('Parameter `apifyProxySession` of Apify.getApifyProxyUrl() is deprecated!!! Use `session` instead!');
-        options.session = options.apifyProxySession;
-    }
-
-    const {
-        groups,
-        session,
-        country,
-        password = process.env[ENV_VARS.PROXY_PASSWORD],
-        hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
-        port = parseInt(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT], 10),
-
-        // This is used only internaly. Some other function calling this function use different naming for groups and session
-        // parameters so we need to override this in error messages.
-        groupsParamName = 'opts.groups',
-        sessionParamName = 'opts.session',
-        countryParamName = 'opts.country',
-    } = options;
-
-    const getMissingParamErrorMgs = (param, env) => `Apify Proxy ${param} must be provided as parameter or "${env}" environment variable!`;
-    const throwInvalidProxyValueError = (param) => {
-        throw new Error(`The "${param}" option can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
-    };
-    const throwInvalidCountryCode = (code) => {
-        throw new Error(`The "${code}" option must be a valid two letter country code according to ISO 3166-1 alpha-2`);
-    };
-
-    checkParamOrThrow(groups, groupsParamName, 'Maybe [String]');
-    checkParamOrThrow(session, sessionParamName, 'Maybe Number | String');
-    checkParamOrThrow(country, countryParamName, 'Maybe String');
-    checkParamOrThrow(password, 'opts.password', 'String', getMissingParamErrorMgs('password', ENV_VARS.PROXY_PASSWORD));
-    checkParamOrThrow(hostname, 'opts.hostname', 'String', getMissingParamErrorMgs('hostname', ENV_VARS.PROXY_HOSTNAME));
-    checkParamOrThrow(port, 'opts.port', 'Number', getMissingParamErrorMgs('port', ENV_VARS.PROXY_PORT));
-
-    let username;
-
-    if (groups || session || country) {
-        const parts = [];
-
-        if (groups && groups.length) {
-            if (!groups.every(group => APIFY_PROXY_VALUE_REGEX.test(group))) throwInvalidProxyValueError('groups');
-            parts.push(`groups-${groups.join('+')}`);
-        }
-        if (session) {
-            if (!APIFY_PROXY_VALUE_REGEX.test(session)) throwInvalidProxyValueError('session');
-            parts.push(`session-${session}`);
-        }
-        if (country) {
-            if (!COUNTRY_CODE_REGEX.test(country)) throwInvalidCountryCode(country);
-            parts.push(`country-${country}`);
-        }
-
-        username = parts.join(',');
-    } else {
-        username = 'auto';
-    }
-
-    return `http://${username}:${password}@${hostname}:${port}`;
 };
 
 /**

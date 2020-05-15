@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import log from './utils_log';
-import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
+import { main, getEnv, call, callTask, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';
 import CheerioCrawler from './crawlers/cheerio_crawler';
@@ -50,7 +50,6 @@ export {
     callTask,
     metamorph,
     getMemoryInfo,
-    getApifyProxyUrl,
     isAtHome,
     apifyClient as client,
     addWebhook,

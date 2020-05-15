@@ -602,18 +602,15 @@ describe('CheerioCrawler', () => {
 
         test('should work with proxyConfiguration', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const utilsRequestMock = sinon.mock(utilsRequest);
             const status = { connected: true };
-            const proxyUrl = 'http://auto:abc123@proxy.apify.com:8000';
-            const url = 'http://proxy.apify.com/?format=json';
-            const countryCode = undefined;
-            utilsRequestMock.expects('requestAsBrowser')
-                .once()
-                .withArgs({ url, proxyUrl, countryCode, json: true })
-                .resolves({ body: status });
+            const fakeCall = async () => {
+                return { body: status };
+            };
 
-            const proxyConfiguration = await Apify.createProxyConfiguration();
-            const proxyInfo = proxyConfiguration.getUrl();
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+            const proxyConfiguration = await Apify.createProxyConfiguration({
+                groups: ['GROUP1', 'GROUP2'],
+            });
 
             const crawler = new Apify.CheerioCrawler({
                 requestList,
@@ -622,53 +619,27 @@ describe('CheerioCrawler', () => {
                 proxyConfiguration,
             });
 
+            const proxies = [];
             crawler._requestFunction = async ({ request }) => {
                 const opts = crawler._getRequestOptions(request);
-                expect(opts.proxyUrl).toEqual(proxyInfo);
+                proxies.push(opts.proxyUrl);
                 // it needs to return something valid
                 return { dom: {}, response: responseMock };
             };
 
+            const proxyUrl = crawler.proxyConfiguration.getUrl();
             await crawler.run();
+
+            expect(proxies[0]).toEqual(proxyUrl);
+            expect(proxies[1]).toEqual(proxyUrl);
+            expect(proxies[2]).toEqual(proxyUrl);
+            expect(proxies[3]).toEqual(proxyUrl);
+
             delete process.env[ENV_VARS.PROXY_PASSWORD];
-
-            utilsRequestMock.restore();
-        });
-
-        test('handlePageFunction should expose the proxyInfo object', async () => {
-            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
-
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
-
-            const proxyConfiguration = await Apify.createProxyConfiguration();
-            const proxyObject = proxyConfiguration.getInfo();
-
-            const handlePageFunction = async ({ proxyInfo }) => {
-                expect(proxyInfo).toEqual(proxyObject);
-            };
-
-            const crawler = new Apify.CheerioCrawler({
-                requestList,
-                proxyConfiguration,
-                handlePageFunction,
-            });
-
-            crawler._requestFunction = async ({ request }) => {
-                // it needs to return something valid
-                return { dom: {}, response: { url: request.url } };
-            };
-
-            await crawler.run();
-            delete process.env[ENV_VARS.PROXY_PASSWORD];
-
             stub.restore();
         });
 
-        test('session identifier should be correctly passed to the proxyInfo object', async () => {
+        test('handlePageFunction should expose the proxyInfo object with sessions correctly', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const status = { connected: true };
             const fakeCall = async () => {
@@ -678,9 +649,11 @@ describe('CheerioCrawler', () => {
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
-
+            const proxies = [];
+            const sessions = [];
             const handlePageFunction = async ({ session, proxyInfo }) => {
-                expect(proxyInfo.sessionId).toEqual(session.id);
+                proxies.push(proxyInfo);
+                sessions.push(session);
             };
 
             const crawler = new Apify.CheerioCrawler({
@@ -689,7 +662,7 @@ describe('CheerioCrawler', () => {
                 proxyConfiguration,
                 useSessionPool: true,
                 sessionPoolOptions: {
-                    sessionOptions: { maxUsageCount: 1 },
+                    maxPoolSize: 1,
                 },
             });
 
@@ -699,8 +672,13 @@ describe('CheerioCrawler', () => {
             };
 
             await crawler.run();
-            delete process.env[ENV_VARS.PROXY_PASSWORD];
 
+            expect(proxies[0]).toEqual(proxyConfiguration.getInfo(sessions[0].id));
+            expect(proxies[1]).toEqual(proxyConfiguration.getInfo(sessions[1].id));
+            expect(proxies[2]).toEqual(proxyConfiguration.getInfo(sessions[2].id));
+            expect(proxies[3]).toEqual(proxyConfiguration.getInfo(sessions[3].id));
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
         });
 

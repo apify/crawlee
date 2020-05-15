@@ -124,6 +124,49 @@ describe('ProxyConfiguration', () => {
             expect(err.message).toMatch('Apify Proxy port must be provided');
         }
     });
+
+    test('should throw on invalid groups and countryCode args', async () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        expect(() => new ProxyConfiguration({ groups: [new Date()] })).toThrowError();
+        expect(() => new ProxyConfiguration({ groups: [{}, 'fff', 'ccc'] })).toThrowError();
+        expect(() => new ProxyConfiguration({ groups: ['ffff', 'ff-hf', 'ccc'] })).toThrowError();
+        expect(() => new ProxyConfiguration({ groups: ['ffff', 'fff', 'cc$c'] })).toThrowError();
+        expect(() => new ProxyConfiguration({ apifyProxyGroups: [new Date()] })).toThrowError();
+
+
+        expect(() => new ProxyConfiguration({ countryCode: new Date() })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: 'aa' })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: 'aB' })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: 'Ba' })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: '11' })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: 'DDDD' })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: 'dddd' })).toThrow();
+        expect(() => new ProxyConfiguration({ countryCode: 1111 })).toThrow();
+    });
+
+    test('getUrl() should throw invalid session argument', () => {
+        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
+        process.env[ENV_VARS.PROXY_PORT] = 123;
+
+        const proxyConfiguration = new ProxyConfiguration();
+
+        expect(() => proxyConfiguration.getUrl('a-b')).toThrowError();
+        expect(() => proxyConfiguration.getUrl('a$b')).toThrowError();
+        expect(() => proxyConfiguration.getUrl({})).toThrowError();
+        expect(() => proxyConfiguration.getUrl(new Date())).toThrowError();
+
+        expect(() => proxyConfiguration.getUrl('a_b')).not.toThrowError();
+        expect(() => proxyConfiguration.getUrl('0.34252352')).not.toThrowError();
+        expect(() => proxyConfiguration.getUrl('aaa~BBB')).not.toThrowError();
+        expect(() => proxyConfiguration.getUrl('a_1_b')).not.toThrowError();
+        expect(() => proxyConfiguration.getUrl('a_2')).not.toThrowError();
+        expect(() => proxyConfiguration.getUrl('a')).not.toThrowError();
+        expect(() => proxyConfiguration.getUrl('1')).not.toThrowError();
+    });
 });
 
 describe('Apify.createProxyConfiguration()', () => {
