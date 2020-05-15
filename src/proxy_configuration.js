@@ -127,12 +127,12 @@ export class ProxyConfiguration {
             countryCode,
             apifyProxyCountry,
             password = process.env[ENV_VARS.PROXY_PASSWORD],
-            hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
-            port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]),
         } = options;
 
         const groupsToUse = groups || apifyProxyGroups;
         const countryCodeToUse = countryCode || apifyProxyCountry;
+        const hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME];
+        const port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
 
         // Validation
         checkParamOrThrow(groupsToUse, 'opts.groups', 'Maybe [String]');
