@@ -33,10 +33,9 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  */
 
 /**
- * The main purpose of the Proxy information object is to get all information about
- * the currently used proxy by the crawler.
- * This object can be also returned by calling the {@link ProxyConfiguration.getInfo} the method directly
- * if you need to know your configured options.
+ * The main purpose of the ProxyInfo object is to provide information
+ * about the proxy used by the crawler for the current request.
+ * Outside of crawlers, you can get this object by calling {@link ProxyConfiguration.getInfo}.
  *
  * **Example usage:**
  *
@@ -83,7 +82,6 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
  * @property {string} [hostname] - Hostname of your proxy.
  * @property {string} [port] - Proxy port.
- *
  */
 
 /**
