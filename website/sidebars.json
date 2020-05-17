@@ -38,6 +38,7 @@
                     "api/puppeteer-pool",
                     "api/session",
                     "api/session-pool",
+                    "api/proxy-configuration",
                     "api/snapshotter",
                     "api/system-status"
                 ]
@@ -73,6 +74,8 @@
                     "typedefs/cheerio-crawler-options",
                     "typedefs/puppeteer-crawler-options",
                     "typedefs/puppeteer-pool-options",
+                    "typedefs/proxy-configuration-options",
+                    "typedefs/proxy-info",
                     "typedefs/logger-options",
                     "typedefs/launch-puppeteer-options",
                     "typedefs/request-options",

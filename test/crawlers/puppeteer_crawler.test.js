@@ -1,7 +1,9 @@
 import { ENV_VARS } from 'apify-shared/consts';
+import sinon from 'sinon';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import * as utilsRequest from '../../build/utils_request';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
@@ -160,5 +162,95 @@ describe('PuppeteerCrawler', () => {
         await puppeteerCrawler.run();
         expect(loadedCookies).toHaveLength(4);
         loadedCookies.forEach(cookie => expect(cookie).toEqual('TEST=12321312312'));
+    });
+
+    describe('proxy', () => {
+        let requestList;
+        beforeEach(async () => {
+            requestList = new Apify.RequestList({
+                sources: [
+                    { url: 'http://example.com/?q=1' },
+                    { url: 'http://example.com/?q=2' },
+                    { url: 'http://example.com/?q=3' },
+                    { url: 'http://example.com/?q=4' },
+                ],
+            });
+            await requestList.initialize();
+        });
+
+        afterEach(() => {
+            requestList = null;
+        });
+
+        test('browser should launch with correct proxyUrl', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+            const generatedProxyUrl = proxyConfiguration.getUrl();
+            let browserProxy;
+            const launchPuppeteerFunction = async (opts) => {
+                browserProxy = opts.proxyUrl;
+                const browser = await Apify.launchPuppeteer(opts);
+
+                return browser;
+            };
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                handlePageFunction: async () => {},
+                launchPuppeteerFunction,
+                proxyConfiguration,
+            });
+
+            await puppeteerCrawler.run();
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+
+            expect(browserProxy).toEqual(generatedProxyUrl);
+
+            stub.restore();
+        });
+
+        test('handlePageFunction should expose the proxyInfo object with sessions correctly', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+            const proxies = [];
+            const sessions = [];
+            const handlePageFunction = async ({ session, proxyInfo }) => {
+                proxies.push(proxyInfo);
+                sessions.push(session);
+            };
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                handlePageFunction,
+                proxyConfiguration,
+                useSessionPool: true,
+                sessionPoolOptions: {
+                    maxPoolSize: 1,
+                },
+            });
+
+            await puppeteerCrawler.run();
+
+            expect(proxies[0]).toEqual(proxyConfiguration.getInfo(sessions[0].id));
+            expect(proxies[1]).toEqual(proxyConfiguration.getInfo(sessions[1].id));
+            expect(proxies[2]).toEqual(proxyConfiguration.getInfo(sessions[2].id));
+            expect(proxies[3]).toEqual(proxyConfiguration.getInfo(sessions[3].id));
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+            stub.restore();
+        });
     });
 });

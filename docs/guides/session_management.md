@@ -16,12 +16,13 @@ Now let's take a look at how to use a Session pool.
 **Example usage in [`PuppeteerCrawler`](/docs/api/puppeteer-crawler)**
 
 ```javascript
+
+const proxyConfiguration = await Apify.createProxyConfiguration();
+
 const crawler = new Apify.PuppeteerCrawler({
     requestQueue,
-    launchPuppeteerOptions: {
-        // To use the proxy IP session rotation logic, you must turn the proxy usage on.
-        useApifyProxy: true,
-    },
+    // To use the proxy IP session rotation logic, you must turn the proxy usage on.
+    proxyConfiguration,
     // Activates the Session pool.
     useSessionPool: true,
     // Overrides default Session pool configuration
@@ -31,7 +32,7 @@ const crawler = new Apify.PuppeteerCrawler({
     // Set to true if you want the crawler to save cookies per session,
     // and set the cookies to page before navigation automatically.
     persistCookiesPerSession: true,
-    handlePageFunction: async ({request, page, session}) => {
+    handlePageFunction: async ({ request, page, session }) => {
         const title = await page.title();
 
         if (title === "Blocked") {
@@ -49,10 +50,12 @@ const crawler = new Apify.PuppeteerCrawler({
 **Example usage in [`CheerioCrawler`](/docs/api/cheerio-crawler)**
 
 ```javascript
+  const proxyConfiguration = await Apify.createProxyConfiguration();
+
   const crawler = new Apify.CheerioCrawler({
         requestQueue,
         // To use the proxy IP session rotation logic, you must turn the proxy usage on.
-        useApifyProxy: true,
+        proxyConfiguration,
         // Activates the Session pool.
         useSessionPool: true,
         // Overrides default Session pool configuration.
@@ -80,15 +83,19 @@ const crawler = new Apify.PuppeteerCrawler({
 **Example usage in [`BasicCrawler`](/docs/api/basic-crawler)**
 
 ```javascript
+ const proxyConfiguration = await Apify.createProxyConfiguration();
+
  const crawler = new Apify.BasicCrawler({
         requestQueue,
+        // Allows access to proxyInfo object in handleRequestFunction
+        proxyConfiguration,
         useSessionPool: true,
         sessionPoolOptions: {
             maxPoolSize: 100
         },
-        handleRequestFunction: async ({request, session}) => {
+        handleRequestFunction: async ({request, session, proxyInfo }) => {
             // To use the proxy IP session rotation logic, you must turn the proxy usage on.
-            const proxyUrl = Apify.getApifyProxyUrl({session});
+            const proxyUrl = proxyInfo.url;
             const requestOptions = {
                 url: request.url,
                 proxyUrl,

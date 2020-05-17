@@ -350,6 +350,7 @@ export class Session {
     /**
      * Calculate cookie expiration date
      * @return {Date} - calculated date by session max age seconds.
+     * @private
      */
     _getDefaultCookieExpirationDate(maxAgeSecs) {
         return new Date(Date.now() + (maxAgeSecs * 1000));

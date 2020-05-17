@@ -1,7 +1,7 @@
 import path from 'path';
 import _ from 'underscore';
 import sinon from 'sinon';
-import { ENV_VARS, ACT_JOB_STATUSES, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
 import { ApifyCallError } from '../build/errors';
 import { sleep } from '../build/utils';
 
@@ -1041,136 +1041,6 @@ describe('Apify.metamorph()', () => {
         actsMock.restore();
     });
 });
-
-describe('Apify.getApifyProxyUrl()', () => {
-    test('should work', () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-
-        expect(Apify.getApifyProxyUrl({
-            session: 'XYZ',
-            groups: ['g1', 'g2', 'g3'],
-            country: 'US',
-        })).toBe('http://groups-g1+g2+g3,session-XYZ,country-US:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl({
-            session: 'XYZ',
-            groups: ['g1', 'g2', 'g3'],
-        })).toBe('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl({
-            groups: ['g1', 'g2', 'g3'],
-        })).toBe('http://groups-g1+g2+g3:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl({
-            session: 'XYZ',
-        })).toBe('http://session-XYZ:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl({ country: 'US' })).toBe('http://country-US:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl()).toBe('http://auto:abc123@my.host.com:123');
-
-
-        delete process.env[ENV_VARS.PROXY_PASSWORD];
-        delete process.env[ENV_VARS.PROXY_HOSTNAME];
-        delete process.env[ENV_VARS.PROXY_PORT];
-
-        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).toEqual(
-            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`,
-        );
-
-        expect(() => Apify.getApifyProxyUrl()).toThrowError();
-
-        expect(Apify.getApifyProxyUrl({
-            password: 'xyz',
-            hostname: 'your.host.com',
-            port: 345,
-        })).toBe('http://auto:xyz@your.host.com:345');
-    });
-
-    // Test old params - session, groups
-    test('should be backwards compatible', () => {
-        const ll = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-
-        expect(Apify.getApifyProxyUrl({
-            apifyProxySession: 'XYZ',
-            apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).toBe('http://groups-g1+g2+g3,session-XYZ:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl({
-            apifyProxyGroups: ['g1', 'g2', 'g3'],
-        })).toBe('http://groups-g1+g2+g3:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl({
-            apifyProxySession: 'XYZ',
-        })).toBe('http://session-XYZ:abc123@my.host.com:123');
-
-        expect(Apify.getApifyProxyUrl()).toBe('http://auto:abc123@my.host.com:123');
-
-        delete process.env[ENV_VARS.PROXY_PASSWORD];
-        delete process.env[ENV_VARS.PROXY_HOSTNAME];
-        delete process.env[ENV_VARS.PROXY_PORT];
-
-        expect(Apify.getApifyProxyUrl({ password: 'xyz' })).toEqual(
-            `http://auto:xyz@${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}:${LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]}`,
-        );
-
-        expect(() => Apify.getApifyProxyUrl()).toThrowError();
-
-        expect(Apify.getApifyProxyUrl({
-            password: 'xyz',
-            hostname: 'your.host.com',
-            port: 345,
-        })).toBe('http://auto:xyz@your.host.com:345');
-        log.setLevel(ll);
-    });
-
-    test('should throw on invalid proxy args', () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-
-        expect(() => Apify.getApifyProxyUrl({ session: 'a-b' })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a$b' })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: {} })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: new Date() })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ apifyProxySession: new Date() })).toThrowError();
-
-        expect(() => Apify.getApifyProxyUrl({ session: 'a_b' })).not.toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: '0.34252352' })).not.toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: 'aaa~BBB' })).not.toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a_1_b' })).not.toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a_2' })).not.toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: 'a' })).not.toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ session: '1' })).not.toThrowError();
-
-        expect(() => Apify.getApifyProxyUrl({ groups: [new Date()] })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ groups: [{}, 'fff', 'ccc'] })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'ff-hf', 'ccc'] })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ groups: ['ffff', 'fff', 'cc$c'] })).toThrowError();
-        expect(() => Apify.getApifyProxyUrl({ apifyProxyGroups: [new Date()] })).toThrowError();
-
-
-        expect(() => Apify.getApifyProxyUrl({ country: new Date() })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: 'aa' })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: 'aB' })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: 'Ba' })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: '11' })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: 'DDDD' })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: 'dddd' })).toThrow();
-        expect(() => Apify.getApifyProxyUrl({ country: 1111 })).toThrow();
-
-        delete process.env[ENV_VARS.PROXY_PASSWORD];
-        delete process.env[ENV_VARS.PROXY_HOSTNAME];
-        delete process.env[ENV_VARS.PROXY_PORT];
-    });
-});
-
 
 describe('Apify.addWebhook()', () => {
     test('works', async () => {
