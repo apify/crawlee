@@ -85,6 +85,7 @@ class HomeSplash extends React.Component {
                         <Button href="#try">Try It Out</Button>
                         <Button href={docUrl('guides/getting-started', language)}>Learn the Basics</Button>
                         <Button href={docUrl('examples/puppeteer-crawler', language)}>See Examples</Button>
+                        <Button href='https://apify.typeform.com/to/eV6Rqb' target='_blank'>Give Feedback</Button>
                     </PromoSection>
                 </div>
                 <a
