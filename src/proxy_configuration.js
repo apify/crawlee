@@ -1,6 +1,8 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
+import * as _ from 'underscore';
+import { URL } from 'url';
 import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
 import { requestAsBrowser } from './utils_request';
@@ -12,12 +14,14 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 
 /**
  * @typedef ProxyConfigurationOptions
- * @property {string} [password] - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
+ * @property {string} [password]
+ *   User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
  *   environment variable, which is automatically set by the system when running the actors.
- * @property {string[]} [groups] - An array of proxy groups to be used
- *   by the [Apify Proxy](https://docs.apify.com/proxy). If not provided, the proxy will select
- *   the groups automatically.
- * @property {string} [countryCode] - If set and relevant proxies are available in your Apify account, all proxied requests will
+ * @property {string[]} [groups]
+ *   An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/proxy).
+ *   If not provided, the proxy will select the groups automatically.
+ * @property {string} [countryCode]
+ *   If set and relevant proxies are available in your Apify account, all proxied requests will
  *   use IP addresses that are geolocated to the specified country. For example `GB` for IPs
  *   from Great Britain. Note that online services often have their own rules for handling
  *   geolocation and thus the country selection is a best attempt at geolocation, rather than
@@ -26,10 +30,17 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
  *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
  *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
- * @property {string[]} [apifyProxyGroups] - Same option as `groups` which can be used to
- *  configurate the proxy by UI input schema. You should use the `groups` option in your crawler code.
- * @property {string} [apifyProxyCountry] - Same option as `countryCode` which can be used to
- *  configurate the proxy by UI input schema. You should use the `countryCode` option in your crawler code.
+ * @property {string[]} [apifyProxyGroups]
+ *   Same option as `groups` which can be used to
+ *   configurate the proxy by UI input schema. You should use the `groups` option in your crawler code.
+ * @property {string} [apifyProxyCountry]
+ *   Same option as `countryCode` which can be used to
+ *   configurate the proxy by UI input schema. You should use the `countryCode` option in your crawler code.
+ * @property {string[]} [customUrls]
+ *   An array of custom proxy URLs to be used.
+ *   The provided custom proxies' order will be randomized and the resulting list rotated.
+ *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
+ *   configuration options will cause an error to be thrown on initialize.
  */
 
 /**
@@ -64,12 +75,15 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *
  * ```
  * @typedef ProxyInfo
- * @property {string} [sessionId] - The identifier of used {@link Session}, if used.
- * @property {string} url - The proxy URL.
- * @property {string[]} groups - An array of proxy groups to be used
- *   by the [Apify Proxy](https://docs.apify.com/proxy). If not provided, the proxy will select
- *   the groups automatically.
- * @property {string} [countryCode] - If set and relevant proxies are available in your Apify account, all proxied requests will
+ * @property {string} [sessionId]
+ *   The identifier of used {@link Session}, if used.
+ * @property {string} url
+ *   The proxy URL.
+ * @property {string[]} groups
+ *   An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/proxy).
+ *   If not provided, the proxy will select the groups automatically.
+ * @property {string} [countryCode]
+ *   If set and relevant proxies are available in your Apify account, all proxied requests will
  *   use IP addresses that are geolocated to the specified country. For example `GB` for IPs
  *   from Great Britain. Note that online services often have their own rules for handling
  *   geolocation and thus the country selection is a best attempt at geolocation, rather than
@@ -77,11 +91,14 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *   an IP address from a random country. The country code needs to be a two letter ISO country code. See the
  *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
  *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
- * @property {string} password - User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
+ * @property {string} password
+ *   User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
  *   environment variable, which is automatically set by the system when running the actors
  *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
- * @property {string} hostname - Hostname of your proxy.
- * @property {string} port - Proxy port.
+ * @property {string} hostname
+ *   Hostname of your proxy.
+ * @property {string} port
+ *   Proxy port.
  */
 
 /**
@@ -126,6 +143,7 @@ export class ProxyConfiguration {
             apifyProxyGroups = [],
             countryCode,
             apifyProxyCountry,
+            customUrls,
             password = process.env[ENV_VARS.PROXY_PASSWORD],
         } = options;
 
@@ -138,13 +156,17 @@ export class ProxyConfiguration {
         checkParamOrThrow(groupsToUse, 'opts.groups', '[String]');
         checkParamOrThrow(countryCodeToUse, 'opts.countryCode', 'Maybe String');
         checkParamOrThrow(password, 'opts.password', 'Maybe String');
-        this._validateArgumentStructure(groupsToUse, countryCodeToUse);
+        checkParamOrThrow(customUrls, 'options.customUrls', 'Maybe [String]');
+        this._validateArgumentStructure(groupsToUse, countryCodeToUse, customUrls);
 
         this.groups = groupsToUse;
         this.countryCode = countryCodeToUse;
         this.password = password;
         this.hostname = hostname;
         this.port = port;
+        this.lastUsedCustomUrlIndex = 0;
+        this.customUrls = customUrls ? _.shuffle(customUrls) : undefined;
+        this.usedCustomUrls = {};
     }
 
     /**
@@ -160,8 +182,6 @@ export class ProxyConfiguration {
         await this._setPasswordIfToken();
 
         await this._checkAccess();
-
-        // TODO: Validate proxyUrl each of custom proxies
     }
 
 
@@ -177,8 +197,9 @@ export class ProxyConfiguration {
      */
     getInfo(sessionId) {
         if (sessionId) this._validateSessionArgumentStructure(sessionId);
-        const { groups, countryCode, password, port, hostname } = this;
-        const url = this.getUrl(sessionId);
+        const url = this.customUrls ? this._getCurrentCustomUrl(sessionId) : this.getUrl(sessionId);
+
+        const { groups, countryCode, password, port, hostname } = this.customUrls ? new URL(url) : this;
 
         return {
             sessionId,
@@ -203,6 +224,9 @@ export class ProxyConfiguration {
      */
     getUrl(sessionId) {
         if (sessionId) this._validateSessionArgumentStructure(sessionId);
+        if (this.customUrls) {
+            return this._handleCustomUrl(sessionId);
+        }
         const username = this._getUsername(sessionId);
         const { password, hostname, port } = this;
 
@@ -275,6 +299,45 @@ export class ProxyConfiguration {
     }
 
     /**
+     * Handles custom url rotation with session
+     * @param {string} sessionId
+     * @returns {string} url
+     * @ignore
+     */
+    _handleCustomUrl(sessionId) {
+        let customUrlToUse;
+        if (sessionId) {
+            if (this.usedCustomUrls.hasOwnProperty(sessionId)) {  // eslint-disable-line
+                customUrlToUse = this.customUrls[this.usedCustomUrls[sessionId]];
+            } else {
+                this.usedCustomUrls[sessionId] = this.lastUsedCustomUrlIndex++ % this.customUrls.length;
+                customUrlToUse = this.customUrls[this.usedCustomUrls[sessionId]];
+            }
+        } else {
+            customUrlToUse = this.customUrls[this.lastUsedCustomUrlIndex++ % this.customUrls.length];
+        }
+        return customUrlToUse;
+    }
+
+    /**
+     * Gets currently used custom URL
+     * @param {string} sessionId
+     * @returns {string} url
+     * @ignore
+     */
+    _getCurrentCustomUrl(sessionId) {
+        if (sessionId) {
+            if (this.usedCustomUrls[sessionId]) {
+                return this.customUrls[this.usedCustomUrls[sessionId]];
+            }
+        }
+        if (this.lastUsedCustomUrlIndex === 0) {
+            return this.customUrls[this.lastUsedCustomUrlIndex % this.customUrls.length];
+        }
+        return this.customUrls[(this.lastUsedCustomUrlIndex - 1) % this.customUrls.length];
+    }
+
+    /**
      * Validates session argument structure
      * @param {string} sessionId
      * @ignore
@@ -287,14 +350,27 @@ export class ProxyConfiguration {
      * Validates groups and countryCode options correct structure
      * @param {string[]} groups
      * @param {string} countryCode
+     * @param {string[]} customUrls
      * @ignore
      */
-    _validateArgumentStructure(groups, countryCode) {
+    _validateArgumentStructure(groups, countryCode, customUrls) {
         for (const group of groups) {
             if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError(group);
         }
         if (countryCode) {
             if (!COUNTRY_CODE_REGEX.test(countryCode)) this._throwInvalidCountryCode(countryCode);
+        }
+        if (customUrls) {
+            if (!customUrls.length) this._throwCustomUrlsIsEmpty();
+            if (((groups && groups.length) || countryCode)) this._throwCannotCombineCustomWithApify();
+            customUrls.forEach((customUrl) => {
+                try {
+                    // eslint-disable-next-line no-new
+                    new URL(customUrl);
+                } catch (err) {
+                    this._throwInvalidCustomUrlForm(customUrl);
+                }
+            });
         }
     }
 
@@ -322,6 +398,33 @@ export class ProxyConfiguration {
      */
     _throwApifyProxyConnectionError(errorMessage) {
         throw new Error(errorMessage);
+    }
+
+    /**
+     * Throws custom URLs is provided but empty
+     * @ignore
+     */
+    _throwCustomUrlsIsEmpty() {
+        throw new Error('Parameter "options.customUrls" of type Array must not be empty!');
+    }
+
+    /**
+     * Throws cannot combine custom proxies with Apify Proxy
+     * @ignore
+     */
+    _throwCannotCombineCustomWithApify() {
+        throw new Error('Cannot combine custom proxies with Apify Proxy!'
+            + 'It is not allowed to set "options.customUrls" combined with '
+            + '"options.groups" or "options.apifyProxyGroups" and "options.countryCode" or "options.apifyProxyCountry".');
+    }
+
+    /**
+     * Throws invalid custom proxy URL
+     * @param {string} url
+     * @ignore
+     */
+    _throwInvalidCustomUrlForm(url) {
+        throw new Error(`The provided Proxy URL "${url}" is not valid. Please use URL in a form which is compatible with the Node.js URL.`);
     }
 }
 
