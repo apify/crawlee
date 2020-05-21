@@ -14,6 +14,7 @@ custom proxy management will move to `ProxyConfiguration` as well.
   instances. `ProxyConfiguration` itself is not exposed.
 - Add `proxyConfiguration` to `BasicCrawlerOptions`, `CheerioCrawlerOptions`
   and `PuppeteerCrawlerOptions`.
+- Fixed a bug where intercepted requests would never continue.
 
 
 0.20.4 / 2020-05-11
