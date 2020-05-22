@@ -7,7 +7,7 @@ import {
 import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
-const HOST = '127.0.0.1';
+const HOSTNAME = '127.0.0.1';
 
 describe('Apify.utils_request', () => {
     let port;
@@ -86,7 +86,7 @@ describe('Apify.utils_request', () => {
             'it uses mobile user-agent when mobile property is set to true ',
             async () => {
                 const data = {
-                    url: `http://${HOST}:${port}/echo`,
+                    url: `http://${HOSTNAME}:${port}/echo`,
                     useMobileVersion: true,
                 };
                 const response = await requestAsBrowser(data);
@@ -97,7 +97,7 @@ describe('Apify.utils_request', () => {
 
         test('uses desktop user-agent by default ', async () => {
             const data = {
-                url: `http://${HOST}:${port}/echo`,
+                url: `http://${HOSTNAME}:${port}/echo`,
             };
             const response = await requestAsBrowser(data);
             expect(response.statusCode).toBe(200);
@@ -105,7 +105,7 @@ describe('Apify.utils_request', () => {
         });
 
         test('sets correct hosts', async () => {
-            const host = `${HOST}:${port}`;
+            const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/echo`,
             };
@@ -119,7 +119,7 @@ describe('Apify.utils_request', () => {
         test('uses correct default language', async () => {
             const languageCode = 'en';
             const countryCode = 'US';
-            const host = `${HOST}:${port}`;
+            const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/echo`,
             };
@@ -132,7 +132,7 @@ describe('Apify.utils_request', () => {
 
         test('does not throw for empty response body', async () => {
             const options = {
-                url: `http://${HOST}:${port}/empty`,
+                url: `http://${HOSTNAME}:${port}/empty`,
             };
             let error;
             try {
@@ -145,7 +145,7 @@ describe('Apify.utils_request', () => {
         });
 
         test('overrides defaults', async () => {
-            const host = `${HOST}:${port}`;
+            const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/echo`,
                 headers: {
@@ -160,7 +160,7 @@ describe('Apify.utils_request', () => {
         });
 
         test('headers has same format as in firefox', async () => {
-            const host = `${HOST}:${port}`;
+            const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/rawHeaders`,
             };
@@ -185,7 +185,7 @@ describe('Apify.utils_request', () => {
         });
 
         test('custom headers in lowercase override uppercase defaults', async () => {
-            const host = `${HOST}:${port}`;
+            const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/rawHeaders`,
                 headers: {
@@ -204,7 +204,7 @@ describe('Apify.utils_request', () => {
         });
 
         test('correctly handles invalid header characters', async () => {
-            const url = `http://${HOST}:${port}/invalidHeaderChar`;
+            const url = `http://${HOSTNAME}:${port}/invalidHeaderChar`;
 
             const response = await requestAsBrowser({ url });
             expect(response.body).toBe(CONTENT);
