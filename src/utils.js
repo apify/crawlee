@@ -4,7 +4,6 @@ import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import { getRandomInt } from 'apify-shared/utilities';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
@@ -16,7 +15,6 @@ import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
-import { USER_AGENT_LIST } from './constants';
 import * as requestUtils from './utils_request';
 import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
@@ -464,16 +462,6 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
 };
 
 /**
- * Returns a randomly selected User-Agent header out of a list of the most common headers.
- * @returns {string}
- * @memberOf utils
- */
-const getRandomUserAgent = () => {
-    const index = getRandomInt(USER_AGENT_LIST.length);
-    return USER_AGENT_LIST[index];
-};
-
-/**
  * Helper function to open local storage.
  *
  * @ignore
@@ -800,7 +788,6 @@ export const publicUtils = {
     sleep,
     downloadListOfUrls,
     extractUrls,
-    getRandomUserAgent,
     htmlToText,
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
