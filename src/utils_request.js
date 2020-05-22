@@ -1,4 +1,3 @@
-import { URL } from 'url';
 import * as httpRequest from '@apify/http-request';
 import * as errors from '@apify/http-request/src/errors';
 /* eslint-disable no-unused-vars,import/named,import/order */
