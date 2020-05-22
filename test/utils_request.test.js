@@ -225,5 +225,16 @@ describe('Apify.utils_request', () => {
                 }
             }
         });
+
+        test('does not get into redirect loops', async () => {
+            const url = 'https://www.smartmania.cz'; // uses www to no-www redirect
+            try {
+                await requestAsBrowser({ url });
+            } catch (err) {
+                // If it's some other error, it's fine for the purpose of this test.
+                // We're only making sure that the max redirect error is not there.
+                if (err.name === 'MaxRedirectsError') throw err;
+            }
+        });
     });
 });

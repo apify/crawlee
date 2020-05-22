@@ -107,10 +107,7 @@ export const requestAsBrowser = async (options) => {
         ...otherParams
     } = options;
 
-    const parsedUrl = new URL(url);
-
     const defaultHeaders = {
-        Host: parsedUrl.host,
         'User-Agent': useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': `${languageCode}-${countryCode},${languageCode};q=0.5`,
