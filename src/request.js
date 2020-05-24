@@ -66,6 +66,10 @@ export function hashPayload(payload) {
  *   The `true` value indicates that the request will not be automatically retried on error.
  * @property {number} retryCount
  *   Indicates the number of times the crawling of the request has been retried on error.
+ * @property {boolean} responseBodyAsBuffer
+ *   Indicates CheerioCrawler to awlays return the response body of the request as a buffer
+ *   (rather than attemtping to automatically infer the response content type and parse it).
+ *   This option has no effect for the BasicCrawler and PuppeteerCrawler. 
  * @property {string[]} errorMessages
  *   An array of error messages from request processing.
  * @property {Object} headers
@@ -93,6 +97,7 @@ class Request {
             payload = null,
             noRetry = false,
             retryCount = 0,
+            responseBodyAsBuffer = false,
             errorMessages = null,
             headers = {},
             userData = {},
@@ -109,6 +114,7 @@ class Request {
         checkParamOrThrow(payload, 'payload', 'Maybe Buffer | String');
         checkParamOrThrow(noRetry, 'noRetry', 'Boolean');
         checkParamOrThrow(retryCount, 'retryCount', 'Number');
+        checkParamOrThrow(responseBodyAsBuffer, 'responseBodyAsBuffer', 'Boolean');
         checkParamOrThrow(errorMessages, 'errorMessages', 'Maybe Array');
         checkParamOrThrow(headers, 'headers', 'Object');
         checkParamOrThrow(userData, 'userData', 'Object');
@@ -128,6 +134,7 @@ class Request {
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
+        this.responseBodyAsBuffer = responseBodyAsBuffer;
         this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
         this.headers = JSON.parse(JSON.stringify(headers));
         this.userData = JSON.parse(JSON.stringify(userData));

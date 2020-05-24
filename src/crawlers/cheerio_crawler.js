@@ -499,7 +499,7 @@ class CheerioCrawler {
                 return dom && !isXml && $.html({ decodeEntities: false });
             },
             get json() {
-                if (contentType.type !== 'application/json') return null;
+                if (request.responseBodyAsBuffer || contentType.type !== 'application/json') return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
             },
@@ -577,7 +577,9 @@ class CheerioCrawler {
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
-        } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
+        } else if (
+            !request.responseBodyAsBuffer
+            && (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml')){
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
         } else {
