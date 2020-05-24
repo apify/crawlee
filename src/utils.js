@@ -793,4 +793,5 @@ export const publicUtils = {
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
     waitForRunToFinish,
+    parseContentTypeFromResponse,
 };
