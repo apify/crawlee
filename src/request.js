@@ -68,7 +68,7 @@ export function hashPayload(payload) {
  *   Indicates the number of times the crawling of the request has been retried on error.
  * @property {boolean} responseBodyAsBuffer
  *   Indicates CheerioCrawler to awlays return the response body of the request as a buffer
- *   (rather than attemtping to automatically infer the response content type and parse it).
+ *   (rather than trying to automatically infer the response content type and parse it).
  *   This option has no effect for the BasicCrawler and PuppeteerCrawler. 
  * @property {string[]} errorMessages
  *   An array of error messages from request processing.
