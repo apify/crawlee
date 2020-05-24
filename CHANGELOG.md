@@ -27,6 +27,8 @@ in avoiding bot detection.
    in `Puppeteer` and `Cheerio` crawlers.
 - Fixed a bug where intercepted requests would never continue.
 - Fixed a bug where `Apify.utils.requestAsBrowser()` would get into redirect loops.
+- Fix `Apify.utils.getMemoryInfo()` crashing the process on AWS Lambda and on systems
+  running in Docker without memory cgroups enabled.
 
 
 0.20.4 / 2020-05-11
