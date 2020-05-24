@@ -760,7 +760,7 @@ class CheerioCrawler {
      * @param {stream} responseStream
      * @private
      */
-    async _defaultParseContentTypeFunction(request, responseStream) {
+    _defaultParseContentTypeFunction(request, responseStream) {
         return parseContentTypeFromResponse(responseStream);
     }    
 }
