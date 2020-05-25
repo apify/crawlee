@@ -304,7 +304,8 @@ export const getMemoryInfo = async () => {
         } catch (err) {
             // log.deprecated logs a warning only once
             log.deprecated('Your environment is Docker, but your system does not support memory cgroups. '
-                + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.');
+                + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.\n\n'
+                + `Cause: ${err.message}`);
             totalBytes = os.totalmem();
             freeBytes = os.freemem();
             usedBytes = totalBytes - freeBytes;
