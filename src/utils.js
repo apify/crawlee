@@ -285,23 +285,35 @@ export const getMemoryInfo = async () => {
         freeBytes = totalBytes - usedBytes;
 
         log.debug(`lambda size of ${totalBytes} with ${freeBytes} free bytes`);
-    } else if (!isDockerVar) {
-        totalBytes = os.totalmem();
-        freeBytes = os.freemem();
-        usedBytes = totalBytes - freeBytes;
-    } else {
+    } else if (isDockerVar) {
         // When running inside Docker container, use container memory limits
         // This must be promisified here so that we can mock it.
         const readPromised = util.promisify(fs.readFile);
 
-        const [totalBytesStr, usedBytesStr] = await Promise.all([
-            readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
-            readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
-        ]);
-
-        totalBytes = parseInt(totalBytesStr, 10);
-        usedBytes = parseInt(usedBytesStr, 10);
-        freeBytes = totalBytes - usedBytes;
+        try {
+            const [totalBytesStr, usedBytesStr] = await Promise.all([
+                readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
+                readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+            ]);
+            totalBytes = parseInt(totalBytesStr, 10);
+            // https://unix.stackexchange.com/q/420906
+            const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
+            if (containerRunsWithUnlimitedMemory) totalBytes = os.totalmem();
+            usedBytes = parseInt(usedBytesStr, 10);
+            freeBytes = totalBytes - usedBytes;
+        } catch (err) {
+            // log.deprecated logs a warning only once
+            log.deprecated('Your environment is Docker, but your system does not support memory cgroups. '
+                + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.\n\n'
+                + `Cause: ${err.message}`);
+            totalBytes = os.totalmem();
+            freeBytes = os.freemem();
+            usedBytes = totalBytes - freeBytes;
+        }
+    } else {
+        totalBytes = os.totalmem();
+        freeBytes = os.freemem();
+        usedBytes = totalBytes - freeBytes;
     }
 
     return {
