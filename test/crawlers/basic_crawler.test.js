@@ -12,7 +12,6 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 describe('BasicCrawler', () => {
     let logLevel;
     let localStorageEmulator;
-    let localStorageDir;
 
     beforeAll(async () => {
         logLevel = log.getLevel();
@@ -21,7 +20,7 @@ describe('BasicCrawler', () => {
     });
 
     beforeEach(async () => {
-        localStorageDir = await localStorageEmulator.init();
+        await localStorageEmulator.init();
     });
 
     afterAll(async () => {
