@@ -32,7 +32,7 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 // to be available to subsequent reads.
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
-export const queuesCache = globalCache.create('request-queue-cache', MAX_OPENED_QUEUES); // Open queues are stored here.
+const queuesCache = globalCache.create('request-queue-cache', MAX_OPENED_QUEUES); // Open queues are stored here.
 
 /**
  * Helper function to validate params of *.addRequest().

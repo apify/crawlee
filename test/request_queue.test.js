@@ -10,7 +10,6 @@ import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
     getRequestId,
-    queuesCache,
 } from '../build/request_queue';
 import { expectNotUsingLocalStorage } from './_helper';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
@@ -729,11 +728,6 @@ describe('local emulation', () => {
     beforeEach(async () => {
         localStorageEmulator = new LocalStorageDirEmulator();
         await localStorageEmulator.init();
-    });
-
-    afterEach(async () => {
-        queuesCache.clear();
-        await localStorageEmulator.clean();
     });
 
     afterAll(async () => {
