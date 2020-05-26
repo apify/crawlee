@@ -40,6 +40,12 @@ const URL_NO_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%.
  */
 const URL_WITH_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'giu'); // eslint-disable-line
 
+/**
+ * Allows turning off the warning that gets printed whenever an actor is run with an outdated SDK on the Apify Platform.
+ * @type {string}
+ */
+const DISABLE_OUTDATED_WARNING = 'APIFY_DISABLE_OUTDATED_WARNING';
+
 const ensureDirPromised = util.promisify(fsExtra.ensureDir);
 const psTreePromised = util.promisify(psTree);
 
@@ -672,6 +678,7 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
  * @ignore
  */
 export const printOutdatedSdkWarning = () => {
+    if (process.env[DISABLE_OUTDATED_WARNING]) return;
     const latestApifyVersion = process.env[ENV_VARS.SDK_LATEST_VERSION];
     if (!latestApifyVersion || !semver.lt(apifyVersion, latestApifyVersion)) return;
 
