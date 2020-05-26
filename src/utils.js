@@ -1,10 +1,10 @@
 import * as psTree from '@apify/ps-tree';
 import * as ApifyStorageLocal from '@apify/storage-local';
+import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import { getRandomInt } from 'apify-shared/utilities';
+import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
@@ -16,7 +16,6 @@ import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
-import { USER_AGENT_LIST } from './constants';
 import * as requestUtils from './utils_request';
 import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
@@ -26,6 +25,7 @@ import { version as apifyVersion } from '../package.json';
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
 import Request, { RequestOptions } from './request';
+import { ActorRun } from './typedefs';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -275,50 +275,91 @@ export const weightedAvg = (arrValues, arrWeights) => {
  * @function
  */
 export const getMemoryInfo = async () => {
-    const [isDockerVar, processes] = await Promise.all([
-        // module.exports must be here so that we can mock it.
-        module.exports.isDocker(),
-        // Query both root and child processes
-        psTreePromised(process.pid, true),
-    ]);
+    // lambda does *not* have `ps` and other command line tools
+    // required to extract memory usage.
+    const isLambdaEnvironment = process.platform === 'linux'
+        && !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
+
+    // module.exports must be here so that we can mock it.
+    const isDockerVar = !isLambdaEnvironment && (await module.exports.isDocker());
 
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
-    processes.forEach((rec) => {
-        // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
-        if (rec.COMMAND === 'ps' || rec.COMMAND === 'WMIC.exe') {
-            return;
-        }
-        const bytes = parseInt(rec.RSS, 10);
-        // Obtain main process' memory separately
-        if (rec.PID === `${process.pid}`) {
-            mainProcessBytes = bytes;
-            return;
-        }
-        childProcessesBytes += bytes;
-    });
+
+    if (isLambdaEnvironment) {
+        // reported in bytes
+        mainProcessBytes = process.memoryUsage().rss;
+
+        // https://stackoverflow.com/a/55914335/129415
+        childProcessesBytes = execSync('cat /proc/meminfo')
+            .toString()
+            .split(/[\n: ]/)
+            .filter(val => val.trim())[19]
+            // meminfo reports in kb, not bytes
+            * 1000
+            // the total used memory is reported by meminfo
+            // subtract memory used by the main node proces
+            // in order to infer memory used by any child processes
+            - mainProcessBytes;
+    } else {
+        // Query both root and child processes
+        const processes = await psTreePromised(process.pid, true);
+
+        processes.forEach((rec) => {
+            // Skip the 'ps' or 'wmic' commands used by ps-tree to query the processes
+            if (rec.COMMAND === 'ps' || rec.COMMAND === 'WMIC.exe') {
+                return;
+            }
+            const bytes = parseInt(rec.RSS, 10);
+            // Obtain main process' memory separately
+            if (rec.PID === `${process.pid}`) {
+                mainProcessBytes = bytes;
+                return;
+            }
+            childProcessesBytes += bytes;
+        });
+    }
 
     let totalBytes;
-    let freeBytes;
     let usedBytes;
+    let freeBytes;
 
-    if (!isDockerVar) {
-        totalBytes = os.totalmem();
-        freeBytes = os.freemem();
-        usedBytes = totalBytes - freeBytes;
-    } else {
+    if (isLambdaEnvironment) {
+        // memory size is defined in megabytes
+        totalBytes = parseInt(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE, 10) * 1000000;
+        usedBytes = mainProcessBytes + childProcessesBytes;
+        freeBytes = totalBytes - usedBytes;
+
+        log.debug(`lambda size of ${totalBytes} with ${freeBytes} free bytes`);
+    } else if (isDockerVar) {
         // When running inside Docker container, use container memory limits
         // This must be promisified here so that we can mock it.
         const readPromised = util.promisify(fs.readFile);
 
-        const [totalBytesStr, usedBytesStr] = await Promise.all([
-            readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
-            readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
-        ]);
-
-        totalBytes = parseInt(totalBytesStr, 10);
-        usedBytes = parseInt(usedBytesStr, 10);
-        freeBytes = totalBytes - usedBytes;
+        try {
+            const [totalBytesStr, usedBytesStr] = await Promise.all([
+                readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
+                readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+            ]);
+            totalBytes = parseInt(totalBytesStr, 10);
+            // https://unix.stackexchange.com/q/420906
+            const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
+            if (containerRunsWithUnlimitedMemory) totalBytes = os.totalmem();
+            usedBytes = parseInt(usedBytesStr, 10);
+            freeBytes = totalBytes - usedBytes;
+        } catch (err) {
+            // log.deprecated logs a warning only once
+            log.deprecated('Your environment is Docker, but your system does not support memory cgroups. '
+                + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.\n\n'
+                + `Cause: ${err.message}`);
+            totalBytes = os.totalmem();
+            freeBytes = os.freemem();
+            usedBytes = totalBytes - freeBytes;
+        }
+    } else {
+        totalBytes = os.totalmem();
+        freeBytes = os.freemem();
+        usedBytes = totalBytes - freeBytes;
     }
 
     return {
@@ -476,16 +517,6 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
     checkParamOrThrow(string, 'string', 'String');
     checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     return string.match(urlRegExp) || [];
-};
-
-/**
- * Returns a randomly selected User-Agent header out of a list of the most common headers.
- * @returns {string}
- * @memberOf utils
- */
-const getRandomUserAgent = () => {
-    const index = getRandomInt(USER_AGENT_LIST.length);
-    return USER_AGENT_LIST[index];
 };
 
 /**
@@ -732,6 +763,70 @@ export const parseContentTypeFromResponse = (response) => {
 };
 
 /**
+ * Returns a promise that resolves with the finished Run object when the provided actor run finishes
+ * or with the unfinished Run object when the `waitSecs` timeout lapses. The promise is NOT rejected
+ * based on run status. You can inspect the `status` property of the Run object to find out its status.
+ *
+ * This is useful when you need to chain actor executions. Similar effect can be achieved
+ * by using webhooks, so be sure to review which technique fits your use-case better.
+ *
+ * @param {object} options
+ * @param {string} options.actorId
+ *  ID of the actor that started the run.
+ * @param {string} options.runId
+ *  ID of the run itself.
+ * @param {string} [options.waitSecs]
+ *  Maximum time to wait for the run to finish, in seconds.
+ *  If the limit is reached, the returned promise is resolved to a run object that will have
+ *  status `READY` or `RUNNING`. If `waitSecs` omitted, the function waits indefinitely.
+ * @param {string} [options.token]
+ *  You can supply an Apify token to override the default one
+ *  that's used by the default ApifyClient instance.
+ *  E.g. you can track other users' runs.
+ * @returns {Promise<ActorRun>}
+ * @memberOf utils
+ * @function
+ */
+export const waitForRunToFinish = async (options) => {
+    const {
+        actorId,
+        runId,
+        token,
+        waitSecs,
+    } = options;
+    let run;
+
+    const startedAt = Date.now();
+    const shouldRepeat = () => {
+        if (waitSecs && (Date.now() - startedAt) / 1000 >= waitSecs) return false;
+        if (run && ACT_JOB_TERMINAL_STATUSES.includes(run.status)) return false;
+
+        return true;
+    };
+
+    const getRunOpts = { actId: actorId, runId };
+    if (token) getRunOpts.token = token;
+
+    while (shouldRepeat()) {
+        getRunOpts.waitForFinish = waitSecs
+            ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
+            : 999999;
+
+        run = await apifyClient.acts.getRun(getRunOpts);
+
+        // It might take some time for database replicas to get up-to-date,
+        // so getRun() might return null. Wait a little bit and try it again.
+        if (!run) await sleep(250);
+    }
+
+    if (!run) {
+        throw new Error('Waiting for run to finish failed. Cannot fetch actor run details from the server.');
+    }
+
+    return run;
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * **Example usage:**
@@ -751,10 +846,9 @@ export const publicUtils = {
     sleep,
     downloadListOfUrls,
     extractUrls,
-    getRandomUserAgent,
     htmlToText,
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
-    parseContentTypeFromResponse,
+    waitForRunToFinish,
 };

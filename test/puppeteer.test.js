@@ -7,7 +7,6 @@ import _ from 'underscore';
 import sinon from 'sinon';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
-import * as actor from '../build/actor';
 import * as utils from '../build/utils';
 
 let prevEnvHeadless;
@@ -75,7 +74,6 @@ describe('Apify.launchPuppeteer()', () => {
         expect(Apify.launchPuppeteer({ proxyUrl: 'socks4://user:pass@example.com:1234' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'xxx', useApifyProxy: true })).rejects.toThrow(Error);
 
         expect(Apify.launchPuppeteer({ args: 'wrong args' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ args: [12, 34] })).rejects.toThrow(Error);
@@ -202,51 +200,6 @@ describe('Apify.launchPuppeteer()', () => {
             spy.restore();
             if (browser) await browser.close();
         }
-    });
-
-    test('should allow to use Apify proxy', async () => {
-        process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-        process.env[ENV_VARS.PROXY_HOSTNAME] = 'my.host.com';
-        process.env[ENV_VARS.PROXY_PORT] = 123;
-
-        const mock = sinon.mock(actor);
-        mock.expects('getApifyProxyUrl')
-            .once()
-            .withArgs({
-                session: 'xxx',
-                groups: ['yyy'],
-                groupsParamName: 'options.apifyProxyGroups',
-                sessionParamName: 'options.apifyProxySession',
-            })
-            .returns(null); // Return null so that it doesn't start proxy-chain
-
-        try {
-            await Apify
-                .launchPuppeteer({
-                    useApifyProxy: true,
-                    apifyProxySession: 'xxx',
-                    apifyProxyGroups: ['yyy'],
-                    headless: true,
-                })
-                .then(browser => browser.close());
-        } finally {
-            mock.verify();
-            mock.restore();
-            delete process.env[ENV_VARS.PROXY_PASSWORD];
-            delete process.env[ENV_VARS.PROXY_HOSTNAME];
-            delete process.env[ENV_VARS.PROXY_PORT];
-        }
-    });
-
-    test('should throw when useApifyProxy=true and proxy password is not set', () => {
-        const opts = {
-            useApifyProxy: true,
-            apifyProxySession: 'xxx',
-            apifyProxyGroups: ['yyy'],
-            headless: true,
-        };
-
-        expect(Apify.launchPuppeteer(opts)).rejects.toThrow(Error);
     });
 
     test('puppeteerModule option works with type string', async () => {

@@ -65,11 +65,9 @@ const parsePurl = (purl) => {
  *
  * For example, a PURL `http://www.example.com/pages/[(\w|-)*]` will match all of the following URLs:
  *
- * <ul>
- *     <li><code>http://www.example.com/pages/</code></li>
- *     <li><code>http://www.example.com/pages/my-awesome-page</code></li>
- *     <li><code>http://www.example.com/pages/something</code></li>
- * </ul>
+ * - `http://www.example.com/pages/`
+ * - `http://www.example.com/pages/my-awesome-page`
+ * - `http://www.example.com/pages/something`
  *
  * Be careful to correctly escape special characters in the pseudo-URL string.
  * If either `[` or `]` is part of the normal query string, it must be encoded as `[\x5B]` or `[\x5D]`,

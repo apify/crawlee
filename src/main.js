@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import log from './utils_log';
-import { main, getEnv, call, callTask, getApifyProxyUrl, metamorph, addWebhook } from './actor';
+import { main, getEnv, call, callTask, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';
 import CheerioCrawler from './crawlers/cheerio_crawler';
@@ -12,6 +12,7 @@ import PuppeteerCrawler from './crawlers/puppeteer_crawler';
 import PuppeteerPool from './puppeteer_pool';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
+import { createProxyConfiguration } from './proxy_configuration';
 import { openRequestQueue } from './request_queue';
 import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
@@ -49,7 +50,6 @@ export {
     callTask,
     metamorph,
     getMemoryInfo,
-    getApifyProxyUrl,
     isAtHome,
     apifyClient as client,
     addWebhook,
@@ -84,6 +84,8 @@ export {
     openRequestQueue,
 
     openSessionPool,
+
+    createProxyConfiguration,
 
     LiveViewServer,
     Session,

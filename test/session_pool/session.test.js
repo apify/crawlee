@@ -1,11 +1,10 @@
 import { Session } from '../../build/session_pool/session';
 import { SessionPool } from '../../build/session_pool/session_pool';
+import { ProxyConfiguration } from '../../build/proxy_configuration';
 import EVENTS from '../../build/session_pool/events';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 
 import Apify from '../../build';
-import { getApifyProxyUrl } from '../../build/actor';
-
 
 describe('Session - testing session behaviour ', () => {
     let sessionPool;
@@ -121,10 +120,11 @@ describe('Session - testing session behaviour ', () => {
     });
 
     test('should be valid proxy session', () => {
+        const proxyConfiguration = new ProxyConfiguration({ password: '12312' });
         session = new Session({ sessionPool });
         let error;
         try {
-            getApifyProxyUrl({ session: session.id, password: '12312' });
+            proxyConfiguration.getUrl(session.id);
         } catch (e) {
             error = e;
         }

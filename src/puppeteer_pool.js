@@ -90,19 +90,24 @@ class PuppeteerInstance {
  *   Note that the new browser starts with empty cookies, local storage etc. so this setting doesn't affect anonymity of your crawler.
  *
  *   Beware that the disk cache directories can consume a lot of disk space.
- *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `launchPuppeteerargs`,
+ *   To limit the space consumed, you can pass the `--disk-cache-size=X` argument to `launchPuppeteer` `args`,
  *   where `X` is the approximate maximum number of bytes for disk cache.
  *
  *   Do not use the `recycleDiskCache` setting together with `--disk-cache-dir`
- *   argument in `launchPuppeteerargs`, the behavior is undefined.
+ *   argument in `launchPuppeteer` `args`, the behavior is undefined.
  * @property {boolean} [useIncognitoPages]
  *   With this option selected, all pages will be opened in a new incognito browser context, which means
  *   that they will not share cookies or cache and their resources will not be throttled by one another.
+ * @property {SessionPool} [sessionPool]
+ *   A pool of Session instances.
  * @property {string[]} [proxyUrls]
  *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on startup.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `PuppeteerPool` will be configured to use
+ *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
  */
 
 /**
@@ -123,18 +128,16 @@ class PuppeteerInstance {
  *
  * ```javascript
  * const puppeteerPool = new PuppeteerPool({
- *   launchPuppeteerFunction: () => {
- *     // Use a new proxy with a new IP address for each new Chrome instance
- *     return Apify.launchPuppeteer({
- *        useApifyProxy: true,
- *        apifyProxySession: Math.random(),
- *     });
+ *   launchPuppeteerOptions: {
+ *     // Use Chrome instead of Chromium
+ *     useChrome: true,
+ *     // Hide from bot detection
+ *     stealth: true,
  *   },
  * });
  *
  * const page1 = await puppeteerPool.newPage();
  * const page2 = await puppeteerPool.newPage();
- * const page3 = await puppeteerPool.newPage();
  *
  * // ... do something with the pages ...
  *
@@ -164,6 +167,7 @@ class PuppeteerPool {
             recycleDiskCache = false,
             useIncognitoPages = false,
             proxyUrls,
+            proxyConfiguration,
             useLiveView = false,
             sessionPool,
             log = defaultLog,
@@ -197,8 +201,11 @@ class PuppeteerPool {
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
         // Enforce non-empty proxyUrls array
         if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
+        if (proxyConfiguration && proxyUrls) throw new Error('Cannot combine "options.proxyConfiguration" with "options.proxyUrls"!');
+
         checkParamOrThrow(useLiveView, 'options.useLiveView', 'Maybe Boolean');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
+
 
         // Config.
         this.sessionPool = sessionPool;
@@ -215,6 +222,7 @@ class PuppeteerPool {
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.useIncognitoPages = useIncognitoPages;
         this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
+        this.proxyConfiguration = proxyConfiguration;
         this.liveViewServer = useLiveView ? new LiveViewServer() : null;
         this.launchPuppeteerFunction = async () => {
             // Do not modify passed launchPuppeteerOptions!
@@ -241,7 +249,10 @@ class PuppeteerPool {
             let session;
             if (sessionPool) {
                 session = await sessionPool.getSession();
-                opts.apifyProxySession = session.id;
+            }
+
+            if (proxyConfiguration) {
+                opts.proxyUrl = proxyConfiguration.getUrl(session ? session.id : undefined);
             }
 
             const browser = await launchPuppeteerFunction(opts);
