@@ -34,13 +34,13 @@ describe('ProxyConfiguration', () => {
         expect(proxyConfiguration.port).toBe(port);
     });
 
-    test('getUrl() should return proxy URL', () => {
+    test('newUrl() should return proxy URL', () => {
         const proxyConfiguration = new ProxyConfiguration(basicOpts);
 
-        expect(proxyConfiguration.getUrl(sessionId)).toBe(basicOptsProxyUrl);
+        expect(proxyConfiguration.newUrl(sessionId)).toBe(basicOptsProxyUrl);
     });
 
-    test('getInfo() should return ProxyInfo object', () => {
+    test('newProxyInfo() should return ProxyInfo object', () => {
         const proxyConfiguration = new ProxyConfiguration(basicOpts);
         const url = basicOptsProxyUrl;
 
@@ -53,7 +53,7 @@ describe('ProxyConfiguration', () => {
             hostname,
             port,
         };
-        expect(proxyConfiguration.getInfo(sessionId)).toStrictEqual(proxyInfo);
+        expect(proxyConfiguration.newProxyInfo(sessionId)).toStrictEqual(proxyInfo);
     });
 
     test('actor UI input schema should work', () => {
@@ -116,109 +116,150 @@ describe('ProxyConfiguration', () => {
         expect(() => new ProxyConfiguration({ countryCode: 1111 })).toThrow();
     });
 
-    test('getUrl() should throw invalid session argument', () => {
+    test('newUrl() should throw invalid session argument', () => {
         const proxyConfiguration = new ProxyConfiguration();
 
-        expect(() => proxyConfiguration.getUrl('a-b')).toThrowError();
-        expect(() => proxyConfiguration.getUrl('a$b')).toThrowError();
-        expect(() => proxyConfiguration.getUrl({})).toThrowError();
-        expect(() => proxyConfiguration.getUrl(new Date())).toThrowError();
+        expect(() => proxyConfiguration.newUrl('a-b')).toThrowError();
+        expect(() => proxyConfiguration.newUrl('a$b')).toThrowError();
+        expect(() => proxyConfiguration.newUrl({})).toThrowError();
+        expect(() => proxyConfiguration.newUrl(new Date())).toThrowError();
 
-        expect(() => proxyConfiguration.getUrl('a_b')).not.toThrowError();
-        expect(() => proxyConfiguration.getUrl('0.34252352')).not.toThrowError();
-        expect(() => proxyConfiguration.getUrl('aaa~BBB')).not.toThrowError();
-        expect(() => proxyConfiguration.getUrl('a_1_b')).not.toThrowError();
-        expect(() => proxyConfiguration.getUrl('a_2')).not.toThrowError();
-        expect(() => proxyConfiguration.getUrl('a')).not.toThrowError();
-        expect(() => proxyConfiguration.getUrl('1')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('a_b')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('0.34252352')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('aaa~BBB')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('a_1_b')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('a_2')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('a')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl('1')).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl(123456)).not.toThrowError();
     });
 
-    test('should throw cannot combine custom proxies with Apify Proxy', async () => {
+    test('should throw invalid newUrlFunction return value', async () => {
+        const newUrlFunction = () => {
+            return 'http://proxy.com:1111*invalid_url';
+        };
+        const proxyConfiguration = new ProxyConfiguration({
+            newUrlFunction,
+        });
         try {
             // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = new ProxyConfiguration({
-                groups: ['GROUP1'],
-                customUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-            });
+            proxyConfiguration.newUrl();
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('Cannot combine custom proxies with Apify Proxy!');
+            expect(err.message).toMatch('The returned value "http://proxy.com:1111*invalid_url"');
         }
     });
 
-    test('should throw customUrls array is empty', async () => {
-        try {
-            // eslint-disable-next-line no-unused-vars
+    test('should newUrlFunction correctly generate URLs', async () => {
+        const customUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333',
+            'http://proxy.com:4444', 'http://proxy.com:5555', 'http://proxy.com:6666'];
+        const newUrlFunction = () => {
+            return customUrls.pop();
+        };
+        const proxyConfiguration = new ProxyConfiguration({
+            newUrlFunction,
+        });
+
+        // through newUrl()
+        expect(proxyConfiguration.newUrl()).toEqual('http://proxy.com:6666');
+        expect(proxyConfiguration.newUrl()).toEqual('http://proxy.com:5555');
+        expect(proxyConfiguration.newUrl()).toEqual('http://proxy.com:4444');
+
+        // through newProxyInfo()
+        expect(proxyConfiguration.newProxyInfo().url).toEqual('http://proxy.com:3333');
+        expect(proxyConfiguration.newProxyInfo().url).toEqual('http://proxy.com:2222');
+        expect(proxyConfiguration.newProxyInfo().url).toEqual('http://proxy.com:1111');
+    });
+
+    describe('With proxyUrls options', () => {
+        test('should rotate custom URLs correctly', async () => {
             const proxyConfiguration = new ProxyConfiguration({
-                customUrls: [],
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
-            throw new Error('wrong error');
-        } catch (err) {
-            expect(err.message).toMatch('must not be empty');
-        }
-    });
 
-    test('should throw invalid custom URL form', async () => {
-        try {
-            // eslint-disable-next-line no-unused-vars
+            const { proxyUrls } = proxyConfiguration;
+            expect(proxyConfiguration.newUrl()).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newUrl()).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newUrl()).toEqual(proxyUrls[2]);
+            expect(proxyConfiguration.newUrl()).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newUrl()).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newUrl()).toEqual(proxyUrls[2]);
+        });
+
+        test('newProxyInfo() should return correctly rotated URL', async () => {
             const proxyConfiguration = new ProxyConfiguration({
-                customUrls: ['http://proxy.com:1111*invalid_url'],
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
-            throw new Error('wrong error');
-        } catch (err) {
-            expect(err.message).toMatch('The provided Proxy URL "http://proxy.com:1111*invalid_url" is not valid.');
-        }
-    });
 
-    test('should rotate custom URLs correctly', async () => {
-        const proxyConfiguration = new ProxyConfiguration({
-            customUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            const { proxyUrls } = proxyConfiguration;
+            expect(proxyConfiguration.newProxyInfo().url).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newProxyInfo().url).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newProxyInfo().url).toEqual(proxyUrls[2]);
+            expect(proxyConfiguration.newProxyInfo().url).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newProxyInfo().url).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newProxyInfo().url).toEqual(proxyUrls[2]);
         });
 
-        const proxyUrls = proxyConfiguration.customUrls;
-        expect(proxyConfiguration.getUrl()).toEqual(proxyUrls[0]);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyUrls[1]);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyUrls[2]);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyUrls[0]);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyUrls[1]);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyUrls[2]);
-    });
+        test('should rotate custom URLs with sessions correctly', async () => {
+            const sessions = ['sesssion_01', 'sesssion_02', 'sesssion_03', 'sesssion_04', 'sesssion_05', 'sesssion_06'];
+            const proxyConfiguration = new ProxyConfiguration({
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            });
 
-    test('getInfo() should return currently used URL', async () => {
-        const proxyConfiguration = new ProxyConfiguration({
-            customUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            const { proxyUrls } = proxyConfiguration;
+            // should use same proxy URL
+            expect(proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newUrl(sessions[0])).toEqual(proxyUrls[0]);
+
+            // should rotate different proxies
+            expect(proxyConfiguration.newUrl(sessions[1])).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newUrl(sessions[2])).toEqual(proxyUrls[2]);
+            expect(proxyConfiguration.newUrl(sessions[3])).toEqual(proxyUrls[0]);
+            expect(proxyConfiguration.newUrl(sessions[4])).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newUrl(sessions[5])).toEqual(proxyUrls[2]);
+
+            // should remember already used session
+            expect(proxyConfiguration.newUrl(sessions[1])).toEqual(proxyUrls[1]);
+            expect(proxyConfiguration.newUrl(sessions[3])).toEqual(proxyUrls[0]);
         });
 
-        expect(proxyConfiguration.getUrl()).toEqual(proxyConfiguration.getInfo().url);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyConfiguration.getInfo().url);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyConfiguration.getInfo().url);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyConfiguration.getInfo().url);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyConfiguration.getInfo().url);
-        expect(proxyConfiguration.getUrl()).toEqual(proxyConfiguration.getInfo().url);
-    });
-
-    test('should rotate custom URLs with sessions correctly', async () => {
-        const sessions = ['sesssion_01', 'sesssion_02', 'sesssion_03', 'sesssion_04', 'sesssion_05', 'sesssion_06'];
-        const proxyConfiguration = new ProxyConfiguration({
-            customUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+        test('should throw cannot combine custom proxies with Apify Proxy', async () => {
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const proxyConfiguration = new ProxyConfiguration({
+                    groups: ['GROUP1'],
+                    proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('Cannot combine custom proxies with Apify Proxy!');
+            }
         });
 
-        const proxyUrls = proxyConfiguration.customUrls;
-        // should use same proxy URL
-        expect(proxyConfiguration.getUrl(sessions[0])).toEqual(proxyUrls[0]);
-        expect(proxyConfiguration.getUrl(sessions[0])).toEqual(proxyUrls[0]);
-        expect(proxyConfiguration.getUrl(sessions[0])).toEqual(proxyUrls[0]);
+        test('should throw proxyUrls array is empty', async () => {
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const proxyConfiguration = new ProxyConfiguration({
+                    proxyUrls: [],
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('must not be empty');
+            }
+        });
 
-        // should rotate different proxies
-        expect(proxyConfiguration.getUrl(sessions[1])).toEqual(proxyUrls[1]);
-        expect(proxyConfiguration.getUrl(sessions[2])).toEqual(proxyUrls[2]);
-        expect(proxyConfiguration.getUrl(sessions[3])).toEqual(proxyUrls[0]);
-        expect(proxyConfiguration.getUrl(sessions[4])).toEqual(proxyUrls[1]);
-        expect(proxyConfiguration.getUrl(sessions[5])).toEqual(proxyUrls[2]);
-
-        // should remember already used session
-        expect(proxyConfiguration.getUrl(sessions[1])).toEqual(proxyUrls[1]);
-        expect(proxyConfiguration.getUrl(sessions[3])).toEqual(proxyUrls[0]);
+        test('should throw invalid custom URL form', async () => {
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const proxyConfiguration = new ProxyConfiguration({
+                    proxyUrls: ['http://proxy.com:1111*invalid_url'],
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('The provided Proxy URL "http://proxy.com:1111*invalid_url" is not valid.');
+            }
+        });
     });
 });
 

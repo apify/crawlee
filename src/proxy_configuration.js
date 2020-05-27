@@ -1,7 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import * as _ from 'underscore';
 import { URL } from 'url';
 import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
@@ -36,7 +35,7 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  * @property {string} [apifyProxyCountry]
  *   Same option as `countryCode` which can be used to
  *   configurate the proxy by UI input schema. You should use the `countryCode` option in your crawler code.
- * @property {string[]} [customUrls]
+ * @property {string[]} [proxyUrls]
  *   An array of custom proxy URLs to be used.
  *   The provided custom proxies' order will be randomized and the resulting list rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
@@ -46,7 +45,7 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 /**
  * The main purpose of the ProxyInfo object is to provide information
  * about the proxy used by the crawler for the current request.
- * Outside of crawlers, you can get this object by calling {@link ProxyConfiguration.getInfo}.
+ * Outside of crawlers, you can get this object by calling {@link ProxyConfiguration.newProxyInfo}.
  *
  * **Example usage:**
  *
@@ -58,7 +57,7 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  * });
  *
  * // Getting proxyInfo object by calling class method directly
- * const proxyInfo = proxyConfiguration.getInfo();
+ * const proxyInfo = proxyConfiguration.createProxyInfo();
  *
  * // In crawler
  * const crawler = new Apify.CheerioCrawler({
@@ -143,8 +142,9 @@ export class ProxyConfiguration {
             apifyProxyGroups = [],
             countryCode,
             apifyProxyCountry,
-            customUrls,
+            proxyUrls,
             password = process.env[ENV_VARS.PROXY_PASSWORD],
+            newUrlFunction,
         } = options;
 
         const groupsToUse = groups.length ? groups : apifyProxyGroups;
@@ -156,8 +156,9 @@ export class ProxyConfiguration {
         checkParamOrThrow(groupsToUse, 'opts.groups', '[String]');
         checkParamOrThrow(countryCodeToUse, 'opts.countryCode', 'Maybe String');
         checkParamOrThrow(password, 'opts.password', 'Maybe String');
-        checkParamOrThrow(customUrls, 'options.customUrls', 'Maybe [String]');
-        this._validateArgumentStructure(groupsToUse, countryCodeToUse, customUrls);
+        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
+        checkParamOrThrow(newUrlFunction, 'options.newUrlFunction', 'Maybe Function');
+        this._validateArgumentStructure(groupsToUse, countryCodeToUse, proxyUrls);
 
         this.groups = groupsToUse;
         this.countryCode = countryCodeToUse;
@@ -165,8 +166,9 @@ export class ProxyConfiguration {
         this.hostname = hostname;
         this.port = port;
         this.lastUsedCustomUrlIndex = 0;
-        this.customUrls = customUrls ? _.shuffle(customUrls) : undefined;
-        this.usedCustomUrls = {};
+        this.proxyUrls = proxyUrls;
+        this.usedproxyUrls = {};
+        this.newUrlFunction = newUrlFunction;
     }
 
     /**
@@ -181,25 +183,27 @@ export class ProxyConfiguration {
     async initialize() {
         await this._setPasswordIfToken();
 
-        await this._checkAccess();
+        if (!this.proxyUrls) {
+            await this._checkAccess();
+        }
     }
 
 
     /**
-     * Gets information about proxy and its configuration.
+     * Returns proxy URL to use with information about the Proxy Configuration.
      * @param {string} sessionId
      *  Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier
      *  to be used with requests.
      *  All HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
      *  The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
-     * @return {ProxyInfo} represents information about used proxy configuration.
+     * @return {ProxyInfo} represents information about used proxy and its configuration.
      */
-    getInfo(sessionId) {
+    newProxyInfo(sessionId) {
         if (sessionId) this._validateSessionArgumentStructure(sessionId);
-        const url = this.customUrls ? this._getCurrentCustomUrl(sessionId) : this.getUrl(sessionId);
+        const url = this.newUrl(sessionId);
 
-        const { groups, countryCode, password, port, hostname } = this.customUrls ? new URL(url) : this;
+        const { groups, countryCode, password, port, hostname } = this.proxyUrls ? new URL(url) : this;
 
         return {
             sessionId,
@@ -213,7 +217,7 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Returns the proxy URL.
+     * Returns the proxy URL to use.
      * @param {string} sessionId
      *  Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier
      *  to be used with requests.
@@ -222,10 +226,13 @@ export class ProxyConfiguration {
      *  The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return {string} represents the proxy URL.
      */
-    getUrl(sessionId) {
+    newUrl(sessionId) {
         if (sessionId) this._validateSessionArgumentStructure(sessionId);
-        if (this.customUrls) {
+        if (this.proxyUrls) {
             return this._handleCustomUrl(sessionId);
+        }
+        if (this.newUrlFunction) {
+            return this._checkNewUrlFunctionReturnValue(sessionId);
         }
         const username = this._getUsername(sessionId);
         const { password, hostname, port } = this;
@@ -292,7 +299,7 @@ export class ProxyConfiguration {
      */
     async _checkAccess() {
         const url = APIFY_PROXY_STATUS_URL;
-        const proxyUrl = this.getUrl();
+        const proxyUrl = this.newUrl();
         const { countryCode } = this;
         const { body: { connected, connectionError } } = await requestAsBrowser({ url, proxyUrl, countryCode, json: true });
         if (!connected) this._throwApifyProxyConnectionError(connectionError);
@@ -307,34 +314,32 @@ export class ProxyConfiguration {
     _handleCustomUrl(sessionId) {
         let customUrlToUse;
         if (sessionId) {
-            if (this.usedCustomUrls.hasOwnProperty(sessionId)) {  // eslint-disable-line
-                customUrlToUse = this.customUrls[this.usedCustomUrls[sessionId]];
+            if (this.usedproxyUrls.hasOwnProperty(sessionId)) {  // eslint-disable-line
+                customUrlToUse = this.proxyUrls[this.usedproxyUrls[sessionId]];
             } else {
-                this.usedCustomUrls[sessionId] = this.lastUsedCustomUrlIndex++ % this.customUrls.length;
-                customUrlToUse = this.customUrls[this.usedCustomUrls[sessionId]];
+                this.usedproxyUrls[sessionId] = this.lastUsedCustomUrlIndex++ % this.proxyUrls.length;
+                customUrlToUse = this.proxyUrls[this.usedproxyUrls[sessionId]];
             }
         } else {
-            customUrlToUse = this.customUrls[this.lastUsedCustomUrlIndex++ % this.customUrls.length];
+            customUrlToUse = this.proxyUrls[this.lastUsedCustomUrlIndex++ % this.proxyUrls.length];
         }
         return customUrlToUse;
     }
 
     /**
-     * Gets currently used custom URL
+     * Checks return value of a custom newUrlFunction
      * @param {string} sessionId
-     * @returns {string} url
      * @ignore
      */
-    _getCurrentCustomUrl(sessionId) {
-        if (sessionId) {
-            if (this.usedCustomUrls[sessionId]) {
-                return this.customUrls[this.usedCustomUrls[sessionId]];
-            }
+    _checkNewUrlFunctionReturnValue(sessionId) {
+        const urlToReturn = this.newUrlFunction(sessionId);
+        try {
+            // eslint-disable-next-line no-new
+            new URL(urlToReturn);
+        } catch (err) {
+            this._throwNewUrlFunctionInvalidReturn(urlToReturn);
         }
-        if (this.lastUsedCustomUrlIndex === 0) {
-            return this.customUrls[this.lastUsedCustomUrlIndex % this.customUrls.length];
-        }
-        return this.customUrls[(this.lastUsedCustomUrlIndex - 1) % this.customUrls.length];
+        return urlToReturn;
     }
 
     /**
@@ -350,20 +355,20 @@ export class ProxyConfiguration {
      * Validates groups and countryCode options correct structure
      * @param {string[]} groups
      * @param {string} countryCode
-     * @param {string[]} customUrls
+     * @param {string[]} proxyUrls
      * @ignore
      */
-    _validateArgumentStructure(groups, countryCode, customUrls) {
+    _validateArgumentStructure(groups, countryCode, proxyUrls) {
         for (const group of groups) {
             if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError(group);
         }
         if (countryCode) {
             if (!COUNTRY_CODE_REGEX.test(countryCode)) this._throwInvalidCountryCode(countryCode);
         }
-        if (customUrls) {
-            if (!customUrls.length) this._throwCustomUrlsIsEmpty();
+        if (proxyUrls) {
+            if (!proxyUrls.length) this._throwproxyUrlsIsEmpty();
             if (((groups && groups.length) || countryCode)) this._throwCannotCombineCustomWithApify();
-            customUrls.forEach((customUrl) => {
+            proxyUrls.forEach((customUrl) => {
                 try {
                     // eslint-disable-next-line no-new
                     new URL(customUrl);
@@ -372,6 +377,15 @@ export class ProxyConfiguration {
                 }
             });
         }
+    }
+
+    /**
+     * Throws invalid custom newUrlFunction return
+     * @param {string} url
+     * @ignore
+     */
+    _throwNewUrlFunctionInvalidReturn(url) {
+        throw new Error(`The returned value "${url}" of provided "options.newUrlFunction" is not valid URL.`);
     }
 
     /**
@@ -404,8 +418,8 @@ export class ProxyConfiguration {
      * Throws custom URLs is provided but empty
      * @ignore
      */
-    _throwCustomUrlsIsEmpty() {
-        throw new Error('Parameter "options.customUrls" of type Array must not be empty!');
+    _throwproxyUrlsIsEmpty() {
+        throw new Error('Parameter "options.proxyUrls" of type Array must not be empty!');
     }
 
     /**
@@ -414,7 +428,7 @@ export class ProxyConfiguration {
      */
     _throwCannotCombineCustomWithApify() {
         throw new Error('Cannot combine custom proxies with Apify Proxy!'
-            + 'It is not allowed to set "options.customUrls" combined with '
+            + 'It is not allowed to set "options.proxyUrls" combined with '
             + '"options.groups" or "options.apifyProxyGroups" and "options.countryCode" or "options.apifyProxyCountry".');
     }
 
