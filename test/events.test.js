@@ -115,18 +115,23 @@ describe('Apify.events', () => {
     });
 
     test('should send persist state events in regular interval', async () => {
+        const clock = sinon.useFakeTimers();
         process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS = 1;
 
-        const eventsReceived = [];
-        Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, data => eventsReceived.push(data));
-        await Apify.initializeEvents();
-        await sleep(10);
-        await Apify.stopEvents();
-        const eventCount = eventsReceived.length;
-        expect(eventCount).toBeGreaterThan(2);
-        await sleep(10);
-        expect(eventsReceived.length).toEqual(eventCount);
-
-        delete process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS;
+        try {
+            const eventsReceived = [];
+            Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, data => eventsReceived.push(data));
+            await Apify.initializeEvents();
+            clock.tick(1);
+            clock.tick(1);
+            clock.tick(1);
+            await Apify.stopEvents();
+            const eventCount = eventsReceived.length;
+            expect(eventCount).toBe(3);
+            expect(eventsReceived.length).toEqual(eventCount);
+        } finally {
+            clock.restore();
+            delete process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS;
+        }
     });
 });

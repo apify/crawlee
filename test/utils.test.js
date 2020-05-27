@@ -522,14 +522,6 @@ describe('Apify.utils.downloadListOfUrls()', () => {
     });
 });
 
-describe('Apify.utils.getRandomUserAgent()', () => {
-    test('works', () => {
-        const agent = utils.publicUtils.getRandomUserAgent();
-        expect(typeof agent).toBe('string');
-        expect(agent.length).not.toBe(0);
-    });
-});
-
 describe('utils.openLocalStorage()', () => {
     test(
         'should return item from cache if available and create new one otherwise',

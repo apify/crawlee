@@ -4,7 +4,6 @@ import * as ApifyClient from 'apify-client';
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import { getRandomInt } from 'apify-shared/utilities';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
@@ -16,7 +15,6 @@ import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
-import { USER_AGENT_LIST } from './constants';
 import * as requestUtils from './utils_request';
 import log from './utils_log';
 import { version as apifyVersion } from '../package.json';
@@ -287,23 +285,35 @@ export const getMemoryInfo = async () => {
         freeBytes = totalBytes - usedBytes;
 
         log.debug(`lambda size of ${totalBytes} with ${freeBytes} free bytes`);
-    } else if (!isDockerVar) {
-        totalBytes = os.totalmem();
-        freeBytes = os.freemem();
-        usedBytes = totalBytes - freeBytes;
-    } else {
+    } else if (isDockerVar) {
         // When running inside Docker container, use container memory limits
         // This must be promisified here so that we can mock it.
         const readPromised = util.promisify(fs.readFile);
 
-        const [totalBytesStr, usedBytesStr] = await Promise.all([
-            readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
-            readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
-        ]);
-
-        totalBytes = parseInt(totalBytesStr, 10);
-        usedBytes = parseInt(usedBytesStr, 10);
-        freeBytes = totalBytes - usedBytes;
+        try {
+            const [totalBytesStr, usedBytesStr] = await Promise.all([
+                readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
+                readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+            ]);
+            totalBytes = parseInt(totalBytesStr, 10);
+            // https://unix.stackexchange.com/q/420906
+            const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
+            if (containerRunsWithUnlimitedMemory) totalBytes = os.totalmem();
+            usedBytes = parseInt(usedBytesStr, 10);
+            freeBytes = totalBytes - usedBytes;
+        } catch (err) {
+            // log.deprecated logs a warning only once
+            log.deprecated('Your environment is Docker, but your system does not support memory cgroups. '
+                + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.\n\n'
+                + `Cause: ${err.message}`);
+            totalBytes = os.totalmem();
+            freeBytes = os.freemem();
+            usedBytes = totalBytes - freeBytes;
+        }
+    } else {
+        totalBytes = os.totalmem();
+        freeBytes = os.freemem();
+        usedBytes = totalBytes - freeBytes;
     }
 
     return {
@@ -461,16 +471,6 @@ const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
     checkParamOrThrow(string, 'string', 'String');
     checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
     return string.match(urlRegExp) || [];
-};
-
-/**
- * Returns a randomly selected User-Agent header out of a list of the most common headers.
- * @returns {string}
- * @memberOf utils
- */
-const getRandomUserAgent = () => {
-    const index = getRandomInt(USER_AGENT_LIST.length);
-    return USER_AGENT_LIST[index];
 };
 
 /**
@@ -800,7 +800,6 @@ export const publicUtils = {
     sleep,
     downloadListOfUrls,
     extractUrls,
-    getRandomUserAgent,
     htmlToText,
     URL_NO_COMMAS_REGEX,
     URL_WITH_COMMAS_REGEX,
