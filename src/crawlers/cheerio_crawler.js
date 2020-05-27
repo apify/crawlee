@@ -7,6 +7,7 @@ import * as htmlparser from 'htmlparser2';
 import * as iconv from 'iconv-lite';
 import * as _ from 'underscore';
 import * as util from 'util';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
@@ -136,9 +137,9 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * @property {boolean} [ignoreSslErrors=true]
  *   If set to true, SSL certificate errors will be ignored.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `CheerioCrawler` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
- *   For more information, see the [documentation](https://docs.apify.com/proxy)
+ *   If set, `CheerioCrawler` will be configured for all connection to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -336,6 +337,7 @@ class CheerioCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
 
         this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
 
@@ -458,10 +460,18 @@ class CheerioCrawler {
      * @param {ProxyInfo} options.proxyInfo
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool, session, proxyInfo }) {
+    async _handleRequestFunction({ request, autoscaledPool, session }) {
         if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
+
+        let proxyInfo;
+        let proxyUrl;
+        if (this.proxyConfiguration) {
+            proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
+            proxyUrl = proxyInfo.url;
+        }
+
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction({ request, session }),
+            this._requestFunction({ request, session, proxyUrl }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
@@ -522,9 +532,10 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {Session} options.session
+     * @param {string} options.proxyUrl
      * @ignore
      */
-    async _requestFunction({ request, session }) {
+    async _requestFunction({ request, session, proxyUrl }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
 
@@ -533,7 +544,7 @@ class CheerioCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const opts = this._getRequestOptions(request, session);
+        const opts = this._getRequestOptions(request, session, proxyUrl);
         let responseStream;
 
         try {
@@ -578,17 +589,16 @@ class CheerioCrawler {
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      * @param {Request} request
      * @param {Session} [session]
+     * @param {(string|null)} proxyUrl
      * @ignore
      */
-    _getRequestOptions(request, session) {
-        const hovno = this._getProxyUrl();
-        console.log(hovno);
+    _getRequestOptions(request, session, proxyUrl) {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
             headers: Object.assign({}, request.headers),
             ignoreSslErrors: this.ignoreSslErrors,
-            proxyUrl: hovno,
+            proxyUrl,
             stream: true,
             useCaseSensitiveHeaders: true,
             abortFunction: (res) => {
@@ -614,20 +624,6 @@ class CheerioCrawler {
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
 
         return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
-    }
-
-    /**
-     * Enables the use of a proxy by returning a proxy URL
-     * based on configured options or null if no proxy is used.
-     * @param {Session} [session]
-     * @returns {(string|null)}
-     * @ignore
-     */
-    _getProxyUrl(session = {}) {
-        if (this.proxyConfiguration) {
-            return this.proxyConfiguration.getUrl(session.id);
-        }
-        return null;
     }
 
     _encodeResponse(request, response, encoding) {
