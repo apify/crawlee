@@ -506,6 +506,7 @@ export const infiniteScroll = async (page, options = {}) => {
 
     while (!finished) {
         await doScroll();
+        await page.waitFor(50);
     }
 };
 
