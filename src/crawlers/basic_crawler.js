@@ -104,6 +104,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ */
 
 /**
  * Provides a simple framework for parallel crawling of web pages.
