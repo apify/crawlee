@@ -458,7 +458,7 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
  * @name infiniteScroll
  */
 export const infiniteScroll = async (page, options = {}) => {
-    const { timeoutSecs = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector = null } = options;
+    const { timeoutSecs = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector } = options;
 
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Number');
