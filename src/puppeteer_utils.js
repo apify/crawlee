@@ -451,17 +451,20 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
  *   How many seconds to wait for no new content to load before exit.
  * @param {Boolean} [options.scrollDownAndUp=false]
  *   If true, it will scroll up a bit after each scroll down. This is required on some websites for the scroll to work.
+ * @param {String} [options.buttonSelector=null]
+ *   Optionally checks and clicks a button if it appears while scrolling. This is required on some websites for the scroll to work.
  * @returns {Promise<void>}
  * @memberOf puppeteer
  * @name infiniteScroll
  */
 export const infiniteScroll = async (page, options = {}) => {
-    const { timeoutSecs = 0, waitForSecs = 4, scrollDownAndUp = false } = options;
+    const { timeoutSecs = 0, waitForSecs = 4, scrollDownAndUp = false,  buttonSelector = null } = options;
 
     checkParamOrThrow(page, 'page', 'Object');
     checkParamOrThrow(timeoutSecs, 'timeoutSecs', 'Number');
     checkParamOrThrow(waitForSecs, 'waitForSecs', 'Number');
     checkParamOrThrow(scrollDownAndUp, 'scrollDownAndUp', 'Boolean');
+    checkParamOrThrow(buttonSelector, 'buttonSelector', 'Maybe String');
 
     let finished;
     const startTime = Date.now();
@@ -506,6 +509,14 @@ export const infiniteScroll = async (page, options = {}) => {
             window.scrollBy(0, delta);
         }, SCROLL_HEIGHT_IF_ZERO);
     };
+    
+    const maybeClickButton = async () => {
+        const button = await page.$(buttonSelector);
+        // Box model returns null if the button is not visible
+        if (button && await button.boxModel()) {
+            await button.click({ delay: 10 });
+        }
+    };
 
     while (!finished) {
         await doScroll();
@@ -514,6 +525,9 @@ export const infiniteScroll = async (page, options = {}) => {
             await page.evaluate(() => {
                 window.scrollBy(0, -1000);
             });
+        }
+        if (buttonSelector) {
+            await maybeClickButton();
         }
     }
 };
