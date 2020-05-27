@@ -36,10 +36,13 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  *   Same option as `countryCode` which can be used to
  *   configurate the proxy by UI input schema. You should use the `countryCode` option in your crawler code.
  * @property {string[]} [proxyUrls]
- *   An array of custom proxy URLs to be used.
- *   The provided custom proxies' order will be randomized and the resulting list rotated.
+ *   An array of custom proxy URLs to be rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on initialize.
+ * @property {function} [newUrlFunction]
+ *   Custom function that allows to generate the new Proxy URL dynamically. It gets the `sessionId` as a parameter
+ *   and should always return stringified Proxy URL.
+ *   This function is used to generate the URL when {@link ProxyConfiguration.newUrl} or {@link ProxyConfiguration.newProxyInfo} is called.
  */
 
 /**
@@ -57,7 +60,7 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  * });
  *
  * // Getting proxyInfo object by calling class method directly
- * const proxyInfo = proxyConfiguration.createProxyInfo();
+ * const proxyInfo = proxyConfiguration.newProxyInfo();
  *
  * // In crawler
  * const crawler = new Apify.CheerioCrawler({
@@ -77,7 +80,7 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  * @property {string} [sessionId]
  *   The identifier of used {@link Session}, if used.
  * @property {string} url
- *   The proxy URL.
+ *   The URL of the proxy.
  * @property {string[]} groups
  *   An array of proxy groups to be used by the [Apify Proxy](https://docs.apify.com/proxy).
  *   If not provided, the proxy will select the groups automatically.
@@ -109,6 +112,9 @@ const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
  * The proxy servers are managed by [Apify Proxy](https://docs.apify.com/proxy). To be able to use Apify Proxy,
  * you need an Apify account and access to the selected proxies. If you provide no configuration option,
  * the proxies will be managed automatically using a smart algorithm.
+ *
+ * If you want to use your own proxies, use the `proxyUrls` option in the {@link ProxyConfigurationOptions}. Your list of proxy URLs will
+ * be rotated by the configuration if this option is provided.
  *
  * **Example usage:**
  *
@@ -172,7 +178,8 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Loads proxy password if token is provided and checks access to Apify Proxy and provided proxy groups.
+     * Loads proxy password if token is provided and checks access to Apify Proxy and provided proxy groups
+     * If Apify Proxy configuration is used.
      * Also checks if country has access to Apify Proxy groups if the country code is provided.
      *
      * You should use the {@link Apify.createProxyConfiguration} function to create a pre-initialized
@@ -181,18 +188,18 @@ export class ProxyConfiguration {
      * @returns {Promise<void>}
      */
     async initialize() {
-        await this._setPasswordIfToken();
-
         if (!this.proxyUrls) {
+            await this._setPasswordIfToken();
+
             await this._checkAccess();
         }
     }
 
 
     /**
-     * Returns proxy URL to use with information about the Proxy Configuration.
+     * Returns the URL of current proxy server with information about the Proxy Configuration.
      * @param {string} sessionId
-     *  Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier
+     *  Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier
      *  to be used with requests.
      *  All HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -217,9 +224,9 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Returns the proxy URL to use.
+     * Returns the URL of current proxy server.
      * @param {string} sessionId
-     *  Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier
+     *  Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier
      *  to be used with requests.
      *  All HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -228,11 +235,11 @@ export class ProxyConfiguration {
      */
     newUrl(sessionId) {
         if (sessionId) this._validateSessionArgumentStructure(sessionId);
-        if (this.proxyUrls) {
-            return this._handleCustomUrl(sessionId);
-        }
         if (this.newUrlFunction) {
             return this._checkNewUrlFunctionReturnValue(sessionId);
+        }
+        if (this.proxyUrls) {
+            return this._handleCustomUrl(sessionId);
         }
         const username = this._getUsername(sessionId);
         const { password, hostname, port } = this;
