@@ -295,5 +295,37 @@ describe('PuppeteerCrawler', () => {
             delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
         });
+
+        test('should throw on proxyConfiguration together with proxyUrl from launchPuppeteerOptions', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+            const proxyConfiguration = await Apify.createProxyConfiguration({
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            });
+
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                    requestList,
+                    handlePageFunction: async () => {},
+                    gotoFunction: async () => {},
+                    proxyConfiguration,
+                    launchPuppeteerOptions: {
+                        proxyUrl: 'http://proxy.com:1111',
+                    },
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('It is not possible to combine "options.proxyConfiguration"');
+            }
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+            stub.restore();
+        });
     });
 });

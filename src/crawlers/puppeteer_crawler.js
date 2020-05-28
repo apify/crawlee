@@ -132,7 +132,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *  If set, `PuppeteerCrawler` will be configured for all connection to use
+ *   If set, `PuppeteerCrawler` will be configured for all connection to use
  *   [Apify Proxy](https://my.apify.com/proxy) or Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
@@ -250,6 +250,11 @@ class PuppeteerCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+
+        if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
+            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
+                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
 
         this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
 

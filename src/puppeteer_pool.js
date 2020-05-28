@@ -63,9 +63,6 @@ class PuppeteerInstance {
 
             if (this.proxyConfiguration) {
                 this.proxyInfo = this.proxyConfiguration.newProxyInfo(this.session ? this.session.id : undefined);
-                if (this.launchPuppeteerOptions && this.launchPuppeteerOptions.proxyUrl) {
-                    this.proxyInfo.url = this.launchPuppeteerOptions.proxyUrl;
-                }
             }
             const proxyUrl = this.proxyInfo ? this.proxyInfo.url : null;
             resolve(this.launchPuppeteerFunction({ proxyUrl }));
@@ -224,7 +221,6 @@ class PuppeteerPool {
         checkParamOrThrow(useLiveView, 'options.useLiveView', 'Maybe Boolean');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
         checkParamOrThrow(proxyConfiguration, 'options.sessionPool', 'Maybe Object');
-
 
         // Config.
         this.sessionPool = sessionPool;
