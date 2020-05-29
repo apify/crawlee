@@ -1539,7 +1539,7 @@ and by calling [`Apify.getInput()`](/docs/api/apify#getvalue) you retrieve the v
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
 ```
-{PROJECT_FOLDER}/apify_storage/key-value-stores/default/INPUT.json
+{PROJECT_FOLDER}/apify_storage/key_value_stores/default/INPUT.json
 ```
 
 #### Use `INPUT` to seed our actor with categories
