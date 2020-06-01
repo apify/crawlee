@@ -547,10 +547,14 @@ describe('PuppeteerPool', () => {
             const page2 = await pool.newPage();
             const page3 = await pool.newPage();
             const page4 = await pool.newPage();
-            proxyUrls.push(pool.getBrowserInstance(page1).proxyInfo.url);
-            proxyUrls.push(pool.getBrowserInstance(page2).proxyInfo.url);
-            proxyUrls.push(pool.getBrowserInstance(page3).proxyInfo.url);
-            proxyUrls.push(pool.getBrowserInstance(page4).proxyInfo.url);
+            // eslint-disable-next-line no-underscore-dangle
+            proxyUrls.push(pool._getBrowserInstance(page1).proxyInfo.url);
+            // eslint-disable-next-line no-underscore-dangle
+            proxyUrls.push(pool._getBrowserInstance(page2).proxyInfo.url);
+            // eslint-disable-next-line no-underscore-dangle
+            proxyUrls.push(pool._getBrowserInstance(page3).proxyInfo.url);
+            // eslint-disable-next-line no-underscore-dangle
+            proxyUrls.push(pool._getBrowserInstance(page4).proxyInfo.url);
 
             await pool.destroy();
 
@@ -566,14 +570,9 @@ describe('PuppeteerPool', () => {
         });
 
         test('supports rotation of custom proxies', async () => {
-            const optionsLog = [];
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
+            const optionsLog = [];
 
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
@@ -600,7 +599,6 @@ describe('PuppeteerPool', () => {
             expect(optionsLog[3].proxyUrl).toEqual(proxies[0]);
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
-            stub.restore();
         });
     });
 
@@ -694,7 +692,8 @@ describe('PuppeteerPool', () => {
             });
             expect(pool.sessionPool.constructor.name).toEqual('SessionPool');
             const page = await pool.newPage();
-            const browserSession = pool.getBrowserInstance(page).session;
+            // eslint-disable-next-line no-underscore-dangle
+            const browserSession = pool._getBrowserInstance(page).session;
 
             expect(browserSession.id).toEqual(sessionPool.sessions[0].id);
             expect(
