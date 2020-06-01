@@ -137,8 +137,8 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * @property {boolean} [ignoreSslErrors=true]
  *   If set to true, SSL certificate errors will be ignored.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `CheerioCrawler` will be configured for all connection to use
- *   [Apify Proxy](https://my.apify.com/proxy) or Proxy URLs provided and rotated according to the configuration.
+ *   If set, `CheerioCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -589,7 +589,7 @@ class CheerioCrawler {
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      * @param {Request} request
      * @param {Session} [session]
-     * @param {(string|null)} proxyUrl
+     * @param {string} [proxyUrl]
      * @ignore
      */
     _getRequestOptions(request, session, proxyUrl) {

@@ -132,8 +132,8 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerCrawler` will be configured for all connection to use
- *   [Apify Proxy](https://my.apify.com/proxy) or Proxy URLs provided and rotated according to the configuration.
+ *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
 
@@ -350,7 +350,8 @@ class PuppeteerCrawler {
         let proxyInfo;
         const page = await this.puppeteerPool.newPage();
 
-        const browserInstance = this.puppeteerPool.getBrowserInstance(page);
+        // eslint-disable-next-line no-underscore-dangle
+        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
         if (this.sessionPool) {
             // eslint-disable-next-line prefer-destructuring
             session = browserInstance.session;
