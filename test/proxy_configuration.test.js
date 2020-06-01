@@ -146,11 +146,11 @@ describe('ProxyConfiguration', () => {
             proxyConfiguration.newUrl();
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('The returned value "http://proxy.com:1111*invalid_url"');
+            expect(err.message).toMatch('The return value "http://proxy.com:1111*invalid_url"');
         }
     });
 
-    test('should newUrlFunction correctly generate URLs', async () => {
+    test('newUrlFunction should correctly generate URLs', async () => {
         const customUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333',
             'http://proxy.com:4444', 'http://proxy.com:5555', 'http://proxy.com:6666'];
         const newUrlFunction = () => {
@@ -257,7 +257,7 @@ describe('ProxyConfiguration', () => {
                 });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toMatch('The provided Proxy URL "http://proxy.com:1111*invalid_url" is not valid.');
+                expect(err.message).toEqual('The provided proxy URL "http://proxy.com:1111*invalid_url" is not a valid URL.');
             }
         });
     });
