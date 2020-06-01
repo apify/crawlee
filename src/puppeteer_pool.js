@@ -29,13 +29,12 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
  *
  * @ignore
  */
-class PuppeteerInstance {
+class PuppeteerInstance { // TODO: this is in progress and it will be refactored later
     constructor(options) {
         const {
             id,
             sessionPool,
             proxyConfiguration,
-            launchPuppeteerOptions,
             launchPuppeteerFunction,
         } = options;
 
@@ -51,7 +50,6 @@ class PuppeteerInstance {
         this.recycleDiskCacheDir = null;
         this.sessionPool = sessionPool;
         this.proxyConfiguration = proxyConfiguration;
-        this.launchPuppeteerOptions = launchPuppeteerOptions;
         this.launchPuppeteerFunction = launchPuppeteerFunction;
     }
 
@@ -126,8 +124,9 @@ class PuppeteerInstance {
  * @property {SessionPool} [sessionPool]
  *   A pool of Session instances.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerPool` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   If set, `PuppeteerPool` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
 
 /**
@@ -785,8 +784,9 @@ class PuppeteerPool {
      *
      * @param {Page} page
      * @return {PuppeteerInstance}
+     * @ignore
      */
-    getBrowserInstance(page) {
+    _getBrowserInstance(page) {
         const browser = page.browser();
         return this.browsersToInstancesMap.get(browser);
     }
