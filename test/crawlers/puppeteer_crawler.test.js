@@ -255,12 +255,7 @@ describe('PuppeteerCrawler', () => {
 
         test('browser should launch with rotated custom proxy', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
 
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
@@ -293,17 +288,11 @@ describe('PuppeteerCrawler', () => {
             expect(browserProxies[3]).toEqual(proxiesToUse[0]);
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
-            stub.restore();
         });
 
         test('should throw on proxyConfiguration together with proxyUrl from launchPuppeteerOptions', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
 
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
@@ -325,7 +314,6 @@ describe('PuppeteerCrawler', () => {
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
-            stub.restore();
         });
     });
 });

@@ -655,12 +655,7 @@ describe('CheerioCrawler', () => {
         test('should work with proxyUrls configuration', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const proxies = [];
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
 
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
@@ -689,19 +684,13 @@ describe('CheerioCrawler', () => {
             expect(proxies[3]).toEqual(proxyUrls[0]);
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
-            stub.restore();
         });
 
         test('should correctly pass the url to proxyInfo with proxyUrls configuration and sessionPool', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const proxies = [];
             const proxyChecks = [];
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
 
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });
@@ -730,7 +719,6 @@ describe('CheerioCrawler', () => {
             expect(proxies[3]).toEqual(proxyChecks[3].url);
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
-            stub.restore();
         });
     });
 
