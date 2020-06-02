@@ -29,6 +29,9 @@
       "api/exports": {
         "title": "exports"
       },
+      "api/global-cache": {
+        "title": "GlobalCache"
+      },
       "api/key-value-store": {
         "title": "KeyValueStore"
       },
@@ -37,6 +40,9 @@
       },
       "api/log": {
         "title": "utils.log"
+      },
+      "api/proxy-configuration": {
+        "title": "ProxyConfiguration"
       },
       "api/pseudo-url": {
         "title": "PseudoUrl"
@@ -254,6 +260,12 @@
       "typedefs/prepare-request-inputs": {
         "title": "PrepareRequestInputs"
       },
+      "typedefs/proxy-configuration-options": {
+        "title": "ProxyConfigurationOptions"
+      },
+      "typedefs/proxy-info": {
+        "title": "ProxyInfo"
+      },
       "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
       },
@@ -326,9 +338,9 @@
     },
     "categories": {
       "Guide": "Guide",
+      "Examples": "Examples",
       "API Reference": "API Reference",
-      "Type Definitions": "Type Definitions",
-      "Examples": "Examples"
+      "Type Definitions": "Type Definitions"
     }
   },
   "pages-strings": {
