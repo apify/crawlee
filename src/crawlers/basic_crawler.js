@@ -18,7 +18,6 @@ import Request from '../request';
 import { QueueOperationInfo } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -45,7 +44,6 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   request: Request,
  *   autoscaledPool: AutoscaledPool,
  *   session: Session,
- *   proxyInfo: ProxyInfo
  * }
  * ```
  *   where the {@link Request} instance represents the URL to crawl.
@@ -106,13 +104,6 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
- * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `BasicCrawler` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
- *   For more information, see the [documentation](https://docs.apify.com/proxy)
- *
- *   The proxyConfiguration only provides access to the proxyInfo object but the `BasicCrawler` itself
- *   is not responsible for using that proxy information to make the proxied HTTP requests.
  */
 
 /**
@@ -196,7 +187,6 @@ class BasicCrawler {
             },
             maxRequestRetries = 3,
             maxRequestsPerCrawl,
-            proxyConfiguration,
             autoscaledPoolOptions = {},
             sessionPoolOptions = {},
             useSessionPool = false,
@@ -210,7 +200,6 @@ class BasicCrawler {
         } = options;
 
         checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'Apify.proxyConfiguration', true);
         checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
         checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
         checkParamOrThrow(handleRequestTimeoutSecs, 'options.handleRequestTimeoutSecs', 'Number');
@@ -228,7 +217,6 @@ class BasicCrawler {
         this.log = log;
         this.requestList = requestList;
         this.requestQueue = requestQueue;
-        this.proxyConfiguration = proxyConfiguration;
         this.handleRequestFunction = handleRequestFunction;
         this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
@@ -393,16 +381,11 @@ class BasicCrawler {
 
         let request;
         let session;
-        let proxyInfo;
 
         if (this.useSessionPool) {
             [request, session] = await Promise.all([this._fetchNextRequest(), this.sessionPool.getSession()]);
         } else {
             request = await this._fetchNextRequest();
-        }
-
-        if (this.proxyConfiguration) {
-            proxyInfo = this.proxyConfiguration.getInfo(session ? session.id : undefined);
         }
 
         if (!request) return;
@@ -414,7 +397,7 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session, proxyInfo }),
+                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session }),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
@@ -537,7 +520,6 @@ export default BasicCrawler;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
- * @property {ProxyInfo} [proxyInfo]
  */
 
 /**

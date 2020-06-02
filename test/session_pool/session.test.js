@@ -124,7 +124,7 @@ describe('Session - testing session behaviour ', () => {
         session = new Session({ sessionPool });
         let error;
         try {
-            proxyConfiguration.getUrl(session.id);
+            proxyConfiguration.newUrl(session.id);
         } catch (e) {
             error = e;
         }

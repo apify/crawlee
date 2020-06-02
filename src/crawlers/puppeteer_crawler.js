@@ -1,6 +1,6 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import * as _ from 'underscore';
-import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
+import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -132,9 +132,9 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerCrawler` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
- *   For more information, see the [documentation](https://docs.apify.com/proxy)
+ *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
 
 /**
@@ -251,6 +251,11 @@ class PuppeteerCrawler {
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
 
+        if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
+            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
+                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
+
         this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
 
         if (options.gotoTimeoutSecs && options.gotoFunction) {
@@ -345,10 +350,11 @@ class PuppeteerCrawler {
         let proxyInfo;
         const page = await this.puppeteerPool.newPage();
 
+        // eslint-disable-next-line no-underscore-dangle
+        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
         if (this.sessionPool) {
-            const browser = page.browser();
-            session = browser[BROWSER_SESSION_KEY_NAME];
-
+            // eslint-disable-next-line prefer-destructuring
+            session = browserInstance.session;
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
@@ -357,7 +363,8 @@ class PuppeteerCrawler {
         }
 
         if (this.proxyConfiguration) {
-            proxyInfo = this.proxyConfiguration.getInfo(session ? session.id : undefined);
+            // eslint-disable-next-line prefer-destructuring
+            proxyInfo = browserInstance.proxyInfo;
         }
 
 

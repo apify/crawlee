@@ -10,15 +10,12 @@ import defaultLog from './utils_log';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
 import EVENTS from './session_pool/events';
-
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/order */
-import { Page, Browser } from 'puppeteer';
+import { Browser, Page } from 'puppeteer';
 import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
 import { SessionPool } from './session_pool/session_pool';
 /* eslint-enable no-unused-vars */
-
-export const BROWSER_SESSION_KEY_NAME = 'APIFY_SESSION';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
@@ -32,16 +29,42 @@ const DISK_CACHE_DIR = path.join(os.tmpdir(), 'puppeteer_disk_cache-');
  *
  * @ignore
  */
-class PuppeteerInstance {
-    constructor(id, browserPromise) {
+class PuppeteerInstance { // TODO: this is in progress and it will be refactored later
+    constructor(options) {
+        const {
+            id,
+            sessionPool,
+            proxyConfiguration,
+            launchPuppeteerFunction,
+        } = options;
+
         this.id = id;
+        this.proxyInfo = null;
+        this.session = null;
         this.activePages = 0;
         this.totalPages = 0;
-        this.browserPromise = browserPromise;
+        this.browserPromise = null;
         this.lastPageOpenedAt = Date.now();
         this.killed = false;
         this.childProcess = null;
         this.recycleDiskCacheDir = null;
+        this.sessionPool = sessionPool;
+        this.proxyConfiguration = proxyConfiguration;
+        this.launchPuppeteerFunction = launchPuppeteerFunction;
+    }
+
+    async launch() {
+        this.browserPromise = new Promise(async (resolve) => {
+            if (this.sessionPool) {
+                this.session = await this.sessionPool.getSession();
+            }
+
+            if (this.proxyConfiguration) {
+                this.proxyInfo = this.proxyConfiguration.newProxyInfo(this.session ? this.session.id : undefined);
+            }
+            const proxyUrl = this.proxyInfo ? this.proxyInfo.url : null;
+            resolve(this.launchPuppeteerFunction({ proxyUrl }));
+        });
     }
 }
 
@@ -100,14 +123,10 @@ class PuppeteerInstance {
  *   that they will not share cookies or cache and their resources will not be throttled by one another.
  * @property {SessionPool} [sessionPool]
  *   A pool of Session instances.
- * @property {string[]} [proxyUrls]
- *   An array of custom proxy URLs to be used by the `PuppeteerPool` instance.
- *   The provided custom proxies' order will be randomized and the resulting list rotated.
- *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
- *   configuration options will cause an error to be thrown on startup.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerPool` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
+ *   If set, `PuppeteerPool` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
 
 /**
@@ -166,7 +185,6 @@ class PuppeteerPool {
             launchPuppeteerOptions,
             recycleDiskCache = false,
             useIncognitoPages = false,
-            proxyUrls,
             proxyConfiguration,
             useLiveView = false,
             sessionPool,
@@ -198,14 +216,15 @@ class PuppeteerPool {
         checkParamOrThrow(launchPuppeteerOptions, 'options.launchPuppeteerOptions', 'Maybe Object');
         checkParamOrThrow(recycleDiskCache, 'options.recycleDiskCache', 'Maybe Boolean');
         checkParamOrThrow(useIncognitoPages, 'options.useIncognitoPages', 'Maybe Boolean');
-        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe Array');
-        // Enforce non-empty proxyUrls array
-        if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
-        if (proxyConfiguration && proxyUrls) throw new Error('Cannot combine "options.proxyConfiguration" with "options.proxyUrls"!');
 
         checkParamOrThrow(useLiveView, 'options.useLiveView', 'Maybe Boolean');
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
+        checkParamOrThrow(proxyConfiguration, 'options.sessionPool', 'Maybe Object');
 
+        if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
+            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
+                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
 
         // Config.
         this.sessionPool = sessionPool;
@@ -221,10 +240,10 @@ class PuppeteerPool {
          */
         this.recycledDiskCacheDirs = recycleDiskCache ? new LinkedList() : null;
         this.useIncognitoPages = useIncognitoPages;
-        this.proxyUrls = proxyUrls ? _.shuffle(proxyUrls) : null;
         this.proxyConfiguration = proxyConfiguration;
         this.liveViewServer = useLiveView ? new LiveViewServer() : null;
-        this.launchPuppeteerFunction = async () => {
+        this.launchPuppeteerOptions = launchPuppeteerOptions;
+        this.launchPuppeteerFunction = async ({ proxyUrl }) => {
             // Do not modify passed launchPuppeteerOptions!
             const opts = _.clone(launchPuppeteerOptions) || {};
             opts.args = _.clone(opts.args || []);
@@ -238,21 +257,11 @@ class PuppeteerPool {
                 opts.args.push(`--disk-cache-dir=${diskCacheDir}`);
             }
 
-            // Rotate custom proxyUrls.
-            if (this.proxyUrls) {
-                opts.proxyUrl = this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
-            }
-
             // Set timeout for browser launch.
             if (opts.timeout == null) opts.timeout = this.puppeteerOperationTimeoutMillis;
 
-            let session;
-            if (sessionPool) {
-                session = await sessionPool.getSession();
-            }
-
             if (proxyConfiguration) {
-                opts.proxyUrl = proxyConfiguration.getUrl(session ? session.id : undefined);
+                opts.proxyUrl = proxyUrl;
             }
 
             const browser = await launchPuppeteerFunction(opts);
@@ -261,8 +270,6 @@ class PuppeteerPool {
                 throw new Error("The custom 'launchPuppeteerFunction' passed to PuppeteerPool must return a promise resolving to Puppeteer's Browser instance.");
             }
             browser.recycleDiskCacheDir = diskCacheDir;
-
-            if (session) browser[BROWSER_SESSION_KEY_NAME] = session;
 
             return browser;
         };
@@ -283,6 +290,7 @@ class PuppeteerPool {
         // are no references to the stored pages.
         this.closedPages = new WeakSet();
         this.pagesToInstancesMap = new WeakMap();
+        this.browsersToInstancesMap = new WeakMap();
 
         this.liveViewSnapshotsInProgress = new WeakMap();
 
@@ -305,33 +313,34 @@ class PuppeteerPool {
         const id = this.browserCounter++;
         this.log.debug('Launching new browser', { id });
 
-        const browserPromise = this.launchPuppeteerFunction();
-
-        const instance = new PuppeteerInstance(id, browserPromise);
+        const instance = new PuppeteerInstance({
+            id,
+            sessionPool: this.sessionPool,
+            proxyConfiguration: this.proxyConfiguration,
+            launchPuppeteerOptions: this.launchPuppeteerOptions,
+            launchPuppeteerFunction: this.launchPuppeteerFunction,
+        });
         this.activeInstances[id] = instance;
 
         // Handle the async stuff elsewhere.
-        this._initBrowser(browserPromise, instance);
+        this._initBrowser(instance);
 
         return instance;
     }
 
     /**
      * Takes care of async processes in PuppeteerInstance construction with a Browser.
-     * @param {Promise<Browser>} browserPromise
      * @param {PuppeteerInstance} instance
      * @returns {Promise<void>}
      * @ignore
      */
-    async _initBrowser(browserPromise, instance) {
+    async _initBrowser(instance) {
         const { id } = instance;
         let browser;
         try {
-            browser = await browserPromise;
-
-            if (this.sessionPool) {
-                instance.session = browser[BROWSER_SESSION_KEY_NAME];
-            }
+            await instance.launch();
+            browser = await instance.browserPromise;
+            this.browsersToInstancesMap.set(browser, instance);
         } catch (err) {
             this.log.exception(err, 'Browser launch failed', { id });
             delete this.activeInstances[id];
@@ -772,6 +781,19 @@ class PuppeteerPool {
                 this._killInstance(instance);
             }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
         }
+    }
+
+
+    /**
+     * Gets Puppeteer Instance by the page.
+     *
+     * @param {Page} page
+     * @return {PuppeteerInstance}
+     * @ignore
+     */
+    _getBrowserInstance(page) {
+        const browser = page.browser();
+        return this.browsersToInstancesMap.get(browser);
     }
 }
 
