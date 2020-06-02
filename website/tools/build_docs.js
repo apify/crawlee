@@ -153,7 +153,7 @@ async function buildExamples(exampleLinks) {
 
 async function addExamplesToSidebars(examples) {
     console.log('Saving examples to sidebars.json');
-    sidebars.examples = { Examples: examples };
+    sidebars.docs.Examples = examples;
     fs.writeFileSync(path.join(__dirname, '..', 'sidebars.json'), JSON.stringify(sidebars, null, 4));
 }
 
