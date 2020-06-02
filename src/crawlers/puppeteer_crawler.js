@@ -69,10 +69,10 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {PuppeteerGoto} [gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
  *   [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function,
- *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-response) object.
+ *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-httpresponse) object.
  *
- *   This is useful if you need to extend the page load timeout or select different criteria
- *   to determine that the navigation succeeded.
+ *   This is useful if you need to select different criteria to determine navigation success and also to do any
+ *   pre or post processing such as injecting cookies into the page.
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
