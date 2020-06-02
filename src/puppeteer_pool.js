@@ -221,6 +221,11 @@ class PuppeteerPool {
         checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
         checkParamOrThrow(proxyConfiguration, 'options.sessionPool', 'Maybe Object');
 
+        if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
+            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
+                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
+
         // Config.
         this.sessionPool = sessionPool;
         this.reusePages = reusePages;

@@ -547,13 +547,10 @@ describe('PuppeteerPool', () => {
             const page2 = await pool.newPage();
             const page3 = await pool.newPage();
             const page4 = await pool.newPage();
-            // eslint-disable-next-line no-underscore-dangle
+            /* eslint-disable no-underscore-dangle */
             proxyUrls.push(pool._getBrowserInstance(page1).proxyInfo.url);
-            // eslint-disable-next-line no-underscore-dangle
             proxyUrls.push(pool._getBrowserInstance(page2).proxyInfo.url);
-            // eslint-disable-next-line no-underscore-dangle
             proxyUrls.push(pool._getBrowserInstance(page3).proxyInfo.url);
-            // eslint-disable-next-line no-underscore-dangle
             proxyUrls.push(pool._getBrowserInstance(page4).proxyInfo.url);
 
             await pool.destroy();
@@ -597,6 +594,29 @@ describe('PuppeteerPool', () => {
             expect(optionsLog[1].proxyUrl).toEqual(proxies[1]);
             expect(optionsLog[2].proxyUrl).toEqual(proxies[2]);
             expect(optionsLog[3].proxyUrl).toEqual(proxies[0]);
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+        });
+
+        test('should throw on proxyConfiguration together with proxyUrl from launchPuppeteerOptions', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+
+            const proxyConfiguration = await Apify.createProxyConfiguration({
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            });
+
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const pool = new Apify.PuppeteerPool({
+                    proxyConfiguration,
+                    launchPuppeteerOptions: {
+                        proxyUrl: 'http://proxy.com:1111',
+                    },
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('It is not possible to combine "options.proxyConfiguration"');
+            }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
         });
