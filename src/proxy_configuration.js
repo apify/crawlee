@@ -164,11 +164,10 @@ export class ProxyConfiguration {
         checkParamOrThrow(password, 'opts.password', 'Maybe String');
         checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(newUrlFunction, 'options.newUrlFunction', 'Maybe Function');
-
-        // Harder validation
-        if ((proxyUrls || newUrlFunction) && ((groupsToUse.length) || countryCodeToUse)) {
+        if (((proxyUrls || newUrlFunction) && ((groupsToUse.length) || countryCodeToUse))) {
             this._throwCannotCombineCustomWithApify();
         }
+        if (proxyUrls && newUrlFunction) this._throwCannotCombineCustomMethods();
         if (proxyUrls) this._validateProxyUrls(proxyUrls);
         if (countryCodeToUse) this._validateCountryCode(countryCodeToUse);
         this._validateGroupsStructure(groupsToUse);
@@ -182,6 +181,7 @@ export class ProxyConfiguration {
         this.proxyUrls = proxyUrls;
         this.usedProxyUrls = new Map();
         this.newUrlFunction = newUrlFunction;
+        this.usesApifyProxy = !this.proxyUrls && !this.newUrlFunction;
     }
 
     /**
@@ -195,7 +195,7 @@ export class ProxyConfiguration {
      * @returns {Promise<void>}
      */
     async initialize() {
-        if (!this.proxyUrls || this.newUrlFunction) {
+        if (this.usesApifyProxy) {
             await this._setPasswordIfToken();
 
             await this._checkAccess();
@@ -222,7 +222,7 @@ export class ProxyConfiguration {
         if (sessionId) this._validateSessionArgumentStructure(sessionId);
         const url = this.newUrl(sessionId);
 
-        const { groups, countryCode, password, port, hostname } = this.proxyUrls || this.newUrlFunction ? new URL(url) : this;
+        const { groups, countryCode, password, port, hostname } = this.usesApifyProxy ? this : new URL(url);
 
         return {
             sessionId,
@@ -459,6 +459,14 @@ export class ProxyConfiguration {
         throw new Error('Cannot combine custom proxies with Apify Proxy!'
             + 'It is not allowed to set "options.proxyUrls" or "options.newUrlFunction" combined with '
             + '"options.groups" or "options.apifyProxyGroups" and "options.countryCode" or "options.apifyProxyCountry".');
+    }
+
+    /**
+     * Throws cannot combine custom 2 custom methods
+     * @ignore
+     */
+    _throwCannotCombineCustomMethods() {
+        throw new Error('Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".');
     }
 
     /**

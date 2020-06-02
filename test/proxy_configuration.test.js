@@ -225,15 +225,47 @@ describe('ProxyConfiguration', () => {
         });
 
         test('should throw cannot combine custom proxies with Apify Proxy', async () => {
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
+            const newUrlFunction = () => {
+                return proxyUrls[Math.floor(Math.random() * proxyUrls.length)];
+            };
             try {
                 // eslint-disable-next-line no-unused-vars
                 const proxyConfiguration = new ProxyConfiguration({
                     groups: ['GROUP1'],
-                    proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+                    proxyUrls,
                 });
                 throw new Error('wrong error');
             } catch (err) {
                 expect(err.message).toMatch('Cannot combine custom proxies with Apify Proxy!');
+            }
+
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const proxyConfiguration = new ProxyConfiguration({
+                    groups: ['GROUP1'],
+                    newUrlFunction,
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('Cannot combine custom proxies with Apify Proxy!');
+            }
+        });
+
+        test('should throw cannot combine custom methods', async () => {
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
+            const newUrlFunction = () => {
+                return proxyUrls[Math.floor(Math.random() * proxyUrls.length)];
+            };
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const proxyConfiguration = new ProxyConfiguration({
+                    proxyUrls,
+                    newUrlFunction,
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('Cannot combine custom proxies "options.proxyUrls"');
             }
         });
 
