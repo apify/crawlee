@@ -1,5 +1,8 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
-import log from '../utils_log';
+import { openKeyValueStore } from '../key_value_store';
+import { ACTOR_EVENT_NAMES_EX } from '../constants';
+import defaultLog from '../utils_log';
+import events from '../events';
 
 class Job {
     constructor() {
@@ -32,9 +35,18 @@ class Job {
  *  - Total number of failed jobs
  *  - A histogram of retry counts = Number of jobs that finished after N retries.
  *
- * @ignore
+ * @property {number[]} jobRetryHistogram
+ * @property {number} finishedJobs
+ * @property {number} minJobDurationMillis
+ * @property {number} maxJobDurationMillis
+ * @property {number} totalJobDurationMillis
+ * @property {number} failedJobs
+ * @property {number} finishedJobs
+ * @property {Date} startedAt
+ * @property {Map<string, Job>} jobsInProgress
+ * @hideconstructor
  */
-export default class Statistics {
+class Statistics {
     constructor(options = {}) {
         const {
             logIntervalSecs = 60,
@@ -44,21 +56,50 @@ export default class Statistics {
         checkParamOrThrow(logIntervalSecs, 'options.logIntervalSecs', 'Number');
         checkParamOrThrow(logMessage, 'options.logMessage', 'String');
 
-
+        this.log = defaultLog.child({ prefix: 'Statistics' });
         this.logIntervalMillis = logIntervalSecs * 1000;
         this.logMessage = logMessage;
+        this.keyValueStore = null;
+        // assign an id while incrementing so it can be saved/restored from KV
+        this.id = Statistics.id++;
+        this.persistStateKey = `STATISTICS_${this.id}_STATE`;
 
-        this.jobRetryHistogram = [];
+        // initialize by "resetting"
+        this.reset();
+    }
+
+    /**
+     * Set the current statistic instance to pristine values
+     */
+    reset() {
+        if (!this.jobRetryHistogram) {
+            this.jobRetryHistogram = [];
+        } else {
+            this.jobRetryHistogram.length = 0;
+        }
+
         this.finishedJobs = 0;
         this.failedJobs = 0;
-        this.jobsInProgress = new Map();
+
+        if (!this.jobsInProgress) {
+            this.jobsInProgress = new Map();
+        } else {
+            this.jobsInProgress.clear();
+        }
+
         this.minJobDurationMillis = Infinity;
         this.maxJobDurationMillis = 0;
         this.totalJobDurationMillis = 0;
         this.startedAt = null;
-        this.logInterval = null;
+
+        this._teardown();
     }
 
+    /**
+     * Starts a job
+     *
+     * @param {number|string} id
+     */
     startJob(id) {
         if (!this.startedAt) this.startedAt = new Date();
         let job = this.jobsInProgress.get(id);
@@ -67,6 +108,11 @@ export default class Statistics {
         this.jobsInProgress.set(id, job);
     }
 
+    /**
+     * Mark job as finished and sets the state
+     *
+     * @param {number|string} id
+     */
     finishJob(id) {
         const job = this.jobsInProgress.get(id);
         if (!job) return;
@@ -79,6 +125,11 @@ export default class Statistics {
         this.jobsInProgress.delete(id);
     }
 
+    /**
+     * Mark job as failed and sets the state
+     *
+     * @param {number|string} id
+     */
     failJob(id) {
         const job = this.jobsInProgress.get(id);
         if (!job) return;
@@ -87,6 +138,9 @@ export default class Statistics {
         this.jobsInProgress.delete(id);
     }
 
+    /**
+     * Calculate and get the current state
+     */
     getCurrent() {
         const totalMillis = new Date() - this.startedAt;
         const totalMinutes = totalMillis / 1000 / 60;
@@ -100,20 +154,118 @@ export default class Statistics {
         };
     }
 
-    startLogging() {
+    /**
+     * Initializes the key value store for persisting the statistics,
+     * displaying the current state in predefined intervals
+     */
+    async startLogging() {
+        this.keyValueStore = await openKeyValueStore();
+
+        await this._maybeLoadStatistics();
+
+        this._listener = this.persistState.bind(this);
+
+        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
+
         this.logInterval = setInterval(() => {
-            log.info(this.logMessage, this.getCurrent());
+            this.log.info(this.logMessage, this.getCurrent());
         }, this.logIntervalMillis);
     }
 
-    stopLogging() {
-        clearInterval(this.logInterval);
+    /**
+     * Stops logging and remove event listeners, then persist
+     */
+    async stopLogging() {
+        this._teardown();
+
+        await this.persistState();
     }
 
+    /**
+     * @private
+     */
     _saveRetryCountForJob(job) {
         const retryCount = job.retryCount();
         this.jobRetryHistogram[retryCount] = this.jobRetryHistogram[retryCount]
             ? this.jobRetryHistogram[retryCount] + 1
             : 1;
     }
+
+    /**
+     * Persist internal state to the key value store
+     */
+    async persistState() {
+        // this might be called before startLogging was called without using await, should not crash
+        if (!this.keyValueStore) {
+            return;
+        }
+
+        this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
+        await this.keyValueStore.setValue(this.persistStateKey, this.toJSON());
+    }
+
+    /**
+     * Loads the current statistic from the key value store if any
+     */
+    async _maybeLoadStatistics() {
+        // this might be called before startLogging was called without using await, should not crash
+        if (!this.keyValueStore) {
+            return;
+        }
+
+        const savedState = await this.keyValueStore.getValue(this.persistStateKey);
+
+        if (!savedState) return;
+
+        this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.persistStateKey });
+
+        this.jobRetryHistogram = [...savedState.jobRetryHistogram];
+        this.finishedJobs = savedState.finishedJobs;
+        this.failedJobs = savedState.failedJobs;
+        this.totalJobDurationMillis = savedState.totalJobDurationMillis;
+
+        /*
+         * TODO: shouldn't be an issue on migrations, but will skew the statistics if there was a big gap between runs.
+         * Not setting this from state makes the 'perMinute' on getCurrent() untrustworthy
+         */
+        this.startedAt = new Date(savedState.startedAt);
+
+        this.log.debug('Loaded from KeyValueStore');
+    }
+
+    /**
+     * @private
+     */
+    _teardown() {
+        // this can be called before a call to startLogging happens (or in a 'finally' block)
+        if (this._listener) {
+            events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
+            this._listener = null;
+        }
+
+        if (this.logInterval) {
+            clearInterval(this.logInterval);
+            this.logInterval = null;
+        }
+    }
+
+    /**
+     * Make this class persistable when called with JSON.stringify(stats), seletively
+     * persisting only what matters
+     *
+     * @private
+     */
+    toJSON() {
+        return {
+            jobRetryHistogram: this.jobRetryHistogram,
+            finishedJobs: this.finishedJobs,
+            failedJobs: this.failedJobs,
+            totalJobDurationMillis: this.totalJobDurationMillis,
+            startedAt: +this.startedAt,
+        };
+    }
 }
+
+Statistics.id = 0;
+
+export default Statistics;

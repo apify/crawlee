@@ -302,7 +302,8 @@ class BasicCrawler {
         await this._loadHandledRequestCount();
 
         this.isRunningPromise = this.autoscaledPool.run();
-        this.stats.startLogging();
+        await this.stats.startLogging();
+
         try {
             await this.isRunningPromise;
         } finally {
@@ -310,7 +311,7 @@ class BasicCrawler {
                 await this.sessionPool.teardown();
             }
 
-            this.stats.stopLogging();
+            await this.stats.stopLogging();
             const finalStats = this.stats.getCurrent();
             this.log.info('Final request statistics:', finalStats);
         }

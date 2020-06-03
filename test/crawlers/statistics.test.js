@@ -1,6 +1,8 @@
 import sinon from 'sinon';
-import log from '../../build/utils_log';
 import Statistics from '../../build/crawlers/statistics';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import events from '../../build/events';
+import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount, totalTickMillis) => {
@@ -9,16 +11,133 @@ describe('Statistics', () => {
 
     let clock;
     let stats;
+    let localStorageEmulator;
 
-    beforeEach(() => {
+    beforeAll(async () => {
+        localStorageEmulator = new LocalStorageDirEmulator();
+    });
+
+    beforeEach(async () => {
+        await localStorageEmulator.init();
         clock = sinon.useFakeTimers();
         stats = new Statistics();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+        events.removeAllListeners(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
         clock.restore();
         stats = null;
         clock = null;
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
+    });
+
+    describe('persist state', () => {
+        // needs to go first for predictability
+        test('should increment id by each new consecutive instance', () => {
+            expect(stats.id).toEqual(0);
+            expect(Statistics.id).toEqual(1);
+            const [n1, n2] = [new Statistics(), new Statistics()];
+            expect(n1.id).toEqual(1);
+            expect(n2.id).toEqual(2);
+            expect(Statistics.id).toEqual(3);
+        });
+
+        test('should persist the state to KV and load again', async () => {
+            const startedAt = 1000;
+            clock.tick(startedAt);
+            stats.startJob(0);
+            clock.tick(100);
+            stats.finishJob(0);
+
+            await stats.startLogging();
+            await stats.persistState();
+
+            const state = await stats.keyValueStore.getValue(stats.persistStateKey);
+
+            expect(state).toEqual({
+                jobRetryHistogram: [1],
+                finishedJobs: 1,
+                failedJobs: 0,
+                totalJobDurationMillis: 100,
+                startedAt,
+            });
+
+            await stats.stopLogging();
+            stats.reset();
+
+            expect(stats.toJSON()).toEqual({
+                jobRetryHistogram: [],
+                finishedJobs: 0,
+                failedJobs: 0,
+                totalJobDurationMillis: 0,
+                startedAt: 0,
+            });
+
+            await stats.startLogging();
+
+            stats.startJob(1);
+            clock.tick(100);
+            stats.finishJob(1);
+
+            expect(stats.toJSON()).toEqual({
+                jobRetryHistogram: [2],
+                finishedJobs: 2,
+                failedJobs: 0,
+                totalJobDurationMillis: 200,
+                startedAt,
+            });
+
+            clock.tick(1000);
+
+            expect(stats.getCurrent()).toEqual({
+                avgDurationMillis: 100,
+                perMinute: 100,
+                finished: 2,
+                failed: 0,
+                retryHistogram: [2],
+            });
+        });
+
+        test('should remove persist state event listener', async () => {
+            await stats.startLogging();
+            expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
+            await stats.stopLogging();
+
+            expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
+            await stats.startLogging();
+            expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
+            stats.reset();
+
+            expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
+        });
+
+        test('on persistState event', async () => {
+            stats.startJob(0);
+            clock.tick(100);
+            stats.finishJob(0);
+
+            await stats.startLogging(); // keyValueStore is initialized here
+
+            events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
+
+            clock.restore(); // restore clock so setInterval works again
+
+            const state = await new Promise((resolve) => {
+                const interval = setInterval(async () => {
+                    const persisted = await stats.keyValueStore.getValue(stats.persistStateKey);
+
+                    if (persisted) {
+                        clearInterval(interval);
+                        resolve(persisted);
+                    }
+                }, 100);
+            });
+
+            expect(stats.toJSON()).toEqual(state);
+        }, 2000);
     });
 
     test('should finish a job', () => {
@@ -95,16 +214,16 @@ describe('Statistics', () => {
         });
     });
 
-    test('should regularly log stats', () => {
+    test('should regularly log stats', async () => {
         const logged = [];
-        sinon.stub(log, 'info').callsFake((...args) => {
+        sinon.stub(stats.log, 'info').callsFake((...args) => {
             logged.push(args);
         });
 
         stats.startJob(0);
         clock.tick(1);
         stats.finishJob(0);
-        stats.startLogging();
+        await stats.startLogging();
         clock.tick(50000);
         expect(logged).toHaveLength(0);
         clock.tick(10001);
@@ -117,7 +236,7 @@ describe('Statistics', () => {
             failed: 0,
             retryHistogram: [1],
         });
-        stats.stopLogging();
+        await stats.stopLogging();
         clock.tick(60001);
         expect(logged).toHaveLength(1);
         expect(logged[0][0]).toBe('Statistics');
@@ -128,5 +247,19 @@ describe('Statistics', () => {
             failed: 0,
             retryHistogram: [1],
         });
+    });
+
+    test('should reset stats', async () => {
+        await stats.startLogging();
+        stats.startJob(1);
+        clock.tick(3);
+        stats.finishJob(1);
+        let current = stats.getCurrent();
+        expect(current.finished).toEqual(1);
+        expect(current.retryHistogram).toEqual([1]);
+        stats.reset();
+        current = stats.getCurrent();
+        expect(current.finished).toEqual(0);
+        expect(current.retryHistogram).toEqual([]);
     });
 });
