@@ -302,7 +302,7 @@ class BasicCrawler {
         await this._loadHandledRequestCount();
 
         this.isRunningPromise = this.autoscaledPool.run();
-        await this.stats.startLogging();
+        await this.stats.startCapturing();
 
         try {
             await this.isRunningPromise;
@@ -311,13 +311,14 @@ class BasicCrawler {
                 await this.sessionPool.teardown();
             }
 
-            await this.stats.stopLogging();
+            await this.stats.stopCapturing();
             const finalStats = this.stats.getCurrent();
             this.log.info('Final request statistics:', finalStats);
         }
     }
 
     async _pauseOnMigration() {
+        await this.stats.persistState();
         await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
             .catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {

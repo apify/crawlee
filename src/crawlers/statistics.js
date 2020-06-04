@@ -35,15 +35,6 @@ class Job {
  *  - Total number of failed jobs
  *  - A histogram of retry counts = Number of jobs that finished after N retries.
  *
- * @property {number[]} jobRetryHistogram
- * @property {number} finishedJobs
- * @property {number} minJobDurationMillis
- * @property {number} maxJobDurationMillis
- * @property {number} totalJobDurationMillis
- * @property {number} failedJobs
- * @property {number} finishedJobs
- * @property {Date} startedAt
- * @property {Map<string, Job>} jobsInProgress
  * @hideconstructor
  */
 class Statistics {
@@ -62,7 +53,8 @@ class Statistics {
         this.keyValueStore = null;
         // assign an id while incrementing so it can be saved/restored from KV
         this.id = Statistics.id++;
-        this.persistStateKey = `STATISTICS_${this.id}_STATE`;
+        this.persistStateKey = `STATISTICS_STATE_${this.id}`;
+        this.listener = this.persistState.bind(this);
 
         // initialize by "resetting"
         this.reset();
@@ -158,14 +150,12 @@ class Statistics {
      * Initializes the key value store for persisting the statistics,
      * displaying the current state in predefined intervals
      */
-    async startLogging() {
+    async startCapturing() {
         this.keyValueStore = await openKeyValueStore();
 
         await this._maybeLoadStatistics();
 
-        this._listener = this.persistState.bind(this);
-
-        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
+        events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.listener);
 
         this.logInterval = setInterval(() => {
             this.log.info(this.logMessage, this.getCurrent());
@@ -175,7 +165,7 @@ class Statistics {
     /**
      * Stops logging and remove event listeners, then persist
      */
-    async stopLogging() {
+    async stopCapturing() {
         this._teardown();
 
         await this.persistState();
@@ -195,7 +185,7 @@ class Statistics {
      * Persist internal state to the key value store
      */
     async persistState() {
-        // this might be called before startLogging was called without using await, should not crash
+        // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
         }
@@ -206,9 +196,10 @@ class Statistics {
 
     /**
      * Loads the current statistic from the key value store if any
+     * @private
      */
     async _maybeLoadStatistics() {
-        // this might be called before startLogging was called without using await, should not crash
+        // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
         }
@@ -219,16 +210,12 @@ class Statistics {
 
         this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.persistStateKey });
 
+        // safe to reassign here, since this can only happen once upon calling startCapturing()
         this.jobRetryHistogram = [...savedState.jobRetryHistogram];
         this.finishedJobs = savedState.finishedJobs;
         this.failedJobs = savedState.failedJobs;
         this.totalJobDurationMillis = savedState.totalJobDurationMillis;
-
-        /*
-         * TODO: shouldn't be an issue on migrations, but will skew the statistics if there was a big gap between runs.
-         * Not setting this from state makes the 'perMinute' on getCurrent() untrustworthy
-         */
-        this.startedAt = new Date(savedState.startedAt);
+        this.startedAt = new Date(Date.now() - (savedState.persistedAt - savedState.startedAt));
 
         this.log.debug('Loaded from KeyValueStore');
     }
@@ -237,11 +224,8 @@ class Statistics {
      * @private
      */
     _teardown() {
-        // this can be called before a call to startLogging happens (or in a 'finally' block)
-        if (this._listener) {
-            events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
-            this._listener = null;
-        }
+        // this can be called before a call to startCapturing happens (or in a 'finally' block)
+        events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.listener);
 
         if (this.logInterval) {
             clearInterval(this.logInterval);
@@ -262,6 +246,8 @@ class Statistics {
             failedJobs: this.failedJobs,
             totalJobDurationMillis: this.totalJobDurationMillis,
             startedAt: +this.startedAt,
+            // used for adjusting time between runs recreating from state
+            persistedAt: Date.now(),
         };
     }
 }

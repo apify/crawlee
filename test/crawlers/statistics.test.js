@@ -39,6 +39,7 @@ describe('Statistics', () => {
         test('should increment id by each new consecutive instance', () => {
             expect(stats.id).toEqual(0);
             expect(Statistics.id).toEqual(1);
+            expect(stats.persistStateKey).toEqual('STATISTICS_STATE_0');
             const [n1, n2] = [new Statistics(), new Statistics()];
             expect(n1.id).toEqual(1);
             expect(n2.id).toEqual(2);
@@ -52,7 +53,7 @@ describe('Statistics', () => {
             clock.tick(100);
             stats.finishJob(0);
 
-            await stats.startLogging();
+            await stats.startCapturing();
             await stats.persistState();
 
             const state = await stats.keyValueStore.getValue(stats.persistStateKey);
@@ -61,40 +62,45 @@ describe('Statistics', () => {
                 jobRetryHistogram: [1],
                 finishedJobs: 1,
                 failedJobs: 0,
+                persistedAt: startedAt + 100,
                 totalJobDurationMillis: 100,
                 startedAt,
             });
 
-            await stats.stopLogging();
+            await stats.stopCapturing();
             stats.reset();
 
             expect(stats.toJSON()).toEqual({
                 jobRetryHistogram: [],
                 finishedJobs: 0,
                 failedJobs: 0,
+                persistedAt: startedAt + 100,
                 totalJobDurationMillis: 0,
                 startedAt: 0,
             });
 
-            await stats.startLogging();
+            await stats.startCapturing();
 
             stats.startJob(1);
             clock.tick(100);
             stats.finishJob(1);
 
+            clock.tick(1000);
+
             expect(stats.toJSON()).toEqual({
                 jobRetryHistogram: [2],
                 finishedJobs: 2,
                 failedJobs: 0,
+                persistedAt: startedAt + 1200,
                 totalJobDurationMillis: 200,
                 startedAt,
             });
 
-            clock.tick(1000);
+            clock.tick(10000);
 
             expect(stats.getCurrent()).toEqual({
                 avgDurationMillis: 100,
-                perMinute: 100,
+                perMinute: getPerMinute(2, 11200),
                 finished: 2,
                 failed: 0,
                 retryHistogram: [2],
@@ -102,12 +108,12 @@ describe('Statistics', () => {
         });
 
         test('should remove persist state event listener', async () => {
-            await stats.startLogging();
+            await stats.startCapturing();
             expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
-            await stats.stopLogging();
+            await stats.stopCapturing();
 
             expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
-            await stats.startLogging();
+            await stats.startCapturing();
             expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
             stats.reset();
 
@@ -119,24 +125,14 @@ describe('Statistics', () => {
             clock.tick(100);
             stats.finishJob(0);
 
-            await stats.startLogging(); // keyValueStore is initialized here
+            await stats.startCapturing(); // keyValueStore is initialized here
+
+            const state = stats.toJSON();
+            const spy = sinon.spy(stats.keyValueStore, 'setValue');
 
             events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
 
-            clock.restore(); // restore clock so setInterval works again
-
-            const state = await new Promise((resolve) => {
-                const interval = setInterval(async () => {
-                    const persisted = await stats.keyValueStore.getValue(stats.persistStateKey);
-
-                    if (persisted) {
-                        clearInterval(interval);
-                        resolve(persisted);
-                    }
-                }, 100);
-            });
-
-            expect(stats.toJSON()).toEqual(state);
+            expect(spy.getCall(0).args).toEqual([stats.persistStateKey, state]);
         }, 2000);
     });
 
@@ -223,7 +219,7 @@ describe('Statistics', () => {
         stats.startJob(0);
         clock.tick(1);
         stats.finishJob(0);
-        await stats.startLogging();
+        await stats.startCapturing();
         clock.tick(50000);
         expect(logged).toHaveLength(0);
         clock.tick(10001);
@@ -236,7 +232,7 @@ describe('Statistics', () => {
             failed: 0,
             retryHistogram: [1],
         });
-        await stats.stopLogging();
+        await stats.stopCapturing();
         clock.tick(60001);
         expect(logged).toHaveLength(1);
         expect(logged[0][0]).toBe('Statistics');
@@ -250,7 +246,7 @@ describe('Statistics', () => {
     });
 
     test('should reset stats', async () => {
-        await stats.startLogging();
+        await stats.startCapturing();
         stats.startJob(1);
         clock.tick(3);
         stats.finishJob(1);
