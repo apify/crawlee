@@ -146,6 +146,9 @@
       "examples/synchronous-run": {
         "title": "Synchronous run"
       },
+      "guides/apify-platform": {
+        "title": "Apify Platform"
+      },
       "guides/data-storage": {
         "title": "Data Storage"
       },
@@ -158,8 +161,8 @@
       "guides/motivation": {
         "title": "Motivation"
       },
-      "guides/puppeteer-live-view": {
-        "title": "Puppeteer Live View"
+      "guides/proxy-management": {
+        "title": "Proxy Management"
       },
       "guides/quick-start": {
         "title": "Quick Start"
@@ -169,9 +172,6 @@
       },
       "guides/type-script-actor": {
         "title": "TypeScript Actors"
-      },
-      "guides/what-is-an-actor": {
-        "title": "What is an Actor"
       },
       "readme/introduction": {
         "title": "readme/introduction"
