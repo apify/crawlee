@@ -110,7 +110,7 @@
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^2.3.0",
         "ts-jest": "^26.0.0",
-        "typescript": "^3.9.2",
+        "typescript": "3.8.3",
         "ua-parser-js": "^0.7.21",
         "why-is-node-running": "^2.1.2"
     },

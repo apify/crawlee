@@ -9,8 +9,7 @@ eventually things will get complicated. For example, when you try to:
 
 -   Perform a deep crawl of an entire website using a persistent queue of URLs.
 -   Run your scraping code on a list of 100k URLs in a CSV file, without losing any data when your code crashes.
--   Rotate proxies to hide your browser origin.
--   Schedule the code to run periodically and send notification on errors.
+-   Rotate proxies to hide your browser origin and keep user-like sessions.
 -   Disable browser fingerprinting protections used by websites.
 
 Python has [Scrapy](https://scrapy.org/) for these tasks, but there was no such library for **JavaScript, the language of

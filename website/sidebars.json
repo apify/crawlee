@@ -3,13 +3,13 @@
         "Guide": [
             "guides/motivation",
             "guides/quick-start",
+            "guides/apify-platform",
             "guides/getting-started",
-            "guides/what-is-an-actor",
             "guides/data-storage",
             "guides/environment-variables",
+            "guides/proxy-management",
             "guides/session-management",
-            "guides/type-script-actor",
-            "guides/puppeteer-live-view"
+            "guides/type-script-actor"
         ],
         "Examples": [
             "examples/accept-user-input",
