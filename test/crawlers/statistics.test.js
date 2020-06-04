@@ -9,6 +9,8 @@ describe('Statistics', () => {
         return Math.round(jobCount / (totalTickMillis / 1000 / 60));
     };
 
+    const toISOString = date => new Date(date).toISOString();
+
     let clock;
     let stats;
     let localStorageEmulator;
@@ -62,9 +64,9 @@ describe('Statistics', () => {
                 jobRetryHistogram: [1],
                 finishedJobs: 1,
                 failedJobs: 0,
-                persistedAt: startedAt + 100,
+                persistedAt: toISOString(startedAt + 100),
                 totalJobDurationMillis: 100,
-                startedAt,
+                startedAt: toISOString(startedAt),
             });
 
             await stats.stopCapturing();
@@ -74,9 +76,9 @@ describe('Statistics', () => {
                 jobRetryHistogram: [],
                 finishedJobs: 0,
                 failedJobs: 0,
-                persistedAt: startedAt + 100,
+                persistedAt: toISOString(startedAt + 100),
                 totalJobDurationMillis: 0,
-                startedAt: 0,
+                startedAt: null,
             });
 
             await stats.startCapturing();
@@ -91,9 +93,9 @@ describe('Statistics', () => {
                 jobRetryHistogram: [2],
                 finishedJobs: 2,
                 failedJobs: 0,
-                persistedAt: startedAt + 1200,
+                persistedAt: toISOString(startedAt + 1200),
                 totalJobDurationMillis: 200,
-                startedAt,
+                startedAt: toISOString(startedAt),
             });
 
             clock.tick(10000);

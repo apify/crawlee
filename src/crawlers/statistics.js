@@ -215,7 +215,9 @@ class Statistics {
         this.finishedJobs = savedState.finishedJobs;
         this.failedJobs = savedState.failedJobs;
         this.totalJobDurationMillis = savedState.totalJobDurationMillis;
-        this.startedAt = new Date(Date.now() - (savedState.persistedAt - savedState.startedAt));
+        // persisted state uses ISO date strings
+        const [persistedAt, startedAt] = ['persistedAt', 'startedAt'].map(key => new Date(savedState[key]).getTime());
+        this.startedAt = new Date(Date.now() - (persistedAt - startedAt));
 
         this.log.debug('Loaded from KeyValueStore');
     }
@@ -245,9 +247,9 @@ class Statistics {
             finishedJobs: this.finishedJobs,
             failedJobs: this.failedJobs,
             totalJobDurationMillis: this.totalJobDurationMillis,
-            startedAt: +this.startedAt,
+            startedAt: this.startedAt ? this.startedAt.toISOString() : null,
             // used for adjusting time between runs recreating from state
-            persistedAt: Date.now(),
+            persistedAt: new Date().toISOString(),
         };
     }
 }
