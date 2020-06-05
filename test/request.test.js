@@ -62,7 +62,7 @@ describe('Apify.Request', () => {
     test('should allow to push error messages', () => {
         const request = new Apify.Request({ url: 'http://example.com' });
 
-        expect(request.errorMessages).toBe(null);
+        expect(request.errorMessages).toEqual([]);
 
         // Make a circular, unstringifiable object.
         const circularObj = { prop: 1 };
