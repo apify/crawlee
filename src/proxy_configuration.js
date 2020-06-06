@@ -10,6 +10,8 @@ import log from './utils_log';
 // CONSTANTS
 const PROTOCOL = 'http';
 const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
+// https://docs.apify.com/proxy/datacenter-proxy#username-parameters
+const MAX_SESSION_ID_LENGTH = 50;
 
 /**
  * @typedef ProxyConfigurationOptions
@@ -368,7 +370,10 @@ export class ProxyConfiguration {
      * @ignore
      */
     _validateSessionArgumentStructure(sessionId) {
-        if (!APIFY_PROXY_VALUE_REGEX.test(sessionId)) this._throwInvalidProxyValueError(sessionId);
+        if (!APIFY_PROXY_VALUE_REGEX.test(sessionId)) this._throwInvalidProxyValueError('session', sessionId);
+        if (sessionId.length > MAX_SESSION_ID_LENGTH) {
+            throw new Error(`The provided sessionId must not be longer than ${MAX_SESSION_ID_LENGTH} characters. Received: ${sessionId.length}`);
+        }
     }
 
     /**
@@ -378,7 +383,7 @@ export class ProxyConfiguration {
      */
     _validateGroupsStructure(groups) {
         for (const group of groups) {
-            if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError(group);
+            if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError('group', group);
         }
     }
 
@@ -420,10 +425,11 @@ export class ProxyConfiguration {
     /**
      * Throws invalid proxy value error
      * @param {string} param
+     * @param {string} value
      * @ignore
      */
-    _throwInvalidProxyValueError(param) {
-        throw new Error(`The provided proxy group name "${param}" can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
+    _throwInvalidProxyValueError(param, value) {
+        throw new Error(`The provided proxy ${param} name "${value}" can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
     }
 
     /**
