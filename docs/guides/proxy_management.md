@@ -141,3 +141,9 @@ const proxyUrl = proxyConfiguration.newUrl();
 Now your crawlers will use only Residential proxies from the US. Note that you must first get access
 to a proxy group before you are able to use it. You can find your available proxy groups
 in the [proxy dashboard](https://my.apify.com/proxy).
+
+## Inspecting current proxy in Crawlers
+`CheerioCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
+in their `handlePageFunction` using a [`proxyInfo`](/docs/typedefs/proxy-info) object.
+With the  object, you can easily access the proxy URL. If you're using Apify Proxy, the other
+configuration parameters will also be available in the `proxyInfo` object.

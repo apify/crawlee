@@ -456,19 +456,18 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session} options.session
-     * @param {ProxyInfo} options.proxyInfo
+     * @param {Session} [options.session]
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
-
         let proxyInfo;
         let proxyUrl;
         if (this.proxyConfiguration) {
             proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
             proxyUrl = proxyInfo.url;
         }
+
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session, proxyInfo });
 
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session, proxyUrl }),

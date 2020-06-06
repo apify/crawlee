@@ -116,13 +116,14 @@ describe('ProxyConfiguration', () => {
         expect(() => new ProxyConfiguration({ countryCode: 1111 })).toThrow();
     });
 
-    test('newUrl() should throw invalid session argument', () => {
+    test('newUrl() should throw on invalid session argument', () => {
         const proxyConfiguration = new ProxyConfiguration();
 
         expect(() => proxyConfiguration.newUrl('a-b')).toThrowError();
         expect(() => proxyConfiguration.newUrl('a$b')).toThrowError();
         expect(() => proxyConfiguration.newUrl({})).toThrowError();
         expect(() => proxyConfiguration.newUrl(new Date())).toThrowError();
+        expect(() => proxyConfiguration.newUrl(Array(51).fill('x').join(''))).toThrowError();
 
         expect(() => proxyConfiguration.newUrl('a_b')).not.toThrowError();
         expect(() => proxyConfiguration.newUrl('0.34252352')).not.toThrowError();
@@ -132,6 +133,7 @@ describe('ProxyConfiguration', () => {
         expect(() => proxyConfiguration.newUrl('a')).not.toThrowError();
         expect(() => proxyConfiguration.newUrl('1')).not.toThrowError();
         expect(() => proxyConfiguration.newUrl(123456)).not.toThrowError();
+        expect(() => proxyConfiguration.newUrl(Array(50).fill('x').join(''))).not.toThrowError();
     });
 
     test('should throw on invalid newUrlFunction', async () => {
