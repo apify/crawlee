@@ -1,7 +1,7 @@
-0.21.0 / NEXT
+0.21.0 / 2020/06/06
 ====================
 This release comes with **breaking changes** that will affect most,
-if not all of your projects. See the [migration guide](./MIGRATIONS.md)
+if not all of your projects. See the [migration guide](https://github.com/apifytech/apify-js/blob/master/MIGRATIONS.md)
 for more information and examples.
 
 First large change is a redesigned proxy configuration. `Cheerio` and `Puppeteer` crawlers
@@ -38,7 +38,6 @@ in avoiding bot detection and changed the default values for empty properties in
   running in Docker without memory cgroups enabled.
 - Update Puppeteer to 3.3.0.
 
-
 0.20.4 / 2020-05-11
 ====================
 - Add `Apify.utils.waitForRunToFinish()` which simplifies waiting for an actor run to finish.
@@ -50,7 +49,6 @@ in avoiding bot detection and changed the default values for empty properties in
 - Fix issues in documentation.
 - Updated `@apify/http-request` to fix issue in the `proxy-agent` package.
 - Updated Puppeteer to 3.0.2
-
 
 0.20.3 / 2020-04-14
 ====================
