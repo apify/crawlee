@@ -134,7 +134,7 @@ describe('ProxyConfiguration', () => {
         expect(() => proxyConfiguration.newUrl(123456)).not.toThrowError();
     });
 
-    test('should throw invalid newUrlFunction return value', async () => {
+    test('should throw on invalid newUrlFunction', async () => {
         const newUrlFunction = () => {
             return 'http://proxy.com:1111*invalid_url';
         };
@@ -146,7 +146,7 @@ describe('ProxyConfiguration', () => {
             proxyConfiguration.newUrl();
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('The return value "http://proxy.com:1111*invalid_url"');
+            expect(err.message).toMatch('The provided newUrlFunction did not return');
         }
     });
 

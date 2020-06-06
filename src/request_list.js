@@ -368,7 +368,7 @@ export class RequestList {
                     this._addRequest(source);
                 }
             } catch (err) {
-                throw new Error(`Loading requests with sourcesFunction failed. Cause:\n${err.stack}`);
+                throw new Error(`Loading requests with sourcesFunction failed.\nCause: ${err.message}`);
             }
         }
     }

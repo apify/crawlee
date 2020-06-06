@@ -1,4 +1,5 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as _ from 'underscore';
 import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
@@ -20,6 +21,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
+import { ProxyConfiguration } from '../proxy_configuration';
 // eslint-enable-line import/no-duplicates
 
 /**
@@ -250,6 +252,7 @@ class PuppeteerCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
 
         if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '

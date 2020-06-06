@@ -352,14 +352,14 @@ export class ProxyConfiguration {
      * @ignore
      */
     _callNewUrlFunction(sessionId) {
-        const urlToReturn = this.newUrlFunction(sessionId);
+        let proxyUrl;
         try {
-            // eslint-disable-next-line no-new
-            new URL(urlToReturn);
+            proxyUrl = this.newUrlFunction(sessionId);
+            new URL(proxyUrl); // eslint-disable-line no-new
         } catch (err) {
-            this._throwNewUrlFunctionInvalidReturn(urlToReturn);
+            this._throwNewUrlFunctionInvalid(err);
         }
-        return urlToReturn;
+        return proxyUrl;
     }
 
     /**
@@ -410,11 +410,11 @@ export class ProxyConfiguration {
 
     /**
      * Throws invalid custom newUrlFunction return
-     * @param {string} url
+     * @param {Error} err
      * @ignore
      */
-    _throwNewUrlFunctionInvalidReturn(url) {
-        throw new Error(`The return value "${url}" of provided "options.newUrlFunction" is not a valid URL.`);
+    _throwNewUrlFunctionInvalid(err) {
+        throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
     }
 
     /**

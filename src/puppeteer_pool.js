@@ -54,16 +54,20 @@ class PuppeteerInstance { // TODO: this is in progress and it will be refactored
     }
 
     async launch() {
-        this.browserPromise = new Promise(async (resolve) => {
-            if (this.sessionPool) {
-                this.session = await this.sessionPool.getSession();
-            }
+        this.browserPromise = new Promise(async (resolve, reject) => {
+            try {
+                if (this.sessionPool) {
+                    this.session = await this.sessionPool.getSession();
+                }
 
-            if (this.proxyConfiguration) {
-                this.proxyInfo = this.proxyConfiguration.newProxyInfo(this.session ? this.session.id : undefined);
+                if (this.proxyConfiguration) {
+                    this.proxyInfo = this.proxyConfiguration.newProxyInfo(this.session ? this.session.id : undefined);
+                }
+                const proxyUrl = this.proxyInfo ? this.proxyInfo.url : null;
+                resolve(this.launchPuppeteerFunction({ proxyUrl }));
+            } catch (err) {
+                reject(err);
             }
-            const proxyUrl = this.proxyInfo ? this.proxyInfo.url : null;
-            resolve(this.launchPuppeteerFunction({ proxyUrl }));
         });
     }
 }
