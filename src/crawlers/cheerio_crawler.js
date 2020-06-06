@@ -726,8 +726,13 @@ export default CheerioCrawler;
 
 /**
  * @typedef PrepareRequestInputs
- * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
- * @property {Session} [session] The current session
+ * @property {Request} request
+ *  Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Session} [session]
+ *  The current session
+ * @property {ProxyInfo} [proxyInfo]
+ *  An object with information about currently used proxy by the crawler
+ *  and configured by the {@link ProxyConfiguration} class.
  */
 
 /**

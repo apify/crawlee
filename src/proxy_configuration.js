@@ -217,7 +217,7 @@ export class ProxyConfiguration {
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
-     *  The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+     *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return {ProxyInfo} represents information about used proxy and its configuration.
      */
     newProxyInfo(sessionId) {
@@ -238,14 +238,14 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Returns a new stringified URL of the proxy server.
+     * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
      * @param {string} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
-     *  The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
+     *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return {string} represents the proxy URL.
      */
     newUrl(sessionId) {
