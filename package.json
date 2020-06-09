@@ -65,7 +65,7 @@
         "express": "^4.17.1",
         "fs-extra": "^9.0.0",
         "htmlparser2": "^4.1.0",
-        "iconv-lite": "^0.5.1",
+        "iconv-lite": "^0.6.0",
         "jquery": "^3.5.1",
         "mime-types": "^2.1.27",
         "proxy-chain": "^0.4.4",
