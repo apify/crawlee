@@ -64,8 +64,11 @@ describe('Statistics', () => {
                 jobRetryHistogram: [1],
                 finishedJobs: 1,
                 failedJobs: 0,
+                avgDurationMillis: 100,
+                perMinute: 600,
                 persistedAt: toISOString(startedAt + 100),
                 totalJobDurationMillis: 100,
+                runtimeMillis: 1000,
                 startedAt: toISOString(startedAt),
             });
 
@@ -73,9 +76,12 @@ describe('Statistics', () => {
             stats.reset();
 
             expect(stats.toJSON()).toEqual({
+                avgDurationMillis: Infinity,
+                perMinute: 0,
                 jobRetryHistogram: [],
                 finishedJobs: 0,
                 failedJobs: 0,
+                runtimeMillis: null,
                 persistedAt: toISOString(startedAt + 100),
                 totalJobDurationMillis: 0,
                 startedAt: null,
@@ -90,9 +96,12 @@ describe('Statistics', () => {
             clock.tick(1000);
 
             expect(stats.toJSON()).toEqual({
+                avgDurationMillis: 100,
                 jobRetryHistogram: [2],
                 finishedJobs: 2,
                 failedJobs: 0,
+                runtimeMillis: 1000,
+                perMinute: 100,
                 persistedAt: toISOString(startedAt + 1200),
                 totalJobDurationMillis: 200,
                 startedAt: toISOString(startedAt),
@@ -134,7 +143,9 @@ describe('Statistics', () => {
 
             events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
 
-            expect(spy.getCall(0).args).toEqual([stats.persistStateKey, state]);
+            const { retryHistogram, finished, failed, ...rest } = stats.getCurrent();
+
+            expect(spy.getCall(0).args).toEqual([stats.persistStateKey, { ...state, ...rest }]);
         }, 2000);
     });
 

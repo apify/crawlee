@@ -83,6 +83,7 @@ class Statistics {
         this.maxJobDurationMillis = 0;
         this.totalJobDurationMillis = 0;
         this.startedAt = null;
+        this.runtimeMillis = null;
 
         this._teardown();
     }
@@ -93,7 +94,12 @@ class Statistics {
      * @param {number|string} id
      */
     startJob(id) {
-        if (!this.startedAt) this.startedAt = new Date();
+        if (this.runtimeMillis === null) {
+            this.runtimeMillis = Date.now();
+        }
+        if (this.startedAt === null) {
+            this.startedAt = new Date();
+        }
         let job = this.jobsInProgress.get(id);
         if (!job) job = new Job();
         job.run();
@@ -134,7 +140,7 @@ class Statistics {
      * Calculate and get the current state
      */
     getCurrent() {
-        const totalMillis = new Date() - this.startedAt;
+        const totalMillis = Date.now() - this.runtimeMillis;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
@@ -191,6 +197,7 @@ class Statistics {
         }
 
         this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
+
         await this.keyValueStore.setValue(this.persistStateKey, this.toJSON());
     }
 
@@ -216,8 +223,11 @@ class Statistics {
         this.failedJobs = savedState.failedJobs;
         this.totalJobDurationMillis = savedState.totalJobDurationMillis;
         // persisted state uses ISO date strings
-        const [persistedAt, startedAt] = ['persistedAt', 'startedAt'].map(key => new Date(savedState[key]).getTime());
-        this.startedAt = new Date(Date.now() - (persistedAt - startedAt));
+        const persistedAt = new Date(savedState.persistedAt).getTime();
+        // both startedAt and runtimeMillis can be persisted as null, and they will break
+        // setting the date to 0, so it needs to be checked first
+        this.startedAt = savedState.startedAt ? new Date(savedState.startedAt) : null;
+        this.runtimeMillis = savedState.runtimeMillis ? Date.now() - (persistedAt - savedState.runtimeMillis) : null;
 
         this.log.debug('Loaded from KeyValueStore');
     }
@@ -236,20 +246,27 @@ class Statistics {
     }
 
     /**
-     * Make this class persistable when called with JSON.stringify(stats), seletively
-     * persisting only what matters
+     * Make this class serializable when called with JSON.stringify(statsInstance) directly
      *
      * @private
      */
     toJSON() {
+        // merge all the current state information that can be used from the outside
+        // without the need to reconstruct for the sake of stats.getCurrent()
+        // omit duplicated information
+        const { perMinute, avgDurationMillis } = this.getCurrent();
+
         return {
             jobRetryHistogram: this.jobRetryHistogram,
             finishedJobs: this.finishedJobs,
             failedJobs: this.failedJobs,
             totalJobDurationMillis: this.totalJobDurationMillis,
             startedAt: this.startedAt ? this.startedAt.toISOString() : null,
-            // used for adjusting time between runs recreating from state
+            // both are used for adjusting time between runs recreating from state
             persistedAt: new Date().toISOString(),
+            runtimeMillis: this.runtimeMillis,
+            perMinute,
+            avgDurationMillis,
         };
     }
 }

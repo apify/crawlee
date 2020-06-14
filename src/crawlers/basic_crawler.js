@@ -318,7 +318,6 @@ class BasicCrawler {
     }
 
     async _pauseOnMigration() {
-        await this.stats.persistState();
         await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
             .catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
@@ -328,20 +327,28 @@ class BasicCrawler {
                     throw err;
                 }
             });
-        if (this.requestList) {
-            if (await this.requestList.isFinished()) return;
-            await this.requestList.persistState()
-                .catch((err) => {
-                    if (err.message.includes('Cannot persist state.')) {
-                        this.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
-                            + 'invalid config. Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList '
-                            + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
-                    } else {
-                        this.log.exception(err, 'An unexpected error occured when the crawler '
-                            + 'attempted to persist its request list\'s state.');
-                    }
-                });
-        }
+
+        const requestListPersistPromise = (async () => {
+            if (this.requestList) {
+                if (await this.requestList.isFinished()) return;
+                await this.requestList.persistState()
+                    .catch((err) => {
+                        if (err.message.includes('Cannot persist state.')) {
+                            this.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
+                                + 'invalid config. Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList '
+                                + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
+                        } else {
+                            this.log.exception(err, 'An unexpected error occured when the crawler '
+                                + 'attempted to persist its request list\'s state.');
+                        }
+                    });
+            }
+        })();
+
+        await Promise.all([
+            requestListPersistPromise,
+            this.stats.persistState(),
+        ]);
     }
 
     /**
