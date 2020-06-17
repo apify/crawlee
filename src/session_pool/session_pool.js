@@ -234,7 +234,7 @@ export class SessionPool extends EventEmitter {
     _removeSession(session) {
         const sessionIndex = this.sessions.findIndex(storedSession => storedSession.id === session.id);
 
-        const removedSession = this.sessions.splice(sessionIndex, 1);
+        const [removedSession] = this.sessions.splice(sessionIndex, 1);
         this.log.debug(`Removed Session - ${removedSession.id}`);
     }
 
