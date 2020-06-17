@@ -310,7 +310,8 @@ export class ProxyConfiguration {
             }
         }
         if (!this.password) {
-            throw new Error(`Apify Proxy password must be provided using options.password or the "${ENV_VARS.PROXY_PASSWORD}" environment variable!`);
+            throw new Error(`Apify Proxy password must be provided using options.password or the "${ENV_VARS.PROXY_PASSWORD}" environment variable.`
+                + `If you add the "${ENV_VARS.TOKEN}" environment variable, the password will be automatically inferred.`);
         }
     }
 
