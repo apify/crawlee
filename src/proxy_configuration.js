@@ -30,7 +30,7 @@ const MAX_SESSION_ID_LENGTH = 50;
  *   an IP address from a random country. The country code needs to be a two letter ISO country code. See the
  *   [full list of available country codes](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements).
  *   This parameter is optional, by default, the proxy uses all available proxy servers from all countries.
- *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
+ *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apify/apify-cli).
  * @property {string[]} [apifyProxyGroups]
  *   Same option as `groups` which can be used to
  *   configurate the proxy by UI input schema. You should use the `groups` option in your crawler code.
@@ -98,7 +98,7 @@ const MAX_SESSION_ID_LENGTH = 50;
  * @property {string} password
  *   User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
  *   environment variable, which is automatically set by the system when running the actors
- *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apifytech/apify-cli).
+ *   on the Apify cloud, or when using the [Apify CLI](https://github.com/apify/apify-cli).
  * @property {string} hostname
  *   Hostname of your proxy.
  * @property {string} port

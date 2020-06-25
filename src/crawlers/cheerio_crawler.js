@@ -153,7 +153,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  *
- *   See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
+ *   See [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
  * @property {string[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"

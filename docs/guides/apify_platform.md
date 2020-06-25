@@ -20,7 +20,7 @@ runnable locally or on any cloud infrastructure.
 ## Logging into Apify platform from Apify SDK
 To access your [Apify account](https://my.apify.com/sign-up) from the SDK, you must provide
 credentials - [your API token](https://my.apify.com/account#/integrations). You can do that
-either by utilizing [Apify CLI](https://github.com/apifytech/apify-cli) or by environment
+either by utilizing [Apify CLI](https://github.com/apify/apify-cli) or by environment
 variables.
 
 Once you provide credentials to your scraper, you will be able to use all the Apify platform

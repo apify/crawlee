@@ -80,7 +80,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   represents the last error thrown during processing of the request.
  *
  *   See
- *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
+ *   [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
  *   for the default implementation of this function.
  * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.

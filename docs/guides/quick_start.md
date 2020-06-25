@@ -57,7 +57,7 @@ By default, Apify SDK stores data to `./apify_storage` in the current working di
 ## Local usage with Apify command-line interface (CLI)
 
 To avoid the need to set the environment variables manually, to create a boilerplate of your project, and to enable pushing and running your code on
-the [Apify platform](/docs/guides/apify-platform), you can use the [Apify command-line interface (CLI)](https://github.com/apifytech/apify-cli) tool.
+the [Apify platform](/docs/guides/apify-platform), you can use the [Apify command-line interface (CLI)](https://github.com/apify/apify-cli) tool.
 
 Install the CLI by running:
 
