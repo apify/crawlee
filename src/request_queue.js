@@ -931,6 +931,8 @@ export class RequestQueueLocal {
             //       Ie. the file gets listed in fs.readdir() but removed from this.queueOrderNoInProgress
             //       meanwhile causing this to fail.
             try {
+                // To avoid smothering ENOENT errors from  _getRequestByQueueOrderNo (which can cause a race
+                // condition with markRequestHandled) we pass false here
                 request = await this._getRequestByQueueOrderNo(queueOrderNo, false);
             } catch (err) {
                 delete this.queueOrderNoInProgress[queueOrderNo];
