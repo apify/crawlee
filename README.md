@@ -3,7 +3,7 @@
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)
-[![Build Status](https://travis-ci.org/apifytech/apify-js.svg?branch=master)](https://travis-ci.org/apifytech/apify-js)
+[![Build Status](https://travis-ci.com/apify/apify-js.svg?branch=master)](https://travis-ci.com/apify/apify-js)
 
 Apify SDK simplifies the development of web crawlers, scrapers, data extractors and web automation jobs.
 It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
