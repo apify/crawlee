@@ -818,7 +818,7 @@ export class RequestQueueLocal {
             : sgn + (base + now);
     }
 
-    async _getRequestByQueueOrderNo(queueOrderNo, fallbackToHandled=true) {
+    async _getRequestByQueueOrderNo(queueOrderNo, fallbackToHandled = true) {
         checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
         let buffer;
         let filePath;
