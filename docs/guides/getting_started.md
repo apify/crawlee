@@ -17,7 +17,7 @@ The goal of this getting started guide is to provide a step-by-step introduction
 creating the simplest of crawlers that only print text to console, all the way up to complex systems that crawl pages, interact with them as if a real
 user were sitting in front of a real browser and output structured data.
 
-Since Apify SDK is usable both locally on any computer and on the [Apify Platform](https://my.apify.com), you will be able
+Since Apify SDK is usable both locally on any computer and on the [Apify Platform](/docs/guides/apify-platform), you will be able
 to use the source code in both environments interchangeably. Nevertheless, some initial setup is still required, so choose your preferred starting
 environment and let's get into it.
 
@@ -45,7 +45,7 @@ npm -v
 
 The fastest and best way to create new projects with the Apify SDK is to use our own
 [Apify CLI](https://www.npmjs.com/package/apify-cli). This command line tool allows you to create, run and manage Apify
-projects with ease, including their deployment to the [Apify Platform](https://my.apify.com) if you wish to run them in the
+projects with ease, including their deployment to the [Apify platform](/docs/guides/apify-platform) if you wish to run them in the
 cloud after developing them locally.
 
 Let's install the Apify CLI with the following command:
@@ -96,7 +96,7 @@ Did you see all that? If you did, congratulations! You're ready to go!
 Maybe you don't have Node.js installed and don't want the hassle. Or you can't install anything on your computer because you're using a company
 provided one. Or perhaps you'd just prefer to start working in the cloud right away. Well, no worries, we've got you covered.
 
-The [Apify Platform](https://my.apify.com) is the foundational product of
+The [Apify platform](/docs/guides/apify-platform) is the foundational product of
 [Apify](https://apify.com). It's a serverless cloud computing platform, specifically designed for any web automation jobs,
 that may include crawling and scraping, but really works amazing for any batch jobs and long running tasks.
 
@@ -105,7 +105,7 @@ haven't already. Don't forget to verify your email. Without it, you won't be abl
 
 Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide into some of our new features. Feel free to finish that,
 if you'd like, but once you're done, click on the **Actors** tab in the left menu. To read more about **Actors**, see:
-[What is an Actor](/docs/guides/what-is-an-actor).
+[What is an Actor](/docs/guides/apify-platform#what-is-an-actor).
 
 ### Creating a new project
 
@@ -1539,7 +1539,7 @@ and by calling [`Apify.getInput()`](/docs/api/apify#getvalue) you retrieve the v
 Running locally, you need to place an `INPUT.json` file in your default key value store for this to work.
 
 ```
-{PROJECT_FOLDER}/apify_storage/key-value-stores/default/INPUT.json
+{PROJECT_FOLDER}/apify_storage/key_value_stores/default/INPUT.json
 ```
 
 #### Use `INPUT` to seed our actor with categories

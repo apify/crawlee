@@ -57,7 +57,7 @@ By default, Apify SDK stores data to `./apify_storage` in the current working di
 ## Local usage with Apify command-line interface (CLI)
 
 To avoid the need to set the environment variables manually, to create a boilerplate of your project, and to enable pushing and running your code on
-the [Apify Cloud](https://apify.com), you can use the [Apify command-line interface (CLI)](https://github.com/apifytech/apify-cli) tool.
+the [Apify platform](/docs/guides/apify-platform), you can use the [Apify command-line interface (CLI)](https://github.com/apifytech/apify-cli) tool.
 
 Install the CLI by running:
 
@@ -84,7 +84,7 @@ apify run
 By default, the crawling data will be stored in a local directory at `./apify_storage`. For example, the input JSON file for the actor is expected to
 be in the default key-value store in `./apify_storage/key_value_stores/default/INPUT.json`.
 
-Now you can easily deploy your code to the Apify Cloud by running:
+Now you can easily deploy your code to the Apify platform by running:
 
 ```bash
 apify login
@@ -94,12 +94,12 @@ apify login
 apify push
 ```
 
-Your script will be uploaded to the Apify Cloud and built there so that it can be run. For more information, view the
+Your script will be uploaded to the Apify platform and built there so that it can be run. For more information, view the
 [Apify Actor](https://docs.apify.com/cli) documentation.
 
-## Usage on the Apify Cloud
+## Usage on the Apify platform
 
-You can also develop your web scraping project in an online code editor directly on the [Apify Cloud](https://apify.com).
+You can also develop your web scraping project in an online code editor directly on the [Apify platform](/docs/guides/apify-platform).
 You'll need to have an Apify Account. Go to [Actors](https://my.apify.com/actors), page in the app, click <i>Create new</i>
 and then go to the <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 

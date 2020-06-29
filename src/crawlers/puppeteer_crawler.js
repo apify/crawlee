@@ -1,6 +1,7 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as _ from 'underscore';
-import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
+import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -20,6 +21,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
+import { ProxyConfiguration } from '../proxy_configuration';
 // eslint-enable-line import/no-duplicates
 
 /**
@@ -69,10 +71,10 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {PuppeteerGoto} [gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
  *   [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function,
- *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-response) object.
+ *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-httpresponse) object.
  *
- *   This is useful if you need to extend the page load timeout or select different criteria
- *   to determine that the navigation succeeded.
+ *   This is useful if you need to select different criteria to determine navigation success and also to do any
+ *   pre or post processing such as injecting cookies into the page.
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
@@ -132,9 +134,9 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerCrawler` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
- *   For more information, see the [documentation](https://docs.apify.com/proxy)
+ *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
 
 /**
@@ -250,6 +252,12 @@ class PuppeteerCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
+
+        if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
+            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
+                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
 
         this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
 
@@ -345,10 +353,11 @@ class PuppeteerCrawler {
         let proxyInfo;
         const page = await this.puppeteerPool.newPage();
 
+        // eslint-disable-next-line no-underscore-dangle
+        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
         if (this.sessionPool) {
-            const browser = page.browser();
-            session = browser[BROWSER_SESSION_KEY_NAME];
-
+            // eslint-disable-next-line prefer-destructuring
+            session = browserInstance.session;
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
@@ -357,7 +366,8 @@ class PuppeteerCrawler {
         }
 
         if (this.proxyConfiguration) {
-            proxyInfo = this.proxyConfiguration.getInfo(session ? session.id : undefined);
+            // eslint-disable-next-line prefer-destructuring
+            proxyInfo = browserInstance.proxyInfo;
         }
 
 

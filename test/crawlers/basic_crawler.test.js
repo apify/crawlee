@@ -134,10 +134,10 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/1'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/1'].errorMessages).toBeNull();
+        expect(processed['http://example.com/1'].errorMessages).toEqual([]);
         expect(processed['http://example.com/1'].retryCount).toBe(0);
         expect(processed['http://example.com/3'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/3'].errorMessages).toBeNull();
+        expect(processed['http://example.com/3'].errorMessages).toEqual([]);
         expect(processed['http://example.com/3'].retryCount).toBe(0);
 
         expect(processed['http://example.com/2'].userData.foo).toBeUndefined();
@@ -370,10 +370,10 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/0'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/0'].errorMessages).toBeNull();
+        expect(processed['http://example.com/0'].errorMessages).toEqual([]);
         expect(processed['http://example.com/0'].retryCount).toBe(0);
         expect(processed['http://example.com/2'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/2'].errorMessages).toBeNull();
+        expect(processed['http://example.com/2'].errorMessages).toEqual([]);
         expect(processed['http://example.com/2'].retryCount).toBe(0);
 
         expect(processed['http://example.com/1'].userData.foo).toBeUndefined();
@@ -487,10 +487,10 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/1'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/1'].errorMessages).toBeNull();
+        expect(processed['http://example.com/1'].errorMessages).toEqual([]);
         expect(processed['http://example.com/1'].retryCount).toBe(0);
         expect(processed['http://example.com/3'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/3'].errorMessages).toBeNull();
+        expect(processed['http://example.com/3'].errorMessages).toEqual([]);
         expect(processed['http://example.com/3'].retryCount).toBe(0);
 
         expect(processed['http://example.com/2'].userData.foo).toEqual(undefined);

@@ -1,4 +1,3 @@
-import * as _ from 'underscore';
 import * as util from 'util';
 import * as crypto from 'crypto';
 import { checkParamOrThrow } from 'apify-client/build/utils';
@@ -87,16 +86,16 @@ class Request {
         const {
             id,
             url,
-            loadedUrl = null,
+            loadedUrl,
             uniqueKey,
             method = 'GET',
-            payload = null,
+            payload,
             noRetry = false,
             retryCount = 0,
-            errorMessages = null,
+            errorMessages = [],
             headers = {},
             userData = {},
-            handledAt = null,
+            handledAt,
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
         } = options;
@@ -132,12 +131,12 @@ class Request {
         this.headers = JSON.parse(JSON.stringify(headers));
         this.userData = JSON.parse(JSON.stringify(userData));
 
+        this.handledAt = handledAt;
         // Requests received from API will have ISOString dates,
         // but we want to have a Date instance.
-        // eslint-disable-next-line no-nested-ternary
-        this.handledAt = _.isDate(handledAt)
-            ? handledAt
-            : (handledAt ? new Date(handledAt) : null);
+        if (typeof handledAt === 'string') {
+            this.handledAt = new Date(handledAt);
+        }
     }
 
     /**
@@ -183,7 +182,6 @@ class Request {
             message = errorOrMessage.toString();
         }
 
-        if (!this.errorMessages) this.errorMessages = [];
         this.errorMessages.push(message);
     }
 

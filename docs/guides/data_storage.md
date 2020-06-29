@@ -4,17 +4,17 @@ title: Data Storage
 ---
 
 The Apify SDK has several data storage types that are useful for specific tasks. The data is stored either on local disk to a directory defined by the
-`APIFY_LOCAL_STORAGE_DIR` environment variable, or on the [Apify Cloud](https://apify.com) under the user account
+`APIFY_LOCAL_STORAGE_DIR` environment variable, or on the [Apify platform](/docs/guides/apify-platform) under the user account
 identified by the API token defined by the `APIFY_TOKEN` environment variable. If neither of these variables is defined, by default Apify SDK sets
 `APIFY_LOCAL_STORAGE_DIR` to `./apify_storage` in the current working directory and prints a warning.
 
 Typically, you will be developing the code on your local computer and thus set the `APIFY_LOCAL_STORAGE_DIR` environment variable. Once the code is
-ready, you will deploy it to the Apify Cloud, where it will automatically set the `APIFY_TOKEN` environment variable and thus use cloud storage. No
+ready, you will deploy it to the Apify platform, where it will automatically set the `APIFY_TOKEN` environment variable and thus use cloud storage. No
 code changes are needed.
 
 **Related links**
 
--   [Apify cloud storage documentation](https://docs.apify.com/storage)
+-   [Apify platform storage documentation](https://docs.apify.com/storage)
 -   [View storage in Apify app](https://my.apify.com/storage)
 -   [API reference](https://apify.com/docs/api/v2#/reference/key-value-stores)
 
@@ -73,7 +73,7 @@ Datasets are used to store structured data where each object stored has the same
 can imagine a dataset as a table, where each object is a row and its attributes are columns. Dataset is an append-only storage - you can only add new
 records to it but you cannot modify or remove existing records.
 
-When the dataset is stored in the [Apify Cloud](https://apify.com), you can export its data to the following formats: HTML,
+When the dataset is stored on the [Apify platform](/docs/guides/apify-platform), you can export its data to the following formats: HTML,
 JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the
 [Storage](https://my.apify.com/storage) section in the Apify app. The actual data is exported using the
 [Get dataset items](https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint. This
