@@ -818,7 +818,7 @@ export class RequestQueueLocal {
             : sgn + (base + now);
     }
 
-    async _getRequestByQueueOrderNo(queueOrderNo) {
+    async _getRequestByQueueOrderNo(queueOrderNo, fallbackToHandled = true) {
         checkParamOrThrow(queueOrderNo, 'queueOrderNo', 'Number');
         let buffer;
         let filePath;
@@ -826,7 +826,7 @@ export class RequestQueueLocal {
             filePath = this._getFilePath(queueOrderNo);
             buffer = await fs.readFile(filePath);
         } catch (err) {
-            if (err.code !== ENOENT) throw err;
+            if ((err.code !== ENOENT) || (fallbackToHandled === false)) throw err;
             filePath = this._getFilePath(queueOrderNo, true);
             buffer = await fs.readFile(filePath);
         }
@@ -931,7 +931,9 @@ export class RequestQueueLocal {
             //       Ie. the file gets listed in fs.readdir() but removed from this.queueOrderNoInProgress
             //       meanwhile causing this to fail.
             try {
-                request = await this._getRequestByQueueOrderNo(queueOrderNo);
+                // To avoid a race condition with markRequestHandled(), we pass false here so ENOENT errors are not
+                // smothered when attempting to read a file that recently moved from pending to handled.
+                request = await this._getRequestByQueueOrderNo(queueOrderNo, false);
             } catch (err) {
                 delete this.queueOrderNoInProgress[queueOrderNo];
                 this.inProgressCount--;
