@@ -746,6 +746,7 @@ export const parseContentTypeFromResponse = (response) => {
  *  E.g. you can track other users' runs.
  * @returns {Promise<ActorRun>}
  * @memberOf utils
+ * @name waitForRunToFinish
  * @function
  */
 export const waitForRunToFinish = async (options) => {
