@@ -389,8 +389,8 @@ class CheerioCrawler {
             autoscaledPoolOptions,
 
             // Session pool options
-            sessionPoolOptions,
-            useSessionPool,
+            sessionPoolOptions: this.sessionPoolOptions,
+            useSessionPool: this.useSessionPool,
 
             // log
             log: this.log,
