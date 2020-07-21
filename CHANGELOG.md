@@ -1,3 +1,16 @@
+0.21.1 / 2020/07/21
+====================
+We fixed some bugs, improved a few things and bumped Puppeteer to match latest Chrome 84.
+
+- Allow `Apify.createProxyConfiguration` to be used seamlessly with the proxy component
+  of Actor Input UI.
+- Fix integration of plugins into `CheerioCrawler` with the `crawler.use()` function.
+- Fix a race condition which caused `RequestQueueLocal` to fail handling requests.
+- Fix broken debug logging in `SessionPool`.
+- Improve `ProxyConfiguration` error message for missing password / token.
+- Update Puppeteer to 5.2.0
+- Improve docs, update packages and so on.
+
 0.21.0 / 2020/06/06
 ====================
 This release comes with **breaking changes** that will affect most,
