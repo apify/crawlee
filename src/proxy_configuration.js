@@ -513,13 +513,27 @@ export class ProxyConfiguration {
  * })
  *
  * ```
+ *
+ * For compatibility with existing Actor Input UI (Input Schema), this function
+ * returns `undefined` when the following object is passed as `proxyConfigurationOptions`.
+ *
+ * ```
+ * { useApifyProxy: false }
+ * ```
+ *
 * @param {ProxyConfigurationOptions} [proxyConfigurationOptions]
-* @returns {Promise<ProxyConfiguration>}
+* @returns {Promise<?ProxyConfiguration>}
 * @memberof module:Apify
 * @name createProxyConfiguration
 * @function
     */
-export const createProxyConfiguration = async (proxyConfigurationOptions) => {
+export const createProxyConfiguration = async (proxyConfigurationOptions = {}) => {
+    // Compatibility fix for Input UI where proxy: None returns { useApifyProxy: false }
+    // Without this, it would cause proxy to use the zero config / auto mode.
+    const dontUseApifyProxy = proxyConfigurationOptions.useApifyProxy === false;
+    const dontUseCustomProxies = !proxyConfigurationOptions.proxyUrls;
+    if (dontUseApifyProxy && dontUseCustomProxies) return undefined;
+
     const proxyConfiguration = new ProxyConfiguration(proxyConfigurationOptions);
     await proxyConfiguration.initialize();
 
