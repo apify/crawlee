@@ -352,7 +352,9 @@ export class Session {
             }
         }
         // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-        this.log.error('Could not set cookies.', { errorMessages });
+        if (errorMessages.length) {
+            this.log.error('Could not set cookies.', { errorMessages });
+        }
     }
 
     /**
