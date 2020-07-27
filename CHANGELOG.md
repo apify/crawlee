@@ -1,3 +1,8 @@
+0.21.2 / 2020/07/27
+====================
+- Fix cookies with leading dot in domain (as extracted from Puppeteer)
+  not being correctly added to Sessions.
+
 0.21.1 / 2020/07/21
 ====================
 We fixed some bugs, improved a few things and bumped Puppeteer to match latest Chrome 84.
