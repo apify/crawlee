@@ -3,7 +3,7 @@
 <!-- Mirror this part to src/index.js -->
 
 [![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)
-[![Build Status](https://travis-ci.org/apifytech/apify-js.svg?branch=master)](https://travis-ci.org/apifytech/apify-js)
+[![Build Status](https://travis-ci.com/apify/apify-js.svg?branch=master)](https://travis-ci.com/apify/apify-js)
 
 Apify SDK simplifies the development of web crawlers, scrapers, data extractors and web automation jobs.
 It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
@@ -24,8 +24,7 @@ eventually things will get complicated. For example, when you try to:
 
 -   Perform a deep crawl of an entire website using a persistent queue of URLs.
 -   Run your scraping code on a list of 100k URLs in a CSV file, without losing any data when your code crashes.
--   Rotate proxies to hide your browser origin.
--   Schedule the code to run periodically and send notification on errors.
+-   Rotate proxies to hide your browser origin and keep user-like sessions.
 -   Disable browser fingerprinting protections used by websites.
 
 Python has [Scrapy](https://scrapy.org/) for these tasks, but there was no such library for **JavaScript, the language of
@@ -139,7 +138,7 @@ By default, Apify SDK stores data to `./apify_storage` in the current working di
 ### Local usage with Apify command-line interface (CLI)
 
 To avoid the need to set the environment variables manually, to create a boilerplate of your project, and to enable pushing and running your code on
-the [Apify Cloud](https://apify.com), you can use the [Apify command-line interface (CLI)](https://github.com/apifytech/apify-cli) tool.
+the [Apify platform](/docs/guides/apify-platform), you can use the [Apify command-line interface (CLI)](https://github.com/apify/apify-cli) tool.
 
 Install the CLI by running:
 
@@ -166,7 +165,7 @@ apify run
 By default, the crawling data will be stored in a local directory at `./apify_storage`. For example, the input JSON file for the actor is expected to
 be in the default key-value store in `./apify_storage/key_value_stores/default/INPUT.json`.
 
-Now you can easily deploy your code to the Apify Cloud by running:
+Now you can easily deploy your code to the Apify platform by running:
 
 ```bash
 apify login
@@ -176,12 +175,12 @@ apify login
 apify push
 ```
 
-Your script will be uploaded to the Apify Cloud and built there so that it can be run. For more information, view the
+Your script will be uploaded to the Apify platform and built there so that it can be run. For more information, view the
 [Apify Actor](https://docs.apify.com/cli) documentation.
 
-### Usage on the Apify Cloud
+### Usage on the Apify platform
 
-You can also develop your web scraping project in an online code editor directly on the [Apify Cloud](https://apify.com/).
+You can also develop your web scraping project in an online code editor directly on the [Apify platform](https://sdk.apify.com/docs/guides/apify-platform).
 You'll need to have an Apify Account. Go to [Actors](https://my.apify.com/actors), page in the app, click <i>Create new</i>
 and then go to the <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
@@ -189,7 +188,7 @@ For more information, view the [Apify actors quick start guide](https://docs.api
 
 ## Support
 
-If you find any bug or issue with the Apify SDK, please [submit an issue on GitHub](https://github.com/apifytech/apify-js/issues).
+If you find any bug or issue with the Apify SDK, please [submit an issue on GitHub](https://github.com/apify/apify-js/issues).
 For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/apify) or contact support@apify.com
 
 ## Contributing
@@ -197,12 +196,12 @@ For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questio
 Your code contributions are welcome and you'll be praised to eternity!
 If you have any ideas for improvements, either submit an issue or create a pull request.
 For contribution guidelines and the code of conduct,
-see [CONTRIBUTING.md](https://github.com/apifytech/apify-js/blob/master/CONTRIBUTING.md).
+see [CONTRIBUTING.md](https://github.com/apify/apify-js/blob/master/CONTRIBUTING.md).
 
 ## License
 
 This project is licensed under the Apache License 2.0 -
-see the [LICENSE.md](https://github.com/apifytech/apify-js/blob/master/LICENSE.md) file for details.
+see the [LICENSE.md](https://github.com/apify/apify-js/blob/master/LICENSE.md) file for details.
 
 ## Acknowledgments
 

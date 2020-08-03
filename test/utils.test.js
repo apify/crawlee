@@ -522,14 +522,6 @@ describe('Apify.utils.downloadListOfUrls()', () => {
     });
 });
 
-describe('Apify.utils.getRandomUserAgent()', () => {
-    test('works', () => {
-        const agent = utils.publicUtils.getRandomUserAgent();
-        expect(typeof agent).toBe('string');
-        expect(agent.length).not.toBe(0);
-    });
-});
-
 describe('utils.openLocalStorage()', () => {
     test(
         'should return item from cache if available and create new one otherwise',
@@ -909,6 +901,13 @@ describe('utils.printOutdatedSdkWarning()', () => {
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];
         logMock.expects('warning').never();
         utils.printOutdatedSdkWarning();
+    });
+
+    test('should do nothing when APIFY_DISABLE_OUTDATED_WARNING is set', () => {
+        process.env.APIFY_DISABLE_OUTDATED_WARNING = '1';
+        logMock.expects('warning').never();
+        utils.printOutdatedSdkWarning();
+        delete process.env.APIFY_DISABLE_OUTDATED_WARNING;
     });
 
     test('should correctly work when outdated', () => {

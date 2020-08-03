@@ -1,6 +1,7 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import * as _ from 'underscore';
-import PuppeteerPool, { BROWSER_SESSION_KEY_NAME } from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
+import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -20,6 +21,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
+import { ProxyConfiguration } from '../proxy_configuration';
 // eslint-enable-line import/no-duplicates
 
 /**
@@ -36,6 +38,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   puppeteerPool: PuppeteerPool,
  *   autoscaledPool: AutoscaledPool,
  *   session: Session,
+ *   proxyInfo: ProxyInfo,
  * }
  * ```
  *
@@ -68,16 +71,14 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * @property {PuppeteerGoto} [gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
  *   [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function,
- *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-response) object.
+ *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-httpresponse) object.
  *
- *   This is useful if you need to extend the page load timeout or select different criteria
- *   to determine that the navigation succeeded.
+ *   This is useful if you need to select different criteria to determine navigation success and also to do any
+ *   pre or post processing such as injecting cookies into the page.
  *
  *   Note that a single page object is only used to process a single request and it is closed afterwards.
  *
  *   By default, the function invokes {@link puppeteer#gotoExtended} with a timeout of 60 seconds.
- *   For details, see source code on
- *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L292).
  * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
@@ -93,10 +94,6 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- *
- *   See
- *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/puppeteer_crawler.js#L301)
- *   for the default implementation of this function.
  * @property {number} [maxRequestRetries=3]
  *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
  * @property {number} [maxRequestsPerCrawl]
@@ -110,7 +107,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   Overrides the default function to launch a new Puppeteer instance.
  *   Shortcut to the corresponding {@link PuppeteerPool} option.
  *   See source code on
- *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28)
+ *   [GitHub](https://github.com/apify/apify-js/blob/master/src/puppeteer_pool.js#L28)
  *   for default behavior.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
@@ -136,6 +133,10 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
  *   Custom options passed to the underlying {@link SessionPool} constructor.
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  */
 
 /**
@@ -239,6 +240,7 @@ class PuppeteerCrawler {
             sessionPoolOptions = {},
             persistCookiesPerSession = false,
             useSessionPool = false,
+            proxyConfiguration,
         } = options;
 
         checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
@@ -250,6 +252,12 @@ class PuppeteerCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
+
+        if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
+            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
+                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
 
         this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
 
@@ -277,6 +285,7 @@ class PuppeteerCrawler {
             log: this.log,
         };
         this.persistCookiesPerSession = persistCookiesPerSession;
+        this.proxyConfiguration = proxyConfiguration;
 
         /** @ignore */
         this.basicCrawler = new BasicCrawler({
@@ -311,6 +320,11 @@ class PuppeteerCrawler {
             this.sessionPool = await openSessionPool(this.sessionPoolOptions);
             this.puppeteerPoolOptions.sessionPool = this.sessionPool;
         }
+
+        if (this.proxyConfiguration) {
+            this.puppeteerPoolOptions.proxyConfiguration = this.proxyConfiguration;
+        }
+
         this.puppeteerPoolOptions.log = this.log;
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
         try {
@@ -336,11 +350,14 @@ class PuppeteerCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool }) {
         let session;
+        let proxyInfo;
         const page = await this.puppeteerPool.newPage();
 
+        // eslint-disable-next-line no-underscore-dangle
+        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
         if (this.sessionPool) {
-            const browser = page.browser();
-            session = browser[BROWSER_SESSION_KEY_NAME];
+            // eslint-disable-next-line prefer-destructuring
+            session = browserInstance.session;
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
@@ -348,8 +365,14 @@ class PuppeteerCrawler {
             }
         }
 
+        if (this.proxyConfiguration) {
+            // eslint-disable-next-line prefer-destructuring
+            proxyInfo = browserInstance.proxyInfo;
+        }
+
+
         try {
-            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session });
+            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });
             await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
 
@@ -360,7 +383,7 @@ class PuppeteerCrawler {
             }
 
             await addTimeoutToPromise(
-                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session }),
+                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session, proxyInfo }),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
@@ -415,6 +438,7 @@ export default PuppeteerCrawler;
  *   to pause the crawler by calling {@link AutoscaledPool#pause}
  *   or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {ProxyInfo} [proxyInfo]
  */
 
 /**
@@ -432,6 +456,7 @@ export default PuppeteerCrawler;
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {Session} [session] `Session` object for this request.
+ * @property {ProxyInfo} [proxyInfo]
  */
 
 /**

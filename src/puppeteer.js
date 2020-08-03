@@ -6,12 +6,10 @@ import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { DEFAULT_USER_AGENT } from './constants';
 import log from './utils_log';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
-import { getApifyProxyUrl } from './actor';
 import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
 
 const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
-    'proxyUrl', 'userAgent', 'useApifyProxy', 'apifyProxyGroups',
-    'apifyProxySession', 'puppeteerModule', 'stealthOptions',
+    'proxyUrl', 'userAgent', 'puppeteerModule', 'stealthOptions',
 ];
 
 const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
@@ -127,20 +125,6 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {boolean} [useApifyProxy=false]
- *   If set to `true`, Puppeteer will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
- *   For more information, see the [documentation](https://docs.apify.com/proxy)
- * @property {string[]} [apifyProxyGroups]
- *   An array of proxy groups to be used
- *   by the [Apify Proxy](https://docs.apify.com/proxy).
- *   Only applied if the `useApifyProxy` option is `true`.
- * @property {string} [apifyProxySession]
- *   Apify Proxy session identifier to be used by all the Chrome browsers.
- *   All HTTP requests going through the proxy with the same session identifier
- *   will use the same target proxy server (i.e. the same IP address).
- *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- *   Only applied if the `useApifyProxy` option is `true`.
  * @property {(string|Object)} [puppeteerModule]
  *   Either a require path (`string`) to a package to be used instead of default `puppeteer`,
  *   or an already required module (`Object`). This enables usage of various Puppeteer
@@ -164,38 +148,26 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  *
  * The `launchPuppeteer()` function alters the following Puppeteer options:
  *
- * <ul>
- *    <li>
- *        Passes the setting from the <code>APIFY_HEADLESS</code> environment variable to the <code>headless</code> option,
- *        unless it was already defined by the caller or <code>APIFY_XVFB</code> environment variable is set to <code>1</code>.
- *        Note that Apify Actor cloud platform automatically sets <code>APIFY_HEADLESS=1</code> to all running actors.
- *    </li>
- *    <li>
- *        Takes the <code>proxyUrl</code> option, validates it and adds it to <code>args</code> as <code>--proxy-server=XXX</code>.
- *        The proxy URL must define a port number and have one of the following schemes: <code>http://</code>,
- *        <code>https://</code>, <code>socks4://</code> or <code>socks5://</code>.
- *        If the proxy is HTTP (i.e. has the <code>http://</code> scheme) and contains username or password,
- *        the <code>launchPuppeteer</code> functions sets up an anonymous proxy HTTP
- *        to make the proxy work with headless Chrome. For more information, read the
- *        <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
- *        target="_blank">blog post about proxy-chain library</a>.
- *    </li>
- *    <li>
- *        If <code>options.useApifyProxy</code> is <code>true</code> then the function generates a URL of
- *        [Apify Proxy](https://docs.apify.com/proxy)
- *        based on <code>options.apifyProxyGroups</code> and <code>options.apifyProxySession</code> and passes it as <code>options.proxyUrl</code>.
- *    </li>
- *    <li>
- *        The function adds <code>--no-sandbox</code> to <code>args</code> to enable running
- *        headless Chrome in a Docker container on the Apify platform.
- *    </li>
- *    <li>
- *        Sets <code>defaultViewport</code> Puppeteer option (if not already set)
- *        to a more reasonable default for screenshots and debugging.
- *        You can set <code>options.defaultViewport</code> to <code>null</code> if you prefer to let Puppeteer
- *        choose the default viewport size.
- *    </li>
- * </ul>
+ * - Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
+ *   unless it was already defined by the caller or `APIFY_XVFB` environment variable is set to `1`.
+ *   Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running actors.
+ * - Takes the `proxyUrl` option, validates it and adds it to `args` as `--proxy-server=XXX`.
+ *   The proxy URL must define a port number and have one of the following schemes: `http://`,
+ *   `https://`, `socks4://` or `socks5://`.
+ *   If the proxy is HTTP (i.e. has the `http://` scheme) and contains username or password,
+ *   the `launchPuppeteer` functions sets up an anonymous proxy HTTP
+ *   to make the proxy work with headless Chrome. For more information, read the
+ *   <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
+ *   target="_blank">blog post about proxy-chain library</a>.
+ * - If `options.useApifyProxy` is `true` then the function generates a URL of
+ *   [Apify Proxy](https://docs.apify.com/proxy)
+ *   based on `options.apifyProxyGroups` and `options.apifyProxySession` and passes it as `options.proxyUrl`.
+ * - The function adds `--no-sandbox` to `args` to enable running
+ *   headless Chrome in a Docker container on the Apify platform.
+ * - Sets `defaultViewport` Puppeteer option (if not already set)
+ *   to a more reasonable default for screenshots and debugging.
+ *   You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
+ *   choose the default viewport size.
  *
  * To use this function, you need to have the [puppeteer](https://www.npmjs.com/package/puppeteer)
  * NPM package installed in your project.
@@ -221,11 +193,9 @@ export const launchPuppeteer = async (options = {}) => {
     checkParamOrThrow(options, 'options', 'Object');
     checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
     checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
-    checkParamOrThrow(options.useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
     checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String|Object');
     checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Boolean');
     checkParamOrThrow(options.stealthOptions, 'options.stealthOptions', 'Maybe Object');
-    if (options.useApifyProxy && options.proxyUrl) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrl"!');
     if (options.liveView || options.liveViewOptions) {
         log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
             + 'Use options.useLiveView in PuppeteerPool for an updated version. '
@@ -244,14 +214,7 @@ export const launchPuppeteer = async (options = {}) => {
     if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
         optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
-    if (optsCopy.useApifyProxy) {
-        optsCopy.proxyUrl = getApifyProxyUrl({
-            groups: optsCopy.apifyProxyGroups,
-            session: optsCopy.apifyProxySession,
-            groupsParamName: 'options.apifyProxyGroups',
-            sessionParamName: 'options.apifyProxySession',
-        });
-    }
+
     if (optsCopy.defaultViewport === undefined) {
         optsCopy.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
     }

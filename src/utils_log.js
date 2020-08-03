@@ -36,7 +36,7 @@
  * `DEBUG` messages will not be printed, unless enabled.
  *
  * **Example:**
- * ```
+ * ```js
  * const Apify = require('apify');
  * const { log } = Apify.utils;
  *
@@ -67,6 +67,16 @@
  * Another very useful way of setting the log level is by setting the `APIFY_LOG_LEVEL`
  * environment variable, such as `APIFY_LOG_LEVEL=DEBUG`. This way, no code changes
  * are necessary to turn on your debug messages and start debugging right away.
+ *
+ * To add timestamps to your logs, you can override the default logger settings:
+ * ```js
+ * log.setOptions({
+ *     logger: new log.LoggerText({ skipTime: false }),
+ * });
+ * ```
+ * You can customize your logging further by extending or replacing the default
+ * logger instances with your own implementations.
+ *
  * @namespace log
  */
 

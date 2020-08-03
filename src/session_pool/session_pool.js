@@ -27,19 +27,35 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  */
 
 /**
- * Handles the sessions rotation, creation and persistence.
+ * Handles the rotation, creation and persistence of user-like sessions.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
  * Learn more in the [`Session management guide`](/docs/guides/session-management).
  *
- * Session pool is by default persisted in default {@link KeyValueStore}.
- * If you want to have one pool for all runs you have to specify
- * {@link SessionPoolOptions.persistStateKeyValueStoreId}.
+ * You can create one by calling the {@link Apify.openSessionPool} function.
+ *
+ * Session pool is already integrated into crawlers, and it can significantly improve your scraper
+ * performance with just 2 lines of code.
  *
  * **Example usage:**
  *
  * ```javascript
- * const sessionPool = new SessionPool({
+ * const crawler = new Apify.CheerioCrawler({
+ *     useSessionPool: true,
+ *     persistCookiesPerSession: true,
+ *     // ...
+ * })
+ * ```
+ *
+ * You can configure the pool with many options. See the {@link SessionPoolOptions}.
+ * Session pool is by default persisted in default {@link KeyValueStore}.
+ * If you want to have one pool for all runs you have to specify
+ * {@link SessionPoolOptions.persistStateKeyValueStoreId}.
+ *
+ * **Advanced usage:**
+ *
+ * ```javascript
+ * const sessionPool = await Apify.openSessionPool({
  *     maxPoolSize: 25,
  *     sessionOptions:{
  *          maxAgeSecs: 10,
@@ -49,18 +65,12 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  *     persistStateKey: 'my-session-pool',
  * });
  *
- * // Now you have to initialize the `SessionPool`.
- * // If you already have a persisted state in the selected `KeyValueState`.
- * // The Session pool is recreated, otherwise it creates a new one.
- * // It also attaches listener to `Apify.events` so it is persisted periodically and not after every change.
- * await sessionPool.initialize();
- *
  * // Get random session from the pool
  * const session1 = await sessionPool.getSession();
  * const session2 = await sessionPool.getSession();
  * const session3 = await sessionPool.getSession();
  *
- * // Now you can mark the session either failed of successful
+ * // Now you can mark the session either failed or successful
  *
  * // Marks session as bad after unsuccessful usage -> it increases error count (soft retire)
  * session1.markBad()
@@ -142,7 +152,7 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Starts periodic state persistence and potentially loads SessionPool state from {@link KeyValueStore}.
-     * This function must be called before you can start using the instance in a meaningful way.
+     * It is called automatically by the {@link Apify.openSessionPool} function.
      *
      * @return {Promise<void>}
      */
@@ -224,7 +234,7 @@ export class SessionPool extends EventEmitter {
     _removeSession(session) {
         const sessionIndex = this.sessions.findIndex(storedSession => storedSession.id === session.id);
 
-        const removedSession = this.sessions.splice(sessionIndex, 1);
+        const [removedSession] = this.sessions.splice(sessionIndex, 1);
         this.log.debug(`Removed Session - ${removedSession.id}`);
     }
 

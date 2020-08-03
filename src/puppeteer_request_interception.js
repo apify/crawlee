@@ -201,7 +201,7 @@ export const removeInterceptRequestHandler = async (page, handler) => {
 
     pageInterceptRequestHandlersMap.set(page, handlersArray);
 
-    if (handlersArray.size === 0) {
+    if (handlersArray.length === 0) {
         const interceptedRequestsInProgress = pageInterceptedRequestsMap.get(page);
         // Since handlers can be async, we can't simply turn off request interception
         // when there are no handlers, because some handlers could still
@@ -212,10 +212,10 @@ export const removeInterceptRequestHandler = async (page, handler) => {
             const onDelete = () => {
                 if (interceptedRequestsInProgress.size === 0) {
                     disableRequestInterception(page);
+                    interceptedRequestsInProgress.removeListener('delete', onDelete);
                 }
             };
             interceptedRequestsInProgress.on('delete', onDelete);
-            interceptedRequestsInProgress.removeListener('delete', onDelete);
         }
     }
 };

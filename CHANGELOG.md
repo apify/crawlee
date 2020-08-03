@@ -1,3 +1,73 @@
+0.21.2 / 2020/07/27
+====================
+- Fix cookies with leading dot in domain (as extracted from Puppeteer)
+  not being correctly added to Sessions.
+
+0.21.1 / 2020/07/21
+====================
+We fixed some bugs, improved a few things and bumped Puppeteer to match latest Chrome 84.
+
+- Allow `Apify.createProxyConfiguration` to be used seamlessly with the proxy component
+  of Actor Input UI.
+- Fix integration of plugins into `CheerioCrawler` with the `crawler.use()` function.
+- Fix a race condition which caused `RequestQueueLocal` to fail handling requests.
+- Fix broken debug logging in `SessionPool`.
+- Improve `ProxyConfiguration` error message for missing password / token.
+- Update Puppeteer to 5.2.0
+- Improve docs, update packages and so on.
+
+0.21.0 / 2020/06/06
+====================
+This release comes with **breaking changes** that will affect most,
+if not all of your projects. See the [migration guide](https://github.com/apifytech/apify-js/blob/master/MIGRATIONS.md)
+for more information and examples.
+
+First large change is a redesigned proxy configuration. `Cheerio` and `Puppeteer` crawlers
+now accept a `proxyConfiguration` parameter, which is an instance of `ProxyConfiguration`.
+This class now exclusively manages both Apify Proxy and custom proxies. Visit the new
+[proxy management guide](https://sdk.apify.com/docs/guides/proxy-management)
+
+We also removed `Apify.utils.getRandomUserAgent()` as it was no longer effective
+in avoiding bot detection and changed the default values for empty properties in
+`Request` instances.
+
+- **BREAKING:** Removed `Apify.getApifyProxyUrl()`. To get an Apify Proxy url,
+  use `proxyConfiguration.newUrl([sessionId])`.
+- **BREAKING:** Removed `useApifyProxy`, `apifyProxyGroups` and `apifyProxySession` parameters
+  from all applications in the SDK. Use `proxyConfiguration` in crawlers and `proxyUrl`
+  in `requestAsBrowser` and `Apify.launchPuppeteer`.
+- **BREAKING:** Removed `Apify.utils.getRandomUserAgent()` as it was no longer effective
+  in avoiding bot detection.
+- **BREAKING:** `Request` instances no longer initialize empty properties with `null`,
+  which means that:
+    - empty `errorMessages` are now represented by `[]`, and
+    - empty `loadedUrl`, `payload` and `handledAt` are `undefined`.
+- Add `Apify.createProxyConfiguration()` `async` function to create `ProxyConfiguration`
+  instances. `ProxyConfiguration` itself is not exposed.
+- Add `proxyConfiguration` to `CheerioCrawlerOptions`
+  and `PuppeteerCrawlerOptions`.
+- Add `proxyInfo` to `CheerioHandlePageInputs` and `PuppeteerHandlePageInputs`.
+  You can use this object to retrieve information about the currently used proxy
+  in `Puppeteer` and `Cheerio` crawlers.
+- Add click buttons and scroll up options to `Apify.utils.puppeteer.infiniteScroll()`.
+- Fixed a bug where intercepted requests would never continue.
+- Fixed a bug where `Apify.utils.requestAsBrowser()` would get into redirect loops.
+- Fix `Apify.utils.getMemoryInfo()` crashing the process on AWS Lambda and on systems
+  running in Docker without memory cgroups enabled.
+- Update Puppeteer to 3.3.0.
+
+0.20.4 / 2020-05-11
+====================
+- Add `Apify.utils.waitForRunToFinish()` which simplifies waiting for an actor run to finish.
+- Add standard prefixes to log messages to improve readability and orientation in logs.
+- Add support for `async` handlers in `Apify.utils.puppeteer.addInterceptRequestHandler()`
+- EXPERIMENTAL: Add `cheerioCrawler.use()` function to enable attaching `CrawlerExtension`
+  to the crawler to modify its behavior. A plugin that extends functionality.
+- Fix bug with cookie expiry in `SessionPool`.
+- Fix issues in documentation.
+- Updated `@apify/http-request` to fix issue in the `proxy-agent` package.
+- Updated Puppeteer to 3.0.2
+
 0.20.3 / 2020-04-14
 ====================
 - **DEPRECATED:** `CheerioCrawlerOptions.requestOptions` is now deprecated. Please use

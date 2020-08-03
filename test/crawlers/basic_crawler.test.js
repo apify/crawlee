@@ -12,18 +12,16 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 describe('BasicCrawler', () => {
     let logLevel;
     let localStorageEmulator;
-    let LOCAL_STORAGE_DIR;
+    let localStorageDir;
 
     beforeAll(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.OFF);
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
-        LOCAL_STORAGE_DIR = localStorageEmulator.localStorageDir;
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.clean();
+        localStorageDir = await localStorageEmulator.init();
     });
 
     afterAll(async () => {
@@ -137,10 +135,10 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/1'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/1'].errorMessages).toBeNull();
+        expect(processed['http://example.com/1'].errorMessages).toEqual([]);
         expect(processed['http://example.com/1'].retryCount).toBe(0);
         expect(processed['http://example.com/3'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/3'].errorMessages).toBeNull();
+        expect(processed['http://example.com/3'].errorMessages).toEqual([]);
         expect(processed['http://example.com/3'].retryCount).toBe(0);
 
         expect(processed['http://example.com/2'].userData.foo).toBeUndefined();
@@ -265,7 +263,7 @@ describe('BasicCrawler', () => {
 
     test('should also support RequestQueueLocal', () => {
         const requestQueue = new RequestQueue('xxx');
-        const requestQueueLocal = new RequestQueueLocal('xxx', LOCAL_STORAGE_DIR);
+        const requestQueueLocal = new RequestQueueLocal('xxx', localStorageDir);
         const handleRequestFunction = () => {};
 
         expect(() => new Apify.BasicCrawler({ handleRequestFunction, requestQueue })).not.toThrowError();
@@ -382,10 +380,10 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/0'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/0'].errorMessages).toBeNull();
+        expect(processed['http://example.com/0'].errorMessages).toEqual([]);
         expect(processed['http://example.com/0'].retryCount).toBe(0);
         expect(processed['http://example.com/2'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/2'].errorMessages).toBeNull();
+        expect(processed['http://example.com/2'].errorMessages).toEqual([]);
         expect(processed['http://example.com/2'].retryCount).toBe(0);
 
         expect(processed['http://example.com/1'].userData.foo).toBeUndefined();
@@ -499,10 +497,10 @@ describe('BasicCrawler', () => {
         await basicCrawler.run();
 
         expect(processed['http://example.com/1'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/1'].errorMessages).toBeNull();
+        expect(processed['http://example.com/1'].errorMessages).toEqual([]);
         expect(processed['http://example.com/1'].retryCount).toBe(0);
         expect(processed['http://example.com/3'].userData.foo).toBe('bar');
-        expect(processed['http://example.com/3'].errorMessages).toBeNull();
+        expect(processed['http://example.com/3'].errorMessages).toEqual([]);
         expect(processed['http://example.com/3'].retryCount).toBe(0);
 
         expect(processed['http://example.com/2'].userData.foo).toEqual(undefined);

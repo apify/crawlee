@@ -3,7 +3,6 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as contentTypeParser from 'content-type';
 import * as mime from 'mime-types';
-import * as LruCache from 'apify-shared/lru_cache';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
@@ -12,6 +11,7 @@ import {
     addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
+import globalCache from './global_cache';
 import log from './utils_log';
 
 export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
@@ -27,7 +27,7 @@ const statPromised = promisify(fs.stat);
 const emptyDirPromised = promisify(fs.emptyDir);
 
 const { keyValueStores } = apifyClient;
-const storesCache = new LruCache({ maxLength: MAX_OPENED_STORES }); // Open key-value stores are stored here.
+const storesCache = globalCache.create('key-value-store-cache', MAX_OPENED_STORES); // Open key-value stores are stored here.
 
 /**
  * Helper function to validate params of *.getValue().
@@ -252,12 +252,9 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @param {(Object|string|Buffer|null)} value
      *   Record data, which can be one of the following values:
-     *   <ul>
-     *     <li>If `null`, the record in the key-value store is deleted.</li>
-     *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
-     *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be either a `String`
-     *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
-     *   </ul>
+     *    - If `null`, the record in the key-value store is deleted.
+     *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
+     *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
      *   For any other value an error will be thrown.
      * @param {Object} [options]
      * @param {string} [options.contentType]
@@ -671,12 +668,9 @@ export const getValue = async (key) => {
  *   Unique record key.
  * @param {object} value
  *   Record data, which can be one of the following values:
- *   <ul>
- *     <li>If `null`, the record in the key-value store is deleted.</li>
- *     <li>If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.</li>
- *     <li>If `options.contentType` is specified, `value` is considered raw data and it must be a `String`
- *     or [`Buffer`](https://nodejs.org/api/buffer.html).</li>
- *   </ul>
+ *    - If `null`, the record in the key-value store is deleted.
+ *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
+ *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
  *   For any other value an error will be thrown.
  * @param {Object} [options]
  * @param {string} [options.contentType]

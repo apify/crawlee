@@ -3,8 +3,9 @@ import { LOCAL_STORAGE_SUBDIRS, LOCAL_ENV_VARS, ENV_VARS } from 'apify-shared/co
 import fs from 'fs-extra';
 import path from 'path';
 import log from '../build/utils_log';
+import globalCache from '../build/global_cache';
 
-import { LOCAL_STORAGE_DIR } from './_helper';
+const LOCAL_EMULATION_DIR = path.join(__dirname, '..', 'tmp', 'local-emulation-dir');
 
 const DEFAULT_FOLDERS = Object.values(LOCAL_STORAGE_SUBDIRS)
     .concat([
@@ -21,42 +22,40 @@ const DEFAULT_FOLDERS = Object.values(LOCAL_STORAGE_SUBDIRS)
  * call `clean()` in afterEach hook and finally call `destroy()` in afterAll hook.
  */
 class LocalStorageDirEmulator {
-    constructor(localStorageDir = cryptoRandomObjectId(10)) {
-        this.localStorageDir = path.join(LOCAL_STORAGE_DIR, localStorageDir);
-        log.debug(`Created local storage emulation in folder ${this.localStorageDir}`);
+    constructor() {
+        this.localStorageDirs = [];
     }
 
-    async init() {
-        await fs.ensureDir(path.resolve(this.localStorageDir));
+    async init(dirName = cryptoRandomObjectId(10)) {
+        globalCache.clearAll();
+        const localStorageDir = path.resolve(LOCAL_EMULATION_DIR, dirName);
+        await fs.ensureDir(localStorageDir);
         // prepare structure
-        await this._ensureStructure();
-        process.env.APIFY_LOCAL_STORAGE_DIR = this.localStorageDir;
+        await this._ensureStructure(localStorageDir);
+        process.env.APIFY_LOCAL_STORAGE_DIR = localStorageDir;
+        this.localStorageDirs.push(localStorageDir);
+        log.debug(`Created local storage emulation in folder ${localStorageDir}`);
+        return localStorageDir;
     }
 
     /**
      * Removes the folder itself
-     * @return {Promise<void>}
+     * @return {Promise}
      */
     async destroy() {
-        fs.removeSync(this.localStorageDir);
         delete process.env.APIFY_LOCAL_STORAGE_DIR;
+        const promises = this.localStorageDirs.map((dir) => {
+            return fs.remove(dir);
+        });
+        return Promise.all(promises);
     }
 
-    /**
-     * Removes all files/folders form it
-     * @return {Promise<void>}
-     */
-    async clean() {
-        for (const folder of DEFAULT_FOLDERS) {
-            await fs.emptyDirSync(path.join(this.localStorageDir, folder));
-        }
-    }
-
-    async _ensureStructure() {
+    async _ensureStructure(localStorageDir) {
         // create first level
-        for (const folder of DEFAULT_FOLDERS) {
-            await fs.ensureDir(path.join(this.localStorageDir, folder));
-        }
+        const promises = DEFAULT_FOLDERS.map((folder) => {
+            return fs.ensureDir(path.join(localStorageDir, folder));
+        });
+        return Promise.all(promises);
     }
 }
 

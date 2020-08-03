@@ -84,14 +84,15 @@ class HomeSplash extends React.Component {
                     <PromoSection>
                         <Button href="#try">Try It Out</Button>
                         <Button href={docUrl('guides/getting-started', language)}>Learn the Basics</Button>
-                        <Button href={docUrl('examples/puppeteer-crawler', language)}>See Examples</Button>
+                        <Button href={docUrl('examples/crawl-multiple-urls', language)}>See Examples</Button>
+                        <Button href='https://apify.typeform.com/to/eV6Rqb' target='_blank'>Give Feedback</Button>
                     </PromoSection>
                 </div>
                 <a
                     className="github-button"
                     href={this.props.config.repoUrl}
                     data-icon="octicon-star"
-                    data-count-href="/apifytech/apify-js/stargazers"
+                    data-count-href="/apify/apify-js/stargazers"
                     data-show-count="true"
                     data-count-aria-label="# stargazers on GitHub"
                     aria-label="Star Apify SDK on GitHub">

@@ -11,7 +11,7 @@ const { readStreamToString } = require('apify-shared/streams_utilities');  // es
 const BASE_URL = '/docs';
 const DOCS_DIR = path.join(__dirname, '..', '..', 'docs');
 const EXAMPLES_DIR_NAME = path.join(DOCS_DIR, 'examples');
-const EXAMPLES_REPO = 'https://api.github.com/repos/apifytech/actor-templates/contents/dist/examples';
+const EXAMPLES_REPO = 'https://api.github.com/repos/apify/actor-templates/contents/dist/examples';
 
 
 const classNames = [];
@@ -153,7 +153,7 @@ async function buildExamples(exampleLinks) {
 
 async function addExamplesToSidebars(examples) {
     console.log('Saving examples to sidebars.json');
-    sidebars.examples = { Examples: examples };
+    sidebars.docs.Examples = examples;
     fs.writeFileSync(path.join(__dirname, '..', 'sidebars.json'), JSON.stringify(sidebars, null, 4));
 }
 

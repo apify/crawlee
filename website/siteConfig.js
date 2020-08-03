@@ -21,7 +21,7 @@
 // ];
 const extlink = require('remarkable-extlink');
 
-const repoUrl = 'https://github.com/apifytech/apify-js';
+const repoUrl = 'https://github.com/apify/apify-js';
 
 const siteConfig = {
     title: 'Apify SDK', // Title for your website.
@@ -38,7 +38,7 @@ const siteConfig = {
 
     // Used for publishing and more
     projectName: 'apify-js',
-    organizationName: 'apifytech',
+    organizationName: 'apify',
     // For top-level user or org sites, the organization is still the same.
     // e.g., for the https://JoelMarcey.github.io site, it would be set like...
     //   organizationName: 'JoelMarcey'
@@ -47,7 +47,7 @@ const siteConfig = {
     headerLinks: [
         { search: true },
         { doc: 'guides/motivation', label: 'Guide' },
-        { doc: 'examples/accept-user-input', label: 'Examples' },
+        { doc: 'examples/crawl-multiple-urls', label: 'Examples' },
         { doc: 'api/apify', label: 'API Reference' },
         { href: repoUrl, label: 'GitHub' },
         // { page: 'help', label: 'Help' },

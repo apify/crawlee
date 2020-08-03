@@ -18,8 +18,6 @@ describe('dataset', () => {
     beforeAll(async () => {
         apifyClient.setOptions({ token: 'xxx' });
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
-        localStorageDir = localStorageEmulator.localStorageDir; // eslint-disable-line
     });
 
     afterAll(async () => {
@@ -28,7 +26,7 @@ describe('dataset', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.clean();
+        localStorageDir = await localStorageEmulator.init();
     });
 
     const read = (datasetName, index) => {

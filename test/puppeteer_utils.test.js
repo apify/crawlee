@@ -15,11 +15,10 @@ describe('Apify.utils.puppeteer', () => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
         localStorageEmulator = new LocalStorageDirEmulator();
-        await localStorageEmulator.init();
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.clean();
+        await localStorageEmulator.init();
     });
 
     afterAll(async () => {

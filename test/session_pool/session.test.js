@@ -1,11 +1,10 @@
 import { Session } from '../../build/session_pool/session';
 import { SessionPool } from '../../build/session_pool/session_pool';
+import { ProxyConfiguration } from '../../build/proxy_configuration';
 import EVENTS from '../../build/session_pool/events';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 
 import Apify from '../../build';
-import { getApifyProxyUrl } from '../../build/actor';
-
 
 describe('Session - testing session behaviour ', () => {
     let sessionPool;
@@ -27,19 +26,16 @@ describe('Session - testing session behaviour ', () => {
         expect(session.errorScore).toBe(0.5);
     });
 
-    test(
-        'should throw error when param sessionPool is not EventEmitter instance',
-        () => {
-            let err;
-            try {
+    test('should throw error when param sessionPool is not EventEmitter instance', () => {
+        let err;
+        try {
                 const session = new Session({ sessionPool: {} }); // eslint-disable-line
-            } catch (e) {
-                err = e;
-            }
-            expect(err).toBeDefined(); // eslint-disable-line
-            expect(err.message.includes('sessionPool must be instance of SessionPool')).toBe(true); // eslint-disable-line
-        },
-    );
+        } catch (e) {
+            err = e;
+        }
+        expect(err).toBeDefined(); // eslint-disable-line
+        expect(err.message.includes('sessionPool must be instance of SessionPool')).toBe(true); // eslint-disable-line
+    });
 
     test('should mark session markBad', () => {
         session.markBad();
@@ -121,10 +117,11 @@ describe('Session - testing session behaviour ', () => {
     });
 
     test('should be valid proxy session', () => {
+        const proxyConfiguration = new ProxyConfiguration({ password: '12312' });
         session = new Session({ sessionPool });
         let error;
         try {
-            getApifyProxyUrl({ session: session.id, password: '12312' });
+            proxyConfiguration.newUrl(session.id);
         } catch (e) {
             error = e;
         }
@@ -174,6 +171,18 @@ describe('Session - testing session behaviour ', () => {
         session = new Session({ sessionPool });
         session.setPuppeteerCookies(cookies, url);
         expect(session.getCookieString(url)).toBe('cookie1=my-cookie; cookie2=your-cookie');
+    });
+
+    test('setPuppeteerCookies works with leading dots in domains', () => {
+        const url = 'https://www.example.com';
+        const cookies = [
+            { name: 'cookie1', value: 'my-cookie', domain: 'abc.example.com' },
+            { name: 'cookie2', value: 'your-cookie', domain: '.example.com' },
+        ];
+
+        session = new Session({ sessionPool });
+        session.setPuppeteerCookies(cookies, url);
+        expect(session.getCookieString(url)).toBe('cookie2=your-cookie');
     });
 
     describe('.putResponse & .getCookieString', () => {

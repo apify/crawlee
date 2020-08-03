@@ -7,7 +7,7 @@ import * as htmlparser from 'htmlparser2';
 import * as iconv from 'iconv-lite';
 import * as _ from 'underscore';
 import * as util from 'util';
-import { getApifyProxyUrl } from '../actor';
+import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
@@ -23,6 +23,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
+import { ProxyConfiguration } from '../proxy_configuration';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
@@ -76,6 +77,9 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *
  *   // Session object, useful to work around anti-scraping protections
  *   session: Session
+ *
+ *   // ProxyInfo object with information about currently used proxy
+ *   proxyInfo: ProxyInfo
  * }
  * ```
  *
@@ -132,25 +136,10 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   Timeout in which the HTTP request to the resource needs to finish, given in seconds.
  * @property {boolean} [ignoreSslErrors=true]
  *   If set to true, SSL certificate errors will be ignored.
- * @property {boolean} [useApifyProxy=false]
- *   If set to `true`, `CheerioCrawler` will be configured to use
- *   [Apify Proxy](https://my.apify.com/proxy) for all connections.
- *   For more information, see the [documentation](https://docs.apify.com/proxy)
- * @property {string[]} [apifyProxyGroups]
- *   An array of proxy groups to be used
- *   by the [Apify Proxy](https://docs.apify.com/proxy).
- *   Only applied if the `useApifyProxy` option is `true`.
- * @property {string} [apifyProxySession]
- *   Apify Proxy session identifier to be used with requests made by `CheerioCrawler`.
- *   All HTTP requests going through the proxy with the same session identifier
- *   will use the same target proxy server (i.e. the same IP address).
- *   The identifier can only contain the following characters: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
- *   Only applied if the `useApifyProxy` option is `true`.
- * @property {string[]} [proxyUrls]
- *   An array of custom proxy URLs to be used by the `CheerioCrawler` instance.
- *   The provided custom proxies' order will be randomized and the resulting list rotated.
- *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
- *   configuration options will cause an error to be thrown on startup.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `CheerioCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -164,7 +153,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  *
- *   See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
+ *   See [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
  * @property {string[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
@@ -314,13 +303,10 @@ class CheerioCrawler {
             requestTimeoutSecs = 30,
             handlePageTimeoutSecs = 60,
             ignoreSslErrors = true,
-            useApifyProxy = false,
-            apifyProxyGroups,
-            apifyProxySession,
-            proxyUrls,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
+            proxyConfiguration,
 
             // Autoscaled pool shorthands
             minConcurrency,
@@ -344,10 +330,6 @@ class CheerioCrawler {
         checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
         checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
         checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Maybe Boolean');
-        checkParamOrThrow(useApifyProxy, 'options.useApifyProxy', 'Maybe Boolean');
-        checkParamOrThrow(apifyProxyGroups, 'options.apifyProxyGroups', 'Maybe [String]');
-        checkParamOrThrow(apifyProxySession, 'options.apifyProxySession', 'Maybe String');
-        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
         checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
         checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
         checkParamOrThrow(suggestResponseEncoding, 'options.suggestResponseEncoding', 'Maybe String');
@@ -355,18 +337,12 @@ class CheerioCrawler {
         checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
         checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
         checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
+        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
 
         this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
 
-        // Enforce valid proxy configuration
-        if (proxyUrls && !proxyUrls.length) throw new Error('Parameter "options.proxyUrls" of type Array must not be empty');
-        if (useApifyProxy && proxyUrls) throw new Error('Cannot combine "options.useApifyProxy" with "options.proxyUrls"!');
         if (persistCookiesPerSession && !useSessionPool) {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
-        }
-
-        if (apifyProxySession && useSessionPool) {
-            throw new Error('Cannot use "options.apifyProxySession" with "options.useSessionPool"');
         }
 
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
@@ -387,14 +363,10 @@ class CheerioCrawler {
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
         this.requestTimeoutMillis = requestTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
-        this.useApifyProxy = useApifyProxy;
-        this.apifyProxyGroups = apifyProxyGroups;
-        this.apifyProxySession = apifyProxySession;
-        this.proxyUrls = _.shuffle(proxyUrls);
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
-        this.lastUsedProxyUrlIndex = 0;
         this.prepareRequestFunction = prepareRequestFunction;
+        this.proxyConfiguration = proxyConfiguration;
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
         this.sessionPoolOptions = sessionPoolOptions;
@@ -409,6 +381,7 @@ class CheerioCrawler {
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
             handleFailedRequestFunction,
+            proxyConfiguration,
 
             // Autoscaled pool options.
             minConcurrency,
@@ -416,8 +389,8 @@ class CheerioCrawler {
             autoscaledPoolOptions,
 
             // Session pool options
-            sessionPoolOptions,
-            useSessionPool,
+            sessionPoolOptions: this.sessionPoolOptions,
+            useSessionPool: this.useSessionPool,
 
             // log
             log: this.log,
@@ -441,8 +414,9 @@ class CheerioCrawler {
     }
 
     /**
+     * **EXPERIMENTAL**
      * Function for attaching CrawlerExtensions such as the Unblockers.
-     * @param extension - Crawler extension that overrides the crawler configuration.
+     * @param {CrawlerExtension} extension - Crawler extension that overrides the crawler configuration.
      */
     use(extension) {
         const inheritsFromCrawlerExtension = extension instanceof CrawlerExtension;
@@ -482,13 +456,21 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session} options.session
+     * @param {Session} [options.session]
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
+        let proxyInfo;
+        let proxyUrl;
+        if (this.proxyConfiguration) {
+            proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
+            proxyUrl = proxyInfo.url;
+        }
+
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session, proxyInfo });
+
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction({ request, session }),
+            this._requestFunction({ request, session, proxyUrl }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
@@ -532,6 +514,7 @@ class CheerioCrawler {
             response,
             autoscaledPool,
             session,
+            proxyInfo,
         };
         return addTimeoutToPromise(
             this.handlePageFunction(context),
@@ -548,9 +531,10 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {Session} options.session
+     * @param {string} options.proxyUrl
      * @ignore
      */
-    async _requestFunction({ request, session }) {
+    async _requestFunction({ request, session, proxyUrl }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
 
@@ -559,7 +543,7 @@ class CheerioCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const opts = this._getRequestOptions(request, session);
+        const opts = this._getRequestOptions(request, session, proxyUrl);
         let responseStream;
 
         try {
@@ -604,15 +588,16 @@ class CheerioCrawler {
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      * @param {Request} request
      * @param {Session} [session]
+     * @param {string} [proxyUrl]
      * @ignore
      */
-    _getRequestOptions(request, session) {
+    _getRequestOptions(request, session, proxyUrl) {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
             headers: Object.assign({}, request.headers),
             ignoreSslErrors: this.ignoreSslErrors,
-            proxyUrl: this._getProxyUrl(session),
+            proxyUrl,
             stream: true,
             useCaseSensitiveHeaders: true,
             abortFunction: (res) => {
@@ -638,28 +623,6 @@ class CheerioCrawler {
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
 
         return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
-    }
-
-    /**
-     * Enables the use of a proxy by returning a proxy URL
-     * based on configured options or null if no proxy is used.
-     * @param {Session} [session]
-     * @returns {(string|null)}
-     * @ignore
-     */
-    _getProxyUrl(session = {}) {
-        if (this.useApifyProxy) {
-            return getApifyProxyUrl({
-                groups: this.apifyProxyGroups,
-                session: session.id || this.apifyProxySession,
-                groupsParamName: 'options.apifyProxyGroups',
-                sessionParamName: 'options.apifyProxySession',
-            });
-        }
-        if (this.proxyUrls) {
-            return this.proxyUrls[this.lastUsedProxyUrlIndex++ % this.proxyUrls.length];
-        }
-        return null;
     }
 
     _encodeResponse(request, response, encoding) {
@@ -763,8 +726,13 @@ export default CheerioCrawler;
 
 /**
  * @typedef PrepareRequestInputs
- * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
- * @property {Session} [session] The current session
+ * @property {Request} request
+ *  Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Session} [session]
+ *  The current session
+ * @property {ProxyInfo} [proxyInfo]
+ *  An object with information about currently used proxy by the crawler
+ *  and configured by the {@link ProxyConfiguration} class.
  */
 
 /**
@@ -794,6 +762,9 @@ export default CheerioCrawler;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {ProxyInfo} [proxyInfo]
+ *   An object with information about currently used proxy by the crawler
+ *   and configured by the {@link ProxyConfiguration} class.
  */
 
 /**

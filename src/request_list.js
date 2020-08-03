@@ -174,7 +174,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  * **Basic usage:**
  * ```javascript
  * // Use a helper function to simplify request list initialization.
- * // State and sources are automatically persisted.
+ * // State and sources are automatically persisted. This is a preferred usage.
  * const requestList = await Apify.openRequestList('my-request-list', [
  *     'http://www.example.com/page-1',
  *     { url: 'http://www.example.com/page-2', method: 'POST', userData: { foo: 'bar' }},
@@ -196,7 +196,8 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *         { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  *     ],
  *
- *     // Persist only state in cases where the original sources are immutable to improve performance.
+ *     // Persist the state to avoid re-crawling which can lead to data duplications.
+ *     // Keep in mind that the sources have to be immutable or this will throw an error.
  *     persistStateKey: 'my-state',
  * });
  *
@@ -367,7 +368,7 @@ export class RequestList {
                     this._addRequest(source);
                 }
             } catch (err) {
-                throw new Error(`Loading requests with sourcesFunction failed. Cause:\n${err.stack}`);
+                throw new Error(`Loading requests with sourcesFunction failed.\nCause: ${err.message}`);
             }
         }
     }
