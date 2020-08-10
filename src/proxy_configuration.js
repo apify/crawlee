@@ -11,8 +11,8 @@ const PROTOCOL = 'http';
 const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 // https://docs.apify.com/proxy/datacenter-proxy#username-parameters
 const MAX_SESSION_ID_LENGTH = 50;
-const CHECK_ACCESS_REQUEST_TIMEOUT_SECS = 5;
-const CHECK_ACCESS_RETRY_COUNT = 2;
+const CHECK_ACCESS_REQUEST_TIMEOUT_SECS = 4;
+const CHECK_ACCESS_MAX_ATTEMPTS = 2;
 
 /**
  * @typedef ProxyConfigurationOptions
@@ -349,7 +349,7 @@ export class ProxyConfiguration {
             json: true,
             timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
         };
-        for (let attempt = 1; attempt <= CHECK_ACCESS_RETRY_COUNT; attempt++) {
+        for (let attempt = 1; attempt <= CHECK_ACCESS_MAX_ATTEMPTS; attempt++) {
             try {
                 const response = await requestAsBrowser(requestOpts);
                 return response.body;
