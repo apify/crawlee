@@ -4,6 +4,10 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "ES2015",
+            "ES2016",
             "ES2018",
             "ES2019.Object",
             "ES2018.AsyncIterable"
