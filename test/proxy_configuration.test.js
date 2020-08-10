@@ -310,7 +310,7 @@ describe('Apify.createProxyConfiguration()', () => {
 
         mock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url, proxyUrl, json: true, timeoutSecs: 5 })
+            .withArgs(sinon.match({ url, proxyUrl }))
             .resolves({ body: status });
 
         const proxyConfiguration = await Apify.createProxyConfiguration(basicOpts);
@@ -338,7 +338,7 @@ describe('Apify.createProxyConfiguration()', () => {
 
         requestUtilsMock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url, proxyUrl, json: true, timeoutSecs: 5 })
+            .withArgs(sinon.match({ url, proxyUrl }))
             .resolves({ body: status });
 
         const clientUsersMock = sinon.mock(apifyClient.users);
