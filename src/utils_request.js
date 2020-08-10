@@ -36,10 +36,6 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  Two-letter ISO 3166 country code.
  * @property {boolean} [useMobileVersion]
  *  If `true`, the function uses User-Agent of a mobile browser.
- * @property {AbortFunction} [abortFunction]
- *  Function accepts `response` object as a single parameter and should return true or false.
- *  If function returns true request gets aborted. This function is passed to the
- *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
  * @property {boolean} [ignoreSslErrors=true]
  *  If set to true, SSL/TLS certificate errors will be ignored.
  * @property {boolean} [useInsecureHttpParser=true]
@@ -50,6 +46,10 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  However, it will also open your application to some security vulnerabilities,
  *  although the risk should be negligible as these vulnerabilities mainly relate to server applications, not clients.
  *  Learn more in this [blog post](https://snyk.io/blog/node-js-release-fixes-a-critical-http-security-vulnerability/).
+ * @property {AbortFunction} [abortFunction]
+ *  Function accepts `response` object as a single parameter and should return true or false.
+ *  If function returns true request gets aborted. This function is passed to the
+ *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
  */
 
 /**
