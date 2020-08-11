@@ -4,7 +4,6 @@ import Apify from '../build/index';
 import * as requestUtils from '../build/utils_request';
 import * as utils from '../build/utils';
 import { ProxyConfiguration } from '../build/proxy_configuration';
-import log from '../build/utils_log';
 
 const { apifyClient } = utils;
 
@@ -21,6 +20,11 @@ const basicOpts = {
 };
 const basicOptsProxyUrl = 'http://groups-GROUP1+GROUP2,session-538909250932,country-CZ:test12345@proxy.apify.com:8000';
 const proxyUrlNoSession = 'http://groups-GROUP1+GROUP2,country-CZ:test12345@proxy.apify.com:8000';
+
+afterEach(() => {
+    delete process.env[ENV_VARS.TOKEN];
+    delete process.env[ENV_VARS.PROXY_PASSWORD];
+});
 
 describe('ProxyConfiguration', () => {
     test('should accept all options', () => {
@@ -306,7 +310,7 @@ describe('Apify.createProxyConfiguration()', () => {
 
         mock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url, proxyUrl, countryCode, json: true })
+            .withArgs(sinon.match({ url, proxyUrl }))
             .resolves({ body: status });
 
         const proxyConfiguration = await Apify.createProxyConfiguration(basicOpts);
@@ -322,8 +326,10 @@ describe('Apify.createProxyConfiguration()', () => {
     });
 
     test('should work without password (with token)', async () => {
-        const opts = basicOpts;
-        opts.password = null;
+        const token = '123456789';
+        process.env.APIFY_TOKEN = token;
+        const opts = { ...basicOpts };
+        delete opts.password;
 
         const requestUtilsMock = sinon.mock(requestUtils);
         const status = { connected: true };
@@ -332,12 +338,10 @@ describe('Apify.createProxyConfiguration()', () => {
 
         requestUtilsMock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url, proxyUrl, countryCode, json: true })
+            .withArgs(sinon.match({ url, proxyUrl }))
             .resolves({ body: status });
 
         const clientUsersMock = sinon.mock(apifyClient.users);
-        const token = '123456789';
-        process.env.APIFY_TOKEN = token;
         const data = { proxy: { password } };
 
         clientUsersMock.expects('getUser')
@@ -360,30 +364,25 @@ describe('Apify.createProxyConfiguration()', () => {
     });
 
     test('should show warning log', async () => {
-        const logMock = sinon.mock(log);
         process.env.APIFY_TOKEN = '123456789';
 
         const status = { connected: true };
-        const fakeUserObjectProxyData = { password: '987654321' };
+        const fakeUserObjectProxyData = { password: 'some-other-users-password' };
 
-        const fakeRequestAsBrowser = async () => {
-            return { body: status };
-        };
-        const stub1 = sinon.stub(requestUtils, 'requestAsBrowser').callsFake(fakeRequestAsBrowser);
+        const stub1 = sinon.stub(requestUtils, 'requestAsBrowser').resolves({ body: status });
 
-        const fakeGetUser = async () => {
-            return { proxy: fakeUserObjectProxyData };
-        };
-        const stub2 = sinon.stub(apifyClient.users, 'getUser').callsFake(fakeGetUser);
+        const stub2 = sinon.stub(apifyClient.users, 'getUser').resolves({ proxy: fakeUserObjectProxyData });
 
         // eslint-disable-next-line no-unused-vars
-        const proxyConfiguration = await Apify.createProxyConfiguration(basicOpts);
-
+        const proxyConfiguration = new ProxyConfiguration(basicOpts);
+        const logMock = sinon.mock(proxyConfiguration.log);
         logMock.expects('warning').once();
+
+        await proxyConfiguration.initialize();
 
         stub1.restore();
         stub2.restore();
-        logMock.restore();
+        logMock.verify();
     });
 
     test('should throw missing password', async () => {
@@ -411,7 +410,7 @@ describe('Apify.createProxyConfiguration()', () => {
     test('should throw when group is not available', async () => {
         delete process.env[ENV_VARS.PROXY_PASSWORD];
         process.env.APIFY_TOKEN = '123456789';
-        const connectionError = 'Invalid username: proxy group &quot;GROUP2&quot; not found or not accessible.';
+        const connectionError = 'Invalid username: proxy group "GROUP2"; not found or not accessible.';
         const status = { connected: false, connectionError };
         const fakeUserObjectProxyData = { password };
 
@@ -435,5 +434,23 @@ describe('Apify.createProxyConfiguration()', () => {
         }
         stub1.restore();
         stub2.restore();
+    });
+
+    test('should not throw when access check is unresponsive', async () => {
+        process.env.APIFY_PROXY_PASSWORD = '123456789';
+        const requestUtilsMock = sinon.mock(requestUtils);
+
+        requestUtilsMock.expects('requestAsBrowser')
+            .twice()
+            .rejects(new Error('some error'));
+
+        const proxyConfiguration = new ProxyConfiguration();
+        const logMock = sinon.mock(proxyConfiguration.log);
+        logMock.expects('warning').once();
+
+        await proxyConfiguration.initialize();
+
+        requestUtilsMock.verify();
+        logMock.verify();
     });
 });

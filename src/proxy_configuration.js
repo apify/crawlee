@@ -1,17 +1,18 @@
 import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
-import { URL } from 'url';
 import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
 import { requestAsBrowser } from './utils_request';
-import log from './utils_log';
+import defaultLog from './utils_log';
 
 // CONSTANTS
 const PROTOCOL = 'http';
 const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 // https://docs.apify.com/proxy/datacenter-proxy#username-parameters
 const MAX_SESSION_ID_LENGTH = 50;
+const CHECK_ACCESS_REQUEST_TIMEOUT_SECS = 4;
+const CHECK_ACCESS_MAX_ATTEMPTS = 2;
 
 /**
  * @typedef ProxyConfigurationOptions
@@ -184,6 +185,7 @@ export class ProxyConfiguration {
         this.usedProxyUrls = new Map();
         this.newUrlFunction = newUrlFunction;
         this.usesApifyProxy = !this.proxyUrls && !this.newUrlFunction;
+        this.log = defaultLog.child({ prefix: 'ProxyConfiguration' });
     }
 
     /**
@@ -302,7 +304,7 @@ export class ProxyConfiguration {
             const { proxy: { password } } = await apifyClient.users.getUser({ token, userId: 'me' });
             if (this.password) {
                 if (this.password !== password) {
-                    log.warning('The Apify Proxy password you provided belongs to'
+                    this.log.warning('The Apify Proxy password you provided belongs to'
                     + ' a different user than the Apify token you are using. Are you sure this is correct?');
                 }
             } else {
@@ -316,16 +318,45 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Checks the status of Apify Proxy and throws an error if the status is not "connected".
+     * Checks whether the user has access to the proxies specified in the provided ProxyConfigurationOptions.
+     * If the check can not be made, it only prints a warning and allows the program to continue. This is to
+     * prevent program crashes caused by short downtimes of Proxy.
+     *
      * @returns {Promise<void>}
      * @ignore
      */
     async _checkAccess() {
-        const url = APIFY_PROXY_STATUS_URL;
-        const proxyUrl = this.newUrl();
-        const { countryCode } = this;
-        const { body: { connected, connectionError } } = await requestAsBrowser({ url, proxyUrl, countryCode, json: true });
-        if (!connected) this._throwApifyProxyConnectionError(connectionError);
+        const status = await this._fetchStatus();
+        if (status) {
+            const { connected, connectionError } = status;
+            if (!connected) this._throwApifyProxyConnectionError(connectionError);
+        } else {
+            this.log.warning('Apify Proxy access check timed out. Watch out for errors with status code 407. '
+                + 'If you see some, it most likely means you don\'t have access to either all or some of the proxies you\'re trying to use.');
+        }
+    }
+
+    /**
+     * Apify Proxy can be down for a second or a minute, but this should not crash processes.
+     *
+     * @return {Promise<?{ connected: boolean, connectionError: string }>}
+     * @ignore
+     */
+    async _fetchStatus() {
+        const requestOpts = {
+            url: APIFY_PROXY_STATUS_URL,
+            proxyUrl: this.newUrl(),
+            json: true,
+            timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
+        };
+        for (let attempt = 1; attempt <= CHECK_ACCESS_MAX_ATTEMPTS; attempt++) {
+            try {
+                const response = await requestAsBrowser(requestOpts);
+                return response.body;
+            } catch (err) {
+                // retry connection errors
+            }
+        }
     }
 
     /**
