@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import * as _ from 'underscore';
 import log from '../utils_log';
 
 import {staticAttributePatterns, otherAttributePatterns} from './consts';
@@ -105,6 +105,7 @@ const getAttributePatterns = (staticAttributePatterns, otherAttributePatterns) =
  */
 const getInputClusters = async (page, forms) => {
     const $$forms = forms && await page.$$('form');
+
     if ($$forms.length) {
         const inputsByForm = await Promise.all($$forms.map(async ($form, clusterIndex) => {
             const $$inputs = await $form.$$('input[type="password"], input[type="email"], input[type="text"]');
@@ -113,12 +114,12 @@ const getInputClusters = async (page, forms) => {
         }));
 
         return sortFormClusters(inputsByForm);
-    } else {
-        const $$inputs = await page.$$('input[type="password"], input[type="email"], input[type="text"]');
-        const extendedInputs = await getExtendedInputs($$inputs);
-
-        return [extendedInputs];
     }
+
+    const $$inputs = await page.$$('input[type="password"], input[type="email"], input[type="text"]');
+    const extendedInputs = await getExtendedInputs($$inputs);
+
+    return [extendedInputs];
 };
 
 /**

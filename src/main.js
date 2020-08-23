@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import log from './utils_log';
-import {login} from './login/login';
+import { login } from './login/login';
 import { main, getEnv, call, callTask, metamorph, addWebhook } from './actor';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';
