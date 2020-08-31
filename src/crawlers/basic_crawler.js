@@ -162,6 +162,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *
  * await crawler.run();
  * ```
+ * @property {Statistics} stats
+ *  Contains statistics about the current run
  *
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
@@ -312,21 +314,30 @@ class BasicCrawler {
             }
 
             await this.stats.stopCapturing();
-            const finalStats = this.stats.getCurrent();
-            this.log.info('Final request statistics:', finalStats);
+            const finalStats = this.stats.calculate();
+            const { requestsFailed, requestsFinished } = this.stats.state;
+            this.log.info('Final request statistics:', {
+                ...finalStats,
+                requestsFinished,
+                requestsFailed,
+                retryHistogram: this.stats.requestRetryHistogram,
+            });
         }
     }
 
     async _pauseOnMigration() {
-        await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
-            .catch((err) => {
-                if (err.message.includes('running tasks did not finish')) {
-                    this.log.error('The crawler was paused due to migration to another host, '
-                        + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
-                } else {
-                    throw err;
-                }
-            });
+        if (this.autoscaledPool) {
+            // if run wasn't called, this is going to crash
+            await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
+                .catch((err) => {
+                    if (err.message.includes('running tasks did not finish')) {
+                        this.log.error('The crawler was paused due to migration to another host, '
+                            + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
+                    } else {
+                        throw err;
+                    }
+                });
+        }
 
         const requestListPersistPromise = (async () => {
             if (this.requestList) {

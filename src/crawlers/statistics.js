@@ -4,6 +4,9 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 import defaultLog from '../utils_log';
 import events from '../events';
 
+/**
+ * @private
+ */
 class Job {
     constructor() {
         this.lastRunAt = null;
@@ -11,12 +14,12 @@ class Job {
     }
 
     run() {
-        this.lastRunAt = new Date();
+        this.lastRunAt = Date.now();
         return ++this.runs;
     }
 
     finish() {
-        this.durationMillis = new Date() - this.lastRunAt;
+        this.durationMillis = Date.now() - this.lastRunAt;
         return this.durationMillis;
     }
 
@@ -27,17 +30,26 @@ class Job {
 
 /**
  * The statistics class provides an interface to collecting and logging run
- * statistics of arbitrary jobs. Currently it provides the following information:
+ * statistics for requests.
  *
- *  - Average run time of successful jobs
- *  - Number of successful jobs per minute
- *  - Total number of successful jobs
- *  - Total number of failed jobs
- *  - A histogram of retry counts = Number of jobs that finished after N retries.
+ * All statistic information is saved on key value store
+ * under the key SDK_CRAWLER_STATISTICS_*, persists between
+ * migrations and abort/resurrect
  *
- * @hideconstructor
+ * @property {StatisticState} state
+ *   Current statistic state used for doing calculations on {@link Statistics#calculate} calls
+ * @property {number} id
+ *   Statistic instance id
+ * @property {number[]} requestRetryHistogram
+ *   Contains the current retries histogram.
+ *   Index 0 means 0 retries, index 2, 2 retries,
+ *   and so on
  */
 class Statistics {
+    /**
+     * @param {StatisticsOptions} options
+     * @hideconstructor
+     */
     constructor(options = {}) {
         const {
             logIntervalSecs = 60,
@@ -53,8 +65,15 @@ class Statistics {
         this.keyValueStore = null;
         // assign an id while incrementing so it can be saved/restored from KV
         this.id = Statistics.id++;
-        this.persistStateKey = `STATISTICS_STATE_${this.id}`;
+        this.persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
         this.listener = this.persistState.bind(this);
+        this.requestRetryHistogram = [];
+
+        /**
+         * @private
+         * @type {Map<string | number, Job>}
+         */
+        this.requestsInProgress = new Map();
 
         // initialize by "resetting"
         this.reset();
@@ -64,26 +83,26 @@ class Statistics {
      * Set the current statistic instance to pristine values
      */
     reset() {
-        if (!this.jobRetryHistogram) {
-            this.jobRetryHistogram = [];
-        } else {
-            this.jobRetryHistogram.length = 0;
-        }
+        this.state = {
+            requestsFinished: 0,
+            requestsFailed: 0,
+            requestsRetries: 0,
+            requestsFailedPerMinute: 0,
+            requestsFinishedPerMinute: 0,
+            requestMinDurationMillis: Infinity,
+            requestMaxDurationMillis: 0,
+            requestTotalFailedDurationMillis: 0,
+            requestTotalFinishedDurationMillis: 0,
+            crawlerStartedAt: null,
+            crawlerFinishedAt: null,
+            statsPersistedAt: null,
+            crawlerRuntimeMillis: 0,
+        };
 
-        this.finishedJobs = 0;
-        this.failedJobs = 0;
-
-        if (!this.jobsInProgress) {
-            this.jobsInProgress = new Map();
-        } else {
-            this.jobsInProgress.clear();
-        }
-
-        this.minJobDurationMillis = Infinity;
-        this.maxJobDurationMillis = 0;
-        this.totalJobDurationMillis = 0;
-        this.startedAt = null;
-        this.runtimeMillis = null;
+        this.requestRetryHistogram.length = 0;
+        this.requestsInProgress.clear();
+        this.instanceStart = Date.now();
+        this.deltaMillis = 0;
 
         this._teardown();
     }
@@ -92,63 +111,70 @@ class Statistics {
      * Starts a job
      *
      * @param {number|string} id
+     * @ignore
      */
     startJob(id) {
-        if (this.runtimeMillis === null) {
-            this.runtimeMillis = Date.now();
-        }
-        if (this.startedAt === null) {
-            this.startedAt = new Date();
-        }
-        let job = this.jobsInProgress.get(id);
+        let job = this.requestsInProgress.get(id);
         if (!job) job = new Job();
         job.run();
-        this.jobsInProgress.set(id, job);
+        this.requestsInProgress.set(id, job);
     }
 
     /**
      * Mark job as finished and sets the state
      *
      * @param {number|string} id
+     * @ignore
      */
     finishJob(id) {
-        const job = this.jobsInProgress.get(id);
+        const job = this.requestsInProgress.get(id);
         if (!job) return;
         const jobDurationMillis = job.finish();
-        this.finishedJobs++;
-        this.totalJobDurationMillis += jobDurationMillis;
+        this.state.requestsFinished++;
+        this.state.requestTotalFinishedDurationMillis += jobDurationMillis;
         this._saveRetryCountForJob(job);
-        if (jobDurationMillis < this.minJobDurationMillis) this.minJobDurationMillis = jobDurationMillis;
-        if (jobDurationMillis > this.maxJobDurationMillis) this.maxJobDurationMillis = jobDurationMillis;
-        this.jobsInProgress.delete(id);
+        if (jobDurationMillis < this.state.requestMinDurationMillis) this.state.requestMinDurationMillis = jobDurationMillis;
+        if (jobDurationMillis > this.state.requestMaxDurationMillis) this.state.requestMaxDurationMillis = jobDurationMillis;
+        this.requestsInProgress.delete(id);
     }
 
     /**
      * Mark job as failed and sets the state
      *
      * @param {number|string} id
+     * @ignore
      */
     failJob(id) {
-        const job = this.jobsInProgress.get(id);
+        const job = this.requestsInProgress.get(id);
         if (!job) return;
-        this.failedJobs++;
+        this.state.requestTotalFailedDurationMillis += job.finish();
+        this.state.requestsFailed++;
         this._saveRetryCountForJob(job);
-        this.jobsInProgress.delete(id);
+        this.requestsInProgress.delete(id);
     }
 
     /**
-     * Calculate and get the current state
+     * Calculate the current statistics
      */
-    getCurrent() {
-        const totalMillis = Date.now() - this.runtimeMillis;
+    calculate() {
+        const {
+            requestsFailed,
+            requestsFinished,
+            crawlerRuntimeMillis,
+            requestTotalFailedDurationMillis,
+            requestTotalFinishedDurationMillis,
+        } = this.state;
+        const totalMillis = (Date.now() - (this.instanceStart - this.deltaMillis)) + crawlerRuntimeMillis;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
-            avgDurationMillis: Math.round(this.totalJobDurationMillis / this.finishedJobs) || Infinity,
-            perMinute: Math.round(this.finishedJobs / totalMinutes),
-            finished: this.finishedJobs,
-            failed: this.failedJobs,
-            retryHistogram: [...this.jobRetryHistogram],
+            requestAvgFailedDurationMillis: Math.round(requestTotalFailedDurationMillis / requestsFailed) || Infinity,
+            requestAvgFinishedDurationMillis: Math.round(requestTotalFinishedDurationMillis / requestsFinished) || Infinity,
+            requestsFinishedPerMinute: Math.round(requestsFinished / totalMinutes) || 0,
+            requestsFailedPerMinute: Math.floor(requestsFailed / totalMinutes) || 0,
+            requestTotalDurationMillis: requestTotalFinishedDurationMillis + requestTotalFailedDurationMillis,
+            requestsTotal: requestsFailed + requestsFinished,
+            crawlerRuntimeMillis: totalMillis - this.deltaMillis,
         };
     }
 
@@ -161,10 +187,17 @@ class Statistics {
 
         await this._maybeLoadStatistics();
 
+        if (this.state.crawlerStartedAt === null) {
+            this.state.crawlerStartedAt = new Date();
+        }
+
         events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this.listener);
 
         this.logInterval = setInterval(() => {
-            this.log.info(this.logMessage, this.getCurrent());
+            this.log.info(this.logMessage, {
+                ...this.calculate(),
+                retryHistogram: this.requestRetryHistogram,
+            });
         }, this.logIntervalMillis);
     }
 
@@ -174,16 +207,20 @@ class Statistics {
     async stopCapturing() {
         this._teardown();
 
+        this.state.crawlerFinishedAt = new Date();
+
         await this.persistState();
     }
 
     /**
      * @private
+     * @param {Job} job
      */
     _saveRetryCountForJob(job) {
         const retryCount = job.retryCount();
-        this.jobRetryHistogram[retryCount] = this.jobRetryHistogram[retryCount]
-            ? this.jobRetryHistogram[retryCount] + 1
+        if (retryCount > 0) this.state.requestsRetries++;
+        this.requestRetryHistogram[retryCount] = this.requestRetryHistogram[retryCount]
+            ? this.requestRetryHistogram[retryCount] + 1
             : 1;
     }
 
@@ -211,23 +248,28 @@ class Statistics {
             return;
         }
 
+        /** @type {StatisticPersistedState & StatisticState} */
         const savedState = await this.keyValueStore.getValue(this.persistStateKey);
 
         if (!savedState) return;
 
         this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.persistStateKey });
 
-        // safe to reassign here, since this can only happen once upon calling startCapturing()
-        this.jobRetryHistogram = [...savedState.jobRetryHistogram];
-        this.finishedJobs = savedState.finishedJobs;
-        this.failedJobs = savedState.failedJobs;
-        this.totalJobDurationMillis = savedState.totalJobDurationMillis;
+        this.requestRetryHistogram.push(...savedState.requestRetryHistogram);
+        this.state.requestsFinished = savedState.requestsFinished;
+        this.state.requestsFailed = savedState.requestsFailed;
+        this.state.requestsRetries = savedState.requestsRetries;
+
+        this.state.requestTotalFailedDurationMillis = savedState.requestTotalFailedDurationMillis;
+        this.state.requestTotalFinishedDurationMillis = savedState.requestTotalFinishedDurationMillis;
+        this.state.requestMinDurationMillis = savedState.requestMinDurationMillis;
+        this.state.requestMaxDurationMillis = savedState.requestMaxDurationMillis;
         // persisted state uses ISO date strings
-        const persistedAt = new Date(savedState.persistedAt).getTime();
-        // both startedAt and runtimeMillis can be persisted as null, and they will break
-        // setting the date to 0, so it needs to be checked first
-        this.startedAt = savedState.startedAt ? new Date(savedState.startedAt) : null;
-        this.runtimeMillis = savedState.runtimeMillis ? Date.now() - (persistedAt - savedState.runtimeMillis) : null;
+        this.state.crawlerFinishedAt = savedState.crawlerFinishedAt ? new Date(savedState.crawlerFinishedAt) : null;
+        this.state.crawlerStartedAt = savedState.crawlerStartedAt ? new Date(savedState.crawlerStartedAt) : null;
+        this.state.statsPersistedAt = savedState.statsPersistedAt ? new Date(savedState.statsPersistedAt) : null;
+        this.state.crawlerRuntimeMillis = savedState.crawlerRuntimeMillis;
+        this.deltaMillis = (this.instanceStart - this.state.statsPersistedAt);
 
         this.log.debug('Loaded from KeyValueStore');
     }
@@ -246,27 +288,23 @@ class Statistics {
     }
 
     /**
-     * Make this class serializable when called with JSON.stringify(statsInstance) directly
+     * Make this class serializable when called with `JSON.stringify(statsInstance)` directly
+     * or through `keyValueStore.setValue('KEY', statsInstance)`
      *
-     * @private
+     * @returns {StatisticPersistedState | StatisticState}
      */
     toJSON() {
         // merge all the current state information that can be used from the outside
-        // without the need to reconstruct for the sake of stats.getCurrent()
+        // without the need to reconstruct for the sake of stats.calculate()
         // omit duplicated information
-        const { perMinute, avgDurationMillis } = this.getCurrent();
-
         return {
-            jobRetryHistogram: this.jobRetryHistogram,
-            finishedJobs: this.finishedJobs,
-            failedJobs: this.failedJobs,
-            totalJobDurationMillis: this.totalJobDurationMillis,
-            startedAt: this.startedAt ? this.startedAt.toISOString() : null,
-            // both are used for adjusting time between runs recreating from state
-            persistedAt: new Date().toISOString(),
-            runtimeMillis: this.runtimeMillis,
-            perMinute,
-            avgDurationMillis,
+            ...this.state,
+            crawlerFinishedAt: this.state.crawlerFinishedAt ? new Date(this.state.crawlerFinishedAt).toISOString() : null,
+            crawlerStartedAt: this.state.crawlerStartedAt ? new Date(this.state.crawlerStartedAt).toISOString() : null,
+            requestRetryHistogram: this.requestRetryHistogram,
+            statsId: this.id,
+            statsPersistedAt: new Date().toISOString(),
+            ...this.calculate(),
         };
     }
 }
@@ -274,3 +312,45 @@ class Statistics {
 Statistics.id = 0;
 
 export default Statistics;
+
+/**
+ * @ignore
+ * @typedef StatisticsOptions
+ * @property {number} [logIntervalSecs]
+ * @property {string} [logMessage]
+ */
+
+/**
+ * Format of the persisted stats
+ *
+ * @typedef StatisticPersistedState
+ * @property {number[]} requestRetryHistogram
+ * @property {number} statsId
+ * @property {number} requestAvgFailedDurationMillis
+ * @property {number} requestAvgFinishedDurationMillis
+ * @property {number} requestsFinishedPerMinute
+ * @property {number} requestsFailedPerMinute
+ * @property {number} requestTotalDurationMillis
+ * @property {number} requestsTotal
+ * @property {number} crawlerRuntimeMillis
+ * @property {string} statsPersistedAt
+ */
+
+/**
+ * Contains the statistics state
+ *
+ * @typedef StatisticState
+ * @property {number} requestsFinished
+ * @property {number} requestsFailed
+ * @property {number} requestsRetries
+ * @property {number} requestsFailedPerMinute
+ * @property {number} requestsFinishedPerMinute
+ * @property {number} requestMinDurationMillis
+ * @property {number} requestMaxDurationMillis
+ * @property {number} requestTotalFailedDurationMillis
+ * @property {number} requestTotalFinishedDurationMillis
+ * @property {Date|string|null} crawlerStartedAt
+ * @property {Date|string|null} crawlerFinishedAt
+ * @property {number} crawlerRuntimeMillis
+ * @property {Date|string|null} statsPersistedAt
+ */

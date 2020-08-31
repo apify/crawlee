@@ -94,7 +94,7 @@ export class SessionPool extends EventEmitter {
             maxPoolSize = 1000,
 
             persistStateKeyValueStoreId = null,
-            persistStateKey = 'SESSION_POOL_STATE',
+            persistStateKey = 'SDK_SESSION_POOL_STATE',
 
             createSessionFunction = null,
             sessionOptions = {},
