@@ -102,7 +102,6 @@ class Statistics {
         this.requestRetryHistogram.length = 0;
         this.requestsInProgress.clear();
         this.instanceStart = Date.now();
-        this.deltaMillis = 0;
 
         this._teardown();
     }
@@ -160,11 +159,10 @@ class Statistics {
         const {
             requestsFailed,
             requestsFinished,
-            crawlerRuntimeMillis,
             requestTotalFailedDurationMillis,
             requestTotalFinishedDurationMillis,
         } = this.state;
-        const totalMillis = (Date.now() - (this.instanceStart - this.deltaMillis)) + crawlerRuntimeMillis;
+        const totalMillis = Date.now() - this.instanceStart;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
@@ -174,7 +172,7 @@ class Statistics {
             requestsFailedPerMinute: Math.floor(requestsFailed / totalMinutes) || 0,
             requestTotalDurationMillis: requestTotalFinishedDurationMillis + requestTotalFailedDurationMillis,
             requestsTotal: requestsFailed + requestsFinished,
-            crawlerRuntimeMillis: totalMillis - this.deltaMillis,
+            crawlerRuntimeMillis: totalMillis,
         };
     }
 
@@ -269,7 +267,7 @@ class Statistics {
         this.state.crawlerStartedAt = savedState.crawlerStartedAt ? new Date(savedState.crawlerStartedAt) : null;
         this.state.statsPersistedAt = savedState.statsPersistedAt ? new Date(savedState.statsPersistedAt) : null;
         this.state.crawlerRuntimeMillis = savedState.crawlerRuntimeMillis;
-        this.deltaMillis = (this.instanceStart - this.state.statsPersistedAt);
+        this.instanceStart = Date.now() - (this.state.statsPersistedAt - savedState.crawlerLastStartTimestamp);
 
         this.log.debug('Loaded from KeyValueStore');
     }
@@ -299,6 +297,7 @@ class Statistics {
         // omit duplicated information
         return {
             ...this.state,
+            crawlerLastStartTimestamp: this.instanceStart,
             crawlerFinishedAt: this.state.crawlerFinishedAt ? new Date(this.state.crawlerFinishedAt).toISOString() : null,
             crawlerStartedAt: this.state.crawlerStartedAt ? new Date(this.state.crawlerStartedAt).toISOString() : null,
             requestRetryHistogram: this.requestRetryHistogram,
@@ -333,6 +332,7 @@ export default Statistics;
  * @property {number} requestTotalDurationMillis
  * @property {number} requestsTotal
  * @property {number} crawlerRuntimeMillis
+ * @property {number} crawlerLastStartTimestamp
  * @property {string} statsPersistedAt
  */
 

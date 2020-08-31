@@ -62,6 +62,7 @@ describe('Statistics', () => {
 
             expect(state).toEqual({
                 crawlerFinishedAt: null,
+                crawlerLastStartTimestamp: 0,
                 crawlerRuntimeMillis: 1100,
                 crawlerStartedAt: toISOString(startedAt + 100),
                 requestAvgFailedDurationMillis: null,
@@ -88,6 +89,7 @@ describe('Statistics', () => {
             expect(stats.toJSON()).toEqual({
                 crawlerFinishedAt: null,
                 crawlerRuntimeMillis: 0,
+                crawlerLastStartTimestamp: 1100,
                 crawlerStartedAt: null,
                 requestAvgFailedDurationMillis: Infinity,
                 requestAvgFinishedDurationMillis: Infinity,
@@ -117,6 +119,7 @@ describe('Statistics', () => {
 
             expect(stats.toJSON()).toEqual({
                 crawlerRuntimeMillis: 2200,
+                crawlerLastStartTimestamp: 0,
                 crawlerFinishedAt: toISOString(startedAt + 100),
                 crawlerStartedAt: toISOString(startedAt + 100),
                 requestAvgFailedDurationMillis: Infinity,
