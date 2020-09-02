@@ -710,7 +710,7 @@ export class RequestQueue {
      * }
      * ```
      *
-     * @returns {Promise<object>}
+     * @returns {Promise<RequestQueueInfo>}
      */
     async getInfo() {
         return requestQueues.getQueue({ queueId: this.queueId });
@@ -1111,3 +1111,16 @@ export const openRequestQueue = (queueIdOrName, options = {}) => {
         ? openLocalStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueueLocal, queuesCache)
         : openRemoteStorage(queueIdOrName, ENV_VARS.DEFAULT_REQUEST_QUEUE_ID, RequestQueue, queuesCache, getOrCreateQueue);
 };
+
+/**
+ * @typedef RequestQueueInfo
+ * @property {string} id
+ * @property {string} name
+ * @property {string} userId
+ * @property {Date} createdAt
+ * @property {Date} modifiedAt
+ * @property {Date} accessedAt
+ * @property {number} totalRequestCount
+ * @property {number} handledRequestCount
+ * @property {number} pendingRequestCount
+ */

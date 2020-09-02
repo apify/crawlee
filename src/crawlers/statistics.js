@@ -246,7 +246,6 @@ class Statistics {
             return;
         }
 
-        /** @type {StatisticPersistedState & StatisticState} */
         const savedState = await this.keyValueStore.getValue(this.persistStateKey);
 
         if (!savedState) return;
