@@ -45,13 +45,7 @@ const STARTING_Z_INDEX = 2147400000;
  * **Example usage**
  *
  * ```javascript
- * const Apify = require('apify');
- *
- * const browser = await Apify.launchPuppeteer();
- * const page = await browser.goto('https://www.example.com');
- * const requestQueue = await Apify.openRequestQueue();
- *
- * await Apify.utils.enqueueLinksByClickingElements({
+ * await Apify.utils.puppeteer.enqueueLinksByClickingElements({
  *   page,
  *   requestQueue,
  *   selector: 'a.product-detail',

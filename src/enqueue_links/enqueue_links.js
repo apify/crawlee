@@ -29,12 +29,6 @@ import { RequestTransform } from './shared';
  * **Example usage**
  *
  * ```javascript
- * const Apify = require('apify');
- *
- * const browser = await Apify.launchPuppeteer();
- * const page = await browser.goto('https://www.example.com');
- * const requestQueue = await Apify.openRequestQueue();
- *
  * await Apify.utils.enqueueLinks({
  *   page,
  *   requestQueue,
