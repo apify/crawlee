@@ -21,7 +21,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { ProxyConfiguration } from '../proxy_configuration';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 // eslint-enable-line import/no-duplicates
 
 /**

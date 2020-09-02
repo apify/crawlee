@@ -23,7 +23,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
-import { ProxyConfiguration } from '../proxy_configuration';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';

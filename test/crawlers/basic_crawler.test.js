@@ -89,6 +89,9 @@ describe('BasicCrawler', () => {
             // The crawler will pause after 200 requests
             const runPromise = basicCrawler.run();
             runPromise.then(() => { finished = true; });
+
+            // need to monkeypatch the stats class, otherwise it will never finish
+            basicCrawler.stats.persistState = () => Promise.resolve();
             await persistPromise;
 
             expect(finished).toBe(false);

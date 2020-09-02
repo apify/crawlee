@@ -403,11 +403,12 @@ describe('Apify.RequestList', () => {
         'should correctly persist its state when persistStateKey is set',
         async () => {
             const PERSIST_STATE_KEY = 'some-key';
+            const SDK_KEY = `SDK_${PERSIST_STATE_KEY}`;
             const mock = sinon.mock(keyValueStore);
 
             mock.expects('getValue')
                 .once()
-                .withArgs(PERSIST_STATE_KEY)
+                .withArgs(SDK_KEY)
                 .returns(null);
 
             const opts = {
@@ -431,7 +432,7 @@ describe('Apify.RequestList', () => {
             // Persist state.
             mock.expects('setValue')
                 .once()
-                .withArgs(PERSIST_STATE_KEY, requestList.getState())
+                .withArgs(SDK_KEY, requestList.getState())
                 .returns(Promise.resolve());
             Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
             await utils.sleep(1);
@@ -444,7 +445,7 @@ describe('Apify.RequestList', () => {
             expect(requestList.isStatePersisted).toBe(false);
             mock.expects('setValue')
                 .once()
-                .withArgs(PERSIST_STATE_KEY, requestList.getState())
+                .withArgs(SDK_KEY, requestList.getState())
                 .returns(Promise.resolve());
             Apify.events.emit(ACTOR_EVENT_NAMES_EX.PERSIST_STATE);
             await utils.sleep(1);
@@ -458,7 +459,7 @@ describe('Apify.RequestList', () => {
             // of original request list.
             mock.expects('getValue')
                 .once()
-                .withArgs(PERSIST_STATE_KEY)
+                .withArgs(SDK_KEY)
                 .returns(Promise.resolve(requestList.getState()));
             const requestList2 = new Apify.RequestList(optsCopy);
             await requestList2.initialize();
@@ -472,6 +473,7 @@ describe('Apify.RequestList', () => {
         'should correctly persist its sources when persistRequestsKey is set',
         async () => {
             const PERSIST_REQUESTS_KEY = 'some-key';
+            const SDK_KEY = `SDK_${PERSIST_REQUESTS_KEY}`;
             const getValueStub = sinon.stub(keyValueStore, 'getValue');
             const setValueStub = sinon.stub(keyValueStore, 'setValue');
 
@@ -490,7 +492,7 @@ describe('Apify.RequestList', () => {
             expect(requestList.areRequestsPersisted).toBe(false);
 
             // Expect an attempt to load sources.
-            getValueStub.withArgs(PERSIST_REQUESTS_KEY)
+            getValueStub.withArgs(SDK_KEY)
                 .onFirstCall()
                 .resolves(null)
                 // See second RequestList below.
@@ -500,7 +502,7 @@ describe('Apify.RequestList', () => {
                 });
 
             // Expect persist sources.
-            setValueStub.withArgs(PERSIST_REQUESTS_KEY)
+            setValueStub.withArgs(SDK_KEY)
                 .callsFake(async (key, value) => {
                     persistedRequests = value;
                 });
@@ -535,6 +537,7 @@ describe('Apify.RequestList', () => {
         'should correctly persist sources from requestsFromUrl if persistRequestsKey is set',
         async () => {
             const PERSIST_REQUESTS_KEY = 'some-key';
+            const SDK_KEY = `SDK_${PERSIST_REQUESTS_KEY}`;
             const kvsMock = sinon.mock(keyValueStore);
             const publicUtilsMock = sinon.mock(utils.publicUtils);
 
@@ -558,13 +561,13 @@ describe('Apify.RequestList', () => {
             // Expect an attempt to load sources.
             kvsMock.expects('getValue')
                 .once()
-                .withArgs(PERSIST_REQUESTS_KEY)
+                .withArgs(SDK_KEY)
                 .resolves(null);
 
             // Expect persist sources.
             kvsMock.expects('setValue')
                 .once()
-                .withArgs(PERSIST_REQUESTS_KEY)
+                .withArgs(SDK_KEY)
                 .callsFake((key, value) => {
                     persistedRequests = value;
                 });
@@ -724,12 +727,13 @@ describe('Apify.RequestList', () => {
             mock.expects('setValue').atLeast(1).resolves();
 
             const name = 'xxx';
+            const SDK_KEY = `SDK_${name}`;
             const sources = [{ url: 'https://example.com' }];
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).toBeInstanceOf(Apify.RequestList);
-            expect(rl.persistStateKey.startsWith(name)).toBe(true);
-            expect(rl.persistRequestsKey.startsWith(name)).toBe(true);
+            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
             expect(rl.sources).toEqual([]);
             expect(rl.isInitialized).toBe(true);
 
@@ -741,13 +745,14 @@ describe('Apify.RequestList', () => {
             mock.expects('setValue').atLeast(1).resolves();
 
             const name = 'xxx';
+            const SDK_KEY = `SDK_${name}`;
             const sources = ['https://example.com'];
             const requests = sources.map(url => new Apify.Request({ url }));
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).toBeInstanceOf(Apify.RequestList);
-            expect(rl.persistStateKey.startsWith(name)).toBe(true);
-            expect(rl.persistRequestsKey.startsWith(name)).toBe(true);
+            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
             expect(rl.isInitialized).toBe(true);
 
@@ -759,6 +764,7 @@ describe('Apify.RequestList', () => {
             mock.expects('setValue').atLeast(1).resolves();
 
             const name = 'xxx';
+            const SDK_KEY = `SDK_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => new Apify.Request({ url, uniqueKey: `${url}-${counter++}` }));
@@ -769,8 +775,8 @@ describe('Apify.RequestList', () => {
 
             const rl = await Apify.openRequestList(name, sources, options);
             expect(rl).toBeInstanceOf(Apify.RequestList);
-            expect(rl.persistStateKey.startsWith(name)).toBe(true);
-            expect(rl.persistRequestsKey.startsWith(name)).toBe(true);
+            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
             expect(rl.isInitialized).toBe(true);
             expect(rl.keepDuplicateUrls).toBe(true);

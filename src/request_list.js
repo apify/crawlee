@@ -260,8 +260,9 @@ export class RequestList {
         // Note that reclaimedRequests is always a subset of inProgress!
         this.reclaimed = {};
 
-        this.persistStateKey = persistStateKey;
+        this.persistStateKey = persistStateKey ? `SDK_${persistStateKey}` : persistStateKey;
         this.persistRequestsKey = persistRequestsKey || persistSourcesKey;
+        this.persistRequestsKey = this.persistRequestsKey ? `SDK_${persistRequestsKey}` : this.persistRequestsKey;
 
         this.initialState = state;
 
