@@ -5,7 +5,7 @@ import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
  * Last updated on 2020-05-22.
  */
 // eslint-disable-next-line max-len
-export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36';
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36';
 
 /**
  * Exit codes for the actor process.
