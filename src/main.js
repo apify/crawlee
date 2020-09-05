@@ -41,6 +41,11 @@ const exportedUtils = Object.assign(publicUtils, {
  * accessible from the left sidebar. To learn how Apify SDK works, we suggest following
  * the [Getting Started](/docs/guides/getting-started) tutorial.
  *
+ * **Important:**
+ * > The following functions: `addWebhook`, `call`, `callTask` and Apify Client available under `client` are features of the
+ * > [Apify platform](/docs/guides/apify-platform) and require your scripts to be authenticated.
+ * > See the [authentication guide](/docs/guides/apify-platform#logging-into-apify-platform-from-apify-sdk) for instructions.
+ *
  * @module Apify
  */
 export {

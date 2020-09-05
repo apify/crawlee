@@ -21,7 +21,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { ProxyConfiguration } from '../proxy_configuration';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 // eslint-enable-line import/no-duplicates
 
 /**
@@ -107,7 +107,7 @@ import { ProxyConfiguration } from '../proxy_configuration';
  *   Overrides the default function to launch a new Puppeteer instance.
  *   Shortcut to the corresponding {@link PuppeteerPool} option.
  *   See source code on
- *   [GitHub](https://github.com/apifytech/apify-js/blob/master/src/puppeteer_pool.js#L28)
+ *   [GitHub](https://github.com/apify/apify-js/blob/master/src/puppeteer_pool.js#L28)
  *   for default behavior.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.

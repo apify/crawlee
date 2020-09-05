@@ -5,7 +5,7 @@ title: Environment Variables
 
 The following is a list of the environment variables used by Apify SDK that are available to the user.
 The SDK is capable of running without any env vars present, but certain features will only become available
-after env vars are properly set. You can use [Apify CLI](https://github.com/apifytech/apify-cli)
+after env vars are properly set. You can use [Apify CLI](https://github.com/apify/apify-cli)
 to set the env vars for you. [Apify platform](/docs/guides/apify-platform) also sets the variables automatically.
 
 ## Important env vars:

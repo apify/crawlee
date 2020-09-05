@@ -66,8 +66,38 @@ const browser = await Apify.launchPuppeteer({
 })
 ```
 
-### Usage with your own proxies:
+#### PuppeteerCrawler warning
+`ProxyConfiguration` integrates seamlessly with `PuppeteerCrawler`, but beware
+wrong usage of `launchPuppeteerFunction`. It receives an options parameter
+that should not be ignored. This is not new, it has always been like that,
+but until now, only non-critical features were dependent on it, so you
+might have been using it wrongly and never really noticed.
 
+**Correct:**
+```javascript
+async function launchPuppeteerFunction(options) {
+    const newOpts = {
+        ...options,
+        foo: 'bar',
+    }
+    // do some other things
+    return Apify.launchPuppeteer(newOpts);
+}
+```
+**Incorrect:**
+```javascript
+async function launchPuppeteerFunction() {
+    const opts = {
+      foo: 'bar',
+    }
+    // Because we ignored the options, correct parameters
+    // will not make it to the browser. This prevents
+    // proxyConfiguration from working correctly.
+    return Apify.launchPuppeteer(opts);
+}
+```
+
+### Usage with your own proxies:
 Using your own proxies was possible, but it was difficult to find where to
 enter your URLs to make use of them. Now it's the same as with Apify Proxy,
 you just add them to the `ProxyConfiguration`. As a bonus, your custom proxies

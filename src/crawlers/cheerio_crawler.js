@@ -23,7 +23,7 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
-import { ProxyConfiguration } from '../proxy_configuration';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { RequestQueue } from '../request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
@@ -153,7 +153,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  *
- *   See [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
+ *   See [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
  * @property {string[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
@@ -389,8 +389,8 @@ class CheerioCrawler {
             autoscaledPoolOptions,
 
             // Session pool options
-            sessionPoolOptions,
-            useSessionPool,
+            sessionPoolOptions: this.sessionPoolOptions,
+            useSessionPool: this.useSessionPool,
 
             // log
             log: this.log,
@@ -456,19 +456,18 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session} options.session
-     * @param {ProxyInfo} options.proxyInfo
+     * @param {Session} [options.session]
      * @ignore
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session });
-
         let proxyInfo;
         let proxyUrl;
         if (this.proxyConfiguration) {
             proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
             proxyUrl = proxyInfo.url;
         }
+
+        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session, proxyInfo });
 
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session, proxyUrl }),
@@ -727,8 +726,13 @@ export default CheerioCrawler;
 
 /**
  * @typedef PrepareRequestInputs
- * @property {Request} request Original instance fo the {Request} object. Must be modified in-place.
- * @property {Session} [session] The current session
+ * @property {Request} request
+ *  Original instance fo the {Request} object. Must be modified in-place.
+ * @property {Session} [session]
+ *  The current session
+ * @property {ProxyInfo} [proxyInfo]
+ *  An object with information about currently used proxy by the crawler
+ *  and configured by the {@link ProxyConfiguration} class.
  */
 
 /**

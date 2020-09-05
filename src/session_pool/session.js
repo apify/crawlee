@@ -119,6 +119,8 @@ export class Session {
         this.errorScore = errorScore; // indicates number of markBaded request with the session
         this.maxUsageCount = maxUsageCount;
         this.sessionPool = sessionPool;
+
+        this._puppeteerCookieToTough = this._puppeteerCookieToTough.bind(this);
     }
 
     /**
@@ -267,12 +269,8 @@ export class Session {
      * @param {string} url
      */
     setPuppeteerCookies(cookies, url) {
-        try {
-            this._setCookies(cookies.map(this._puppeteerCookieToTough.bind(this)), url);
-        } catch (e) {
-            // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-            this.log.exception(e, 'Could not set cookies in puppeteer format.');
-        }
+        const normalizedCookies = cookies.map(this._puppeteerCookieToTough);
+        this._setCookies(normalizedCookies, url);
     }
 
     /**
@@ -306,11 +304,14 @@ export class Session {
     _puppeteerCookieToTough(puppeteerCookie) {
         const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
         const expires = isExpiresValid ? new Date(puppeteerCookie.expires * 1000) : this._getDefaultCookieExpirationDate(this.maxAgeSecs);
+        const domain = typeof puppeteerCookie.domain === 'string' && puppeteerCookie.domain.startsWith('.')
+            ? puppeteerCookie.domain.slice(1)
+            : puppeteerCookie.domain;
         return new Cookie({
             key: puppeteerCookie.name,
             value: puppeteerCookie.value,
             expires,
-            domain: puppeteerCookie.domain,
+            domain,
             path: puppeteerCookie.path,
             secure: puppeteerCookie.secure,
             httpOnly: puppeteerCookie.httpOnly,
@@ -342,8 +343,17 @@ export class Session {
      * @private
      */
     _setCookies(cookies, url) {
+        const errorMessages = [];
         for (const cookie of cookies) {
-            this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
+            try {
+                this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
+            } catch (e) {
+                errorMessages.push(e.message);
+            }
+        }
+        // if invalid cookies are provided just log the exception. No need to retry the request automatically.
+        if (errorMessages.length) {
+            this.log.error('Could not set cookies.', { errorMessages });
         }
     }
 

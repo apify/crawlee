@@ -92,7 +92,7 @@ class HomeSplash extends React.Component {
                     className="github-button"
                     href={this.props.config.repoUrl}
                     data-icon="octicon-star"
-                    data-count-href="/apifytech/apify-js/stargazers"
+                    data-count-href="/apify/apify-js/stargazers"
                     data-show-count="true"
                     data-count-aria-label="# stargazers on GitHub"
                     aria-label="Star Apify SDK on GitHub">

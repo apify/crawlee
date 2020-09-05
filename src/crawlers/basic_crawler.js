@@ -80,7 +80,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   represents the last error thrown during processing of the request.
  *
  *   See
- *   [source code](https://github.com/apifytech/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
+ *   [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/basic_crawler.js#L11)
  *   for the default implementation of this function.
  * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if {@link BasicCrawlerOptions.handleRequestFunction} fails.
@@ -162,6 +162,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *
  * await crawler.run();
  * ```
+ * @property {Statistics} stats
+ *  Contains statistics about the current run
  *
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
@@ -302,7 +304,8 @@ class BasicCrawler {
         await this._loadHandledRequestCount();
 
         this.isRunningPromise = this.autoscaledPool.run();
-        this.stats.startLogging();
+        await this.stats.startCapturing();
+
         try {
             await this.isRunningPromise;
         } finally {
@@ -310,36 +313,53 @@ class BasicCrawler {
                 await this.sessionPool.teardown();
             }
 
-            this.stats.stopLogging();
-            const finalStats = this.stats.getCurrent();
-            this.log.info('Final request statistics:', finalStats);
+            await this.stats.stopCapturing();
+            const finalStats = this.stats.calculate();
+            const { requestsFailed, requestsFinished } = this.stats.state;
+            this.log.info('Final request statistics:', {
+                ...finalStats,
+                requestsFinished,
+                requestsFailed,
+                retryHistogram: this.stats.requestRetryHistogram,
+            });
         }
     }
 
     async _pauseOnMigration() {
-        await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
-            .catch((err) => {
-                if (err.message.includes('running tasks did not finish')) {
-                    this.log.error('The crawler was paused due to migration to another host, '
-                        + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
-                } else {
-                    throw err;
-                }
-            });
-        if (this.requestList) {
-            if (await this.requestList.isFinished()) return;
-            await this.requestList.persistState()
+        if (this.autoscaledPool) {
+            // if run wasn't called, this is going to crash
+            await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
                 .catch((err) => {
-                    if (err.message.includes('Cannot persist state.')) {
-                        this.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
-                            + 'invalid config. Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList '
-                            + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
+                    if (err.message.includes('running tasks did not finish')) {
+                        this.log.error('The crawler was paused due to migration to another host, '
+                            + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
                     } else {
-                        this.log.exception(err, 'An unexpected error occured when the crawler '
-                            + 'attempted to persist its request list\'s state.');
+                        throw err;
                     }
                 });
         }
+
+        const requestListPersistPromise = (async () => {
+            if (this.requestList) {
+                if (await this.requestList.isFinished()) return;
+                await this.requestList.persistState()
+                    .catch((err) => {
+                        if (err.message.includes('Cannot persist state.')) {
+                            this.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
+                                + 'invalid config. Make sure to use either Apify.openRequestList() or the "stateKeyPrefix" option of RequestList '
+                                + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
+                        } else {
+                            this.log.exception(err, 'An unexpected error occured when the crawler '
+                                + 'attempted to persist its request list\'s state.');
+                        }
+                    });
+            }
+        })();
+
+        await Promise.all([
+            requestListPersistPromise,
+            this.stats.persistState(),
+        ]);
     }
 
     /**

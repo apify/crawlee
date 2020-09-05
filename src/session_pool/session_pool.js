@@ -94,7 +94,7 @@ export class SessionPool extends EventEmitter {
             maxPoolSize = 1000,
 
             persistStateKeyValueStoreId = null,
-            persistStateKey = 'SESSION_POOL_STATE',
+            persistStateKey = 'SDK_SESSION_POOL_STATE',
 
             createSessionFunction = null,
             sessionOptions = {},
@@ -234,7 +234,7 @@ export class SessionPool extends EventEmitter {
     _removeSession(session) {
         const sessionIndex = this.sessions.findIndex(storedSession => storedSession.id === session.id);
 
-        const removedSession = this.sessions.splice(sessionIndex, 1);
+        const [removedSession] = this.sessions.splice(sessionIndex, 1);
         this.log.debug(`Removed Session - ${removedSession.id}`);
     }
 

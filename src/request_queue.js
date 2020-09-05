@@ -706,7 +706,7 @@ export class RequestQueue {
      * }
      * ```
      *
-     * @returns {Promise<object>}
+     * @returns {Promise<RequestQueueInfo>}
      */
     async getInfo() {
         return this.client.getQueue({ queueId: this.queueId });
@@ -798,3 +798,16 @@ function createQueueCacheKey(identifier, isLocal) {
         ? `LOCAL:${identifier}`
         : `REMOTE:${identifier}`;
 }
+
+/**
+ * @typedef RequestQueueInfo
+ * @property {string} id
+ * @property {string} name
+ * @property {string} userId
+ * @property {Date} createdAt
+ * @property {Date} modifiedAt
+ * @property {Date} accessedAt
+ * @property {number} totalRequestCount
+ * @property {number} handledRequestCount
+ * @property {number} pendingRequestCount
+ */
