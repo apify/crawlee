@@ -32,6 +32,9 @@
       "api/global-cache": {
         "title": "GlobalCache"
       },
+      "api/job": {
+        "title": "Job"
+      },
       "api/key-value-store": {
         "title": "KeyValueStore"
       },
@@ -76,6 +79,9 @@
       },
       "api/social": {
         "title": "utils.social"
+      },
+      "api/statistics": {
+        "title": "Statistics"
       },
       "api/system-status": {
         "title": "SystemStatus"
@@ -299,6 +305,9 @@
       "typedefs/request-options": {
         "title": "RequestOptions"
       },
+      "typedefs/request-queue-info": {
+        "title": "RequestQueueInfo"
+      },
       "typedefs/request-transform": {
         "title": "RequestTransform"
       },
@@ -316,6 +325,12 @@
       },
       "typedefs/social-handles": {
         "title": "SocialHandles"
+      },
+      "typedefs/statistic-persisted-state": {
+        "title": "StatisticPersistedState"
+      },
+      "typedefs/statistic-state": {
+        "title": "StatisticState"
       },
       "typedefs/stealth-options": {
         "title": "StealthOptions"
