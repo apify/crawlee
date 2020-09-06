@@ -100,6 +100,31 @@ describe('SessionPool - testing session pool', () => {
             expect(session.sessionPool).toEqual(sessionPool);
         });
 
+        test('should retrieve non-random session by ID', async () => {
+            const sessionId = 'testId';
+            const anotherSessionId = 'anotherTestId';
+            expect(sessionPool.sessions.length).toBe(0);
+            expect(sessionPool.usableSessionsCount).toBe(0);
+
+            const generatedSession = await sessionPool.getSession(sessionId);
+            generatedSession.userData = { test: sessionId };
+            expect(sessionPool.sessions.length).toBe(1);
+            expect(sessionPool.usableSessionsCount).toBe(1);
+            expect(generatedSession.id).toEqual(sessionId); // eslint-disable-line
+            expect(generatedSession.userData.test).toEqual(sessionId); // eslint-disable-line
+
+            const retrievedSession = await sessionPool.getSession(sessionId);
+            expect(sessionPool.sessions.length).toBe(1);
+            expect(sessionPool.usableSessionsCount).toBe(1);
+            expect(retrievedSession.id).toEqual(sessionId); // eslint-disable-line
+            expect(generatedSession.userData.test).toEqual(sessionId); // eslint-disable-line
+
+            const anotherSession = await sessionPool.getSession(anotherSessionId);
+            expect(sessionPool.sessions.length).toBe(2);
+            expect(sessionPool.usableSessionsCount).toBe(2);
+            expect(anotherSession.id).toEqual(anotherSessionId); // eslint-disable-line
+        });
+
         test('should pick session when pool is full', async () => {
             sessionPool.maxPoolSize = 2;
             await sessionPool.getSession();

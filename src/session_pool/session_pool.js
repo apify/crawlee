@@ -172,12 +172,17 @@ export class SessionPool extends EventEmitter {
      * If there is space for new session, it creates and return new session.
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
-     *
+     * @param {String} sessionId
      * @return {Promise<Session>}
      */
-    async getSession() {
+    async getSession(sessionId) {
+        if (sessionId) {
+            const foundSession = this.sessions.find(session => session.id === sessionId);
+            if (foundSession) return foundSession;
+        }
+
         if (this._hasSpaceForSession()) {
-            return this._createSession();
+            return this._createSession(sessionId);
         }
 
         const pickedSession = this._pickSession();
@@ -187,7 +192,7 @@ export class SessionPool extends EventEmitter {
         }
 
         this._removeSession(pickedSession);
-        return this._createSession();
+        return this._createSession(sessionId);
     }
 
     /**
@@ -259,12 +264,18 @@ export class SessionPool extends EventEmitter {
     /**
      * Creates new session without any extra behavior.
      * @param {SessionPool} sessionPool
+     * @param {String} sessionId
      * @return {Session} - New session.
      * @private
      */
-    _defaultCreateSessionFunction(sessionPool) {
-        return new Session({
+    _defaultCreateSessionFunction(sessionPool, sessionId) {
+        const sessionOptions = {
             ...this.sessionOptions,
+            id: sessionId || this.sessionOptions.id,
+        };
+
+        return new Session({
+            ...sessionOptions,
             sessionPool,
         });
     }
@@ -274,8 +285,8 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<Session>} - Newly created `Session` instance.
      * @private
      */
-    async _createSession() {
-        const newSession = await this.createSessionFunction(this);
+    async _createSession(sessionId) {
+        const newSession = await this.createSessionFunction(this, sessionId);
         this._addSession(newSession);
 
         this.log.debug(`Created new Session - ${newSession.id}`);
