@@ -23,7 +23,7 @@ class GlobalCache {
     }
 
     clearAll() {
-        this.caches.forEach(cache => cache.clear());
+        this.caches.forEach((cache) => cache.clear());
     }
 }
 

@@ -1,28 +1,13 @@
-import * as path from 'path';
-import { promisify } from 'util';
-import * as fs from 'fs-extra';
+import ow from 'ow';
 import * as _ from 'underscore';
-import { leftpad } from 'apify-shared/utilities';
-import { checkParamOrThrow } from 'apify-client/build/utils';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
+import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import globalCache from './global_cache';
-import { apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
+import { apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
 import log from './utils_log';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
-export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
-export const LOCAL_FILENAME_DIGITS = 9;
-export const LOCAL_GET_ITEMS_DEFAULT_LIMIT = 250000;
 const MAX_OPENED_DATASETS = 1000;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
-
-const writeFilePromised = promisify(fs.writeFile);
-const readFilePromised = promisify(fs.readFile);
-const readdirPromised = promisify(fs.readdir);
-const statPromised = promisify(fs.stat);
-const emptyDirPromised = promisify(fs.emptyDir);
-
-const getLocaleFilename = index => `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
 
 const { datasets } = apifyClient;
 const datasetsCache = globalCache.create('dataset-cache', MAX_OPENED_DATASETS); // Open Datasets are stored here.
@@ -42,7 +27,7 @@ export const checkAndSerialize = (item, limitBytes, index) => {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
     let payload;
     try {
-        checkParamOrThrow(item, 'item', 'Object');
+        ow(item, ow.object);
         payload = JSON.stringify(item);
     } catch (err) {
         throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
@@ -93,7 +78,7 @@ export const chunkBySize = (items, limitBytes) => {
     }
 
     // Stringify array chunks.
-    return chunks.map(chunk => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
+    return chunks.map((chunk) => (typeof chunk === 'string' ? chunk : `[${chunk.join(',')}]`));
 };
 
 /**
@@ -150,9 +135,6 @@ export class Dataset {
      * @param {string} datasetName
      */
     constructor(datasetId, datasetName) {
-        checkParamOrThrow(datasetId, 'datasetId', 'String');
-        checkParamOrThrow(datasetName, 'datasetName', 'Maybe String');
-
         this.datasetId = datasetId;
         this.datasetName = datasetName;
         this.log = log.child({ prefix: 'Dataset' });
@@ -184,8 +166,8 @@ export class Dataset {
      * @return {Promise<void>}
      */
     async pushData(data) {
-        checkParamOrThrow(data, 'data', 'Array | Object');
-        const dispatch = async payload => datasets.putItems({ datasetId: this.datasetId, data: payload });
+        ow(data, ow.object);
+        const dispatch = async (payload) => datasets.putItems({ datasetId: this.datasetId, data: payload });
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
         // Handle singular Objects
@@ -269,7 +251,7 @@ export class Dataset {
         // and it's just 1:1 copy of what apify-client provides, and returns { items } which can
         // be a Buffer ... it doesn't really make much sense
         const { datasetId } = this;
-        const params = Object.assign({ datasetId }, options);
+        const params = { datasetId, ...options };
 
         try {
             return await datasets.getItems(params);
@@ -349,9 +331,7 @@ export class Dataset {
         const newOffset = offset + limit;
         if (newOffset >= total) return;
 
-        const newOpts = Object.assign({}, options, {
-            offset: newOffset,
-        });
+        const newOpts = { ...options, offset: newOffset };
         return this.forEach(iteratee, newOpts, index);
     }
 
@@ -376,7 +356,7 @@ export class Dataset {
             return Promise
                 .resolve()
                 .then(() => iteratee(item, index))
-                .then(res => result.push(res));
+                .then((res) => result.push(res));
         };
 
         return this
@@ -436,207 +416,6 @@ export class Dataset {
         datasetsCache.remove(this.datasetId);
         if (this.datasetName) datasetsCache.remove(this.datasetName);
     }
-
-    /** @ignore */
-    async delete() {
-        this.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
-            + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
-        await this.drop();
-    }
-}
-
-/**
- * This is a local emulation of a dataset.
- *
- * @ignore
- */
-export class DatasetLocal {
-    constructor(datasetId, localStorageDir) {
-        checkParamOrThrow(datasetId, 'datasetId', 'String');
-        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
-
-        this.log = log.child({ prefix: 'Dataset' });
-        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, datasetId));
-        this.counter = null;
-        this.datasetId = datasetId;
-
-        this.createdAt = null;
-        this.modifiedAt = null;
-        this.accessedAt = null;
-
-        this.initializationPromise = this._initialize();
-    }
-
-    _initialize() {
-        return ensureDirExists(this.localStoragePath)
-            .then(() => readdirPromised(this.localStoragePath))
-            .then((files) => {
-                if (files.length) {
-                    const lastFileNum = files.pop().split('.')[0];
-                    this.counter = parseInt(lastFileNum, 10);
-                } else {
-                    this.counter = 0;
-                }
-                return statPromised(this.localStoragePath);
-            })
-            .then((stats) => {
-                this.createdAt = stats.birthtime;
-                this.modifiedAt = stats.mtime;
-                this.accessedAt = stats.atime;
-            });
-    }
-
-    pushData(data) {
-        checkParamOrThrow(data, 'data', 'Array | Object');
-
-        if (!_.isArray(data)) data = [data];
-
-        return this.initializationPromise
-            .then(() => {
-                const promises = data.map((item) => {
-                    this.counter++;
-
-                    // Format JSON to simplify debugging, the overheads is negligible
-                    const itemStr = JSON.stringify(item, null, 2);
-                    const filePath = path.join(this.localStoragePath, getLocaleFilename(this.counter));
-
-                    return writeFilePromised(filePath, itemStr);
-                });
-                this._updateMetadata(true);
-                return Promise.all(promises);
-            });
-    }
-
-    async getData(opts = {}) {
-        checkParamOrThrow(opts, 'opts', 'Object');
-        checkParamOrThrow(opts.limit, 'opts.limit', 'Maybe Number');
-        checkParamOrThrow(opts.offset, 'opts.offset', 'Maybe Number');
-        checkParamOrThrow(opts.desc, 'opts.desc', 'Maybe Boolean');
-
-        if (opts.format && opts.format !== 'json') {
-            throw new Error(`Datasets with local disk storage only support the "json" format (was "${opts.format}")`);
-        }
-        if (opts.unwind || opts.disableBodyParser || opts.attachment || opts.bom || opts.simplified) {
-            // eslint-disable-next-line max-len
-            throw new Error('Datasets with local disk storage do not support the following options: unwind, disableBodyParser, attachment, bom, simplified');
-        }
-
-        if (!opts.limit) opts.limit = LOCAL_GET_ITEMS_DEFAULT_LIMIT;
-        if (!opts.offset) opts.offset = 0;
-
-        await this.initializationPromise;
-        const indexes = this._getItemIndexes(opts.offset, opts.limit);
-        const items = [];
-        for (const idx of indexes) {
-            const item = await this._readAndParseFile(idx);
-            items.push(item);
-        }
-
-        this._updateMetadata();
-        return {
-            items: opts.desc ? items.reverse() : items,
-            total: this.counter,
-            offset: opts.offset,
-            count: items.length,
-            limit: opts.limit,
-        };
-    }
-
-    async getInfo() {
-        await this.initializationPromise;
-
-        const id = this.datasetId;
-        const name = id === ENV_VARS.DEFAULT_DATASET_ID ? null : id;
-        const result = {
-            id,
-            name,
-            userId: process.env[ENV_VARS.USER_ID] || null,
-            createdAt: this.createdAt,
-            modifiedAt: this.modifiedAt,
-            accessedAt: this.accessedAt,
-            itemCount: this.counter,
-            // TODO: This number is not counted correctly!
-            cleanItemCount: this.counter,
-        };
-
-        this._updateMetadata();
-        return result;
-    }
-
-    async forEach(iteratee) {
-        await this.initializationPromise;
-        const indexes = this._getItemIndexes();
-        for (const idx of indexes) {
-            const item = await this._readAndParseFile(idx);
-            await iteratee(item, idx - 1);
-        }
-    }
-
-    async map(iteratee) {
-        await this.initializationPromise;
-        const indexes = this._getItemIndexes();
-        const results = [];
-        for (const idx of indexes) {
-            const item = await this._readAndParseFile(idx);
-            const result = await iteratee(item, idx - 1);
-            results.push(result);
-        }
-        return results;
-    }
-
-    async reduce(iteratee, memo) {
-        await this.initializationPromise;
-        const indexes = this._getItemIndexes();
-        if (memo === undefined) memo = indexes.shift();
-        for (const idx of indexes) {
-            const item = await this._readAndParseFile(idx);
-            memo = await iteratee(memo, item, idx - 1);
-        }
-        return memo;
-    }
-
-    async drop() {
-        await this.initializationPromise;
-        await emptyDirPromised(this.localStoragePath);
-        this._updateMetadata(true);
-        datasetsCache.remove(this.datasetId);
-    }
-
-    async delete() {
-        this.log.deprecated('dataset.delete() is deprecated. Please use dataset.drop() instead. '
-            + 'This is to make it more obvious to users that the function deletes the dataset and not individual records in the dataset.');
-        await this.drop();
-    }
-
-    /**
-     * Returns an array of item indexes for given offset and limit.
-     */
-    _getItemIndexes(offset = 0, limit = this.counter) {
-        if (limit === null) throw new Error('DatasetLocal must be initialized before calling this._getItemIndexes()!');
-        const start = offset + 1;
-        const end = Math.min(offset + limit, this.counter) + 1;
-        if (start > end) return [];
-        return _.range(start, end);
-    }
-
-    /**
-     * Reads and parses file for given index.
-     */
-    _readAndParseFile(index) {
-        const filePath = path.join(this.localStoragePath, getLocaleFilename(index));
-
-        return readFilePromised(filePath)
-            .then((json) => {
-                this._updateMetadata();
-                return JSON.parse(json);
-            });
-    }
-
-    _updateMetadata(isModified) {
-        const date = new Date();
-        this.accessedAt = date;
-        if (isModified) this.modifiedAt = date;
-    }
 }
 
 /**
@@ -653,7 +432,6 @@ const getOrCreateDataset = (datasetIdOrName) => {
             return datasets.getOrCreateDataset({ datasetName: datasetIdOrName });
         });
 };
-
 
 /**
  * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset} class.
@@ -677,15 +455,17 @@ const getOrCreateDataset = (datasetIdOrName) => {
  * @function
  */
 export const openDataset = (datasetIdOrName, options = {}) => {
-    checkParamOrThrow(datasetIdOrName, 'datasetIdOrName', 'Maybe String');
-    checkParamOrThrow(options, 'options', 'Object');
+    ow(datasetIdOrName, ow.optional.string);
+    ow(options, ow.object.exactShape({
+        forceCloud: ow.optional.boolean,
+    }));
+
     ensureTokenOrLocalStorageEnvExists('dataset');
 
     const { forceCloud = false } = options;
-    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
 
     return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
-        ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, DatasetLocal, datasetsCache)
+        ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache)
         : openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset);
 };
 
@@ -717,7 +497,7 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * @name pushData
  * @function
  */
-export const pushData = item => openDataset().then(dataset => dataset.pushData(item));
+export const pushData = (item) => openDataset().then((dataset) => dataset.pushData(item));
 
 /**
  * @typedef DatasetContent

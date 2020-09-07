@@ -1,5 +1,4 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
-import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import ow from 'ow';
 import * as _ from 'underscore';
 import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
@@ -22,6 +21,7 @@ import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
+import { validators } from '../validators';
 // eslint-enable-line import/no-duplicates
 
 /**
@@ -214,6 +214,35 @@ class PuppeteerCrawler {
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(options) {
+        ow(options, ow.object.exactShape({
+            handlePageFunction: ow.function,
+            gotoFunction: ow.function,
+            handlePageTimeoutSecs: ow.optional.number,
+            gotoTimeoutSecs: ow.optional.number,
+
+            // AutoscaledPool shorthands
+            maxConcurrency: ow.optional.number,
+            minConcurrency: ow.optional.number,
+
+            // BasicCrawler options
+            requestList: ow.optional.object.validate(validators.requestList),
+            requestQueue: ow.optional.object.validate(validators.requestQueue),
+            maxRequestRetries: ow.optional.number,
+            maxRequestsPerCrawl: ow.optional.number,
+            handleFailedRequestFunction: ow.optional.function,
+            autoscaledPoolOptions: ow.optional.object,
+
+            // PuppeteerPool options and shorthands
+            puppeteerPoolOptions: ow.optional.object,
+            launchPuppeteerFunction: ow.optional.function,
+            launchPuppeteerOptions: ow.optional.object,
+
+            sessionPoolOptions: ow.optional.object,
+            persistCookiesPerSession: ow.optional.boolean,
+            useSessionPool: ow.optional.boolean,
+            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        }));
+
         const {
             handlePageFunction,
             gotoFunction = this._defaultGotoFunction,
@@ -242,17 +271,6 @@ class PuppeteerCrawler {
             useSessionPool = false,
             proxyConfiguration,
         } = options;
-
-        checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
-        checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
-        checkParamOrThrow(gotoFunction, 'options.gotoFunction', 'Function');
-        checkParamOrThrow(gotoTimeoutSecs, 'options.gotoTimeoutSecs', 'Number');
-        checkParamOrThrow(puppeteerPoolOptions, 'options.puppeteerPoolOptions', 'Maybe Object');
-        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
-        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
-        checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
-        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
 
         if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
@@ -369,7 +387,6 @@ class PuppeteerCrawler {
             // eslint-disable-next-line prefer-destructuring
             proxyInfo = browserInstance.proxyInfo;
         }
-
 
         try {
             const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });

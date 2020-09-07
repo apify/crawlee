@@ -1,7 +1,7 @@
-import * as util from 'util';
-import * as crypto from 'crypto';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { normalizeUrl } from 'apify-shared/utilities';
+import * as crypto from 'crypto';
+import ow from 'ow';
+import * as util from 'util';
 import defaultLog from './utils_log';
 
 // new properties on the Request object breaks serialization
@@ -67,7 +67,7 @@ export function hashPayload(payload) {
  *   Indicates the number of times the crawling of the request has been retried on error.
  * @property {string[]} errorMessages
  *   An array of error messages from request processing.
- * @property {Object} headers
+ * @property {object} headers
  *   Object with HTTP headers. Key is header name, value is the value.
  * @property {object} userData
  *   Custom user data assigned to the request.
@@ -80,8 +80,23 @@ class Request {
      * @param {RequestOptions} options
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
-    constructor(options = {}) {
-        checkParamOrThrow(options, 'options', 'Object');
+    constructor(options) {
+        ow(options, ow.object.exactShape({
+            url: ow.string.url,
+            id: ow.optional.string,
+            loadedUrl: ow.optional.string.url,
+            uniqueKey: ow.optional.string,
+            method: ow.optional.string,
+            payload: ow.optional.any(ow.string, ow.buffer),
+            noRetry: ow.optional.boolean,
+            retryCount: ow.optional.number,
+            errorMessages: ow.optional.array.ofType(ow.string),
+            headers: ow.optional.object,
+            userData: ow.optional.object,
+            handledAt: ow.optional.any(ow.string.date, ow.date),
+            keepUrlFragment: ow.optional.boolean,
+            useExtendedUniqueKey: ow.optional.boolean,
+        }));
 
         const {
             id,
@@ -100,24 +115,7 @@ class Request {
             useExtendedUniqueKey = false,
         } = options;
 
-        checkParamOrThrow(id, 'id', 'Maybe String');
-        checkParamOrThrow(url, 'url', 'String');
-        checkParamOrThrow(loadedUrl, 'url', 'Maybe String');
-        checkParamOrThrow(uniqueKey, 'uniqueKey', 'Maybe String');
-        checkParamOrThrow(method, 'method', 'String');
-        checkParamOrThrow(payload, 'payload', 'Maybe Buffer | String');
-        checkParamOrThrow(noRetry, 'noRetry', 'Boolean');
-        checkParamOrThrow(retryCount, 'retryCount', 'Number');
-        checkParamOrThrow(errorMessages, 'errorMessages', 'Maybe Array');
-        checkParamOrThrow(headers, 'headers', 'Object');
-        checkParamOrThrow(userData, 'userData', 'Object');
-        checkParamOrThrow(handledAt, 'handledAt', 'Maybe String | Date');
-        checkParamOrThrow(keepUrlFragment, 'keepUrlFragment', 'Boolean');
-        checkParamOrThrow(useExtendedUniqueKey, 'useExtendedUniqueKey', 'Boolean');
-
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
-
-        if (!url) throw new Error('The "url" option cannot be empty string.');
 
         this.id = id;
         this.url = url;
@@ -130,13 +128,11 @@ class Request {
         this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
         this.headers = JSON.parse(JSON.stringify(headers));
         this.userData = JSON.parse(JSON.stringify(userData));
-
-        this.handledAt = handledAt;
         // Requests received from API will have ISOString dates,
         // but we want to have a Date instance.
-        if (typeof handledAt === 'string') {
-            this.handledAt = new Date(handledAt);
-        }
+        this.handledAt = typeof handledAt === 'string'
+            ? new Date(handledAt)
+            : handledAt;
     }
 
     /**
@@ -183,24 +179,6 @@ class Request {
         }
 
         this.errorMessages.push(message);
-    }
-
-    /**
-     * Flags the request with no retry which prevents {@link BasicCrawler}
-     * (as well as {@PuppeteerCrawler} and {@CheerioCrawler}, since they use {@BasicCrawler} internally)
-     * from retrying the request after an error occurs.
-     *
-     * Optionally accepts a message that will be used to construct
-     * and throw an Error.
-     *
-     * @param {string} [message]
-     * @deprecated 2019/06/26
-     * @ignore
-     */
-    doNotRetry(message) {
-        log.deprecated('request.doNotRetry is deprecated. Use request.noRetry = true; instead.');
-        this.noRetry = true;
-        if (message) throw new Error(message);
     }
 
     /**

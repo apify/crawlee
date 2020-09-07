@@ -1,5 +1,5 @@
+import ow from 'ow';
 import * as _ from 'underscore';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import log from './utils_log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
 
@@ -108,8 +108,8 @@ class PseudoUrl {
      *   by the {@link utils#enqueueLinks} function.
      */
     constructor(purl, requestTemplate = {}) {
-        checkParamOrThrow(purl, 'purl', 'String|RegExp');
-        checkParamOrThrow(requestTemplate, 'requestTemplate', 'Object');
+        ow(purl, ow.any(ow.string, ow.regExp));
+        ow(requestTemplate, ow.object);
 
         if (purl instanceof RegExp) {
             this.regex = purl;

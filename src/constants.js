@@ -23,7 +23,7 @@ export const EXIT_CODES = {
  *
  * @type {{CPU_INFO: string, SYSTEM_INFO: string, MIGRATING: string, PERSIST_STATE: string}}
  */
-export const ACTOR_EVENT_NAMES_EX = Object.assign({}, ACTOR_EVENT_NAMES, { PERSIST_STATE: 'persistState' });
+export const ACTOR_EVENT_NAMES_EX = { ...ACTOR_EVENT_NAMES, PERSIST_STATE: 'persistState' };
 
 /**
  * Base URL of Apify's API endpoints.

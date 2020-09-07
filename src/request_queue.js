@@ -1,15 +1,14 @@
 import * as crypto from 'crypto';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import * as LruCache from 'apify-shared/lru_cache';
 import * as ListDictionary from 'apify-shared/list_dictionary';
-import { ENV_VARS, LOCAL_ENV_VARS, LOCAL_STORAGE_SUBDIRS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
-import { checkParamPrototypeOrThrow, cryptoRandomObjectId } from 'apify-shared/utilities';
+import { ENV_VARS, LOCAL_ENV_VARS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
+import ow, { ArgumentError } from 'ow';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
 import globalCache from './global_cache';
 import { apifyClient, getApifyStorageLocal, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
 import log from './utils_log';
 
-export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.requestQueues;
 const MAX_OPENED_QUEUES = 1000;
 const MAX_CACHED_REQUESTS = 1000 * 1000;
 
@@ -35,58 +34,6 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 const queuesCache = globalCache.create('request-queue-cache', MAX_OPENED_QUEUES); // Open queues are stored here.
 
 /**
- * Helper function to validate params of *.addRequest().
- * @ignore
- */
-const validateAddRequestParams = (request, opts) => {
-    checkParamOrThrow(request, 'request', 'Object');
-    checkParamOrThrow(opts, 'opts', 'Object');
-
-    const newRequest = request instanceof Request ? request : new Request(request);
-
-    const { forefront = false } = opts;
-
-    checkParamOrThrow(forefront, 'opts.forefront', 'Boolean');
-
-    if (request.id) throw new Error('Request already has the "id" field set so it cannot be added to the queue!');
-
-    return { forefront, newRequest };
-};
-
-/**
- * Helper function to validate params of *.getRequest().
- * @ignore
- */
-const validateGetRequestParams = (requestId) => {
-    checkParamOrThrow(requestId, 'requestId', 'String');
-};
-
-/**
- * Helper function to validate params of *.markRequestHandled().
- * @ignore
- */
-const validateMarkRequestHandledParams = (request) => {
-    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
-    checkParamOrThrow(request.id, 'request.id', 'String');
-};
-
-/**
- * Helper function to validate params of *.reclaimRequest().
- * @ignore
- */
-const validateReclaimRequestParams = (request, opts) => {
-    checkParamPrototypeOrThrow(request, 'request', Request, 'Apify.Request');
-    checkParamOrThrow(request.id, 'request.id', 'String');
-    checkParamOrThrow(opts, 'opts', 'Object');
-
-    const { forefront = false } = opts;
-
-    checkParamOrThrow(forefront, 'opts.forefront', 'Boolean');
-
-    return { forefront };
-};
-
-/**
  * Helper function that creates ID from uniqueKey for local emulation of request queue.
  * It's also used for local cache of remote request queue.
  *
@@ -96,8 +43,6 @@ const validateReclaimRequestParams = (request, opts) => {
  * @ignore
  */
 export const getRequestId = (uniqueKey) => {
-    checkParamOrThrow(uniqueKey, 'uniqueKey', 'String');
-
     const str = crypto
         .createHash('sha256')
         .update(uniqueKey)
@@ -184,14 +129,6 @@ export class RequestQueue {
             clientKey = cryptoRandomObjectId(),
         } = options;
 
-        checkParamOrThrow(id, 'id', 'String');
-        checkParamOrThrow(name, 'name', 'Maybe String');
-        checkParamOrThrow(storageClient, 'storageClient', 'Object');
-        checkParamOrThrow(isLocal, 'isLocal', 'Boolean');
-        checkParamOrThrow(clientKey, 'clientKey', 'String');
-
-        if (!clientKey) throw new Error('Parameter "clientKey" must be a non-empty string!');
-
         this.log = log.child({ prefix: 'RequestQueue' });
         this.clientKey = clientKey;
         this.queueId = id;
@@ -247,18 +184,28 @@ export class RequestQueue {
      * To add multiple requests to the queue by extracting links from a webpage,
      * see the {@link utils#enqueueLinks} helper function.
      *
-     * @param {(Request|RequestOptions)} request {@link Request} object or vanilla object with request data.
-     * Note that the function sets the `uniqueKey` and `id` fields to the passed object.
+     * @param {(Request|RequestOptions)} requestLike {@link Request} object or vanilla object with request data.
+     * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
      * @param {Object} [options]
      * @param {boolean} [options.forefront=false] If `true`, the request will be added to the foremost position in the queue.
      * @return {Promise<QueueOperationInfo>}
      */
-    async addRequest(request, options = {}) {
-        const { newRequest, forefront } = validateAddRequestParams(request, options);
+    async addRequest(requestLike, options = {}) {
+        ow(requestLike, ow.object.hasKeys('url'));
+        if (requestLike.id) {
+            throw new ArgumentError('Request already has the "id" field set so it cannot be added to the queue!', this.addRequest);
+        }
+        ow(options, ow.object.exactShape({
+            forefront: ow.optional.boolean,
+        }));
 
-        request.uniqueKey = newRequest.uniqueKey;
+        const { forefront = false } = options;
 
-        const cacheKey = getRequestId(newRequest.uniqueKey);
+        const request = requestLike instanceof Request
+            ? requestLike
+            : new Request(requestLike);
+
+        const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestsCache.get(cacheKey);
 
         if (cachedInfo) {
@@ -274,7 +221,7 @@ export class RequestQueue {
         }
 
         const queueOperationInfo = await this.client.addRequest({
-            request: newRequest,
+            request,
             queueId: this.queueId,
             forefront,
             clientKey: this.clientKey,
@@ -304,7 +251,7 @@ export class RequestQueue {
      * @return {Promise<(Request | null)>} Returns the request object, or `null` if it was not found.
      */
     async getRequest(requestId) {
-        validateGetRequestParams(requestId);
+        ow(requestId, ow.string);
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
         // Downside is that it wouldn't reflect changes from outside...
@@ -400,8 +347,11 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo>}
      */
     async markRequestHandled(request) {
-        // TODO: This function should also support object instead of Apify.Request()
-        validateMarkRequestHandledParams(request);
+        ow(request, ow.object.partialShape({
+            id: ow.string,
+            uniqueKey: ow.string,
+            handledAt: ow.optional.date,
+        }));
 
         if (!this.inProgress.has(request.id)) {
             throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
@@ -444,8 +394,15 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo>}
      */
     async reclaimRequest(request, options = {}) {
-        // TODO: This function should also support object instead of Apify.Request()
-        const { forefront } = validateReclaimRequestParams(request, options);
+        ow(request, ow.object.partialShape({
+            id: ow.string,
+            uniqueKey: ow.string,
+        }));
+        ow(options, ow.object.exactShape({
+            forefront: ow.optional.boolean,
+        }));
+
+        const { forefront = false } = options;
 
         if (!this.inProgress.has(request.id)) {
             throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
@@ -511,15 +468,13 @@ export class RequestQueue {
 
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
-     *
+     * @param {string} cacheKey
+     * @param {object} queueOperationInfo
+     * @param {string} queueOperationInfo.requestId
+     * @param {boolean} queueOperationInfo.wasAlreadyHandled
      * @ignore
      */
     _cacheRequest(cacheKey, queueOperationInfo) {
-        checkParamOrThrow(cacheKey, 'cacheKey', 'String');
-        checkParamOrThrow(queueOperationInfo, 'queueOperationInfo', 'Object');
-        checkParamOrThrow(queueOperationInfo.requestId, 'queueOperationInfo.requestId', 'String');
-        checkParamOrThrow(queueOperationInfo.wasAlreadyHandled, 'queueOperationInfo.wasAlreadyHandled', 'Boolean');
-
         this.requestsCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
@@ -542,10 +497,6 @@ export class RequestQueue {
         limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
         iteration = 0,
     ) {
-        checkParamOrThrow(ensureConsistency, 'ensureConsistency', 'Boolean');
-        checkParamOrThrow(limit, 'limit', 'Number');
-        checkParamOrThrow(iteration, 'iteration', 'Number');
-
         // If is nonempty resolve immediately.
         if (this.queueHeadDict.length() > 0) return true;
 
@@ -658,13 +609,6 @@ export class RequestQueue {
         }
     }
 
-    /** @ignore */
-    async delete() {
-        this.log.deprecated('requestQueue.delete() is deprecated. Please use requestQueue.drop() instead. '
-            + 'This is to make it more obvious to users that the function deletes the request queue and not individual records in the queue.');
-        await this.drop();
-    }
-
     /**
      * Returns the number of handled requests.
      *
@@ -749,9 +693,10 @@ const getOrCreateQueue = async (storageClient, queueIdOrName) => {
  */
 export const openRequestQueue = async (queueIdOrName, options = {}) => {
     const { forceCloud = false } = options;
-    checkParamOrThrow(queueIdOrName, 'queueIdOrName', 'Maybe String');
-    checkParamOrThrow(options, 'options', 'Object');
-    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
+    ow(queueIdOrName, ow.optional.string);
+    ow(options, ow.object.exactShape({
+        forceCloud: ow.optional.boolean,
+    }));
     ensureTokenOrLocalStorageEnvExists('request queue');
 
     const isLocal = process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud;

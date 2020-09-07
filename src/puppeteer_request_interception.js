@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
+import ow from 'ow';
 import * as _ from 'underscore';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { Request as PuppeteerRequest, Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 
 // We use weak maps here so that the content gets discarted after page gets closed.
@@ -63,7 +63,7 @@ const handleRequest = async (request, interceptRequestHandlers) => {
     const originalContinue = request.continue.bind(request);
     request.continue = (overrides = {}) => {
         wasContinued = true;
-        const headers = Object.assign({}, accumulatedOverrides.headers, overrides.headers);
+        const headers = { ...accumulatedOverrides.headers, ...overrides.headers };
         Object.assign(accumulatedOverrides, overrides, { headers });
     };
 
@@ -149,8 +149,8 @@ const handleRequest = async (request, interceptRequestHandlers) => {
  * @name addInterceptRequestHandler
  */
 export const addInterceptRequestHandler = async (page, handler) => {
-    checkParamOrThrow(page, 'page', 'Object');
-    checkParamOrThrow(handler, 'handler', 'Function');
+    ow(page, ow.object.hasKeys('goto', 'evaluate'));
+    ow(handler, ow.function);
 
     if (!pageInterceptRequestHandlersMap.has(page)) {
         pageInterceptRequestHandlersMap.set(page, []);
@@ -195,9 +195,12 @@ export const addInterceptRequestHandler = async (page, handler) => {
  * @name removeInterceptRequestHandler
  */
 export const removeInterceptRequestHandler = async (page, handler) => {
+    ow(page, ow.object.hasKeys('goto', 'evaluate'));
+    ow(handler, ow.function);
+
     const handlersArray = pageInterceptRequestHandlersMap
         .get(page)
-        .filter(item => item !== handler);
+        .filter((item) => item !== handler);
 
     pageInterceptRequestHandlersMap.set(page, handlersArray);
 

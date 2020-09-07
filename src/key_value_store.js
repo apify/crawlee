@@ -1,70 +1,18 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import { promisify } from 'util';
-import * as contentTypeParser from 'content-type';
-import * as mime from 'mime-types';
 import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
+import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
-import { checkParamOrThrow, parseBody } from 'apify-client/build/utils';
+import ow, { ArgumentError } from 'ow';
 import {
-    addCharsetToContentType, apifyClient, ensureDirExists, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
+    addCharsetToContentType, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
 } from './utils';
 import { APIFY_API_BASE_URL } from './constants';
 import globalCache from './global_cache';
 import log from './utils_log';
 
-export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.keyValueStores;
 const MAX_OPENED_STORES = 1000;
-const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
-const COMMON_LOCAL_FILE_EXTENSIONS = ['bin', 'txt', 'json', 'html', 'xml', 'jpeg', 'png', 'pdf', 'mp3', 'js', 'css', 'csv'];
-
-const readFilePromised = promisify(fs.readFile);
-const readdirPromised = promisify(fs.readdir);
-const writeFilePromised = promisify(fs.writeFile);
-const unlinkPromised = promisify(fs.unlink);
-const statPromised = promisify(fs.stat);
-const emptyDirPromised = promisify(fs.emptyDir);
 
 const { keyValueStores } = apifyClient;
 const storesCache = globalCache.create('key-value-store-cache', MAX_OPENED_STORES); // Open key-value stores are stored here.
-
-/**
- * Helper function to validate params of *.getValue().
- *
- * @ignore
- */
-const validateGetValueParams = (key) => {
-    checkParamOrThrow(key, 'key', 'String');
-    if (!key) throw new Error('The "key" parameter cannot be empty');
-};
-
-/**
- * Helper function to validate params of *.setValue().
- *
- * @ignore
- */
-const validateSetValueParams = (key, value, options) => {
-    checkParamOrThrow(key, 'key', 'String');
-    checkParamOrThrow(options, 'options', 'Object');
-    checkParamOrThrow(options.contentType, 'options.contentType', 'String | Null | Undefined');
-
-    if (value === null && options.contentType !== null && options.contentType !== undefined) {
-        throw new Error('The "options.contentType" parameter must not be used when removing the record.');
-    }
-
-    if (options.contentType) {
-        checkParamOrThrow(value, 'value', 'Buffer | String', 'The "value" parameter must be a String or Buffer when "options.contentType" is specified.'); // eslint-disable-line max-len
-    }
-
-    if (options.contentType === '') throw new Error('Parameter options.contentType cannot be empty string.');
-    if (!key) throw new Error('The "key" parameter cannot be empty');
-
-    if (!KEY_VALUE_STORE_KEY_REGEX.test(key)) {
-        throw new Error('The "key" parameter must be at most 256 characters long and only contain the following characters: '
-            + "a-zA-Z0-9!-_.'()");
-    }
-};
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -166,9 +114,6 @@ export class KeyValueStore {
      * @param {string} storeName
      */
     constructor(storeId, storeName) {
-        checkParamOrThrow(storeId, 'storeId', 'String');
-        checkParamOrThrow(storeName, 'storeName', 'Maybe String');
-
         this.storeId = storeId;
         this.storeName = storeName;
         this.log = log.child({ prefix: 'KeyValueStore' });
@@ -205,14 +150,14 @@ export class KeyValueStore {
      *   on the MIME content type of the record.
      */
     getValue(key) {
-        validateGetValueParams(key);
+        ow(key, ow.string);
 
         // TODO: Perhaps we should add options.contentType or options.asBuffer/asString
         // to enforce the representation of value
 
         return keyValueStores
             .getRecord({ storeId: this.storeId, key })
-            .then(output => (output ? output.body : null));
+            .then((output) => (output ? output.body : null));
     }
 
     /**
@@ -263,10 +208,19 @@ export class KeyValueStore {
      *
      */
     setValue(key, value, options = {}) {
-        validateSetValueParams(key, value, options);
+        ow(key, ow.string.validate((k) => ({
+            validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
+            message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
+        })));
+        if (options.contentType && !ow.isValid(value, ow.any(ow.string, ow.buffer))) {
+            throw new ArgumentError('The "value" parameter must be a String or Buffer when "options.contentType" is specified.', this.setValue);
+        }
+        ow(options, ow.object.exactShape({
+            contentType: ow.optional.string.nonEmpty,
+        }));
 
         // Make copy of options, don't update what user passed.
-        const optionsCopy = Object.assign({}, options);
+        const optionsCopy = { ...options };
 
         // In this case delete the record.
         if (value === null) return keyValueStores.deleteRecord({ storeId: this.storeId, key });
@@ -292,13 +246,6 @@ export class KeyValueStore {
         await keyValueStores.deleteStore({ storeId: this.storeId });
         storesCache.remove(this.storeId);
         if (this.storeName) storesCache.remove(this.storeName);
-    }
-
-    /** @ignore */
-    async delete() {
-        this.log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
-            + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
-        await this.drop();
     }
 
     /**
@@ -338,9 +285,10 @@ export class KeyValueStore {
      */
     async forEachKey(iteratee, options = {}, index = 0) {
         const { exclusiveStartKey } = options;
-        checkParamOrThrow(iteratee, 'iteratee', 'Function');
-        checkParamOrThrow(exclusiveStartKey, 'options.exclusiveStartKey', 'Maybe String');
-        checkParamOrThrow(index, 'index', 'Number');
+        ow(iteratee, ow.function);
+        ow(options, ow.object.exactShape({
+            exclusiveStartKey: ow.optional.string,
+        }));
 
         const response = await keyValueStores.listKeys({ storeId: this.storeId, exclusiveStartKey });
         const { nextExclusiveStartKey, isTruncated, items } = response;
@@ -350,207 +298,6 @@ export class KeyValueStore {
         return isTruncated
             ? this.forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
             : undefined; // [].forEach() returns undefined.
-    }
-}
-
-/**
- * Helper to create a file-matching RegExp from a KeyValueStore key.
- * @param {string} key
- * @returns {RegExp}
- * @ignore
- */
-export const getFileNameRegexp = (key) => {
-    const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`^${safeKey}\\.[a-z0-9]+$`);
-};
-
-/**
- * This is a local representation of a key-value store.
- *
- * @ignore
- */
-export class KeyValueStoreLocal {
-    constructor(storeId, localStorageDir) {
-        checkParamOrThrow(storeId, 'storeId', 'String');
-        checkParamOrThrow(localStorageDir, 'localStorageDir', 'String');
-
-        this.log = log.child({ prefix: 'KeyValueStore' });
-        this.localStoragePath = path.resolve(path.join(localStorageDir, LOCAL_STORAGE_SUBDIR, storeId));
-        this.storeId = storeId;
-        this.initializationPromise = ensureDirExists(this.localStoragePath);
-    }
-
-    async getValue(key) {
-        validateGetValueParams(key);
-
-        await this.initializationPromise;
-
-        try {
-            const result = await this._handleFile(key, readFilePromised);
-            return result
-                ? parseBody(result.returnValue, mime.contentType(result.fileName))
-                : null;
-        } catch (err) {
-            throw new Error(`Error reading file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line
-        }
-    }
-
-    async setValue(key, value, options = {}) {
-        validateSetValueParams(key, value, options);
-
-        await this.initializationPromise;
-
-        // Make copy of options, don't update what user passed.
-        const optionsCopy = Object.assign({}, options);
-
-        // First remove original file.
-        try {
-            await this._handleFile(key, unlinkPromised);
-        } catch (err) {
-            throw new Error(`Error removing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
-        }
-
-        // In this case just delete the record.
-        if (value === null) return;
-
-        value = maybeStringify(value, optionsCopy);
-
-        const contentType = contentTypeParser.parse(optionsCopy.contentType).type;
-        const extension = mime.extension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
-        const filePath = this._getPath(`${key}.${extension}`);
-
-        try {
-            await writeFilePromised(filePath, value);
-        } catch (err) {
-            throw new Error(`Error writing file '${key}' in directory '${this.localStoragePath}' referred by ${ENV_VARS.LOCAL_STORAGE_DIR} environment variable: ${err.message}`); // eslint-disable-line max-len
-        }
-    }
-
-    async delete() {
-        this.log.deprecated('keyValueStore.delete() is deprecated. Please use keyValueStore.drop() instead. '
-            + 'This is to make it more obvious to users that the function deletes the key-value store and not individual records in the store.');
-        await this.drop();
-    }
-
-    async drop() {
-        await this.initializationPromise;
-        await emptyDirPromised(this.localStoragePath);
-
-        storesCache.remove(this.storeId);
-    }
-
-    async forEachKey(iteratee, options = {}, index = 0) {
-        const { exclusiveStartKey } = options;
-        checkParamOrThrow(iteratee, 'iteratee', 'Function');
-        checkParamOrThrow(exclusiveStartKey, 'options.exclusiveStartKey', 'Maybe String');
-        checkParamOrThrow(index, 'index', 'Number');
-
-        await this.initializationPromise;
-
-        const files = await readdirPromised(this.localStoragePath);
-        let keys = [];
-        for (const file of files) {
-            try {
-                const { size } = await statPromised(this._getPath(file));
-                keys.push({
-                    key: path.parse(file).name,
-                    info: { size },
-                });
-            } catch (e) {
-                if (e.code !== 'ENOENT') {
-                    throw e;
-                }
-            }
-        }
-
-        keys = keys.sort((a, b) => {
-            if (a.key < b.key) return -1;
-            if (a.key > b.key) return 1;
-            return 0;
-        }); // Array is sorted to emulate API.
-
-        if (exclusiveStartKey) {
-            const keyPos = keys.findIndex(item => item.key === exclusiveStartKey);
-            if (keyPos !== -1) keys = keys.slice(keyPos + 1);
-        }
-        for (const item of keys) {
-            await iteratee(item.key, index++, item.info);
-        }
-    }
-
-    /**
-     * Helper function to handle files. Accepts a promisified 'fs' function as a second parameter
-     * which will be executed against the file saved under the key. Since the file's extension and thus
-     * full path is not known, it first performs a check against common extensions. If no file is found,
-     * it will read a full list of files in the directory and attempt to find the file again.
-     *
-     * Returns an object when a file is found and handler executes successfully, null otherwise.
-     *
-     * @param {string} key
-     * @param {Function} handler
-     * @returns {Promise<*>} null or object in the following format:
-     * {
-     *     returnValue: return value of the handler function,
-     *     fileName: name of the file including found extension
-     * }
-     * @ignore
-     */
-    async _handleFile(key, handler) {
-        for (const extension of COMMON_LOCAL_FILE_EXTENSIONS) {
-            const fileName = `${key}.${extension}`;
-            const filePath = this._getPath(fileName);
-            try {
-                const returnValue = await handler(filePath);
-                return { returnValue, fileName };
-            } catch (err) {
-                if (err.code !== 'ENOENT') throw err;
-            }
-        }
-
-        return this._fullDirectoryLookup(key, handler);
-    }
-
-    /**
-     * Performs a lookup for a file in the local emulation directory's file list.
-     * @param {string} key
-     * @param {Function} handler
-     * @returns {Promise<*>}
-     * @ignore
-     */
-    _fullDirectoryLookup(key, handler) {
-        return readdirPromised(this.localStoragePath)
-            .then((files) => {
-                const regex = getFileNameRegexp(key);
-                const fileName = files.find(file => regex.test(file));
-                return fileName
-                    ? handler(this._getPath(fileName)).then(returnValue => ({ returnValue, fileName }))
-                    : null;
-            });
-    }
-
-    /**
-     * Helper function to resolve file paths.
-     * @param {string} fileName
-     * @returns {string}
-     * @ignore
-     */
-    _getPath(fileName) {
-        return path.resolve(this.localStoragePath, fileName);
-    }
-
-    /**
-     * Returns a file:// URL for the given fileName that may be used to
-     * access the value on the local drive.
-     *
-     * Unlike in the remote store where key is sufficient, a full fileName
-     * must be provided here including the extension for the URL to be valid.
-     *
-     * @param {string} fileName
-     * @return {string}
-     * @ignore
-     */
-    getPublicUrl(fileName) {
-        return `file://${this._getPath(fileName)}`;
     }
 }
 
@@ -571,7 +318,6 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
                 .getOrCreateStore({ storeName: storeIdOrName });
         });
 };
-
 
 /**
  * Opens a key-value store and returns a promise resolving to an instance of the {@link KeyValueStore} class.
@@ -595,15 +341,16 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * @function
  */
 export const openKeyValueStore = (storeIdOrName, options = {}) => {
-    checkParamOrThrow(storeIdOrName, 'storeIdOrName', 'Maybe String');
-    checkParamOrThrow(options, 'options', 'Object');
+    ow(storeIdOrName, ow.optional.string);
+    ow(options, ow.object.exactShape({
+        forceCloud: ow.optional.boolean,
+    }));
     ensureTokenOrLocalStorageEnvExists('key-value store');
 
     const { forceCloud = false } = options;
-    checkParamOrThrow(forceCloud, 'options.forceCloud', 'Boolean');
 
     return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
-        ? openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStoreLocal, storesCache)
+        ? openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache)
         : openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore);
 };
 
@@ -714,7 +461,6 @@ export const setValue = async (key, value, options) => {
  * @function
  */
 export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || KEY_VALUE_STORE_KEYS.INPUT);
-
 
 /**
  * User-function used in the  {@link KeyValueStore#forEachKey} method.

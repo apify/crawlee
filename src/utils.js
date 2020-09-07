@@ -2,15 +2,14 @@ import * as psTree from '@apify/ps-tree';
 import * as ApifyStorageLocal from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
-import * as fsExtra from 'fs-extra';
 import * as mime from 'mime-types';
 import * as os from 'os';
+import ow from 'ow';
 import * as path from 'path';
 import * as semver from 'semver';
 import * as _ from 'underscore';
@@ -47,7 +46,6 @@ const URL_WITH_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:
  */
 const DISABLE_OUTDATED_WARNING = 'APIFY_DISABLE_OUTDATED_WARNING';
 
-const ensureDirPromised = util.promisify(fsExtra.ensureDir);
 const psTreePromised = util.promisify(psTree);
 
 /**
@@ -150,17 +148,6 @@ export const getApifyStorageLocal = async () => {
 };
 
 /**
- * Returns a result of `Promise.resolve()`.
- *
- * @returns {Promise<void>}
- *
- * @ignore
- */
-export const newPromise = () => {
-    return Promise.resolve();
-};
-
-/**
  * Adds charset=utf-8 to given content type if this parameter is missing.
  *
  * @param {string} contentType
@@ -189,7 +176,7 @@ const createIsDockerPromise = () => {
 
     const promise2 = util
         .promisify(fs.readFile)('/proc/self/cgroup', 'utf8')
-        .then(content => content.indexOf('docker') !== -1)
+        .then((content) => content.indexOf('docker') !== -1)
         .catch(() => false);
 
     return Promise
@@ -213,26 +200,6 @@ export const isDocker = (forceReset) => {
 
     return isDockerPromiseCache;
 };
-
-/**
- * Sums an array of numbers.
- *
- * @param {number[]} arr An array of numbers.
- * @return {number} Sum of the numbers.
- *
- * @ignore
- */
-export const sum = arr => arr.reduce((total, c) => total + c, 0);
-
-/**
- * Computes an average of an array of numbers.
- *
- * @param {number[]} arr An array of numbers.
- * @return {number} Average value.
- *
- * @ignore
- */
-export const avg = arr => sum(arr) / arr.length;
 
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
@@ -300,7 +267,7 @@ export const getMemoryInfo = async () => {
         childProcessesBytes = execSync('cat /proc/meminfo')
             .toString()
             .split(/[\n: ]/)
-            .filter(val => val.trim())[19]
+            .filter((val) => val.trim())[19]
             // meminfo reports in kb, not bytes
             * 1000
             // the total used memory is reported by meminfo
@@ -378,30 +345,7 @@ export const getMemoryInfo = async () => {
 };
 
 /**
- * Helper function that determines if given parameter is an instance of Promise.
- *
- * @ignore
- */
-export const isPromise = (maybePromise) => {
-    return maybePromise && typeof maybePromise.then === 'function' && typeof maybePromise.catch === 'function';
-};
-
-/**
- * Returns true if node is in production environment and false otherwise.
- *
- * @ignore
- */
-export const isProduction = () => process.env.NODE_ENV === 'production';
-
-/**
- * Helper function used for local implementations. Creates dir.
- *
- * @ignore
- */
-export const ensureDirExists = dirPath => ensureDirPromised(dirPath);
-
-/**
- * Helper function that returns the first key from plan object.
+ * Helper function that returns the first key from plain object.
  *
  * @ignore
  */
@@ -436,20 +380,15 @@ export const getTypicalChromeExecutablePath = () => {
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
-    return new Promise(async (resolve, reject) => {
-        if (!isPromise(promise)) throw new Error('Parameter promise of type Promise must be provided.');
-        checkParamOrThrow(timeoutMillis, 'timeoutMillis', 'Number');
-        checkParamOrThrow(errorMessage, 'errorMessage', 'String');
-
+    return new Promise((resolve, reject) => {
+        ow(promise, ow.promise);
+        ow(timeoutMillis, ow.number);
+        ow(errorMessage, ow.string);
         const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
-        try {
-            const data = await promise;
-            resolve(data);
-        } catch (err) {
-            reject(err);
-        } finally {
-            clearTimeout(timeout);
-        }
+        promise
+            .then(resolve)
+            .catch(reject)
+            .finally(() => clearTimeout(timeout));
     });
 };
 
@@ -485,7 +424,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @return {Promise<void>}
  */
 export const sleep = (millis) => {
-    return new Promise(res => setTimeout(res, millis));
+    return new Promise((res) => setTimeout(res, millis));
 };
 
 /**
@@ -501,10 +440,14 @@ export const sleep = (millis) => {
  * @returns {Promise<Array<string>>}
  * @memberOf utils
  */
-const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
-    checkParamOrThrow(url, 'url', 'String');
-    checkParamOrThrow(encoding, 'string', 'String');
-    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+const downloadListOfUrls = async (options) => {
+    ow(options, ow.object.exactShape({
+        url: ow.string.url,
+        encoding: ow.optional.string,
+        urlRegExp: ow.optional.regExp,
+    }));
+    const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX } = options;
+
     const { requestAsBrowser } = requestUtils;
 
     const { body: string } = await requestAsBrowser({ url, encoding });
@@ -519,9 +462,12 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
  * @returns {string[]}
  * @memberOf utils
  */
-const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
-    checkParamOrThrow(string, 'string', 'String');
-    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+const extractUrls = (options) => {
+    ow(options, ow.object.exactShape({
+        string: ow.string,
+        urlRegExp: ow.optional.regExp,
+    }));
+    const { string, urlRegExp = URL_NO_COMMAS_REGEX } = options;
     return string.match(urlRegExp) || [];
 };
 
@@ -564,7 +510,7 @@ export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, 
     if (!storagePromise) {
         storagePromise = isDefault // If true then we know that this is an ID of existing store.
             ? Promise.resolve(new RemoteClass(idOrName))
-            : getOrCreateFunction(idOrName).then(storage => (new RemoteClass(storage.id, storage.name)));
+            : getOrCreateFunction(idOrName).then((storage) => (new RemoteClass(storage.id, storage.name)));
         cache.add(idOrName, storagePromise);
     }
 
@@ -580,7 +526,6 @@ export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
         throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. You need to set one these variables in order to enable data storage.`); // eslint-disable-line max-len
     }
 };
-
 
 // NOTE: We skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
@@ -680,23 +625,21 @@ const htmlToText = (html) => {
  * @return {object}
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
-    checkParamOrThrow(request, 'request', 'Object');
-    checkParamOrThrow(response, 'response', 'Object');
-    checkParamOrThrow(additionalFields, 'additionalFields', 'Object');
+    ow(request, ow.object);
+    ow(response, ow.object);
+    ow(additionalFields, ow.object);
 
-    return Object.assign(
-        {
-            requestId: request.id,
-            url: request.url,
-            loadedUrl: request.loadedUrl,
-            method: request.method,
-            retryCount: request.retryCount,
-            errorMessages: request.errorMessages,
-            // Puppeteer response has .status() funtion and NodeJS response ,statusCode property.
-            statusCode: _.isFunction(response.status) ? response.status() : response.statusCode,
-        },
-        additionalFields,
-    );
+    return {
+        requestId: request.id,
+        url: request.url,
+        loadedUrl: request.loadedUrl,
+        method: request.method,
+        retryCount: request.retryCount,
+        errorMessages: request.errorMessages,
+        // Puppeteer response has .status() funtion and NodeJS response ,statusCode property.
+        statusCode: _.isFunction(response.status) ? response.status() : response.statusCode,
+        ...additionalFields,
+    };
 };
 
 /**
@@ -740,9 +683,10 @@ export const printOutdatedSdkWarning = () => {
  * @ignore
  */
 export const parseContentTypeFromResponse = (response) => {
-    checkParamOrThrow(response, 'response', 'Object');
-    checkParamOrThrow(response.url, 'response.url', 'String');
-    checkParamOrThrow(response.headers, 'response.headers', 'Object');
+    ow(response, ow.object.partialShape({
+        url: ow.string.url,
+        headers: ow.object,
+    }));
 
     const { url, headers } = response;
     let parsedContentType;
@@ -796,6 +740,13 @@ export const parseContentTypeFromResponse = (response) => {
  * @function
  */
 export const waitForRunToFinish = async (options) => {
+    ow(options, ow.object.exactShape({
+        actorId: ow.string,
+        runId: ow.string,
+        token: ow.optional.string,
+        waitSecs: ow.optional.number,
+    }));
+
     const {
         actorId,
         runId,

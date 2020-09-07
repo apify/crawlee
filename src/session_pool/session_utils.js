@@ -15,7 +15,9 @@ export const getCookiesFromResponse = (response) => {
     const cookieHeader = headers['set-cookie'] || '';
 
     try {
-        return Array.isArray(cookieHeader) ? cookieHeader.map(Cookie.parse) : [Cookie.parse(cookieHeader)];
+        return Array.isArray(cookieHeader)
+            ? cookieHeader.map((cookie) => Cookie.parse(cookie))
+            : [Cookie.parse(cookieHeader)];
     } catch (e) {
         throw new CookieParseError(cookieHeader);
     }

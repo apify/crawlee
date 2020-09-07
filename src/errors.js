@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 export const APIFY_CALL_ERROR_NAME = 'ApifyCallError';
 
 // eslint-disable-next-line import/named,no-unused-vars,import/first

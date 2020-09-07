@@ -1,4 +1,4 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
+import ow from 'ow';
 import * as stream from 'stream'; // eslint-disable-line import/no-duplicates
 import * as StreamArray from 'stream-json/streamers/StreamArray';
 import * as util from 'util';
@@ -63,7 +63,7 @@ class ArrayToJson extends stream.Readable {
  * @ignore
  */
 export const serializeArray = async (data) => {
-    checkParamOrThrow(data, 'data', 'Array');
+    ow(data, ow.array);
     const { chunks, collector } = createChunkCollector();
     await pipeline(
         new ArrayToJson(data),
@@ -86,7 +86,7 @@ export const serializeArray = async (data) => {
  * @ignore
  */
 export const deserializeArray = async (compressedData) => {
-    checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
+    ow(compressedData, ow.buffer);
     const { chunks, collector } = createChunkCollector({ fromValuesStream: true });
     await pipeline(
         stream.Readable.from([compressedData]),
@@ -109,14 +109,14 @@ export const deserializeArray = async (compressedData) => {
  * @ignore
  */
 export const createDeserialize = (compressedData) => {
-    checkParamOrThrow(compressedData, 'compressedData', 'Buffer');
+    ow(compressedData, ow.buffer);
     const streamArray = StreamArray.withParser();
     const destination = pluckValue(streamArray);
     stream.pipeline(
         stream.Readable.from([compressedData]),
         zlib.createGunzip(),
         destination,
-        err => destination.emit(err),
+        (err) => destination.emit(err),
     );
     return destination;
 };
@@ -147,6 +147,6 @@ function createChunkCollector(options = {}) {
 
 function pluckValue(streamArray) {
     const realPush = streamArray.push.bind(streamArray);
-    streamArray.push = obj => realPush(obj && obj.value);
+    streamArray.push = (obj) => realPush(obj && obj.value);
     return streamArray;
 }
