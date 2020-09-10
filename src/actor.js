@@ -15,7 +15,7 @@ import {
     printOutdatedSdkWarning,
     waitForRunToFinish,
 } from './utils';
-import { maybeStringify } from './key_value_store';
+import { maybeStringify } from './storages/key_value_store';
 
 // eslint-disable-next-line import/named,no-unused-vars,import/first
 import { ActorRun } from './typedefs';

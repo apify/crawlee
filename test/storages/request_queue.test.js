@@ -1,167 +1,139 @@
 import _ from 'underscore';
-import sinon from 'sinon';
 import ApifyStorageLocal from '@apify/storage-local';
-import { ENV_VARS } from 'apify-shared/consts';
-import * as Apify from '../build/index';
-import * as utils from '../build/utils';
+import * as Apify from '../../build';
+import { apifyClient } from '../../build/utils';
 import {
     RequestQueue,
     QUERY_HEAD_MIN_LENGTH,
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
     getRequestId,
-} from '../build/request_queue';
-import { expectNotUsingLocalStorage } from './_helper';
-import LocalStorageDirEmulator from './local_storage_dir_emulator';
+} from '../../build/storages/request_queue';
+import StorageManager from '../../build/storages/storage_manager';
+import { expectNotUsingLocalStorage } from '../_helper';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
-const { apifyClient, getApifyStorageLocal } = utils;
+jest.mock('../../build/storages/storage_manager');
 
 describe('RequestQueue remote', () => {
-    beforeAll(() => apifyClient.setOptions({ token: 'xxx' }));
-    afterAll(() => apifyClient.setOptions({ token: undefined }));
-
-    test('openRequestQueue should open remote storage', async () => {
-        const mockQueue = {
-            id: 'some-id',
-        };
-        const apifyClientMock = sinon.mock(apifyClient.requestQueues);
-        process.env[ENV_VARS.LOCAL_STORAGE_DIR] = 'xyz';
-        process.env[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID] = 'default-id';
-
-        apifyClientMock.expects('getQueue').twice().resolves(null);
-        apifyClientMock.expects('getOrCreateQueue').twice().callsFake(async ({ queueName }) => {
-            return { ...mockQueue, name: queueName };
-        });
-
-        const name = 'xxx';
-        let queue = await Apify.openRequestQueue(name, { forceCloud: true });
-        expect(queue.queueId).toBe(mockQueue.id);
-        expect(queue.queueName).toBe(name);
-        expect(queue.client).toBe(apifyClient.requestQueues);
-
-        delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
-        process.env[ENV_VARS.TOKEN] = 'xxx';
-
-
-        queue = await Apify.openRequestQueue();
-        expect(queue.queueId).toBe(mockQueue.id);
-        expect(queue.queueName).toBe('default-id');
-        expect(queue.client).toBe(apifyClient.requestQueues);
-
-        delete process.env[ENV_VARS.TOKEN];
-        delete process.env[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID];
-
-        apifyClientMock.restore();
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+    test('openRequestQueue should open storage', async () => {
+        const queueId = 'abc';
+        const options = { forceCloud: true };
+        // This test uses and explains Jest mocking. Under import statements,
+        // the StorageManager is immediately mocked. This replaces the class
+        // with an observable. We can now call functions that use the class
+        // and observe how they interact with StorageManager.
+        await Apify.openRequestQueue(queueId, options);
+        // Apify.openRequestQueue creates an instance of StorageManager.
+        // Here we check that the constructor was really called once.
+        expect(StorageManager).toHaveBeenCalledTimes(1);
+        // Jest gives you access to newly created instances of the class.
+        // Here we grab the StorageManager instance openRequestQueue created.
+        const mockStorageManagerInstance = StorageManager.mock.instances[0];
+        // And here we get a reference to the specific instance's function mock.
+        const mockOpenStorage = mockStorageManagerInstance.openStorage;
+        // Finally, we test that the function was called with expected args.
+        expect(mockOpenStorage).toHaveBeenCalledWith(queueId, options);
+        expect(mockOpenStorage).toHaveBeenCalledTimes(1);
     });
 
     test('should work', async () => {
-        expectNotUsingLocalStorage();
-
-        const { Request } = Apify;
-
-        const clientKey = 'my-client';
-        const queue = new RequestQueue({ id: 'some-id', clientKey, storageClient: apifyClient.requestQueues });
-        const mock = sinon.mock(apifyClient.requestQueues);
-
-        const requestA = new Request({ url: 'http://example.com/a' });
-        mock.expects('addRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                request: requestA,
-                forefront: false,
-                clientKey,
-            })
-            .returns(Promise.resolve({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestA }));
-        const queueOperationInfo1 = await queue.addRequest(requestA);
-
-        expect(requestA.id).toBe('a');
-        expect(requestA.uniqueKey).toBe('http://example.com/a');
-        expect(queueOperationInfo1).toMatchObject({
-            wasAlreadyPresent: false,
-            wasAlreadyHandled: false,
+        const queue = new RequestQueue({ id: 'some-id', client: apifyClient });
+        expect(typeof queue.client.clientKey).toBe('string');
+        const firstResolveValue = {
             requestId: 'a',
-        });
-        expect(queueOperationInfo1.request).toMatchObject({
-            id: 'a',
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: false,
+        };
+        const mockAddRequest = jest
+            .spyOn(queue.client, 'addRequest')
+            .mockResolvedValueOnce(firstResolveValue);
+
+        const requestOptions = { url: 'http://example.com/a' };
+        const queueOperationInfo1 = await queue.addRequest(requestOptions);
+        const requestA = new Apify.Request(requestOptions);
+        expect(queueOperationInfo1).toMatchObject({
+            ...firstResolveValue,
+            request: {
+                ...requestA,
+                id: 'a',
+            },
         });
         expect(queue.queueHeadDict.length()).toBe(1);
+        expect(mockAddRequest).toHaveBeenCalledTimes(1);
+        expect(mockAddRequest).toHaveBeenCalledWith(requestA, { forefront: false });
 
-        // Try to add again the a request with the same URL
-        const copyOfRequest = { url: 'http://example.com/a' };
-        const queueOperationInfo2 = await queue.addRequest(copyOfRequest);
-        expect(copyOfRequest.id).toBe('a');
-        expect(copyOfRequest.uniqueKey).toBe('http://example.com/a');
+        // Try to add again a request with the same URL
+        const queueOperationInfo2 = await queue.addRequest(requestOptions);
         expect(queueOperationInfo2).toMatchObject({
             wasAlreadyPresent: true,
             wasAlreadyHandled: false,
             requestId: 'a',
-        });
-        expect(queueOperationInfo2.request).toMatchObject({
-            id: 'a',
+            request: {
+                ...requestA,
+                id: 'a',
+            },
         });
         expect(queue.queueHeadDict.length()).toBe(1);
 
-        const requestB = new Request({ url: 'http://example.com/b' });
-        mock.expects('addRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                request: requestB,
-                forefront: true,
-                clientKey,
-            })
-            .returns(Promise.resolve({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false, request: requestB }));
-        await queue.addRequest(requestB, { forefront: true });
+        const requestB = new Apify.Request({ url: 'http://example.com/b' });
+        const secondResolveValue = {
+            requestId: 'b',
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: false,
+        };
+        mockAddRequest.mockResolvedValueOnce(secondResolveValue);
 
+        await queue.addRequest(requestB, { forefront: true });
+        expect(mockAddRequest).toHaveBeenCalledTimes(2);
+        expect(mockAddRequest).toHaveBeenLastCalledWith(requestB, { forefront: true });
         expect(queue.queueHeadDict.length()).toBe(2);
         expect(queue.inProgressCount()).toBe(0);
 
         // Forefronted request was added to the queue.
-        mock.expects('getRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                requestId: 'b',
-            })
-            .returns(Promise.resolve(_.extend(requestB, { id: 'b' })));
+        const mockGetRequest = jest.spyOn(queue.client, 'getRequest');
+        mockGetRequest.mockResolvedValueOnce({ ...requestB, id: 'b' });
+
         const requestBFromQueue = await queue.fetchNextRequest();
-        expect(requestBFromQueue).toEqual(requestB);
+        expect(mockGetRequest).toHaveBeenCalledTimes(1);
+        expect(mockGetRequest).toHaveBeenLastCalledWith('b');
+        expect(requestBFromQueue).toEqual({ ...requestB, id: 'b' });
         expect(queue.queueHeadDict.length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
 
         // Test validations
-        await queue.markRequestHandled(new Request({ id: 'XXX', url: 'dummy' }))
-            .catch(err => expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/));
-        await queue.reclaimRequest(new Request({ id: 'XXX', url: 'dummy' }))
-            .catch(err => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
-        await queue.addRequest(new Request({ id: 'id-already-set', url: 'dummy' }))
-            .catch(err => expect(err.message).toMatch(
-                /Request already has the "id" field set so it cannot be added to the queue/,
+        await queue.markRequestHandled(new Apify.Request({ id: 'XXX', url: 'https://example.com' }))
+            .catch((err) => expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/));
+        await queue.reclaimRequest(new Apify.Request({ id: 'XXX', url: 'https://example.com' }))
+            .catch((err) => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
+        await queue.addRequest(new Apify.Request({ id: 'id-already-set', url: 'https://example.com' }))
+            .catch((err) => expect(err.message).toMatch(
+                'Expected property `id` to be of type `undefined` but received type `string` in object',
             ));
 
         // getRequest() returns null if object was not found.
-        mock.expects('getRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                requestId: 'non-existent',
-            })
-            .returns(Promise.resolve(null));
+        mockGetRequest.mockResolvedValueOnce(null);
+
         const requestXFromQueue = await queue.getRequest('non-existent');
+        expect(mockGetRequest).toHaveBeenCalledTimes(2);
+        expect(mockGetRequest).toHaveBeenLastCalledWith('non-existent');
         expect(requestXFromQueue).toBe(null);
 
         // Reclaim it.
-        mock.expects('updateRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                request: requestB,
-                forefront: true,
-                clientKey,
-            })
-            .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
-        await queue.reclaimRequest(requestB, { forefront: true });
+        const mockUpdateRequest = jest.spyOn(queue.client, 'updateRequest');
+        mockUpdateRequest.mockResolvedValueOnce({
+            requestId: 'b',
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: true,
+            request: requestBFromQueue,
+        });
+
+        await queue.reclaimRequest(requestBFromQueue, { forefront: true });
+        expect(mockUpdateRequest).toHaveBeenCalledTimes(1);
+        expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
         expect(queue.queueHeadDict.length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
         await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
@@ -169,28 +141,26 @@ describe('RequestQueue remote', () => {
         expect(queue.inProgressCount()).toBe(0);
 
         // Fetch again.
-        mock.expects('getRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                requestId: 'b',
-            })
-            .returns(Promise.resolve(_.extend(requestB, { id: 'b' })));
+        mockGetRequest.mockResolvedValueOnce(requestBFromQueue);
+
         const requestBFromQueue2 = await queue.fetchNextRequest();
-        expect(requestBFromQueue2).toEqual(requestB);
+        expect(mockGetRequest).toHaveBeenCalledTimes(3);
+        expect(mockGetRequest).toHaveBeenLastCalledWith('b');
+        expect(requestBFromQueue2).toEqual(requestBFromQueue);
         expect(queue.queueHeadDict.length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
 
         // Mark handled.
-        mock.expects('updateRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                request: requestB,
-                clientKey,
-            })
-            .returns(Promise.resolve({ requestId: requestB.id, wasAlreadyHandled: false, wasAlreadyPresent: true, request: requestB }));
-        await queue.markRequestHandled(requestB);
+        mockUpdateRequest.mockResolvedValueOnce({
+            requestId: 'b',
+            wasAlreadyHandled: false,
+            wasAlreadyPresent: true,
+            request: requestBFromQueue,
+        });
+
+        await queue.markRequestHandled(requestBFromQueue);
+        expect(mockUpdateRequest).toHaveBeenCalledTimes(2);
+        expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue);
         expect(queue.queueHeadDict.length()).toBe(1);
         expect(queue.inProgressCount()).toBe(0);
 
@@ -198,42 +168,31 @@ describe('RequestQueue remote', () => {
         queue.queueHeadDict.clear();
 
         // Query queue head.
-        mock.expects('getHead')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                limit: QUERY_HEAD_MIN_LENGTH,
-                clientKey,
-            })
-            .returns(Promise.resolve({
-                items: [
-                    { id: 'a', uniqueKey: 'aaa' },
-                    { id: 'c', uniqueKey: 'ccc' },
-                ],
-            }));
-        mock.expects('getRequest')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-                requestId: 'a',
-            })
-            .returns(Promise.resolve(_.extend(requestA, { id: 'a' })));
+        const mockListHead = jest.spyOn(queue.client, 'listHead');
+        mockListHead.mockResolvedValueOnce({
+            items: [
+                { id: 'a', uniqueKey: 'aaa' },
+                { id: 'c', uniqueKey: 'ccc' },
+            ],
+        });
+        mockGetRequest.mockResolvedValueOnce({ ...requestA, id: 'a' });
+
         const requestAFromQueue = await queue.fetchNextRequest();
-        expect(requestAFromQueue).toEqual(requestA);
+        expect(mockGetRequest).toHaveBeenCalledTimes(4);
+        expect(mockGetRequest).toHaveBeenLastCalledWith('a');
+        expect(mockListHead).toHaveBeenCalledTimes(1);
+        expect(mockListHead).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
+        expect(requestAFromQueue).toEqual({ ...requestA, id: 'a' });
         expect(queue.queueHeadDict.length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
 
         // Drop queue.
-        mock.expects('deleteQueue')
-            .once()
-            .withArgs({
-                queueId: 'some-id',
-            })
-            .returns(Promise.resolve());
-        await queue.drop();
+        const mockDelete = jest.spyOn(queue.client, 'delete');
+        mockDelete.mockResolvedValueOnce(undefined);
 
-        mock.verify();
-        mock.restore();
+        await queue.drop();
+        expect(mockDelete).toHaveBeenCalledTimes(1);
+        expect(mockDelete).toHaveBeenLastCalledWith();
     });
 
     test('should cache new requests locally', async () => {
@@ -832,11 +791,11 @@ describe('local emulation', () => {
 
         // Test validations
         await queue.markRequestHandled(new Request({ id: 'XXX', url: 'dummy' }))
-            .catch(err => expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/));
+            .catch((err) => expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/));
         await queue.reclaimRequest(new Request({ id: 'XXX', url: 'dummy' }))
-            .catch(err => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
+            .catch((err) => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
         await queue.addRequest(new Request({ id: 'id-already-set', url: 'dummy' }))
-            .catch(err => expect(err.message).toMatch(
+            .catch((err) => expect(err.message).toMatch(
                 /Request already has the "id" field set so it cannot be added to the queue/,
             ));
 

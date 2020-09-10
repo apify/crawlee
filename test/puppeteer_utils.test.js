@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
-import * as keyValueStore from '../build/key_value_store';
+import * as keyValueStore from '../build/storages/key_value_store';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 const { utils: { log } } = Apify;

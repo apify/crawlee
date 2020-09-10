@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import ow from 'ow';
-import { openKeyValueStore } from '../key_value_store';
+import { openKeyValueStore } from '../storages/key_value_store';
 import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle
 import events from '../events';
 import defaultLog from '../utils_log';

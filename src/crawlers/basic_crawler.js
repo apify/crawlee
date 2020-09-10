@@ -14,8 +14,8 @@ import { validators } from '../validators';
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import Request from '../request';
 import { RequestList } from '../request_list';
-import { RequestQueue } from '../request_queue';
-import { QueueOperationInfo } from '../request_queue';
+import { RequestQueue } from '../storages/request_queue';
+import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */

@@ -52,43 +52,44 @@ const psTreePromised = util.promisify(psTree);
  * Creates an instance of ApifyClient using options as defined in the environment variables.
  * This function is exported to enable unit testing.
  *
- * @returns {*}
+ * @param {object} [options]
+ * @returns {ApifyClient}
  * @ignore
  */
-export const newClient = () => {
-    const opts = {
-        userId: process.env[ENV_VARS.USER_ID] || null,
-        token: process.env[ENV_VARS.TOKEN] || null,
-    };
-
+export const newClient = (options = {}) => {
     // Only set baseUrl if overridden by env var, so that 'https://api.apify.com' is used by default.
     // This simplifies local development, which should run against production unless user wants otherwise.
-    const apiBaseUrl = process.env[ENV_VARS.API_BASE_URL];
-    if (apiBaseUrl) opts.baseUrl = apiBaseUrl;
+    const {
+        baseUrl = process.env[ENV_VARS.API_BASE_URL],
+        token = process.env[ENV_VARS.TOKEN],
+    } = options;
 
-    return new ApifyClient(opts);
+    return new ApifyClient({
+        ...options,
+        baseUrl,
+        token,
+    });
 };
 
 /**
  * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
+ * @param {object} [options]
  * @return {Promise<ApifyStorageLocal>}
  */
-const newApifyStorageLocal = async () => {
-    const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
-    const opts = {
-        storageDir: localStorageDir,
-    };
+const newStorageLocal = async (options = {}) => {
+    const {
+        storageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR],
+    } = options;
 
-    const storage = new ApifyStorageLocal(opts);
-
-    // Temporary solution for default request queue purging
-    const defaultIdEnvVar = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
-    const queueName = process.env[defaultIdEnvVar] || LOCAL_ENV_VARS[defaultIdEnvVar];
-    const queue = await storage.requestQueues.getOrCreateQueue({ queueName });
-    await storage.requestQueues.deleteQueue({ queueId: queue.id });
+    const storage = new ApifyStorageLocal({
+        ...options,
+        storageDir,
+    });
 
     process.on('exit', () => {
-        storage.closeDatabase();
+        // TODO this is not public API, need to update
+        // storage local with some teardown
+        storage.dbConnections.closeAllConnections();
     });
 
     return storage;
@@ -127,9 +128,8 @@ export const logSystemInfo = () => {
  */
 export const apifyClient = newClient();
 
-let apifyStorageLocal;
 /**
- * Gets the default instance of the `ApifyStorageLocal` class provided
+ * Gets the default instance of the `ApifyStorageLocal` class.
  * The instance is created automatically by the Apify SDK and it is configured using the
  * `APIFY_LOCAL_STORAGE_DIR` environment variable.
  *
@@ -141,11 +141,7 @@ let apifyStorageLocal;
  * @memberof module:Apify
  * @name storageLocal
  */
-export const getApifyStorageLocal = async () => {
-    if (apifyStorageLocal) return apifyStorageLocal;
-    apifyStorageLocal = await newApifyStorageLocal();
-    return apifyStorageLocal;
-};
+export const apifyStorageLocal = newStorageLocal();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
@@ -469,62 +465,6 @@ const extractUrls = (options) => {
     }));
     const { string, urlRegExp = URL_NO_COMMAS_REGEX } = options;
     return string.match(urlRegExp) || [];
-};
-
-/**
- * Helper function to open local storage.
- *
- * @ignore
- */
-export const openLocalStorage = async (idOrName, defaultIdEnvVar, LocalClass, cache) => {
-    const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
-
-    if (!idOrName) idOrName = process.env[defaultIdEnvVar] || LOCAL_ENV_VARS[defaultIdEnvVar];
-
-    let storagePromise = cache.get(idOrName);
-
-    if (!storagePromise) {
-        storagePromise = Promise.resolve(new LocalClass(idOrName, localStorageDir));
-        cache.add(idOrName, storagePromise);
-    }
-
-    return storagePromise;
-};
-
-/**
- * Helper function to open remote storage.
- *
- * @ignore
- */
-export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, cache, getOrCreateFunction) => {
-    let isDefault = false;
-
-    if (!idOrName) {
-        isDefault = true;
-        idOrName = process.env[defaultIdEnvVar];
-        if (!idOrName) throw new Error(`The '${defaultIdEnvVar}' environment variable is not defined.`);
-    }
-
-    let storagePromise = cache.get(idOrName);
-
-    if (!storagePromise) {
-        storagePromise = isDefault // If true then we know that this is an ID of existing store.
-            ? Promise.resolve(new RemoteClass(idOrName))
-            : getOrCreateFunction(idOrName).then((storage) => (new RemoteClass(storage.id, storage.name)));
-        cache.add(idOrName, storagePromise);
-    }
-
-    return storagePromise;
-};
-
-/**
- * Checks if at least one of APIFY_LOCAL_STORAGE_DIR and APIFY_TOKEN environment variables is set.
- * @ignore
- */
-export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
-    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
-        throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. You need to set one these variables in order to enable data storage.`); // eslint-disable-line max-len
-    }
 };
 
 // NOTE: We skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.

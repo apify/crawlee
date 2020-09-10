@@ -4,11 +4,11 @@ import sinon from 'sinon';
 import { leftpad } from 'apify-shared/utilities';
 import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import { LOCAL_FILENAME_DIGITS, Dataset, DatasetLocal, LOCAL_STORAGE_SUBDIR,
-    LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../build/dataset';
-import * as utils from '../build/utils';
-import * as Apify from '../build/index';
-import { expectDirEmpty, expectDirNonEmpty } from './_helper';
-import LocalStorageDirEmulator from './local_storage_dir_emulator';
+    LOCAL_GET_ITEMS_DEFAULT_LIMIT, checkAndSerialize, chunkBySize } from '../../build/storages/dataset';
+import * as utils from '../../build/utils';
+import * as Apify from '../../build';
+import { expectDirEmpty, expectDirNonEmpty } from '../_helper';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 const { apifyClient } = utils;
 describe('dataset', () => {
@@ -36,7 +36,6 @@ describe('dataset', () => {
 
         return JSON.parse(str);
     };
-
 
     describe('local', () => {
         test('should successfully save data', async () => {
@@ -231,7 +230,7 @@ describe('dataset', () => {
             ]);
 
             const result = await dataset.map((item, index) => {
-                return Object.assign({ index, bar: 'xxx' }, item);
+                return { index, bar: 'xxx', ...item };
             });
 
             expect(result).toEqual([
@@ -251,7 +250,7 @@ describe('dataset', () => {
             ]);
 
             const result = await dataset.map((item, index) => {
-                const res = Object.assign({ index, bar: 'xxx' }, item);
+                const res = { index, bar: 'xxx', ...item };
                 return Promise.resolve(res);
             });
 
@@ -340,7 +339,7 @@ describe('dataset', () => {
     });
 
     describe('remote', () => {
-        const mockData = bytes => 'x'.repeat(bytes);
+        const mockData = (bytes) => 'x'.repeat(bytes);
 
         test('should succesfully save simple data', async () => {
             const dataset = new Dataset('some-id');
@@ -481,7 +480,6 @@ describe('dataset', () => {
             mock.restore();
         });
 
-
         test('getData() should work', async () => {
             const dataset = new Dataset('some-id', 'some-name');
             const mock = sinon.mock(apifyClient.datasets);
@@ -596,7 +594,6 @@ describe('dataset', () => {
             return { dataset, restoreAndVerify };
         };
 
-
         test('forEach() should work', async () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();
 
@@ -624,7 +621,7 @@ describe('dataset', () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();
 
             const result = await dataset.map((item, index) => {
-                return Object.assign({ index, bar: 'xxx' }, item);
+                return { index, bar: 'xxx', ...item };
             }, {
                 limit: 2,
             });
@@ -643,7 +640,7 @@ describe('dataset', () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();
 
             const result = await dataset.map((item, index) => {
-                const res = Object.assign({ index, bar: 'xxx' }, item);
+                const res = { index, bar: 'xxx', ...item };
                 return Promise.resolve(res);
             }, {
                 limit: 2,
@@ -723,7 +720,6 @@ describe('dataset', () => {
                     total: 4,
                     offset: 0,
                 }));
-
 
             mock.expects('getItems')
                 .once()

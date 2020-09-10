@@ -1,15 +1,14 @@
 import * as crypto from 'crypto';
 import * as LruCache from 'apify-shared/lru_cache';
 import * as ListDictionary from 'apify-shared/list_dictionary';
-import { ENV_VARS, LOCAL_ENV_VARS, REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-import ow, { ArgumentError } from 'ow';
-import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
-import globalCache from './global_cache';
-import { apifyClient, getApifyStorageLocal, ensureTokenOrLocalStorageEnvExists, sleep } from './utils';
-import log from './utils_log';
+import ow from 'ow';
+import Request, { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
+import StorageManager from './storage_manager';
+import { sleep } from '../utils';
+import log from '../utils_log';
 
-const MAX_OPENED_QUEUES = 1000;
 const MAX_CACHED_REQUESTS = 1000 * 1000;
 
 // When requesting queue head we always fetch requestsInProgressCount * QUERY_HEAD_BUFFER number of requests.
@@ -30,8 +29,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 // Indicates how long it usually takes for the underlying storage to propagate all writes
 // to be available to subsequent reads.
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
-
-const queuesCache = globalCache.create('request-queue-cache', MAX_OPENED_QUEUES); // Open queues are stored here.
 
 /**
  * Helper function that creates ID from uniqueKey for local emulation of request queue.
@@ -116,25 +113,18 @@ export class RequestQueue {
      * @param {object} options
      * @param {string} options.id
      * @param {string} [options.name]
-     * @param {object} [options.storageClient]
-     * @param {boolean} [options.isLocal]
-     * @param {string} [options.clientKey]
+     * @param {boolean} options.isLocal
+     * @param {ApifyClient|ApifyStorageLocal} options.client
      */
     constructor(options) {
-        const {
-            id,
-            name,
-            storageClient = apifyClient.requestQueues,
-            isLocal = false,
-            clientKey = cryptoRandomObjectId(),
-        } = options;
-
+        this.id = options.id;
+        this.name = options.name;
+        this.isLocal = options.isLocal;
+        this.clientKey = cryptoRandomObjectId();
+        this.client = options.client.requestQueue(this.id, {
+            clientKey: this.clientKey,
+        });
         this.log = log.child({ prefix: 'RequestQueue' });
-        this.clientKey = clientKey;
-        this.queueId = id;
-        this.queueName = name;
-        this.client = storageClient;
-        this.isLocal = isLocal;
 
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
@@ -191,10 +181,10 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo>}
      */
     async addRequest(requestLike, options = {}) {
-        ow(requestLike, ow.object.hasKeys('url'));
-        if (requestLike.id) {
-            throw new ArgumentError('Request already has the "id" field set so it cannot be added to the queue!', this.addRequest);
-        }
+        ow(requestLike, ow.object.partialShape({
+            url: ow.string.url,
+            id: ow.undefined,
+        }));
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
         }));
@@ -220,15 +210,8 @@ export class RequestQueue {
             };
         }
 
-        const queueOperationInfo = await this.client.addRequest({
-            request,
-            queueId: this.queueId,
-            forefront,
-            clientKey: this.clientKey,
-        });
-
+        const queueOperationInfo = await this.client.addRequest(request, { forefront });
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
-
         this._cacheRequest(cacheKey, queueOperationInfo);
 
         if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandled.get(requestId)) {
@@ -238,8 +221,7 @@ export class RequestQueue {
             this._maybeAddRequestToQueueHead(requestId, forefront);
         }
 
-        request.id = requestId;
-        queueOperationInfo.request = request;
+        queueOperationInfo.request = { ...request, id: requestId };
 
         return queueOperationInfo;
     }
@@ -247,18 +229,15 @@ export class RequestQueue {
     /**
      * Gets the request from the queue specified by ID.
      *
-     * @param {string} requestId ID of the request.
+     * @param {string} id ID of the request.
      * @return {Promise<(Request | null)>} Returns the request object, or `null` if it was not found.
      */
-    async getRequest(requestId) {
-        ow(requestId, ow.string);
+    async getRequest(id) {
+        ow(id, ow.string);
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
         // Downside is that it wouldn't reflect changes from outside...
-        const obj = await this.client.getRequest({
-            requestId,
-            queueId: this.queueId,
-        });
+        const obj = await this.client.getRequest(id);
 
         return obj ? new Request(obj) : null;
     }
@@ -359,11 +338,7 @@ export class RequestQueue {
 
         if (!request.handledAt) request.handledAt = new Date();
 
-        const queueOperationInfo = await this.client.updateRequest({
-            request,
-            queueId: this.queueId,
-            clientKey: this.clientKey,
-        });
+        const queueOperationInfo = await this.client.updateRequest(request);
 
         this.inProgress.delete(request.id);
         this.recentlyHandled.add(request.id, true);
@@ -410,14 +385,7 @@ export class RequestQueue {
 
         // TODO: If request hasn't been changed since the last getRequest(),
         // we don't need to call updateRequest() and thus improve performance.
-
-        const queueOperationInfo = await this.client.updateRequest({
-            request,
-            queueId: this.queueId,
-            forefront,
-            clientKey: this.clientKey,
-        });
-
+        const queueOperationInfo = await this.client.updateRequest(request, { forefront });
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
         queueOperationInfo.request = request;
 
@@ -504,11 +472,7 @@ export class RequestQueue {
             const queryStartedAt = new Date();
 
             this.queryQueueHeadPromise = this.client
-                .getHead({
-                    limit,
-                    queueId: this.queueId,
-                    clientKey: this.clientKey,
-                })
+                .listHead({ limit })
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id: requestId, uniqueKey }) => {
                         // Queue head index might be behind the main table, so ensure we don't recycle requests
@@ -597,16 +561,9 @@ export class RequestQueue {
      * @return {Promise<void>}
      */
     async drop() {
-        await this.client.deleteQueue({
-            queueId: this.queueId,
-        });
-
-        const idKey = createQueueCacheKey(this.queueId, this.isLocal);
-        queuesCache.remove(idKey);
-        if (this.queueName) {
-            const nameKey = createQueueCacheKey(this.queueName);
-            queuesCache.remove(nameKey);
-        }
+        await this.client.delete();
+        const manager = new StorageManager(RequestQueue);
+        manager.closeStorage(this);
     }
 
     /**
@@ -653,20 +610,9 @@ export class RequestQueue {
      * @returns {Promise<RequestQueueInfo>}
      */
     async getInfo() {
-        return this.client.getQueue({ queueId: this.queueId });
+        return this.client.get();
     }
 }
-
-/**
- * Helper function that first requests queue by ID and if queue doesn't exist then gets it by name.
- *
- * @ignore
- */
-const getOrCreateQueue = async (storageClient, queueIdOrName) => {
-    const existingQueue = await storageClient.getQueue({ queueId: queueIdOrName });
-    if (existingQueue) return existingQueue;
-    return storageClient.getOrCreateQueue({ queueName: queueIdOrName });
-};
 
 /**
  * Opens a request queue and returns a promise resolving to an instance
@@ -692,57 +638,13 @@ const getOrCreateQueue = async (storageClient, queueIdOrName) => {
  * @function
  */
 export const openRequestQueue = async (queueIdOrName, options = {}) => {
-    const { forceCloud = false } = options;
     ow(queueIdOrName, ow.optional.string);
     ow(options, ow.object.exactShape({
         forceCloud: ow.optional.boolean,
     }));
-    ensureTokenOrLocalStorageEnvExists('request queue');
-
-    const isLocal = process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud;
-
-    if (!queueIdOrName) {
-        const defaultIdEnvVarName = ENV_VARS.DEFAULT_REQUEST_QUEUE_ID;
-        queueIdOrName = process.env[defaultIdEnvVarName];
-        if (!queueIdOrName && isLocal) queueIdOrName = LOCAL_ENV_VARS[defaultIdEnvVarName];
-        if (!queueIdOrName) throw new Error(`The '${defaultIdEnvVarName}' environment variable is not defined.`);
-    }
-
-    const cacheKey = createQueueCacheKey(queueIdOrName, isLocal);
-    let queue = queuesCache.get(cacheKey);
-
-    if (!queue) {
-        const storageClient = isLocal ? (await getApifyStorageLocal()).requestQueues : apifyClient.requestQueues;
-        const queueInfo = await getOrCreateQueue(storageClient, queueIdOrName);
-        queue = new RequestQueue({ ...queueInfo, storageClient });
-        addQueueToCache(queue);
-    }
-
-    return queue;
+    const manager = new StorageManager(RequestQueue);
+    return manager.openStorage(queueIdOrName, options);
 };
-
-/**
- * @param {RequestQueue} queue
- */
-function addQueueToCache(queue) {
-    const idKey = createQueueCacheKey(queue.queueId, queue.isLocal);
-    queuesCache.add(idKey, queue);
-    if (queue.queueName) {
-        const nameKey = createQueueCacheKey(queue.queueName, queue.isLocal);
-        queuesCache.add(nameKey, queue);
-    }
-}
-
-/**
- * @param {string} identifier
- * @param {boolean} isLocal
- * @return {string}
- */
-function createQueueCacheKey(identifier, isLocal) {
-    return isLocal
-        ? `LOCAL:${identifier}`
-        : `REMOTE:${identifier}`;
-}
 
 /**
  * @typedef RequestQueueInfo

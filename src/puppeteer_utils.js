@@ -12,7 +12,7 @@ import { validators } from './validators';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
-import { openKeyValueStore } from './key_value_store';
+import { openKeyValueStore } from './storages/key_value_store';
 
 const jqueryPath = require.resolve('jquery/dist/jquery.min');
 const underscorePath = require.resolve('underscore/underscore-min');

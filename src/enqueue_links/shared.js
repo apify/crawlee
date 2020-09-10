@@ -5,7 +5,7 @@ import Request from '../request'; // eslint-disable-line import/no-duplicates
 
 // TYPES IMPORT
 /* eslint-disable import/order,no-unused-vars,import/named,import/no-duplicates */
-import { RequestQueue, QueueOperationInfo } from '../request_queue';
+import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestOptions } from '../request';
 /* eslint-enable */
 

@@ -1,16 +1,11 @@
 import ow from 'ow';
 import * as _ from 'underscore';
 import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
-import globalCache from './global_cache';
-import { apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists } from './utils';
-import log from './utils_log';
+import { openStorage } from './storages_shared';
+import log from '../utils_log';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
-const MAX_OPENED_DATASETS = 1000;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
-
-const { datasets } = apifyClient;
-const datasetsCache = globalCache.create('dataset-cache', MAX_OPENED_DATASETS); // Open Datasets are stored here.
 
 /**
  * Accepts a JSON serializable object as an input, validates its serializability,
@@ -131,12 +126,17 @@ export const chunkBySize = (items, limitBytes) => {
  */
 export class Dataset {
     /**
-     * @param {string} datasetId
-     * @param {string} datasetName
+     * @param {object} options
+     * @param {string} options.id
+     * @param {string} [options.name]
+     * @param {ApifyClient|ApifyStorageLocal} options.client
+     * @param {boolean} options.isLocal
      */
-    constructor(datasetId, datasetName) {
-        this.datasetId = datasetId;
-        this.datasetName = datasetName;
+    constructor(options) {
+        this.id = options.id;
+        this.name = options.name;
+        this.client = options.client;
+        this.isLocal = options.isLocal;
         this.log = log.child({ prefix: 'Dataset' });
     }
 

@@ -5,7 +5,7 @@ import Request from './request'; // eslint-disable-line import/no-duplicates
 import events from './events';
 import log from './utils_log';
 import { getFirstKey, publicUtils } from './utils';
-import { getValue, setValue } from './key_value_store';
+import { getValue, setValue } from './storages/key_value_store';
 import { serializeArray, createDeserialize } from './serialization';
 
 // TYPE IMPORTS
