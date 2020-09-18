@@ -743,14 +743,12 @@ export const waitForRunToFinish = async (options) => {
     ow(options, ow.object.exactShape({
         actorId: ow.string,
         runId: ow.string,
-        token: ow.optional.string,
         waitSecs: ow.optional.number,
     }));
 
     const {
         actorId,
         runId,
-        token,
         waitSecs,
     } = options;
     let run;
@@ -763,15 +761,12 @@ export const waitForRunToFinish = async (options) => {
         return true;
     };
 
-    const getRunOpts = { actId: actorId, runId };
-    if (token) getRunOpts.token = token;
-
     while (shouldRepeat()) {
-        getRunOpts.waitForFinish = waitSecs
+        const waitForFinish = waitSecs
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        run = await apifyClient.acts.getRun(getRunOpts);
+        run = await apifyClient.run(runId, actorId).waitForFinish({ waitForFinish }); // TODO waitForFinish
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
