@@ -7,6 +7,7 @@ import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import {
     apifyClient,
+    newClient,
     addCharsetToContentType,
     sleep,
     snakeCaseToCamelCase,
@@ -309,8 +310,6 @@ export const call = async (actId, input, options = {}) => {
         webhooks: ow.optional.array.ofType(ow.object),
     }));
 
-    const { acts, keyValueStores } = apifyClient;
-
     // Common options.
     const { token } = options;
 
@@ -319,8 +318,6 @@ export const call = async (actId, input, options = {}) => {
     const runActOpts = {
         actId,
     };
-
-    if (token) runActOpts.token = token;
     if (build) runActOpts.build = build;
     if (memoryMbytes) runActOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
@@ -334,7 +331,7 @@ export const call = async (actId, input, options = {}) => {
 
     // Run actor.
     const { waitSecs } = options;
-    const run = await acts.runAct(runActOpts);
+    const run = await apifyClient.actor().start(runActOpts);
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
@@ -364,11 +361,11 @@ export const call = async (actId, input, options = {}) => {
 
     // Fetch output.
     const { disableBodyParser = false } = options;
-    const output = await keyValueStores.getRecord({
-        key: 'OUTPUT',
-        storeId: updatedRun.defaultKeyValueStoreId,
-        disableBodyParser,
-    });
+    let getRecordOptions = {};
+    if (disableBodyParser) getRecordOptions = { buffer: true };
+
+    const client = token ? newClient({ token }) : apifyClient;
+    const output = await client.keyValueStore(updatedRun.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
     return { ...updatedRun, output };
 };
@@ -449,15 +446,12 @@ export const callTask = async (taskId, input, options = {}) => {
         webhooks: ow.optional.array.ofType(ow.object),
     }));
 
-    const { tasks, keyValueStores } = apifyClient;
-
     // Common options.
     const { token } = options;
 
     // Run task options.
     const { build, memoryMbytes, timeoutSecs, webhooks } = options;
-    const runTaskOpts = { taskId };
-    if (token) runTaskOpts.token = token;
+    const runTaskOpts = {};
     if (build) runTaskOpts.build = build;
     if (memoryMbytes) runTaskOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
@@ -466,7 +460,7 @@ export const callTask = async (taskId, input, options = {}) => {
 
     // Start task.
     const { waitSecs } = options;
-    const run = await tasks.runTask(runTaskOpts);
+    const run = await apifyClient.task(taskId).start(runTaskOpts);
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
@@ -497,11 +491,11 @@ export const callTask = async (taskId, input, options = {}) => {
 
     // Fetch output.
     const { disableBodyParser = false } = options;
-    const output = await keyValueStores.getRecord({
-        key: 'OUTPUT',
-        storeId: updatedRun.defaultKeyValueStoreId,
-        disableBodyParser,
-    });
+    let getRecordOptions = {};
+    if (disableBodyParser) getRecordOptions = { buffer: true };
+
+    const client = token ? newClient({ token }) : apifyClient;
+    const output = await client.keyValueStore(updatedRun.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
     return { ...updatedRun, output };
 };
@@ -547,7 +541,6 @@ export const metamorph = async (targetActorId, input, options = {}) => {
     }));
     // Use optionsCopy here as maybeStringify() may override contentType
     const optionsCopy = { ...options };
-    const { acts } = apifyClient;
 
     const actorId = process.env[ENV_VARS.ACTOR_ID];
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
@@ -559,13 +552,10 @@ export const metamorph = async (targetActorId, input, options = {}) => {
         if (optionsCopy.contentType) optionsCopy.contentType = addCharsetToContentType(optionsCopy.contentType);
     }
 
-    await acts.metamorphRun({
-        actId: actorId,
-        runId,
-        targetActorId,
+    await apifyClient.run(runId, actorId).metamorph(targetActorId, {
         contentType: optionsCopy.contentType,
-        body: input,
         build: optionsCopy.build,
+        input,
     });
 
     // Wait some time for container to be stopped.
@@ -626,16 +616,14 @@ export const addWebhook = async (options) => {
         throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} is not set!`);
     }
 
-    return apifyClient.webhooks.createWebhook({
-        webhook: {
-            isAdHoc: true,
-            eventTypes,
-            condition: {
-                actorRunId: runId,
-            },
-            requestUrl,
-            payloadTemplate,
-            idempotencyKey,
+    return apifyClient.webhooks().create({
+        isAdHoc: true,
+        eventTypes,
+        condition: {
+            actorRunId: runId,
         },
+        requestUrl,
+        payloadTemplate,
+        idempotencyKey,
     });
 };
