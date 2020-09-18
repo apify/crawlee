@@ -302,7 +302,7 @@ export class ProxyConfiguration {
     async _setPasswordIfToken() {
         const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
         if (token) {
-            const { proxy: { password } } = await apifyClient.users.getUser({ token, userId: 'me' });
+            const { proxy: { password } } = await apifyClient.user().get();
             if (this.password) {
                 if (this.password !== password) {
                     this.log.warning('The Apify Proxy password you provided belongs to'
