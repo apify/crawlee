@@ -1,7 +1,7 @@
 import ow from 'ow';
 import { URL } from 'url';
 import log from '../utils_log';
-import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
+import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../storages/request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
 /* eslint-disable import/named,no-unused-vars,import/order */
 import { Page, Request as PuppeteerRequest, Target } from 'puppeteer';

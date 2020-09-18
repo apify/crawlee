@@ -1,11 +1,11 @@
 import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
-import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../build/key_value_store';
-import * as utils from '../build/utils';
-import * as Apify from '../build/index';
-import { expectDirEmpty, expectDirNonEmpty } from './_helper';
-import LocalStorageDirEmulator from './local_storage_dir_emulator';
+import { KeyValueStoreLocal, KeyValueStore, maybeStringify, getFileNameRegexp, LOCAL_STORAGE_SUBDIR } from '../../build/storages/key_value_store';
+import * as utils from '../../build/utils';
+import * as Apify from '../../build';
+import { expectDirEmpty, expectDirNonEmpty } from '../_helper';
+import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
 const { apifyClient } = utils;
 

@@ -1,7 +1,7 @@
 import cheerio from 'cheerio';
 import Apify from '../../build';
 import { enqueueLinks } from '../../build/enqueue_links/enqueue_links';
-import { RequestQueue } from '../../build/request_queue';
+import { RequestQueue } from '../../build/storages/request_queue';
 
 const { utils: { log } } = Apify;
 

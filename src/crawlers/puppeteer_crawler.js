@@ -15,7 +15,7 @@ import { HandleFailedRequest } from './basic_crawler';
 import { PuppeteerPoolOptions, LaunchPuppeteerFunction } from '../puppeteer_pool';
 import Request from '../request'; // eslint-disable-line no-unused-vars
 import { RequestList } from '../request_list'; // eslint-disable-line no-unused-vars
-import { RequestQueue } from '../request_queue'; // eslint-disable-line no-unused-vars
+import { RequestQueue } from '../storages/request_queue'; // eslint-disable-line no-unused-vars
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line no-unused-vars,import/named
 import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars

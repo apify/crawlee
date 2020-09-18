@@ -4,7 +4,7 @@ import log from '../build/utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import { deserializeArray } from '../build/serialization';
 import Apify from '../build/index';
-import * as keyValueStore from '../build/key_value_store';
+import * as keyValueStore from '../build/storages/key_value_store';
 import * as utils from '../build/utils';
 import * as requestUtils from '../build/utils_request';
 

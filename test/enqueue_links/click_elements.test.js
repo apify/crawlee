@@ -1,5 +1,5 @@
 import Apify from '../../build';
-import { RequestQueue } from '../../build/request_queue';
+import { RequestQueue } from '../../build/storages/request_queue';
 import { clickElements, clickElementsAndInterceptNavigationRequests, isTargetRelevant } from '../../build/enqueue_links/click_elements';
 
 describe('enqueueLinksByClickingElements()', () => {

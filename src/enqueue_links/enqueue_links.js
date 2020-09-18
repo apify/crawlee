@@ -8,7 +8,7 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Page } from 'puppeteer';
-import { RequestQueue, QueueOperationInfo } from '../request_queue';
+import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestTransform } from './shared';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 

@@ -2,17 +2,10 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
-import {
-    addCharsetToContentType, apifyClient, openRemoteStorage, openLocalStorage, ensureTokenOrLocalStorageEnvExists,
-} from './utils';
-import { APIFY_API_BASE_URL } from './constants';
-import globalCache from './global_cache';
-import log from './utils_log';
-
-const MAX_OPENED_STORES = 1000;
-
-const { keyValueStores } = apifyClient;
-const storesCache = globalCache.create('key-value-store-cache', MAX_OPENED_STORES); // Open key-value stores are stored here.
+import { APIFY_API_BASE_URL } from '../constants';
+import { openStorage } from './storages_shared';
+import { addCharsetToContentType } from '../utils';
+import log from '../utils_log';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -110,12 +103,17 @@ export const maybeStringify = (value, options) => {
  */
 export class KeyValueStore {
     /**
-     * @param {string} storeId
-     * @param {string} storeName
+     * @param {object} options
+     * @param {string} options.id
+     * @param {string} [options.name]
+     * @param {ApifyClient|ApifyStorageLocal} options.client
+     * @param {boolean} options.isLocal
      */
-    constructor(storeId, storeName) {
-        this.storeId = storeId;
-        this.storeName = storeName;
+    constructor(options) {
+        this.id = options.id;
+        this.name = options.name;
+        this.client = options.client;
+        this.isLocal = options.isLocal;
         this.log = log.child({ prefix: 'KeyValueStore' });
     }
 

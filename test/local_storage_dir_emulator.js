@@ -3,7 +3,7 @@ import { LOCAL_STORAGE_SUBDIRS, LOCAL_ENV_VARS, ENV_VARS } from 'apify-shared/co
 import fs from 'fs-extra';
 import path from 'path';
 import log from '../build/utils_log';
-import globalCache from '../build/global_cache';
+import cacheContainer from '../build/cache_container';
 
 const LOCAL_EMULATION_DIR = path.join(__dirname, '..', 'tmp', 'local-emulation-dir');
 
@@ -27,7 +27,7 @@ class LocalStorageDirEmulator {
     }
 
     async init(dirName = cryptoRandomObjectId(10)) {
-        globalCache.clearAll();
+        cacheContainer.clearAllCaches();
         const localStorageDir = path.resolve(LOCAL_EMULATION_DIR, dirName);
         await fs.ensureDir(localStorageDir);
         // prepare structure

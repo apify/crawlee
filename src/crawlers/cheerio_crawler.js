@@ -23,7 +23,7 @@ import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
-import { RequestQueue } from '../request_queue';
+import { RequestQueue } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { RequestAsBrowserOptions } from '../utils_request';
