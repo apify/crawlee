@@ -3,7 +3,7 @@ import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
 import { APIFY_API_BASE_URL } from '../constants';
-import { openStorage } from './storages_shared';
+import StorageManager from './storage_manager';
 import { addCharsetToContentType } from '../utils';
 import log from '../utils_log';
 
@@ -114,6 +114,7 @@ export class KeyValueStore {
         this.name = options.name;
         this.client = options.client;
         this.isLocal = options.isLocal;
+        this.client = options.client.keyValueStore(this.id);
         this.log = log.child({ prefix: 'KeyValueStore' });
     }
 
@@ -147,15 +148,14 @@ export class KeyValueStore {
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
-    getValue(key) {
-        ow(key, ow.string);
+    async getValue(key) {
+        ow(key, ow.string.nonEmpty);
 
         // TODO: Perhaps we should add options.contentType or options.asBuffer/asString
         // to enforce the representation of value
+        const record = await this.client.getRecord(key);
 
-        return keyValueStores
-            .getRecord({ storeId: this.storeId, key })
-            .then((output) => (output ? output.body : null));
+        return record ? record.body : null;
     }
 
     /**
@@ -206,6 +206,7 @@ export class KeyValueStore {
      *
      */
     setValue(key, value, options = {}) {
+        ow(key, ow.string.nonEmpty);
         ow(key, ow.string.validate((k) => ({
             validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
             message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
@@ -221,15 +222,14 @@ export class KeyValueStore {
         const optionsCopy = { ...options };
 
         // In this case delete the record.
-        if (value === null) return keyValueStores.deleteRecord({ storeId: this.storeId, key });
+        if (value === null) return this.client.deleteRecord(key);
 
         value = maybeStringify(value, optionsCopy);
 
         // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
-        return keyValueStores.putRecord({
-            storeId: this.storeId,
+        return this.client.setRecord({
             key,
-            body: value,
+            value,
             contentType: addCharsetToContentType(optionsCopy.contentType),
         });
     }
@@ -241,9 +241,9 @@ export class KeyValueStore {
      * @return {Promise<void>}
      */
     async drop() {
-        await keyValueStores.deleteStore({ storeId: this.storeId });
-        storesCache.remove(this.storeId);
-        if (this.storeName) storesCache.remove(this.storeName);
+        await this.client.delete();
+        const manager = new StorageManager(KeyValueStore);
+        manager.closeStorage(this);
     }
 
     /**
@@ -254,7 +254,7 @@ export class KeyValueStore {
      * @return {string}
      */
     getPublicUrl(key) {
-        return `${APIFY_API_BASE_URL}/key-value-stores/${this.storeId}/records/${key}`;
+        return `${APIFY_API_BASE_URL}/key-value-stores/${this.id}/records/${key}`;
     }
 
     /**
@@ -288,7 +288,7 @@ export class KeyValueStore {
             exclusiveStartKey: ow.optional.string,
         }));
 
-        const response = await keyValueStores.listKeys({ storeId: this.storeId, exclusiveStartKey });
+        const response = await this.client.listKeys({ exclusiveStartKey });
         const { nextExclusiveStartKey, isTruncated, items } = response;
         for (const item of items) {
             await iteratee(item.key, index++, { size: item.size });
@@ -298,24 +298,6 @@ export class KeyValueStore {
             : undefined; // [].forEach() returns undefined.
     }
 }
-
-/**
- * Helper function that first requests key-value store by ID and if store doesn't exist then gets it by name.
- *
- * @ignore
- */
-const getOrCreateKeyValueStore = (storeIdOrName) => {
-    return apifyClient
-        .keyValueStores
-        .getStore({ storeId: storeIdOrName })
-        .then((existingStore) => {
-            if (existingStore) return existingStore;
-
-            return apifyClient
-                .keyValueStores
-                .getOrCreateStore({ storeName: storeIdOrName });
-        });
-};
 
 /**
  * Opens a key-value store and returns a promise resolving to an instance of the {@link KeyValueStore} class.
@@ -338,18 +320,14 @@ const getOrCreateKeyValueStore = (storeIdOrName) => {
  * @name openKeyValueStore
  * @function
  */
-export const openKeyValueStore = (storeIdOrName, options = {}) => {
+export const openKeyValueStore = async (storeIdOrName, options = {}) => {
     ow(storeIdOrName, ow.optional.string);
     ow(options, ow.object.exactShape({
         forceCloud: ow.optional.boolean,
     }));
-    ensureTokenOrLocalStorageEnvExists('key-value store');
 
-    const { forceCloud = false } = options;
-
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
-        ? openLocalStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache)
-        : openRemoteStorage(storeIdOrName, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, KeyValueStore, storesCache, getOrCreateKeyValueStore);
+    const manager = new StorageManager(KeyValueStore);
+    return manager.openStorage(storeIdOrName, options);
 };
 
 /**
