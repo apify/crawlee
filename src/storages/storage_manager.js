@@ -49,10 +49,10 @@ class StorageManager {
         }
 
         const cacheKey = this._createCacheKey(idOrName, isLocal);
-        let storage = this.cache.get(cacheKey);
 
+        let storage = this.cache.get(cacheKey);
         if (!storage) {
-            const client = isLocal ? apifyStorageLocal : apifyClient;
+            const client = isLocal ? await apifyStorageLocal : apifyClient;
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
             storage = new this.StorageConstructor({
                 id: storageObject.id,
