@@ -112,7 +112,6 @@ export class KeyValueStore {
     constructor(options) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client;
         this.isLocal = options.isLocal;
         this.client = options.client.keyValueStore(this.id);
         this.log = log.child({ prefix: 'KeyValueStore' });

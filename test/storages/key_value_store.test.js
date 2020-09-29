@@ -341,7 +341,7 @@ describe('KeyValueStore remote', () => {
 
     describe('getFileNameRegexp()', () => {
 
-        function getFileNameRegexp(key) {
+        const getFileNameRegexp = (key) => {
             const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             return new RegExp(`^${safeKey}\\.[a-z0-9]+$`);
         }
@@ -390,15 +390,43 @@ describe('KeyValueStore remote', () => {
         test('should work remotely', async () => {
             const store = new KeyValueStore({
                 id: 'my-store-id-1',
-                name: 'some-name-1',
                 client: apifyClient,
             });
+
+            const mockListKeys = jest.spyOn(store.client, 'listKeys');
+            mockListKeys.mockResolvedValueOnce({
+                    isTruncated: true,
+                    nextExclusiveStartKey: 'key2',
+                    items: [
+                        { key: 'key1', size: 1 },
+                        { key: 'key2', size: 2 },
+                    ],
+                });
+
+            mockListKeys.mockResolvedValueOnce({
+                    isTruncated: true,
+                    nextExclusiveStartKey: 'key4',
+                    items: [
+                        { key: 'key3', size: 3 },
+                        { key: 'key4', size: 4 },
+                    ],
+                });
 
             const results = [];
             await store.forEachKey(async (key, index, info) => {
                 results.push([key, index, info]);
             }, { exclusiveStartKey: 'key0' });
 
+            expect(mockListKeys).toHaveBeenCalledTimes(2);
+            expect(mockListKeys).toHaveBeenNthCalledWith(1, { exclusiveStartKey: 'key0' });
+            expect(mockListKeys).toHaveBeenNthCalledWith(2, { exclusiveStartKey: 'key4' });
+
+            expect(results).toHaveLength(5);
+            results.forEach((r, i) => {
+                expect(r[2]).toEqual({ size: i + 1 });
+                expect(r[1]).toEqual(i);
+                expect(r[0]).toEqual(`key${i + 1}`);
+            });
         });
 
     });
