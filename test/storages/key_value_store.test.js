@@ -1,6 +1,5 @@
 import {
     ENV_VARS,
-    KEY_VALUE_STORE_KEYS
 } from 'apify-shared/consts';
 import { apifyClient } from '../../build/utils';
 import {
@@ -9,25 +8,12 @@ import {
 } from '../../build/storages/key_value_store';
 import StorageManager from '../../build/storages/storage_manager';
 import * as Apify from '../../build';
-import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
-//jest.mock('../../build/storages/storage_manager');
+jest.mock('../../build/storages/storage_manager');
 
 describe('KeyValueStore remote', () => {
-    let localStorageEmulator;
-    let localStorageDir;
-
-    beforeAll(async () => {
-        localStorageEmulator = new LocalStorageDirEmulator();
-    });
-
     beforeEach(async () => {
         jest.clearAllMocks();
-        localStorageDir = await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
     });
 
     test('openKeyValueStore should open storage', async () => {
@@ -112,87 +98,69 @@ describe('KeyValueStore remote', () => {
 
     describe('getValue', () => {
         test('throws on invalid args', async () => {
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '1234';
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
-            await expect(Apify.getValue()).rejects.toThrow('Expected argument to be of type `string` but received type `undefined`');
-            await expect(Apify.getValue({})).rejects.toThrow('Expected argument to be of type `string` but received type `Object`');
-            await expect(Apify.getValue(null)).rejects.toThrow('Expected argument to be of type `string` but received type `null`');
-            await expect(Apify.getValue('')).rejects.toThrow('Expected string to not be empty');
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            const store = new KeyValueStore({
+                id: 'some-id-1',
+                client: apifyClient,
+            });
+
+            await expect(store.getValue()).rejects.toThrow('Expected argument to be of type `string` but received type `undefined`');
+            await expect(store.getValue({})).rejects.toThrow('Expected argument to be of type `string` but received type `Object`');
+            await expect(store.getValue(null)).rejects.toThrow('Expected argument to be of type `string` but received type `null`');
+            await expect(store.getValue('')).rejects.toThrow('Expected string to not be empty');
         });
-
-        test(
-            'throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage',
-            async () => {
-                delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
-                delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-                process.env[ENV_VARS.TOKEN] = 'xxx';
-
-                const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
-                await expect(Apify.getValue('KEY')).rejects.toThrow(errMsg);
-
-                delete process.env[ENV_VARS.TOKEN];
-            },
-        );
     });
 
     describe('setValue', () => {
         test('throws on invalid args', async () => {
-            process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID] = '12345';
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
-
-            await expect(Apify.setValue()).rejects.toThrow('Expected argument to be of type `string` but received type `undefined`');
-            await expect(Apify.setValue('', null)).rejects.toThrow('Expected string to not be empty');
-            await expect(Apify.setValue('', 'some value')).rejects.toThrow('Expected string to not be empty');
-            await expect(Apify.setValue({}, 'some value')).rejects.toThrow('Expected argument to be of type `string` but received type `Object`');
-            await expect(Apify.setValue(123, 'some value')).rejects.toThrow('Expected argument to be of type `string` but received type `number`');
+            const store = new KeyValueStore({
+                id: 'some-id-1',
+                client: apifyClient,
+            });
+            await expect(async () => store.setValue()).rejects.toThrow('Expected argument to be of type `string` but received type `undefined`');
+            await expect(async () => store.setValue('', null)).rejects.toThrow('Expected string to not be empty');
+            await expect(async () => store.setValue('', 'some value')).rejects.toThrow('Expected string to not be empty');
+            await expect(async () => store.setValue({}, 'some value'))
+                .rejects.toThrow('Expected argument to be of type `string` but received type `Object`');
+            await expect(async () => store.setValue(123, 'some value'))
+                .rejects.toThrow('Expected argument to be of type `string` but received type `number`');
 
             const valueErrMsg = 'The "value" parameter must be a String or Buffer when "options.contentType" is specified';
-            await expect(Apify.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
-            await expect(Apify.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
-            await expect(Apify.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
+            await expect(async () => store.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
+            await expect(async () => store.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
+            await expect(async () => store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
 
-            await expect(Apify.setValue('key', {}, 123)).rejects.toThrow('Expected argument to be of type `object` but received type `number`');
-            await expect(Apify.setValue('key', {}, 'bla/bla')).rejects.toThrow('Expected argument to be of type `object` but received type `string`');
-            await expect(Apify.setValue('key', {}, true)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
+            await expect(async () => store.setValue('key', {}, 123))
+                .rejects.toThrow('Expected argument to be of type `object` but received type `number`');
+            await expect(async () => store.setValue('key', {}, 'bla/bla'))
+                .rejects.toThrow('Expected argument to be of type `object` but received type `string`');
+            await expect(async () => store.setValue('key', {}, true))
+                .rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
 
             const circularObj = {};
             circularObj.xxx = circularObj;
             const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
             const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
                 + 'Make sure you\'re not trying to stringify an undefined value.';
-            await expect(Apify.setValue('key', circularObj)).rejects.toThrow(circularErrMsg);
-            await expect(Apify.setValue('key', undefined)).rejects.toThrow(undefinedErrMsg);
-            await expect(Apify.setValue('key')).rejects.toThrow(undefinedErrMsg);
+            await expect(async () => store.setValue('key', circularObj)).rejects.toThrow(circularErrMsg);
+            await expect(async () => store.setValue('key', undefined)).rejects.toThrow(undefinedErrMsg);
+            await expect(async () => store.setValue('key')).rejects.toThrow(undefinedErrMsg);
 
             const contTypeRedundantErrMsg = 'Expected property string `contentType` to not be empty in object';
-            await expect(Apify.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow('The "value" parameter must be a String or Buffer when "options.contentType" is specified.');
-            await expect(Apify.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
-            await expect(Apify.setValue('key', null, { contentType: {} }))
+            await expect(async () => store.setValue('key', null, { contentType: 'image/png' }))
+                .rejects.toThrow('The "value" parameter must be a String or Buffer when "options.contentType" is specified.');
+            await expect(async () => store.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
+            await expect(async () => store.setValue('key', null, { contentType: {} }))
                 .rejects.toThrow('The "value" parameter must be a String or Buffer when "options.contentType" is specified.');
 
-            await expect(Apify.setValue('key', 'value', { contentType: 123 })).rejects.toThrow('Expected property `contentType` to be of type `string` but received type `number` in object');
-            await expect(Apify.setValue('key', 'value', { contentType: {} })).rejects.toThrow('Expected property `contentType` to be of type `string` but received type `Object` in object');
-            await expect(Apify.setValue('key', 'value', { contentType: new Date() })).rejects.toThrow('Expected property `contentType` to be of type `string` but received type `Date` in object');
-            await expect(Apify.setValue('key', 'value', { contentType: '' }))
+            await expect(async () => store.setValue('key', 'value', { contentType: 123 }))
+                .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `number` in object');
+            await expect(async () => store.setValue('key', 'value', { contentType: {} }))
+                .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `Object` in object');
+            await expect(async () => store.setValue('key', 'value', { contentType: new Date() }))
+                .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `Date` in object');
+            await expect(async () => store.setValue('key', 'value', { contentType: '' }))
                 .rejects.toThrow('Expected property string `contentType` to not be empty in object');
-
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
-
-        test(
-            'throws if APIFY_DEFAULT_KEY_VALUE_STORE_ID env var is not defined and we use cloud storage',
-            async () => {
-                delete process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-                delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
-                process.env[ENV_VARS.TOKEN] = 'xxx';
-
-                const errMsg = 'The \'APIFY_DEFAULT_KEY_VALUE_STORE_ID\' environment variable is not defined';
-                await expect(Apify.setValue('KEY', {})).rejects.toThrow(errMsg);
-
-                delete process.env[ENV_VARS.TOKEN];
-            },
-        );
 
         test('throws on invalid key', async () => {
             const store = new KeyValueStore({
@@ -222,7 +190,6 @@ describe('KeyValueStore remote', () => {
             }
         });
 
-
         test('correctly adds charset to content type', async () => {
             const store = new KeyValueStore({
                 id: 'my-store-id-1',
@@ -243,7 +210,6 @@ describe('KeyValueStore remote', () => {
             });
         });
 
-
         test('correctly passes object values as JSON', async () => {
             const store = new KeyValueStore({
                 id: 'my-store-id-1',
@@ -255,7 +221,6 @@ describe('KeyValueStore remote', () => {
             const mockSetRecord = jest
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
-
 
             await store.setValue('key-1', record);
 
@@ -340,11 +305,10 @@ describe('KeyValueStore remote', () => {
     });
 
     describe('getFileNameRegexp()', () => {
-
         const getFileNameRegexp = (key) => {
             const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             return new RegExp(`^${safeKey}\\.[a-z0-9]+$`);
-        }
+        };
 
         test('should work', () => {
             const key = 'hel.lo';
@@ -360,29 +324,8 @@ describe('KeyValueStore remote', () => {
                 'hel.lo',
                 'helXlo.bin',
             ];
-            const matched = filenames.reduce((count, name) =>  (getFileNameRegexp(key).test(name) ? ++count : count), 0);
+            const matched = filenames.reduce((count, name) => (getFileNameRegexp(key).test(name) ? ++count : count), 0);
             expect(matched).toBe(3);
-        });
-    });
-
-    describe('getInput', () => {
-        test('should work', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
-            const defaultStore = await Apify.openKeyValueStore();
-            // Uses default value.
-            const oldGet = defaultStore.getValue;
-            defaultStore.getValue = async (key) => expect(key).toEqual(KEY_VALUE_STORE_KEYS.INPUT);
-            await Apify.getInput();
-
-            // Uses value from env var.
-            process.env[ENV_VARS.INPUT_KEY] = 'some-value';
-            defaultStore.getValue = async (key) => expect(key).toBe('some-value');
-            await Apify.getInput();
-
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
-            delete process.env[ENV_VARS.INPUT_KEY];
-
-            defaultStore.getValue = oldGet;
         });
     });
 
@@ -395,31 +338,38 @@ describe('KeyValueStore remote', () => {
 
             const mockListKeys = jest.spyOn(store.client, 'listKeys');
             mockListKeys.mockResolvedValueOnce({
-                    isTruncated: true,
-                    nextExclusiveStartKey: 'key2',
-                    items: [
-                        { key: 'key1', size: 1 },
-                        { key: 'key2', size: 2 },
-                    ],
-                });
+                isTruncated: true,
+                nextExclusiveStartKey: 'key2',
+                items: [
+                    { key: 'key1', size: 1 },
+                    { key: 'key2', size: 2 },
+                ],
+            });
 
             mockListKeys.mockResolvedValueOnce({
-                    isTruncated: true,
-                    nextExclusiveStartKey: 'key4',
-                    items: [
-                        { key: 'key3', size: 3 },
-                        { key: 'key4', size: 4 },
-                    ],
-                });
+                isTruncated: true,
+                nextExclusiveStartKey: 'key4',
+                items: [
+                    { key: 'key3', size: 3 },
+                    { key: 'key4', size: 4 },
+                ],
+            });
+
+            mockListKeys.mockResolvedValueOnce({
+                isTruncated: false,
+                nextExclusiveStartKey: null,
+                items: [{ key: 'key5', size: 5 }],
+            });
 
             const results = [];
             await store.forEachKey(async (key, index, info) => {
                 results.push([key, index, info]);
             }, { exclusiveStartKey: 'key0' });
 
-            expect(mockListKeys).toHaveBeenCalledTimes(2);
+            expect(mockListKeys).toHaveBeenCalledTimes(3);
             expect(mockListKeys).toHaveBeenNthCalledWith(1, { exclusiveStartKey: 'key0' });
-            expect(mockListKeys).toHaveBeenNthCalledWith(2, { exclusiveStartKey: 'key4' });
+            expect(mockListKeys).toHaveBeenNthCalledWith(2, { exclusiveStartKey: 'key2' });
+            expect(mockListKeys).toHaveBeenNthCalledWith(3, { exclusiveStartKey: 'key4' });
 
             expect(results).toHaveLength(5);
             results.forEach((r, i) => {
@@ -428,6 +378,5 @@ describe('KeyValueStore remote', () => {
                 expect(r[0]).toEqual(`key${i + 1}`);
             });
         });
-
     });
 });
