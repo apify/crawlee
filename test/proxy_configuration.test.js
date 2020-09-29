@@ -49,7 +49,7 @@ describe('ProxyConfiguration', () => {
         const url = basicOptsProxyUrl;
 
         const proxyInfo = {
-            sessionId,
+            sessionId: `${sessionId}`,
             url,
             groups,
             countryCode,
@@ -79,26 +79,26 @@ describe('ProxyConfiguration', () => {
     test('should throw on invalid arguments structure', () => {
         // Group value
         const invalidGroups = ['GROUP1*'];
-        let opts = Object.assign({}, basicOpts);
+        let opts = { ...basicOpts };
         opts.groups = invalidGroups;
         try {
             // eslint-disable-next-line no-unused-vars
             const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('The provided proxy group name "GROUP1*"');
+            expect(err.message).toMatch('got `GROUP1*` in object');
         }
 
         // Country code
         const invalidCountryCode = 'CZE';
-        opts = Object.assign({}, basicOpts);
+        opts = { ...basicOpts };
         opts.countryCode = invalidCountryCode;
         try {
             // eslint-disable-next-line no-unused-vars
             const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('The provided country code "CZE"');
+            expect(err.message).toMatch('got `CZE` in object');
         }
     });
 
@@ -108,7 +108,6 @@ describe('ProxyConfiguration', () => {
         expect(() => new ProxyConfiguration({ groups: ['ffff', 'ff-hf', 'ccc'] })).toThrowError();
         expect(() => new ProxyConfiguration({ groups: ['ffff', 'fff', 'cc$c'] })).toThrowError();
         expect(() => new ProxyConfiguration({ apifyProxyGroups: [new Date()] })).toThrowError();
-
 
         expect(() => new ProxyConfiguration({ countryCode: new Date() })).toThrow();
         expect(() => new ProxyConfiguration({ countryCode: 'aa' })).toThrow();
@@ -283,7 +282,7 @@ describe('ProxyConfiguration', () => {
                 });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toMatch('must not be empty');
+                expect(err.message).toMatch('Expected property array `proxyUrls` to not be empty');
             }
         });
 
@@ -295,7 +294,7 @@ describe('ProxyConfiguration', () => {
                 });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toEqual('The provided proxy URL "http://proxy.com:1111*invalid_url" is not a valid URL.');
+                expect(err.message).toMatch('Expected property string `t` to be a URL, got `http://proxy.com:1111*invalid_url`');
             }
         });
     });
