@@ -1,49 +1,22 @@
-import fs from 'fs-extra';
-import path from 'path';
-import { apifyClient } from '../../build/utils';
-import { leftpad } from 'apify-shared/utilities';
 import {
     ENV_VARS,
     MAX_PAYLOAD_SIZE_BYTES,
 } from 'apify-shared/consts';
+import { apifyClient } from '../../build/utils';
 import {
     Dataset,
     checkAndSerialize,
     chunkBySize,
-    LOCAL_FILENAME_DIGITS,
-    LOCAL_STORAGE_SUBDIR,
 } from '../../build/storages/dataset';
-import * as utils from '../../build/utils';
 import * as Apify from '../../build';
-import StorageManager from "../../build/storages/storage_manager";
-import LocalStorageDirEmulator from "../local_storage_dir_emulator";
+import StorageManager from '../../build/storages/storage_manager';
 
-//jest.mock('../../build/storages/storage_manager');
+jest.mock('../../build/storages/storage_manager');
 
 describe('dataset', () => {
-    let localStorageEmulator;
-    let localStorageDir;
-
-    beforeAll(async () => {
-        localStorageEmulator = new LocalStorageDirEmulator();
-    });
-
     beforeEach(async () => {
         jest.clearAllMocks();
-        localStorageDir = await localStorageEmulator.init();
     });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
-    });
-
-    const read = (datasetName, index) => {
-        const fileName = `${leftpad(index, LOCAL_FILENAME_DIGITS, 0)}.json`;
-        const filePath = path.join('apify_storage', LOCAL_STORAGE_SUBDIR, datasetName, fileName);
-        const str = fs.readFileSync(path.resolve(filePath));
-
-        return JSON.parse(str);
-    };
 
     describe('remote', () => {
         const mockData = (bytes) => 'x'.repeat(bytes);
@@ -69,11 +42,10 @@ describe('dataset', () => {
             expect(mockOpenStorage).toHaveBeenCalledTimes(1);
         });
 
-
         test('should succesfully save simple data', async () => {
             const dataset = new Dataset({
-               id: 'some-id',
-               client: apifyClient,
+                id: 'some-id',
+                client: apifyClient,
             });
 
             const mockPushItems = jest
@@ -84,7 +56,7 @@ describe('dataset', () => {
 
             expect(mockPushItems).toHaveBeenCalledTimes(1);
             expect(mockPushItems).toHaveBeenCalledWith(
-                JSON.stringify({ foo: 'bar' })
+                JSON.stringify({ foo: 'bar' }),
             );
 
             const mockPushItems2 = jest
@@ -98,9 +70,8 @@ describe('dataset', () => {
 
             expect(mockPushItems2).toHaveBeenCalledTimes(2);
             expect(mockPushItems2).toHaveBeenCalledWith(
-                 JSON.stringify([{ foo: 'hotel;' }, { foo: 'restaurant' }])
+                JSON.stringify([{ foo: 'hotel;' }, { foo: 'restaurant' }]),
             );
-
 
             const mockDelete = jest
                 .spyOn(dataset.client, 'delete')
@@ -130,8 +101,8 @@ describe('dataset', () => {
             ]);
 
             expect(mockPushItems).toHaveBeenCalledTimes(2);
-            expect(mockPushItems).toHaveBeenNthCalledWith(1,  JSON.stringify([{ foo: half }]));
-            expect(mockPushItems).toHaveBeenNthCalledWith(2,  JSON.stringify([{ bar: half }]));
+            expect(mockPushItems).toHaveBeenNthCalledWith(1, JSON.stringify([{ foo: half }]));
+            expect(mockPushItems).toHaveBeenNthCalledWith(2, JSON.stringify([{ bar: half }]));
 
             const mockDelete = jest
                 .spyOn(dataset.client, 'delete')
@@ -163,8 +134,8 @@ describe('dataset', () => {
             await dataset.pushData(data);
 
             expect(mockPushItems).toHaveBeenCalledTimes(2);
-            expect(mockPushItems).toHaveBeenNthCalledWith(1,  JSON.stringify(expectedFirst));
-            expect(mockPushItems).toHaveBeenNthCalledWith(2,  JSON.stringify(expectedSecond));
+            expect(mockPushItems).toHaveBeenNthCalledWith(1, expectedFirst);
+            expect(mockPushItems).toHaveBeenNthCalledWith(2, expectedSecond);
 
             const mockDelete = jest
                 .spyOn(dataset.client, 'delete')
@@ -224,7 +195,7 @@ describe('dataset', () => {
         test('getData() should work', async () => {
             const dataset = new Dataset({
                 id: 'some-id',
-                client: apifyClient
+                client: apifyClient,
             });
 
             const expected = {
@@ -249,8 +220,8 @@ describe('dataset', () => {
 
             expect(result).toEqual(expected);
             let e;
-            let spy = jest.spyOn(dataset.client, 'listItems')
-                .mockImplementation(() => { throw new Error('Cannot create a string longer than 0x3fffffe7 characters') });
+            const spy = jest.spyOn(dataset.client, 'listItems')
+                .mockImplementation(() => { throw new Error('Cannot create a string longer than 0x3fffffe7 characters'); });
             try {
                 await dataset.getData();
             } catch (err) {
@@ -285,7 +256,7 @@ describe('dataset', () => {
         const getRemoteDataset = () => {
             const dataset = new Dataset({
                 id: 'some-id',
-                client: apifyClient
+                client: apifyClient,
             });
 
             const firstResolve = {
@@ -314,11 +285,11 @@ describe('dataset', () => {
 
             const restoreAndVerify = () => {
                 expect(mockListItems).toHaveBeenCalledTimes(2);
-                expect(mockListItems).toHaveBeenNthCalledWith(1,  {
+                expect(mockListItems).toHaveBeenNthCalledWith(1, {
                     limit: 2,
                     offset: 0,
                 });
-                expect(mockListItems).toHaveBeenNthCalledWith(2,  {
+                expect(mockListItems).toHaveBeenNthCalledWith(2, {
                     limit: 2,
                     offset: 2,
                 });
@@ -437,7 +408,7 @@ describe('dataset', () => {
             const dataset = new Dataset({
                 id: 'some-id',
                 name: 'some-name',
-                client: apifyClient
+                client: apifyClient,
             });
             const mockListItems = jest.spyOn(dataset.client, 'listItems');
             mockListItems.mockResolvedValueOnce({
@@ -469,11 +440,11 @@ describe('dataset', () => {
             });
 
             expect(mockListItems).toHaveBeenCalledTimes(2);
-            expect(mockListItems).toHaveBeenNthCalledWith(1,  {
+            expect(mockListItems).toHaveBeenNthCalledWith(1, {
                 limit: 2,
                 offset: 0,
             });
-            expect(mockListItems).toHaveBeenNthCalledWith(2,  {
+            expect(mockListItems).toHaveBeenNthCalledWith(2, {
                 limit: 2,
                 offset: 2,
             });
@@ -501,40 +472,22 @@ describe('dataset', () => {
         );
 
         test('throws on invalid args', async () => {
-            process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-8';
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
-
-            await expect(Apify.pushData()).rejects.toThrow('Expected argument to be of type `object` but received type `undefined`');
-            await expect(Apify.pushData('')).rejects.toThrow('Expected argument to be of type `object` but received type `string`');
-            await expect(Apify.pushData(123)).rejects.toThrow('Expected argument to be of type `object` but received type `number`');
-            await expect(Apify.pushData(true)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
-            await expect(Apify.pushData(false)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
-            await expect(Apify.pushData(() => {})).rejects.toThrow('Data item is not serializable to JSON.\n' +
-                'Cause: Expected object `item` to be a plain object');
+            const dataset = new Dataset({
+                id: 'some-id',
+                client: apifyClient,
+            });
+            await expect(dataset.pushData()).rejects.toThrow('Expected argument to be of type `object` but received type `undefined`');
+            await expect(dataset.pushData('')).rejects.toThrow('Expected argument to be of type `object` but received type `string`');
+            await expect(dataset.pushData(123)).rejects.toThrow('Expected argument to be of type `object` but received type `number`');
+            await expect(dataset.pushData(true)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
+            await expect(dataset.pushData(false)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
+            await expect(dataset.pushData(() => {})).rejects.toThrow('Data item is not serializable to JSON.\n'
+                + 'Cause: Expected object `item` to be a plain object');
 
             const circularObj = {};
             circularObj.xxx = circularObj;
             const jsonErrMsg = 'Converting circular structure to JSON';
-            await expect(Apify.pushData(circularObj)).rejects.toThrow(jsonErrMsg);
-
-            delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
-        });
-
-
-
-        test('correctly stores records', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
-            process.env[ENV_VARS.DEFAULT_DATASET_ID] = 'some-id-9';
-
-            await Apify.pushData({ foo: 'bar' });
-            await Apify.pushData({ foo: 'hotel' });
-
-            expect(read('some-id-9', 1)).toEqual({ foo: 'bar' });
-            expect(read('some-id-9', 2)).toEqual({ foo: 'hotel' });
-
-            delete process.env[ENV_VARS.DEFAULT_DATASET_ID];
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            await expect(dataset.pushData(circularObj)).rejects.toThrow(jsonErrMsg);
         });
     });
 
