@@ -42,7 +42,7 @@ describe('dataset', () => {
             expect(mockOpenStorage).toHaveBeenCalledTimes(1);
         });
 
-        test('should succesfully save simple data', async () => {
+        test('should work', async () => {
             const dataset = new Dataset({
                 id: 'some-id',
                 client: apifyClient,
@@ -103,15 +103,6 @@ describe('dataset', () => {
             expect(mockPushItems).toHaveBeenCalledTimes(2);
             expect(mockPushItems).toHaveBeenNthCalledWith(1, JSON.stringify([{ foo: half }]));
             expect(mockPushItems).toHaveBeenNthCalledWith(2, JSON.stringify([{ bar: half }]));
-
-            const mockDelete = jest
-                .spyOn(dataset.client, 'delete')
-                .mockResolvedValueOnce(undefined);
-
-            await dataset.drop();
-
-            expect(mockDelete).toHaveBeenCalledTimes(1);
-            expect(mockDelete).toHaveBeenLastCalledWith();
         });
 
         test('should successfully save lots of small data', async () => {
@@ -136,15 +127,6 @@ describe('dataset', () => {
             expect(mockPushItems).toHaveBeenCalledTimes(2);
             expect(mockPushItems).toHaveBeenNthCalledWith(1, expectedFirst);
             expect(mockPushItems).toHaveBeenNthCalledWith(2, expectedSecond);
-
-            const mockDelete = jest
-                .spyOn(dataset.client, 'delete')
-                .mockResolvedValueOnce(undefined);
-
-            await dataset.drop();
-
-            expect(mockDelete).toHaveBeenCalledTimes(1);
-            expect(mockDelete).toHaveBeenLastCalledWith();
         });
 
         test('should throw on too large file', async () => {
@@ -157,14 +139,6 @@ describe('dataset', () => {
                 expect(err).toBeInstanceOf(Error);
                 expect(err.message).toMatch('Data item is too large');
             }
-            const mockDelete = jest
-                .spyOn(dataset.client, 'delete')
-                .mockResolvedValueOnce(undefined);
-
-            await dataset.drop();
-
-            expect(mockDelete).toHaveBeenCalledTimes(1);
-            expect(mockDelete).toHaveBeenLastCalledWith();
         });
         test('should throw on too large file in an array', async () => {
             const full = mockData(MAX_PAYLOAD_SIZE_BYTES);
@@ -182,14 +156,6 @@ describe('dataset', () => {
                 expect(err).toBeInstanceOf(Error);
                 expect(err.message).toMatch('Data item at index 3 is too large');
             }
-            const mockDelete = jest
-                .spyOn(dataset.client, 'delete')
-                .mockResolvedValueOnce(undefined);
-
-            await dataset.drop();
-
-            expect(mockDelete).toHaveBeenCalledTimes(1);
-            expect(mockDelete).toHaveBeenLastCalledWith();
         });
 
         test('getData() should work', async () => {
