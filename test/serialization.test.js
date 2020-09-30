@@ -6,11 +6,10 @@ import { serializeArray, deserializeArray, createDeserialize } from '../build/se
 
 const TEST_JSON_PATH = path.join(__dirname, 'data', 'sample.json.gz');
 
-
 const gunzip = util.promisify(zlib.gunzip);
 
 describe('Data Compression:', () => {
-    test('compressData should compress', async () => {
+    test('serializeArray should compress', async () => {
         const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
@@ -25,7 +24,7 @@ describe('Data Compression:', () => {
         expect(receivedArray).toEqual(expectedArray);
     });
 
-    test('decompressData should decompress', async () => {
+    test('deserializeArray should decompress', async () => {
         const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
@@ -37,7 +36,7 @@ describe('Data Compression:', () => {
         expect(receivedArray).toEqual(expectedArray);
     });
 
-    test('compressData + decompressData should produce original data', async () => {
+    test('serializeArray + deserializeArray should produce original data', async () => {
         const data = [];
         for (let i = 0; i < 10000; i++) {
             data.push({ [`${Math.random()}`]: Math.random() });
@@ -47,7 +46,7 @@ describe('Data Compression:', () => {
         expect(decompressed).toEqual(data);
     });
 
-    test('createDecompress should work', async () => {
+    test('createDeserialize should work', async () => {
         const compressedTestJson = await fs.readFile(TEST_JSON_PATH);
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
