@@ -19,10 +19,12 @@ const pipeline = util.promisify(stream.pipeline);
  */
 class ArrayToJson extends stream.Readable {
     constructor(data, options = {}) {
-        super(options);
-        const {
-            batchSize = 10000,
-        } = options;
+        super({
+            ...options,
+            autoDestroy: true,
+            emitClose: true,
+        });
+        const { batchSize = 10000 } = options;
         this.offset = 0;
         this.batchSize = batchSize;
         this.data = data;
@@ -42,10 +44,9 @@ class ArrayToJson extends stream.Readable {
             } else {
                 this.push(']');
                 this.push(null);
-                this.destroy();
             }
         } catch (err) {
-            this.destroy(err);
+            this.emit('error', err);
         }
     }
 }
