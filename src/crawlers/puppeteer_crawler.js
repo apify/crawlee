@@ -216,7 +216,7 @@ class PuppeteerCrawler {
     constructor(options) {
         ow(options, ow.object.exactShape({
             handlePageFunction: ow.function,
-            gotoFunction: ow.function,
+            gotoFunction: ow.optional.function,
             handlePageTimeoutSecs: ow.optional.number,
             gotoTimeoutSecs: ow.optional.number,
 

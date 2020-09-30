@@ -224,7 +224,7 @@ export class RequestList {
         ow(options, ow.object.exactShape({
             sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
             sourcesFunction: ow.optional.function,
-            persistStateKey: ow.optional.function,
+            persistStateKey: ow.optional.string,
             persistRequestsKey: ow.optional.string,
             state: ow.optional.object.exactShape({
                 nextIndex: ow.number,
