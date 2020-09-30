@@ -1,16 +1,11 @@
 import ow from 'ow';
 import * as _ from 'underscore';
-import {
-    MAX_PAYLOAD_SIZE_BYTES,
-    LOCAL_STORAGE_SUBDIRS,
-} from 'apify-shared/consts';
+import { MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import StorageManager from './storage_manager';
 import log from '../utils_log';
 
-
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_FILENAME_DIGITS = 9;
-export const LOCAL_STORAGE_SUBDIR = LOCAL_STORAGE_SUBDIRS.datasets;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
 /**
