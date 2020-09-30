@@ -209,6 +209,15 @@ export class RequestList {
      * @param {RequestListOptions} options All `RequestList` configuration options
      */
     constructor(options = {}) {
+        const {
+            sources,
+            sourcesFunction,
+            persistStateKey,
+            persistRequestsKey,
+            state,
+            keepDuplicateUrls = false,
+        } = options;
+
         if (!(sources || sourcesFunction)) {
             throw new ArgumentError('At least one of "sources" or "sourcesFunction" must be provided.', this.constructor);
         }
@@ -224,15 +233,6 @@ export class RequestList {
             }),
             keepDuplicateUrls: ow.optional.boolean,
         }));
-
-        const {
-            sources,
-            sourcesFunction,
-            persistStateKey,
-            persistRequestsKey,
-            state,
-            keepDuplicateUrls = false,
-        } = options;
 
         this.log = log.child({ prefix: 'RequestList' });
 

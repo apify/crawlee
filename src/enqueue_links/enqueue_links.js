@@ -10,6 +10,8 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
 import { Page } from 'puppeteer';
 import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestTransform } from './shared';
+import PseudoUrl from '../pseudo_url';
+import { validators } from '../validators';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -91,6 +93,17 @@ import { RequestTransform } from './shared';
  * @function
  */
 export async function enqueueLinks(options) {
+    const {
+        page,
+        $,
+        requestQueue,
+        limit,
+        selector = 'a',
+        baseUrl,
+        pseudoUrls,
+        transformRequestFunction,
+    } = options;
+
     if (!page && !$) {
         throw new ArgumentError('One of the parameters "options.page" or "options.$" must be provided!', enqueueLinks);
     }
@@ -104,22 +117,16 @@ export async function enqueueLinks(options) {
         limit: ow.optional.number,
         selector: ow.optional.string,
         baseUrl: ow.optional.string,
-        pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.regExp, ow.object.hasKeys('purl'))),
+        pseudoUrls: ow.any(ow.null, ow.optional.array.ofType(ow.any(
+            ow.string,
+            ow.regExp,
+            ow.object.hasKeys('purl'),
+            ow.object.validate(validators.pseudoUrl),
+        ))),
         transformRequestFunction: ow.optional.function,
     }));
 
     if (baseUrl && page) log.warning('The parameter options.baseUrl can only be used when parsing a Cheerio object. It will be ignored.');
-
-    const {
-        page,
-        $,
-        requestQueue,
-        limit,
-        selector = 'a',
-        baseUrl,
-        pseudoUrls,
-        transformRequestFunction,
-    } = options;
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
