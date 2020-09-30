@@ -54,6 +54,7 @@
         "@apify/http-request": "^2.0.1",
         "@apify/ps-tree": "^1.1.3",
         "@types/cheerio": "^0.22.18",
+        "@types/domhandler": "^2.4.1",
         "@types/node": "^12",
         "@types/puppeteer": "^3.0.0",
         "@types/socket.io": "^2.1.4",
