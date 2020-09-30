@@ -1,3 +1,13 @@
+0.21.5 / 2020/09/02
+====================
+This is a very minor release that fixes some issues that were preventing
+use of the SDK with Node 14.
+
+- Update the request serialization process which is used in `RequestList`
+  to work with Node 10+.
+- Update some TypeScript types that were preventing build due to changes
+  in typed dependencies.
+
 0.21.4 / 2020/09/02
 ====================
 The statistics that you may remember from logs are now persisted in key-value store,
