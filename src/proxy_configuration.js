@@ -154,6 +154,7 @@ export class ProxyConfiguration {
             proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
             password: ow.optional.string,
             newUrlFunction: ow.optional.function,
+            // This is not an actual param, but it's here for legacy purposes.
             useApifyProxy: ow.optional.boolean,
         }));
 
@@ -217,8 +218,8 @@ export class ProxyConfiguration {
      * If you need the URL string only, use {@link ProxyConfiguration.newUrl}.
      * @param {string|number} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
-     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier.
-     *  It's converted to the string and then validated when provided sessionId is type of number. Property sessionId of
+     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
+     *  When the provided sessionId is a number, it's converted to a string. Property sessionId of
      *  {@link ProxyInfo} is always returned as a type string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
@@ -248,8 +249,8 @@ export class ProxyConfiguration {
      * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
      * @param {string|number} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
-     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier.
-     *  It's converted to the string and then validated when provided sessionId is type of number.
+     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
+     *  When the provided sessionId is a number, it's converted to a string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).

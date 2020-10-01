@@ -2,6 +2,7 @@ import { ENV_VARS } from 'apify-shared/consts';
 import sinon from 'sinon';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
+import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 
@@ -116,9 +117,9 @@ describe('PuppeteerCrawler', () => {
                 handlePageSessions.push(session);
                 return Promise.resolve();
             },
-            gotoFunction: async ({ session }) => {
+            gotoFunction: async ({ session, page, request }) => {
                 goToPageSessions.push(session);
-                return Apify.launchPuppeteer();
+                return page.goto(request.url);
             },
         });
 
@@ -162,6 +163,113 @@ describe('PuppeteerCrawler', () => {
         await puppeteerCrawler.run();
         expect(loadedCookies).toHaveLength(4);
         loadedCookies.forEach(cookie => expect(cookie).toEqual('TEST=12321312312'));
+    });
+
+    test('should throw on "blocked" status codes', async () => {
+        const baseUrl = 'https://example.com/';
+        const sources = STATUS_CODES_BLOCKED.map((statusCode) => {
+            return {
+                url: baseUrl + statusCode,
+                userData: { statusCode },
+            };
+        });
+        const requestList = await Apify.openRequestList(null, sources);
+
+        let called = false;
+        const failedRequests = [];
+        const crawler = new Apify.PuppeteerCrawler({
+            requestList,
+            useSessionPool: true,
+            persistCookiesPerSession: false,
+            maxRequestRetries: 0,
+            gotoFunction: async ({ request }) => {
+                return { status: () => request.userData.statusCode };
+            },
+            handlePageFunction: async () => { // eslint-disable-line no-loop-func
+                called = true;
+            },
+            handleFailedRequestFunction: async ({ request }) => {
+                failedRequests.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        expect(failedRequests.length).toBe(STATUS_CODES_BLOCKED.length);
+        failedRequests.forEach((fr) => {
+            const [msg] = fr.errorMessages;
+            expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);
+        });
+        expect(called).toBe(false);
+    });
+
+    test('should throw on goto timeouts (markBad session)', async () => {
+        const baseUrl = 'https://example.com/';
+        const requestList = await Apify.openRequestList(null, [baseUrl]);
+        const gotoTimeoutSecs = 0.001;
+
+        let called = false;
+        const failedRequests = [];
+        const crawler = new Apify.PuppeteerCrawler({
+            requestList,
+            useSessionPool: true,
+            persistCookiesPerSession: false,
+            maxRequestRetries: 0,
+            gotoTimeoutSecs,
+            handlePageFunction: async () => { // eslint-disable-line no-loop-func
+                called = true;
+            },
+            handleFailedRequestFunction: async ({ request }) => {
+                failedRequests.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        expect(failedRequests.length).toBe(1);
+        failedRequests.forEach((fr) => {
+            const [msg] = fr.errorMessages;
+            expect(msg).toContain(`gotoFunction timed out after ${gotoTimeoutSecs} seconds.`);
+        });
+        expect(called).toBe(false);
+    });
+
+    test('should throw on "blocked" status codes (retire session)', async () => {
+        const baseUrl = 'https://example.com/';
+        const sources = STATUS_CODES_BLOCKED.map((statusCode) => {
+            return {
+                url: baseUrl + statusCode,
+                userData: { statusCode },
+            };
+        });
+        const requestList = await Apify.openRequestList(null, sources);
+
+        let called = false;
+        const failedRequests = [];
+        const crawler = new Apify.PuppeteerCrawler({
+            requestList,
+            useSessionPool: true,
+            persistCookiesPerSession: false,
+            maxRequestRetries: 0,
+            gotoFunction: async ({ request }) => {
+                return { status: () => request.userData.statusCode };
+            },
+            handlePageFunction: async () => { // eslint-disable-line no-loop-func
+                called = true;
+            },
+            handleFailedRequestFunction: async ({ request }) => {
+                failedRequests.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        expect(failedRequests.length).toBe(STATUS_CODES_BLOCKED.length);
+        failedRequests.forEach((fr) => {
+            const [msg] = fr.errorMessages;
+            expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);
+        });
+        expect(called).toBe(false);
     });
 
     describe('proxy', () => {

@@ -757,13 +757,14 @@ describe('CheerioCrawler', () => {
                 handlePageFunction: async () => {},
                 handleFailedRequestFunction: ({ request }) => failed.push(request),
             });
-            const oldCall = cheerioCrawler._handleRequestTimeout;
+            const oldCall = cheerioCrawler._handleRequestTimeout.bind(cheerioCrawler);
             cheerioCrawler._handleRequestTimeout = (session) => {
                 sessions.push(session);
-                return oldCall(session).bind(cheerioCrawler);
+                return oldCall(session);
             };
 
             await cheerioCrawler.run();
+            expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 expect(session.errorScore).toEqual(1);
             });
@@ -790,7 +791,7 @@ describe('CheerioCrawler', () => {
                         failed.push(request);
                     },
                 });
-                const oldCall = crawler._throwOnBlockedRequest;
+                const oldCall = crawler._throwOnBlockedRequest.bind(crawler);
                 crawler._throwOnBlockedRequest = (session, statusCode) => {
                     sessions.push(session);
                     return oldCall(session, statusCode);
