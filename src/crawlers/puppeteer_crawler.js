@@ -370,9 +370,20 @@ class PuppeteerCrawler {
             proxyInfo = browserInstance.proxyInfo;
         }
 
-
         try {
-            const response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });
+            let response;
+            try {
+                response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });
+            } catch (err) {
+                // It would be better to compare the instances,
+                // but we don't have access to puppeteer.errors here.
+                if (err.constructor.name === 'TimeoutError') {
+                    this._handleRequestTimeout(session, err.message);
+                }
+            }
+
+            if (this.useSessionPool) this._throwOnBlockedRequest(session, response.status());
+
             await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
 
@@ -415,6 +426,33 @@ class PuppeteerCrawler {
     async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
         const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
         this.log.exception(error, 'Request failed and reached maximum retries', details);
+    }
+
+    /**
+     * Handles timeout request
+     * @param {Session} session
+     * @param {string} errorMessage
+     * @private
+     */
+    _handleRequestTimeout(session, errorMessage) {
+        if (session) session.markBad();
+        const timeoutMillis = errorMessage.match(/(\d+) ms/)[1]; // first capturing group
+        const timeoutSecs = Number(timeoutMillis) / 1000;
+        throw new Error(`gotoFunction timed out after ${timeoutSecs} seconds.`);
+    }
+
+    /**
+     * Handles blocked request
+     * @param {Session} session
+     * @param {number} statusCode
+     * @private
+     */
+    _throwOnBlockedRequest(session, statusCode) {
+        const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
+
+        if (isBlocked) {
+            throw new Error(`Request blocked - received ${statusCode} status code.`);
+        }
     }
 }
 
