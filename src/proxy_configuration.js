@@ -215,7 +215,7 @@ export class ProxyConfiguration {
      * If you need the URL string only, use {@link ProxyConfiguration.newUrl}.
      * @param {string} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
-     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier.
+     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -243,7 +243,7 @@ export class ProxyConfiguration {
      * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
      * @param {string} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
-     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy/datacenter-proxy#session-persistence) identifier.
+     *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
