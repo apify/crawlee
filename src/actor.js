@@ -315,9 +315,7 @@ export const call = async (actId, input, options = {}) => {
 
     // RunAct() options.
     const { build, timeoutSecs, webhooks, memoryMbytes } = options;
-    const runActOpts = {
-        actId,
-    };
+    const runActOpts = {};
     if (build) runActOpts.build = build;
     if (memoryMbytes) runActOpts.memory = memoryMbytes;
     if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
@@ -325,13 +323,13 @@ export const call = async (actId, input, options = {}) => {
     if (input) {
         runActOpts.contentType = options.contentType;
         // NOTE: this function modifies contentType property on options object if needed.
-        runActOpts.body = maybeStringify(input, runActOpts);
+        runActOpts.input = maybeStringify(input, runActOpts);
         runActOpts.contentType = addCharsetToContentType(runActOpts.contentType);
     }
 
     // Run actor.
     const { waitSecs } = options;
-    const run = await apifyClient.actor().start(runActOpts);
+    const run = await apifyClient.actor(actId).start(runActOpts);
     if (waitSecs <= 0) return run; // In this case there is nothing more to do.
 
     // Wait for run to finish.
@@ -340,7 +338,6 @@ export const call = async (actId, input, options = {}) => {
         updatedRun = await waitForRunToFinish({
             actorId: actId,
             runId: run.id,
-            token,
             waitSecs,
         });
     } catch (err) {
@@ -469,7 +466,6 @@ export const callTask = async (taskId, input, options = {}) => {
         updatedRun = await waitForRunToFinish({
             actorId: run.actId,
             runId: run.id,
-            token,
             waitSecs,
         });
     } catch (err) {
