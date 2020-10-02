@@ -1,4 +1,4 @@
-0.21.6 / 2020/09/01
+0.21.6 / 2020/09/02
 ====================
 It appears that `CheerioCrawler` was correctly retiring sessions on timeouts
 and blocked status codes (401, 403, 429), whereas `PuppeteerCrawler` did not.
@@ -6,6 +6,7 @@ Apologies for the omission, this release fixes the problem.
 
 - Fix sessions not being retired on blocked status codes in `PuppeteerCrawler`.
 - Fix sessions not being marked bad on navigation timeouts in `PuppeteerCrawler`.
+- Update `apify-shared` to version `0.5.0`.
 
 0.21.5 / 2020/09/30
 ====================
