@@ -101,10 +101,10 @@ export class SessionPool extends EventEmitter {
         const {
             maxPoolSize = 1000,
 
-            persistStateKeyValueStoreId = null,
+            persistStateKeyValueStoreId,
             persistStateKey = 'SDK_SESSION_POOL_STATE',
 
-            createSessionFunction = null,
+            createSessionFunction,
             sessionOptions = {},
 
             log = defaultLog,

@@ -2,8 +2,11 @@ import path from 'path';
 import _ from 'underscore';
 import sinon from 'sinon';
 import { ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import fs from 'fs';
 import { ApifyCallError } from '../build/errors';
 import { sleep } from '../build/utils';
+import * as utils from '../build/utils';
+import * as utilsRequest from '../build/utils_request';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -234,6 +237,11 @@ describe('Apify.main()', () => {
     );
 });
 
+/*
+import {ACT_JOB_STATUSES, ENV_VARS} from "apify-shared/consts";
+import sinon from "sinon";
+import {ApifyCallError} from "../build/errors";
+
 describe('Apify.call()', () => {
     const token = 'some-token';
     const actId = 'some-act-id';
@@ -256,51 +264,38 @@ describe('Apify.call()', () => {
         clientMock.expects('actor')
             .once()
             .withArgs('some-act-id')
-            .returns({});
+            .returns({ start: async () => runningRun });
 
         clientMock.expects('run')
             .once()
             .withArgs('some-run-id', 'some-act-id')
-            .returns({ get: async () => ({ ...run }) });
+            .returns({});
 
         clientMock.expects('keyValueStore')
             .once()
             .withArgs('some-store-id')
-            .returns({ getRecord: async () => ({ ...output }) });
+            .returns({});
     });
-    test('works as expected', () => {
+    test('works as expected', async () => {
         const memoryMbytes = 1024;
         const timeoutSecs = 60;
         const webhooks = [{ a: 'a' }, { b: 'b' }];
 
-        const clientMock = sinon.mock(Apify.client);
-        clientMock.expects('actor')
-            .once()
-            .withArgs('some-act-id')
-            .returns({ start: async () => ({ ...runningRun }) });
+        const startSpy = sinon.spy();
+        Apify.client.actor.start = startSpy;
 
-        clientMock.expects('run')
-            .once()
-            .withArgs('some-run-id', 'some-act-id')
-            .returns({ get: async () => ({ ...runningRun }) });
+        const getSpy = sinon.spy();
+        Apify.client.run.get = getSpy;
 
-        clientMock.expects('run')
-            .once()
-            .withArgs('some-run-id', 'some-act-id')
-            .returns({ get: async () => ({ ...finishedRun }) });
+        const getRecordSpy = sinon.spy();
+        Apify.client.keyValueStore.getRecord = getRecordSpy;
 
+        const callOutput = await Apify
+            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks });
 
-        clientMock.expects('keyValueStore')
-            .once()
-            .withArgs('some-store-id')
-            .returns({ getRecord: async () => ({ ...output }) });
-
-        return Apify
-            .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks })
-            .then((callOutput) => {
-                expect(callOutput).toEqual(expected);
-                clientMock.restore();
-            });
+        expect(callOutput).toEqual(expected);
+        expect(startSpy.calledOnce).toBe(true);
+        expect(startSpy.calledWithExactly({ waitForFinish: 999999 })).toBe(true);
     });
 
     test('works without opts and input', () => {
@@ -992,3 +987,5 @@ describe('Apify.addWebhook()', () => {
         delete process.env[ENV_VARS.IS_AT_HOME];
     });
 });
+
+ */

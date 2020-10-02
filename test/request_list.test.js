@@ -814,8 +814,9 @@ describe('Apify.RequestList', () => {
                     throw new Error('wrong error');
                 } catch (err) {
                     expect(err.message).not.toBe('wrong error');
-                    expect(err.message).toMatch('Parameter');
-                    expect(err.message).toMatch('must');
+                    expect(err.message).toMatch('type `string`');
+                    expect(err.message).toMatch('type `null`');
+                    expect(err.message).toMatch('received type `undefined`');
                 }
             }
         });

@@ -817,8 +817,8 @@ export const openRequestList = async (listName, sources, options = {}) => {
 
     const rl = new RequestList({
         ...options,
-        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : null,
-        persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : null,
+        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : undefined,
+        persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : undefined,
         sources,
     });
     await rl.initialize();

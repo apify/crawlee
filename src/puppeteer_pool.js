@@ -216,10 +216,6 @@ class PuppeteerPool {
             log: ow.optional.object,
         }));
 
-        if (options.useLiveView) {
-            this.log.deprecated('options.useLiveView is deprecated without replacement. Use devtools-server NPM package for similar functionality.');
-        }
-
         const {
             // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
             // and the default settings should just work
@@ -241,11 +237,14 @@ class PuppeteerPool {
         // Disabling due to memory leak.
         const reusePages = false;
 
-        this.log = log.child({ prefix: 'PuppeteerPool' });
-
         if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
                 + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
+        this.log = log.child({ prefix: 'PuppeteerPool' });
+
+        if (options.useLiveView) {
+            this.log.deprecated('options.useLiveView is deprecated without replacement. Use devtools-server NPM package for similar functionality.');
         }
 
         // Config.

@@ -5,7 +5,7 @@ import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/storages/key_value_store';
 import { RequestQueue } from '../../build/storages/request_queue';
-import { sleep } from '../../build/utils';
+import { sleep, apifyClient } from '../../build/utils';
 import events from '../../build/events';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 
@@ -29,7 +29,7 @@ describe('BasicCrawler', () => {
     });
 
     test('should run in parallel thru all the requests', async () => {
-        const sources = _.range(0, 500).map(index => ({ url: `https://example.com/${index}` }));
+        const sources = _.range(0, 500).map((index) => ({ url: `https://example.com/${index}` }));
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
 
         const processed = [];
@@ -58,7 +58,7 @@ describe('BasicCrawler', () => {
     test(
         'should pause on migration event and persist RequestList state',
         async () => {
-            const sources = _.range(500).map(index => ({ url: `https://example.com/${index + 1}` }));
+            const sources = _.range(500).map((index) => ({ url: `https://example.com/${index + 1}` }));
 
             let persistResolve;
             const persistPromise = new Promise((res) => { persistResolve = res; });
@@ -153,12 +153,7 @@ describe('BasicCrawler', () => {
 
     test('should not retry requests with noRetry set to true ', async () => {
         const noRetryRequest = new Apify.Request({ url: 'http://example.com/3' });
-        try {
-            noRetryRequest.doNotRetry('no retry');
-            throw new Error('wrong error');
-        } catch (err) {
-            expect(err.message).toBe('no retry');
-        }
+        noRetryRequest.noRetry = true;
 
         const sources = [
             { url: 'http://example.com/1', noRetry: true },
@@ -249,12 +244,12 @@ describe('BasicCrawler', () => {
         expect(_.values(processed)).toHaveLength(0);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
-        errors.forEach(error => expect(error).toBeInstanceOf(Error));
+        errors.forEach((error) => expect(error).toBeInstanceOf(Error));
     });
 
     test('should require at least one of RequestQueue and RequestList', () => {
         const requestList = new Apify.RequestList({ sources: [] });
-        const requestQueue = new RequestQueue({ id: 'xxx' });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
         const handleRequestFunction = () => {};
 
         expect(() => new Apify.BasicCrawler({ handleRequestFunction })).toThrowError();
@@ -271,7 +266,7 @@ describe('BasicCrawler', () => {
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });
-        const requestQueue = new RequestQueue({ id: 'xxx' });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
         const handleRequestFunction = async ({ request }) => {
             await sleep(10);
@@ -311,9 +306,9 @@ describe('BasicCrawler', () => {
             .withArgs(new Apify.Request(sources[2]), { forefront: true })
             .returns(Promise.resolve({ requestId: 'id-2' }));
 
-        const request0 = new Apify.Request(Object.assign({ id: 'id-0' }, sources[0]));
-        const request1 = new Apify.Request(Object.assign({ id: 'id-1' }, sources[1]));
-        const request2 = new Apify.Request(Object.assign({ id: 'id-2' }, sources[2]));
+        const request0 = new Apify.Request({ id: 'id-0', ...sources[0] });
+        const request1 = new Apify.Request({ id: 'id-1', ...sources[1] });
+        const request2 = new Apify.Request({ id: 'id-2', ...sources[2] });
 
         // 1st try
         mock.expects('fetchNextRequest').once().returns(Promise.resolve(request0));
@@ -392,7 +387,7 @@ describe('BasicCrawler', () => {
     test(
         'should say that task is not ready requestList is not set and requestQueue is empty',
         async () => {
-            const requestQueue = new RequestQueue({ id: 'xxx' });
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.isEmpty = () => Promise.resolve(true);
 
             const crawler = new Apify.BasicCrawler({
@@ -407,7 +402,7 @@ describe('BasicCrawler', () => {
     test(
         'should be possible to override isFinishedFunction of underlying AutoscaledPool',
         async () => {
-            const requestQueue = new RequestQueue({ id: 'xxx' });
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             const processed = [];
             const queue = [];
             let isFinished = false;
@@ -428,7 +423,7 @@ describe('BasicCrawler', () => {
             });
 
             // Speed up the test
-            basicCrawler.autoscaledPoolOptions.maybeRunIntervalMillis = 50;
+            basicCrawler.autoscaledPoolOptions.maybeRunIntervalSecs = 0.05;
 
             const request0 = new Apify.Request({ url: 'http://example.com/0' });
             const request1 = new Apify.Request({ url: 'http://example.com/1' });
@@ -507,7 +502,7 @@ describe('BasicCrawler', () => {
     });
 
     test('should load handledRequestCount from storages', async () => {
-        const requestQueue = new RequestQueue({ id: 'id' });
+        const requestQueue = new RequestQueue({ id: 'id', client: apifyClient });
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
         requestQueue.fetchNextRequest = async () => (new Apify.Request({ id: 'id', url: 'http://example.com' }));
@@ -532,7 +527,7 @@ describe('BasicCrawler', () => {
         expect(count).toBe(7);
         sinon.restore();
 
-        const sources = _.range(1, 10).map(i => ({ url: `http://example.com/${i}` }));
+        const sources = _.range(1, 10).map((i) => ({ url: `http://example.com/${i}` }));
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
         let requestList = new Apify.RequestList({ sources });
         await requestList.initialize();
@@ -607,7 +602,7 @@ describe('BasicCrawler', () => {
         await crawler.run();
         expect(results).toHaveLength(1);
         expect(results[0].url).toEqual(url);
-        results[0].errorMessages.forEach(msg => expect(msg).toMatch('handleRequestFunction timed out'));
+        results[0].errorMessages.forEach((msg) => expect(msg).toMatch('handleRequestFunction timed out'));
     });
 
     describe('Uses SessionPool', () => {

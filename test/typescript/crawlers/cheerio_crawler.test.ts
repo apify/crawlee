@@ -21,7 +21,7 @@ describe('CheerioCrawler TS', () => {
             testInputs = {
                 $: cheerio.load(body),
                 body: body,
-                request: new Apify.Request({url: '#'}),
+                request: new Apify.Request({url: ' http://www.test1234.com'}),
                 contentType: {type: 'text/html', encoding: 'utf-8'},
                 response: null as any,
                 autoscaledPool: null as any

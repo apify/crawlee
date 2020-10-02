@@ -382,7 +382,7 @@ describe('Apify.utils.puppeteer', () => {
             const object2 = { setValue: async () => {} };
             const stub2 = sinon.stub(object2, 'setValue');
             mock.expects('openKeyValueStore')
-                .withExactArgs(null)
+                .withExactArgs(undefined)
                 .resolves(object2);
 
             await Apify.utils.puppeteer.saveSnapshot(page, { saveHtml: false });

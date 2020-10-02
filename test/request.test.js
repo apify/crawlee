@@ -6,7 +6,7 @@ import Apify from '../build/index';
 describe('Apify.Request', () => {
     test('should not accept invalid values', () => {
         expect(() => new Apify.Request({ url: 1 })).toThrowError();
-        expect(() => new Apify.Request({ url: 'xxx' })).not.toThrowError();
+        expect(() => new Apify.Request({ url: 'https://www.test12345xxx' })).not.toThrowError();
     });
 
     test('should create unique key based on url for GET requests', () => {

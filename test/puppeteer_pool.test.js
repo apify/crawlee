@@ -10,8 +10,7 @@ import { sleep } from '../build/utils';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 import * as utilsRequest from '../build/utils_request';
 
-
-const shortSleep = (millis = 25) => new Promise(resolve => setTimeout(resolve, millis));
+const shortSleep = (millis = 25) => new Promise((resolve) => setTimeout(resolve, millis));
 
 describe('PuppeteerPool', () => {
     let prevEnvHeadless;
@@ -113,8 +112,8 @@ describe('PuppeteerPool', () => {
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 3,
             retireInstanceAfterRequestCount: 5,
-            instanceKillerIntervalMillis: 1000,
-            killInstanceAfterMillis: 500,
+            instanceKillerIntervalSecs: 1,
+            killInstanceAfterSecs: 0.5,
         });
         const browsers = [];
 
@@ -163,9 +162,8 @@ describe('PuppeteerPool', () => {
 
         const pool = new Apify.PuppeteerPool({
             maxOpenPagesPerInstance: 1,
-            abortInstanceAfterRequestCount: 5,
-            instanceKillerIntervalMillis: 1000,
-            killInstanceAfterMillis: 500,
+            instanceKillerIntervalSecs: 1,
+            killInstanceAfterSecs: 0.5,
         });
         const pages = [];
 
@@ -403,7 +401,7 @@ describe('PuppeteerPool', () => {
                 reusePages: true,
             });
 
-            const len = obj => Object.keys(obj).length;
+            const len = (obj) => Object.keys(obj).length;
 
             let page = await pool.newPage();
             await pool.recyclePage(page);
@@ -489,7 +487,7 @@ describe('PuppeteerPool', () => {
             expect(recycledFifthPage === fifthPage).toBe(true);
 
             const all = [firstPage, secondPage, thirdPage, fourthPage, fifthPage, recycledSecondPage, recycledFifthPage];
-            const matches = page => all.filter(x => page === x).length;
+            const matches = (page) => all.filter((x) => page === x).length;
 
             expect(matches(firstPage)).toBe(1);
             expect(matches(secondPage)).toBe(2);
@@ -554,7 +552,6 @@ describe('PuppeteerPool', () => {
             proxyUrls.push(pool._getBrowserInstance(page4).proxyInfo.url);
 
             await pool.destroy();
-
 
             expect(optionsLog).toHaveLength(4);
             expect(optionsLog[0].proxyUrl).toEqual(proxyUrls[0]);
@@ -670,7 +667,7 @@ describe('PuppeteerPool', () => {
                 pool.liveViewServer._isRunning = true; // eslint-disable-line no-underscore-dangle
                 pool.liveViewServer.clientCount++;
             };
-            pool.liveViewServer.serve = async arg => serveCalledWith.push(arg);
+            pool.liveViewServer.serve = async (arg) => serveCalledWith.push(arg);
             pool.liveViewServer.stop = async () => stopped++;
 
             for (let i = 0; i < 3; i++) {
@@ -681,7 +678,7 @@ describe('PuppeteerPool', () => {
 
             expect(started).toBe(1);
             expect(serveCalledWith).toHaveLength(3);
-            serveCalledWith.forEach(item => expect(item.constructor.name === 'Page'));
+            serveCalledWith.forEach((item) => expect(item.constructor.name === 'Page'));
 
             await pool.destroy();
             expect(stopped).toBe(1);
@@ -717,7 +714,7 @@ describe('PuppeteerPool', () => {
 
             expect(browserSession.id).toEqual(sessionPool.sessions[0].id);
             expect(
-                Object.values(pool.activeInstances).filter(instance => instance.session.id === browserSession.id),
+                Object.values(pool.activeInstances).filter((instance) => instance.session.id === browserSession.id),
             ).toHaveLength(1);
 
             sessionPool.sessions[0].retire();

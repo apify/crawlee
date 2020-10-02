@@ -397,7 +397,6 @@ class CheerioCrawler {
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
             handleFailedRequestFunction,
-            proxyConfiguration,
 
             // Autoscaled pool options.
             minConcurrency,
