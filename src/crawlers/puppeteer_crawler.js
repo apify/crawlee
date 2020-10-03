@@ -382,7 +382,10 @@ class PuppeteerCrawler {
                 }
             }
 
-            if (this.useSessionPool) this._throwOnBlockedRequest(session, response.status());
+            if (this.useSessionPool) {
+                const statusCode = response && response.status();
+                this._throwOnBlockedRequest(session, statusCode);
+            }
 
             await this.puppeteerPool.serveLiveViewSnapshot(page);
             request.loadedUrl = page.url();
