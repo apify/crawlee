@@ -53,6 +53,11 @@ Finally, we cleaned up some old deprecations.
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
 
+
+0.21.7 / 2020/09/03
+====================
+- Fix an error in `PuppeteerCrawler` caused by `page.goto()` randomly returning `null`.
+
 0.21.6 / 2020/09/01
 ====================
 It appears that `CheerioCrawler` was correctly retiring sessions on timeouts
