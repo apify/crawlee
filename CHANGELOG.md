@@ -53,6 +53,10 @@ Finally, we cleaned up some old deprecations.
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
 
+0.21.7 / 2020/09/03
+====================
+- Fix an error in `PuppeteerCrawler` caused by `page.goto()` randomly returning `null`.
+
 0.21.6 / 2020/09/01
 ====================
 It appears that `CheerioCrawler` was correctly retiring sessions on timeouts
@@ -61,6 +65,7 @@ Apologies for the omission, this release fixes the problem.
 
 - Fix sessions not being retired on blocked status codes in `PuppeteerCrawler`.
 - Fix sessions not being marked bad on navigation timeouts in `PuppeteerCrawler`.
+- Update `apify-shared` to version `0.5.0`.
 
 0.21.5 / 2020/09/30
 ====================
