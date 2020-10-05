@@ -5,9 +5,9 @@ import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/storages/key_value_store';
 import { RequestQueue } from '../../build/storages/request_queue';
-import { sleep, apifyClient } from '../../build/utils';
 import events from '../../build/events';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import * as utils from '../../build/utils';
 
 describe('BasicCrawler', () => {
     let logLevel;
@@ -20,7 +20,8 @@ describe('BasicCrawler', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
     });
 
     afterAll(async () => {
@@ -35,7 +36,7 @@ describe('BasicCrawler', () => {
         const processed = [];
         const requestList = new Apify.RequestList({ sources });
         const handleRequestFunction = async ({ request }) => {
-            await sleep(10);
+            await utils.sleep(10);
             processed.push(_.pick(request, 'url'));
         };
 
@@ -115,7 +116,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await sleep(10);
+            await utils.sleep(10);
             processed[request.url] = request;
 
             if (request.url === 'http://example.com/2') {
@@ -164,7 +165,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await sleep(10);
+            await utils.sleep(10);
             processed[request.url] = request;
             request.userData.foo = 'bar';
             throw Error(`This is ${request.retryCount}th error!`);
@@ -249,7 +250,7 @@ describe('BasicCrawler', () => {
 
     test('should require at least one of RequestQueue and RequestList', () => {
         const requestList = new Apify.RequestList({ sources: [] });
-        const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: utils.apifyClient });
         const handleRequestFunction = () => {};
 
         expect(() => new Apify.BasicCrawler({ handleRequestFunction })).toThrowError();
@@ -266,10 +267,10 @@ describe('BasicCrawler', () => {
         ];
         const processed = {};
         const requestList = new Apify.RequestList({ sources });
-        const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+        const requestQueue = new RequestQueue({ id: 'xxx', client: utils.apifyClient });
 
         const handleRequestFunction = async ({ request }) => {
-            await sleep(10);
+            await utils.sleep(10);
             processed[request.url] = request;
 
             if (request.url === 'http://example.com/1') {
@@ -387,7 +388,7 @@ describe('BasicCrawler', () => {
     test(
         'should say that task is not ready requestList is not set and requestQueue is empty',
         async () => {
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            const requestQueue = new RequestQueue({ id: 'xxx', client: utils.apifyClient });
             requestQueue.isEmpty = () => Promise.resolve(true);
 
             const crawler = new Apify.BasicCrawler({
@@ -402,7 +403,7 @@ describe('BasicCrawler', () => {
     test(
         'should be possible to override isFinishedFunction of underlying AutoscaledPool',
         async () => {
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            const requestQueue = new RequestQueue({ id: 'xxx', client: utils.apifyClient });
             const processed = [];
             const queue = [];
             let isFinished = false;
@@ -417,7 +418,7 @@ describe('BasicCrawler', () => {
                     },
                 },
                 handleRequestFunction: async ({ request }) => {
-                    await sleep(10);
+                    await utils.sleep(10);
                     processed.push(request);
                 },
             });
@@ -461,7 +462,7 @@ describe('BasicCrawler', () => {
         const requestList = new Apify.RequestList({ sources });
 
         const handleRequestFunction = async ({ request }) => {
-            await sleep(10);
+            await utils.sleep(10);
             processed[request.url] = request;
             if (request.url === 'http://example.com/2') throw Error();
             request.userData.foo = 'bar';
@@ -502,7 +503,7 @@ describe('BasicCrawler', () => {
     });
 
     test('should load handledRequestCount from storages', async () => {
-        const requestQueue = new RequestQueue({ id: 'id', client: apifyClient });
+        const requestQueue = new RequestQueue({ id: 'id', client: utils.apifyClient });
         requestQueue.isEmpty = async () => false;
         requestQueue.isFinished = async () => false;
         requestQueue.fetchNextRequest = async () => (new Apify.Request({ id: 'id', url: 'http://example.com' }));
@@ -516,7 +517,7 @@ describe('BasicCrawler', () => {
             requestQueue,
             maxConcurrency: 1,
             handleRequestFunction: async () => {
-                await sleep(1);
+                await utils.sleep(1);
                 count++;
             },
             maxRequestsPerCrawl: 40,
@@ -540,7 +541,7 @@ describe('BasicCrawler', () => {
             requestList,
             maxConcurrency: 1,
             handleRequestFunction: async () => {
-                await sleep(1);
+                await utils.sleep(1);
                 count++;
             },
             maxRequestsPerCrawl: 40,
@@ -571,7 +572,7 @@ describe('BasicCrawler', () => {
             requestQueue,
             maxConcurrency: 1,
             handleRequestFunction: async () => {
-                await sleep(1);
+                await utils.sleep(1);
                 count++;
             },
             maxRequestsPerCrawl: 40,
@@ -595,7 +596,7 @@ describe('BasicCrawler', () => {
             requestList,
             handleRequestTimeoutSecs: 0.01,
             maxRequestRetries: 1,
-            handleRequestFunction: () => sleep(1000),
+            handleRequestFunction: () => utils.sleep(1000),
             handleFailedRequestFunction: ({ request }) => results.push(request),
         });
 

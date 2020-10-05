@@ -1,6 +1,6 @@
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import cacheContainer from '../cache_container';
-import { apifyClient, apifyStorageLocal } from '../utils';
+import * as utils from '../utils';
 
 const DEFAULT_ID_ENV_VAR_NAMES = {
     Dataset: ENV_VARS.DEFAULT_DATASET_ID,
@@ -52,7 +52,7 @@ class StorageManager {
 
         let storage = this.cache.get(cacheKey);
         if (!storage) {
-            const client = isLocal ? await apifyStorageLocal : apifyClient;
+            const client = isLocal ? utils.apifyStorageLocal : utils.apifyClient;
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
             storage = new this.StorageConstructor({
                 id: storageObject.id,

@@ -65,7 +65,8 @@ describe('KeyValueStore remote', () => {
         const mockGetRecord = jest
             .spyOn(store.client, 'getRecord')
             .mockResolvedValueOnce({
-                body: record,
+                key: 'key-1',
+                value: record,
                 contentType: 'application/json; charset=utf-8',
             });
 

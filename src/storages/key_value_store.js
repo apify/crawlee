@@ -154,7 +154,7 @@ export class KeyValueStore {
         // to enforce the representation of value
         const record = await this.client.getRecord(key);
 
-        return record ? record.body : null;
+        return record ? record.value : null;
     }
 
     /**

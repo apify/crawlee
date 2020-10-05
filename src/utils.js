@@ -1,4 +1,5 @@
 import * as psTree from '@apify/ps-tree';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import * as ApifyStorageLocal from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
@@ -9,6 +10,7 @@ import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
 import * as mime from 'mime-types';
 import * as os from 'os';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import ow from 'ow';
 import * as path from 'path';
 import * as semver from 'semver';
@@ -74,9 +76,9 @@ export const newClient = (options = {}) => {
 /**
  * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
  * @param {object} [options]
- * @return {Promise<ApifyStorageLocal>}
+ * @return {ApifyStorageLocal}
  */
-const newStorageLocal = async (options = {}) => {
+export const newStorageLocal = (options = {}) => {
     const {
         storageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR],
     } = options;

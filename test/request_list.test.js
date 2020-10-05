@@ -126,7 +126,7 @@ describe('Apify.RequestList', () => {
             mock.expects('downloadListOfUrls')
                 .once()
                 .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })
-                .returns(new Promise(resolve => setTimeout(resolve(list1), 100)));
+                .returns(new Promise((resolve) => setTimeout(resolve(list1), 100)));
 
             mock.expects('downloadListOfUrls')
                 .once()
@@ -747,7 +747,7 @@ describe('Apify.RequestList', () => {
             const name = 'xxx';
             const SDK_KEY = `SDK_${name}`;
             const sources = ['https://example.com'];
-            const requests = sources.map(url => new Apify.Request({ url }));
+            const requests = sources.map((url) => new Apify.Request({ url }));
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).toBeInstanceOf(Apify.RequestList);

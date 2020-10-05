@@ -3,6 +3,7 @@ import Statistics from '../../build/crawlers/statistics';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import events from '../../build/events';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
+import * as utils from '../../build/utils';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount, totalTickMillis) => {
@@ -20,7 +21,8 @@ describe('Statistics', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
         clock = sinon.useFakeTimers();
         stats = new Statistics();
     });

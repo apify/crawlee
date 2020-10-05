@@ -479,7 +479,7 @@ export const pushData = async (item) => {
     const dataset = await openDataset();
 
     return dataset.pushData(item);
-}
+};
 
 /**
  * @typedef DatasetContent

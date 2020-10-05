@@ -294,7 +294,7 @@ describe('ProxyConfiguration', () => {
                 });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toMatch('Expected property string `t` to be a URL, got `http://proxy.com:1111*invalid_url`');
+                expect(err.message).toMatch('to be a URL, got `http://proxy.com:1111*invalid_url`');
             }
         });
     });

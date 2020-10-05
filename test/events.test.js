@@ -46,7 +46,7 @@ describe('Apify.events', () => {
 
                 expect(req.url).toBe('/someRunId');
 
-                const send = obj => ws.send(JSON.stringify(obj));
+                const send = (obj) => ws.send(JSON.stringify(obj));
 
                 setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
                 setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
@@ -60,7 +60,7 @@ describe('Apify.events', () => {
         expect(wsClosed).toBe(false);
         Apify.main(async () => {
             await isWsConnected;
-            Apify.events.on('name-1', data => eventsReceived.push(data));
+            Apify.events.on('name-1', (data) => eventsReceived.push(data));
             clock.tick(150);
             clock.restore();
             await sleep(10);
@@ -99,7 +99,7 @@ describe('Apify.events', () => {
 
                 expect(req.url).toBe('/someRunId');
 
-                const send = obj => ws.send(JSON.stringify(obj));
+                const send = (obj) => ws.send(JSON.stringify(obj));
 
                 setTimeout(() => send({ name: 'name-1', data: [1, 2, 3] }), 50);
                 setTimeout(() => send({ name: 'name-1', data: { foo: 'bar' } }), 100);
@@ -113,7 +113,7 @@ describe('Apify.events', () => {
         expect(wsClosed).toBe(false);
         await Apify.initializeEvents();
         await isWsConnected;
-        Apify.events.on('name-1', data => eventsReceived.push(data));
+        Apify.events.on('name-1', (data) => eventsReceived.push(data));
         clock.tick(150);
         clock.restore();
         await sleep(10);
@@ -128,7 +128,7 @@ describe('Apify.events', () => {
 
     test('should send persist state events in regular interval', async () => {
         const eventsReceived = [];
-        Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, data => eventsReceived.push(data));
+        Apify.events.on(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, (data) => eventsReceived.push(data));
         await Apify.initializeEvents();
         clock.tick(60001);
         clock.tick(60001);

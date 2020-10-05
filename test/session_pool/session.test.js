@@ -104,7 +104,6 @@ describe('Session - testing session behaviour ', () => {
         expect(state.usageCount).toBeDefined();
         expect(state.errorScore).toBeDefined();
 
-
         Object.entries(state).forEach(([key, value]) => {
             if (session[key] instanceof Date) {
                 expect(session[key].toISOString()).toEqual(value);

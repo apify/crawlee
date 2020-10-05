@@ -6,9 +6,10 @@ import log from '../build/utils_log';
 import * as Apify from '../build/index';
 import { launchPuppeteer } from '../build/puppeteer';
 import { SessionPool } from '../build/session_pool/session_pool';
-import { sleep } from '../build/utils';
+
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 import * as utilsRequest from '../build/utils_request';
+import * as utils from '../build/utils';
 
 const shortSleep = (millis = 25) => new Promise((resolve) => setTimeout(resolve, millis));
 
@@ -693,7 +694,8 @@ describe('PuppeteerPool', () => {
         });
 
         beforeEach(async () => {
-            await localStorageEmulator.init();
+            const storageDir = await localStorageEmulator.init();
+            utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
         });
 
         afterAll(async () => {
@@ -719,7 +721,7 @@ describe('PuppeteerPool', () => {
 
             sessionPool.sessions[0].retire();
 
-            await sleep(2000);
+            await utils.sleep(2000);
             expect(Object.values(pool.activeInstances)).toHaveLength(0);
         });
     });
