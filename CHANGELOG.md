@@ -66,6 +66,7 @@ Apologies for the omission, this release fixes the problem.
 
 - Fix sessions not being retired on blocked status codes in `PuppeteerCrawler`.
 - Fix sessions not being marked bad on navigation timeouts in `PuppeteerCrawler`.
+- Update `apify-shared` to version `0.5.0`.
 
 0.21.5 / 2020/09/30
 ====================
