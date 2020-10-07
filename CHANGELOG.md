@@ -1,8 +1,12 @@
-0.21.7 / 2020/09/03
+0.21.8 / 2020/10/07
 ====================
 - Fix an error in `PuppeteerCrawler` caused by `page.goto()` randomly returning `null`.
 
-0.21.6 / 2020/09/02
+0.21.7 / 2020/10/03
+====================
+- Fix an error in `PuppeteerCrawler` caused by `page.goto()` randomly returning `null`.
+
+0.21.6 / 2020/10/02
 ====================
 It appears that `CheerioCrawler` was correctly retiring sessions on timeouts
 and blocked status codes (401, 403, 429), whereas `PuppeteerCrawler` did not.
