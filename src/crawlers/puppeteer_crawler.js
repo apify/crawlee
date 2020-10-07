@@ -382,9 +382,12 @@ class PuppeteerCrawler {
                 }
             }
 
-            if (this.useSessionPool) {
-                const statusCode = response && response.status();
-                this._throwOnBlockedRequest(session, statusCode);
+            if (this.useSessionPool && response) {
+                if (typeof response === 'object' && typeof response.status === 'function') {
+                    this._throwOnBlockedRequest(session, response.status());
+                } else {
+                    this.log.debug('Got a malformed Puppeteer response.', { request, response });
+                }
             }
 
             await this.puppeteerPool.serveLiveViewSnapshot(page);
