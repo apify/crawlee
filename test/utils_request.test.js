@@ -169,7 +169,6 @@ describe('Apify.utils_request', () => {
             const headersArray = JSON.parse(response.body);
             expect(response.statusCode).toBe(200);
 
-
             expect(headersArray[0]).toBe('Host');
             expect(headersArray[1]).toEqual(host);
             expect(headersArray[2]).toBe('User-Agent');

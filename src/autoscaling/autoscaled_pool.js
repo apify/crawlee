@@ -125,7 +125,7 @@ class AutoscaledPool {
             scaleUpStepRatio: ow.optional.number,
             scaleDownStepRatio: ow.optional.number,
             maybeRunIntervalSecs: ow.optional.number,
-            loggingIntervalSecs: ow.optional.number,
+            loggingIntervalSecs: ow.any(ow.number, ow.nullOrUndefined),
             autoscaleIntervalSecs: ow.optional.number,
             systemStatusOptions: ow.optional.object,
             snapshotterOptions: ow.optional.object,

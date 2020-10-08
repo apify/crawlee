@@ -1,10 +1,11 @@
 import ow from 'ow';
 import * as _ from 'underscore';
-import { ENV_VARS, MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
-import { openStorage } from './storages_shared';
+import { MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
+import StorageManager from './storage_manager';
 import log from '../utils_log';
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
+export const LOCAL_FILENAME_DIGITS = 9;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 
 /**
@@ -22,7 +23,7 @@ export const checkAndSerialize = (item, limitBytes, index) => {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
     let payload;
     try {
-        ow(item, ow.object);
+        ow(item, ow.object.plain);
         payload = JSON.stringify(item);
     } catch (err) {
         throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
@@ -135,8 +136,8 @@ export class Dataset {
     constructor(options) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client;
         this.isLocal = options.isLocal;
+        this.client = options.client.dataset(this.id);
         this.log = log.child({ prefix: 'Dataset' });
     }
 
@@ -167,7 +168,8 @@ export class Dataset {
      */
     async pushData(data) {
         ow(data, ow.object);
-        const dispatch = async (payload) => datasets.putItems({ datasetId: this.datasetId, data: payload });
+        // eslint-disable-next-line no-return-await
+        const dispatch = async (payload) => await this.client.pushItems(payload);
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
         // Handle singular Objects
@@ -250,11 +252,8 @@ export class Dataset {
         // TODO (JC): Do we really need this function? It only works with API but not locally,
         // and it's just 1:1 copy of what apify-client provides, and returns { items } which can
         // be a Buffer ... it doesn't really make much sense
-        const { datasetId } = this;
-        const params = { datasetId, ...options };
-
         try {
-            return await datasets.getItems(params);
+            return await this.client.listItems(options);
         } catch (e) {
             if (e.message.includes('Cannot create a string longer than')) {
                 throw new Error('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
@@ -290,7 +289,7 @@ export class Dataset {
      * @returns {Promise<object>}
      */
     async getInfo() {
-        return datasets.getDataset({ datasetId: this.datasetId });
+        return this.client.get();
     }
 
     /**
@@ -412,26 +411,11 @@ export class Dataset {
      * @return {Promise<void>}
      */
     async drop() {
-        await datasets.deleteDataset({ datasetId: this.datasetId });
-        datasetsCache.remove(this.datasetId);
-        if (this.datasetName) datasetsCache.remove(this.datasetName);
+        await this.client.delete();
+        const manager = new StorageManager(Dataset);
+        manager.closeStorage(this);
     }
 }
-
-/**
- * Helper function that first requests dataset by ID and if dataset doesn't exist then gets it by name.
- *
- * @ignore
- */
-const getOrCreateDataset = (datasetIdOrName) => {
-    return datasets
-        .getDataset({ datasetId: datasetIdOrName })
-        .then((existingDataset) => {
-            if (existingDataset) return existingDataset;
-
-            return datasets.getOrCreateDataset({ datasetName: datasetIdOrName });
-        });
-};
 
 /**
  * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset} class.
@@ -460,13 +444,8 @@ export const openDataset = (datasetIdOrName, options = {}) => {
         forceCloud: ow.optional.boolean,
     }));
 
-    ensureTokenOrLocalStorageEnvExists('dataset');
-
-    const { forceCloud = false } = options;
-
-    return process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !forceCloud
-        ? openLocalStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache)
-        : openRemoteStorage(datasetIdOrName, ENV_VARS.DEFAULT_DATASET_ID, Dataset, datasetsCache, getOrCreateDataset);
+    const manager = new StorageManager(Dataset);
+    return manager.openStorage(datasetIdOrName, options);
 };
 
 /**
@@ -497,7 +476,11 @@ export const openDataset = (datasetIdOrName, options = {}) => {
  * @name pushData
  * @function
  */
-export const pushData = (item) => openDataset().then((dataset) => dataset.pushData(item));
+export const pushData = async (item) => {
+    const dataset = await openDataset();
+
+    return dataset.pushData(item);
+};
 
 /**
  * @typedef DatasetContent

@@ -178,11 +178,6 @@ class BasicCrawler {
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
-        if (!requestList && !requestQueue) {
-            const msg = 'At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!';
-            throw new ArgumentError(msg, this.constructor);
-        }
-
         ow(options, ow.object.exactShape({
             requestList: ow.optional.object.validate(validators.requestList),
             requestQueue: ow.optional.object.validate(validators.requestQueue),
@@ -225,6 +220,11 @@ class BasicCrawler {
             // internal
             log = defaultLog.child({ prefix: 'BasicCrawler' }),
         } = options;
+
+        if (!requestList && !requestQueue) {
+            const msg = 'At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!';
+            throw new ArgumentError(msg, this.constructor);
+        }
 
         this.log = log;
         this.requestList = requestList;

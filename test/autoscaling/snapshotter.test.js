@@ -9,7 +9,7 @@ import events from '../../build/events';
 import Snapshotter from '../../build/autoscaling/snapshotter';
 import * as utils from '../../build/utils';
 
-const toBytes = x => x * 1024 * 1024;
+const toBytes = (x) => x * 1024 * 1024;
 
 describe('Snapshotter', () => {
     let logLevel;
@@ -206,7 +206,7 @@ describe('Snapshotter', () => {
                 mainProcessBytes: toBytes(1000),
                 childProcessesBytes: toBytes(1000),
             };
-            const getMem = async () => Object.assign({}, memoryData);
+            const getMem = async () => ({ ...memoryData });
             const stub = sinon.stub(utils, 'getMemoryInfo');
             stub.callsFake(getMem);
 

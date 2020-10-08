@@ -34,7 +34,7 @@ describe('Session - testing session behaviour ', () => {
             err = e;
         }
         expect(err).toBeDefined(); // eslint-disable-line
-        expect(err.message.includes('sessionPool must be instance of SessionPool')).toBe(true); // eslint-disable-line
+        expect(err.message.includes('object `sessionPool` `{}` to be of type `SessionPool`')).toBe(true); // eslint-disable-line
     });
 
     test('should mark session markBad', () => {
@@ -103,7 +103,6 @@ describe('Session - testing session behaviour ', () => {
         expect(state.createdAt).toBeDefined();
         expect(state.usageCount).toBeDefined();
         expect(state.errorScore).toBeDefined();
-
 
         Object.entries(state).forEach(([key, value]) => {
             if (session[key] instanceof Date) {

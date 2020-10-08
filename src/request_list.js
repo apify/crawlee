@@ -209,22 +209,6 @@ export class RequestList {
      * @param {RequestListOptions} options All `RequestList` configuration options
      */
     constructor(options = {}) {
-        if (!(sources || sourcesFunction)) {
-            throw new ArgumentError('At least one of "sources" or "sourcesFunction" must be provided.', this.constructor);
-        }
-        ow(options, ow.object.exactShape({
-            sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
-            sourcesFunction: ow.optional.function,
-            persistStateKey: ow.optional.function,
-            persistRequestsKey: ow.optional.string,
-            state: ow.optional.object.exactShape({
-                nextIndex: ow.number,
-                nextUniqueKey: ow.string,
-                inProgress: ow.object,
-            }),
-            keepDuplicateUrls: ow.optional.boolean,
-        }));
-
         const {
             sources,
             sourcesFunction,
@@ -233,6 +217,22 @@ export class RequestList {
             state,
             keepDuplicateUrls = false,
         } = options;
+
+        if (!(sources || sourcesFunction)) {
+            throw new ArgumentError('At least one of "sources" or "sourcesFunction" must be provided.', this.constructor);
+        }
+        ow(options, ow.object.exactShape({
+            sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
+            sourcesFunction: ow.optional.function,
+            persistStateKey: ow.optional.string,
+            persistRequestsKey: ow.optional.string,
+            state: ow.optional.object.exactShape({
+                nextIndex: ow.number,
+                nextUniqueKey: ow.string,
+                inProgress: ow.object,
+            }),
+            keepDuplicateUrls: ow.optional.boolean,
+        }));
 
         this.log = log.child({ prefix: 'RequestList' });
 
@@ -817,8 +817,8 @@ export const openRequestList = async (listName, sources, options = {}) => {
 
     const rl = new RequestList({
         ...options,
-        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : null,
-        persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : null,
+        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : undefined,
+        persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : undefined,
         sources,
     });
     await rl.initialize();

@@ -154,6 +154,8 @@ export class ProxyConfiguration {
             proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
             password: ow.optional.string,
             newUrlFunction: ow.optional.function,
+            // This is not an actual param, but it's here for legacy purposes.
+            useApifyProxy: ow.optional.boolean,
         }));
 
         const {
@@ -214,9 +216,11 @@ export class ProxyConfiguration {
      * the currently used proxy via the handlePageFunction parameter: proxyInfo.
      * Use it if you want to work with a rich representation of a proxy URL.
      * If you need the URL string only, use {@link ProxyConfiguration.newUrl}.
-     * @param {string} [sessionId]
+     * @param {string|number} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
+     *  When the provided sessionId is a number, it's converted to a string. Property sessionId of
+     *  {@link ProxyInfo} is always returned as a type string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -224,6 +228,7 @@ export class ProxyConfiguration {
      * @return {ProxyInfo} represents information about used proxy and its configuration.
      */
     newProxyInfo(sessionId) {
+        if (typeof sessionId === 'number') sessionId = `${sessionId}`;
         ow(sessionId, ow.optional.string.maxLength(MAX_SESSION_ID_LENGTH).matches(APIFY_PROXY_VALUE_REGEX));
         const url = this.newUrl(sessionId);
 
@@ -242,9 +247,10 @@ export class ProxyConfiguration {
 
     /**
      * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
-     * @param {string} [sessionId]
+     * @param {string|number} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
+     *  When the provided sessionId is a number, it's converted to a string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -252,6 +258,7 @@ export class ProxyConfiguration {
      * @return {string} represents the proxy URL.
      */
     newUrl(sessionId) {
+        if (typeof sessionId === 'number') sessionId = `${sessionId}`;
         ow(sessionId, ow.optional.string.maxLength(MAX_SESSION_ID_LENGTH).matches(APIFY_PROXY_VALUE_REGEX));
         if (this.newUrlFunction) {
             return this._callNewUrlFunction(sessionId);
@@ -302,7 +309,7 @@ export class ProxyConfiguration {
     async _setPasswordIfToken() {
         const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
         if (token) {
-            const { proxy: { password } } = await apifyClient.users.getUser({ token, userId: 'me' });
+            const { proxy: { password } } = await apifyClient.user().get();
             if (this.password) {
                 if (this.password !== password) {
                     this.log.warning('The Apify Proxy password you provided belongs to'

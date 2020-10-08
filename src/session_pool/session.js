@@ -74,6 +74,7 @@ export class Session {
             maxErrorScore: ow.optional.number,
             errorScoreDecrement: ow.optional.number,
             createdAt: ow.optional.date,
+            expiresAt: ow.optional.date,
             usageCount: ow.optional.number,
             errorScore: ow.optional.number,
             maxUsageCount: ow.optional.number,

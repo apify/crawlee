@@ -1,4 +1,5 @@
 import * as psTree from '@apify/ps-tree';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import * as ApifyStorageLocal from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
@@ -9,6 +10,7 @@ import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
 import * as mime from 'mime-types';
 import * as os from 'os';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import ow from 'ow';
 import * as path from 'path';
 import * as semver from 'semver';
@@ -74,9 +76,9 @@ export const newClient = (options = {}) => {
 /**
  * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
  * @param {object} [options]
- * @return {Promise<ApifyStorageLocal>}
+ * @return {ApifyStorageLocal}
  */
-const newStorageLocal = async (options = {}) => {
+export const newStorageLocal = (options = {}) => {
     const {
         storageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR],
     } = options;
@@ -683,14 +685,12 @@ export const waitForRunToFinish = async (options) => {
     ow(options, ow.object.exactShape({
         actorId: ow.string,
         runId: ow.string,
-        token: ow.optional.string,
         waitSecs: ow.optional.number,
     }));
 
     const {
         actorId,
         runId,
-        token,
         waitSecs,
     } = options;
     let run;
@@ -703,15 +703,12 @@ export const waitForRunToFinish = async (options) => {
         return true;
     };
 
-    const getRunOpts = { actId: actorId, runId };
-    if (token) getRunOpts.token = token;
-
     while (shouldRepeat()) {
-        getRunOpts.waitForFinish = waitSecs
+        const waitForFinish = waitSecs
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        run = await apifyClient.acts.getRun(getRunOpts);
+        run = await apifyClient.run(runId, actorId).waitForFinish({ waitForFinish }); // TODO waitForFinish
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
