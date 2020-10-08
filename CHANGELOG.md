@@ -1,6 +1,8 @@
 0.21.8 / 2020/10/07
 ====================
-- Fix an error in `PuppeteerCrawler` caused by `page.goto()` randomly returning `null`.
+- Make `PuppeteerCrawler` safe against malformed Puppeteer responses.
+- Update default user agent to Chrome 86
+- Bump Puppeteer to 5.3.1 with Chromium 86
 
 0.21.7 / 2020/10/03
 ====================
