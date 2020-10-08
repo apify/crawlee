@@ -2,11 +2,8 @@ import path from 'path';
 import _ from 'underscore';
 import sinon from 'sinon';
 import { ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
-import fs from 'fs';
 import { ApifyCallError } from '../build/errors';
 import { sleep } from '../build/utils';
-import * as utils from '../build/utils';
-import * as utilsRequest from '../build/utils_request';
 
 // NOTE: test use of require() here because this is how its done in acts
 const Apify = require('../build/index');
@@ -238,10 +235,6 @@ describe('Apify.main()', () => {
 });
 
 /*
-import {ACT_JOB_STATUSES, ENV_VARS} from "apify-shared/consts";
-import sinon from "sinon";
-import {ApifyCallError} from "../build/errors";
-
 describe('Apify.call()', () => {
     const token = 'some-token';
     const actId = 'some-act-id';
@@ -259,43 +252,60 @@ describe('Apify.call()', () => {
     const output = { contentType, input: 'some-output' };
     const expected = { ...finishedRun, output };
 
-    beforeEach(() => {
-        const clientMock = sinon.mock(Apify.client);
-        clientMock.expects('actor')
-            .once()
-            .withArgs('some-act-id')
-            .returns({ start: async () => runningRun });
-
-        clientMock.expects('run')
-            .once()
-            .withArgs('some-run-id', 'some-act-id')
-            .returns({});
-
-        clientMock.expects('keyValueStore')
-            .once()
-            .withArgs('some-store-id')
-            .returns({});
-    });
     test('works as expected', async () => {
         const memoryMbytes = 1024;
         const timeoutSecs = 60;
         const webhooks = [{ a: 'a' }, { b: 'b' }];
 
-        const startSpy = sinon.spy();
-        Apify.client.actor.start = startSpy;
+        const actorClientMock = sinon.mock(Apify.client);
+        actorClientMock.expects('actor')
+            .once()
+            .withArgs('some-act-id')
+            .returns({ start: async () => runningRun });
 
-        const getSpy = sinon.spy();
-        Apify.client.run.get = getSpy;
+        const runClientMock1 = sinon.mock(Apify.client);
+        runClientMock1.expects('run')
+            .once()
+            .withArgs('some-run-id', 'some-act-id')
+            .returns({ get: async () => runningRun });
 
-        const getRecordSpy = sinon.spy();
-        Apify.client.keyValueStore.getRecord = getRecordSpy;
+        const runClientMock2 = sinon.mock(Apify.client);
+        runClientMock2.expects('run')
+            .once()
+            .withArgs('some-run-id', 'some-act-id')
+            .returns({ get: async () => finishedRun });
+
+        const storeClientMock = sinon.mock(Apify.client);
+        storeClientMock.expects('keyValueStore')
+            .once()
+            .withArgs('some-store-id')
+            .returns({ getRecord: async () => output });
+
+        const startMock = sinon.mock(Apify.client.actor);
+        runClientMock1.expects('start')
+            .once()
+            .withExactArgs({
+                token,
+                actId,
+                contentType: `${contentType}; charset=utf-8`,
+                body: input,
+                build,
+                memory: memoryMbytes,
+                timeout: timeoutSecs,
+                webhooks,
+            })
+            .returns(Promise.resolve(runningRun));
 
         const callOutput = await Apify
             .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks });
 
         expect(callOutput).toEqual(expected);
-        expect(startSpy.calledOnce).toBe(true);
-        expect(startSpy.calledWithExactly({ waitForFinish: 999999 })).toBe(true);
+        expect(startMock.calledOnce).toBe(true);
+        expect(startMock.calledWithExactly({ waitForFinish: 999999 })).toBe(true);
+        actorClientMock.verify();
+        runClientMock1.verify();
+        runClientMock2.verify();
+        storeClientMock.verify();
     });
 
     test('works without opts and input', () => {
@@ -987,5 +997,4 @@ describe('Apify.addWebhook()', () => {
         delete process.env[ENV_VARS.IS_AT_HOME];
     });
 });
-
- */
+*/

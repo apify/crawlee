@@ -14,7 +14,6 @@ import {
     isAtHome,
     logSystemInfo,
     printOutdatedSdkWarning,
-    waitForRunToFinish,
 } from './utils';
 import { maybeStringify } from './storages/key_value_store';
 
@@ -314,32 +313,28 @@ export const call = async (actId, input, options = {}) => {
     const { token } = options;
 
     // RunAct() options.
-    const { build, timeoutSecs, webhooks, memoryMbytes } = options;
-    const runActOpts = {};
-    if (build) runActOpts.build = build;
-    if (memoryMbytes) runActOpts.memory = memoryMbytes;
-    if (timeoutSecs >= 0) runActOpts.timeout = timeoutSecs; // Zero is valid value!
-    if (webhooks) runActOpts.webhooks = webhooks;
+    const { build, timeoutSecs, webhooks, memoryMbytes, waitSecs } = options;
+
+    const callActOpts = {
+        build,
+        memory: memoryMbytes,
+        webhooks,
+        waitSecs,
+    };
+
+    if (timeoutSecs >= 0) callActOpts.timeout = timeoutSecs; // Zero is valid value!
+
     if (input) {
-        runActOpts.contentType = options.contentType;
+        callActOpts.contentType = options.contentType;
         // NOTE: this function modifies contentType property on options object if needed.
-        runActOpts.input = maybeStringify(input, runActOpts);
-        runActOpts.contentType = addCharsetToContentType(runActOpts.contentType);
+        callActOpts.input = maybeStringify(input, callActOpts);
+        callActOpts.contentType = addCharsetToContentType(callActOpts.contentType);
     }
 
-    // Run actor.
-    const { waitSecs } = options;
-    const run = await apifyClient.actor(actId).start(runActOpts);
-    if (waitSecs <= 0) return run; // In this case there is nothing more to do.
-
-    // Wait for run to finish.
-    let updatedRun;
+    // Start actor and wait for run to finish if waitSecs is provided
+    let run;
     try {
-        updatedRun = await waitForRunToFinish({
-            actorId: actId,
-            runId: run.id,
-            waitSecs,
-        });
+        run = await apifyClient.actor(actId).call(callActOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
@@ -347,14 +342,14 @@ export const call = async (actId, input, options = {}) => {
         throw err;
     }
 
-    if (isRunUnsuccessful(updatedRun.status)) {
+    if (isRunUnsuccessful(run.status)) {
         const message = `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
-        throw new ApifyCallError(updatedRun, message);
+        throw new ApifyCallError(run, message);
     }
 
     // Finish if output is not requested or run haven't finished.
     const { fetchOutput = true } = options;
-    if (!fetchOutput || updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED) return updatedRun;
+    if (!fetchOutput || run.status !== ACT_JOB_STATUSES.SUCCEEDED) return run;
 
     // Fetch output.
     const { disableBodyParser = false } = options;
@@ -362,9 +357,9 @@ export const call = async (actId, input, options = {}) => {
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
     const client = token ? newClient({ token }) : apifyClient;
-    const output = await client.keyValueStore(updatedRun.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
-    return { ...updatedRun, output };
+    return { ...run, output };
 };
 
 /**
@@ -448,26 +443,20 @@ export const callTask = async (taskId, input, options = {}) => {
 
     // Run task options.
     const { build, memoryMbytes, timeoutSecs, webhooks } = options;
-    const runTaskOpts = {};
-    if (build) runTaskOpts.build = build;
-    if (memoryMbytes) runTaskOpts.memory = memoryMbytes;
-    if (timeoutSecs >= 0) runTaskOpts.timeout = timeoutSecs; // Zero is valid value!
-    if (input) runTaskOpts.input = input;
-    if (webhooks) runTaskOpts.webhooks = webhooks;
 
-    // Start task.
-    const { waitSecs } = options;
-    const run = await apifyClient.task(taskId).start(runTaskOpts);
-    if (waitSecs <= 0) return run; // In this case there is nothing more to do.
+    const callTaskOpts = {
+        build,
+        memory: memoryMbytes,
+        webhooks,
+        input,
+    };
 
-    // Wait for run to finish.
-    let updatedRun;
+    if (timeoutSecs >= 0) callTaskOpts.timeout = timeoutSecs; // Zero is valid value!
+
+    // Start task and wait for run to finish if waitSecs is provided
+    let run;
     try {
-        updatedRun = await waitForRunToFinish({
-            actorId: run.actId,
-            runId: run.id,
-            waitSecs,
-        });
+        run = await apifyClient.task(taskId).call(callTaskOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
@@ -475,15 +464,15 @@ export const callTask = async (taskId, input, options = {}) => {
         throw err;
     }
 
-    if (isRunUnsuccessful(updatedRun.status)) {
+    if (isRunUnsuccessful(run.status)) {
         // TODO It should be callTask in the message, but I'm keeping it this way not to introduce a breaking change.
         const message = `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
-        throw new ApifyCallError(updatedRun, message);
+        throw new ApifyCallError(run, message);
     }
 
     // Finish if output is not requested or run haven't finished.
     const { fetchOutput = true } = options;
-    if (!fetchOutput || updatedRun.status !== ACT_JOB_STATUSES.SUCCEEDED) return updatedRun;
+    if (!fetchOutput || run.status !== ACT_JOB_STATUSES.SUCCEEDED) return run;
 
     // Fetch output.
     const { disableBodyParser = false } = options;
@@ -491,9 +480,9 @@ export const callTask = async (taskId, input, options = {}) => {
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
     const client = token ? newClient({ token }) : apifyClient;
-    const output = await client.keyValueStore(updatedRun.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
-    return { ...updatedRun, output };
+    return { ...run, output };
 };
 
 function isRunUnsuccessful(status) {

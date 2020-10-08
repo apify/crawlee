@@ -288,7 +288,7 @@ describe('enqueueLinksByClickingElements()', () => {
 </html>
         `;
             await page.setContent(html);
-            const callCounts = await new Promise(async (resolve) => {
+            const callCounts = await new Promise((resolve) => {
                 let spawnedTarget;
                 const counts = {
                     create: 0,

@@ -10,6 +10,7 @@ describe('Statistics', () => {
         return Math.round(jobCount / (totalTickMillis / 1000 / 60));
     };
 
+    // eslint-disable-next-line no-unused-vars
     const toISOString = (date) => new Date(date).toISOString();
 
     let clock;
@@ -61,6 +62,7 @@ describe('Statistics', () => {
             await stats.persistState();
 
             console.dir(stats);
+            // eslint-disable-next-line no-unused-vars
             const state = await stats.keyValueStore.getValue(stats.persistStateKey);
 
             /*

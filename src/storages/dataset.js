@@ -168,6 +168,7 @@ export class Dataset {
      */
     async pushData(data) {
         ow(data, ow.object);
+        // eslint-disable-next-line no-return-await
         const dispatch = async (payload) => await this.client.pushItems(payload);
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
