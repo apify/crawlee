@@ -7,7 +7,6 @@ import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';
 import {
     apifyClient,
-    newClient,
     addCharsetToContentType,
     sleep,
     snakeCaseToCamelCase,
@@ -15,6 +14,7 @@ import {
     logSystemInfo,
     printOutdatedSdkWarning,
 } from './utils';
+import * as utils from './utils';
 import { maybeStringify } from './storages/key_value_store';
 
 // eslint-disable-next-line import/named,no-unused-vars,import/first
@@ -300,8 +300,8 @@ export const call = async (actId, input, options = {}) => {
     ow(options, ow.object.exactShape({
         contentType: ow.optional.string,
         token: ow.optional.string,
-        memoryMbytes: ow.optional.number,
-        timeoutSecs: ow.optional.number,
+        memoryMbytes: ow.optional.number.not.negative,
+        timeoutSecs: ow.optional.number.not.negative,
         build: ow.optional.string,
         waitSecs: ow.optional.number,
         fetchOutput: ow.optional.boolean,
@@ -318,11 +318,10 @@ export const call = async (actId, input, options = {}) => {
     const callActOpts = {
         build,
         memory: memoryMbytes,
+        timeout: timeoutSecs,
         webhooks,
         waitSecs,
     };
-
-    if (timeoutSecs >= 0) callActOpts.timeout = timeoutSecs; // Zero is valid value!
 
     if (input) {
         callActOpts.contentType = options.contentType;
@@ -356,7 +355,7 @@ export const call = async (actId, input, options = {}) => {
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const client = token ? newClient({ token }) : apifyClient;
+    const client = token ? utils.newClient({ token }) : apifyClient;
     const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
     return { ...run, output };
@@ -429,8 +428,8 @@ export const callTask = async (taskId, input, options = {}) => {
     ow(input, ow.optional.any(ow.string, ow.object));
     ow(options, ow.object.exactShape({
         token: ow.optional.string,
-        memoryMbytes: ow.optional.number,
-        timeoutSecs: ow.optional.number,
+        memoryMbytes: ow.optional.number.not.negative,
+        timeoutSecs: ow.optional.number.not.negative,
         build: ow.optional.string,
         waitSecs: ow.optional.number,
         fetchOutput: ow.optional.boolean,
@@ -447,12 +446,10 @@ export const callTask = async (taskId, input, options = {}) => {
     const callTaskOpts = {
         build,
         memory: memoryMbytes,
+        timeout: timeoutSecs,
         webhooks,
         input,
     };
-
-    if (timeoutSecs >= 0) callTaskOpts.timeout = timeoutSecs; // Zero is valid value!
-
     // Start task and wait for run to finish if waitSecs is provided
     let run;
     try {
@@ -479,7 +476,7 @@ export const callTask = async (taskId, input, options = {}) => {
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const client = token ? newClient({ token }) : apifyClient;
+    const client = token ? utils.newClient({ token }) : apifyClient;
     const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
     return { ...run, output };
@@ -523,6 +520,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
     ow(options, ow.object.exactShape({
         contentType: ow.optional.string,
         build: ow.optional.string,
+        customAfterSleepMillis: ow.optional.number.not.negative,
     }));
     // Use optionsCopy here as maybeStringify() may override contentType
     const optionsCopy = { ...options };
@@ -537,7 +535,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
         if (optionsCopy.contentType) optionsCopy.contentType = addCharsetToContentType(optionsCopy.contentType);
     }
 
-    await apifyClient.run(runId, actorId).metamorph(targetActorId, {
+    await utils.apifyClient.run(runId, actorId).metamorph(targetActorId, {
         contentType: optionsCopy.contentType,
         build: optionsCopy.build,
         input,
