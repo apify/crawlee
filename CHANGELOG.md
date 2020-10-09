@@ -53,12 +53,17 @@ Finally, we cleaned up some old deprecations.
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
 
+0.21.8 / 2020/10/07
+====================
+- Make `PuppeteerCrawler` safe against malformed Puppeteer responses.
+- Update default user agent to Chrome 86
+- Bump Puppeteer to 5.3.1 with Chromium 86
 
-0.21.7 / 2020/09/03
+0.21.7 / 2020/10/03
 ====================
 - Fix an error in `PuppeteerCrawler` caused by `page.goto()` randomly returning `null`.
 
-0.21.6 / 2020/09/01
+0.21.6 / 2020/10/02
 ====================
 It appears that `CheerioCrawler` was correctly retiring sessions on timeouts
 and blocked status codes (401, 403, 429), whereas `PuppeteerCrawler` did not.
