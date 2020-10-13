@@ -455,51 +455,47 @@ describe('CheerioCrawler', () => {
     });
 
     describe('should work with all content types from options.additionalMimeTypes', () => {
-        const handlePageInvocationParams = [];
-        let handleFailedInvocationCount = 0;
-        beforeAll(async () => {
-            const sources = [
-                { url: `http://${HOST}:${port}/json-type` },
-                { url: `http://${HOST}:${port}/xml-type` },
-                { url: `http://${HOST}:${port}/image-type` },
-            ];
-            const sourceCount = sources.length;
-            const requestList = new Apify.RequestList({ sources });
-            await requestList.initialize();
+        let handlePageInvocationParams;
+        let handleFailedInvoked = false;
+        const runCrawler = async (url) => {
+            const sources = [url];
+            const requestList = await Apify.openRequestList(null, sources);
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 additionalMimeTypes: ['application/json', 'image/png', 'application/xml'],
                 maxRequestRetries: 1,
                 handlePageFunction: async (params) => {
-                    handlePageInvocationParams.push(params);
+                    handlePageInvocationParams = params;
                 },
                 handleFailedRequestFunction: async () => {
-                    handleFailedInvocationCount++;
+                    handleFailedInvoked = true;
                 },
             });
             await crawler.run();
+        };
 
-            expect(handleFailedInvocationCount).toBe(0);
-            expect(handlePageInvocationParams.length).toEqual(sourceCount);
-        });
         test('when response is application/json', async () => {
-            const jsonRequestParams = handlePageInvocationParams[0];
-            expect(jsonRequestParams.json).toBeInstanceOf(Object);
-            expect(jsonRequestParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
-            expect(jsonRequestParams.contentType.type).toBe('application/json');
+            const url = `http://${HOST}:${port}/json-type`;
+            await runCrawler(url);
+            expect(handlePageInvocationParams.json).toBeInstanceOf(Object);
+            expect(handlePageInvocationParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
+            expect(handlePageInvocationParams.contentType.type).toBe('application/json');
+            expect(handleFailedInvoked).toBe(false);
         });
         test('when response is application/xml', async () => {
-            const xmlRequestParams = handlePageInvocationParams[1];
-            expect(typeof xmlRequestParams.body).toBe('string');
-            expect(xmlRequestParams.body).toEqual(responseSamples.xml);
-            expect(xmlRequestParams.$).toBeInstanceOf(Function);
-            expect(xmlRequestParams.contentType.type).toBe('application/xml');
+            const url = `http://${HOST}:${port}/xml-type`;
+            await runCrawler(url);
+            expect(typeof handlePageInvocationParams.body).toBe('string');
+            expect(handlePageInvocationParams.body).toEqual(responseSamples.xml);
+            expect(handlePageInvocationParams.$).toBeInstanceOf(Function);
+            expect(handlePageInvocationParams.contentType.type).toBe('application/xml');
         });
         test('when response is image/png', async () => {
-            const imageRequestParams = handlePageInvocationParams[2];
-            expect(imageRequestParams.body).toBeInstanceOf(Buffer);
-            expect(imageRequestParams.body).toEqual(responseSamples.image);
-            expect(imageRequestParams.contentType.type).toBe('image/png');
+            const url = `http://${HOST}:${port}/image-type`;
+            await runCrawler(url);
+            expect(handlePageInvocationParams.body).toBeInstanceOf(Buffer);
+            expect(handlePageInvocationParams.body).toEqual(responseSamples.image);
+            expect(handlePageInvocationParams.contentType.type).toBe('image/png');
         });
     });
 
