@@ -324,16 +324,14 @@ export const call = async (actId, input, options = {}) => {
     };
 
     if (input) {
-        callActOpts.contentType = options.contentType;
-        // NOTE: this function modifies contentType property on options object if needed.
-        callActOpts.input = maybeStringify(input, callActOpts);
+        input = maybeStringify(input, callActOpts);
         callActOpts.contentType = addCharsetToContentType(callActOpts.contentType);
     }
 
     // Start actor and wait for run to finish if waitSecs is provided
     let run;
     try {
-        run = await apifyClient.actor(actId).call(callActOpts);
+        run = await apifyClient.actor(actId).call(input, callActOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
@@ -448,12 +446,11 @@ export const callTask = async (taskId, input, options = {}) => {
         memory: memoryMbytes,
         timeout: timeoutSecs,
         webhooks,
-        input,
     };
     // Start task and wait for run to finish if waitSecs is provided
     let run;
     try {
-        run = await apifyClient.task(taskId).call(callTaskOpts);
+        run = await apifyClient.task(taskId).call(input, callTaskOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
