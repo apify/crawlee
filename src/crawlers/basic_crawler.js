@@ -327,10 +327,10 @@ class BasicCrawler {
             const finalStats = this.stats.calculate();
             const { requestsFailed, requestsFinished } = this.stats.state;
             this.log.info('Final request statistics:', {
-                ...finalStats,
                 requestsFinished,
                 requestsFailed,
                 retryHistogram: this.stats.requestRetryHistogram,
+                ...finalStats,
             });
         }
     }
