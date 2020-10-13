@@ -296,22 +296,32 @@ describe('Apify.call()', () => {
         const timeoutSecs = 60;
         const webhooks = [{ a: 'a' }, { b: 'b' }];
 
-        const clientMock = sinon.mock(utils.apifyClient);
-        clientMock.expects('actor')
-            .once()
-            .withArgs('some-act-id')
-            .returns({ call: async () => finishedRun });
-
         const utilsMock = sinon.mock(utils);
+        const callStub = sinon.stub().resolves(finishedRun);
+        const getRecordStub = sinon.stub().resolves(output);
+        const keyValueStoreStub = sinon.stub().returns({ getRecord: getRecordStub });
+        const actorStub = sinon.stub().returns({ call: callStub });
         utilsMock.expects('newClient')
             .once()
             .withArgs({ token })
-            .returns({ keyValueStore: () => ({ getRecord: async () => output }) });
+            .returns({
+                actor: actorStub,
+                keyValueStore: keyValueStoreStub,
+            });
         const callOutput = await Apify
             .call(actId, input, { contentType, token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks });
 
         expect(callOutput).toEqual(expected);
-        clientMock.verify();
+        expect(actorStub.calledOnceWith(actId));
+        expect(callStub.args[0]).toEqual([input, {
+            build,
+            contentType: `${contentType}; charset=utf-8`,
+            memory: memoryMbytes,
+            timeout: timeoutSecs,
+            webhooks,
+        }]);
+        expect(keyValueStoreStub.calledOnceWith(run.defaultKeyValueStoreId));
+        expect(getRecordStub.calledOnceWith('OUTPUT', { buffer: true }));
         utilsMock.verify();
     });
 
@@ -328,7 +338,7 @@ describe('Apify.call()', () => {
             .never();
 
         const callOutput = await Apify
-            .call(actId, undefined, { token, disableBodyParser: true, fetchOutput: false, waitSecs });
+            .call(actId, undefined, { disableBodyParser: true, fetchOutput: false, waitSecs });
 
         expect(callOutput).toEqual(runningRun);
         clientMock.verify();
@@ -347,7 +357,7 @@ describe('Apify.call()', () => {
             .never();
 
         const callOutput = await Apify
-            .call(actId, undefined, { token, waitSecs });
+            .call(actId, undefined, { waitSecs });
 
         expect(callOutput).toEqual(readyRun);
         clientMock.restore();
@@ -409,6 +419,35 @@ describe('Apify.callTask()', () => {
         clientMock.restore();
     });
 
+    test('works with token', async () => {
+        const utilsMock = sinon.mock(utils);
+        const callStub = sinon.stub().resolves(finishedRun);
+        const getRecordStub = sinon.stub().resolves(output);
+        const keyValueStoreStub = sinon.stub().returns({ getRecord: getRecordStub });
+        const taskStub = sinon.stub().returns({ call: callStub });
+        utilsMock.expects('newClient')
+            .once()
+            .withArgs({ token })
+            .returns({
+                task: taskStub,
+                keyValueStore: keyValueStoreStub,
+            });
+        const callOutput = await Apify
+            .callTask(taskId, input, { token, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks });
+
+        expect(callOutput).toEqual(expected);
+        expect(taskStub.calledOnceWith(taskId));
+        expect(callStub.args[0]).toEqual([input, {
+            build,
+            memory: memoryMbytes,
+            timeout: timeoutSecs,
+            webhooks,
+        }]);
+        expect(keyValueStoreStub.calledOnceWith(run.defaultKeyValueStoreId));
+        expect(getRecordStub.calledOnceWith('OUTPUT', { buffer: true }));
+        utilsMock.verify();
+    });
+
     test('works as expected with fetchOutput = false', async () => {
         const clientMock = sinon.mock(utils.apifyClient);
         clientMock.expects('task')
@@ -439,7 +478,7 @@ describe('Apify.callTask()', () => {
             .never();
 
         const callOutput = await Apify
-            .callTask(taskId, undefined, { token, disableBodyParser: true, fetchOutput: false, waitSecs });
+            .callTask(taskId, undefined, { disableBodyParser: true, fetchOutput: false, waitSecs });
 
         expect(callOutput).toEqual(runningRun);
         clientMock.verify();
@@ -458,7 +497,7 @@ describe('Apify.callTask()', () => {
             .never();
 
         const callOutput = await Apify
-            .callTask(taskId, undefined, { token, waitSecs });
+            .callTask(taskId, undefined, { waitSecs });
 
         expect(callOutput).toEqual(readyRun);
         clientMock.restore();

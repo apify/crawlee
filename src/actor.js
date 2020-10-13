@@ -303,35 +303,34 @@ export const call = async (actId, input, options = {}) => {
         memoryMbytes: ow.optional.number.not.negative,
         timeoutSecs: ow.optional.number.not.negative,
         build: ow.optional.string,
-        waitSecs: ow.optional.number,
+        waitSecs: ow.optional.number.not.negative,
         fetchOutput: ow.optional.boolean,
         disableBodyParser: ow.optional.boolean,
         webhooks: ow.optional.array.ofType(ow.object),
     }));
 
-    // Common options.
-    const { token } = options;
+    const {
+        token,
+        fetchOutput = true,
+        disableBodyParser = false,
+        memoryMbytes,
+        timeoutSecs,
+        ...callActorOpts
+    } = options;
 
-    // RunAct() options.
-    const { build, contentType, timeoutSecs, webhooks, memoryMbytes, waitSecs } = options;
-
-    const callActorOpts = {
-        build,
-        memory: memoryMbytes,
-        timeout: timeoutSecs,
-        webhooks,
-        waitSecs,
-    };
+    callActorOpts.memory = memoryMbytes;
+    callActorOpts.timeout = timeoutSecs;
 
     if (input) {
-        callActorOpts.contentType = addCharsetToContentType(contentType);
+        callActorOpts.contentType = addCharsetToContentType(callActorOpts.contentType);
         input = maybeStringify(input, callActorOpts);
     }
 
-    // Start actor and wait for run to finish if waitSecs is provided
+    const client = token ? utils.newClient({ token }) : apifyClient;
+
     let run;
     try {
-        run = await apifyClient.actor(actId).call(input, callActorOpts);
+        run = await client.actor(actId).call(input, callActorOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
@@ -345,15 +344,12 @@ export const call = async (actId, input, options = {}) => {
     }
 
     // Finish if output is not requested or run haven't finished.
-    const { fetchOutput = true } = options;
     if (!fetchOutput || run.status !== ACT_JOB_STATUSES.SUCCEEDED) return run;
 
     // Fetch output.
-    const { disableBodyParser = false } = options;
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const client = token ? utils.newClient({ token }) : apifyClient;
     const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
     return { ...run, output };
@@ -429,28 +425,29 @@ export const callTask = async (taskId, input, options = {}) => {
         memoryMbytes: ow.optional.number.not.negative,
         timeoutSecs: ow.optional.number.not.negative,
         build: ow.optional.string,
-        waitSecs: ow.optional.number,
+        waitSecs: ow.optional.number.not.negative,
         fetchOutput: ow.optional.boolean,
         disableBodyParser: ow.optional.boolean,
         webhooks: ow.optional.array.ofType(ow.object),
     }));
 
-    // Common options.
-    const { token } = options;
+    const {
+        token,
+        fetchOutput = true,
+        disableBodyParser = false,
+        memoryMbytes,
+        timeoutSecs,
+        ...callTaskOpts
+    } = options;
 
-    // Run task options.
-    const { build, memoryMbytes, timeoutSecs, webhooks } = options;
+    callTaskOpts.memory = memoryMbytes;
+    callTaskOpts.timeout = timeoutSecs;
 
-    const callTaskOpts = {
-        build,
-        memory: memoryMbytes,
-        timeout: timeoutSecs,
-        webhooks,
-    };
+    const client = token ? utils.newClient({ token }) : apifyClient;
     // Start task and wait for run to finish if waitSecs is provided
     let run;
     try {
-        run = await apifyClient.task(taskId).call(input, callTaskOpts);
+        run = await client.task(taskId).call(input, callTaskOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
@@ -465,15 +462,12 @@ export const callTask = async (taskId, input, options = {}) => {
     }
 
     // Finish if output is not requested or run haven't finished.
-    const { fetchOutput = true } = options;
     if (!fetchOutput || run.status !== ACT_JOB_STATUSES.SUCCEEDED) return run;
 
     // Fetch output.
-    const { disableBodyParser = false } = options;
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const client = token ? utils.newClient({ token }) : apifyClient;
     const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
     return { ...run, output };
