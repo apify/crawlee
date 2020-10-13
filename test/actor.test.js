@@ -531,38 +531,43 @@ describe('Apify.metamorph()', () => {
     const build = 'beta';
     const run = { id: runId, actId: actorId };
 
-    test('works as expected', async () => {
+    beforeEach(() => {
         process.env[ENV_VARS.ACTOR_ID] = actorId;
         process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
+    });
 
+    afterEach(() => {
+        delete process.env[ENV_VARS.ACTOR_ID];
+        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+    });
+
+    test('works as expected', async () => {
         const clientMock = sinon.mock(utils.apifyClient);
+        const metamorphStub = sinon.stub().resolves(run);
         clientMock.expects('run')
             .once()
             .withArgs('some-run-id', 'some-actor-id')
-            .returns({ metamorph: async () => run });
+            .returns({ metamorph: metamorphStub });
 
         await Apify.metamorph(targetActorId, input, { contentType, build, customAfterSleepMillis: 1 });
-
-        delete process.env[ENV_VARS.ACTOR_ID];
-        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+        expect(metamorphStub.args[0]).toEqual([targetActorId, input, {
+            build,
+            contentType: `${contentType}; charset=utf-8`,
+        }]);
 
         clientMock.verify();
     });
 
     test('works without opts and input', async () => {
-        process.env[ENV_VARS.ACTOR_ID] = actorId;
-        process.env[ENV_VARS.ACTOR_RUN_ID] = runId;
-
         const clientMock = sinon.mock(utils.apifyClient);
+        const metamorphStub = sinon.stub().resolves(run);
         clientMock.expects('run')
             .once()
             .withArgs('some-run-id', 'some-actor-id')
-            .returns({ metamorph: async () => run });
+            .returns({ metamorph: metamorphStub });
 
         await Apify.metamorph(targetActorId, undefined, { customAfterSleepMillis: 1 });
-
-        delete process.env[ENV_VARS.ACTOR_ID];
-        delete process.env[ENV_VARS.ACTOR_RUN_ID];
+        expect(metamorphStub.args[0]).toEqual([targetActorId, undefined, {}]);
 
         clientMock.verify();
     });

@@ -509,12 +509,15 @@ export const metamorph = async (targetActorId, input, options = {}) => {
     ow(targetActorId, ow.string);
     // input can be anything, no reason to validate
     ow(options, ow.object.exactShape({
-        contentType: ow.optional.string,
+        contentType: ow.optional.string.nonEmpty,
         build: ow.optional.string,
         customAfterSleepMillis: ow.optional.number.not.negative,
     }));
-    // Use optionsCopy here as maybeStringify() may override contentType
-    const optionsCopy = { ...options };
+
+    const {
+        customAfterSleepMillis,
+        ...metamorphOpts
+    } = options;
 
     const actorId = process.env[ENV_VARS.ACTOR_ID];
     const runId = process.env[ENV_VARS.ACTOR_RUN_ID];
@@ -522,19 +525,15 @@ export const metamorph = async (targetActorId, input, options = {}) => {
     if (!runId) throw new Error(`Environment variable ${ENV_VARS.ACTOR_RUN_ID} must be provided!`);
 
     if (input) {
-        input = maybeStringify(input, optionsCopy);
-        if (optionsCopy.contentType) optionsCopy.contentType = addCharsetToContentType(optionsCopy.contentType);
+        metamorphOpts.contentType = addCharsetToContentType(metamorphOpts.contentType);
+        input = maybeStringify(input, metamorphOpts);
     }
 
-    await utils.apifyClient.run(runId, actorId).metamorph(targetActorId, {
-        contentType: optionsCopy.contentType,
-        build: optionsCopy.build,
-        input,
-    });
+    await utils.apifyClient.run(runId, actorId).metamorph(targetActorId, input, metamorphOpts);
 
     // Wait some time for container to be stopped.
     // NOTE: option.customAfterSleepMillis is used in tests
-    await sleep(optionsCopy.customAfterSleepMillis || METAMORPH_AFTER_SLEEP_MILLIS);
+    await sleep(customAfterSleepMillis || METAMORPH_AFTER_SLEEP_MILLIS);
 };
 
 /**
