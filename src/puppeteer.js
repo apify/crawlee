@@ -1,5 +1,5 @@
+import ow from 'ow';
 import * as _ from 'underscore';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { anonymizeProxy, closeAnonymizedProxy, redactUrl, parseUrl } from 'proxy-chain';
 import { ENV_VARS } from 'apify-shared/consts';
 import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
@@ -60,7 +60,7 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
         const cleanUp = () => {
             // Don't wait for finish, only log errors
             closeAnonymizedProxy(anonymizedProxyUrl, true)
-                .catch(err => log.exception(err, 'closeAnonymizedProxy() failed.'));
+                .catch((err) => log.exception(err, 'closeAnonymizedProxy() failed.'));
         };
 
         browser.on('disconnected', cleanUp);
@@ -82,7 +82,6 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
  * @ignore
  */
 const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
-    checkParamOrThrow(puppeteerModule, 'puppeteerModule', 'String|Object');
     if (typeof puppeteerModule === 'object') return puppeteerModule;
     try {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
@@ -190,21 +189,17 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  * @function
  */
 export const launchPuppeteer = async (options = {}) => {
-    checkParamOrThrow(options, 'options', 'Object');
-    checkParamOrThrow(options.args, 'options.args', 'Maybe [String]');
-    checkParamOrThrow(options.proxyUrl, 'options.proxyUrl', 'Maybe String');
-    checkParamOrThrow(options.puppeteerModule, 'options.puppeteerModule', 'Maybe String|Object');
-    checkParamOrThrow(options.stealth, 'options.stealth', 'Maybe Boolean');
-    checkParamOrThrow(options.stealthOptions, 'options.stealthOptions', 'Maybe Object');
-    if (options.liveView || options.liveViewOptions) {
-        log.deprecated('Live view is no longer available in Apify.launchPuppeteer() and launchPuppeteerOptions. '
-            + 'Use options.useLiveView in PuppeteerPool for an updated version. '
-            + 'For live view with Apify.launchPuppeteer(), use Apify.LiveViewServer.');
-    }
+    ow(options, ow.object.partialShape({
+        args: ow.optional.array.ofType(ow.string),
+        proxyUrl: ow.optional.string.url,
+        puppeteerModule: ow.optional.any(ow.string, ow.object),
+        stealth: ow.optional.boolean,
+        stealthOptions: ow.optional.object,
+    }));
 
     const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
 
-    const optsCopy = Object.assign({}, options);
+    const optsCopy = { ...options };
 
     optsCopy.args = optsCopy.args || [];
     optsCopy.args.push('--no-sandbox');

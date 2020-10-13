@@ -1,3 +1,58 @@
+0.22.0 / XXX
+====================
+In this release we've changed a lot of code, but you may not even notice.
+We've updated the underlying `apify-client` package which powers all communication with
+the Apify API to version `1.0.0`. This means a completely new API for all internal calls.
+If you use `Apify.client` calls in your code, visit the client docs for a migration guide. <----- TODO
+
+Until now, local emulation of Apify Storages was part of the SDK. We've moved the logic
+into a separate package `@apify/storage-local` which shares interface with `apify-client`.
+`RequestQueue` is now powered by `SQLite3` instead of file system, which improves
+reliability and performance quite a bit. `Dataset` and `KeyValueStore` still use file
+system, for easy browsing of data. The structure of `apify_storage` folder remains unchanged.
+
+After collecting common developer mistakes, we've decided to make argument validation stricter.
+You will no longer be able to pass extra arguments to functions and constructors. This is
+to alleviate frustration, when you mistakenly pass `useChrome` to `PuppeteerPoolOptions`
+instead of `LaunchPuppeteerOptions` and don't realize it. Before this version, SDK wouldn't
+let you know and just silently continue with Chromium. Now, it will throw an error saying
+that `useChrome` is not an allowed property of `PuppeteerPoolOptions`.
+
+`LiveViewServer` and `puppeteerPoolOptions.useLiveView` were never very user-friendly
+or performant solutions, due to the inherent performance issues with rapidly taking many
+screenshots in Puppeteer. We've decided to remove it. If you need similar functionality,
+try the `devtools-server` NPM package, which utilizes the Chrome DevTools Frontend for
+screen-casting live view of the running browser.
+
+Finally, we cleaned up some old deprecations.
+
+- **BREAKING:** Function argument validation is now more strict and will not accept extra
+  parameters which are not defined by the functions' signatures.
+- **DEPRECATED:** `puppeteerPoolOptions.useLiveView` is now deprecated.
+  Use the `devtools-server` NPM package instead.
+
+- Updated `Apify.requestAsBrowser()` headers to the latest Firefox.
+- Updated `apify-client` to version `1.0.0`.
+- Removed `RequestQueueLocal` in favor of `@apify/storage-local` API emulator.
+- Removed `KeyValueStoreLocal` in favor of `@apify/storage-local` API emulator.
+- Removed `DatasetLocal` in favor of `@apify/storage-local` API emulator.
+- Removed the `userData` option from `Apify.utils.enqueueLinks` (deprecated in Jun 2019).
+  Use `transformRequestFunction` instead.
+- Removed `instanceKillerIntervalMillis` and `killInstanceAfterMillis` (deprecated in Feb 2019).
+  Use `instanceKillerIntervalSecs` and `killInstanceAfterSecs` instead.
+- Removed the `memory` option from `Apify.call` `options` which was (deprecated in 2018).
+  Use `memoryMbytes` instead.
+- Removed `delete()` methods from `Dataset`, `KeyValueStore` and `RequestQueue` (deprecated in Jul 2019).
+  Use `.drop()`.
+- Removed `utils.puppeteer.hideWebDriver()` (deprecated in May 2019).
+  Use `LaunchPuppeteerOptions.stealth`.
+- Removed `utils.puppeteer.enqueueRequestsFromClickableElements()` (deprecated in 2018).
+  Use `utils.puppeteer.enqueueLinksByClickingElements`.
+- Removed `request.doNotRetry()` (deprecated in June 2019)
+  Use `request.noRetry = true`.
+- Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
+  Use `persistRequestsKey`.
+
 0.21.8 / 2020/10/07
 ====================
 - Make `PuppeteerCrawler` safe against malformed Puppeteer responses.

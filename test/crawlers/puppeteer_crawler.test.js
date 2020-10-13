@@ -5,6 +5,7 @@ import * as Apify from '../../build';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
+import * as utils from '../../build/utils';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
@@ -19,7 +20,8 @@ describe('PuppeteerCrawler', () => {
         localStorageEmulator = new LocalStorageDirEmulator();
     });
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
     });
     afterAll(async () => {
         log.setLevel(logLevel);
@@ -129,8 +131,8 @@ describe('PuppeteerCrawler', () => {
         expect(puppeteerCrawler.sessionPool.constructor.name).toEqual('SessionPool');
         expect(handlePageSessions).toHaveLength(1);
         expect(goToPageSessions).toHaveLength(1);
-        handlePageSessions.forEach(session => expect(session.constructor.name).toEqual('Session'));
-        goToPageSessions.forEach(session => expect(session.constructor.name).toEqual('Session'));
+        handlePageSessions.forEach((session) => expect(session.constructor.name).toEqual('Session'));
+        goToPageSessions.forEach((session) => expect(session.constructor.name).toEqual('Session'));
     });
 
     test('should persist cookies per session', async () => {
@@ -162,7 +164,7 @@ describe('PuppeteerCrawler', () => {
         await requestList.initialize();
         await puppeteerCrawler.run();
         expect(loadedCookies).toHaveLength(4);
-        loadedCookies.forEach(cookie => expect(cookie).toEqual('TEST=12321312312'));
+        loadedCookies.forEach((cookie) => expect(cookie).toEqual('TEST=12321312312'));
     });
 
     test('should throw on "blocked" status codes', async () => {

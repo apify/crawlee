@@ -1,12 +1,11 @@
 import { URL } from 'url';
 import * as _ from 'underscore';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import PseudoUrl from '../pseudo_url';
 import Request from '../request'; // eslint-disable-line import/no-duplicates
 
 // TYPES IMPORT
 /* eslint-disable import/order,no-unused-vars,import/named,import/no-duplicates */
-import { RequestQueue, QueueOperationInfo } from '../request_queue';
+import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestOptions } from '../request';
 /* eslint-enable */
 
@@ -22,18 +21,17 @@ const enqueueLinksPseudoUrlCache = new Map();
 
 /**
  * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function.
- * @param {Array<(string|Object)>} pseudoUrls
+ * @param {Array<(string|RegExp|{ purl: string|RegExp })>} pseudoUrls
  * @return {Array<PseudoUrl>}
  * @ignore
  */
 export function constructPseudoUrlInstances(pseudoUrls) {
-    return pseudoUrls.map((item, idx) => {
+    return pseudoUrls.map((item) => {
         // Get pseudoUrl instance from cache.
         let pUrl = enqueueLinksPseudoUrlCache.get(item);
         if (pUrl) return pUrl;
-        // Nothing in cache, make a new instance.
-        checkParamOrThrow(item, `pseudoUrls[${idx}]`, 'RegExp|Object|String');
 
+        // Nothing in cache, make a new instance.
         // If it's already a PseudoURL, just save it.
         if (item instanceof PseudoUrl) pUrl = item;
         // If it's a string or RegExp, construct a PURL from it directly.
@@ -58,13 +56,13 @@ export function constructPseudoUrlInstances(pseudoUrls) {
  */
 export function createRequests(requestOptions, pseudoUrls) {
     if (!(pseudoUrls && pseudoUrls.length)) {
-        return requestOptions.map(opts => new Request(opts));
+        return requestOptions.map((opts) => new Request(opts));
     }
 
     const requests = [];
     requestOptions.forEach((opts) => {
         pseudoUrls
-            .filter(purl => purl.matches(opts.url))
+            .filter((purl) => purl.matches(opts.url))
             .forEach((purl) => {
                 const request = purl.createRequest(opts);
                 requests.push(request);
@@ -75,22 +73,17 @@ export function createRequests(requestOptions, pseudoUrls) {
 
 /**
  * @param {Array<(string|Object)>} sources
- * @param {Object} [userData]
  * @ignore
  */
-export function createRequestOptions(sources, userData = {}) {
+export function createRequestOptions(sources) {
     return sources
-        .map(src => (typeof src === 'string' ? { url: src } : src))
+        .map((src) => (typeof src === 'string' ? { url: src } : src))
         .filter(({ url }) => {
             try {
                 return new URL(url).href;
             } catch (err) {
                 return false;
             }
-        })
-        .map((rqOpts) => {
-            rqOpts.userData = { ...rqOpts.userData, ...userData };
-            return rqOpts;
         });
 }
 

@@ -9,7 +9,6 @@ import { Readable } from 'stream';
 export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
 export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
 
-
 const DEFAULT_HTTP_REQUEST_OPTIONS = {
     useBrotli: true,
     json: false,

@@ -49,7 +49,7 @@ describe('ProxyConfiguration', () => {
         const url = basicOptsProxyUrl;
 
         const proxyInfo = {
-            sessionId,
+            sessionId: `${sessionId}`,
             url,
             groups,
             countryCode,
@@ -79,26 +79,26 @@ describe('ProxyConfiguration', () => {
     test('should throw on invalid arguments structure', () => {
         // Group value
         const invalidGroups = ['GROUP1*'];
-        let opts = Object.assign({}, basicOpts);
+        let opts = { ...basicOpts };
         opts.groups = invalidGroups;
         try {
             // eslint-disable-next-line no-unused-vars
             const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('The provided proxy group name "GROUP1*"');
+            expect(err.message).toMatch('got `GROUP1*` in object');
         }
 
         // Country code
         const invalidCountryCode = 'CZE';
-        opts = Object.assign({}, basicOpts);
+        opts = { ...basicOpts };
         opts.countryCode = invalidCountryCode;
         try {
             // eslint-disable-next-line no-unused-vars
             const proxyConfiguration = new ProxyConfiguration(opts);
             throw new Error('wrong error');
         } catch (err) {
-            expect(err.message).toMatch('The provided country code "CZE"');
+            expect(err.message).toMatch('got `CZE` in object');
         }
     });
 
@@ -108,7 +108,6 @@ describe('ProxyConfiguration', () => {
         expect(() => new ProxyConfiguration({ groups: ['ffff', 'ff-hf', 'ccc'] })).toThrowError();
         expect(() => new ProxyConfiguration({ groups: ['ffff', 'fff', 'cc$c'] })).toThrowError();
         expect(() => new ProxyConfiguration({ apifyProxyGroups: [new Date()] })).toThrowError();
-
 
         expect(() => new ProxyConfiguration({ countryCode: new Date() })).toThrow();
         expect(() => new ProxyConfiguration({ countryCode: 'aa' })).toThrow();
@@ -283,7 +282,7 @@ describe('ProxyConfiguration', () => {
                 });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toMatch('must not be empty');
+                expect(err.message).toMatch('Expected property array `proxyUrls` to not be empty');
             }
         });
 
@@ -295,13 +294,15 @@ describe('ProxyConfiguration', () => {
                 });
                 throw new Error('wrong error');
             } catch (err) {
-                expect(err.message).toEqual('The provided proxy URL "http://proxy.com:1111*invalid_url" is not a valid URL.');
+                expect(err.message).toMatch('to be a URL, got `http://proxy.com:1111*invalid_url`');
             }
         });
     });
 });
 
 describe('Apify.createProxyConfiguration()', () => {
+    const userData = { proxy: { password } };
+
     test('should work with all options', async () => {
         const mock = sinon.mock(requestUtils);
         const status = { connected: true };
@@ -332,6 +333,7 @@ describe('Apify.createProxyConfiguration()', () => {
         delete opts.password;
 
         const requestUtilsMock = sinon.mock(requestUtils);
+        const userClientMock = sinon.mock(apifyClient);
         const status = { connected: true };
         const proxyUrl = proxyUrlNoSession;
         const url = 'http://proxy.apify.com/?format=json';
@@ -341,14 +343,9 @@ describe('Apify.createProxyConfiguration()', () => {
             .withArgs(sinon.match({ url, proxyUrl }))
             .resolves({ body: status });
 
-        const clientUsersMock = sinon.mock(apifyClient.users);
-        const data = { proxy: { password } };
-
-        clientUsersMock.expects('getUser')
+        userClientMock.expects('user')
             .once()
-            .withArgs({ token, userId: 'me' })
-            .returns(Promise.resolve(data));
-
+            .returns({ get: async () => userData });
 
         const proxyConfiguration = await Apify.createProxyConfiguration(opts);
 
@@ -360,18 +357,19 @@ describe('Apify.createProxyConfiguration()', () => {
         expect(proxyConfiguration.port).toBe(port);
 
         requestUtilsMock.verify();
-        clientUsersMock.verify();
+        userClientMock.verify();
     });
 
     test('should show warning log', async () => {
         process.env.APIFY_TOKEN = '123456789';
 
         const status = { connected: true };
-        const fakeUserObjectProxyData = { password: 'some-other-users-password' };
-
+        const userClientMock = sinon.mock(apifyClient);
         const stub1 = sinon.stub(requestUtils, 'requestAsBrowser').resolves({ body: status });
-
-        const stub2 = sinon.stub(apifyClient.users, 'getUser').resolves({ proxy: fakeUserObjectProxyData });
+        const fakeUserData = { proxy: { password: 'some-other-users-password' } };
+        userClientMock.expects('user')
+            .once()
+            .returns({ get: async () => fakeUserData });
 
         // eslint-disable-next-line no-unused-vars
         const proxyConfiguration = new ProxyConfiguration(basicOpts);
@@ -381,8 +379,8 @@ describe('Apify.createProxyConfiguration()', () => {
         await proxyConfiguration.initialize();
 
         stub1.restore();
-        stub2.restore();
         logMock.verify();
+        userClientMock.verify();
     });
 
     test('should throw missing password', async () => {
@@ -412,18 +410,16 @@ describe('Apify.createProxyConfiguration()', () => {
         process.env.APIFY_TOKEN = '123456789';
         const connectionError = 'Invalid username: proxy group "GROUP2"; not found or not accessible.';
         const status = { connected: false, connectionError };
-        const fakeUserObjectProxyData = { password };
+        const userClientMock = sinon.mock(apifyClient);
 
         const fakeRequestAsBrowser = async () => {
             return { body: status };
         };
         const stub1 = sinon.stub(requestUtils, 'requestAsBrowser').callsFake(fakeRequestAsBrowser);
 
-
-        const fakeGetUser = async () => {
-            return { proxy: fakeUserObjectProxyData };
-        };
-        const stub2 = sinon.stub(apifyClient.users, 'getUser').callsFake(fakeGetUser);
+        userClientMock.expects('user')
+            .once()
+            .returns({ get: async () => userData });
 
         try {
             // eslint-disable-next-line no-unused-vars
@@ -433,7 +429,7 @@ describe('Apify.createProxyConfiguration()', () => {
             expect(err.message).toMatch(connectionError);
         }
         stub1.restore();
-        stub2.restore();
+        userClientMock.verify();
     });
 
     test('should not throw when access check is unresponsive', async () => {

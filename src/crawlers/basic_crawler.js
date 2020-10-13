@@ -1,21 +1,21 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
-import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
-import { RequestList } from '../request_list';
-import { RequestQueue, RequestQueueLocal } from '../request_queue'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
 import { addTimeoutToPromise } from '../utils';
 import defaultLog from '../utils_log';
+import { validators } from '../validators';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import Request from '../request';
-import { QueueOperationInfo } from '../request_queue';
+import { RequestList } from '../request_list';
+import { RequestQueue } from '../storages/request_queue';
+import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -178,6 +178,26 @@ class BasicCrawler {
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
+        ow(options, ow.object.exactShape({
+            requestList: ow.optional.object.validate(validators.requestList),
+            requestQueue: ow.optional.object.validate(validators.requestQueue),
+            handleRequestFunction: ow.function,
+            handleRequestTimeoutSecs: ow.optional.number,
+            handleFailedRequestFunction: ow.optional.function,
+            maxRequestRetries: ow.optional.number,
+            maxRequestsPerCrawl: ow.optional.number,
+            autoscaledPoolOptions: ow.optional.object,
+            sessionPoolOptions: ow.optional.object,
+            useSessionPool: ow.optional.boolean,
+
+            // AutoscaledPool shorthands
+            minConcurrency: ow.optional.number,
+            maxConcurrency: ow.optional.number,
+
+            // internal
+            log: ow.optional.object,
+        }));
+
         const {
             requestList,
             requestQueue,
@@ -201,19 +221,9 @@ class BasicCrawler {
             log = defaultLog.child({ prefix: 'BasicCrawler' }),
         } = options;
 
-        checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
-        checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
-        checkParamOrThrow(handleRequestTimeoutSecs, 'options.handleRequestTimeoutSecs', 'Number');
-        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
-        checkParamOrThrow(maxRequestRetries, 'options.maxRequestRetries', 'Number');
-        checkParamOrThrow(maxRequestsPerCrawl, 'options.maxRequestsPerCrawl', 'Maybe Number');
-        checkParamOrThrow(autoscaledPoolOptions, 'options.autoscaledPoolOptions', 'Object');
-        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
-        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
-
         if (!requestList && !requestQueue) {
-            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
+            const msg = 'At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!';
+            throw new ArgumentError(msg, this.constructor);
         }
 
         this.log = log;

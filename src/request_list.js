@@ -1,11 +1,11 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
+import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request'; // eslint-disable-line import/no-duplicates
 import events from './events';
 import log from './utils_log';
 import { getFirstKey, publicUtils } from './utils';
-import { getValue, setValue } from './key_value_store';
+import { getValue, setValue } from './storages/key_value_store';
 import { serializeArray, createDeserialize } from './serialization';
 
 // TYPE IMPORTS
@@ -209,36 +209,32 @@ export class RequestList {
      * @param {RequestListOptions} options All `RequestList` configuration options
      */
     constructor(options = {}) {
-        checkParamOrThrow(options, 'options', 'Object');
-
         const {
             sources,
             sourcesFunction,
             persistStateKey,
             persistRequestsKey,
-            persistSourcesKey,
             state,
             keepDuplicateUrls = false,
         } = options;
 
-        this.log = log.child({ prefix: 'RequestList' });
-
-        // TODO Deprecated 02/2020
-        if (persistSourcesKey) {
-            this.log.deprecated('options.persistSourcesKey is deprecated. Use options.persistRequestsKey.');
-        }
-
-        checkParamOrThrow(sources, 'options.sources', 'Maybe Array');
-        checkParamOrThrow(sourcesFunction, 'options.sourcesFunction', 'Maybe Function');
-        checkParamOrThrow(state, 'options.state', 'Maybe Object');
-        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'Maybe String');
-        checkParamOrThrow(persistRequestsKey, 'options.persistRequestsKey', 'Maybe String');
-        checkParamOrThrow(persistSourcesKey, 'options.persistSourcesKey', 'Maybe String');
-        checkParamOrThrow(keepDuplicateUrls, 'options.keepDuplicateUrls', 'Maybe Boolean');
-
         if (!(sources || sourcesFunction)) {
-            throw new Error('At least one of "sources" or "sourcesFunction" must be provided.');
+            throw new ArgumentError('At least one of "sources" or "sourcesFunction" must be provided.', this.constructor);
         }
+        ow(options, ow.object.exactShape({
+            sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
+            sourcesFunction: ow.optional.function,
+            persistStateKey: ow.optional.string,
+            persistRequestsKey: ow.optional.string,
+            state: ow.optional.object.exactShape({
+                nextIndex: ow.number,
+                nextUniqueKey: ow.string,
+                inProgress: ow.object,
+            }),
+            keepDuplicateUrls: ow.optional.boolean,
+        }));
+
+        this.log = log.child({ prefix: 'RequestList' });
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
@@ -261,7 +257,7 @@ export class RequestList {
         this.reclaimed = {};
 
         this.persistStateKey = persistStateKey ? `SDK_${persistStateKey}` : persistStateKey;
-        this.persistRequestsKey = persistRequestsKey || persistSourcesKey;
+        this.persistRequestsKey = persistRequestsKey;
         this.persistRequestsKey = this.persistRequestsKey ? `SDK_${persistRequestsKey}` : this.persistRequestsKey;
 
         this.initialState = state;
@@ -614,7 +610,7 @@ export class RequestList {
         const { requestsFromUrl, regex } = source;
         const originalLength = this.requests.length;
 
-        fetchedRequests.forEach(request => this._addRequest(request));
+        fetchedRequests.forEach((request) => this._addRequest(request));
 
         const fetchedCount = fetchedRequests.length;
         const importedCount = this.requests.length - originalLength;
@@ -654,7 +650,7 @@ export class RequestList {
             return [];
         }
 
-        return urlsArr.map(url => _.extend({ url }, sharedOpts));
+        return urlsArr.map((url) => _.extend({ url }, sharedOpts));
     }
 
     /**
@@ -815,14 +811,14 @@ export class RequestList {
  * @function
  */
 export const openRequestList = async (listName, sources, options = {}) => {
-    checkParamOrThrow(listName, 'listName', 'String | Null');
-    checkParamOrThrow(sources, 'sources', 'Array');
-    checkParamOrThrow(options, 'options', 'Object');
+    ow(listName, ow.any(ow.string, ow.null));
+    ow(sources, ow.array);
+    // options will get validated in RequestList constructor
 
     const rl = new RequestList({
         ...options,
-        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : null,
-        persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : null,
+        persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : undefined,
+        persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : undefined,
         sources,
     });
     await rl.initialize();

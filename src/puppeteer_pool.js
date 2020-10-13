@@ -1,11 +1,12 @@
+/* eslint-disable max-classes-per-file */
 import * as _ from 'underscore';
 import * as fs from 'fs';
 import * as os from 'os';
+import ow from 'ow';
 import * as path from 'path';
 import * as util from 'util';
 import * as LinkedList from 'apify-shared/linked_list';
 import * as rimraf from 'rimraf';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import defaultLog from './utils_log';
 import { addTimeoutToPromise } from './utils';
 import LiveViewServer from './live_view/live_view_server';
@@ -15,6 +16,7 @@ import EVENTS from './session_pool/events';
 import { Browser, Page } from 'puppeteer';
 import { launchPuppeteer, LaunchPuppeteerOptions } from './puppeteer';
 import { SessionPool } from './session_pool/session_pool';
+import { validators } from './validators';
 /* eslint-enable no-unused-vars */
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
@@ -54,7 +56,7 @@ class PuppeteerInstance { // TODO: this is in progress and it will be refactored
     }
 
     async launch() {
-        this.browserPromise = new Promise(async (resolve, reject) => {
+        this.browserPromise = new Promise(async (resolve, reject) => { // eslint-disable-line no-async-promise-executor
             try {
                 if (this.sessionPool) {
                     this.session = await this.sessionPool.getSession();
@@ -80,10 +82,6 @@ class PuppeteerInstance { // TODO: this is in progress and it will be refactored
 
 /**
  * @typedef PuppeteerPoolOptions
- * @property {boolean} [useLiveView]
- *   Enables the use of a preconfigured {@link LiveViewServer} that serves snapshots
- *   just before a page would be recycled by `PuppeteerPool`. If there are no clients
- *   connected, it has close to zero impact on performance.
  * @property {number} [maxOpenPagesPerInstance=50]
  *   Maximum number of open pages (i.e. tabs) per browser. When this limit is reached, new pages are loaded in a new browser instance.
  * @property {number} [retireInstanceAfterRequestCount=100]
@@ -202,16 +200,30 @@ class PuppeteerPool {
      *   via an options object.
      */
     constructor(options = {}) {
+        ow(options, ow.object.exactShape({
+            maxOpenPagesPerInstance: ow.optional.number,
+            retireInstanceAfterRequestCount: ow.optional.number,
+            launchPuppeteerFunction: ow.optional.function,
+            puppeteerOperationTimeoutSecs: ow.optional.number,
+            instanceKillerIntervalSecs: ow.optional.number,
+            killInstanceAfterSecs: ow.optional.number,
+            launchPuppeteerOptions: ow.optional.object,
+            recycleDiskCache: ow.optional.boolean,
+            useIncognitoPages: ow.optional.boolean,
+            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+            useLiveView: ow.optional.boolean,
+            sessionPool: ow.optional.object,
+            log: ow.optional.object,
+        }));
+
         const {
             // Don't make these too large, otherwise Puppeteer might start crashing weirdly,
             // and the default settings should just work
             maxOpenPagesPerInstance = 50,
             retireInstanceAfterRequestCount = 100,
-            launchPuppeteerFunction = launchPuppeteerOptions => launchPuppeteer(launchPuppeteerOptions),
+            launchPuppeteerFunction = (launchPuppeteerOptions) => launchPuppeteer(launchPuppeteerOptions),
             puppeteerOperationTimeoutSecs = 15,
-            instanceKillerIntervalMillis,
             instanceKillerIntervalSecs = 60,
-            killInstanceAfterMillis,
             killInstanceAfterSecs = 300,
             launchPuppeteerOptions,
             recycleDiskCache = false,
@@ -222,39 +234,17 @@ class PuppeteerPool {
             log = defaultLog,
         } = options;
 
-
         // Disabling due to memory leak.
         const reusePages = false;
-
-        checkParamOrThrow(reusePages, 'options.reusePages', 'Boolean');
-        checkParamOrThrow(maxOpenPagesPerInstance, 'options.maxOpenPagesPerInstance', 'Number');
-        checkParamOrThrow(retireInstanceAfterRequestCount, 'options.retireInstanceAfterRequestCount', 'Number');
-        checkParamOrThrow(launchPuppeteerFunction, 'options.launchPuppeteerFunction', 'Function');
-        checkParamOrThrow(puppeteerOperationTimeoutSecs, 'options.puppeteerOperationTimeoutSecs', 'Number');
-        checkParamOrThrow(instanceKillerIntervalMillis, 'options.instanceKillerIntervalMillis', 'Maybe Number');
-
-        this.log = log.child({ prefix: 'PuppeteerPool' });
-
-        if (instanceKillerIntervalMillis) {
-            this.log.deprecated('options.instanceKillerIntervalMillis is deprecated, use options.instanceKillerIntervalSecs instead.');
-        }
-        checkParamOrThrow(instanceKillerIntervalSecs, 'options.instanceKillerIntervalSecs', 'Number');
-        checkParamOrThrow(killInstanceAfterMillis, 'options.killInstanceAfterMillis', 'Maybe Number');
-        if (killInstanceAfterMillis) {
-            this.log.deprecated('options.killInstanceAfterMillis is deprecated, use options.killInstanceAfterSecs instead.');
-        }
-        checkParamOrThrow(killInstanceAfterSecs, 'options.killInstanceAfterSecs', 'Number');
-        checkParamOrThrow(launchPuppeteerOptions, 'options.launchPuppeteerOptions', 'Maybe Object');
-        checkParamOrThrow(recycleDiskCache, 'options.recycleDiskCache', 'Maybe Boolean');
-        checkParamOrThrow(useIncognitoPages, 'options.useIncognitoPages', 'Maybe Boolean');
-
-        checkParamOrThrow(useLiveView, 'options.useLiveView', 'Maybe Boolean');
-        checkParamOrThrow(sessionPool, 'options.sessionPool', 'Maybe Object');
-        checkParamOrThrow(proxyConfiguration, 'options.sessionPool', 'Maybe Object');
 
         if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
                 + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+        }
+        this.log = log.child({ prefix: 'PuppeteerPool' });
+
+        if (options.useLiveView) {
+            this.log.deprecated('options.useLiveView is deprecated without replacement. Use devtools-server NPM package for similar functionality.');
         }
 
         // Config.
@@ -263,7 +253,7 @@ class PuppeteerPool {
         this.maxOpenPagesPerInstance = maxOpenPagesPerInstance;
         this.retireInstanceAfterRequestCount = retireInstanceAfterRequestCount;
         this.puppeteerOperationTimeoutMillis = puppeteerOperationTimeoutSecs * 1000;
-        this.killInstanceAfterMillis = killInstanceAfterMillis || killInstanceAfterSecs * 1000;
+        this.killInstanceAfterMillis = killInstanceAfterSecs * 1000;
         // this is needed to avoid TS typings trying to link to the .d.ts
         /**
          * @type {*}
@@ -310,10 +300,7 @@ class PuppeteerPool {
         this.activeInstances = {};
         this.retiredInstances = {};
         this.lastUsedProxyUrlIndex = 0;
-        this.instanceKillerInterval = setInterval(
-            () => this._killRetiredInstances(),
-            instanceKillerIntervalMillis || instanceKillerIntervalSecs * 1000,
-        );
+        this.instanceKillerInterval = setInterval(() => this._killRetiredInstances(), instanceKillerIntervalSecs * 1000);
         this.idlePages = [];
         // WeakSet/Map items do not prevent garbage collection,
         // and thus no management of the collections is needed.
@@ -551,7 +538,7 @@ class PuppeteerPool {
     async _openNewTab() {
         let instance = Object
             .values(this.activeInstances)
-            .find(inst => inst.activePages < this.maxOpenPagesPerInstance);
+            .find((inst) => inst.activePages < this.maxOpenPagesPerInstance);
 
         if (!instance) instance = this._launchInstance();
         this._incrementPageCount(instance);
@@ -679,7 +666,7 @@ class PuppeteerPool {
             this.log.exception(err, 'Cannot close the browsers.');
         }
         if (this.liveViewServer) {
-            await this.liveViewServer.stop().catch(err => this.log.exception(err, 'Cannot close LiveViewServer.'));
+            await this.liveViewServer.stop().catch((err) => this.log.exception(err, 'Cannot close LiveViewServer.'));
         }
     }
 
@@ -695,7 +682,7 @@ class PuppeteerPool {
             const savedBrowser = await instance.browserPromise;
             return browser === savedBrowser ? instance : null;
         });
-        const results = (await Promise.all(resultPromises)).filter(i => i);
+        const results = (await Promise.all(resultPromises)).filter((i) => i);
         switch (results.length) {
             case 0:
                 return null;
@@ -776,13 +763,13 @@ class PuppeteerPool {
         if (instance.id !== this.browserCounter - 1) return;
 
         const snapshotPromise = this.liveViewServer.serve(page)
-            .catch(err => this.log.debug('Live View failed to be served.', { message: err.message }));
+            .catch((err) => this.log.debug('Live View failed to be served.', { message: err.message }));
         this.liveViewSnapshotsInProgress.set(page, snapshotPromise);
     }
 
     _findInstancesBySession(session) {
         const instances = Object.values(this.activeInstances);
-        return instances.filter(instance => instance.session.id === session.id);
+        return instances.filter((instance) => instance.session.id === session.id);
     }
 
     async _retireBrowserWithSession(session) {
@@ -791,7 +778,7 @@ class PuppeteerPool {
         const isInstanceRunning = instances.length >= 1;
 
         if (isInstanceRunning) {
-            const retireInstances = instances.map(instance => this._retireInstance(instance));
+            const retireInstances = instances.map((instance) => this._retireInstance(instance));
             try {
                 await Promise.all(retireInstances);
             } catch (e) {
@@ -813,7 +800,6 @@ class PuppeteerPool {
             }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);
         }
     }
-
 
     /**
      * Gets Puppeteer Instance by the page.

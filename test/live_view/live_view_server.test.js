@@ -68,7 +68,7 @@ describe('LiveViewServer', () => {
     test('should connect over websocket', async () => {
         const socket = io(BASE_URL);
         await lvs.start();
-        await new Promise(resolve => socket.on('connect', resolve));
+        await new Promise((resolve) => socket.on('connect', resolve));
         expect(lvs.hasClients()).toBe(true);
         socket.close();
         await lvs.stop();
@@ -92,7 +92,7 @@ describe('LiveViewServer', () => {
         beforeEach(async () => {
             socket = io(BASE_URL);
             await lvs.start();
-            await new Promise(resolve => socket.on('connect', resolve));
+            await new Promise((resolve) => socket.on('connect', resolve));
         });
         afterEach(async () => {
             socket.close();
@@ -103,17 +103,17 @@ describe('LiveViewServer', () => {
 
         test('should serve snapshot', async () => {
             await lvs.serve(fakePage);
-            const snapshot = await new Promise(resolve => socket.on('snapshot', resolve));
+            const snapshot = await new Promise((resolve) => socket.on('snapshot', resolve));
             expect(snapshot).toMatchObject({ pageUrl: 'url', htmlContent: 'content', screenshotIndex: 0 });
             expect(`"${snapshot.createdAt}"`).toEqual(JSON.stringify(new Date(snapshot.createdAt)));
         });
 
         test('should return screenshots', async () => {
-            const snapshot0 = new Promise(resolve => socket.on('snapshot', resolve));
+            const snapshot0 = new Promise((resolve) => socket.on('snapshot', resolve));
             await lvs.serve(fakePage);
             const response0 = await requestAsBrowser({ url: `${BASE_URL}/screenshot/${((await snapshot0).screenshotIndex)}` });
             expect(response0.body).toBe('screenshot0');
-            const snapshot1 = new Promise(resolve => socket.on('snapshot', resolve));
+            const snapshot1 = new Promise((resolve) => socket.on('snapshot', resolve));
             await lvs.serve(fakePage);
             const response1 = await requestAsBrowser({ url: `${BASE_URL}/screenshot/${(await snapshot1).screenshotIndex}` });
             expect(response1.body).toBe('screenshot1');
@@ -121,7 +121,7 @@ describe('LiveViewServer', () => {
 
         test('should not store more than maxScreenshotFiles screenshots', async () => {
             const snapshots = [];
-            socket.on('snapshot', s => snapshots.push(s));
+            socket.on('snapshot', (s) => snapshots.push(s));
             for (let i = 0; i < 5; i++) {
                 await lvs.serve(fakePage);
             }

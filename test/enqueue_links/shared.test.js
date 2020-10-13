@@ -39,14 +39,18 @@ describe('Enqueue links shared functions', () => {
                 new PseudoUrl('http[s?]://example.com/[.*]', { userData: { one: 1 } }),
             ];
 
-            const userData = { bar: 'foo' };
-            const requestOptions = shared.createRequestOptions(sources, userData);
-            const requests = shared.createRequests(requestOptions, pseudoUrls);
+            const transformRequestFunction = (request) => {
+                request.userData.foo = 'bar';
+                return request;
+            };
+
+            const requestOptions = shared.createRequestOptions(sources);
+            const requests = shared.createRequests(requestOptions, pseudoUrls).map(transformRequestFunction).filter((r) => !!r);
 
             expect(requests).toHaveLength(2);
             requests.forEach((r) => {
                 expect(r.url).toMatch(/^https?:\/\/example\.com\//);
-                expect(r.userData).toMatchObject({ bar: 'foo', one: 1 });
+                expect(r.userData).toMatchObject({ foo: 'bar', one: 1 });
             });
             expect(requests[1].method).toBe('POST');
         });
@@ -68,7 +72,6 @@ describe('Enqueue links shared functions', () => {
             // With batch size 2, two requests will be dispatched synchronously before the async function
             // returns and thus the following push should place 1000 on the third place in the array.
             fakeRequestQueue.requests.push(1000);
-
 
             await finished;
             const results = fakeRequestQueue.requests;

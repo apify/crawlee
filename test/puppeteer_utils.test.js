@@ -2,8 +2,9 @@ import sinon from 'sinon';
 import path from 'path';
 import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
-import * as keyValueStore from '../build/key_value_store';
+import * as keyValueStore from '../build/storages/key_value_store';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
+import * as utils from '../build/utils';
 
 const { utils: { log } } = Apify;
 
@@ -18,7 +19,8 @@ describe('Apify.utils.puppeteer', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
     });
 
     afterAll(async () => {
@@ -149,7 +151,7 @@ describe('Apify.utils.puppeteer', () => {
 
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockRequests(page);
-            page.on('response', response => loadedUrls.push(response.url()));
+            page.on('response', (response) => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
                 <img src="https://example.com/image.png">
@@ -166,7 +168,7 @@ describe('Apify.utils.puppeteer', () => {
             await Apify.utils.puppeteer.blockRequests(page, {
                 urlPatterns: ['.css'],
             });
-            page.on('response', response => loadedUrls.push(response.url()));
+            page.on('response', (response) => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
                 <img src="https://example.com/image.png">
@@ -185,7 +187,7 @@ describe('Apify.utils.puppeteer', () => {
 
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockResources(page);
-            page.on('response', response => loadedUrls.push(response.url()));
+            page.on('response', (response) => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
                 <img src="https://example.com/image.png" />
@@ -202,7 +204,7 @@ describe('Apify.utils.puppeteer', () => {
 
             const page = await browser.newPage();
             await Apify.utils.puppeteer.blockResources(page, ['script']);
-            page.on('response', response => loadedUrls.push(response.url()));
+            page.on('response', (response) => loadedUrls.push(response.url()));
             await page.setContent(`<html><body>
                 <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
                 <img src="https://example.com/image.png" />
@@ -215,7 +217,6 @@ describe('Apify.utils.puppeteer', () => {
             ]));
         });
     });
-
 
     test('supports cacheResponses()', async () => {
         const browser = await Apify.launchPuppeteer({ headless: true });
@@ -382,7 +383,7 @@ describe('Apify.utils.puppeteer', () => {
             const object2 = { setValue: async () => {} };
             const stub2 = sinon.stub(object2, 'setValue');
             mock.expects('openKeyValueStore')
-                .withExactArgs(null)
+                .withExactArgs(undefined)
                 .resolves(object2);
 
             await Apify.utils.puppeteer.saveSnapshot(page, { saveHtml: false });

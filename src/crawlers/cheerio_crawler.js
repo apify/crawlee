@@ -1,13 +1,12 @@
 /* eslint-disable class-methods-use-this */
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as htmlparser from 'htmlparser2';
 import * as iconv from 'iconv-lite';
+import ow from 'ow';
 import * as _ from 'underscore';
 import * as util from 'util';
-import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
@@ -24,10 +23,11 @@ import { HandleFailedRequest } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
-import { RequestQueue } from '../request_queue';
+import { RequestQueue } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { RequestAsBrowserOptions } from '../utils_request';
+import { validators } from '../validators';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -235,7 +235,6 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
  * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
- * You can use the `requestOptions` parameter to pass additional options to this function.
  *
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
@@ -296,9 +295,38 @@ class CheerioCrawler {
      * @param {CheerioCrawlerOptions} options
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options = {}) {
+    constructor(options) {
+        ow(options, ow.object.exactShape({
+            handlePageFunction: ow.function,
+            requestTimeoutSecs: ow.optional.number,
+            handlePageTimeoutSecs: ow.optional.number,
+            ignoreSslErrors: ow.optional.boolean,
+            additionalMimeTypes: ow.optional.array.ofType(ow.string),
+            suggestResponseEncoding: ow.optional.string,
+            forceResponseEncoding: ow.optional.string,
+            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+
+            // Autoscaled pool shorthands
+            minConcurrency: ow.optional.number,
+            maxConcurrency: ow.optional.number,
+
+            // Basic crawler options
+            requestList: ow.optional.object.validate(validators.requestList),
+            requestQueue: ow.optional.object.validate(validators.requestQueue),
+            maxRequestRetries: ow.optional.number,
+            maxRequestsPerCrawl: ow.optional.number,
+            handleFailedRequestFunction: ow.optional.function,
+            autoscaledPoolOptions: ow.optional.object,
+            prepareRequestFunction: ow.optional.function,
+            useSessionPool: ow.optional.boolean,
+            sessionPoolOptions: ow.optional.object,
+            persistCookiesPerSession: ow.optional.boolean,
+
+            // Deprecated
+            requestOptions: ow.optional.object,
+        }));
+
         const {
-            requestOptions,
             handlePageFunction,
             requestTimeoutSecs = 30,
             handlePageTimeoutSecs = 60,
@@ -323,21 +351,10 @@ class CheerioCrawler {
             useSessionPool = false,
             sessionPoolOptions = {},
             persistCookiesPerSession = false,
-        } = options;
 
-        checkParamOrThrow(handlePageFunction, 'options.handlePageFunction', 'Function');
-        checkParamOrThrow(requestOptions, 'options.requestOptions', 'Maybe Object');
-        checkParamOrThrow(requestTimeoutSecs, 'options.requestTimeoutSecs', 'Number');
-        checkParamOrThrow(handlePageTimeoutSecs, 'options.handlePageTimeoutSecs', 'Number');
-        checkParamOrThrow(ignoreSslErrors, 'options.ignoreSslErrors', 'Maybe Boolean');
-        checkParamOrThrow(prepareRequestFunction, 'options.prepareRequestFunction', 'Maybe Function');
-        checkParamOrThrow(additionalMimeTypes, 'options.additionalMimeTypes', '[String]');
-        checkParamOrThrow(suggestResponseEncoding, 'options.suggestResponseEncoding', 'Maybe String');
-        checkParamOrThrow(forceResponseEncoding, 'options.forceResponseEncoding', 'Maybe String');
-        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
-        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
-        checkParamOrThrow(persistCookiesPerSession, 'options.persistCookiesPerSession', 'Boolean');
-        checkParamPrototypeOrThrow(proxyConfiguration, 'options.proxyConfiguration', ProxyConfiguration, 'ProxyConfiguration', true);
+            // Deprecated
+            requestOptions,
+        } = options;
 
         this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
 
@@ -347,7 +364,6 @@ class CheerioCrawler {
 
         this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
-
 
         if (requestOptions) {
             // DEPRECATED 2020-03-22
@@ -381,7 +397,6 @@ class CheerioCrawler {
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
             handleFailedRequestFunction,
-            proxyConfiguration,
 
             // Autoscaled pool options.
             minConcurrency,
@@ -419,11 +434,7 @@ class CheerioCrawler {
      * @param {CrawlerExtension} extension - Crawler extension that overrides the crawler configuration.
      */
     use(extension) {
-        const inheritsFromCrawlerExtension = extension instanceof CrawlerExtension;
-
-        if (!inheritsFromCrawlerExtension) {
-            throw new Error('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
-        }
+        ow(extension, ow.object.instanceOf(CrawlerExtension));
 
         const extensionOptions = extension.getCrawlerOptions();
 
@@ -595,7 +606,7 @@ class CheerioCrawler {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
-            headers: Object.assign({}, request.headers),
+            headers: { ...request.headers },
             ignoreSslErrors: this.ignoreSslErrors,
             proxyUrl,
             stream: true,
@@ -622,7 +633,7 @@ class CheerioCrawler {
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
 
-        return Object.assign({}, this.requestOptions, mandatoryRequestOptions);
+        return { ...this.requestOptions, ...mandatoryRequestOptions };
     }
 
     _encodeResponse(request, response, encoding) {
@@ -643,8 +654,8 @@ class CheerioCrawler {
         // Try to re-encode a variety of unsupported encodings to utf-8
         if (iconv.encodingExists(encoding)) {
             const encodeStream = iconv.encodeStream(utf8);
-            const decodeStream = iconv.decodeStream(encoding).on('error', err => encodeStream.emit('error', err));
-            response.on('error', err => decodeStream.emit('error', err));
+            const decodeStream = iconv.decodeStream(encoding).on('error', (err) => encodeStream.emit('error', err));
+            response.on('error', (err) => decodeStream.emit('error', err));
             const encodedResponse = response.pipe(decodeStream).pipe(encodeStream);
             encodedResponse.statusCode = response.statusCode;
             encodedResponse.headers = response.headers;

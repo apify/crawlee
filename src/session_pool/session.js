@@ -1,5 +1,5 @@
 import { cryptoRandomObjectId } from 'apify-shared/utilities';
-import { checkParamOrThrow } from 'apify-client/build/utils';
+import ow from 'ow';
 import { Cookie, CookieJar } from 'tough-cookie';
 import EVENTS from './events';
 import { STATUS_CODES_BLOCKED } from '../constants';
@@ -64,8 +64,25 @@ export class Session {
      *
      * @param {SessionOptions} options
      */
-    constructor(options = {}) {
+    constructor(options) {
+        ow(options, ow.object.exactShape({
+            sessionPool: ow.object.instanceOf(SessionPool),
+            id: ow.optional.string,
+            cookieJar: ow.optional.object,
+            maxAgeSecs: ow.optional.number,
+            userData: ow.optional.object,
+            maxErrorScore: ow.optional.number,
+            errorScoreDecrement: ow.optional.number,
+            createdAt: ow.optional.date,
+            expiresAt: ow.optional.date,
+            usageCount: ow.optional.number,
+            errorScore: ow.optional.number,
+            maxUsageCount: ow.optional.number,
+            log: ow.optional.object,
+        }));
+
         const {
+            sessionPool,
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
             maxAgeSecs = DEFAULT_SESSION_MAX_AGE_SECS,
@@ -76,28 +93,10 @@ export class Session {
             usageCount = 0,
             errorScore = 0,
             maxUsageCount = 50,
-            sessionPool,
             log = defaultLog,
         } = options;
 
         const { expiresAt = this._getDefaultCookieExpirationDate(maxAgeSecs) } = options;
-
-        // Validation
-        checkParamOrThrow(id, 'options.id', 'String');
-        checkParamOrThrow(maxAgeSecs, 'options.maxAgeSecs', 'Number');
-        checkParamOrThrow(userData, 'options.userData', 'Object');
-        checkParamOrThrow(maxErrorScore, 'options.maxErrorScore', 'Number');
-        checkParamOrThrow(expiresAt, 'options.expiresAt', 'Maybe Date');
-        checkParamOrThrow(createdAt, 'options.createdAt', 'Date');
-        checkParamOrThrow(usageCount, 'options.usageCount', 'Number');
-        checkParamOrThrow(errorScore, 'options.errorScore', 'Number');
-        checkParamOrThrow(maxUsageCount, 'options.maxUsageCount', 'Number');
-        checkParamOrThrow(sessionPool, 'options.sessionPool', 'Object');
-
-        // sessionPool must be instance of SessionPool.
-        if (sessionPool.constructor.name !== 'SessionPool') {
-            throw new Error('sessionPool must be instance of SessionPool');
-        }
 
         this.log = log.child({ prefix: 'Session' });
 
@@ -243,7 +242,7 @@ export class Session {
      */
     setCookiesFromResponse(response) {
         try {
-            const cookies = getCookiesFromResponse(response).filter(c => c);
+            const cookies = getCookiesFromResponse(response).filter((c) => c);
 
             this._setCookies(cookies, response.url);
         } catch (e) {
