@@ -298,7 +298,7 @@ export const call = async (actId, input, options = {}) => {
     ow(actId, ow.string);
     // input can be anything, no reason to validate
     ow(options, ow.object.exactShape({
-        contentType: ow.optional.string,
+        contentType: ow.optional.string.nonEmpty,
         token: ow.optional.string,
         memoryMbytes: ow.optional.number.not.negative,
         timeoutSecs: ow.optional.number.not.negative,
@@ -313,9 +313,9 @@ export const call = async (actId, input, options = {}) => {
     const { token } = options;
 
     // RunAct() options.
-    const { build, timeoutSecs, webhooks, memoryMbytes, waitSecs } = options;
+    const { build, contentType, timeoutSecs, webhooks, memoryMbytes, waitSecs } = options;
 
-    const callActOpts = {
+    const callActorOpts = {
         build,
         memory: memoryMbytes,
         timeout: timeoutSecs,
@@ -324,14 +324,14 @@ export const call = async (actId, input, options = {}) => {
     };
 
     if (input) {
-        input = maybeStringify(input, callActOpts);
-        callActOpts.contentType = addCharsetToContentType(callActOpts.contentType);
+        callActorOpts.contentType = addCharsetToContentType(contentType);
+        input = maybeStringify(input, callActorOpts);
     }
 
     // Start actor and wait for run to finish if waitSecs is provided
     let run;
     try {
-        run = await apifyClient.actor(actId).call(input, callActOpts);
+        run = await apifyClient.actor(actId).call(input, callActorOpts);
     } catch (err) {
         if (err.message.startsWith('Waiting for run to finish')) {
             throw new ApifyCallError({ id: run.id, actId: run.actId }, 'Apify.call() failed, cannot fetch actor run details from the server');
