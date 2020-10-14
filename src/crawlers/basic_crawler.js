@@ -421,7 +421,7 @@ class BasicCrawler {
         if (!request) return;
 
         // Reset loadedUrl so an old one is not carried over to retries.
-        request.loadedUrl = null;
+        request.loadedUrl = undefined;
 
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
