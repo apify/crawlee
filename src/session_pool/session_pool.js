@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
-import { checkParamOrThrow } from 'apify-client/build/utils';
-
-import { openKeyValueStore } from '../key_value_store';
+import ow from 'ow';
+import { openKeyValueStore } from '../storages/key_value_store';
 import { Session, SessionOptions } from './session'; // eslint-disable-line no-unused-vars,import/named,import/no-cycle
 import events from '../events';
 import defaultLog from '../utils_log';
@@ -90,26 +89,28 @@ export class SessionPool extends EventEmitter {
      * @param {SessionPoolOptions} [options] All `SessionPool` configuration options.
      */
     constructor(options = {}) {
+        ow(options, ow.object.exactShape({
+            maxPoolSize: ow.optional.number,
+            persistStateKeyValueStoreId: ow.optional.string,
+            persistStateKey: ow.optional.string,
+            createSessionFunction: ow.optional.function,
+            sessionOptions: ow.optional.object,
+            log: ow.optional.object,
+        }));
+
         const {
             maxPoolSize = 1000,
 
-            persistStateKeyValueStoreId = null,
+            persistStateKeyValueStoreId,
             persistStateKey = 'SDK_SESSION_POOL_STATE',
 
-            createSessionFunction = null,
+            createSessionFunction,
             sessionOptions = {},
 
             log = defaultLog,
         } = options;
 
         super();
-
-        // Validation
-        checkParamOrThrow(maxPoolSize, 'options.maxPoolSize', 'Number');
-        checkParamOrThrow(sessionOptions, 'options.sessionOptions', 'Object');
-        checkParamOrThrow(persistStateKeyValueStoreId, 'options.persistStateKeyValueStoreId', 'Maybe String');
-        checkParamOrThrow(persistStateKey, 'options.persistStateKey', 'String');
-        checkParamOrThrow(createSessionFunction, 'options.createSessionFunction', 'Maybe Function');
 
         this.log = log.child({ prefix: 'SessionPool' });
 
@@ -139,7 +140,7 @@ export class SessionPool extends EventEmitter {
      * @return {number}
      */
     get usableSessionsCount() {
-        return this.sessions.filter(session => session.isUsable()).length;
+        return this.sessions.filter((session) => session.isUsable()).length;
     }
 
     /**
@@ -147,7 +148,7 @@ export class SessionPool extends EventEmitter {
      * @return {number}
      */
     get retiredSessionsCount() {
-        return this.sessions.filter(session => !session.isUsable()).length;
+        return this.sessions.filter((session) => !session.isUsable()).length;
     }
 
     /**
@@ -198,7 +199,7 @@ export class SessionPool extends EventEmitter {
         return {
             usableSessionsCount: this.usableSessionsCount,
             retiredSessionsCount: this.retiredSessionsCount,
-            sessions: this.sessions.map(session => session.getState()),
+            sessions: this.sessions.map((session) => session.getState()),
         };
     }
 
@@ -232,7 +233,7 @@ export class SessionPool extends EventEmitter {
      * @private
      */
     _removeSession(session) {
-        const sessionIndex = this.sessions.findIndex(storedSession => storedSession.id === session.id);
+        const sessionIndex = this.sessions.findIndex((storedSession) => storedSession.id === session.id);
 
         const [removedSession] = this.sessions.splice(sessionIndex, 1);
         this.log.debug(`Removed Session - ${removedSession.id}`);

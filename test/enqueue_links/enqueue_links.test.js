@@ -1,7 +1,8 @@
 import cheerio from 'cheerio';
 import Apify from '../../build';
+import { apifyClient } from '../../build/utils';
 import { enqueueLinks } from '../../build/enqueue_links/enqueue_links';
-import { RequestQueue } from '../../build/request_queue';
+import { RequestQueue } from '../../build/storages/request_queue';
 
 const { utils: { log } } = Apify;
 
@@ -59,7 +60,7 @@ describe('enqueueLinks()', () => {
 
         test('works with item limit', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -85,7 +86,7 @@ describe('enqueueLinks()', () => {
 
         test('works with PseudoUrl instances', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -113,7 +114,7 @@ describe('enqueueLinks()', () => {
 
         test('works with Actor UI output object', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -141,7 +142,7 @@ describe('enqueueLinks()', () => {
 
         test('works with string pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -169,7 +170,7 @@ describe('enqueueLinks()', () => {
 
         test('works with RegExp pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -197,7 +198,7 @@ describe('enqueueLinks()', () => {
 
         test('works with undefined pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -225,7 +226,7 @@ describe('enqueueLinks()', () => {
 
         test('works with null pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -253,7 +254,7 @@ describe('enqueueLinks()', () => {
 
         test('works with empty pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -281,7 +282,7 @@ describe('enqueueLinks()', () => {
 
         test('throws with sparse pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -295,32 +296,9 @@ describe('enqueueLinks()', () => {
                 await enqueueLinks({ page, selector: '.click', requestQueue, pseudoUrls });
                 throw new Error('Wrong error.');
             } catch (err) {
-                expect(err.message).toMatch('pseudoUrls[1]');
+                expect(err.message).toMatch('(array `pseudoUrls`) Any predicate failed with the following errors');
                 expect(enqueued).toHaveLength(0);
             }
-        });
-
-        test('DEPRECATED: enqueueRequestsFromClickableElements()', async () => {
-            const enqueuedUrls = [];
-            const queue = new RequestQueue('xxx');
-            queue.addRequest = (request) => {
-                expect(request.method).toBe('POST');
-                enqueuedUrls.push(request.url);
-
-                return Promise.resolve();
-            };
-            const purls = [
-                new Apify.PseudoUrl('https://example.com/[(\\w|-|/)*]'),
-                new Apify.PseudoUrl('[http|https]://cool.com/'),
-            ];
-
-            await Apify.utils.puppeteer.enqueueRequestsFromClickableElements(page, '.click', purls, queue, { method: 'POST' });
-
-            expect(enqueuedUrls).toEqual([
-                'https://example.com/a/b/first',
-                'https://example.com/a/b/third',
-                'http://cool.com/',
-            ]);
         });
     });
 
@@ -337,7 +315,7 @@ describe('enqueueLinks()', () => {
 
         test('works from utils namespace', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -365,7 +343,7 @@ describe('enqueueLinks()', () => {
 
         test('works with PseudoUrl instances', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -393,7 +371,7 @@ describe('enqueueLinks()', () => {
 
         test('works with Actor UI output object', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -421,7 +399,7 @@ describe('enqueueLinks()', () => {
 
         test('works with string pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -449,7 +427,7 @@ describe('enqueueLinks()', () => {
 
         test('works with RegExp pseudoUrls', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -477,7 +455,7 @@ describe('enqueueLinks()', () => {
 
         test('works with undefined pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -505,7 +483,7 @@ describe('enqueueLinks()', () => {
 
         test('works with null pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -533,7 +511,7 @@ describe('enqueueLinks()', () => {
 
         test('works with empty pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -561,7 +539,7 @@ describe('enqueueLinks()', () => {
 
         test('throws with sparse pseudoUrls[]', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -575,14 +553,14 @@ describe('enqueueLinks()', () => {
                 await enqueueLinks({ $, selector: '.click', requestQueue, pseudoUrls });
                 throw new Error('Wrong error.');
             } catch (err) {
-                expect(err.message).toMatch('pseudoUrls[1]');
+                expect(err.message).toMatch('(array `pseudoUrls`) Any predicate failed with the following errors');
                 expect(enqueued).toHaveLength(0);
             }
         });
 
         test('correctly resolves relative URLs', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };
@@ -622,7 +600,7 @@ describe('enqueueLinks()', () => {
 
         test('throws on finding a relative link with no baseUrl set', async () => {
             const enqueued = [];
-            const requestQueue = new RequestQueue('xxx');
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
             requestQueue.addRequest = async (request) => {
                 enqueued.push(request);
             };

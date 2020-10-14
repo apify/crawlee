@@ -4,7 +4,6 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as express from 'express';
 import * as socketio from 'socket.io';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { promisifyServerListen } from 'apify-shared/utilities';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
@@ -50,6 +49,7 @@ const DEFAULT_SCREENSHOT_DIR_PATH = path.resolve(LOCAL_STORAGE_DIR, 'live_view')
  *
  * When running locally, it is often best to use a headful browser for debugging, since it provides
  * a better view into the browser, including DevTools, but `LiveViewServer` works too.
+ * @ignore
  */
 class LiveViewServer {
     /**
@@ -79,11 +79,6 @@ class LiveViewServer {
             snapshotTimeoutSecs = 3,
             maxSnapshotFrequencySecs = 2,
         } = options;
-
-        checkParamOrThrow(screenshotDirectoryPath, 'options.screenshotDirectoryPath', 'String');
-        checkParamOrThrow(maxScreenshotFiles, 'options.maxScreenshotFiles', 'Number');
-        checkParamOrThrow(maxScreenshotFiles, 'options.snapshotTimeoutSecs', 'Number');
-        checkParamOrThrow(maxScreenshotFiles, 'options.maxSnapshotFrequencySecs', 'Number');
 
         this.log = defaultLog.child({ prefix: 'LiveViewServer' });
         this.screenshotDirectoryPath = screenshotDirectoryPath;
@@ -245,7 +240,7 @@ class LiveViewServer {
      */
     _deleteScreenshot(screenshotIndex) {
         unlink(this._getScreenshotPath(screenshotIndex))
-            .catch(err => this.log.exception(err, 'Cannot delete live view screenshot.'));
+            .catch((err) => this.log.exception(err, 'Cannot delete live view screenshot.'));
     }
 
     _setupHttpServer() {

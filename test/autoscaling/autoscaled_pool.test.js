@@ -219,7 +219,7 @@ describe('AutoscaledPool', () => {
             expect(pool.currentConcurrency).toBe(0);
 
             await pool.run();
-            expect(concurrencyLog.some(n => n > 1)).toBe(false);
+            expect(concurrencyLog.some((n) => n > 1)).toBe(false);
 
             limit = 50;
             concurrencyLog = [];
@@ -227,7 +227,7 @@ describe('AutoscaledPool', () => {
             pool.minConcurrency = 5;
 
             await pool.run();
-            expect(concurrencyLog.some(n => n > 5)).toBe(false);
+            expect(concurrencyLog.some((n) => n > 5)).toBe(false);
         });
     });
 
@@ -276,7 +276,6 @@ describe('AutoscaledPool', () => {
                 isTaskReadyFunction: async () => true,
             });
 
-
             await expect(pool.run()).rejects.toThrow('some-runtask-error');
         });
 
@@ -310,11 +309,9 @@ describe('AutoscaledPool', () => {
                 },
             });
 
-
             await expect(pool.run()).rejects.toThrow('some-ready-error');
         });
     });
-
 
     test('should not handle tasks added after isFinishedFunction returned true', async () => {
         const isFinished = async () => count > 10;
@@ -362,14 +359,14 @@ describe('AutoscaledPool', () => {
         expect(finished[11] - finished[10]).toBeGreaterThan(9);
     });
 
-    test('should work with loggingIntervalMillis = null', async () => {
+    test('should work with loggingIntervalSecs = null', async () => {
         const pool = new AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 100,
             runTaskFunction: () => Promise.resolve(),
             isFinishedFunction: () => Promise.resolve(false),
             isTaskReadyFunction: () => Promise.resolve(true),
-            loggingIntervalMillis: null,
+            loggingIntervalSecs: null,
         });
         pool._autoscale(() => {});
         expect(pool.desiredConcurrency).toBe(2);

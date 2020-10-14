@@ -3,6 +3,7 @@ import path from 'path';
 
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import * as utils from '../../build/utils';
 
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
 const pathToHTML = path.join(__dirname, 'test_html.html');
@@ -23,7 +24,8 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
     });
 
     afterAll(async () => {
@@ -248,7 +250,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             await page.goto(testUrl);
             const fingerPrint = await getFingerPrint(page);
             const testedFingerprint = scanner.analyseFingerprint(fingerPrint);
-            const failedChecks = Object.values(testedFingerprint).filter(val => val.consistent < 3);
+            const failedChecks = Object.values(testedFingerprint).filter((val) => val.consistent < 3);
 
             expect(failedChecks.length).toBe(0);
 

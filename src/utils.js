@@ -1,15 +1,17 @@
 import * as psTree from '@apify/ps-tree';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import * as ApifyStorageLocal from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
-import * as fsExtra from 'fs-extra';
 import * as mime from 'mime-types';
 import * as os from 'os';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import ow from 'ow';
 import * as path from 'path';
 import * as semver from 'semver';
 import * as _ from 'underscore';
@@ -46,28 +48,53 @@ const URL_WITH_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:
  */
 const DISABLE_OUTDATED_WARNING = 'APIFY_DISABLE_OUTDATED_WARNING';
 
-const ensureDirPromised = util.promisify(fsExtra.ensureDir);
 const psTreePromised = util.promisify(psTree);
 
 /**
  * Creates an instance of ApifyClient using options as defined in the environment variables.
  * This function is exported to enable unit testing.
  *
- * @returns {*}
+ * @param {object} [options]
+ * @returns {ApifyClient}
  * @ignore
  */
-export const newClient = () => {
-    const opts = {
-        userId: process.env[ENV_VARS.USER_ID] || null,
-        token: process.env[ENV_VARS.TOKEN] || null,
-    };
-
+export const newClient = (options = {}) => {
     // Only set baseUrl if overridden by env var, so that 'https://api.apify.com' is used by default.
     // This simplifies local development, which should run against production unless user wants otherwise.
-    const apiBaseUrl = process.env[ENV_VARS.API_BASE_URL];
-    if (apiBaseUrl) opts.baseUrl = apiBaseUrl;
+    const {
+        baseUrl = process.env[ENV_VARS.API_BASE_URL],
+        token = process.env[ENV_VARS.TOKEN],
+    } = options;
 
-    return new ApifyClient(opts);
+    return new ApifyClient({
+        ...options,
+        baseUrl,
+        token,
+    });
+};
+
+/**
+ * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
+ * @param {object} [options]
+ * @return {ApifyStorageLocal}
+ */
+export const newStorageLocal = (options = {}) => {
+    const {
+        storageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR],
+    } = options;
+
+    const storage = new ApifyStorageLocal({
+        ...options,
+        storageDir,
+    });
+
+    process.on('exit', () => {
+        // TODO this is not public API, need to update
+        // storage local with some teardown
+        storage.dbConnections.closeAllConnections();
+    });
+
+    return storage;
 };
 
 /**
@@ -104,15 +131,19 @@ export const logSystemInfo = () => {
 export const apifyClient = newClient();
 
 /**
- * Returns a result of `Promise.resolve()`.
+ * Gets the default instance of the `ApifyStorageLocal` class.
+ * The instance is created automatically by the Apify SDK and it is configured using the
+ * `APIFY_LOCAL_STORAGE_DIR` environment variable.
  *
- * @returns {Promise<void>}
+ * The instance is lazy loaded and used for local emulation of calls to the Apify API
+ * in Apify Storages such as {@link RequestQueue}.
  *
- * @ignore
+ * @type {*}
+ *
+ * @memberof module:Apify
+ * @name storageLocal
  */
-export const newPromise = () => {
-    return Promise.resolve();
-};
+export const apifyStorageLocal = newStorageLocal();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
@@ -143,7 +174,7 @@ const createIsDockerPromise = () => {
 
     const promise2 = util
         .promisify(fs.readFile)('/proc/self/cgroup', 'utf8')
-        .then(content => content.indexOf('docker') !== -1)
+        .then((content) => content.indexOf('docker') !== -1)
         .catch(() => false);
 
     return Promise
@@ -167,26 +198,6 @@ export const isDocker = (forceReset) => {
 
     return isDockerPromiseCache;
 };
-
-/**
- * Sums an array of numbers.
- *
- * @param {number[]} arr An array of numbers.
- * @return {number} Sum of the numbers.
- *
- * @ignore
- */
-export const sum = arr => arr.reduce((total, c) => total + c, 0);
-
-/**
- * Computes an average of an array of numbers.
- *
- * @param {number[]} arr An array of numbers.
- * @return {number} Average value.
- *
- * @ignore
- */
-export const avg = arr => sum(arr) / arr.length;
 
 /**
  * Computes a weighted average of an array of numbers, complemented by an array of weights.
@@ -254,7 +265,7 @@ export const getMemoryInfo = async () => {
         childProcessesBytes = execSync('cat /proc/meminfo')
             .toString()
             .split(/[\n: ]/)
-            .filter(val => val.trim())[19]
+            .filter((val) => val.trim())[19]
             // meminfo reports in kb, not bytes
             * 1000
             // the total used memory is reported by meminfo
@@ -332,30 +343,7 @@ export const getMemoryInfo = async () => {
 };
 
 /**
- * Helper function that determines if given parameter is an instance of Promise.
- *
- * @ignore
- */
-export const isPromise = (maybePromise) => {
-    return maybePromise && typeof maybePromise.then === 'function' && typeof maybePromise.catch === 'function';
-};
-
-/**
- * Returns true if node is in production environment and false otherwise.
- *
- * @ignore
- */
-export const isProduction = () => process.env.NODE_ENV === 'production';
-
-/**
- * Helper function used for local implementations. Creates dir.
- *
- * @ignore
- */
-export const ensureDirExists = dirPath => ensureDirPromised(dirPath);
-
-/**
- * Helper function that returns the first key from plan object.
+ * Helper function that returns the first key from plain object.
  *
  * @ignore
  */
@@ -390,20 +378,15 @@ export const getTypicalChromeExecutablePath = () => {
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
-    return new Promise(async (resolve, reject) => {
-        if (!isPromise(promise)) throw new Error('Parameter promise of type Promise must be provided.');
-        checkParamOrThrow(timeoutMillis, 'timeoutMillis', 'Number');
-        checkParamOrThrow(errorMessage, 'errorMessage', 'String');
-
+    return new Promise((resolve, reject) => {
+        ow(promise, ow.promise);
+        ow(timeoutMillis, ow.number);
+        ow(errorMessage, ow.string);
         const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
-        try {
-            const data = await promise;
-            resolve(data);
-        } catch (err) {
-            reject(err);
-        } finally {
-            clearTimeout(timeout);
-        }
+        promise
+            .then(resolve)
+            .catch(reject)
+            .finally(() => clearTimeout(timeout));
     });
 };
 
@@ -439,7 +422,7 @@ export const isAtHome = () => !!process.env[ENV_VARS.IS_AT_HOME];
  * @return {Promise<void>}
  */
 export const sleep = (millis) => {
-    return new Promise(res => setTimeout(res, millis));
+    return new Promise((res) => setTimeout(res, millis));
 };
 
 /**
@@ -455,10 +438,14 @@ export const sleep = (millis) => {
  * @returns {Promise<Array<string>>}
  * @memberOf utils
  */
-const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX }) => {
-    checkParamOrThrow(url, 'url', 'String');
-    checkParamOrThrow(encoding, 'string', 'String');
-    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+const downloadListOfUrls = async (options) => {
+    ow(options, ow.object.exactShape({
+        url: ow.string.url,
+        encoding: ow.optional.string,
+        urlRegExp: ow.optional.regExp,
+    }));
+    const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX } = options;
+
     const { requestAsBrowser } = requestUtils;
 
     const { body: string } = await requestAsBrowser({ url, encoding });
@@ -473,68 +460,14 @@ const downloadListOfUrls = async ({ url, encoding = 'utf8', urlRegExp = URL_NO_C
  * @returns {string[]}
  * @memberOf utils
  */
-const extractUrls = ({ string, urlRegExp = URL_NO_COMMAS_REGEX }) => {
-    checkParamOrThrow(string, 'string', 'String');
-    checkParamOrThrow(urlRegExp, 'urlRegExp', 'RegExp');
+const extractUrls = (options) => {
+    ow(options, ow.object.exactShape({
+        string: ow.string,
+        urlRegExp: ow.optional.regExp,
+    }));
+    const { string, urlRegExp = URL_NO_COMMAS_REGEX } = options;
     return string.match(urlRegExp) || [];
 };
-
-/**
- * Helper function to open local storage.
- *
- * @ignore
- */
-export const openLocalStorage = async (idOrName, defaultIdEnvVar, LocalClass, cache) => {
-    const localStorageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR];
-
-    if (!idOrName) idOrName = process.env[defaultIdEnvVar] || LOCAL_ENV_VARS[defaultIdEnvVar];
-
-    let storagePromise = cache.get(idOrName);
-
-    if (!storagePromise) {
-        storagePromise = Promise.resolve(new LocalClass(idOrName, localStorageDir));
-        cache.add(idOrName, storagePromise);
-    }
-
-    return storagePromise;
-};
-
-/**
- * Helper function to open remote storage.
- *
- * @ignore
- */
-export const openRemoteStorage = async (idOrName, defaultIdEnvVar, RemoteClass, cache, getOrCreateFunction) => {
-    let isDefault = false;
-
-    if (!idOrName) {
-        isDefault = true;
-        idOrName = process.env[defaultIdEnvVar];
-        if (!idOrName) throw new Error(`The '${defaultIdEnvVar}' environment variable is not defined.`);
-    }
-
-    let storagePromise = cache.get(idOrName);
-
-    if (!storagePromise) {
-        storagePromise = isDefault // If true then we know that this is an ID of existing store.
-            ? Promise.resolve(new RemoteClass(idOrName))
-            : getOrCreateFunction(idOrName).then(storage => (new RemoteClass(storage.id, storage.name)));
-        cache.add(idOrName, storagePromise);
-    }
-
-    return storagePromise;
-};
-
-/**
- * Checks if at least one of APIFY_LOCAL_STORAGE_DIR and APIFY_TOKEN environment variables is set.
- * @ignore
- */
-export const ensureTokenOrLocalStorageEnvExists = (storageName) => {
-    if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
-        throw new Error(`Cannot use ${storageName} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set. You need to set one these variables in order to enable data storage.`); // eslint-disable-line max-len
-    }
-};
-
 
 // NOTE: We skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
@@ -634,23 +567,21 @@ const htmlToText = (html) => {
  * @return {object}
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
-    checkParamOrThrow(request, 'request', 'Object');
-    checkParamOrThrow(response, 'response', 'Object');
-    checkParamOrThrow(additionalFields, 'additionalFields', 'Object');
+    ow(request, ow.object);
+    ow(response, ow.object);
+    ow(additionalFields, ow.object);
 
-    return Object.assign(
-        {
-            requestId: request.id,
-            url: request.url,
-            loadedUrl: request.loadedUrl,
-            method: request.method,
-            retryCount: request.retryCount,
-            errorMessages: request.errorMessages,
-            // Puppeteer response has .status() funtion and NodeJS response ,statusCode property.
-            statusCode: _.isFunction(response.status) ? response.status() : response.statusCode,
-        },
-        additionalFields,
-    );
+    return {
+        requestId: request.id,
+        url: request.url,
+        loadedUrl: request.loadedUrl,
+        method: request.method,
+        retryCount: request.retryCount,
+        errorMessages: request.errorMessages,
+        // Puppeteer response has .status() funtion and NodeJS response ,statusCode property.
+        statusCode: _.isFunction(response.status) ? response.status() : response.statusCode,
+        ...additionalFields,
+    };
 };
 
 /**
@@ -694,9 +625,10 @@ export const printOutdatedSdkWarning = () => {
  * @ignore
  */
 export const parseContentTypeFromResponse = (response) => {
-    checkParamOrThrow(response, 'response', 'Object');
-    checkParamOrThrow(response.url, 'response.url', 'String');
-    checkParamOrThrow(response.headers, 'response.headers', 'Object');
+    ow(response, ow.object.partialShape({
+        url: ow.string.url,
+        headers: ow.object,
+    }));
 
     const { url, headers } = response;
     let parsedContentType;
@@ -750,10 +682,15 @@ export const parseContentTypeFromResponse = (response) => {
  * @function
  */
 export const waitForRunToFinish = async (options) => {
+    ow(options, ow.object.exactShape({
+        actorId: ow.string,
+        runId: ow.string,
+        waitSecs: ow.optional.number,
+    }));
+
     const {
         actorId,
         runId,
-        token,
         waitSecs,
     } = options;
     let run;
@@ -766,15 +703,12 @@ export const waitForRunToFinish = async (options) => {
         return true;
     };
 
-    const getRunOpts = { actId: actorId, runId };
-    if (token) getRunOpts.token = token;
-
     while (shouldRepeat()) {
-        getRunOpts.waitForFinish = waitSecs
+        const waitForFinish = waitSecs
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        run = await apifyClient.acts.getRun(getRunOpts);
+        run = await apifyClient.run(runId, actorId).waitForFinish({ waitForFinish }); // TODO waitForFinish
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.

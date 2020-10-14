@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import sinon from 'sinon';
 import _ from 'underscore';
 import fs from 'fs';
@@ -5,8 +6,7 @@ import path from 'path';
 import os from 'os';
 import cheerio from 'cheerio';
 import semver from 'semver';
-import LruCache from 'apify-shared/lru_cache';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';
@@ -15,29 +15,21 @@ import * as requestUtils from '../build/utils_request';
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {
         process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path/';
-        process.env[ENV_VARS.USER_ID] = 'userId';
         process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
         expect(client.constructor.name).toBe('ApifyClient');
-        const opts = client.getOptions();
-
-        expect(opts.userId).toBe('userId');
-        expect(opts.token).toBe('token');
-        expect(opts.baseUrl).toBe('http://www.example.com:1234/path/');
+        expect(client.token).toBe('token');
+        expect(client.baseUrl).toBe('http://www.example.com:1234/path/');
     });
 
     test('uses correct default if APIFY_API_BASE_URL is not defined', () => {
         delete process.env[ENV_VARS.API_BASE_URL];
-        process.env[ENV_VARS.USER_ID] = 'userId';
         process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
-        const opts = client.getOptions();
-
-        expect(opts.userId).toBe('userId');
-        expect(opts.token).toBe('token');
-        expect(opts.baseUrl).toBe('https://api.apify.com');
+        expect(client.token).toBe('token');
+        expect(client.baseUrl).toBe('https://api.apify.com/v2');
     });
 });
 
@@ -49,21 +41,6 @@ describe('utils.addCharsetToContentType()', () => {
         expect(utils.addCharsetToContentType('application/json')).toBe('application/json; charset=utf-8');
         expect(utils.addCharsetToContentType(null)).toBe(null);
         expect(utils.addCharsetToContentType(undefined)).toEqual(undefined);
-    });
-});
-
-describe('utils.isProduction()', () => {
-    test('works', () => {
-        const prev = process.env.NODE_ENV;
-        try {
-            process.env.NODE_ENV = 'production';
-            expect(utils.isProduction()).toBe(true);
-
-            process.env.NODE_ENV = 'debug';
-            expect(utils.isProduction()).toBe(false);
-        } finally {
-            process.env.NODE_ENV = prev;
-        }
     });
 });
 
@@ -261,28 +238,6 @@ describe('utils.getMemoryInfo()', () => {
     });
 });
 
-describe('utils.isPromise()', () => {
-    test('works', () => {
-        const rejected = Promise.reject();
-
-        expect(utils.isPromise(new Promise(resolve => setTimeout(resolve, 1000)))).toBe(true);
-        expect(utils.isPromise(Promise.resolve())).toBe(true);
-        expect(utils.isPromise(rejected)).toBe(true);
-        expect(utils.isPromise(new Date())).toBe(false);
-        expect(utils.isPromise(Function)).toBe(false);
-        expect(utils.isPromise(() => {})).toBe(false);
-        expect(utils.isPromise({ then: () => {} })).toBe(false);
-
-        rejected.catch(() => {});
-    });
-});
-
-describe('utils.newPromise()', () => {
-    test('works', () => {
-        if (!utils.isPromise(utils.newPromise())) throw new Error('utils.newPromise() must return a promise!');
-    });
-});
-
 describe('utils.isAtHome()', () => {
     test('works', () => {
         expect(utils.isAtHome()).toBe(false);
@@ -290,22 +245,6 @@ describe('utils.isAtHome()', () => {
         expect(utils.isAtHome()).toBe(true);
         delete process.env[ENV_VARS.IS_AT_HOME];
         expect(utils.isAtHome()).toBe(false);
-    });
-});
-
-describe('utils.sum()', () => {
-    test('works', () => {
-        expect(utils.sum([1, 2, 3, 1.2])).toBe(7.2);
-        expect(utils.sum([])).toBe(0);
-        expect(utils.sum([9])).toBe(9);
-    });
-});
-
-describe('utils.avg()', () => {
-    test('works', () => {
-        expect(utils.avg([1, 2, 3, 1.2])).toEqual(7.2 / 4);
-        expect(utils.avg([])).toEqual(NaN);
-        expect(utils.avg([9])).toBe(9);
     });
 });
 
@@ -359,15 +298,15 @@ describe('Apify.utils.extractUrls()', () => {
 
     const getURLData = (filename) => {
         const string = fs.readFileSync(path.join(__dirname, 'data', filename), 'utf8');
-        const array = string.trim().split(/[\r\n]+/g).map(u => u.trim());
+        const array = string.trim().split(/[\r\n]+/g).map((u) => u.trim());
         return { string, array };
     };
 
     const makeJSON = ({ string, array }) => JSON.stringify({
         one: [{ http: string }],
-        two: array.map(url => ({ num: 123, url })),
+        two: array.map((url) => ({ num: 123, url })),
     });
-    const makeCSV = (array, delimiter) => array.map(url => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
+    const makeCSV = (array, delimiter) => array.map((url) => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
 
     const makeText = (array) => {
         const text = fs.readFileSync(path.join(__dirname, 'data', 'lipsum.txt'), 'utf8').split('');
@@ -513,149 +452,13 @@ describe('Apify.utils.downloadListOfUrls()', () => {
 
     test('downloads a list of URLs', () => {
         const text = fs.readFileSync(path.join(__dirname, 'data', 'simple_url_list.txt'), 'utf8');
-        const arr = text.trim().split(/[\r\n]+/g).map(u => u.trim());
+        const arr = text.trim().split(/[\r\n]+/g).map((u) => u.trim());
         stub.resolves({ body: text });
 
         return expect(downloadListOfUrls({
-            url: 'nowhere',
+            url: 'http://www.nowhere12345.com',
         })).resolves.toEqual(arr);
     });
-});
-
-describe('utils.openLocalStorage()', () => {
-    test(
-        'should return item from cache if available and create new one otherwise',
-        async () => {
-            const cache = new LruCache({ maxLength: 5 });
-            class MyStore {}
-
-            expect(cache.length()).toBe(0);
-
-            const store = await utils.openLocalStorage('some-id', 'some-env', MyStore, cache);
-            expect(store).toBeInstanceOf(MyStore);
-            expect(cache.length()).toBe(1);
-
-            const store2 = await utils.openLocalStorage('some-id', 'some-env', MyStore, cache);
-            expect(store2).toBe(store);
-            expect(cache.length()).toBe(1);
-
-            const store3 = await utils.openLocalStorage('some-other-id', 'some-env', MyStore, cache);
-            expect(store3).not.toBe(store);
-            expect(cache.length()).toBe(2);
-        },
-    );
-
-    test(
-        'should use ID from ENV variable if no parameter is provided',
-        async () => {
-            const cache = new LruCache({ maxLength: 5 });
-            class MyStore {
-                constructor(id) {
-                    this.id = id;
-                }
-            }
-
-            process.env['some-env'] = 'id-from-env';
-
-            const store = await utils.openLocalStorage(null, 'some-env', MyStore, cache);
-            expect(store.id).toBe('id-from-env');
-
-            delete process.env['some-env'];
-        },
-    );
-
-    test(
-        'should use ID from shared if neither parameter nor ENV var is provided',
-        async () => {
-            const cache = new LruCache({ maxLength: 5 });
-            class MyStore {
-                constructor(id) {
-                    this.id = id;
-                }
-            }
-
-            // There is some default in shared constants.
-            const defaultLocalValue = LOCAL_ENV_VARS[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID];
-            expect(typeof defaultLocalValue).toBe('string');
-            expect(defaultLocalValue.length).toBeGreaterThan(1);
-
-            // There is no env var!
-            expect(process.env[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID]).toEqual(undefined);
-
-            const store = await utils.openLocalStorage(null, ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID, MyStore, cache);
-            expect(store.id).toEqual(defaultLocalValue);
-        },
-    );
-});
-
-describe('utils.openRemoteStorage()', () => {
-    test(
-        'should return item from cache if available and create new one otherwise',
-        async () => {
-            const cache = new LruCache({ maxLength: 5 });
-            class MyStore {
-                constructor(id) {
-                    this.id = id;
-                }
-            }
-
-            delete process.env['some-env'];
-
-            expect(cache.length()).toBe(0);
-
-            const store = await utils.openRemoteStorage('some-id', 'some-env', MyStore, cache, async () => ({ id: 'some-id' }));
-            expect(store.id).toBe('some-id');
-            expect(cache.length()).toBe(1);
-
-            const store2 = await utils.openRemoteStorage('some-id', 'some-env', MyStore, cache, async () => { throw new Error('Should not be called!'); }); // eslint-disable-line
-            expect(store2.id).toBe('some-id');
-            expect(store2).toBe(store);
-            expect(cache.length()).toBe(1);
-
-            const store3 = await utils.openRemoteStorage('some-other-id', 'some-env', MyStore, cache, async () => ({ id: 'some-other-id' }));
-            expect(store3).not.toBe(store);
-            expect(store3.id).toBe('some-other-id');
-            expect(cache.length()).toBe(2);
-        },
-    );
-
-    test(
-        'should use ID from ENV variable if no parameter is provided',
-        async () => {
-            const cache = new LruCache({ maxLength: 5 });
-            class MyStore {
-                constructor(id) {
-                    this.id = id;
-                }
-            }
-
-            process.env['some-env'] = 'id-from-env';
-
-            const store = await utils.openLocalStorage(null, 'some-env', MyStore, cache);
-            expect(store.id).toBe('id-from-env');
-
-            delete process.env['some-env'];
-        },
-    );
-
-    test(
-        'should use ID from ENV variable and not call getOrCreateStoreFunction parameter is not provided',
-        async () => {
-            const cache = new LruCache({ maxLength: 5 });
-            class MyStore {
-                constructor(id) {
-                    this.id = id;
-                }
-            }
-
-            process.env['some-env'] = 'id-from-env';
-
-            const store = await utils.openRemoteStorage(null, 'some-env', MyStore, cache, async () => { throw new Error('Should not be called!'); }); // eslint-disable-line
-            expect(store.id).toBe('id-from-env');
-
-            delete process.env['some-env'];
-        },
-    );
 });
 
 const checkHtmlToText = (html, expectedText, hasBody = false) => {
@@ -851,7 +654,7 @@ describe('utils.addTimeoutToPromise()', () => {
         const clock = sinon.useFakeTimers();
         try {
             const p = utils.addTimeoutToPromise(
-                new Promise(r => setTimeout(r, 500)),
+                new Promise((r) => setTimeout(r, 500)),
                 100,
                 'Timed out.',
             );
@@ -869,7 +672,7 @@ describe('utils.addTimeoutToPromise()', () => {
         const clock = sinon.useFakeTimers();
         try {
             const p = utils.addTimeoutToPromise(
-                new Promise(r => setTimeout(() => r('Done'), 100)),
+                new Promise((r) => setTimeout(() => r('Done'), 100)),
                 500,
                 'Timed out.',
             );

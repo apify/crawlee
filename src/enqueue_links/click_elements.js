@@ -1,8 +1,7 @@
+import ow from 'ow';
 import { URL } from 'url';
-import { checkParamOrThrow } from 'apify-client/build/utils';
-import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from '../utils_log';
-import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../request_queue'; // eslint-disable-line import/named,no-unused-vars
+import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../storages/request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
 /* eslint-disable import/named,no-unused-vars,import/order */
 import { Page, Request as PuppeteerRequest, Target } from 'puppeteer';
@@ -118,7 +117,17 @@ const STARTING_Z_INDEX = 2147400000;
  * @name enqueueLinksByClickingElements
  * @function
  */
-export async function enqueueLinksByClickingElements(options = {}) {
+export async function enqueueLinksByClickingElements(options) {
+    ow(options, ow.object.exactShape({
+        page: ow.object.hasKeys('goto', 'evaluate'),
+        requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+        selector: ow.string,
+        pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.regExp, ow.object.hasKeys('purl'))),
+        transformRequestFunction: ow.optional.function,
+        waitForPageIdleSecs: ow.optional.number,
+        maxWaitForPageIdleSecs: ow.optional.number,
+    }));
+
     const {
         page,
         requestQueue,
@@ -128,14 +137,6 @@ export async function enqueueLinksByClickingElements(options = {}) {
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
     } = options;
-
-    checkParamOrThrow(page, 'page', 'Object');
-    checkParamOrThrow(selector, 'selector', 'String');
-    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
-    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(transformRequestFunction, 'transformRequestFunction', 'Function');
-    checkParamOrThrow(waitForPageIdleSecs, 'waitForPageIdleSecs', 'Number');
-    checkParamOrThrow(maxWaitForPageIdleSecs, 'maxWaitForPageIdleSecs', 'Number');
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
@@ -149,7 +150,7 @@ export async function enqueueLinksByClickingElements(options = {}) {
     });
     let requestOptions = createRequestOptions(interceptedRequests);
     if (transformRequestFunction) {
-        requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
+        requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r);
     }
     const requests = createRequests(requestOptions, pseudoUrlInstances);
     return addRequestsToQueueInBatches(requests, requestQueue);
@@ -197,7 +198,7 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
     await removeInterceptRequestHandler(page, onInterceptedRequest);
 
     const serializedRequests = Array.from(uniqueRequests);
-    return serializedRequests.map(r => JSON.parse(r));
+    return serializedRequests.map((r) => JSON.parse(r));
 }
 
 /**

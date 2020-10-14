@@ -1,5 +1,5 @@
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
-import { checkParamOrThrow } from 'apify-client/build/utils';
+import ow from 'ow';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
 import defaultLog from '../utils_log';
@@ -110,10 +110,32 @@ import defaultLog from '../utils_log';
  */
 class AutoscaledPool {
     /**
-     * @param {AutoscaledPoolOptions} options All `AutoscaledPool` configuration options.
+     * @param {AutoscaledPoolOptions} options
+     *  All `AutoscaledPool` configuration options.
      */
-    constructor(options = {}) {
+    constructor(options) {
+        ow(options, ow.object.exactShape({
+            runTaskFunction: ow.function,
+            isFinishedFunction: ow.function,
+            isTaskReadyFunction: ow.function,
+            maxConcurrency: ow.optional.number,
+            minConcurrency: ow.optional.number,
+            desiredConcurrency: ow.optional.number,
+            desiredConcurrencyRatio: ow.optional.number,
+            scaleUpStepRatio: ow.optional.number,
+            scaleDownStepRatio: ow.optional.number,
+            maybeRunIntervalSecs: ow.optional.number,
+            loggingIntervalSecs: ow.any(ow.number, ow.nullOrUndefined),
+            autoscaleIntervalSecs: ow.optional.number,
+            systemStatusOptions: ow.optional.object,
+            snapshotterOptions: ow.optional.object,
+            log: ow.optional.object,
+        }));
+
         const {
+            runTaskFunction,
+            isFinishedFunction,
+            isTaskReadyFunction,
             maxConcurrency = 1000,
             minConcurrency = 1,
             desiredConcurrency,
@@ -123,29 +145,10 @@ class AutoscaledPool {
             maybeRunIntervalSecs = 0.5,
             loggingIntervalSecs = 60,
             autoscaleIntervalSecs = 10,
-            runTaskFunction,
-            isFinishedFunction,
-            isTaskReadyFunction,
             systemStatusOptions,
             snapshotterOptions,
             log = defaultLog,
         } = options;
-
-
-        checkParamOrThrow(maxConcurrency, 'options.maxConcurrency', 'Number');
-        checkParamOrThrow(minConcurrency, 'options.minConcurrency', 'Number');
-        checkParamOrThrow(desiredConcurrency, 'options.desiredConcurrency', 'Maybe Number');
-        checkParamOrThrow(desiredConcurrencyRatio, 'options.desiredConcurrencyRatio', 'Number');
-        checkParamOrThrow(scaleUpStepRatio, 'options.scaleUpStepRatio', 'Number');
-        checkParamOrThrow(scaleDownStepRatio, 'options.scaleDownStepRatio', 'Number');
-        checkParamOrThrow(maybeRunIntervalSecs, 'options.maybeRunIntervalSecs', 'Number');
-        checkParamOrThrow(loggingIntervalSecs, 'options.loggingIntervalSecs', 'Number');
-        checkParamOrThrow(autoscaleIntervalSecs, 'options.autoscaleIntervalSecs', 'Number');
-        checkParamOrThrow(runTaskFunction, 'options.runTaskFunction', 'Function');
-        checkParamOrThrow(isFinishedFunction, 'options.isFinishedFunction', 'Function');
-        checkParamOrThrow(isTaskReadyFunction, 'options.isTaskReadyFunction', 'Function');
-        checkParamOrThrow(systemStatusOptions, 'options.systemStatusOptions', 'Maybe Object');
-        checkParamOrThrow(snapshotterOptions, 'options.snapshotterOptions', 'Maybe Object');
 
         this.log = log.child({ prefix: 'AutoscaledPool' });
 
@@ -173,12 +176,11 @@ class AutoscaledPool {
         this._maybeRunTask = this._maybeRunTask.bind(this);
 
         // Create instances with correct options.
-        const ssoCopy = Object.assign({}, systemStatusOptions);
+        const ssoCopy = { ...systemStatusOptions };
         if (!ssoCopy.snapshotter) ssoCopy.snapshotter = new Snapshotter({ ...snapshotterOptions, log: this.log });
         this.snapshotter = ssoCopy.snapshotter;
         this.systemStatus = new SystemStatus(ssoCopy);
     }
-
 
     /**
      * @ignore
@@ -195,7 +197,6 @@ class AutoscaledPool {
         this.log.deprecated('setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
         this._minConcurrency = minConcurrency;
     }
-
 
     /**
      * Gets the minimum number of tasks running in parallel.
@@ -215,7 +216,7 @@ class AutoscaledPool {
      * @param {number} value
      */
     set minConcurrency(value) {
-        checkParamOrThrow(value, 'value', 'Number');
+        ow(value, ow.number);
         this._minConcurrency = value;
     }
 
@@ -234,7 +235,7 @@ class AutoscaledPool {
      * @param {number} value
      */
     set maxConcurrency(value) {
-        checkParamOrThrow(value, 'value', 'Number');
+        ow(value, ow.number);
         this._maxConcurrency = value;
     }
 
@@ -255,7 +256,7 @@ class AutoscaledPool {
      * @param {number} value
      */
     set desiredConcurrency(value) {
-        checkParamOrThrow(value, 'value', 'Number');
+        ow(value, ow.number);
         this._desiredConcurrency = value;
     }
 

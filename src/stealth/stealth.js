@@ -52,7 +52,6 @@ export default function applyStealthToBrowser(browser, options) {
         return page;
     };
 
-
     return Promise.resolve(modifiedBrowser);
 }
 
@@ -69,7 +68,7 @@ function applyStealthTricks(page, options) {
         .filter((key) => {
             return options[key];
         })
-        .map(key => hidingTricks[key].toString());
+        .map((key) => hidingTricks[key].toString());
 
     /* istanbul ignore next */
     const addFunctions = (functionsArr) => {
