@@ -20,7 +20,7 @@ describe('utils.newClient()', () => {
 
         expect(client.constructor.name).toBe('ApifyClient');
         expect(client.token).toBe('token');
-        expect(client.baseUrl).toBe('http://www.example.com:1234/path');
+        expect(client.baseUrl).toBe('http://www.example.com:1234/path/v2');
     });
 
     test('uses correct default if APIFY_API_BASE_URL is not defined', () => {

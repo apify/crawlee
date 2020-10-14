@@ -3,7 +3,8 @@
 In this release we've changed a lot of code, but you may not even notice.
 We've updated the underlying `apify-client` package which powers all communication with
 the Apify API to version `1.0.0`. This means a completely new API for all internal calls.
-If you use `Apify.client` calls in your code, visit the client docs for a migration guide. <----- TODO
+If you use `Apify.client` calls in your code, this will be a large breaking change for you.
+Visit the client docs for a migration guide. <----- TODO
 
 Until now, local emulation of Apify Storages was part of the SDK. We've moved the logic
 into a separate package `@apify/storage-local` which shares interface with `apify-client`.
@@ -18,14 +19,22 @@ instead of `LaunchPuppeteerOptions` and don't realize it. Before this version, S
 let you know and just silently continue with Chromium. Now, it will throw an error saying
 that `useChrome` is not an allowed property of `PuppeteerPoolOptions`.
 
+Based on developer feedback, we decided to remove `--no-sandbox` from the default Puppeteer
+launch args. It will only be used on Apify Platform. This gives you the chance to use
+your own sandboxing strategy.
+
 `LiveViewServer` and `puppeteerPoolOptions.useLiveView` were never very user-friendly
 or performant solutions, due to the inherent performance issues with rapidly taking many
 screenshots in Puppeteer. We've decided to remove it. If you need similar functionality,
 try the `devtools-server` NPM package, which utilizes the Chrome DevTools Frontend for
 screen-casting live view of the running browser.
 
-Finally, we cleaned up some old deprecations.
+Full list of changes:
 
+- **BREAKING:** Updated `apify-client` to `1.0.0` with a completely new interface.
+  This means that all client calls made using `Apify.client` will break.
+- **BREAKING:** Removed `--no-sandbox` from default Puppeteer launch arguments.
+  This will most likely be breaking for Linux and Docker users.
 - **BREAKING:** Function argument validation is now more strict and will not accept extra
   parameters which are not defined by the functions' signatures.
 - **DEPRECATED:** `puppeteerPoolOptions.useLiveView` is now deprecated.

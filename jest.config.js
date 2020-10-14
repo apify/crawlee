@@ -4,7 +4,6 @@ module.exports = {
     testEnvironment: 'node',
     testRunner: 'jest-circus/runner',
     verbose: true,
-    testEnvironment: 'node',
     rootDir: path.join(__dirname, './'),
     testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
     transform: {
