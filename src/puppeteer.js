@@ -202,7 +202,7 @@ export const launchPuppeteer = async (options = {}) => {
     const optsCopy = { ...options };
 
     optsCopy.args = optsCopy.args || [];
-    //optsCopy.args.push('--no-sandbox');
+    if (isAtHome()) optsCopy.args.push('--no-sandbox');
     if (optsCopy.headless == null) {
         optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
