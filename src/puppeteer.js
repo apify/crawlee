@@ -207,7 +207,7 @@ export const launchPuppeteer = async (options = {}) => {
     // which is a larger security concern than --no-sandbox itself.
     // TODO Find if the arg has any impact on browser detection.
     if (isAtHome()) optsCopy.args.push('--no-sandbox');
-    
+
     if (optsCopy.headless == null) {
         optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
