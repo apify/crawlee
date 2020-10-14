@@ -14,13 +14,13 @@ import * as requestUtils from '../build/utils_request';
 
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {
-        process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path/';
+        process.env[ENV_VARS.API_BASE_URL] = 'http://www.example.com:1234/path';
         process.env[ENV_VARS.TOKEN] = 'token';
         const client = utils.newClient();
 
         expect(client.constructor.name).toBe('ApifyClient');
         expect(client.token).toBe('token');
-        expect(client.baseUrl).toBe('http://www.example.com:1234/path/');
+        expect(client.baseUrl).toBe('http://www.example.com:1234/path');
     });
 
     test('uses correct default if APIFY_API_BASE_URL is not defined', () => {
