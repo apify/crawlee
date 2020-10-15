@@ -77,7 +77,15 @@ export function createRequests(requestOptions, pseudoUrls) {
  */
 export function createRequestOptions(sources) {
     return sources
-        .map((src) => (typeof src === 'string' ? { url: src } : src))
+        .map((src) => {
+            const reqOpts = typeof src === 'string'
+                ? { url: src }
+                : src;
+            // TODO Remove with v1, there are examples
+            // which depend on userData existing here.
+            reqOpts.userData = { ...reqOpts.userData };
+            return reqOpts;
+        })
         .filter(({ url }) => {
             try {
                 return new URL(url).href;
