@@ -388,10 +388,14 @@ class PuppeteerCrawler {
             proxyInfo = browserInstance.proxyInfo;
         }
 
+        // Shared crawler context
+        const { puppeteerPool } = this;
+        const crawlingContext = { page, request, autoscaledPool, puppeteerPool, session, proxyInfo };
+
         try {
             let response;
             try {
-                response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });
+                response = await this.gotoFunction(crawlingContext);
             } catch (err) {
                 // It would be better to compare the instances,
                 // but we don't have access to puppeteer.errors here.
@@ -418,7 +422,7 @@ class PuppeteerCrawler {
             }
 
             await addTimeoutToPromise(
-                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session, proxyInfo }),
+                this.handlePageFunction({ response, ...crawlingContext }),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
@@ -433,6 +437,10 @@ class PuppeteerCrawler {
      * @param {Object} options
      * @param {PuppeteerPage} options.page
      * @param {Request} options.request
+     * @property {AutoscaledPool} autoscaledPool
+     * @property {PuppeteerPool} puppeteerPool
+     * @property {Session} [session]
+     * @property {ProxyInfo} [proxyInfo]
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */

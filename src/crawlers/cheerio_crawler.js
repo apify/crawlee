@@ -26,7 +26,6 @@ import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { RequestQueue } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { RequestAsBrowserOptions } from '../utils_request';
 import { validators } from '../validators';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
@@ -472,16 +471,17 @@ class CheerioCrawler {
      */
     async _handleRequestFunction({ request, autoscaledPool, session }) {
         let proxyInfo;
-        let proxyUrl;
         if (this.proxyConfiguration) {
             proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
-            proxyUrl = proxyInfo.url;
         }
 
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session, proxyInfo });
+        // Shared crawler context
+        const crawlingContext = { request, autoscaledPool, session, proxyInfo };
+
+        if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
 
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction({ request, session, proxyUrl }),
+            this._requestFunction(crawlingContext),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
@@ -521,14 +521,10 @@ class CheerioCrawler {
                 return body;
             },
             contentType,
-            request,
             response,
-            autoscaledPool,
-            session,
-            proxyInfo,
         };
         return addTimeoutToPromise(
-            this.handlePageFunction(context),
+            this.handlePageFunction({ context, ...crawlingContext }),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -542,10 +538,10 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {Session} options.session
-     * @param {string} options.proxyUrl
+     * @param {object} options.proxyInfo
      * @ignore
      */
-    async _requestFunction({ request, session, proxyUrl }) {
+    async _requestFunction({ request, session, proxyInfo }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
 
@@ -554,6 +550,7 @@ class CheerioCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
+        const { proxyUrl } = proxyInfo;
         const opts = this._getRequestOptions(request, session, proxyUrl);
         let responseStream;
 
@@ -741,6 +738,7 @@ export default CheerioCrawler;
  *  Original instance fo the {Request} object. Must be modified in-place.
  * @property {Session} [session]
  *  The current session
+ * @property {AutoscaledPool} autoscaledPool
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
