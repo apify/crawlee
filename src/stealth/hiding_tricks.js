@@ -48,9 +48,9 @@ const hackPermissions = () => {
 };
 
 const addLanguage = () => {
-    Object.defineProperty(window.navigator, 'languages', {
-        get: () => ['en-US', 'en'],
-    });
+    Object.defineProperty(Object.getPrototypeOf(navigator), 'languages', {
+        get: () => ['en-US', 'en']
+    })
 };
 
 const emulateWebGL = () => {
