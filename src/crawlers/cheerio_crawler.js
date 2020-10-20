@@ -522,9 +522,10 @@ class CheerioCrawler {
             },
             contentType,
             response,
+            ...crawlingContext,
         };
         return addTimeoutToPromise(
-            this.handlePageFunction({ context, ...crawlingContext }),
+            this.handlePageFunction(context),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -539,6 +540,7 @@ class CheerioCrawler {
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {object} options.proxyInfo
+     * @param {AutoscaledPool} options.autoscaledPool
      * @ignore
      */
     async _requestFunction({ request, session, proxyInfo }) {
@@ -550,7 +552,7 @@ class CheerioCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const { proxyUrl } = proxyInfo;
+        const proxyUrl = proxyInfo ? proxyInfo.url : undefined;
         const opts = this._getRequestOptions(request, session, proxyUrl);
         let responseStream;
 

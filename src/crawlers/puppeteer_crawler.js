@@ -396,6 +396,7 @@ class PuppeteerCrawler {
             let response;
             try {
                 response = await this.gotoFunction(crawlingContext);
+                crawlingContext.response = response;
             } catch (err) {
                 // It would be better to compare the instances,
                 // but we don't have access to puppeteer.errors here.
@@ -422,7 +423,7 @@ class PuppeteerCrawler {
             }
 
             await addTimeoutToPromise(
-                this.handlePageFunction({ response, ...crawlingContext }),
+                this.handlePageFunction(crawlingContext),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
