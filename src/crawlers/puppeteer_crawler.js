@@ -279,6 +279,10 @@ class PuppeteerCrawler {
 
         this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
 
+        if (persistCookiesPerSession && !useSessionPool) {
+            throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+        }
+
         if (options.gotoTimeoutSecs && options.gotoFunction) {
             this.log.warning('You are using gotoTimeoutSecs with a custom gotoFunction. '
                 + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
