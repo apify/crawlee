@@ -74,7 +74,12 @@ function applyStealthTricks(page, options) {
     /* istanbul ignore next */
     const addFunctions = (functionsArr) => {
         for (const func of functionsArr) {
-            eval(func)(); // eslint-disable-line
+            try {
+                eval(func)(); // eslint-disable-line
+
+            }catch (e){
+                // Silently swallow the error in the browser. Logging it could give us out.
+            }
         }
     };
 
