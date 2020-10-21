@@ -586,7 +586,7 @@ class CheerioCrawler {
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
-        } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
+        } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'text/xml' || type === 'application/xml') {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
         } else {
