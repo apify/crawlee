@@ -463,69 +463,68 @@ class CheerioCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} options
-     * @param {Request} options.request
-     * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session} [options.session]
+     * @param {Object} crawlingContext
+     * @param {Request} crawlingContext.request
+     * @param {AutoscaledPool} crawlingContext.autoscaledPool
+     * @param {Session} [crawlingContext.session]
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool, session }) {
-        let proxyInfo;
-        if (this.proxyConfiguration) {
-            proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
-        }
+    async _handleRequestFunction(crawlingContext) {
+        let proxyUrl;
 
-        // Shared crawler context
-        const crawlingContext = { request, autoscaledPool, session, proxyInfo };
+        if (this.proxyConfiguration) {
+            const sessionId = crawlingContext.session ? crawlingContext.session.id : undefined;
+            crawlingContext.proxyInfo = this.proxyConfiguration.newProxyInfo(sessionId);
+            proxyUrl = crawlingContext.proxyInfo.url;
+        }
 
         if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
 
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction(crawlingContext),
+            this._requestFunction(
+                {
+                    request: crawlingContext.request,
+                    session: crawlingContext.session,
+                    proxyUrl,
+                },
+            ),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
         if (this.useSessionPool) {
-            this._throwOnBlockedRequest(session, response.statusCode);
+            this._throwOnBlockedRequest(crawlingContext.session, response.statusCode);
         }
 
         if (this.persistCookiesPerSession) {
-            session.setCookiesFromResponse(response);
+            crawlingContext.session.setCookiesFromResponse(response);
         }
 
-        request.loadedUrl = response.url;
-        const { log } = this;
-
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
-        const context = {
-            $,
-            // Using a getter here not to break the original API
-            // and lazy load the HTML only when needed.
-            get html() {
-                log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
-                return dom && !isXml && $.html({ decodeEntities: false });
-            },
-            get json() {
+
+        crawlingContext.request.loadedUrl = response.url;
+        crawlingContext.$ = $;
+        crawlingContext.contentType = contentType;
+        crawlingContext.response = response;
+        Object.defineProperty(crawlingContext, 'json', {
+            get() {
                 if (contentType.type !== 'application/json') return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
             },
-            get body() {
-                // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
-                // This is to save memory for high-concurrency crawls. The downside is that changes
-                // made to DOM are reflected in the HTML, but we can live with that...
+        });
+
+        Object.defineProperty(crawlingContext, 'body', {
+            get() {
                 if (dom) {
                     return isXml ? $.xml() : $.html({ decodeEntities: false });
                 }
                 return body;
             },
-            contentType,
-            response,
-            ...crawlingContext,
-        };
+        });
+
         return addTimeoutToPromise(
-            this.handlePageFunction(context),
+            this.handlePageFunction(crawlingContext),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -539,11 +538,10 @@ class CheerioCrawler {
      * @param {Object} options
      * @param {Request} options.request
      * @param {Session} options.session
-     * @param {object} options.proxyInfo
-     * @param {AutoscaledPool} options.autoscaledPool
+     * @param {string} options.proxyUrl
      * @ignore
      */
-    async _requestFunction({ request, session, proxyInfo }) {
+    async _requestFunction({ request, session, proxyUrl }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
 
@@ -552,7 +550,6 @@ class CheerioCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const proxyUrl = proxyInfo ? proxyInfo.url : undefined;
         const opts = this._getRequestOptions(request, session, proxyUrl);
         let responseStream;
 

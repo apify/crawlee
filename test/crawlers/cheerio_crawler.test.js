@@ -14,7 +14,9 @@ import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 import CrawlerExtension from '../../build/crawlers/crawler_extension';
+import Request from '../../build/request';
 import * as utils from '../../build/utils';
+import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -134,8 +136,6 @@ describe('CheerioCrawler', () => {
 
         processed.forEach((request) => {
             expect(request.userData.title).toBe('Title');
-            expect(typeof request.userData.html).toBe('string');
-            expect(request.userData.html.length).not.toBe(0);
         });
     });
 
@@ -588,8 +588,8 @@ describe('CheerioCrawler', () => {
             });
 
             const proxies = [];
-            crawler._requestFunction = async ({ proxyInfo }) => {
-                proxies.push(proxyInfo.url);
+            crawler._requestFunction = async ({ proxyUrl }) => {
+                proxies.push(proxyUrl);
                 // it needs to return something valid
                 return { dom: {}, response: responseMock };
             };
@@ -662,8 +662,8 @@ describe('CheerioCrawler', () => {
                 maxConcurrency: 1,
             });
 
-            crawler._requestFunction = async ({ request, session, proxyInfo }) => {
-                const opts = crawler._getRequestOptions(request, session, proxyInfo.url);
+            crawler._requestFunction = async ({ request, session, proxyUrl }) => {
+                const opts = crawler._getRequestOptions(request, session, proxyUrl);
                 proxies.push(opts.proxyUrl);
                 // it needs to return something valid
                 return { dom: {}, response: responseMock };
@@ -698,8 +698,8 @@ describe('CheerioCrawler', () => {
                 useSessionPool: true,
             });
 
-            crawler._requestFunction = async ({ request, session, proxyInfo }) => {
-                const opts = crawler._getRequestOptions(request, session, proxyInfo.url);
+            crawler._requestFunction = async ({ request, session, proxyUrl }) => {
+                const opts = crawler._getRequestOptions(request, session, proxyUrl);
                 proxies.push(opts.proxyUrl);
                 // it needs to return something valid
                 return { dom: {}, response: responseMock };
@@ -902,6 +902,98 @@ describe('CheerioCrawler', () => {
 
             const cheerioCrawlerRequest = usedRequests[1];
             expect(cheerioCrawlerRequest.proxyUrl.includes(usedSession.id)).toBeTruthy();
+            stub.restore();
+        });
+    });
+
+    describe('Crawling context', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+        let actualLogLevel;
+        beforeEach(async () => {
+            actualLogLevel = log.getLevel();
+            log.setLevel(log.LEVELS.OFF);
+            requestList = await Apify.openRequestList(null, sources.slice());
+        });
+
+        afterAll(() => {
+            log.setLevel(actualLogLevel);
+        });
+
+        test('uses correct crawling context', async () => {
+            let prepareCrawlingContext;
+
+            const prepareRequestFunction = async (crawlingContext) => {
+                prepareCrawlingContext = crawlingContext;
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+            };
+
+            const handlePageFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.$).toBe('function');
+                expect(typeof crawlingContext.response).toBe('object');
+                expect(typeof crawlingContext.contentType).toBe('object');
+
+                throw new Error('some error');
+            };
+
+            const handleFailedRequestFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.$).toBe('function');
+                expect(typeof crawlingContext.response).toBe('object');
+                expect(typeof crawlingContext.contentType).toBe('object');
+
+                expect(crawlingContext.error).toBeInstanceOf(Error);
+                expect(crawlingContext.error.message).toEqual('some error');
+            };
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                prepareRequestFunction,
+                handlePageFunction,
+                handleFailedRequestFunction,
+            });
+            await cheerioCrawler.run();
+        });
+
+        test('handleFailedRequestFunction contains proxyInfo', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const status = { connected: true };
+            const fakeCall = async () => {
+                return { body: status };
+            };
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                proxyConfiguration,
+                handlePageFunction: async () => {
+                    throw new Error('some error');
+                },
+                handleFailedRequestFunction: async (crawlingContext) => {
+                    expect(typeof crawlingContext.proxyInfo).toEqual('object');
+                    expect(crawlingContext.proxyInfo.hasOwnProperty('url')).toEqual(true);
+                },
+                useSessionPool: true,
+            });
+            await cheerioCrawler.run();
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
         });
     });

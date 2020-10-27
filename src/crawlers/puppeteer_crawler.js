@@ -365,66 +365,60 @@ class PuppeteerCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} options
-     * @param {Request} options.request
-     * @param {AutoscaledPool} options.autoscaledPool
+     * @param {Request} crawlingContext.request
+     * @param {AutoscaledPool} crawlingContext.autoscaledPool
+     * @param {Session} [crawlingContext.session]
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool }) {
-        let session;
-        let proxyInfo;
-        const page = await this.puppeteerPool.newPage();
+    async _handleRequestFunction(crawlingContext) {
+        crawlingContext.page = await this.puppeteerPool.newPage();
 
         // eslint-disable-next-line no-underscore-dangle
-        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
+        const browserInstance = this.puppeteerPool._getBrowserInstance(crawlingContext.page);
         if (this.sessionPool) {
-            // eslint-disable-next-line prefer-destructuring
-            session = browserInstance.session;
+            crawlingContext.session = browserInstance.session;
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
-                await page.setCookie(...session.getPuppeteerCookies(request.url));
+                await crawlingContext.page.setCookie(...crawlingContext.session.getPuppeteerCookies(crawlingContext.request.url));
             }
         }
 
         if (this.proxyConfiguration) {
-            // eslint-disable-next-line prefer-destructuring
-            proxyInfo = browserInstance.proxyInfo;
+            crawlingContext.proxyInfo = browserInstance.proxyInfo;
         }
-
-        // Shared crawler context
-        const { puppeteerPool } = this;
-        const crawlingContext = { page, request, autoscaledPool, puppeteerPool, session, proxyInfo };
 
         try {
             let response;
             try {
                 response = await this.gotoFunction(crawlingContext);
-                crawlingContext.response = response;
             } catch (err) {
                 // It would be better to compare the instances,
                 // but we don't have access to puppeteer.errors here.
                 if (err.constructor.name === 'TimeoutError') {
-                    this._handleRequestTimeout(session, err.message);
+                    this._handleRequestTimeout(crawlingContext.session, err.message);
                 }
             }
 
             if (this.useSessionPool && response) {
                 if (typeof response === 'object' && typeof response.status === 'function') {
-                    this._throwOnBlockedRequest(session, response.status());
+                    this._throwOnBlockedRequest(crawlingContext.session, response.status());
                 } else {
-                    this.log.debug('Got a malformed Puppeteer response.', { request, response });
+                    this.log.debug('Got a malformed Puppeteer response.', { request: crawlingContext.request, response });
                 }
             }
 
-            await this.puppeteerPool.serveLiveViewSnapshot(page);
-            request.loadedUrl = page.url();
+            await this.puppeteerPool.serveLiveViewSnapshot(crawlingContext.page);
+            crawlingContext.request.loadedUrl = crawlingContext.page.url();
 
             // save cookies
             if (this.persistCookiesPerSession) {
-                const cookies = await page.cookies(request.loadedUrl);
-                session.setPuppeteerCookies(cookies, request.loadedUrl);
+                const cookies = await crawlingContext.page.cookies(crawlingContext.request.loadedUrl);
+                crawlingContext.session.setPuppeteerCookies(cookies, crawlingContext.request.loadedUrl);
             }
+
+            crawlingContext.response = response;
+            crawlingContext.puppeteerPool = this.puppeteerPool;
 
             await addTimeoutToPromise(
                 this.handlePageFunction(crawlingContext),
@@ -432,9 +426,9 @@ class PuppeteerCrawler {
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
 
-            if (session) session.markGood();
+            if (crawlingContext.session) crawlingContext.session.markGood();
         } finally {
-            await this.puppeteerPool.recyclePage(page);
+            await this.puppeteerPool.recyclePage(crawlingContext.page);
         }
     }
 
