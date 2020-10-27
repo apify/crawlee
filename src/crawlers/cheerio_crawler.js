@@ -481,9 +481,10 @@ class CheerioCrawler {
      */
     async _handleRequestFunction(crawlingContext) {
         let proxyUrl;
+        const { request, session } = crawlingContext;
 
         if (this.proxyConfiguration) {
-            const sessionId = crawlingContext.session ? crawlingContext.session.id : undefined;
+            const sessionId = session ? session.id : undefined;
             crawlingContext.proxyInfo = this.proxyConfiguration.newProxyInfo(sessionId);
             proxyUrl = crawlingContext.proxyInfo.url;
         }
@@ -493,8 +494,8 @@ class CheerioCrawler {
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction(
                 {
-                    request: crawlingContext.request,
-                    session: crawlingContext.session,
+                    request,
+                    session,
                     proxyUrl,
                 },
             ),
@@ -503,11 +504,11 @@ class CheerioCrawler {
         );
 
         if (this.useSessionPool) {
-            this._throwOnBlockedRequest(crawlingContext.session, response.statusCode);
+            this._throwOnBlockedRequest(session, response.statusCode);
         }
 
         if (this.persistCookiesPerSession) {
-            crawlingContext.session.setCookiesFromResponse(response);
+            session.setCookiesFromResponse(response);
         }
 
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
@@ -523,9 +524,11 @@ class CheerioCrawler {
                 return JSON.parse(jsonString);
             },
         });
-
         Object.defineProperty(crawlingContext, 'body', {
             get() {
+                // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
+                // This is to save memory for high-concurrency crawls. The downside is that changes
+                // made to DOM are reflected in the HTML, but we can live with that...
                 if (dom) {
                     return isXml ? $.xml() : $.html({ decodeEntities: false });
                 }

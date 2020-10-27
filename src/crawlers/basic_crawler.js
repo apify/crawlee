@@ -495,25 +495,26 @@ class BasicCrawler {
      * @ignore
      */
     async _requestFunctionErrorHandler(error, crawlingContext, source) {
-        crawlingContext.request.pushErrorMessage(error);
+        const { request } = crawlingContext;
+        request.pushErrorMessage(error);
 
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
-        if (!crawlingContext.request.noRetry && crawlingContext.request.retryCount < this.maxRequestRetries) {
-            crawlingContext.request.retryCount++;
+        if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
+            request.retryCount++;
             this.log.exception(
                 error,
                 'handleRequestFunction failed, reclaiming failed request back to the list or queue',
-                _.pick(crawlingContext.request, 'url', 'retryCount', 'id'),
+                _.pick(request, 'url', 'retryCount', 'id'),
             );
-            return source.reclaimRequest(crawlingContext.request);
+            return source.reclaimRequest(request);
         }
 
         // If we get here, the request is either not retriable
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
-        await source.markRequestHandled(crawlingContext.request);
-        this.stats.failJob(crawlingContext.request.id || crawlingContext.request.url);
+        await source.markRequestHandled(request);
+        this.stats.failJob(request.id || request.url);
         crawlingContext.error = error;
         return this.handleFailedRequestFunction(crawlingContext); // This function prints an error message.
     }

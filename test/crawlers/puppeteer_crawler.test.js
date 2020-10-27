@@ -496,11 +496,7 @@ describe('PuppeteerCrawler', () => {
 
         test('handleFailedRequestFunction contains proxyInfo', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
-            const status = { connected: true };
-            const fakeCall = async () => {
-                return { body: status };
-            };
-            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').resolves({ body: { connected: true } });
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
 

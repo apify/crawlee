@@ -371,6 +371,7 @@ class PuppeteerCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
+     * @param {Object} crawlingContext
      * @param {Request} crawlingContext.request
      * @param {AutoscaledPool} crawlingContext.autoscaledPool
      * @param {Session} [crawlingContext.session]
@@ -379,6 +380,7 @@ class PuppeteerCrawler {
     async _handleRequestFunction(crawlingContext) {
         crawlingContext.page = await this.puppeteerPool.newPage();
 
+        const { page, request } = crawlingContext;
         // eslint-disable-next-line no-underscore-dangle
         const browserInstance = this.puppeteerPool._getBrowserInstance(crawlingContext.page);
         if (this.sessionPool) {
@@ -386,9 +388,11 @@ class PuppeteerCrawler {
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
-                await crawlingContext.page.setCookie(...crawlingContext.session.getPuppeteerCookies(crawlingContext.request.url));
+                await page.setCookie(...crawlingContext.session.getPuppeteerCookies(request.url));
             }
         }
+
+        const { session } = crawlingContext;
 
         if (this.proxyConfiguration) {
             crawlingContext.proxyInfo = browserInstance.proxyInfo;
@@ -402,25 +406,25 @@ class PuppeteerCrawler {
                 // It would be better to compare the instances,
                 // but we don't have access to puppeteer.errors here.
                 if (err.constructor.name === 'TimeoutError') {
-                    this._handleRequestTimeout(crawlingContext.session, err.message);
+                    this._handleRequestTimeout(session, err.message);
                 }
             }
 
             if (this.useSessionPool && response) {
                 if (typeof response === 'object' && typeof response.status === 'function') {
-                    this._throwOnBlockedRequest(crawlingContext.session, response.status());
+                    this._throwOnBlockedRequest(session, response.status());
                 } else {
-                    this.log.debug('Got a malformed Puppeteer response.', { request: crawlingContext.request, response });
+                    this.log.debug('Got a malformed Puppeteer response.', { request, response });
                 }
             }
 
-            await this.puppeteerPool.serveLiveViewSnapshot(crawlingContext.page);
-            crawlingContext.request.loadedUrl = crawlingContext.page.url();
+            await this.puppeteerPool.serveLiveViewSnapshot(page);
+            request.loadedUrl = page.url();
 
             // save cookies
             if (this.persistCookiesPerSession) {
-                const cookies = await crawlingContext.page.cookies(crawlingContext.request.loadedUrl);
-                crawlingContext.session.setPuppeteerCookies(cookies, crawlingContext.request.loadedUrl);
+                const cookies = await page.cookies(request.loadedUrl);
+                session.setPuppeteerCookies(cookies, request.loadedUrl);
             }
 
             crawlingContext.response = response;
@@ -432,9 +436,9 @@ class PuppeteerCrawler {
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
 
-            if (crawlingContext.session) crawlingContext.session.markGood();
+            if (session) session.markGood();
         } finally {
-            await this.puppeteerPool.recyclePage(crawlingContext.page);
+            await this.puppeteerPool.recyclePage(page);
         }
     }
 
