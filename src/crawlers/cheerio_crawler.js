@@ -118,7 +118,8 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * ```
  * {
  *   request: Request,
- *   session: Session
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the initialized request
@@ -145,8 +146,17 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request,
  *   error: Error,
+ *   request: Request,
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
+ *   $: Cheerio,
+ *   body: String|Buffer,
+ *   json: Object,
+ *   request: Request,
+ *   contentType: Object,
+ *   response: Object,
+ *   proxyInfo: ProxyInfo
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance

@@ -88,8 +88,14 @@ import { validators } from '../validators';
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request,
  *   error: Error,
+ *   request: Request,
+ *   response: Response,
+ *   page: Page,
+ *   puppeteerPool: PuppeteerPool,
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
+ *   proxyInfo: ProxyInfo,
  * }
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -525,7 +531,7 @@ export default PuppeteerCrawler;
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {Session} [session] `Session` object for this request.
- * @property {ProxyInfo} [proxyInfo]
+ * @property {ProxyInfo} [proxyInfo] Proxy info object
  */
 
 /**

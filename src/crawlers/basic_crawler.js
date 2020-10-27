@@ -569,5 +569,5 @@ export default BasicCrawler;
  * @property {Request} request The original {Request} object.
  * @property {AutoscaledPool} autoscaledPool
  * @property {Session} [session]
- * @param {(RequestList|RequestQueue)} source
+ * @property {ProxyInfo} [proxyInfo]
  */
