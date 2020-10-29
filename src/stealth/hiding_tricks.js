@@ -49,8 +49,8 @@ const hackPermissions = () => {
 
 const addLanguage = () => {
     Object.defineProperty(Object.getPrototypeOf(navigator), 'languages', {
-        get: () => ['en-US', 'en']
-    })
+        get: () => ['en-US', 'en'],
+    });
 };
 
 const emulateWebGL = () => {
@@ -74,16 +74,12 @@ const emulateWebGL = () => {
 };
 
 const emulateWindowFrame = () => {
-    try {
-        if (window.outerWidth && window.outerHeight) {
-            return; // nothing to do here
-        }
-        const windowFrame = 85; // probably OS and WM dependent
-        window.outerWidth = window.innerWidth;
-        window.outerHeight = window.innerHeight + windowFrame;
-    } catch (err) {
-        console.error('hiding_tricks: Could not emulate window frame');
+    if (window.outerWidth && window.outerHeight) {
+        return; // nothing to do here
     }
+    const windowFrame = 85; // probably OS and WM dependent
+    window.outerWidth = window.innerWidth;
+    window.outerHeight = window.innerHeight + windowFrame;
 };
 
 const addPlugins = () => {
