@@ -1,6 +1,10 @@
 import * as _ from 'underscore';
 import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import globalLog from '../utils_log';
+
 import hidingTricks from './hiding_tricks';
+
+const log = globalLog.child({ prefix: 'Stealth' });
 
 /**
  * Configuration of stealth tricks for a proper hiding effect all of them should be set to true.
@@ -31,6 +35,9 @@ const DEFAULT_STEALTH_OPTIONS = {
     mockDeviceMemory: true,
 };
 
+const STEALTH_ERROR_MESSAGE_PREFIX = 'StealthError';
+const MAX_IFRAMES = 10;
+
 /**
  *  The main purpose of this function is to override newPage function and attach selected tricks.
  * @param {Browser} browser - puppeteer browser instance
@@ -48,12 +55,49 @@ export default function applyStealthToBrowser(browser, options) {
 
     contextPrototype.newPage = async function (...args) {
         const page = await prevNewPage.bind(this)(...args);
+        addStealthDebugToPage(page);
         await applyStealthTricks(page, opts);
+
+        await checkNumberOfIrames(page);
         return page;
     };
 
-
     return Promise.resolve(modifiedBrowser);
+}
+
+/**
+ * Logs the stealth errors in browser to the node stdout.
+ * @param page {Page} - puppeteer page instace
+ */
+function addStealthDebugToPage(page) {
+    page.on('console', (msg) => {
+        const text = msg.text();
+
+        if (text.includes(STEALTH_ERROR_MESSAGE_PREFIX)) {
+            log.error(text);
+        }
+    });
+}
+
+/**
+ * Overrides the page.goto function in order to check for iframes after the navigation. If the
+ * @param page {Page} - puppeteer page
+ */
+function checkNumberOfIrames(page) {
+    const prevGoto = page.goto;
+
+    page.goto = async function (...args) {
+        const response = await prevGoto.bind(this)(...args);
+        const iframes = await page.frames();
+
+        if (iframes.length >= MAX_IFRAMES) {
+            log.warning(
+                `Evaluating hiding tricks in too many iframes (limit: ${MAX_IFRAMES}). You might experience some performance issues. Try setting 'stealth' false`, // eslint-disable-line
+            );
+        }
+
+        return response;
+    };
 }
 
 /**
@@ -76,9 +120,8 @@ function applyStealthTricks(page, options) {
         for (const func of functionsArr) {
             try {
                 eval(func)(); // eslint-disable-line
-
-            }catch (e){
-                // Silently swallow the error in the browser. Logging it could give us out.
+            } catch (e) {
+                console.error(`${STEALTH_ERROR_MESSAGE_PREFIX}: Failed to apply stealth trick reason: ${e.message}`);
             }
         }
     };
