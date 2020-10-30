@@ -18,11 +18,6 @@ import Request from '../../build/request';
 import * as utils from '../../build/utils';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
-// Add common props to mocked request responses.
-const responseMock = {
-    url: 'loadedUrl',
-};
-
 const HOST = '127.0.0.1';
 
 const responseSamples = {
@@ -188,6 +183,29 @@ describe('CheerioCrawler', () => {
         await cheerioCrawler.run();
         expect(failed).toBe(null);
         expect(success.url).toEqual(MODIFIED_URL);
+    });
+
+    test('postResponseFunction should work', async () => {
+        const sources = ['http://example.com/'];
+        const requestList = await Apify.openRequestList(null, sources.slice());
+
+        const cheerioCrawler = new Apify.CheerioCrawler({
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            useSessionPool: true,
+            prepareRequestFunction: async () => {
+            },
+            postResponseFunction: async ({ response }) => {
+                response.headers['content-type'] = 'application/json; charset=utf-8'; // text/html is set
+            },
+            handlePageFunction: async ({ contentType }) => {
+                const { type } = contentType;
+                expect(type).toEqual('application/json');
+            },
+        });
+
+        await cheerioCrawler.run();
     });
 
     describe('should timeout', () => {
@@ -554,7 +572,9 @@ describe('CheerioCrawler', () => {
 
     describe('proxy', () => {
         let requestList;
+        let responseMock;
         beforeEach(async () => {
+            responseMock = await utilsRequest.requestAsBrowser({ url: 'http://example.com/' });
             requestList = new Apify.RequestList({
                 sources: [
                     { url: 'http://example.com/' },
@@ -593,7 +613,7 @@ describe('CheerioCrawler', () => {
             crawler._requestFunction = async ({ proxyUrl }) => {
                 proxies.push(proxyUrl);
                 // it needs to return something valid
-                return { dom: {}, response: responseMock };
+                return responseMock;
             };
 
             const proxyUrl = crawler.proxyConfiguration.newUrl();
@@ -620,9 +640,8 @@ describe('CheerioCrawler', () => {
             const proxyConfiguration = await Apify.createProxyConfiguration();
             const proxies = [];
             const sessions = [];
-            const handlePageFunction = async ({ session, proxyInfo }) => {
-                proxies.push(proxyInfo);
-                sessions.push(session);
+            const handlePageFunction = async (crawlingContext) => {
+                console.log(crawlingContext);
             };
 
             const crawler = new Apify.CheerioCrawler({
@@ -632,17 +651,14 @@ describe('CheerioCrawler', () => {
                 useSessionPool: true,
             });
 
-            crawler._requestFunction = async ({ request }) => {
+            crawler._requestFunction = async () => {
                 // it needs to return something valid
-                return { dom: {}, response: { url: request.url } };
+                return responseMock;
             };
 
             await crawler.run();
 
-            expect(proxies[0]).toEqual(proxyConfiguration.newProxyInfo(sessions[0].id));
-            expect(proxies[1]).toEqual(proxyConfiguration.newProxyInfo(sessions[1].id));
-            expect(proxies[2]).toEqual(proxyConfiguration.newProxyInfo(sessions[2].id));
-            expect(proxies[3]).toEqual(proxyConfiguration.newProxyInfo(sessions[3].id));
+
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
@@ -668,7 +684,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request, session, proxyUrl);
                 proxies.push(opts.proxyUrl);
                 // it needs to return something valid
-                return { dom: {}, response: responseMock };
+                return responseMock;
             };
 
             await crawler.run();
@@ -704,7 +720,7 @@ describe('CheerioCrawler', () => {
                 const opts = crawler._getRequestOptions(request, session, proxyUrl);
                 proxies.push(opts.proxyUrl);
                 // it needs to return something valid
-                return { dom: {}, response: responseMock };
+                return responseMock;
             };
 
             await crawler.run();
