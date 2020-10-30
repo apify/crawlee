@@ -88,8 +88,14 @@ import { validators } from '../validators';
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request,
  *   error: Error,
+ *   request: Request,
+ *   response: Response,
+ *   page: Page,
+ *   puppeteerPool: PuppeteerPool,
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
+ *   proxyInfo: ProxyInfo,
  * }
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -365,37 +371,37 @@ class PuppeteerCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} options
-     * @param {Request} options.request
-     * @param {AutoscaledPool} options.autoscaledPool
+     * @param {Object} crawlingContext
+     * @param {Request} crawlingContext.request
+     * @param {AutoscaledPool} crawlingContext.autoscaledPool
+     * @param {Session} [crawlingContext.session]
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool }) {
-        let session;
-        let proxyInfo;
-        const page = await this.puppeteerPool.newPage();
+    async _handleRequestFunction(crawlingContext) {
+        crawlingContext.page = await this.puppeteerPool.newPage();
 
+        const { page, request } = crawlingContext;
         // eslint-disable-next-line no-underscore-dangle
         const browserInstance = this.puppeteerPool._getBrowserInstance(page);
         if (this.sessionPool) {
-            // eslint-disable-next-line prefer-destructuring
-            session = browserInstance.session;
+            crawlingContext.session = browserInstance.session;
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
-                await page.setCookie(...session.getPuppeteerCookies(request.url));
+                await page.setCookie(...crawlingContext.session.getPuppeteerCookies(request.url));
             }
         }
 
+        const { session } = crawlingContext;
+
         if (this.proxyConfiguration) {
-            // eslint-disable-next-line prefer-destructuring
-            proxyInfo = browserInstance.proxyInfo;
+            crawlingContext.proxyInfo = browserInstance.proxyInfo;
         }
 
         try {
             let response;
             try {
-                response = await this.gotoFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, session, proxyInfo });
+                response = await this.gotoFunction(crawlingContext);
             } catch (err) {
                 // It would be better to compare the instances,
                 // but we don't have access to puppeteer.errors here.
@@ -421,8 +427,11 @@ class PuppeteerCrawler {
                 session.setPuppeteerCookies(cookies, request.loadedUrl);
             }
 
+            crawlingContext.response = response;
+            crawlingContext.puppeteerPool = this.puppeteerPool;
+
             await addTimeoutToPromise(
-                this.handlePageFunction({ page, request, autoscaledPool, puppeteerPool: this.puppeteerPool, response, session, proxyInfo }),
+                this.handlePageFunction(crawlingContext),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
@@ -437,6 +446,10 @@ class PuppeteerCrawler {
      * @param {Object} options
      * @param {PuppeteerPage} options.page
      * @param {Request} options.request
+     * @property {AutoscaledPool} autoscaledPool
+     * @property {PuppeteerPool} puppeteerPool
+     * @property {Session} [session]
+     * @property {ProxyInfo} [proxyInfo]
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
@@ -522,7 +535,7 @@ export default PuppeteerCrawler;
  * @property {AutoscaledPool} autoscaledPool An instance of the `AutoscaledPool`.
  * @property {PuppeteerPool} puppeteerPool An instance of the {@link PuppeteerPool} used by this `PuppeteerCrawler`.
  * @property {Session} [session] `Session` object for this request.
- * @property {ProxyInfo} [proxyInfo]
+ * @property {ProxyInfo} [proxyInfo] Proxy info object
  */
 
 /**

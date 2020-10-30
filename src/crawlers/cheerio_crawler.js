@@ -26,7 +26,6 @@ import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { RequestQueue } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { RequestAsBrowserOptions } from '../utils_request';
 import { validators } from '../validators';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
@@ -119,7 +118,8 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * ```
  * {
  *   request: Request,
- *   session: Session
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the initialized request
@@ -146,8 +146,17 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   The function receives the following object as an argument:
  * ```
  * {
- *   request: Request,
  *   error: Error,
+ *   request: Request,
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
+ *   $: Cheerio,
+ *   body: String|Buffer,
+ *   json: Object,
+ *   request: Request,
+ *   contentType: Object,
+ *   response: Object,
+ *   proxyInfo: ProxyInfo
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -464,22 +473,23 @@ class CheerioCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} options
-     * @param {Request} options.request
-     * @param {AutoscaledPool} options.autoscaledPool
-     * @param {Session} [options.session]
+     * @param {Object} crawlingContext
+     * @param {Request} crawlingContext.request
+     * @param {AutoscaledPool} crawlingContext.autoscaledPool
+     * @param {Session} [crawlingContext.session]
      * @ignore
      */
-    async _handleRequestFunction({ request, autoscaledPool, session }) {
-        let proxyInfo;
-        let proxyUrl;
+    async _handleRequestFunction(crawlingContext) {
+        const { request, session } = crawlingContext;
+
         if (this.proxyConfiguration) {
-            proxyInfo = this.proxyConfiguration.newProxyInfo(session ? session.id : undefined);
-            proxyUrl = proxyInfo.url;
+            const sessionId = session ? session.id : undefined;
+            crawlingContext.proxyInfo = this.proxyConfiguration.newProxyInfo(sessionId);
         }
 
-        if (this.prepareRequestFunction) await this.prepareRequestFunction({ request, session, proxyInfo });
+        if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
 
+        const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
             this._requestFunction({ request, session, proxyUrl }),
             this.requestTimeoutMillis,
@@ -495,23 +505,21 @@ class CheerioCrawler {
         }
 
         request.loadedUrl = response.url;
-        const { log } = this;
 
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
-        const context = {
-            $,
-            // Using a getter here not to break the original API
-            // and lazy load the HTML only when needed.
-            get html() {
-                log.deprecated('The "html" parameter of handlePageFunction is deprecated, use "body" instead.');
-                return dom && !isXml && $.html({ decodeEntities: false });
-            },
-            get json() {
+
+        crawlingContext.$ = $;
+        crawlingContext.contentType = contentType;
+        crawlingContext.response = response;
+        Object.defineProperty(crawlingContext, 'json', {
+            get() {
                 if (contentType.type !== 'application/json') return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
             },
-            get body() {
+        });
+        Object.defineProperty(crawlingContext, 'body', {
+            get() {
                 // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
                 // This is to save memory for high-concurrency crawls. The downside is that changes
                 // made to DOM are reflected in the HTML, but we can live with that...
@@ -520,15 +528,10 @@ class CheerioCrawler {
                 }
                 return body;
             },
-            contentType,
-            request,
-            response,
-            autoscaledPool,
-            session,
-            proxyInfo,
-        };
+        });
+
         return addTimeoutToPromise(
-            this.handlePageFunction(context),
+            this.handlePageFunction(crawlingContext),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -741,6 +744,7 @@ export default CheerioCrawler;
  *  Original instance fo the {Request} object. Must be modified in-place.
  * @property {Session} [session]
  *  The current session
+ * @property {AutoscaledPool} autoscaledPool
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
