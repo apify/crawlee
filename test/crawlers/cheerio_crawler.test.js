@@ -357,8 +357,8 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
                 errorMessages.forEach((msg) => expect(msg).toMatch(
-                    'Content-Type application/json, but only text/html, '
-                        + 'application/xhtml+xml are allowed. Skipping resource.',
+                    'Content-Type application/json, but only text/html, application/xhtml+xml, text/xml are allowed.'
+                    + ' Skipping resource.',
                 ));
             });
 
@@ -433,7 +433,7 @@ describe('CheerioCrawler', () => {
 
     test('should work with all defaults content types', async () => {
         let handledRequests = 0;
-        const contentTypes = ['text/html', 'application/xhtml+xml'];
+        const contentTypes = ['text/html', 'application/xhtml+xml', 'text/xml'];
         const sources = contentTypes.map((contentType) => ({
             url: `http://${HOST}:${port}/mock?ct=${contentType}`,
             payload: JSON.stringify({ headers: { 'Content-Type': contentType }, statusCode: 200 }),

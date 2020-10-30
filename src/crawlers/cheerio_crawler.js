@@ -26,14 +26,13 @@ import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { RequestQueue } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-import { RequestAsBrowserOptions } from '../utils_request';
 import { validators } from '../validators';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * Default mime types, which CheerioScraper supports.
  */
-const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml'];
+const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml', 'text/xml'];
 const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
