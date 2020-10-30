@@ -382,7 +382,7 @@ class PuppeteerCrawler {
 
         const { page, request } = crawlingContext;
         // eslint-disable-next-line no-underscore-dangle
-        const browserInstance = this.puppeteerPool._getBrowserInstance(crawlingContext.page);
+        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
         if (this.sessionPool) {
             crawlingContext.session = browserInstance.session;
 

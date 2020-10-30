@@ -480,25 +480,17 @@ class CheerioCrawler {
      * @ignore
      */
     async _handleRequestFunction(crawlingContext) {
-        let proxyUrl;
         const { request, session } = crawlingContext;
 
         if (this.proxyConfiguration) {
             const sessionId = session ? session.id : undefined;
             crawlingContext.proxyInfo = this.proxyConfiguration.newProxyInfo(sessionId);
-            proxyUrl = crawlingContext.proxyInfo.url;
         }
 
         if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
 
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction(
-                {
-                    request,
-                    session,
-                    proxyUrl,
-                },
-            ),
+            this._requestFunction({ request, session, proxyUrl: crawlingContext.proxyInfo ? crawlingContext.proxyInfo.url : undefined }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
@@ -511,9 +503,10 @@ class CheerioCrawler {
             session.setCookiesFromResponse(response);
         }
 
+        request.loadedUrl = response.url;
+
         const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
 
-        crawlingContext.request.loadedUrl = response.url;
         crawlingContext.$ = $;
         crawlingContext.contentType = contentType;
         crawlingContext.response = response;

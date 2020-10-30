@@ -114,9 +114,9 @@ describe('CheerioCrawler', () => {
         const requestList = await getRequestListForMirror(port);
         const processed = [];
         const failed = [];
-        const handlePageFunction = async ({ $, html, request }) => {
+        const handlePageFunction = async ({ $, body, request }) => {
             request.userData.title = $('title').text();
-            request.userData.html = html;
+            request.userData.body = body;
             processed.push(request);
         };
 
@@ -136,6 +136,8 @@ describe('CheerioCrawler', () => {
 
         processed.forEach((request) => {
             expect(request.userData.title).toBe('Title');
+            expect(typeof request.userData.body).toBe('string');
+            expect(request.userData.body.length).not.toBe(0);
         });
     });
 
