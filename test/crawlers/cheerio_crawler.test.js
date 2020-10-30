@@ -14,7 +14,9 @@ import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 import CrawlerExtension from '../../build/crawlers/crawler_extension';
+import Request from '../../build/request';
 import * as utils from '../../build/utils';
+import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -112,9 +114,9 @@ describe('CheerioCrawler', () => {
         const requestList = await getRequestListForMirror(port);
         const processed = [];
         const failed = [];
-        const handlePageFunction = async ({ $, html, request }) => {
+        const handlePageFunction = async ({ $, body, request }) => {
             request.userData.title = $('title').text();
-            request.userData.html = html;
+            request.userData.body = body;
             processed.push(request);
         };
 
@@ -134,8 +136,8 @@ describe('CheerioCrawler', () => {
 
         processed.forEach((request) => {
             expect(request.userData.title).toBe('Title');
-            expect(typeof request.userData.html).toBe('string');
-            expect(request.userData.html.length).not.toBe(0);
+            expect(typeof request.userData.body).toBe('string');
+            expect(request.userData.body.length).not.toBe(0);
         });
     });
 
@@ -902,6 +904,95 @@ describe('CheerioCrawler', () => {
 
             const cheerioCrawlerRequest = usedRequests[1];
             expect(cheerioCrawlerRequest.proxyUrl.includes(usedSession.id)).toBeTruthy();
+            stub.restore();
+        });
+    });
+
+    describe('Crawling context', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+        let actualLogLevel;
+        beforeEach(async () => {
+            actualLogLevel = log.getLevel();
+            log.setLevel(log.LEVELS.OFF);
+            requestList = await Apify.openRequestList(null, sources.slice());
+        });
+
+        afterAll(() => {
+            log.setLevel(actualLogLevel);
+        });
+
+        test('uses correct crawling context', async () => {
+            let prepareCrawlingContext;
+
+            const prepareRequestFunction = async (crawlingContext) => {
+                prepareCrawlingContext = crawlingContext;
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+            };
+
+            const handlePageFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.$).toBe('function');
+                expect(typeof crawlingContext.response).toBe('object');
+                expect(typeof crawlingContext.contentType).toBe('object');
+
+                throw new Error('some error');
+            };
+
+            const handleFailedRequestFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.$).toBe('function');
+                expect(typeof crawlingContext.response).toBe('object');
+                expect(typeof crawlingContext.contentType).toBe('object');
+
+                expect(crawlingContext.error).toBeInstanceOf(Error);
+                expect(crawlingContext.error.message).toEqual('some error');
+            };
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                prepareRequestFunction,
+                handlePageFunction,
+                handleFailedRequestFunction,
+            });
+            await cheerioCrawler.run();
+        });
+
+        test('handleFailedRequestFunction contains proxyInfo', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').resolves({ body: { connected: true } });
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                proxyConfiguration,
+                handlePageFunction: async () => {
+                    throw new Error('some error');
+                },
+                handleFailedRequestFunction: async (crawlingContext) => {
+                    expect(typeof crawlingContext.proxyInfo).toEqual('object');
+                    expect(crawlingContext.proxyInfo.hasOwnProperty('url')).toEqual(true);
+                },
+                useSessionPool: true,
+            });
+            await cheerioCrawler.run();
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
         });
     });

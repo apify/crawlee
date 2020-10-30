@@ -6,6 +6,10 @@ import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 import * as utils from '../../build/utils';
+import Request from '../../build/request';
+import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
+import { Session } from '../../build/session_pool/session';
+import PuppeteerPool from '../../build/puppeteer_pool';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
@@ -424,6 +428,97 @@ describe('PuppeteerCrawler', () => {
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
+        });
+    });
+
+    describe('Crawling context', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+        let actualLogLevel;
+        beforeEach(async () => {
+            actualLogLevel = log.getLevel();
+            log.setLevel(log.LEVELS.OFF);
+            requestList = await Apify.openRequestList(null, sources.slice());
+        });
+
+        afterAll(() => {
+            log.setLevel(actualLogLevel);
+        });
+
+        test('uses correct crawling context', async () => {
+            let prepareCrawlingContext;
+
+            const gotoFunction = async (crawlingContext) => {
+                prepareCrawlingContext = crawlingContext;
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.page).toBe('object');
+            };
+
+            const handlePageFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.page).toBe('object');
+                expect(crawlingContext.puppeteerPool).toBeInstanceOf(PuppeteerPool);
+                expect(crawlingContext.hasOwnProperty('response')).toBe(true);
+
+                throw new Error('some error');
+            };
+
+            const handleFailedRequestFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.page).toBe('object');
+                expect(crawlingContext.puppeteerPool).toBeInstanceOf(PuppeteerPool);
+                expect(crawlingContext.hasOwnProperty('response')).toBe(true);
+
+                expect(crawlingContext.error).toBeInstanceOf(Error);
+                expect(crawlingContext.error.message).toEqual('some error');
+            };
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                gotoFunction,
+                handlePageFunction,
+                handleFailedRequestFunction,
+            });
+
+            await puppeteerCrawler.run();
+        });
+
+        test('handleFailedRequestFunction contains proxyInfo', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').resolves({ body: { connected: true } });
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                proxyConfiguration,
+                handlePageFunction: async () => {
+                    throw new Error('some error');
+                },
+                handleFailedRequestFunction: async (crawlingContext) => {
+                    expect(typeof crawlingContext.proxyInfo).toEqual('object');
+                    expect(crawlingContext.proxyInfo.hasOwnProperty('url')).toEqual(true);
+                },
+            });
+
+            await puppeteerCrawler.run();
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+            stub.restore();
         });
     });
 });

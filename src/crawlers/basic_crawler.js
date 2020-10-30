@@ -425,9 +425,13 @@ class BasicCrawler {
 
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
+
+        // Shared crawling context
+        const crawlingContext = { request, autoscaledPool: this.autoscaledPool, session };
+
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session }),
+                this.handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
@@ -439,7 +443,7 @@ class BasicCrawler {
             if (session) session.markGood();
         } catch (err) {
             try {
-                await this._requestFunctionErrorHandler(err, request, source);
+                await this._requestFunctionErrorHandler(err, crawlingContext, source);
             } catch (secondaryError) {
                 this.log.exception(secondaryError, 'runTaskFunction error handler threw an exception. '
                     + 'This places the crawler and its underlying storages into an unknown state and crawling will be terminated. '
@@ -485,12 +489,13 @@ class BasicCrawler {
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
-     * @param {Request} request
+     * @param {object} crawlingContext
      * @param {(RequestList|RequestQueue)} source
      * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
      * @ignore
      */
-    async _requestFunctionErrorHandler(error, request, source) {
+    async _requestFunctionErrorHandler(error, crawlingContext, source) {
+        const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
@@ -510,7 +515,8 @@ class BasicCrawler {
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
         this.stats.failJob(request.id || request.url);
-        return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
+        crawlingContext.error = error;
+        return this.handleFailedRequestFunction(crawlingContext); // This function prints an error message.
     }
 
     /**
@@ -560,6 +566,9 @@ export default BasicCrawler;
 
 /**
  * @typedef HandleFailedRequestInput
- * @property {Request} request The original {Request} object.
  * @property {Error} error The Error thrown by `handleRequestFunction`.
+ * @property {Request} request The original {Request} object.
+ * @property {AutoscaledPool} autoscaledPool
+ * @property {Session} [session]
+ * @property {ProxyInfo} [proxyInfo]
  */
