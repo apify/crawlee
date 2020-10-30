@@ -133,8 +133,20 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *
  * @property {PostResponse} [postResponseFunction]
  * A function that executes right after the HTTP request is made to the target resource and response is returned.
- * This function is suitable for setting custom properties of response e.g. setting headers because of response parsing.
+ * This function is suitable for overriding custom properties of response e.g. setting headers because of response parsing.
  *
+ * **Example usage:**
+ *
+ * ```javascript
+ *  const cheerioCrawlerOptions = {
+ *      // ...
+ *      postResponseFunction: ({ request, response }) => {
+ *          if (request.userData.parseAsJSON) {
+ *              response.headers['content-type'] = 'application/json; charset=utf-8';
+ *          }
+ *      }
+ *  }
+ * ```
  * The function receives the following object as an argument:
  * ```
  * {
@@ -602,8 +614,7 @@ class CheerioCrawler {
      * Encodes and parses response according to the provided content type
      * @param {Request} request
      * @param {IncomingMessage|Readable} responseStream
-     * @returns {Promise<{isXml: boolean, dom: unknown, response: *, contentType: {type: string, encoding: (string|string)}}
-     * |{response: *, body: any, contentType: {type: string, encoding: (string|string)}}>}
+     * @returns {Promise<{object}>}
      * @ignore
      */
     async _parseResponse(request, responseStream) {

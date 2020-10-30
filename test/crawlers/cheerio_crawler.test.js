@@ -640,8 +640,9 @@ describe('CheerioCrawler', () => {
             const proxyConfiguration = await Apify.createProxyConfiguration();
             const proxies = [];
             const sessions = [];
-            const handlePageFunction = async (crawlingContext) => {
-                console.log(crawlingContext);
+            const handlePageFunction = async ({ session, proxyInfo }) => {
+                proxies.push(proxyInfo);
+                sessions.push(session);
             };
 
             const crawler = new Apify.CheerioCrawler({
@@ -658,7 +659,10 @@ describe('CheerioCrawler', () => {
 
             await crawler.run();
 
-
+            expect(proxies[0]).toEqual(proxyConfiguration.newProxyInfo(sessions[0].id));
+            expect(proxies[1]).toEqual(proxyConfiguration.newProxyInfo(sessions[1].id));
+            expect(proxies[2]).toEqual(proxyConfiguration.newProxyInfo(sessions[2].id));
+            expect(proxies[3]).toEqual(proxyConfiguration.newProxyInfo(sessions[3].id));
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
