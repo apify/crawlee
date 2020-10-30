@@ -489,8 +489,9 @@ class CheerioCrawler {
 
         if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
 
+        const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
         const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
-            this._requestFunction({ request, session, proxyUrl: crawlingContext.proxyInfo ? crawlingContext.proxyInfo.url : undefined }),
+            this._requestFunction({ request, session, proxyUrl }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
