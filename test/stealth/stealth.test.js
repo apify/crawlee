@@ -276,4 +276,61 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         expect(fingerprint.webDriver).toBe(false); // eslint-disable-line
         expect(fingerprint.webDriverValue).toBeUndefined(); // eslint-disable-line
     });
+
+    describe('Debugging', () => {
+        let browser;
+
+        beforeEach(async () => {
+            browser = await Apify.launchPuppeteer({ stealth: true, useChrome: true, headless: true });
+        });
+
+        afterEach(async () => {
+            await browser.close();
+        });
+
+        test('logs the evaluation warning in "page" when limit is exceeded', async () => {
+            const numberOfIframes = 14;
+            let message = '';
+            const oldConsoleWarn = console.warn;
+            console.warn = (msg) => {
+                message = msg;
+                return oldConsoleWarn.bind(console);
+            };
+
+            const page = await browser.newPage();
+            await page.goto(testUrl);
+
+            await page.evaluate((iframesCount) => {
+                for (let i = 0; i < iframesCount; i++) {
+                    const iframe = document.createElement('iframe');
+                    document.body.appendChild(iframe);
+                }
+            }, numberOfIframes);
+
+
+            expect(message.includes('Evaluating hiding tricks in too many iframes')).toBeTruthy();
+        });
+
+        test('does not log the message when the iframes are under the limit', async () => {
+            const numberOfIframes = 9;
+            let message;
+            const oldConsoleWarn = console.warn;
+            console.warn = (msg) => {
+                message = msg;
+                return oldConsoleWarn.bind(console);
+            };
+
+            const page = await browser.newPage();
+            await page.goto(testUrl);
+
+            await page.evaluate((iframesCount) => {
+                for (let i = 0; i < iframesCount; i++) {
+                    const iframe = document.createElement('iframe');
+                    document.body.appendChild(iframe);
+                }
+            }, numberOfIframes);
+
+            expect(message).toBeUndefined();
+        });
+    });
 });

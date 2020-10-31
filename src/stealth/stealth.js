@@ -36,6 +36,7 @@ const DEFAULT_STEALTH_OPTIONS = {
 };
 
 const STEALTH_ERROR_MESSAGE_PREFIX = 'StealthError';
+const STEALTH_COUNTER_MESSAGE = 'Stealth evaluated!';
 const MAX_IFRAMES = 10;
 
 /**
@@ -49,16 +50,15 @@ export default function applyStealthToBrowser(browser, options) {
     const opts = _.defaults(options, DEFAULT_STEALTH_OPTIONS);
 
     const defaultContext = browser.defaultBrowserContext();
-    const contextPrototype = Object.getPrototypeOf(defaultContext);
 
-    const prevNewPage = contextPrototype.newPage;
+    const prevNewPage = defaultContext.newPage;
 
-    contextPrototype.newPage = async function (...args) {
+    defaultContext.newPage = async function (...args) {
         const page = await prevNewPage.bind(this)(...args);
+
         addStealthDebugToPage(page);
         await applyStealthTricks(page, opts);
 
-        await checkNumberOfIrames(page);
         return page;
     };
 
@@ -67,37 +67,28 @@ export default function applyStealthToBrowser(browser, options) {
 
 /**
  * Logs the stealth errors in browser to the node stdout.
- * @param page {Page} - puppeteer page instace
+ * @param page {Page} - puppeteer page instance
  */
 function addStealthDebugToPage(page) {
+    let warningLogged = false;
+    let counter = 1;
     page.on('console', (msg) => {
         const text = msg.text();
-
         if (text.includes(STEALTH_ERROR_MESSAGE_PREFIX)) {
             log.error(text);
+        } else if (text.includes(STEALTH_COUNTER_MESSAGE)) {
+            if (counter > MAX_IFRAMES && !warningLogged) {
+                log.warning(
+                    `Evaluating hiding tricks in too many iframes (limit: ${MAX_IFRAMES}).`
+                    + 'You might experience some performance issues. Try setting \'stealth\' false',
+                );
+
+                warningLogged = true;
+            }
+            counter++;
+            log.info('Tricks evaluated', { counter });
         }
     });
-}
-
-/**
- * Overrides the page.goto function in order to check for iframes after the navigation. If the
- * @param page {Page} - puppeteer page
- */
-function checkNumberOfIrames(page) {
-    const prevGoto = page.goto;
-
-    page.goto = async function (...args) {
-        const response = await prevGoto.bind(this)(...args);
-        const iframes = await page.frames();
-
-        if (iframes.length >= MAX_IFRAMES) {
-            log.warning(
-                `Evaluating hiding tricks in too many iframes (limit: ${MAX_IFRAMES}). You might experience some performance issues. Try setting 'stealth' false`, // eslint-disable-line
-            );
-        }
-
-        return response;
-    };
 }
 
 /**
@@ -116,15 +107,17 @@ function applyStealthTricks(page, options) {
         .map(key => hidingTricks[key].toString());
 
     /* istanbul ignore next */
-    const addFunctions = (functionsArr) => {
+    const addFunctions = (functionsArr, errorMessagePrefix, counterMessage) => {
+        console.log(counterMessage);
+        // add functions
         for (const func of functionsArr) {
             try {
                 eval(func)(); // eslint-disable-line
             } catch (e) {
-                console.error(`${STEALTH_ERROR_MESSAGE_PREFIX}: Failed to apply stealth trick reason: ${e.message}`);
+                console.error(`${errorMessagePrefix}: Failed to apply stealth trick reason: ${e.message}`);
             }
         }
     };
 
-    return page.evaluateOnNewDocument(addFunctions, functions);
+    return page.evaluateOnNewDocument(addFunctions, functions, STEALTH_ERROR_MESSAGE_PREFIX, STEALTH_COUNTER_MESSAGE);
 }

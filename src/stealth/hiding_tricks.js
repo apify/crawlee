@@ -281,11 +281,13 @@ const emulateConsoleDebug = () => {
 
 // Should be mocked more properly - this one will bypass only some stupid tests
 const mockChrome = () => {
-    Object.defineProperty(window, 'chrome', {
-        value: {
-            runtime: {},
-        },
-    });
+    if (!window.chrome) {
+        Object.defineProperty(window, 'chrome', {
+            value: {
+                runtime: {},
+            },
+        });
+    }
 };
 
 // not sure if this hack does not broke iframe on websites... Should figure out how to test properly
