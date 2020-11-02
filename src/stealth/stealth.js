@@ -1,5 +1,6 @@
 import * as _ from 'underscore';
 import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import globalLog from '../utils_log';
 
 import hidingTricks from './hiding_tricks';
@@ -58,8 +59,10 @@ export default function applyStealthToBrowser(browser, options) {
         contextPrototype.newPage = async function (...args) {
             const page = await prevNewPage.bind(this)(...args);
 
-            addStealthDebugToPage(page);
-            await applyStealthTricks(page, opts);
+            const evaluationDebugMessage = generateEvaluationDebugMessage();
+
+            addStealthDebugToPage(page, evaluationDebugMessage);
+            await applyStealthTricks(page, evaluationDebugMessage, opts);
 
             return page;
         };
@@ -70,18 +73,26 @@ export default function applyStealthToBrowser(browser, options) {
     return Promise.resolve(modifiedBrowser);
 }
 
+function generateEvaluationDebugMessage() {
+    const minLength = 6;
+    const maxLength = 10;
+    const randomLength = Math.random() * (maxLength - minLength) + minLength;
+
+    return cryptoRandomObjectId(randomLength);
+}
 /**
  * Logs the stealth errors in browser to the node stdout.
  * @param page {Page} - puppeteer page instance
+ * @param evaluationDebugMessage {string} - debug message
  */
-function addStealthDebugToPage(page) {
+function addStealthDebugToPage(page, evaluationDebugMessage) {
     let warningLogged = false;
     let counter = 1;
     page.on('console', (msg) => {
         const text = msg.text();
         if (text.includes(STEALTH_ERROR_MESSAGE_PREFIX)) {
             log.error(text);
-        } else if (text.includes(STEALTH_COUNTER_MESSAGE)) {
+        } else if (text.includes(evaluationDebugMessage)) {
             if (counter > MAX_IFRAMES && !warningLogged) {
                 log.warning(
                     `Evaluating hiding tricks in too many iframes (limit: ${MAX_IFRAMES}).`
@@ -99,12 +110,13 @@ function addStealthDebugToPage(page) {
 /**
  * Applies stealth tricks to the puppeteer page
  * @param {Page} page
+ * @param evaluationDebugMessage {string} - debug message
  * @param {StealthOptions} options
  * @returns {Promise<void>}
  * @private
  * @ignore
  */
-function applyStealthTricks(page, options) {
+function applyStealthTricks(page, evaluationDebugMessage, options) {
     const functions = Object.keys(options)
         .filter((key) => {
             return options[key];
@@ -112,8 +124,8 @@ function applyStealthTricks(page, options) {
         .map(key => hidingTricks[key].toString());
 
     /* istanbul ignore next */
-    const addFunctions = (functionsArr, errorMessagePrefix, counterMessage) => {
-        console.log(counterMessage);
+    const addFunctions = (functionsArr, errorMessagePrefix, debugMessage) => {
+        console.log(debugMessage);
         // add functions
         for (const func of functionsArr) {
             try {
@@ -124,5 +136,5 @@ function applyStealthTricks(page, options) {
         }
     };
 
-    return page.evaluateOnNewDocument(addFunctions, functions, STEALTH_ERROR_MESSAGE_PREFIX, STEALTH_COUNTER_MESSAGE);
+    return page.evaluateOnNewDocument(addFunctions, functions, STEALTH_ERROR_MESSAGE_PREFIX, evaluationDebugMessage);
 }
