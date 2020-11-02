@@ -42,7 +42,7 @@ class ObservableSet extends EventEmitter {
  */
 
 /**
- * Makes puppeteer request headers more like real browser headers thanks to the letter capitalization
+ * Makes specific headers Capitalized
  * @param {object} headers
  * @returns {{}}
  */
