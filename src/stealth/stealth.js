@@ -38,7 +38,7 @@ const DEFAULT_STEALTH_OPTIONS = {
 const STEALTH_ERROR_MESSAGE_PREFIX = 'StealthError';
 const STEALTH_COUNTER_MESSAGE = 'Stealth evaluated!';
 const MAX_IFRAMES = 10;
-
+const alreadyWrapped = Symbol('alreadyWrapped');
 /**
  *  The main purpose of this function is to override newPage function and attach selected tricks.
  * @param {Browser} browser - puppeteer browser instance
@@ -50,17 +50,22 @@ export default function applyStealthToBrowser(browser, options) {
     const opts = _.defaults(options, DEFAULT_STEALTH_OPTIONS);
 
     const defaultContext = browser.defaultBrowserContext();
+    const contextPrototype = Object.getPrototypeOf(defaultContext);
 
-    const prevNewPage = defaultContext.newPage;
+    const prevNewPage = contextPrototype.newPage;
 
-    defaultContext.newPage = async function (...args) {
-        const page = await prevNewPage.bind(this)(...args);
+    if (!contextPrototype.newPage[alreadyWrapped]) {
+        contextPrototype.newPage = async function (...args) {
+            const page = await prevNewPage.bind(this)(...args);
 
-        addStealthDebugToPage(page);
-        await applyStealthTricks(page, opts);
+            addStealthDebugToPage(page);
+            await applyStealthTricks(page, opts);
 
-        return page;
-    };
+            return page;
+        };
+
+        contextPrototype.newPage[alreadyWrapped] = true;
+    }
 
     return Promise.resolve(modifiedBrowser);
 }
