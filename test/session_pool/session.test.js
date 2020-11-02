@@ -91,6 +91,36 @@ describe('Session - testing session behaviour ', () => {
         expect(session.usageCount).toBe(1);
     });
 
+    test('should retire session after marking bad', () => {
+        jest.spyOn(session, '_maybeSelfRetire');
+        jest.spyOn(session, 'retire');
+        session.markBad();
+        expect(session.retire).toBeCalledTimes(0);
+        session.isUsable = () => false;
+        session.markBad();
+        expect(session.retire).toBeCalledTimes(1);
+    });
+
+    test('should retire session after marking good', () => {
+        jest.spyOn(session, '_maybeSelfRetire');
+        jest.spyOn(session, 'retire');
+
+        session.markGood();
+        expect(session.retire).toBeCalledTimes(0);
+
+        session.isUsable = () => false;
+        session.markGood();
+        expect(session.retire).toBeCalledTimes(1);
+    });
+
+    test('should reevaluate usability of session after marking the session', () => {
+        jest.spyOn(session, '_maybeSelfRetire');
+        session.markGood();
+        expect(session._maybeSelfRetire).toBeCalledTimes(1); // eslint-disable-line
+        session.markBad();
+        expect(session._maybeSelfRetire).toBeCalledTimes(2); // eslint-disable-line
+    });
+
     test('should get state', () => {
         const state = session.getState();
 

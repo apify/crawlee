@@ -170,6 +170,8 @@ export class Session {
         if (this.errorScore > 0) {
             this.errorScore -= this.errorScoreDecrement;
         }
+
+        this._maybeSelfRetire();
     }
 
     /**
@@ -213,6 +215,8 @@ export class Session {
     markBad() {
         this.errorScore += 1;
         this.usageCount += 1;
+
+        this._maybeSelfRetire();
     }
 
     /**
@@ -364,5 +368,15 @@ export class Session {
      */
     _getDefaultCookieExpirationDate(maxAgeSecs) {
         return new Date(Date.now() + (maxAgeSecs * 1000));
+    }
+
+    /**
+     * Checks if session is not usable. if it is not retires the session.
+     * @private
+     */
+    _maybeSelfRetire() {
+        if (!this.isUsable()) {
+            this.retire();
+        }
     }
 }
