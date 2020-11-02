@@ -1,4 +1,6 @@
+import express from 'express';
 import Apify from '../build/index';
+import { startExpressAppPromise } from './_helper';
 
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = Apify.utils.puppeteer;
 
@@ -154,6 +156,54 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
         } finally {
             await browser.close();
         }
+    });
+
+    describe('internal handleRequest function should return correctly formated headers', () => {
+        const HOSTNAME = '127.0.0.1';
+        let port;
+        let server;
+        beforeAll(async () => {
+            const app = express();
+
+            app.get('/getRawHeaders', (req, res) => {
+                res.send(JSON.stringify(req.rawHeaders));
+            });
+
+            server = await startExpressAppPromise(app, 0);
+            port = server.address().port; //eslint-disable-line
+        });
+
+        afterAll(() => {
+            server.close();
+        });
+
+        test('should correctly uppercase headers', async () => {
+            const browser = await Apify.launchPuppeteer({ headless: true });
+
+            try {
+                const page = await browser.newPage();
+
+                await addInterceptRequestHandler(page, async (request) => {
+                    // Override headers
+                    const headers = {
+                        ...request.headers(),
+                        accept: 'text/hml',
+                        'accept-language': 'en-GB',
+                        'upgrade-insecure-requests': 2,
+                    };
+                    return request.continue({ headers });
+                });
+
+                const response = await page.goto(`http://${HOSTNAME}:${port}/getRawHeaders`);
+                const rawHeadersArr = JSON.parse(await response.text());
+
+                expect(rawHeadersArr.includes('Accept')).toEqual(true);
+                expect(rawHeadersArr.includes('Accept-Language')).toEqual(true);
+                expect(rawHeadersArr.includes('Upgrade-Insecure-Requests')).toEqual(true);
+            } finally {
+                await browser.close();
+            }
+        });
     });
 });
 
