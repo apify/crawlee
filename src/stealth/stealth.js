@@ -37,7 +37,6 @@ const DEFAULT_STEALTH_OPTIONS = {
 };
 
 const STEALTH_ERROR_MESSAGE_PREFIX = 'StealthError';
-const STEALTH_COUNTER_MESSAGE = 'Stealth evaluated!';
 const MAX_IFRAMES = 10;
 const alreadyWrapped = Symbol('alreadyWrapped');
 /**
