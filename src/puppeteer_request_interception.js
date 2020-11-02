@@ -42,6 +42,46 @@ class ObservableSet extends EventEmitter {
  */
 
 /**
+ * Makes puppeteer request headers more like real browser headers thanks to the letter capitalization
+ * @param {object} headers
+ * @returns {{}}
+ */
+const browserifyHeaders = (headers) => {
+    const browserHeaders = [
+        'upgrade-insecure-requests',
+        'accept-encoding',
+        'accept-language',
+        'sec-fetch-site',
+        'sec-fetch-mode',
+        'sec-fetch-user',
+        'sec-fetch-dest',
+        'cache-control',
+        'content-type',
+        'connection',
+        'user-agent',
+        'referer',
+        'accept',
+        'pragma',
+        'host',
+    ];
+
+    const finalHeaders = {};
+    // eslint-disable-next-line prefer-const
+    for (let [key, value] of Object.entries(headers)) {
+        if (browserHeaders.includes(key.toLowerCase())) {
+            key = key.toLowerCase()
+                .split('-')
+                .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
+                .join('-');
+        }
+
+        finalHeaders[key] = value;
+    }
+
+    return finalHeaders;
+};
+
+/**
  * Executes an array for given intercept request handlers for a given request object.
  *
  * @param {PuppeteerRequest} request Puppeteer's Request object.
@@ -57,13 +97,13 @@ const handleRequest = async (request, interceptRequestHandlers) => {
     let wasResponded = false;
     let wasContinued = false;
     const accumulatedOverrides = {
-        headers: request.headers(),
+        headers: browserifyHeaders(request.headers()),
     };
 
     const originalContinue = request.continue.bind(request);
     request.continue = (overrides = {}) => {
         wasContinued = true;
-        const headers = { ...accumulatedOverrides.headers, ...overrides.headers };
+        const headers = browserifyHeaders({ ...accumulatedOverrides.headers, ...overrides.headers });
         Object.assign(accumulatedOverrides, overrides, { headers });
     };
 
