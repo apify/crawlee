@@ -102,7 +102,7 @@ function addStealthDebugToPage(page, evaluationDebugMessage) {
                 warningLogged = true;
             }
             counter++;
-            log.info('Tricks evaluated', { counter });
+            log.debug('Tricks evaluated', { counter });
         }
     });
 }
