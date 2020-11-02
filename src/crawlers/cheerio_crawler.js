@@ -614,7 +614,7 @@ class CheerioCrawler {
      * Encodes and parses response according to the provided content type
      * @param {Request} request
      * @param {IncomingMessage|Readable} responseStream
-     * @returns {Promise<{object}>}
+     * @returns {Promise<object>}
      * @ignore
      */
     async _parseResponse(request, responseStream) {
