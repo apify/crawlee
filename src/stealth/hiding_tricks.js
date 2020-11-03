@@ -48,7 +48,7 @@ const hackPermissions = () => {
 };
 
 const addLanguage = () => {
-    Object.defineProperty(window.navigator, 'languages', {
+    Object.defineProperty(Object.getPrototypeOf(navigator), 'languages', {
         get: () => ['en-US', 'en'],
     });
 };
@@ -74,16 +74,12 @@ const emulateWebGL = () => {
 };
 
 const emulateWindowFrame = () => {
-    try {
-        if (window.outerWidth && window.outerHeight) {
-            return; // nothing to do here
-        }
-        const windowFrame = 85; // probably OS and WM dependent
-        window.outerWidth = window.innerWidth;
-        window.outerHeight = window.innerHeight + windowFrame;
-    } catch (err) {
-        console.error('hiding_tricks: Could not emulate window frame');
+    if (window.outerWidth && window.outerHeight) {
+        return; // nothing to do here
     }
+    const windowFrame = 85; // probably OS and WM dependent
+    window.outerWidth = window.innerWidth;
+    window.outerHeight = window.innerHeight + windowFrame;
 };
 
 const addPlugins = () => {
@@ -285,11 +281,13 @@ const emulateConsoleDebug = () => {
 
 // Should be mocked more properly - this one will bypass only some stupid tests
 const mockChrome = () => {
-    Object.defineProperty(window, 'chrome', {
-        value: {
-            runtime: {},
-        },
-    });
+    if (!window.chrome) {
+        Object.defineProperty(window, 'chrome', {
+            value: {
+                runtime: {},
+            },
+        });
+    }
 };
 
 // not sure if this hack does not broke iframe on websites... Should figure out how to test properly
