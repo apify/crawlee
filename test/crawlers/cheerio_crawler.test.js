@@ -382,7 +382,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
                 errorMessages.forEach((msg) => expect(msg).toMatch(
-                    'Content-Type text/plain, but only text/html, application/xhtml+xml, text/xml, application/xml, application/json are allowed.'
+                    ' Content-Type text/plain, but only text/html, text/xml, application/xhtml+xml, application/xml, application/json are allowed.'
                     + ' Skipping resource.',
                 ));
             });
