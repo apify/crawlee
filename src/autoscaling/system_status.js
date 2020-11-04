@@ -1,4 +1,4 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
+import ow from 'ow';
 import Snapshotter from './snapshotter'; // eslint-disable-line import/no-duplicates
 import { weightedAvg } from '../utils';
 
@@ -62,6 +62,15 @@ class SystemStatus {
      * @param {SystemStatusOptions} [options] All `SystemStatus` configuration options.
      */
     constructor(options = {}) {
+        ow(options, ow.object.exactShape({
+            currentHistorySecs: ow.optional.number,
+            maxMemoryOverloadedRatio: ow.optional.number,
+            maxEventLoopOverloadedRatio: ow.optional.number,
+            maxCpuOverloadedRatio: ow.optional.number,
+            maxClientOverloadedRatio: ow.optional.number,
+            snapshotter: ow.optional.object,
+        }));
+
         const {
             currentHistorySecs = 5,
             maxMemoryOverloadedRatio = 0.2,
@@ -70,14 +79,6 @@ class SystemStatus {
             maxClientOverloadedRatio = 0.3,
             snapshotter,
         } = options;
-
-
-        checkParamOrThrow(currentHistorySecs, 'options.currentHistorySecs', 'Number');
-        checkParamOrThrow(maxMemoryOverloadedRatio, 'options.maxMemoryOverloadedRatio', 'Number');
-        checkParamOrThrow(maxEventLoopOverloadedRatio, 'options.maxEventLoopOverloadedRatio', 'Number');
-        checkParamOrThrow(maxCpuOverloadedRatio, 'options.maxCpuOverloadedRatio', 'Number');
-        checkParamOrThrow(maxClientOverloadedRatio, 'options.maxClientOverloadedRatio', 'Number');
-        checkParamOrThrow(snapshotter, 'options.snapshotter', 'Maybe Object');
 
         this.currentHistorySecs = currentHistorySecs * 1000;
         this.maxMemoryOverloadedRatio = maxMemoryOverloadedRatio;

@@ -204,8 +204,8 @@ const addPlugins = () => {
 
         function generateMimeTypeArray() {
             const arr = fakeData.mimeTypes
-                .map(obj => getSubset(['type', 'suffixes', 'description'], obj))
-                .map(obj => Object.setPrototypeOf(obj, MimeType.prototype));
+                .map((obj) => getSubset(['type', 'suffixes', 'description'], obj))
+                .map((obj) => Object.setPrototypeOf(obj, MimeType.prototype));
             arr.forEach((obj) => {
                 arr[obj.type] = obj;
             });
@@ -224,7 +224,7 @@ const addPlugins = () => {
 
         function generatePluginArray() {
             const arr = fakeData.plugins
-                .map(obj => getSubset(['name', 'filename', 'description'], obj))
+                .map((obj) => getSubset(['name', 'filename', 'description'], obj))
                 .map((obj) => {
                     const mimes = fakeData.mimeTypes.filter(
                         m => m.__pluginName === obj.name, // eslint-disable-line
@@ -244,7 +244,7 @@ const addPlugins = () => {
                     obj.item = fakeData.fns.item('Plugin');
                     return obj;
                 })
-                .map(obj => Object.setPrototypeOf(obj, window.Plugin.prototype));
+                .map((obj) => Object.setPrototypeOf(obj, window.Plugin.prototype));
             arr.forEach((obj) => {
                 arr[obj.name] = obj;
             });

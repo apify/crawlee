@@ -1,7 +1,7 @@
 import * as os from 'os';
+import ow from 'ow';
 import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
 import defaultLog from '../utils_log';
@@ -73,6 +73,19 @@ class Snapshotter {
      * @param {SnapshotterOptions} [options] All `Snapshotter` configuration options.
      */
     constructor(options = {}) {
+        ow(options, ow.object.exactShape({
+            eventLoopSnapshotIntervalSecs: ow.optional.number,
+            cpuSnapshotIntervalSecs: ow.optional.number,
+            memorySnapshotIntervalSecs: ow.optional.number,
+            clientSnapshotIntervalSecs: ow.optional.number,
+            snapshotHistorySecs: ow.optional.number,
+            maxBlockedMillis: ow.optional.number,
+            maxUsedMemoryRatio: ow.optional.number,
+            maxUsedCpuRatio: ow.optional.number,
+            maxClientErrors: ow.optional.number,
+            log: ow.optional.object,
+        }));
+
         const {
             eventLoopSnapshotIntervalSecs = 0.5,
             cpuSnapshotIntervalSecs = 1,
@@ -85,16 +98,6 @@ class Snapshotter {
             maxClientErrors = 3,
             log = defaultLog,
         } = options;
-
-        checkParamOrThrow(eventLoopSnapshotIntervalSecs, 'options.eventLoopSnapshotIntervalSecs', 'Number');
-        checkParamOrThrow(memorySnapshotIntervalSecs, 'options.memorySnapshotIntervalSecs', 'Number');
-        checkParamOrThrow(cpuSnapshotIntervalSecs, 'options.cpuSnapshotIntervalSecs', 'Number');
-        checkParamOrThrow(snapshotHistorySecs, 'options.snapshotHistorySecs', 'Number');
-        checkParamOrThrow(clientSnapshotIntervalSecs, 'options.clientSnapshotIntervalSecs', 'Number');
-        checkParamOrThrow(maxBlockedMillis, 'options.maxBlockedMillis', 'Number');
-        checkParamOrThrow(maxUsedMemoryRatio, 'options.maxUsedMemoryRatio', 'Number');
-        checkParamOrThrow(maxUsedCpuRatio, 'options.maxUsedCpuRatio', 'Number');
-        checkParamOrThrow(maxClientErrors, 'options.maxClientErrors', 'Number');
 
         this.log = log.child({ prefix: 'Snapshotter' });
 
@@ -157,7 +160,7 @@ class Snapshotter {
         events.removeListener(ACTOR_EVENT_NAMES.SYSTEM_INFO, this._snapshotCpuOnPlatform);
         events.removeListener(ACTOR_EVENT_NAMES.SYSTEM_INFO, this._snapshotMemoryOnPlatform);
         // Allow microtask queue to unwind before stop returns.
-        await new Promise(resolve => setImmediate(resolve));
+        await new Promise((resolve) => setImmediate(resolve));
     }
 
     /**
@@ -288,7 +291,7 @@ class Snapshotter {
         const isCriticalOverload = memCurrentBytes > criticalOverloadBytes;
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes / this.maxMemoryBytes) * 100);
-            const toMb = bytes => Math.round(bytes / (1024 ** 2));
+            const toMb = (bytes) => Math.round(bytes / (1024 ** 2));
             this.log.warning('Memory is critically overloaded. '
                 + `Using ${toMb(memCurrentBytes)} MB of ${toMb(this.maxMemoryBytes)} MB (${usedPercentage}%). Consider increasing the actor memory.`);
             this.lastLoggedCriticalMemoryOverloadAt = now;

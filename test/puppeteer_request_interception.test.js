@@ -38,7 +38,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
             });
 
             // Save all loaded URLs.
-            page.on('response', response => loadedUrls.push(response.url()));
+            page.on('response', (response) => loadedUrls.push(response.url()));
 
             await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
         } finally {
@@ -165,7 +165,7 @@ describe('Apify.utils.puppeteer.removeInterceptRequestHandler()', () => {
 
         try {
             const page = await browser.newPage();
-            page.on('response', response => loadedUrls.push(response.url()));
+            page.on('response', (response) => loadedUrls.push(response.url()));
 
             // Abort images.
             const abortImagesHandler = (request) => {

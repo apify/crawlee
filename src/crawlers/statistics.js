@@ -1,5 +1,6 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
-import { openKeyValueStore } from '../key_value_store';
+/* eslint-disable max-classes-per-file */
+import ow from 'ow';
+import { openKeyValueStore } from '../storages/key_value_store';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
 import defaultLog from '../utils_log';
 import events from '../events';
@@ -47,17 +48,19 @@ class Job {
  */
 class Statistics {
     /**
-     * @param {StatisticsOptions} options
+     * @param {StatisticsOptions} [options]
      * @hideconstructor
      */
     constructor(options = {}) {
+        ow(options, ow.object.exactShape({
+            logIntervalSecs: ow.optional.number,
+            logMessage: ow.optional.string,
+        }));
+
         const {
             logIntervalSecs = 60,
             logMessage = 'Statistics',
         } = options;
-
-        checkParamOrThrow(logIntervalSecs, 'options.logIntervalSecs', 'Number');
-        checkParamOrThrow(logMessage, 'options.logMessage', 'String');
 
         this.log = defaultLog.child({ prefix: 'Statistics' });
         this.logIntervalMillis = logIntervalSecs * 1000;

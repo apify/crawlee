@@ -60,6 +60,7 @@ export default function applyStealthToBrowser(browser, options) {
 
             const evaluationDebugMessage = generateEvaluationDebugMessage();
 
+
             addStealthDebugToPage(page, evaluationDebugMessage);
             await applyStealthTricks(page, evaluationDebugMessage, opts);
 
@@ -120,7 +121,7 @@ function applyStealthTricks(page, evaluationDebugMessage, options) {
         .filter((key) => {
             return options[key];
         })
-        .map(key => hidingTricks[key].toString());
+        .map((key) => hidingTricks[key].toString());
 
     /* istanbul ignore next */
     const addFunctions = (functionsArr, errorMessagePrefix, debugMessage) => {

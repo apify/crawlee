@@ -4,7 +4,7 @@ import log from '../build/utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import { deserializeArray } from '../build/serialization';
 import Apify from '../build/index';
-import * as keyValueStore from '../build/key_value_store';
+import * as keyValueStore from '../build/storages/key_value_store';
 import * as utils from '../build/utils';
 import * as requestUtils from '../build/utils_request';
 
@@ -126,7 +126,7 @@ describe('Apify.RequestList', () => {
             mock.expects('downloadListOfUrls')
                 .once()
                 .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })
-                .returns(new Promise(resolve => setTimeout(resolve(list1), 100)));
+                .returns(new Promise((resolve) => setTimeout(resolve(list1), 100)));
 
             mock.expects('downloadListOfUrls')
                 .once()
@@ -747,7 +747,7 @@ describe('Apify.RequestList', () => {
             const name = 'xxx';
             const SDK_KEY = `SDK_${name}`;
             const sources = ['https://example.com'];
-            const requests = sources.map(url => new Apify.Request({ url }));
+            const requests = sources.map((url) => new Apify.Request({ url }));
 
             const rl = await Apify.openRequestList(name, sources);
             expect(rl).toBeInstanceOf(Apify.RequestList);
@@ -814,8 +814,14 @@ describe('Apify.RequestList', () => {
                     throw new Error('wrong error');
                 } catch (err) {
                     expect(err.message).not.toBe('wrong error');
-                    expect(err.message).toMatch('Parameter');
-                    expect(err.message).toMatch('must');
+                    if (err.message.match('argument to be of type `string`')) {
+                        expect(err.message).toMatch('received type `undefined`');
+                    } else if (err.message.match('argument to be of type `array`')) {
+                        const isMatched = err.message.match('received type `Object`') || err.message.match('received type `number`');
+                        expect(isMatched).toBeTruthy();
+                    } else if (err.message.match('argument to be of type `null`')) {
+                        expect(err.message).toMatch('received type `undefined`');
+                    }
                 }
             }
         });

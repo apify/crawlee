@@ -59,7 +59,6 @@ afterAll(() => {
     if (proxyServer) return util.promisify(proxyServer.close).bind(proxyServer)();
 }, 5000);
 
-
 describe('Apify.launchPuppeteer()', () => {
     test('throws on invalid args', () => {
         expect(Apify.launchPuppeteer('some non-object')).rejects.toThrow(Error);
@@ -93,7 +92,6 @@ describe('Apify.launchPuppeteer()', () => {
         browser4.close();
     });
 
-
     test('opens https://www.example.com', () => {
         let browser;
         let page;
@@ -111,7 +109,7 @@ describe('Apify.launchPuppeteer()', () => {
                 return page.goto('https://www.example.com');
             })
             .then(() => page.content())
-            .then(html => expect(html).toMatch('<h1>Example Domain</h1>'))
+            .then((html) => expect(html).toMatch('<h1>Example Domain</h1>'))
             .then(() => browser.close());
     });
 
@@ -141,7 +139,7 @@ describe('Apify.launchPuppeteer()', () => {
 
                 return page.content();
             })
-            .then(html => expect(html).toMatch('<h1>Example Domain</h1>'))
+            .then((html) => expect(html).toMatch('<h1>Example Domain</h1>'))
             .then(() => browser.close());
     });
 

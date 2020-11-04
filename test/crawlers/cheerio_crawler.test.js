@@ -14,7 +14,9 @@ import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 import CrawlerExtension from '../../build/crawlers/crawler_extension';
-
+import Request from '../../build/request';
+import * as utils from '../../build/utils';
+import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 // Add common props to mocked request responses.
 const responseMock = {
@@ -62,7 +64,6 @@ app.post('/jsonError', (req, res) => {
         .json({ message: 'CUSTOM_ERROR' });
 });
 
-
 app.get('/mirror', (req, res) => {
     res.send('<html><head><title>Title</title></head><body>DATA</body></html>');
 });
@@ -99,7 +100,8 @@ describe('CheerioCrawler', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
     });
 
     afterAll(async () => {
@@ -112,9 +114,9 @@ describe('CheerioCrawler', () => {
         const requestList = await getRequestListForMirror(port);
         const processed = [];
         const failed = [];
-        const handlePageFunction = async ({ $, html, request }) => {
+        const handlePageFunction = async ({ $, body, request }) => {
             request.userData.title = $('title').text();
-            request.userData.html = html;
+            request.userData.body = body;
             processed.push(request);
         };
 
@@ -134,8 +136,8 @@ describe('CheerioCrawler', () => {
 
         processed.forEach((request) => {
             expect(request.userData.title).toBe('Title');
-            expect(typeof request.userData.html).toBe('string');
-            expect(request.userData.html.length).not.toBe(0);
+            expect(typeof request.userData.body).toBe('string');
+            expect(request.userData.body.length).not.toBe(0);
         });
     });
 
@@ -315,7 +317,7 @@ describe('CheerioCrawler', () => {
             });
 
             await crawler.run();
-            headers.forEach(h => expect(h.Accept).toBe('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'));
+            headers.forEach((h) => expect(h.Accept).toBe('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'));
         });
 
         describe('by throwing', () => {
@@ -332,7 +334,6 @@ describe('CheerioCrawler', () => {
                 handlePageInvocationCount = 0;
                 errorMessages = [];
             });
-
 
             test('when invalid Content-Type header is received', async () => {
                 // Mock Request to inject invalid response headers.
@@ -357,7 +358,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach(msg => expect(msg).toMatch(
+                errorMessages.forEach((msg) => expect(msg).toMatch(
                     'Content-Type application/json, but only text/html, '
                         + 'application/xhtml+xml are allowed. Skipping resource.',
                 ));
@@ -385,7 +386,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(8);
-                errorMessages.forEach(msg => expect(msg).toMatch('Internal Server Error'));
+                errorMessages.forEach((msg) => expect(msg).toMatch('Internal Server Error'));
             });
 
             test('when statusCode >= 500 and application/json is received', async () => {
@@ -403,7 +404,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(8);
-                errorMessages.forEach(msg => expect(msg).toMatch('CUSTOM_ERROR'));
+                errorMessages.forEach((msg) => expect(msg).toMatch('CUSTOM_ERROR'));
             });
 
             test('when 406 is received', async () => {
@@ -427,7 +428,7 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach(msg => expect(msg).toMatch('is not available in HTML format. Skipping resource.'));
+                errorMessages.forEach((msg) => expect(msg).toMatch('is not available in HTML format. Skipping resource.'));
             });
         });
     });
@@ -435,7 +436,7 @@ describe('CheerioCrawler', () => {
     test('should work with all defaults content types', async () => {
         let handledRequests = 0;
         const contentTypes = ['text/html', 'application/xhtml+xml'];
-        const sources = contentTypes.map(contentType => ({
+        const sources = contentTypes.map((contentType) => ({
             url: `http://${HOST}:${port}/mock?ct=${contentType}`,
             payload: JSON.stringify({ headers: { 'Content-Type': contentType }, statusCode: 200 }),
             method: 'POST',
@@ -456,51 +457,47 @@ describe('CheerioCrawler', () => {
     });
 
     describe('should work with all content types from options.additionalMimeTypes', () => {
-        const handlePageInvocationParams = [];
-        let handleFailedInvocationCount = 0;
-        beforeAll(async () => {
-            const sources = [
-                { url: `http://${HOST}:${port}/json-type` },
-                { url: `http://${HOST}:${port}/xml-type` },
-                { url: `http://${HOST}:${port}/image-type` },
-            ];
-            const sourceCount = sources.length;
-            const requestList = new Apify.RequestList({ sources });
-            await requestList.initialize();
+        let handlePageInvocationParams;
+        let handleFailedInvoked = false;
+        const runCrawler = async (url) => {
+            const sources = [url];
+            const requestList = await Apify.openRequestList(null, sources);
             const crawler = new Apify.CheerioCrawler({
                 requestList,
                 additionalMimeTypes: ['application/json', 'image/png', 'application/xml'],
                 maxRequestRetries: 1,
                 handlePageFunction: async (params) => {
-                    handlePageInvocationParams.push(params);
+                    handlePageInvocationParams = params;
                 },
                 handleFailedRequestFunction: async () => {
-                    handleFailedInvocationCount++;
+                    handleFailedInvoked = true;
                 },
             });
             await crawler.run();
+        };
 
-            expect(handleFailedInvocationCount).toBe(0);
-            expect(handlePageInvocationParams.length).toEqual(sourceCount);
-        });
         test('when response is application/json', async () => {
-            const jsonRequestParams = handlePageInvocationParams[0];
-            expect(jsonRequestParams.json).toBeInstanceOf(Object);
-            expect(jsonRequestParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
-            expect(jsonRequestParams.contentType.type).toBe('application/json');
+            const url = `http://${HOST}:${port}/json-type`;
+            await runCrawler(url);
+            expect(handlePageInvocationParams.json).toBeInstanceOf(Object);
+            expect(handlePageInvocationParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
+            expect(handlePageInvocationParams.contentType.type).toBe('application/json');
+            expect(handleFailedInvoked).toBe(false);
         });
         test('when response is application/xml', async () => {
-            const xmlRequestParams = handlePageInvocationParams[1];
-            expect(typeof xmlRequestParams.body).toBe('string');
-            expect(xmlRequestParams.body).toEqual(responseSamples.xml);
-            expect(xmlRequestParams.$).toBeInstanceOf(Function);
-            expect(xmlRequestParams.contentType.type).toBe('application/xml');
+            const url = `http://${HOST}:${port}/xml-type`;
+            await runCrawler(url);
+            expect(typeof handlePageInvocationParams.body).toBe('string');
+            expect(handlePageInvocationParams.body).toEqual(responseSamples.xml);
+            expect(handlePageInvocationParams.$).toBeInstanceOf(Function);
+            expect(handlePageInvocationParams.contentType.type).toBe('application/xml');
         });
         test('when response is image/png', async () => {
-            const imageRequestParams = handlePageInvocationParams[2];
-            expect(imageRequestParams.body).toBeInstanceOf(Buffer);
-            expect(imageRequestParams.body).toEqual(responseSamples.image);
-            expect(imageRequestParams.contentType.type).toBe('image/png');
+            const url = `http://${HOST}:${port}/image-type`;
+            await runCrawler(url);
+            expect(handlePageInvocationParams.body).toBeInstanceOf(Buffer);
+            expect(handlePageInvocationParams.body).toEqual(responseSamples.image);
+            expect(handlePageInvocationParams.contentType.type).toBe('image/png');
         });
     });
 
@@ -509,7 +506,6 @@ describe('CheerioCrawler', () => {
             sources: ['http://useless.x'],
         });
         const html = '<html>Žluťoučký kůň</html>';
-
 
         test('as a fallback', async () => {
             const suggestResponseEncoding = 'windows-1250';
@@ -912,6 +908,95 @@ describe('CheerioCrawler', () => {
         });
     });
 
+    describe('Crawling context', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+        let actualLogLevel;
+        beforeEach(async () => {
+            actualLogLevel = log.getLevel();
+            log.setLevel(log.LEVELS.OFF);
+            requestList = await Apify.openRequestList(null, sources.slice());
+        });
+
+        afterAll(() => {
+            log.setLevel(actualLogLevel);
+        });
+
+        test('uses correct crawling context', async () => {
+            let prepareCrawlingContext;
+
+            const prepareRequestFunction = async (crawlingContext) => {
+                prepareCrawlingContext = crawlingContext;
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+            };
+
+            const handlePageFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.$).toBe('function');
+                expect(typeof crawlingContext.response).toBe('object');
+                expect(typeof crawlingContext.contentType).toBe('object');
+
+                throw new Error('some error');
+            };
+
+            const handleFailedRequestFunction = async (crawlingContext) => {
+                expect(crawlingContext === prepareCrawlingContext).toEqual(true);
+                expect(crawlingContext.request).toBeInstanceOf(Request);
+                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.session).toBeInstanceOf(Session);
+                expect(typeof crawlingContext.$).toBe('function');
+                expect(typeof crawlingContext.response).toBe('object');
+                expect(typeof crawlingContext.contentType).toBe('object');
+
+                expect(crawlingContext.error).toBeInstanceOf(Error);
+                expect(crawlingContext.error.message).toEqual('some error');
+            };
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                prepareRequestFunction,
+                handlePageFunction,
+                handleFailedRequestFunction,
+            });
+            await cheerioCrawler.run();
+        });
+
+        test('handleFailedRequestFunction contains proxyInfo', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+
+            const stub = sinon.stub(utilsRequest, 'requestAsBrowser').resolves({ body: { connected: true } });
+
+            const proxyConfiguration = await Apify.createProxyConfiguration();
+
+            const cheerioCrawler = new Apify.CheerioCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                proxyConfiguration,
+                handlePageFunction: async () => {
+                    throw new Error('some error');
+                },
+                handleFailedRequestFunction: async (crawlingContext) => {
+                    expect(typeof crawlingContext.proxyInfo).toEqual('object');
+                    expect(crawlingContext.proxyInfo.hasOwnProperty('url')).toEqual(true);
+                },
+                useSessionPool: true,
+            });
+            await cheerioCrawler.run();
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+            stub.restore();
+        });
+    });
+
     describe('use', () => {
         const sources = ['http://example.com/'];
         let requestList;
@@ -942,7 +1027,7 @@ describe('CheerioCrawler', () => {
             });
             expect(
                 () => cheerioCrawler.use({}),
-            ).toThrow('Object passed to the "use" method does not inherit from the "CrawlerExtension" abstract class.');
+            ).toThrow('Expected object `{}` to be of type `CrawlerExtension`');
         });
 
         test('Should throw if "CrawlerExtension" is trying to override non existing property', () => {

@@ -1,6 +1,6 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
+import ow from 'ow';
 import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
 import { requestAsBrowser } from './utils_request';
@@ -146,6 +146,18 @@ export class ProxyConfiguration {
      * @param {ProxyConfigurationOptions} [options] All `ProxyConfiguration` options.
      */
     constructor(options = {}) {
+        ow(options, ow.object.exactShape({
+            groups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
+            apifyProxyGroups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
+            countryCode: ow.optional.string.matches(COUNTRY_CODE_REGEX),
+            apifyProxyCountry: ow.optional.string.matches(COUNTRY_CODE_REGEX),
+            proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
+            password: ow.optional.string,
+            newUrlFunction: ow.optional.function,
+            // This is not an actual param, but it's here for legacy purposes.
+            useApifyProxy: ow.optional.boolean,
+        }));
+
         const {
             groups = [],
             apifyProxyGroups = [],
@@ -162,18 +174,10 @@ export class ProxyConfiguration {
         const port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
 
         // Validation
-        checkParamOrThrow(groupsToUse, 'opts.groups', '[String]');
-        checkParamOrThrow(countryCodeToUse, 'opts.countryCode', 'Maybe String');
-        checkParamOrThrow(password, 'opts.password', 'Maybe String');
-        checkParamOrThrow(proxyUrls, 'options.proxyUrls', 'Maybe [String]');
-        checkParamOrThrow(newUrlFunction, 'options.newUrlFunction', 'Maybe Function');
         if (((proxyUrls || newUrlFunction) && ((groupsToUse.length) || countryCodeToUse))) {
             this._throwCannotCombineCustomWithApify();
         }
         if (proxyUrls && newUrlFunction) this._throwCannotCombineCustomMethods();
-        if (proxyUrls) this._validateProxyUrls(proxyUrls);
-        if (countryCodeToUse) this._validateCountryCode(countryCodeToUse);
-        this._validateGroupsStructure(groupsToUse);
 
         this.groups = groupsToUse;
         this.countryCode = countryCodeToUse;
@@ -206,16 +210,17 @@ export class ProxyConfiguration {
         }
     }
 
-
     /**
      * This function creates a new {@link ProxyInfo} info object.
      * It is used by CheerioCrawler and PuppeteerCrawler to generate proxy URLs and also to allow the user to inspect
      * the currently used proxy via the handlePageFunction parameter: proxyInfo.
      * Use it if you want to work with a rich representation of a proxy URL.
      * If you need the URL string only, use {@link ProxyConfiguration.newUrl}.
-     * @param {string} [sessionId]
+     * @param {string|number} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
+     *  When the provided sessionId is a number, it's converted to a string. Property sessionId of
+     *  {@link ProxyInfo} is always returned as a type string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -223,7 +228,8 @@ export class ProxyConfiguration {
      * @return {ProxyInfo} represents information about used proxy and its configuration.
      */
     newProxyInfo(sessionId) {
-        if (sessionId) this._validateSessionArgumentStructure(sessionId);
+        if (typeof sessionId === 'number') sessionId = `${sessionId}`;
+        ow(sessionId, ow.optional.string.maxLength(MAX_SESSION_ID_LENGTH).matches(APIFY_PROXY_VALUE_REGEX));
         const url = this.newUrl(sessionId);
 
         const { groups, countryCode, password, port, hostname } = this.usesApifyProxy ? this : new URL(url);
@@ -241,9 +247,10 @@ export class ProxyConfiguration {
 
     /**
      * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
-     * @param {string} [sessionId]
+     * @param {string|number} [sessionId]
      *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
+     *  When the provided sessionId is a number, it's converted to a string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -251,7 +258,8 @@ export class ProxyConfiguration {
      * @return {string} represents the proxy URL.
      */
     newUrl(sessionId) {
-        if (sessionId) this._validateSessionArgumentStructure(sessionId);
+        if (typeof sessionId === 'number') sessionId = `${sessionId}`;
+        ow(sessionId, ow.optional.string.maxLength(MAX_SESSION_ID_LENGTH).matches(APIFY_PROXY_VALUE_REGEX));
         if (this.newUrlFunction) {
             return this._callNewUrlFunction(sessionId);
         }
@@ -301,7 +309,7 @@ export class ProxyConfiguration {
     async _setPasswordIfToken() {
         const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
         if (token) {
-            const { proxy: { password } } = await apifyClient.users.getUser({ token, userId: 'me' });
+            const { proxy: { password } } = await apifyClient.user().get();
             if (this.password) {
                 if (this.password !== password) {
                     this.log.warning('The Apify Proxy password you provided belongs to'
@@ -397,55 +405,6 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Validates session argument structure
-     * @param {string} sessionId
-     * @ignore
-     */
-    _validateSessionArgumentStructure(sessionId) {
-        if (!APIFY_PROXY_VALUE_REGEX.test(sessionId)) this._throwInvalidProxyValueError('session', sessionId);
-        if (sessionId.length > MAX_SESSION_ID_LENGTH) {
-            throw new Error(`The provided sessionId must not be longer than ${MAX_SESSION_ID_LENGTH} characters. Received: ${sessionId.length}`);
-        }
-    }
-
-    /**
-     * Validates groups option structure
-     * @param {string[]} groups
-     * @ignore
-     */
-    _validateGroupsStructure(groups) {
-        for (const group of groups) {
-            if (!APIFY_PROXY_VALUE_REGEX.test(group)) this._throwInvalidProxyValueError('group', group);
-        }
-    }
-
-    /**
-     * Validates countryCode option
-     * @param {string} countryCode
-     * @ignore
-     */
-    _validateCountryCode(countryCode) {
-        if (!COUNTRY_CODE_REGEX.test(countryCode)) this._throwInvalidCountryCode(countryCode);
-    }
-
-    /**
-     * Validates the structure of all URLs from proxyUrls option
-     * @param {string[]} proxyUrls
-     * @ignore
-     */
-    _validateProxyUrls(proxyUrls) {
-        if (!proxyUrls.length) this._throwProxyUrlsIsEmpty();
-        proxyUrls.forEach((customUrl) => {
-            try {
-                // eslint-disable-next-line no-new
-                new URL(customUrl);
-            } catch (err) {
-                this._throwInvalidCustomUrl(customUrl);
-            }
-        });
-    }
-
-    /**
      * Throws invalid custom newUrlFunction return
      * @param {Error} err
      * @ignore
@@ -465,28 +424,11 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Throws invalid country code error
-     * @param {string} code
-     * @ignore
-     */
-    _throwInvalidCountryCode(code) {
-        throw new Error(`The provided country code "${code}" is not valid. Please use a two letter country code according to ISO 3166-1 alpha-2`);
-    }
-
-    /**
      * Throws Apify Proxy is not connected
      * @ignore
      */
     _throwApifyProxyConnectionError(errorMessage) {
         throw new Error(errorMessage);
-    }
-
-    /**
-     * Throws custom URLs is provided but empty
-     * @ignore
-     */
-    _throwProxyUrlsIsEmpty() {
-        throw new Error('Parameter "options.proxyUrls" of type Array must not be empty!');
     }
 
     /**
@@ -505,15 +447,6 @@ export class ProxyConfiguration {
      */
     _throwCannotCombineCustomMethods() {
         throw new Error('Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".');
-    }
-
-    /**
-     * Throws invalid custom proxy URL
-     * @param {string} url
-     * @ignore
-     */
-    _throwInvalidCustomUrl(url) {
-        throw new Error(`The provided proxy URL "${url}" is not a valid URL.`);
     }
 }
 

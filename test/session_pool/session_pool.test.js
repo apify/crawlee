@@ -1,7 +1,7 @@
 import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
-
+import * as utils from '../../build/utils';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
@@ -16,7 +16,8 @@ describe('SessionPool - testing session pool', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        const storageDir = await localStorageEmulator.init();
+        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
         sessionPool = await Apify.openSessionPool();
     });
 
@@ -44,7 +45,6 @@ describe('SessionPool - testing session pool', () => {
                 maxAgeSecs: 100,
                 maxUsageCount: 1,
             },
-
 
             persistStateKeyValueStoreId: 'TEST',
             persistStateKey: 'SESSION_POOL_STATE2',
@@ -80,7 +80,6 @@ describe('SessionPool - testing session pool', () => {
         };
         sessionPool = await openSessionPool(opts);
         await sessionPool.teardown();
-
 
         Object.entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
             expect(sessionPool[key]).toEqual(value);
@@ -181,7 +180,6 @@ describe('SessionPool - testing session pool', () => {
             });
         });
 
-
         const loadedSessionPool = new SessionPool();
 
         await loadedSessionPool.initialize();
@@ -246,7 +244,7 @@ describe('SessionPool - testing session pool', () => {
         }
         const picked = sessionPool.getSession();
         sessionPool._removeSession(picked); // eslint-disable-line
-        expect(sessionPool.sessions.find(s => s.id === picked.id)).toEqual(undefined);
+        expect(sessionPool.sessions.find((s) => s.id === picked.id)).toEqual(undefined);
     });
 
     test('should recreate only usable sessions', async () => {

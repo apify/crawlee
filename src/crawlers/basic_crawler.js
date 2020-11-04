@@ -1,21 +1,21 @@
-import { checkParamOrThrow } from 'apify-client/build/utils';
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
-import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
+import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
-import { RequestList } from '../request_list';
-import { RequestQueue, RequestQueueLocal } from '../request_queue'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
 import { addTimeoutToPromise } from '../utils';
 import defaultLog from '../utils_log';
+import { validators } from '../validators';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import Request from '../request';
-import { QueueOperationInfo } from '../request_queue';
+import { RequestList } from '../request_list';
+import { RequestQueue } from '../storages/request_queue';
+import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -178,6 +178,26 @@ class BasicCrawler {
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
+        ow(options, ow.object.exactShape({
+            requestList: ow.optional.object.validate(validators.requestList),
+            requestQueue: ow.optional.object.validate(validators.requestQueue),
+            handleRequestFunction: ow.function,
+            handleRequestTimeoutSecs: ow.optional.number,
+            handleFailedRequestFunction: ow.optional.function,
+            maxRequestRetries: ow.optional.number,
+            maxRequestsPerCrawl: ow.optional.number,
+            autoscaledPoolOptions: ow.optional.object,
+            sessionPoolOptions: ow.optional.object,
+            useSessionPool: ow.optional.boolean,
+
+            // AutoscaledPool shorthands
+            minConcurrency: ow.optional.number,
+            maxConcurrency: ow.optional.number,
+
+            // internal
+            log: ow.optional.object,
+        }));
+
         const {
             requestList,
             requestQueue,
@@ -201,19 +221,9 @@ class BasicCrawler {
             log = defaultLog.child({ prefix: 'BasicCrawler' }),
         } = options;
 
-        checkParamPrototypeOrThrow(requestList, 'options.requestList', RequestList, 'Apify.RequestList', true);
-        checkParamPrototypeOrThrow(requestQueue, 'options.requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue', true);
-        checkParamOrThrow(handleRequestFunction, 'options.handleRequestFunction', 'Function');
-        checkParamOrThrow(handleRequestTimeoutSecs, 'options.handleRequestTimeoutSecs', 'Number');
-        checkParamOrThrow(handleFailedRequestFunction, 'options.handleFailedRequestFunction', 'Function');
-        checkParamOrThrow(maxRequestRetries, 'options.maxRequestRetries', 'Number');
-        checkParamOrThrow(maxRequestsPerCrawl, 'options.maxRequestsPerCrawl', 'Maybe Number');
-        checkParamOrThrow(autoscaledPoolOptions, 'options.autoscaledPoolOptions', 'Object');
-        checkParamOrThrow(sessionPoolOptions, 'options.sessionPoolOptions', 'Object');
-        checkParamOrThrow(useSessionPool, 'options.useSessionPool', 'Boolean');
-
         if (!requestList && !requestQueue) {
-            throw new Error('At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!');
+            const msg = 'At least one of the parameters "options.requestList" and "options.requestQueue" must be provided!';
+            throw new ArgumentError(msg, this.constructor);
         }
 
         this.log = log;
@@ -317,10 +327,10 @@ class BasicCrawler {
             const finalStats = this.stats.calculate();
             const { requestsFailed, requestsFinished } = this.stats.state;
             this.log.info('Final request statistics:', {
-                ...finalStats,
                 requestsFinished,
                 requestsFailed,
                 retryHistogram: this.stats.requestRetryHistogram,
+                ...finalStats,
             });
         }
     }
@@ -411,13 +421,17 @@ class BasicCrawler {
         if (!request) return;
 
         // Reset loadedUrl so an old one is not carried over to retries.
-        request.loadedUrl = null;
+        request.loadedUrl = undefined;
 
         const statisticsId = request.id || request.uniqueKey;
         this.stats.startJob(statisticsId);
+
+        // Shared crawling context
+        const crawlingContext = { request, autoscaledPool: this.autoscaledPool, session };
+
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction({ request, autoscaledPool: this.autoscaledPool, session }),
+                this.handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
@@ -429,7 +443,7 @@ class BasicCrawler {
             if (session) session.markGood();
         } catch (err) {
             try {
-                await this._requestFunctionErrorHandler(err, request, source);
+                await this._requestFunctionErrorHandler(err, crawlingContext, source);
             } catch (secondaryError) {
                 this.log.exception(secondaryError, 'runTaskFunction error handler threw an exception. '
                     + 'This places the crawler and its underlying storages into an unknown state and crawling will be terminated. '
@@ -475,12 +489,13 @@ class BasicCrawler {
     /**
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
-     * @param {Request} request
+     * @param {object} crawlingContext
      * @param {(RequestList|RequestQueue)} source
      * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
      * @ignore
      */
-    async _requestFunctionErrorHandler(error, request, source) {
+    async _requestFunctionErrorHandler(error, crawlingContext, source) {
+        const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
         // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
@@ -500,7 +515,8 @@ class BasicCrawler {
         this.handledRequestsCount++;
         await source.markRequestHandled(request);
         this.stats.failJob(request.id || request.url);
-        return this.handleFailedRequestFunction({ request, error }); // This function prints an error message.
+        crawlingContext.error = error;
+        return this.handleFailedRequestFunction(crawlingContext); // This function prints an error message.
     }
 
     /**
@@ -550,6 +566,9 @@ export default BasicCrawler;
 
 /**
  * @typedef HandleFailedRequestInput
- * @property {Request} request The original {Request} object.
  * @property {Error} error The Error thrown by `handleRequestFunction`.
+ * @property {Request} request The original {Request} object.
+ * @property {AutoscaledPool} autoscaledPool
+ * @property {Session} [session]
+ * @property {ProxyInfo} [proxyInfo]
  */

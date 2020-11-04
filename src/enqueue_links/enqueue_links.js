@@ -1,19 +1,18 @@
+import ow, { ArgumentError } from 'ow';
 import { URL } from 'url';
-import { checkParamOrThrow } from 'apify-client/build/utils';
-import { checkParamPrototypeOrThrow } from 'apify-shared/utilities';
 import log from '../utils_log';
 /* eslint-disable import/no-duplicates */
-import { RequestQueue, RequestQueueLocal } from '../request_queue';
 import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatches, createRequestOptions } from './shared';
 /* eslint-enable import/no-duplicates */
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Page } from 'puppeteer';
-import { QueueOperationInfo } from '../request_queue';
+import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestTransform } from './shared';
+import PseudoUrl from '../pseudo_url';
+import { validators } from '../validators';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
-
 
 /**
  * The function finds elements matching a specific CSS selector (HTML anchor (`<a>`) by default)
@@ -93,47 +92,49 @@ import { RequestTransform } from './shared';
  * @name enqueueLinks
  * @function
  */
-export async function enqueueLinks(options = {}) {
+export async function enqueueLinks(options) {
     const {
         page,
         $,
+        requestQueue,
         limit,
         selector = 'a',
-        requestQueue,
         baseUrl,
         pseudoUrls,
-        userData, // TODO DEPRECATED 2019/06/27
         transformRequestFunction,
     } = options;
 
-    if (userData) {
-        log.deprecated('options.userData of Apify.utils.enqueueLinks() is deprecated. Use options.transformRequestFunction instead.');
-    }
-
-    checkParamOrThrow(page, 'page', 'Maybe Object');
-    checkParamOrThrow($, '$', 'Maybe Function');
     if (!page && !$) {
-        throw new Error('One of the parameters "options.page" or "options.$" must be provided!');
+        throw new ArgumentError('One of the parameters "options.page" or "options.$" must be provided!', enqueueLinks);
     }
     if (page && $) {
-        throw new Error('Only one of the parameters "options.page" or "options.$" must be provided!');
+        throw new ArgumentError('Only one of the parameters "options.page" or "options.$" must be provided!', enqueueLinks);
     }
-    checkParamOrThrow(limit, 'limit', 'Maybe Number');
-    checkParamOrThrow(selector, 'selector', 'String');
-    checkParamPrototypeOrThrow(requestQueue, 'requestQueue', [RequestQueue, RequestQueueLocal], 'Apify.RequestQueue');
-    checkParamOrThrow(baseUrl, 'baseUrl', 'Maybe String');
+    ow(options, ow.object.exactShape({
+        page: ow.optional.object.hasKeys('goto', 'evaluate'),
+        $: ow.optional.function,
+        requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+        limit: ow.optional.number,
+        selector: ow.optional.string,
+        baseUrl: ow.optional.string,
+        pseudoUrls: ow.any(ow.null, ow.optional.array.ofType(ow.any(
+            ow.string,
+            ow.regExp,
+            ow.object.hasKeys('purl'),
+            ow.object.validate(validators.pseudoUrl),
+        ))),
+        transformRequestFunction: ow.optional.function,
+    }));
+
     if (baseUrl && page) log.warning('The parameter options.baseUrl can only be used when parsing a Cheerio object. It will be ignored.');
-    checkParamOrThrow(pseudoUrls, 'pseudoUrls', 'Maybe Array');
-    checkParamOrThrow(userData, 'userData', 'Maybe Object');
-    checkParamOrThrow(transformRequestFunction, 'transformRequestFunction', 'Maybe Function');
 
     // Construct pseudoUrls from input where necessary.
     const pseudoUrlInstances = constructPseudoUrlInstances(pseudoUrls || []);
 
     const urls = page ? await extractUrlsFromPage(page, selector) : extractUrlsFromCheerio($, selector, baseUrl);
-    let requestOptions = createRequestOptions(urls, userData);
+    let requestOptions = createRequestOptions(urls);
     if (transformRequestFunction) {
-        requestOptions = requestOptions.map(transformRequestFunction).filter(r => !!r);
+        requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r);
     }
     let requests = createRequests(requestOptions, pseudoUrlInstances);
     if (limit) requests = requests.slice(0, limit);
@@ -151,7 +152,7 @@ export async function enqueueLinks(options = {}) {
  */
 export async function extractUrlsFromPage(page, selector) {
     /* istanbul ignore next */
-    return page.$$eval(selector, linkEls => linkEls.map(link => link.href).filter(href => !!href));
+    return page.$$eval(selector, (linkEls) => linkEls.map((link) => link.href).filter((href) => !!href));
 }
 
 /**
@@ -167,7 +168,7 @@ export function extractUrlsFromCheerio($, selector, baseUrl) {
     return $(selector)
         .map((i, el) => $(el).attr('href'))
         .get()
-        .filter(href => !!href)
+        .filter((href) => !!href)
         .map((href) => {
             // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
             const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
