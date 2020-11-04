@@ -187,7 +187,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
                     // Override headers
                     const headers = {
                         ...request.headers(),
-                        accept: 'text/hml',
+                        accept: 'text/html',
                         'accept-language': 'en-GB',
                         'upgrade-insecure-requests': 2,
                     };
@@ -197,11 +197,22 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
                 const response = await page.goto(`http://${HOSTNAME}:${port}/getRawHeaders`);
                 const rawHeadersArr = JSON.parse(await response.text());
 
-                expect(rawHeadersArr.includes('Accept')).toEqual(true);
-                expect(rawHeadersArr.includes('Accept-Language')).toEqual(true);
-                expect(rawHeadersArr.includes('Upgrade-Insecure-Requests')).toEqual(true);
+                const acceptIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Accept');
+                expect(typeof acceptIndex).toBe('number');
+                expect(rawHeadersArr[acceptIndex + 1]).toEqual('text/html');
 
-                expect(rawHeadersArr.includes('Connection')).toEqual(true); // default should be capitalized too
+                const acceptLanguageIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Accept-Language');
+                expect(typeof acceptLanguageIndex).toBe('number');
+                expect(rawHeadersArr[acceptLanguageIndex + 1]).toEqual('en-GB');
+
+                const upgradeInsReqIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Upgrade-Insecure-Requests');
+                expect(typeof upgradeInsReqIndex).toBe('number');
+                expect(rawHeadersArr[upgradeInsReqIndex + 1]).toEqual('2');
+
+                // defaults should be capitalized too
+                const connectionIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Connection');
+                expect(typeof connectionIndex).toBe('number');
+                expect(rawHeadersArr[connectionIndex + 1]).toEqual('keep-alive');
             } finally {
                 await browser.close();
             }
