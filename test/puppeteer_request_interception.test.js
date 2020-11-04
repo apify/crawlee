@@ -177,7 +177,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
             server.close();
         });
 
-        test('should correctly uppercase headers', async () => {
+        test('should correctly capitalize headers', async () => {
             const browser = await Apify.launchPuppeteer({ headless: true });
 
             try {
@@ -200,6 +200,8 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
                 expect(rawHeadersArr.includes('Accept')).toEqual(true);
                 expect(rawHeadersArr.includes('Accept-Language')).toEqual(true);
                 expect(rawHeadersArr.includes('Upgrade-Insecure-Requests')).toEqual(true);
+
+                expect(rawHeadersArr.includes('Connection')).toEqual(true); // default should be capitalized too
             } finally {
                 await browser.close();
             }

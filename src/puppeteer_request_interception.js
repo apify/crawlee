@@ -42,38 +42,18 @@ class ObservableSet extends EventEmitter {
  */
 
 /**
- * Makes specific headers Capitalized
+ * Makes all request headers capitalized to more look like in browser
  * @param {object} headers
  * @returns {{}}
  */
 const browserifyHeaders = (headers) => {
-    const browserHeaders = [
-        'upgrade-insecure-requests',
-        'accept-encoding',
-        'accept-language',
-        'sec-fetch-site',
-        'sec-fetch-mode',
-        'sec-fetch-user',
-        'sec-fetch-dest',
-        'cache-control',
-        'content-type',
-        'connection',
-        'user-agent',
-        'referer',
-        'accept',
-        'pragma',
-        'host',
-    ];
-
     const finalHeaders = {};
     // eslint-disable-next-line prefer-const
     for (let [key, value] of Object.entries(headers)) {
-        if (browserHeaders.includes(key.toLowerCase())) {
-            key = key.toLowerCase()
-                .split('-')
-                .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
-                .join('-');
-        }
+        key = key.toLowerCase()
+            .split('-')
+            .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
+            .join('-');
 
         finalHeaders[key] = value;
     }
