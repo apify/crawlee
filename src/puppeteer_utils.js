@@ -455,7 +455,7 @@ export const infiniteScroll = async (page, options = {}) => {
 
     while (!finished) {
         await doScroll();
-        await page.waitFor(50);
+        await page.waitForTimeout(50);
         if (scrollDownAndUp) {
             await page.evaluate(() => {
                 window.scrollBy(0, -1000);

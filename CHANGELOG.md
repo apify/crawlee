@@ -62,6 +62,12 @@ Full list of changes:
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
 
+0.21.9 / 2020/11/03
+====================
+- Fix various issues in `stealth`.
+- Fix `SessionPool` not retiring sessions immediately when they become unusable.
+  It fixes a problem where `PuppeteerPool` would not retire browsers wit bad sessions.
+
 0.21.8 / 2020/10/07
 ====================
 - Make `PuppeteerCrawler` safe against malformed Puppeteer responses.

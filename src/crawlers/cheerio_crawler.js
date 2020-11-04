@@ -121,6 +121,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   request: Request,
  *   autoscaledPool: AutoscaledPool,
  *   session: Session,
+ *   proxyInfo: ProxyInfo,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the initialized request
@@ -131,6 +132,33 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   this function is therefore not supported, because it would create inconsistencies where
  *   different parts of SDK would have access to a different {@link Request} instance.
  *
+ * @property {PostResponse} [postResponseFunction]
+ * A function that executes right after the HTTP request is made to the target resource and response is returned.
+ * This function is suitable for overriding custom properties of response e.g. setting headers because of response parsing.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ *  const cheerioCrawlerOptions = {
+ *      // ...
+ *      postResponseFunction: ({ request, response }) => {
+ *          if (request.userData.parseAsJSON) {
+ *              response.headers['content-type'] = 'application/json; charset=utf-8';
+ *          }
+ *      }
+ *  }
+ * ```
+ * The function receives the following object as an argument:
+ * ```
+ * {
+ *   response: Object,
+ *   request: Request,
+ *   autoscaledPool: AutoscaledPool,
+ *   session: Session,
+ *   proxyInfo: ProxyInfo,
+ * }
+ * ```
+ * The response is an instance of Node's http.IncomingMessage object.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, given in seconds.
  * @property {number} [requestTimeoutSecs=30]
@@ -328,6 +356,7 @@ class CheerioCrawler {
             handleFailedRequestFunction: ow.optional.function,
             autoscaledPoolOptions: ow.optional.object,
             prepareRequestFunction: ow.optional.function,
+            postResponseFunction: ow.optional.function,
             useSessionPool: ow.optional.boolean,
             sessionPoolOptions: ow.optional.object,
             persistCookiesPerSession: ow.optional.boolean,
@@ -358,6 +387,7 @@ class CheerioCrawler {
             handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
             autoscaledPoolOptions = DEFAULT_AUTOSCALED_POOL_OPTIONS,
             prepareRequestFunction,
+            postResponseFunction,
             useSessionPool = false,
             sessionPoolOptions = {},
             persistCookiesPerSession = false,
@@ -392,6 +422,7 @@ class CheerioCrawler {
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
         this.prepareRequestFunction = prepareRequestFunction;
+        this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.useSessionPool = useSessionPool;
@@ -491,11 +522,16 @@ class CheerioCrawler {
         if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
 
         const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
-        const { dom, isXml, body, contentType, response } = await addTimeoutToPromise(
+
+        crawlingContext.response = await addTimeoutToPromise(
             this._requestFunction({ request, session, proxyUrl }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
+
+        if (this.postResponseFunction) await this.postResponseFunction(crawlingContext);
+
+        const { dom, isXml, body, contentType, response } = await this._parseResponse(request, crawlingContext.response);
 
         if (this.useSessionPool) {
             this._throwOnBlockedRequest(session, response.statusCode);
@@ -547,6 +583,7 @@ class CheerioCrawler {
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {string} options.proxyUrl
+     * @returns {Promise<IncomingMessage|Readable>}
      * @ignore
      */
     async _requestFunction({ request, session, proxyUrl }) {
@@ -571,6 +608,17 @@ class CheerioCrawler {
             }
         }
 
+        return responseStream;
+    }
+
+    /**
+     * Encodes and parses response according to the provided content type
+     * @param {Request} request
+     * @param {IncomingMessage|Readable} responseStream
+     * @returns {Promise<object>}
+     * @ignore
+     */
+    async _parseResponse(request, responseStream) {
         const { statusCode } = responseStream;
         const { type, charset } = parseContentTypeFromResponse(responseStream);
         const { response, encoding } = this._encodeResponse(request, responseStream, charset);
@@ -754,6 +802,25 @@ export default CheerioCrawler;
 /**
  * @callback PrepareRequest
  * @param {PrepareRequestInputs} inputs Arguments passed to this callback.
+ * @returns {(void|Promise<void>)}
+ */
+
+/**
+ * @typedef PostResponseInputs
+ * @property {IncomingMessage|Readable} response stream
+ * @property {Request} request
+ *  Original instance fo the {Request} object. Must be modified in-place.
+ * @property {AutoscaledPool} autoscaledPool
+ * @property {Session} [session]
+ *  The current session
+ * @property {ProxyInfo} [proxyInfo]
+ *  An object with information about currently used proxy by the crawler
+ *  and configured by the {@link ProxyConfiguration} class.
+ */
+
+/**
+ * @callback PostResponse
+ * @param {PostResponseInputs} inputs Arguments passed to this callback.
  * @returns {(void|Promise<void>)}
  */
 
