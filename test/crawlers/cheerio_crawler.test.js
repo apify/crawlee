@@ -604,7 +604,6 @@ describe('CheerioCrawler', () => {
             crawler._requestFunction = async function ({ request, session, proxyUrl }) {
                 proxies.push(proxyUrl);
                 const opts = this._getRequestOptions(request, session);
-                opts.url = `http://${HOST}:${port}/mock`;
 
                 const responseStream = await utilsRequest.requestAsBrowser(opts);
 
@@ -655,7 +654,6 @@ describe('CheerioCrawler', () => {
 
             crawler._requestFunction = async function ({ request, session }) {
                 const opts = this._getRequestOptions(request, session);
-                opts.url = `http://${HOST}:${port}/mock`;
 
                 const responseStream = await utilsRequest.requestAsBrowser(opts);
 
@@ -698,7 +696,6 @@ describe('CheerioCrawler', () => {
 
             crawler._requestFunction = async function ({ request, session }) {
                 const opts = this._getRequestOptions(request, session);
-                opts.url = `http://${HOST}:${port}/mock`;
 
                 const responseStream = await utilsRequest.requestAsBrowser(opts);
 
