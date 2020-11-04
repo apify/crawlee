@@ -32,7 +32,8 @@ import { validators } from '../validators';
 /**
  * Default mime types, which CheerioScraper supports.
  */
-const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml', 'text/xml', 'application/xml', 'application/json'];
+const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
+const APPLICATION_JSON_MIME_TYPE = 'application/json';
 const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
@@ -371,7 +372,7 @@ class CheerioCrawler {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
         }
 
-        this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
+        this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
         if (requestOptions) {
@@ -589,7 +590,7 @@ class CheerioCrawler {
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
-        } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'text/xml' || type === 'application/xml') {
+        } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
         } else {
