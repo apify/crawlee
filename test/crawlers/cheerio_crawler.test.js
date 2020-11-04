@@ -341,7 +341,7 @@ describe('CheerioCrawler', () => {
                 crawler = new Apify.CheerioCrawler({
                     requestList: await getRequestListForMock(port, {
                         headers: {
-                            'content-type': 'application/json',
+                            'content-type': 'text/plain',
                         },
                         statusCode: 200,
                     }),
@@ -359,7 +359,7 @@ describe('CheerioCrawler', () => {
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
                 errorMessages.forEach((msg) => expect(msg).toMatch(
-                    'Content-Type application/json, but only text/html, application/xhtml+xml, text/xml are allowed.'
+                    'Content-Type text/plain, but only text/html, application/xhtml+xml, text/xml, application/xml, application/json are allowed.'
                     + ' Skipping resource.',
                 ));
             });
@@ -435,7 +435,7 @@ describe('CheerioCrawler', () => {
 
     test('should work with all defaults content types', async () => {
         let handledRequests = 0;
-        const contentTypes = ['text/html', 'application/xhtml+xml', 'text/xml'];
+        const contentTypes = ['text/html', 'application/xhtml+xml', 'text/xml', 'application/xml', 'application/json'];
         const sources = contentTypes.map((contentType) => ({
             url: `http://${HOST}:${port}/mock?ct=${contentType}`,
             payload: JSON.stringify({ headers: { 'Content-Type': contentType }, statusCode: 200 }),

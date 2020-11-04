@@ -32,7 +32,7 @@ import { validators } from '../validators';
 /**
  * Default mime types, which CheerioScraper supports.
  */
-const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml', 'text/xml'];
+const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml', 'text/xml', 'application/xml', 'application/json'];
 const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
