@@ -167,7 +167,6 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             }
         }, numberOfIframes);
 
-
         expect(message.includes('Evaluating hiding tricks in too many iframes')).toBeTruthy();
     });
 
@@ -191,7 +190,6 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
         expect(message).toBeUndefined();
     });
-
 
     describe('puppeteer crawler test', async () => {
         let requestList;

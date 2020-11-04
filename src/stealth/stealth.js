@@ -60,7 +60,6 @@ export default function applyStealthToBrowser(browser, options) {
 
             const evaluationDebugMessage = generateEvaluationDebugMessage();
 
-
             addStealthDebugToPage(page, evaluationDebugMessage);
             await applyStealthTricks(page, evaluationDebugMessage, opts);
 
