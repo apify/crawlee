@@ -550,7 +550,7 @@ class CheerioCrawler {
         crawlingContext.response = response;
         Object.defineProperty(crawlingContext, 'json', {
             get() {
-                if (contentType.type !== 'application/json') return null;
+                if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
             },
@@ -629,7 +629,7 @@ class CheerioCrawler {
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
-            if (type === 'application/json') {
+            if (type === APPLICATION_JSON_MIME_TYPE) {
                 const errorResponse = JSON.parse(body);
                 let { message } = errorResponse;
                 if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
