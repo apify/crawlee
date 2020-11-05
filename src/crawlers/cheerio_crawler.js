@@ -32,7 +32,8 @@ import { validators } from '../validators';
 /**
  * Default mime types, which CheerioScraper supports.
  */
-const DEFAULT_MIME_TYPES = ['text/html', 'application/xhtml+xml'];
+const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
+const APPLICATION_JSON_MIME_TYPE = 'application/json';
 const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
@@ -401,7 +402,7 @@ class CheerioCrawler {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
         }
 
-        this.supportedMimeTypes = new Set(DEFAULT_MIME_TYPES);
+        this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
         if (requestOptions) {
@@ -549,7 +550,7 @@ class CheerioCrawler {
         crawlingContext.response = response;
         Object.defineProperty(crawlingContext, 'json', {
             get() {
-                if (contentType.type !== 'application/json') return null;
+                if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
                 const jsonString = body.toString(contentType.encoding);
                 return JSON.parse(jsonString);
             },
@@ -628,7 +629,7 @@ class CheerioCrawler {
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
-            if (type === 'application/json') {
+            if (type === APPLICATION_JSON_MIME_TYPE) {
                 const errorResponse = JSON.parse(body);
                 let { message } = errorResponse;
                 if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
@@ -637,7 +638,7 @@ class CheerioCrawler {
 
             // It's not a JSON so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
-        } else if (type === 'text/html' || type === 'application/xhtml+xml' || type === 'application/xml') {
+        } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
             const dom = await this._parseHtmlToDom(response);
             return ({ dom, isXml: type.includes('xml'), response, contentType });
         } else {
