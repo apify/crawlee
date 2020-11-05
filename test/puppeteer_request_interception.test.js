@@ -1,4 +1,6 @@
+import express from 'express';
 import Apify from '../build/index';
+import { startExpressAppPromise } from './_helper';
 
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = Apify.utils.puppeteer;
 
@@ -154,6 +156,67 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
         } finally {
             await browser.close();
         }
+    });
+
+    describe('internal handleRequest function should return correctly formated headers', () => {
+        const HOSTNAME = '127.0.0.1';
+        let port;
+        let server;
+        beforeAll(async () => {
+            const app = express();
+
+            app.get('/getRawHeaders', (req, res) => {
+                res.send(JSON.stringify(req.rawHeaders));
+            });
+
+            server = await startExpressAppPromise(app, 0);
+            port = server.address().port; //eslint-disable-line
+        });
+
+        afterAll(() => {
+            server.close();
+        });
+
+        test('should correctly capitalize headers', async () => {
+            const browser = await Apify.launchPuppeteer({ headless: true });
+
+            try {
+                const page = await browser.newPage();
+
+                await addInterceptRequestHandler(page, async (request) => {
+                    // Override headers
+                    const headers = {
+                        ...request.headers(),
+                        accept: 'text/html',
+                        'accept-language': 'en-GB',
+                        'upgrade-insecure-requests': 2,
+                    };
+                    return request.continue({ headers });
+                });
+
+                const response = await page.goto(`http://${HOSTNAME}:${port}/getRawHeaders`);
+                const rawHeadersArr = JSON.parse(await response.text());
+
+                const acceptIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Accept');
+                expect(typeof acceptIndex).toBe('number');
+                expect(rawHeadersArr[acceptIndex + 1]).toEqual('text/html');
+
+                const acceptLanguageIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Accept-Language');
+                expect(typeof acceptLanguageIndex).toBe('number');
+                expect(rawHeadersArr[acceptLanguageIndex + 1]).toEqual('en-GB');
+
+                const upgradeInsReqIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Upgrade-Insecure-Requests');
+                expect(typeof upgradeInsReqIndex).toBe('number');
+                expect(rawHeadersArr[upgradeInsReqIndex + 1]).toEqual('2');
+
+                // defaults should be capitalized too
+                const connectionIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Connection');
+                expect(typeof connectionIndex).toBe('number');
+                expect(rawHeadersArr[connectionIndex + 1]).toEqual('keep-alive');
+            } finally {
+                await browser.close();
+            }
+        });
     });
 });
 
