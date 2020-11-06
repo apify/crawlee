@@ -237,9 +237,18 @@ export class RequestQueue {
 
         // TODO: Could we also use requestsCache here? It would be consistent with addRequest()
         // Downside is that it wouldn't reflect changes from outside...
-        const obj = await this.client.getRequest(id);
+        const requestOptions = await this.client.getRequest(id);
+        if (!requestOptions) return null;
 
-        return obj ? new Request(obj) : null;
+        // TODO: compatibility fix for old/broken request queues with null Request props
+        const optionsWithoutNulls = Object.entries(requestOptions).reduce((opts, [key, value]) => {
+            if (value !== null) {
+                opts[key] = value;
+            }
+            return opts;
+        }, {});
+
+        return new Request(optionsWithoutNulls);
     }
 
     /**
