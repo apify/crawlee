@@ -1,6 +1,7 @@
 import ow from 'ow';
+import { URL } from 'url';
 import * as _ from 'underscore';
-import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
+import { BrowserPool, PuppeteerPlugin } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -12,12 +13,10 @@ import defaultLog from '../utils_log';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Browser, Page as PuppeteerPage, Response as PuppeteerResponse } from 'puppeteer';
 import { HandleFailedRequest } from './basic_crawler';
-import { PuppeteerPoolOptions, LaunchPuppeteerFunction } from '../puppeteer_pool';
 import Request from '../request'; // eslint-disable-line no-unused-vars
 import { RequestList } from '../request_list'; // eslint-disable-line no-unused-vars
 import { RequestQueue } from '../storages/request_queue'; // eslint-disable-line no-unused-vars
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool'; // eslint-disable-line no-unused-vars,import/named
-import { LaunchPuppeteerOptions } from '../puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { Session } from '../session_pool/session'; // eslint-disable-line no-unused-vars
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
@@ -238,12 +237,11 @@ class PuppeteerCrawler {
             handleFailedRequestFunction: ow.optional.function,
             autoscaledPoolOptions: ow.optional.object,
 
-            // PuppeteerPool options and shorthands
-            puppeteerPoolOptions: ow.optional.object,
-            launchPuppeteerFunction: ow.optional.function,
+            // Puppeteer options and shorthands
             launchPuppeteerOptions: ow.optional.object,
 
             sessionPoolOptions: ow.optional.object,
+            browserPoolOptions: ow.optional.object,
             persistCookiesPerSession: ow.optional.boolean,
             useSessionPool: ow.optional.boolean,
             proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
@@ -276,6 +274,7 @@ class PuppeteerCrawler {
             persistCookiesPerSession = false,
             useSessionPool = false,
             proxyConfiguration,
+            browserPoolOptions,
         } = options;
 
         if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
@@ -306,7 +305,9 @@ class PuppeteerCrawler {
             launchPuppeteerOptions,
         };
 
-        this.puppeteerPool = null; // Constructed when .run()
+        this.browserPool = null; // Constructed when .run()
+        this.browserPoolOptions = browserPoolOptions;
+
         this.useSessionPool = useSessionPool;
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
@@ -343,18 +344,40 @@ class PuppeteerCrawler {
      */
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
+        let createProxyUrlFunction;
 
         if (this.useSessionPool) {
             this.sessionPool = await openSessionPool(this.sessionPoolOptions);
-            this.puppeteerPoolOptions.sessionPool = this.sessionPool;
         }
 
         if (this.proxyConfiguration) {
-            this.puppeteerPoolOptions.proxyConfiguration = this.proxyConfiguration;
+            createProxyUrlFunction = this._createProxyUrlFunction.bind(this);
         }
 
         this.puppeteerPoolOptions.log = this.log;
-        this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
+        const { launchPuppeteerOptions } = this.puppeteerPoolOptions;
+
+        const puppeteerPlugin = new PuppeteerPlugin(
+            // eslint-disable-next-line
+            require('puppeteer'), // @TODO:  allow custom library
+            {
+                launchOptions: launchPuppeteerOptions,
+                createProxyUrlFunction: createProxyUrlFunction && createProxyUrlFunction.bind(this),
+            },
+        );
+        this.browserPool = new BrowserPool({
+            browserPlugins: [puppeteerPlugin],
+            ...this.browserPoolOptions,
+        });
+
+        if (this.sessionPool) {
+            this._addSessionPoolToBrowserPool();
+        }
+
+        if (this.proxyConfiguration) {
+            this._addProxyConfigurationToBrowserPool();
+        }
+
         try {
             this.isRunningPromise = this.basicCrawler.run();
             this.autoscaledPool = this.basicCrawler.autoscaledPool;
@@ -364,7 +387,7 @@ class PuppeteerCrawler {
             if (this.useSessionPool) {
                 await this.sessionPool.teardown();
             }
-            await this.puppeteerPool.destroy();
+            await this.browserPool.destroy();
         }
     }
 
@@ -378,13 +401,16 @@ class PuppeteerCrawler {
      * @ignore
      */
     async _handleRequestFunction(crawlingContext) {
-        crawlingContext.page = await this.puppeteerPool.newPage();
+        crawlingContext.page = await this.browserPool.newPage();
 
         const { page, request } = crawlingContext;
         // eslint-disable-next-line no-underscore-dangle
-        const browserInstance = this.puppeteerPool._getBrowserInstance(page);
+        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
+        crawlingContext.browserController = browserControllerInstance;
+        crawlingContext.browserPool = this.browserPool;
+
         if (this.sessionPool) {
-            crawlingContext.session = browserInstance.session;
+            crawlingContext.session = browserControllerInstance.userData.session;
 
             // setting cookies to page
             if (this.persistCookiesPerSession) {
@@ -395,7 +421,7 @@ class PuppeteerCrawler {
         const { session } = crawlingContext;
 
         if (this.proxyConfiguration) {
-            crawlingContext.proxyInfo = browserInstance.proxyInfo;
+            crawlingContext.proxyInfo = browserControllerInstance.userData.proxyInfo;
         }
 
         try {
@@ -418,8 +444,7 @@ class PuppeteerCrawler {
                 }
             }
 
-            await this.puppeteerPool.serveLiveViewSnapshot(page);
-            request.loadedUrl = page.url();
+            request.loadedUrl = await page.url();
 
             // save cookies
             if (this.persistCookiesPerSession) {
@@ -428,7 +453,6 @@ class PuppeteerCrawler {
             }
 
             crawlingContext.response = response;
-            crawlingContext.puppeteerPool = this.puppeteerPool;
 
             await addTimeoutToPromise(
                 this.handlePageFunction(crawlingContext),
@@ -438,7 +462,11 @@ class PuppeteerCrawler {
 
             if (session) session.markGood();
         } finally {
-            await this.puppeteerPool.recyclePage(page);
+            try {
+                await page.close();
+            } catch (e) {
+                // Ignoring error in page close.
+            }
         }
     }
 
@@ -494,6 +522,53 @@ class PuppeteerCrawler {
         if (isBlocked) {
             throw new Error(`Request blocked - received ${statusCode} status code.`);
         }
+    }
+
+    _getSessionIdFromProxyUrl(proxyUrl) {
+        const parsedUrl = new URL(proxyUrl);
+        const { username } = parsedUrl.username;
+        if (!username) {
+            return;
+        }
+        const parts = username.split(',');
+        const sessionPart = parts.find((part) => part.includes('session-'));
+
+        return sessionPart && sessionPart.replace('session-', '');
+    }
+
+    async _createProxyUrlFunction() {
+        let session;
+
+        if (this.sessionPool) {
+            session = await this.sessionPool.getSession();
+        }
+
+        return this.proxyConfiguration.newUrl(session && session.id);
+    }
+
+    _addSessionPoolToBrowserPool() {
+        // @TODO: proper session retirement
+        this.browserPool.postLaunchHooks.push(this._sessionPoolHook.bind(this));
+    }
+
+    async _sessionPoolHook(browserController) {
+        const { proxyUrl } = browserController;
+
+        if (proxyUrl) {
+            const sessionIdFromUrl = this._getSessionIdFromProxyUrl(proxyUrl);
+            browserController.userData.session = this.sessionPool.sessions.find(({ id }) => id === sessionIdFromUrl);
+        }
+
+        browserController.userData.session = await this.sessionPool.getSession();
+    }
+
+    _addProxyConfigurationToBrowserPool() {
+        this.browserPool.postLaunchHooks.push(this._proxyConfigurationHook.bind(this));
+    }
+
+    async _proxyConfigurationHook(browserController) {
+        const { session } = browserController.userData;
+        browserController.userData.proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
     }
 }
 
