@@ -235,5 +235,20 @@ describe('Apify.utils_request', () => {
                 if (err.name === 'MaxRedirectsError') throw err;
             }
         });
+
+        test('should override useCaseSensitive headers when useHttp2', async () => {
+            const host = `${HOSTNAME}:${port}`;
+            const options = {
+                url: `http://${host}/rawHeaders`,
+                headers: {
+                    'User-Agent': 'TEST',
+                },
+                useHttp2: true,
+            };
+
+            const response = await requestAsBrowser(options);
+            expect(response.body.includes('User-Agent')).toBeFalsy();
+            expect(response.body.includes('user-Agent')).toBeFalsy();
+        });
     });
 });
