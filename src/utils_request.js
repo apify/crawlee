@@ -106,7 +106,6 @@ export const requestAsBrowser = async (options) => {
         abortFunction,
         ignoreSslErrors = true,
         useInsecureHttpParser = true,
-        useHttp2 = false,
         ...otherParams
     } = options;
 
@@ -131,10 +130,6 @@ export const requestAsBrowser = async (options) => {
         ignoreSslErrors,
         insecureHTTPParser: useInsecureHttpParser,
     };
-
-    if (useHttp2) {
-        requestOpts.useCaseSensitiveHeaders = false;
-    }
 
     try {
         return await httpRequest(requestOpts);
