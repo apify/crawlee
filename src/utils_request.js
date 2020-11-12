@@ -52,7 +52,6 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  * @property {boolean} [useHttp2=false]
  *  If set to true, it will additionally accept HTTP2 requests.
  *  It will choose either HTTP/1.1 or HTTP/2 depending on the ALPN protocol.
-
  */
 
 /**
