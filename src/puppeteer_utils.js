@@ -508,12 +508,12 @@ const saveSnapshot = async (page, options = {}) => {
         const store = await openKeyValueStore(keyValueStoreName);
 
         if (saveScreenshot) {
-            const screenshotName = isAtHome() ? `${key}.jpg` : key;
+            const screenshotName = `${key}.jpg`;
             const screenshotBuffer = await page.screenshot({ fullPage: true, screenshotQuality, type: 'jpeg' });
             await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
         if (saveHtml) {
-            const htmlName = isAtHome() ? `${key}.html` : key;
+            const htmlName = `${key}.html`;
             const html = await page.content();
             await store.setValue(htmlName, html, { contentType: 'text/html' });
         }
