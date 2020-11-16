@@ -11,7 +11,8 @@ on:
 
 jobs:
   # NPM install is done in a separate job and cached to speed up the following jobs.
-  install:
+  build_and_test:
+    name: Build & Test
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
 
@@ -29,18 +30,23 @@ jobs:
           node-version: ${{ matrix.node-version }}
       -
         name: Cache Node Modules
+        if: ${{ matrix.node-version == 14 }}
         uses: actions/cache@v2
         with:
           path: |
             node_modules
             build
-          key: cache-${{ github.run_id }}-v${{ matrix.node-version }}
+          key: cache-${{ github.run_id }}-v14
       -
         name: Install Dependencies
         run: npm install
+      -
+        name: Run Tests
+        run: npm test
 
   lint:
-    needs: [install]
+    name: Lint
+    needs: [build_and_test]
     runs-on: ubuntu-latest
 
     steps:
@@ -63,37 +69,11 @@ jobs:
         run: npm run lint
 
 
-  test:
-    needs: [install]
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [10, 12, 14]
-
-    steps:
-      -
-        uses: actions/checkout@v2
-      -
-        name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-      -
-        name: Load Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            node_modules
-            build
-          key: cache-${{ github.run_id }}-v${{ matrix.node-version }}
-      -
-        run: npm test
-
   # The deploy job is long but there are only 2 important parts. NPM publish
   # and triggering of docker image builds in the apify-actor-docker repo.
   deploy:
-    needs: [lint, test]
+    name: Publish to NPM and release images
+    needs: [lint]
     runs-on: ubuntu-latest
     steps:
       -
@@ -110,7 +90,7 @@ jobs:
           path: |
             node_modules
             build
-          key: cache-${{ github.run_id }}-v${{ matrix.node-version }}
+          key: cache-${{ github.run_id }}-v14
       -
         # Determine if this is a beta or latest release
         name: Set Release Tag
