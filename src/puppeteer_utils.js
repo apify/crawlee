@@ -5,7 +5,6 @@ import * as util from 'util';
 import * as _ from 'underscore';
 import * as LruCache from 'apify-shared/lru_cache';
 import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import { isAtHome } from './utils';
 import log from './utils_log';
 import { validators } from './validators';
 
