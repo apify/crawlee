@@ -1,0 +1,74 @@
+# This workflow runs for every pull request to lint and test the proposed changes.
+
+name: Check
+
+on:
+  pull_request:
+
+jobs:
+  # NPM install is done in a separate job and cached to speed up the following jobs.
+  install:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [10, 12, 14]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Cache Node Modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          node_modules
+          build
+        key: cache-${{ github.run_id }}-v${{ matrix.node-version }}
+    - name: Install Dependencies
+      run: npm install
+
+  lint:
+    needs: [install]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 14
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14
+    - name: Load Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          node_modules
+          build
+        key: cache-${{ github.run_id }}-v14
+    - run: npm run lint
+
+  test:
+    needs: [install]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [10, 12, 14]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Load Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          node_modules
+          build
+        key: cache-${{ github.run_id }}-v${{ matrix.node-version }}
+    - run: npm test
