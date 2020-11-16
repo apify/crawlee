@@ -12,6 +12,7 @@ on:
 jobs:
   # NPM install is done in a separate job and cached to speed up the following jobs.
   install:
+    if: !contains(github.event.head_commit.message, '[skip ci]')
     runs-on: ubuntu-latest
 
     strategy:
