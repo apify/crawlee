@@ -51,7 +51,7 @@
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
-        "@apify/http-request": "^2.1.0",
+        "@apify/http-request": "^2.1.1",
         "@apify/ps-tree": "^1.1.3",
         "@apify/storage-local": "1.0.0-beta.6",
         "@types/cheerio": "^0.22.22",
