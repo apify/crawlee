@@ -11,7 +11,7 @@ import Request from '../../build/request';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 import { Session } from '../../build/session_pool/session';
 
-describe('PuppeteerCrawler', () => {
+describe('BrowserCrawler', () => {
     let prevEnvHeadless;
     let logLevel;
     let localStorageEmulator;
@@ -54,7 +54,7 @@ describe('PuppeteerCrawler', () => {
             processed.push(request);
         };
 
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+        const puppeteerCrawler = new Apify.BrowserCrawler({
             requestList,
             minConcurrency: 1,
             maxConcurrency: 1,
@@ -84,7 +84,7 @@ describe('PuppeteerCrawler', () => {
             });
             let failedCalled = false;
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.BrowserCrawler({
                 requestList,
                 handlePageFunction: ({ page }) => {
                     page.close = async () => {
@@ -114,7 +114,7 @@ describe('PuppeteerCrawler', () => {
         });
         const handlePageSessions = [];
         const goToPageSessions = [];
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+        const puppeteerCrawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             handlePageFunction: async ({ session }) => {
@@ -148,7 +148,7 @@ describe('PuppeteerCrawler', () => {
         });
         const goToPageSessions = [];
         const loadedCookies = [];
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+        const puppeteerCrawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: true,
@@ -181,7 +181,7 @@ describe('PuppeteerCrawler', () => {
 
         let called = false;
         const failedRequests = [];
-        const crawler = new Apify.PuppeteerCrawler({
+        const crawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -214,7 +214,7 @@ describe('PuppeteerCrawler', () => {
 
         let called = false;
         const failedRequests = [];
-        const crawler = new Apify.PuppeteerCrawler({
+        const crawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -250,7 +250,7 @@ describe('PuppeteerCrawler', () => {
 
         let called = false;
         const failedRequests = [];
-        const crawler = new Apify.PuppeteerCrawler({
+        const crawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -306,16 +306,14 @@ describe('PuppeteerCrawler', () => {
             const generatedProxyUrl = await proxyConfiguration.newUrl();
             let browserProxy;
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.BrowserCrawler({
                 requestList,
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
                 gotoTimeoutSecs: 1,
-                browserPoolOptions: {
-                    postLaunchHooks: [(browserController) => {
-                        browserProxy = browserController.proxyUrl;
-                    }],
-                },
+                postLaunchHooks: [(browserController) => {
+                    browserProxy = browserController.proxyUrl;
+                }],
                 handlePageFunction: async () => {
                 },
                 proxyConfiguration,
@@ -345,7 +343,7 @@ describe('PuppeteerCrawler', () => {
                 sessions.push(session);
             };
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.BrowserCrawler({
                 requestList,
                 handlePageFunction,
                 proxyConfiguration,
@@ -375,16 +373,15 @@ describe('PuppeteerCrawler', () => {
 
             const browserProxies = [];
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.BrowserCrawler({
                 requestList,
                 handlePageFunction: async () => {},
                 gotoFunction: async () => {},
-                browserPoolOptions: {
-                    postLaunchHooks: [(browserController) => {
-                        browserProxies.push(browserController.proxyUrl);
-                    }],
-                    retireBrowserAfterPageCount: 1,
-                },
+                postLaunchHooks: [(browserController) => {
+                    browserProxies.push(browserController.proxyUrl);
+                }],
+                maxOpenPagesPerBrowser: 1,
+                retireBrowserAfterPageCount: 1,
                 proxyConfiguration,
             });
 
@@ -408,7 +405,7 @@ describe('PuppeteerCrawler', () => {
 
             try {
                 // eslint-disable-next-line no-unused-vars
-                const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                const puppeteerCrawler = new Apify.BrowserCrawler({
                     requestList,
                     handlePageFunction: async () => {},
                     gotoFunction: async () => {},
@@ -476,7 +473,7 @@ describe('PuppeteerCrawler', () => {
                 expect(crawlingContext.error.message).toEqual('some error');
             };
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.BrowserCrawler({
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -495,7 +492,7 @@ describe('PuppeteerCrawler', () => {
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.BrowserCrawler({
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
