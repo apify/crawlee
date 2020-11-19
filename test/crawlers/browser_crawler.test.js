@@ -54,7 +54,7 @@ describe('BrowserCrawler', () => {
             processed.push(request);
         };
 
-        const puppeteerCrawler = new Apify.BrowserCrawler({
+        const browserCrawler = new Apify.BrowserCrawler({
             requestList,
             minConcurrency: 1,
             maxConcurrency: 1,
@@ -63,9 +63,9 @@ describe('BrowserCrawler', () => {
         });
 
         await requestList.initialize();
-        await puppeteerCrawler.run();
+        await browserCrawler.run();
 
-        expect(puppeteerCrawler.autoscaledPool.minConcurrency).toBe(1);
+        expect(browserCrawler.autoscaledPool.minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
@@ -84,7 +84,7 @@ describe('BrowserCrawler', () => {
             });
             let failedCalled = false;
 
-            const puppeteerCrawler = new Apify.BrowserCrawler({
+            const browserCrawler = new Apify.BrowserCrawler({
                 requestList,
                 handlePageFunction: ({ page }) => {
                     page.close = async () => {
@@ -101,7 +101,7 @@ describe('BrowserCrawler', () => {
                 },
             });
             await requestList.initialize();
-            await puppeteerCrawler.run();
+            await browserCrawler.run();
             expect(failedCalled).toBe(false);
         }
     });
@@ -114,7 +114,7 @@ describe('BrowserCrawler', () => {
         });
         const handlePageSessions = [];
         const goToPageSessions = [];
-        const puppeteerCrawler = new Apify.BrowserCrawler({
+        const browserCrawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             handlePageFunction: async ({ session }) => {
@@ -128,9 +128,9 @@ describe('BrowserCrawler', () => {
         });
 
         await requestList.initialize();
-        await puppeteerCrawler.run();
+        await browserCrawler.run();
 
-        expect(puppeteerCrawler.sessionPool.constructor.name).toEqual('SessionPool');
+        expect(browserCrawler.sessionPool.constructor.name).toEqual('SessionPool');
         expect(handlePageSessions).toHaveLength(1);
         expect(goToPageSessions).toHaveLength(1);
         handlePageSessions.forEach((session) => expect(session.constructor.name).toEqual('Session'));
@@ -148,7 +148,7 @@ describe('BrowserCrawler', () => {
         });
         const goToPageSessions = [];
         const loadedCookies = [];
-        const puppeteerCrawler = new Apify.BrowserCrawler({
+        const browserCrawler = new Apify.BrowserCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: true,
@@ -164,7 +164,7 @@ describe('BrowserCrawler', () => {
         });
 
         await requestList.initialize();
-        await puppeteerCrawler.run();
+        await browserCrawler.run();
         expect(loadedCookies).toHaveLength(4);
         loadedCookies.forEach((cookie) => expect(cookie).toEqual('TEST=12321312312'));
     });
@@ -306,7 +306,7 @@ describe('BrowserCrawler', () => {
             const generatedProxyUrl = await proxyConfiguration.newUrl();
             let browserProxy;
 
-            const puppeteerCrawler = new Apify.BrowserCrawler({
+            const browserCrawler = new Apify.BrowserCrawler({
                 requestList,
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
@@ -318,7 +318,7 @@ describe('BrowserCrawler', () => {
                 },
                 proxyConfiguration,
             });
-            await puppeteerCrawler.run();
+            await browserCrawler.run();
             delete process.env[ENV_VARS.PROXY_PASSWORD];
 
             expect(browserProxy).toEqual(generatedProxyUrl);
@@ -343,7 +343,7 @@ describe('BrowserCrawler', () => {
                 sessions.push(session);
             };
 
-            const puppeteerCrawler = new Apify.BrowserCrawler({
+            const browserCrawler = new Apify.BrowserCrawler({
                 requestList,
                 handlePageFunction,
                 proxyConfiguration,
@@ -353,7 +353,7 @@ describe('BrowserCrawler', () => {
                 },
             });
 
-            await puppeteerCrawler.run();
+            await browserCrawler.run();
 
             expect(proxies[0].sessionId).toEqual(sessions[0].id);
             expect(proxies[1].sessionId).toEqual(sessions[1].id);
@@ -373,7 +373,7 @@ describe('BrowserCrawler', () => {
 
             const browserProxies = [];
 
-            const puppeteerCrawler = new Apify.BrowserCrawler({
+            const browserCrawler = new Apify.BrowserCrawler({
                 requestList,
                 handlePageFunction: async () => {
                 },
@@ -385,11 +385,11 @@ describe('BrowserCrawler', () => {
                 minConcurrency: 3,
             });
 
-            puppeteerCrawler.browserPool.postLaunchHooks.push((browserController) => {
+            browserCrawler.browserPool.postLaunchHooks.push((browserController) => {
                 browserProxies.push(browserController.proxyUrl);
             });
 
-            await puppeteerCrawler.run();
+            await browserCrawler.run();
 
             const proxiesToUse = proxyConfiguration.proxyUrls;
 
@@ -450,7 +450,7 @@ describe('BrowserCrawler', () => {
                 expect(crawlingContext.error.message).toEqual('some error');
             };
 
-            const puppeteerCrawler = new Apify.BrowserCrawler({
+            const browserCrawler = new Apify.BrowserCrawler({
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -460,7 +460,7 @@ describe('BrowserCrawler', () => {
                 handleFailedRequestFunction,
             });
 
-            await puppeteerCrawler.run();
+            await browserCrawler.run();
         });
 
         test('handleFailedRequestFunction contains proxyInfo', async () => {
@@ -469,7 +469,7 @@ describe('BrowserCrawler', () => {
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
 
-            const puppeteerCrawler = new Apify.BrowserCrawler({
+            const browserCrawler = new Apify.BrowserCrawler({
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -484,7 +484,7 @@ describe('BrowserCrawler', () => {
                 },
             });
 
-            await puppeteerCrawler.run();
+            await browserCrawler.run();
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();
