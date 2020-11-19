@@ -9,6 +9,7 @@ import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, getInput, openKeyValueStore } from './storages/key_value_store';
 import { launchPuppeteer } from './puppeteer';
 import BrowserCrawler from './crawlers/browser_crawler';
+import PuppeteerCrawler from './crawlers/puppeteer_crawler';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { createProxyConfiguration } from './proxy_configuration';
@@ -78,6 +79,7 @@ export {
 
     launchPuppeteer,
     BrowserCrawler,
+    PuppeteerCrawler,
 
     PseudoUrl,
 

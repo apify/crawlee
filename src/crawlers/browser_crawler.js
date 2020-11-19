@@ -1,7 +1,7 @@
 import ow from 'ow';
 import { URL } from 'url';
 import * as _ from 'underscore';
-import { BrowserPool, PuppeteerPlugin } from 'browser-pool'; // eslint-disable-line import/no-duplicates
+import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -38,7 +38,10 @@ class BrowserCrawler {
         this.basicCrawler = this._createBasicCrawler(options);
         this.sessionPool = this._maybeCreateSessionPool(options);
 
-        this.browserPool = this._createBrowserPool(options);
+        this.browserPool = this.createBrowserPool(options);
+
+        this._maybeAddSessionPoolToBrowserPool();
+        this._maybeAddPoxyConfigurationToBrowserPool();
     }
 
     async run() {
@@ -281,7 +284,7 @@ class BrowserCrawler {
         });
     }
 
-    _createBrowserPool(options) {
+    createBrowserPool(options) {
         const {
             browserPlugins = [],
             maxOpenPagesPerBrowser,
@@ -296,22 +299,9 @@ class BrowserCrawler {
             prePageCloseHooks,
             postPageCloseHooks,
         } = options;
-        let createProxyUrlFunction;
-
-        if (this.proxyConfiguration) {
-            createProxyUrlFunction = this._createProxyUrlFunction.bind(this);
-        }
-
-        const puppeteerPlugin = new PuppeteerPlugin(
-            // eslint-disable-next-line
-            require('puppeteer'), // @TODO:  allow custom library
-            {
-                createProxyUrlFunction: createProxyUrlFunction && createProxyUrlFunction.bind(this),
-            },
-        );
 
         this.browserPool = new BrowserPool({
-            browserPlugins: [puppeteerPlugin],
+            browserPlugins,
             maxOpenPagesPerBrowser,
             retireBrowserAfterPageCount,
             operationTimeoutSecs,
@@ -325,15 +315,19 @@ class BrowserCrawler {
             postPageCloseHooks,
         });
 
+        return this.browserPool;
+    }
+
+    _maybeAddSessionPoolToBrowserPool() {
         if (this.sessionPool) {
             this._addSessionPoolToBrowserPool();
         }
+    }
 
+    _maybeAddPoxyConfigurationToBrowserPool() {
         if (this.proxyConfiguration) {
             this._addProxyConfigurationToBrowserPool();
         }
-
-        return this.browserPool;
     }
 
     _maybeCreateSessionPool(options) {
