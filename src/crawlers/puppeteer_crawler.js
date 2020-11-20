@@ -10,14 +10,14 @@ class PuppeteerCrawler extends BrowserCrawler {
         const {
             puppeteerModule = require('puppeteer'), // eslint-disable-line
             launchPuppeteerOptions = {},
-            launchPuppeteerFunction,
-            proxyConfiguration,
         } = options;
-
         super(options);
+
+        this.launchPuppeteerOptions = launchPuppeteerOptions;
+        this.puppeteerModule = puppeteerModule;
     }
 
-    createBrowserPool(options) {
+    createBrowserPool() {
         let createProxyUrlFunction;
 
         if (this.proxyConfiguration) {
@@ -32,10 +32,9 @@ class PuppeteerCrawler extends BrowserCrawler {
                 createProxyUrlFunction: createProxyUrlFunction && createProxyUrlFunction.bind(this),
             },
         );
-        options.browserPlugins = [puppeteerPlugin];
-        console.dir(options);
+        this.browserPlugins = [puppeteerPlugin];
 
-        return super.createBrowserPool(options);
+        return super.createBrowserPool();
     }
 }
 

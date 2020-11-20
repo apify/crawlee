@@ -383,10 +383,9 @@ describe('PuppeteerCrawler', () => {
                 proxyConfiguration,
                 maxRequestRetries: 0,
                 minConcurrency: 3,
-            });
-
-            browserCrawler.browserPool.postLaunchHooks.push((browserController) => {
-                browserProxies.push(browserController.proxyUrl);
+                postLaunchHooks: [(browserController) => {
+                    browserProxies.push(browserController.proxyUrl);
+                }],
             });
 
             await browserCrawler.run();

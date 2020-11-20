@@ -1,6 +1,7 @@
 import { ENV_VARS } from 'apify-shared/consts';
 import sinon from 'sinon';
-import { BrowserPool } from 'browser-pool';
+import { BrowserPool, PuppeteerPlugin } from 'browser-pool';
+import puppeteer from 'puppeteer';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
@@ -15,6 +16,7 @@ describe('BrowserCrawler', () => {
     let prevEnvHeadless;
     let logLevel;
     let localStorageEmulator;
+    const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
     beforeAll(async () => {
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
@@ -55,6 +57,7 @@ describe('BrowserCrawler', () => {
         };
 
         const browserCrawler = new Apify.BrowserCrawler({
+            browserPlugins: [puppeteerPlugin],
             requestList,
             minConcurrency: 1,
             maxConcurrency: 1,
@@ -85,6 +88,7 @@ describe('BrowserCrawler', () => {
             let failedCalled = false;
 
             const browserCrawler = new Apify.BrowserCrawler({
+                browserPlugins: [puppeteerPluginWithoutProxy],
                 requestList,
                 handlePageFunction: ({ page }) => {
                     page.close = async () => {
@@ -115,6 +119,7 @@ describe('BrowserCrawler', () => {
         const handlePageSessions = [];
         const goToPageSessions = [];
         const browserCrawler = new Apify.BrowserCrawler({
+            browserPlugins: [puppeteerPlugin],
             requestList,
             useSessionPool: true,
             handlePageFunction: async ({ session }) => {
@@ -149,6 +154,7 @@ describe('BrowserCrawler', () => {
         const goToPageSessions = [];
         const loadedCookies = [];
         const browserCrawler = new Apify.BrowserCrawler({
+            browserPlugins: [puppeteerPlugin],
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: true,
@@ -182,6 +188,7 @@ describe('BrowserCrawler', () => {
         let called = false;
         const failedRequests = [];
         const crawler = new Apify.BrowserCrawler({
+            browserPlugins: [puppeteerPlugin],
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -215,6 +222,7 @@ describe('BrowserCrawler', () => {
         let called = false;
         const failedRequests = [];
         const crawler = new Apify.BrowserCrawler({
+            browserPlugins: [puppeteerPlugin],
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -251,6 +259,7 @@ describe('BrowserCrawler', () => {
         let called = false;
         const failedRequests = [];
         const crawler = new Apify.BrowserCrawler({
+            browserPlugins: [puppeteerPlugin],
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -307,6 +316,7 @@ describe('BrowserCrawler', () => {
             let browserProxy;
 
             const browserCrawler = new Apify.BrowserCrawler({
+                browserPlugins: [puppeteerPlugin],
                 requestList,
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
@@ -344,6 +354,7 @@ describe('BrowserCrawler', () => {
             };
 
             const browserCrawler = new Apify.BrowserCrawler({
+                browserPlugins: [puppeteerPlugin],
                 requestList,
                 handlePageFunction,
                 proxyConfiguration,
@@ -374,6 +385,7 @@ describe('BrowserCrawler', () => {
             const browserProxies = [];
 
             const browserCrawler = new Apify.BrowserCrawler({
+                browserPlugins: [puppeteerPlugin],
                 requestList,
                 handlePageFunction: async () => {
                 },
@@ -451,6 +463,7 @@ describe('BrowserCrawler', () => {
             };
 
             const browserCrawler = new Apify.BrowserCrawler({
+                browserPlugins: [puppeteerPlugin],
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -470,6 +483,7 @@ describe('BrowserCrawler', () => {
             const proxyConfiguration = await Apify.createProxyConfiguration();
 
             const browserCrawler = new Apify.BrowserCrawler({
+                browserPlugins: [puppeteerPlugin],
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,

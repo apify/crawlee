@@ -1,5 +1,4 @@
 import ow from 'ow';
-import { URL } from 'url';
 import * as _ from 'underscore';
 import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
@@ -7,9 +6,14 @@ import { gotoExtended } from '../puppeteer_utils';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-
 import { validators } from '../validators';
 import defaultLog from '../utils_log';
+import {
+    handleRequestTimeout,
+    getSessionIdFromProxyUrl,
+    throwOnBlockedRequest,
+} from './crawler_utils';
+
 // eslint-enable-line import/no-duplicates
 
 class BrowserCrawler {
@@ -23,6 +27,18 @@ class BrowserCrawler {
             gotoTimeoutSecs = 60,
             persistCookiesPerSession = false,
             proxyConfiguration,
+            browserPlugins = [],
+            maxOpenPagesPerBrowser,
+            retireBrowserAfterPageCount,
+            operationTimeoutSecs,
+            killBrowserAfterSecs,
+            browserKillerIntervalSecs,
+            preLaunchHooks,
+            postLaunchHooks,
+            prePageCreateHooks,
+            postPageCreateHooks,
+            prePageCloseHooks,
+            postPageCloseHooks,
         } = options;
         this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
         this.handlePageFunction = handlePageFunction;
@@ -35,17 +51,83 @@ class BrowserCrawler {
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
 
+        // BrowserPool options
+        this.browserPlugins = browserPlugins;
+        this.maxOpenPagesPerBrowser = maxOpenPagesPerBrowser;
+        this.retireBrowserAfterPageCount = retireBrowserAfterPageCount;
+        this.operationTimeoutSecs = operationTimeoutSecs;
+        this.killBrowserAfterSecs = killBrowserAfterSecs;
+        this.browserKillerIntervalSecs = browserKillerIntervalSecs;
+        // BrowserPool hooks
+        this.preLaunchHooks = preLaunchHooks;
+        this.postLaunchHooks = postLaunchHooks;
+        this.prePageCreateHooks = prePageCreateHooks;
+        this.postPageCreateHooks = postPageCreateHooks;
+        this.prePageCloseHooks = prePageCloseHooks;
+        this.postPageCloseHooks = postPageCloseHooks;
+
         this.basicCrawler = this._createBasicCrawler(options);
         this.sessionPool = this._maybeCreateSessionPool(options);
 
-        this.browserPool = this.createBrowserPool(options);
+        this.browserPool = null;
+    }
 
-        this._maybeAddSessionPoolToBrowserPool();
-        this._maybeAddPoxyConfigurationToBrowserPool();
+    _createBasicCrawler(options) {
+        const {
+            maxConcurrency,
+            minConcurrency,
+            // BasicCrawler options
+            requestList,
+            requestQueue,
+            maxRequestRetries,
+            maxRequestsPerCrawl,
+            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
+            autoscaledPoolOptions,
+        } = options;
+        /** @ignore */
+        return new BasicCrawler({
+            // Basic crawler options.
+            requestList,
+            requestQueue,
+            maxRequestRetries,
+            maxRequestsPerCrawl,
+            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
+            handleRequestTimeoutSecs: this.handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
+            handleFailedRequestFunction,
+
+            // Autoscaled pool options.
+            maxConcurrency,
+            minConcurrency,
+            autoscaledPoolOptions,
+
+            // log
+            log: this.log,
+        });
+    }
+
+    _maybeCreateSessionPool(options) {
+        const {
+            useSessionPool = false,
+            sessionPoolOptions = {},
+        } = options;
+
+        if (!useSessionPool) {
+            return;
+        }
+
+        return new SessionPool({
+            ...sessionPoolOptions,
+            log: this.log,
+        });
     }
 
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
+
+        this.createBrowserPool();
+
+        this._maybeAddSessionPoolToBrowserPool();
+        this._maybeAddPoxyConfigurationToBrowserPool();
 
         if (this.sessionPool) {
             await this.sessionPool.initialize();
@@ -62,6 +144,59 @@ class BrowserCrawler {
             }
             await this.browserPool.destroy();
         }
+    }
+
+    createBrowserPool() {
+        this.browserPool = new BrowserPool({
+            browserPlugins: this.browserPlugins.map((plugin) => {
+                if (!plugin.createProxyUrlFunction) {
+                    plugin.createProxyUrlFunction = this._createProxyUrlFunction.bind(this);
+                }
+                return plugin;
+            }),
+            maxOpenPagesPerBrowser: this.maxOpenPagesPerBrowser,
+            retireBrowserAfterPageCount: this.retireBrowserAfterPageCount,
+            operationTimeoutSecs: this.operationTimeoutSecs,
+            killBrowserAfterSecs: this.killBrowserAfterSecs,
+            browserKillerIntervalSecs: this.browserKillerIntervalSecs,
+            preLaunchHooks: this.preLaunchHooks,
+            postLaunchHooks: this.postLaunchHooks,
+            prePageCreateHooks: this.prePageCreateHooks,
+            postPageCreateHooks: this.postPageCreateHooks,
+            prePageCloseHooks: this.prePageCloseHooks,
+            postPageCloseHooks: this.postPageCloseHooks,
+        });
+
+        return this.browserPool;
+    }
+
+    _maybeAddSessionPoolToBrowserPool() {
+        if (this.sessionPool) {
+            // @TODO: proper session retirement
+            this.browserPool.postLaunchHooks.push(this._sessionPoolPostLaunchHook.bind(this));
+        }
+    }
+
+    async _sessionPoolPostLaunchHook(browserController) {
+        const { proxyUrl } = browserController;
+
+        if (proxyUrl) {
+            const sessionIdFromUrl = getSessionIdFromProxyUrl(proxyUrl);
+            browserController.userData.session = this.sessionPool.sessions.find(({ id }) => id === sessionIdFromUrl);
+        }
+
+        browserController.userData.session = await this.sessionPool.getSession();
+    }
+
+    _maybeAddPoxyConfigurationToBrowserPool() {
+        if (this.proxyConfiguration) {
+            this.browserPool.postLaunchHooks.push(this._proxyConfigurationHook.bind(this));
+        }
+    }
+
+    async _proxyConfigurationHook(browserController) {
+        const { session } = browserController.userData;
+        browserController.userData.proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
     }
 
     /**
@@ -111,6 +246,47 @@ class BrowserCrawler {
         }
     }
 
+    _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
+        crawlingContext.page = page;
+        // eslint-disable-next-line no-underscore-dangle
+        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
+        crawlingContext.browserController = browserControllerInstance;
+        crawlingContext.browserPool = this.browserPool;
+
+        if (this.sessionPool) {
+            crawlingContext.session = browserControllerInstance.userData.session;
+        }
+
+        if (this.proxyConfiguration) {
+            crawlingContext.proxyInfo = browserControllerInstance.userData.proxyInfo;
+        }
+    }
+
+    async _handleNavigation(crawlingContext) {
+        const { request, session } = crawlingContext;
+        let response;
+
+        try {
+            response = await this.gotoFunction(crawlingContext);
+        } catch (err) {
+            // It would be better to compare the instances,
+            // but we don't have access to puppeteer.errors here.
+            if (err.constructor.name === 'TimeoutError') {
+                handleRequestTimeout(session, err.message);
+            }
+        }
+
+        if (this.sessionPool && response) {
+            if (typeof response === 'object' && typeof response.status === 'function') {
+                throwOnBlockedRequest(session, response.status());
+            } else {
+                this.log.debug('Got a malformed Puppeteer response.', { request, response });
+            }
+        }
+
+        return response;
+    }
+
     /**
      * @param {Object} options
      * @param {PuppeteerPage} options.page
@@ -138,45 +314,6 @@ class BrowserCrawler {
         this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 
-    /**
-     * Handles timeout request
-     * @param {Session} session
-     * @param {string} errorMessage
-     * @private
-     */
-    _handleRequestTimeout(session, errorMessage) {
-        if (session) session.markBad();
-        const timeoutMillis = errorMessage.match(/(\d+) ms/)[1]; // first capturing group
-        const timeoutSecs = Number(timeoutMillis) / 1000;
-        throw new Error(`gotoFunction timed out after ${timeoutSecs} seconds.`);
-    }
-
-    /**
-     * Handles blocked request
-     * @param {Session} session
-     * @param {number} statusCode
-     * @private
-     */
-    _throwOnBlockedRequest(session, statusCode) {
-        const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
-
-        if (isBlocked) {
-            throw new Error(`Request blocked - received ${statusCode} status code.`);
-        }
-    }
-
-    _getSessionIdFromProxyUrl(proxyUrl) {
-        const parsedUrl = new URL(proxyUrl);
-        const { username } = parsedUrl.username;
-        if (!username) {
-            return;
-        }
-        const parts = username.split(',');
-        const sessionPart = parts.find((part) => part.includes('session-'));
-
-        return sessionPart && sessionPart.replace('session-', '');
-    }
-
     async _createProxyUrlFunction() {
         let session;
 
@@ -187,33 +324,10 @@ class BrowserCrawler {
         return this.proxyConfiguration.newUrl(session && session.id);
     }
 
-    _addSessionPoolToBrowserPool() {
-        // @TODO: proper session retirement
-        this.browserPool.postLaunchHooks.push(this._sessionPoolHook.bind(this));
-    }
-
-    async _sessionPoolHook(browserController) {
-        const { proxyUrl } = browserController;
-
-        if (proxyUrl) {
-            const sessionIdFromUrl = this._getSessionIdFromProxyUrl(proxyUrl);
-            browserController.userData.session = this.sessionPool.sessions.find(({ id }) => id === sessionIdFromUrl);
-        }
-
-        browserController.userData.session = await this.sessionPool.getSession();
-    }
-
-    _addProxyConfigurationToBrowserPool() {
-        this.browserPool.postLaunchHooks.push(this._proxyConfigurationHook.bind(this));
-    }
-
-    async _proxyConfigurationHook(browserController) {
-        const { session } = browserController.userData;
-        browserController.userData.proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
-    }
-
+    // @TODO: create a validator to have a one line validation.
     _validateOptions(options) {
         ow(options, ow.object.exactShape({
+            browserPlugins: ow.array.minLength(1),
             handlePageFunction: ow.function,
             gotoFunction: ow.optional.function,
             handlePageTimeoutSecs: ow.optional.number,
@@ -249,142 +363,6 @@ class BrowserCrawler {
             useSessionPool: ow.optional.boolean,
             proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         }));
-    }
-
-    _createBasicCrawler(options) {
-        const {
-            maxConcurrency,
-            minConcurrency,
-            // BasicCrawler options
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
-            autoscaledPoolOptions,
-        } = options;
-        /** @ignore */
-        return new BasicCrawler({
-            // Basic crawler options.
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: this.handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-            handleFailedRequestFunction,
-
-            // Autoscaled pool options.
-            maxConcurrency,
-            minConcurrency,
-            autoscaledPoolOptions,
-
-            // log
-            log: this.log,
-        });
-    }
-
-    createBrowserPool(options) {
-        const {
-            browserPlugins = [],
-            maxOpenPagesPerBrowser,
-            retireBrowserAfterPageCount,
-            operationTimeoutSecs,
-            killBrowserAfterSecs,
-            browserKillerIntervalSecs,
-            preLaunchHooks,
-            postLaunchHooks,
-            prePageCreateHooks,
-            postPageCreateHooks,
-            prePageCloseHooks,
-            postPageCloseHooks,
-        } = options;
-
-        this.browserPool = new BrowserPool({
-            browserPlugins,
-            maxOpenPagesPerBrowser,
-            retireBrowserAfterPageCount,
-            operationTimeoutSecs,
-            killBrowserAfterSecs,
-            browserKillerIntervalSecs,
-            preLaunchHooks,
-            postLaunchHooks,
-            prePageCreateHooks,
-            postPageCreateHooks,
-            prePageCloseHooks,
-            postPageCloseHooks,
-        });
-
-        return this.browserPool;
-    }
-
-    _maybeAddSessionPoolToBrowserPool() {
-        if (this.sessionPool) {
-            this._addSessionPoolToBrowserPool();
-        }
-    }
-
-    _maybeAddPoxyConfigurationToBrowserPool() {
-        if (this.proxyConfiguration) {
-            this._addProxyConfigurationToBrowserPool();
-        }
-    }
-
-    _maybeCreateSessionPool(options) {
-        const {
-            useSessionPool = false,
-            sessionPoolOptions = {},
-        } = options;
-
-        if (!useSessionPool) {
-            return;
-        }
-
-        return new SessionPool({
-            ...sessionPoolOptions,
-            log: this.log,
-        });
-    }
-
-    _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
-        crawlingContext.page = page;
-        // eslint-disable-next-line no-underscore-dangle
-        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
-        crawlingContext.browserController = browserControllerInstance;
-        crawlingContext.browserPool = this.browserPool;
-
-        if (this.sessionPool) {
-            crawlingContext.session = browserControllerInstance.userData.session;
-        }
-
-        if (this.proxyConfiguration) {
-            crawlingContext.proxyInfo = browserControllerInstance.userData.proxyInfo;
-        }
-    }
-
-    async _handleNavigation(crawlingContext) {
-        const { request, session } = crawlingContext;
-        let response;
-
-        try {
-            response = await this.gotoFunction(crawlingContext);
-        } catch (err) {
-            // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
-            if (err.constructor.name === 'TimeoutError') {
-                this._handleRequestTimeout(session, err.message);
-            }
-        }
-
-        if (this.sessionPool && response) {
-            if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(session, response.status());
-            } else {
-                this.log.debug('Got a malformed Puppeteer response.', { request, response });
-            }
-        }
-
-        return response;
     }
 }
 
