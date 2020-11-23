@@ -1,12 +1,19 @@
 0.22.0 / XXX
 ====================
+This is the last major release before SDK v1.0.0. We're committed to deliver v1 at the
+end of 2020 so stay tuned. Besides Playwright integration via a new `BrowserPool`,
+it will be the first release of SDK that we'll support for an extended period of time.
+We will not make any breaking changes until 2.0.0, which will come at the end of
+2021. But enough about v1, let's see the changes in 0.22.0.
+
 In this release we've changed a lot of code, but you may not even notice.
 We've updated the underlying `apify-client` package which powers all communication with
 the Apify API to version `1.0.0`. This means a completely new API for all internal calls.
 If you use `Apify.client` calls in your code, this will be a large breaking change for you.
-Visit the client docs for a migration guide. <----- TODO
+Visit the [client docs](https://github.com/apify/apify-client-js/blob/master/README.md)
+to see what's new.
 
-Until now, local emulation of Apify Storages was part of the SDK. We've moved the logic
+Until now, local emulation of Apify Storages has been a part of the SDK. We moved the logic
 into a separate package `@apify/storage-local` which shares interface with `apify-client`.
 `RequestQueue` is now powered by `SQLite3` instead of file system, which improves
 reliability and performance quite a bit. `Dataset` and `KeyValueStore` still use file
