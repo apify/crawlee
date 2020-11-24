@@ -118,6 +118,6 @@
         "why-is-node-running": "^2.2.0"
     },
     "optionalDependencies": {
-        "puppeteer": "5.3.1"
+        "puppeteer": "5.4.1"
     }
 }
