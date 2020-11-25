@@ -1,7 +1,7 @@
 # How to release new versions of Apify SDK
-Release of new versions is managed by Travis CI. On pushes to the `master` branch, prerelease versions
+Release of new versions is managed by GitHub Actions. On pushes to the `master` branch, prerelease versions
 are automatically produced. Latest releases are triggered manually through the GitHub release tool.
-After creating a release there, Travis will automatically produce a latest version of the package.
+After creating a release there, Actions will automatically produce a latest version of the package.
 
 ## TLDR;
 - To **NOT** release anything on a push to `master`, add `[skip ci]` to your commit message.
@@ -11,31 +11,31 @@ After creating a release there, Travis will automatically produce a latest versi
 
 ## Prerelease (beta) versions
 On each push to the `master` branch, a new prerelease version is automatically built and published
-by Travis CI. To skip the process, add `[skip ci]` to your commit message.
+by GitHub Actions. To skip the process, add `[skip ci]` to your commit message.
 
 ### Release process
-1. Travis build is triggered by a push to `master` (typically a merge of a PR).
-2. Travis lints the source code, checks that documentation is built and runs tests in Node.js 8, 10 and 12.
-3. If all is well, a new prerelease version is published to NPM (`${VERSION}-beta.${COUNTER}`), 
+1. Actions build is triggered by a push to `master` (typically a merge of a PR).
+2. Actions lint the source code and run tests in Node.js 10, 12 and 14.
+3. If all is well, a new prerelease version is published to NPM (`${VERSION}-beta.${COUNTER}`),
    where `VERSION` is the version in package.json and `COUNTER` is a zero based index of existing prereleases.
    Example: `0.15.1-beta.3`.
-4. The package is tagged with the `beta` NPM tag and a Git tag is associated with the triggering commit. 
+4. The package is tagged with the `beta` NPM tag and a Git tag is associated with the triggering commit.
 5. A build of Apify docker images is triggered that updates the `beta` packages to use the newly published package.
 6. All done and ready to use.
 
 ### Updating a release version
 When releasing breaking changes, new features or for any other reason that requires a version bump,
 manually increment the version in the `package.json` file. Such as from `0.14.15` to `0.15.0`.
-This will automatically trigger a prerelase build with the `0.15.0-beta.0` version.
+This will automatically trigger a prerelease build with the `0.15.0-beta.0` version.
 
 ### Existing versions
-Travis will not allow you to publish a prerelease of a version that's already published. For example,
+Actions will not allow you to publish a prerelease of a version that's already published. For example,
 if version `0.14.15` already exists on NPM, you can no longer release a `0.14.15-beta.0` version.
 
 ## Latest release
 To trigger a latest release, go to the GitHub release tool (select `releases` under `<> Code`).
-There, draft a new release, fill the form (see below) and hit `Publish release`. Travis CI will automatically
-pick up this action and release a latest version of the package.
+There, draft a new release, fill the form (see below) and hit `Publish release`.
+Actions will automatically release the latest version of the package.
 
 ### How to fill the form
 - The version tag should be in the format `v${VERSION}` where `VERSION` is the version from `package.json`.
@@ -49,6 +49,6 @@ pick up this action and release a latest version of the package.
 
 ### Release process
 Similarly to the prerelease, the latest release process:
-1. Triggers build, lints, checks docs, runs tests.
+1. Triggers build, lints, runs tests.
 2. Publishes new package to NPM with the `latest` tag and the version from package.json. Such as `0.15.1`.
-3. Builds Apify docker images that updates the `latest` packages to the newly published package.
+3. A build and deploy of Apify docker images is triggered with the `latest` tag.

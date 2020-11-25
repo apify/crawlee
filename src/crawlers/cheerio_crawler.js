@@ -3,6 +3,7 @@ import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_u
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as htmlparser from 'htmlparser2';
+import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import * as iconv from 'iconv-lite';
 import ow from 'ow';
 import * as _ from 'underscore';
@@ -727,7 +728,8 @@ class CheerioCrawler {
                 if (err) reject(err);
                 else resolve(dom);
             });
-            const parser = new htmlparser.WritableStream(domHandler, { decodeEntities: true });
+            const parser = new WritableStream(domHandler, { decodeEntities: true });
+            parser.on('error', reject);
             response.on('error', reject).pipe(parser);
         });
     }
