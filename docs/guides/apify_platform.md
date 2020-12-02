@@ -35,7 +35,7 @@ scraper using the CLI, your credentials will automatically be added.
 npm install -g apify-cli
 ```
 ```
-apify login YOUR_API_TOKEN
+apify login -t YOUR_API_TOKEN
 ```
 In your project folder:
 ```
