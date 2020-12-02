@@ -2,16 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const PKG_JSON_PATH = path.join(__dirname, '..', 'package.json');
+const PKG_JSON_PATH = path.join(__dirname, '..', '..', 'package.json');
 
 const pkgJson = require(PKG_JSON_PATH);
-
-if (process.env.TRAVIS_TAG) {
-    // Only latest releases will have a tag.
-    console.log('before-deploy: TRAVIS_TAG:', process.env.TRAVIS_TAG);
-    console.log('before-deploy: Skipping version update, because it\'s a latest release.');
-    process.exit(0);
-}
 
 const PACKAGE_NAME = pkgJson.name;
 const VERSION = pkgJson.version;

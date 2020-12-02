@@ -49,6 +49,9 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  Function accepts `response` object as a single parameter and should return true or false.
  *  If function returns true request gets aborted. This function is passed to the
  *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
+ * @property {boolean} [useHttp2=false]
+ *  If set to true, it will additionally accept HTTP2 requests.
+ *  It will choose either HTTP/1.1 or HTTP/2 depending on the ALPN protocol.
  */
 
 /**

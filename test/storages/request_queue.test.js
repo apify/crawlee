@@ -594,4 +594,28 @@ describe('RequestQueue remote', () => {
         expect(deleteMock).toHaveBeenCalledTimes(1);
         expect(deleteMock).toHaveBeenLastCalledWith();
     });
+
+    test('getRequest should remove nulls from stored requests', async () => {
+        const url = 'http://example.com';
+        const method = 'POST';
+        const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: apifyClient });
+        const getRequestMock = jest
+            .spyOn(queue.client, 'getRequest')
+            .mockResolvedValueOnce({
+                url,
+                loadedUrl: null,
+                errorMessages: null,
+                handledAt: null,
+                method,
+            });
+
+        const request = await queue.getRequest('abc');
+        expect(getRequestMock).toHaveBeenCalledTimes(1);
+        expect(getRequestMock).toHaveBeenLastCalledWith('abc');
+        expect(request.url).toBe(url);
+        expect(request.loadedUrl).toBeUndefined();
+        expect(request.errorMessages).toEqual([]);
+        expect(request.handledAt).toBeUndefined();
+        expect(request.method).toBe(method);
+    });
 });
