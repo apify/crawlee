@@ -1,5 +1,6 @@
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserCrawler from './browser_crawler';
+import { handleRequestTimeout } from './crawler_utils';
 
 class PuppeteerCrawler extends BrowserCrawler {
     constructor(options = {}) {
@@ -11,6 +12,13 @@ class PuppeteerCrawler extends BrowserCrawler {
             puppeteerModule = require('puppeteer'), // eslint-disable-line
             launchPuppeteerOptions = {},
         } = options;
+        options.postNavigationHooks = [({ error, session }) => {
+            // It would be better to compare the instances,
+            // but we don't have access to puppeteer.errors here.
+            if (error && error.constructor.name === 'TimeoutError') {
+                handleRequestTimeout(session, error.message);
+            }
+        }];
         super(options);
 
         this.launchPuppeteerOptions = launchPuppeteerOptions;

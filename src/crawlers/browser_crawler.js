@@ -9,7 +9,6 @@ import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-dup
 import { validators } from '../validators';
 import defaultLog from '../utils_log';
 import {
-    handleRequestTimeout,
     getSessionIdFromProxyUrl,
     throwOnBlockedRequest,
 } from './crawler_utils';
@@ -22,27 +21,17 @@ class BrowserCrawler {
 
         const {
             handlePageFunction,
-            gotoFunction = this._defaultGotoFunction,
             handlePageTimeoutSecs = 60,
             gotoTimeoutSecs = 60,
-            persistCookiesPerSession = false,
+            persistCookiesPerSession = true,
             proxyConfiguration,
-            browserPlugins = [],
-            maxOpenPagesPerBrowser,
-            retireBrowserAfterPageCount,
-            operationTimeoutSecs,
-            killBrowserAfterSecs,
-            browserKillerIntervalSecs,
-            preLaunchHooks,
-            postLaunchHooks,
-            prePageCreateHooks,
-            postPageCreateHooks,
-            prePageCloseHooks,
-            postPageCloseHooks,
+            browserPoolOptions,
+            preNavigationHooks = [],
+            postNavigationHooks = [],
         } = options;
-        this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
+
+        this.log = defaultLog.child({ prefix: 'BrowserCrawler' });
         this.handlePageFunction = handlePageFunction;
-        this.gotoFunction = gotoFunction;
 
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
@@ -51,25 +40,21 @@ class BrowserCrawler {
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
 
-        // BrowserPool options
-        this.browserPlugins = browserPlugins;
-        this.maxOpenPagesPerBrowser = maxOpenPagesPerBrowser;
-        this.retireBrowserAfterPageCount = retireBrowserAfterPageCount;
-        this.operationTimeoutSecs = operationTimeoutSecs;
-        this.killBrowserAfterSecs = killBrowserAfterSecs;
-        this.browserKillerIntervalSecs = browserKillerIntervalSecs;
-        // BrowserPool hooks
-        this.preLaunchHooks = preLaunchHooks;
-        this.postLaunchHooks = postLaunchHooks;
-        this.prePageCreateHooks = prePageCreateHooks;
-        this.postPageCreateHooks = postPageCreateHooks;
-        this.prePageCloseHooks = prePageCloseHooks;
-        this.postPageCloseHooks = postPageCloseHooks;
+        this.preNavigationHooks = preNavigationHooks;
+        this.postNavigationHooks = postNavigationHooks;
 
         this.basicCrawler = this._createBasicCrawler(options);
         this.sessionPool = this._maybeCreateSessionPool(options);
 
-        this.browserPool = null;
+        this.browserPool = new BrowserPool({
+            ...browserPoolOptions,
+            browserPlugins: browserPoolOptions.browserPlugins.map((plugin) => {
+                if (!plugin.createProxyUrlFunction && this.proxyConfiguration) {
+                    plugin.createProxyUrlFunction = this._createProxyUrlFunction.bind(this);
+                }
+                return plugin;
+            }),
+        });
     }
 
     _createBasicCrawler(options) {
@@ -107,27 +92,23 @@ class BrowserCrawler {
 
     _maybeCreateSessionPool(options) {
         const {
-            useSessionPool = false,
+            useSessionPool = true,
             sessionPoolOptions = {},
         } = options;
 
-        if (!useSessionPool) {
-            return;
+        if (useSessionPool || this.persistCookiesPerSession) {
+            return new SessionPool({
+                ...sessionPoolOptions,
+                log: this.log,
+            });
         }
-
-        return new SessionPool({
-            ...sessionPoolOptions,
-            log: this.log,
-        });
     }
 
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        this.createBrowserPool();
-
         this._maybeAddSessionPoolToBrowserPool();
-        this._maybeAddPoxyConfigurationToBrowserPool();
+        this.maybeAddProxyConfigurationToBrowserPool();
 
         if (this.sessionPool) {
             await this.sessionPool.initialize();
@@ -144,30 +125,6 @@ class BrowserCrawler {
             }
             await this.browserPool.destroy();
         }
-    }
-
-    createBrowserPool() {
-        this.browserPool = new BrowserPool({
-            browserPlugins: this.browserPlugins.map((plugin) => {
-                if (!plugin.createProxyUrlFunction) {
-                    plugin.createProxyUrlFunction = this._createProxyUrlFunction.bind(this);
-                }
-                return plugin;
-            }),
-            maxOpenPagesPerBrowser: this.maxOpenPagesPerBrowser,
-            retireBrowserAfterPageCount: this.retireBrowserAfterPageCount,
-            operationTimeoutSecs: this.operationTimeoutSecs,
-            killBrowserAfterSecs: this.killBrowserAfterSecs,
-            browserKillerIntervalSecs: this.browserKillerIntervalSecs,
-            preLaunchHooks: this.preLaunchHooks,
-            postLaunchHooks: this.postLaunchHooks,
-            prePageCreateHooks: this.prePageCreateHooks,
-            postPageCreateHooks: this.postPageCreateHooks,
-            prePageCloseHooks: this.prePageCloseHooks,
-            postPageCloseHooks: this.postPageCloseHooks,
-        });
-
-        return this.browserPool;
     }
 
     _maybeAddSessionPoolToBrowserPool() {
@@ -188,7 +145,7 @@ class BrowserCrawler {
         browserController.userData.session = await this.sessionPool.getSession();
     }
 
-    _maybeAddPoxyConfigurationToBrowserPool() {
+    maybeAddProxyConfigurationToBrowserPool() {
         if (this.proxyConfiguration) {
             this.browserPool.postLaunchHooks.push(this._proxyConfigurationHook.bind(this));
         }
@@ -219,16 +176,14 @@ class BrowserCrawler {
         }
 
         try {
-            const response = await this._handleNavigation(crawlingContext);
-
-            request.loadedUrl = await page.url();
+            await this._handleNavigation(crawlingContext);
+            await this._handleResponse(crawlingContext);
 
             // save cookies
             if (this.persistCookiesPerSession) {
                 const cookies = await page.cookies(request.loadedUrl);
                 session.setPuppeteerCookies(cookies, request.loadedUrl);
             }
-            crawlingContext.response = response;
 
             await addTimeoutToPromise(
                 this.handlePageFunction(crawlingContext),
@@ -240,18 +195,18 @@ class BrowserCrawler {
         } finally {
             try {
                 await page.close();
-            } catch (e) {
-                // Ignoring error in page close.
+            } catch (error) {
+                // Only log error in page close.
+                this.log.debug('Error while closing page', { error });
             }
         }
     }
 
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
-        // eslint-disable-next-line no-underscore-dangle
+
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
-        crawlingContext.browserPool = this.browserPool;
 
         if (this.sessionPool) {
             crawlingContext.session = browserControllerInstance.userData.session;
@@ -260,31 +215,42 @@ class BrowserCrawler {
         if (this.proxyConfiguration) {
             crawlingContext.proxyInfo = browserControllerInstance.userData.proxyInfo;
         }
+
+        crawlingContext.crawler = this;
     }
 
     async _handleNavigation(crawlingContext) {
-        const { request, session } = crawlingContext;
-        let response;
-
         try {
-            response = await this.gotoFunction(crawlingContext);
+            await this._executeHooks(this.preNavigationHooks, crawlingContext);
+            crawlingContext.response = await this.gotoFunction(crawlingContext);
         } catch (err) {
-            // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
-            if (err.constructor.name === 'TimeoutError') {
-                handleRequestTimeout(session, err.message);
-            }
+            crawlingContext.error = err;
+
+            return this._executeHooks(this.postNavigationHooks, crawlingContext);
         }
+
+        await this._executeHooks(this.postNavigationHooks, crawlingContext);
+    }
+
+    /**
+     * Should be overriden in case of different automation library that does not support this response API.
+     * // @TODO: This can be also don as a postNavigation hook except the loadedUrl marking.
+     * @param crawlingContext
+     * @return {Promise<void>}
+     * @private
+     */
+    async _handleResponse(crawlingContext) {
+        const { response, session, request, page } = crawlingContext;
 
         if (this.sessionPool && response) {
             if (typeof response === 'object' && typeof response.status === 'function') {
                 throwOnBlockedRequest(session, response.status());
             } else {
-                this.log.debug('Got a malformed Puppeteer response.', { request, response });
+                this.log.debug('Got a malformed Browser response.', { request, response });
             }
         }
 
-        return response;
+        request.loadedUrl = await page.url();
     }
 
     /**
@@ -298,7 +264,7 @@ class BrowserCrawler {
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
-    async _defaultGotoFunction({ page, request }) {
+    async gotoFunction({ page, request }) {
         return gotoExtended(page, request, { timeout: this.gotoTimeoutMillis });
     }
 
@@ -327,7 +293,6 @@ class BrowserCrawler {
     // @TODO: create a validator to have a one line validation.
     _validateOptions(options) {
         ow(options, ow.object.exactShape({
-            browserPlugins: ow.array.minLength(1),
             handlePageFunction: ow.function,
             gotoFunction: ow.optional.function,
             handlePageTimeoutSecs: ow.optional.number,
@@ -345,24 +310,20 @@ class BrowserCrawler {
             handleFailedRequestFunction: ow.optional.function,
             autoscaledPoolOptions: ow.optional.object,
 
-            // BrowserPool options and shorthands
-            maxOpenPagesPerBrowser: ow.optional.number,
-            retireBrowserAfterPageCount: ow.optional.number,
-            operationTimeoutSecs: ow.optional.number,
-            killBrowserAfterSecs: ow.optional.number,
-            browserKillerIntervalSecs: ow.optional.number,
-            preLaunchHooks: ow.optional.array,
-            postLaunchHooks: ow.optional.array,
-            prePageCreateHooks: ow.optional.array,
-            postPageCreateHooks: ow.optional.array,
-            prePageCloseHooks: ow.optional.array,
-            postPageCloseHooks: ow.optional.array,
-
+            browserPoolOptions: ow.object,
             sessionPoolOptions: ow.optional.object,
             persistCookiesPerSession: ow.optional.boolean,
             useSessionPool: ow.optional.boolean,
             proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         }));
+    }
+
+    async _executeHooks(hooks, ...args) {
+        if (Array.isArray(hooks) && hooks.length) {
+            for (const hook of hooks) {
+                await hook(...args);
+            }
+        }
     }
 }
 
