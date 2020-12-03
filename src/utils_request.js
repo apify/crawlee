@@ -114,7 +114,7 @@ export const requestAsBrowser = async (options) => {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': `${languageCode}-${countryCode},${languageCode};q=0.5`,
         'Accept-Encoding': 'gzip, deflate, br',
-        Connection: 'keep-alive',
+        Connection: useHttp2 ? undefined : 'keep-alive',
     };
 
     const requestOpts = {
