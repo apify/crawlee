@@ -37,7 +37,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       -
         name: Cache Node Modules
-        if: ${{ matrix.node-version == 14  && matrix.os == "ubuntu-latest" }}
+        if: ${{ matrix.node-version == 14  && matrix.os == 'ubuntu-latest' }}
         uses: actions/cache@v2
         with:
           path: |
