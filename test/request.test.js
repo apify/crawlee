@@ -6,7 +6,10 @@ import Apify from '../build/index';
 describe('Apify.Request', () => {
     test('should not accept invalid values', () => {
         expect(() => new Apify.Request({ url: 1 })).toThrowError();
-        expect(() => new Apify.Request({ url: 'https://www.test12345xxx' })).not.toThrowError();
+        expect(() => new Apify.Request({ url: 'https://apify.com' })).not.toThrowError();
+        expect(() => new Apify.Request({ url: 'https://apify.com', method: 1 })).toThrowError();
+        expect(() => new Apify.Request({ url: 'https://apify.com', headers: 'x' })).toThrowError();
+        expect(() => new Apify.Request({ url: 'https://apify.com', foo: 'invalid-property' })).toThrowError();
     });
 
     test('should create unique key based on url for GET requests', () => {
@@ -18,20 +21,17 @@ describe('Apify.Request', () => {
         expect(request.uniqueKey).not.toEqual(request.url);
     });
 
-    test(
-        'should create unique key based on url, method and payload for POST requests',
-        () => {
-            const url = 'https://user:pass@website.com/a/vb/c /d?q=1&q=kjnjkn$lkn#lkmlkml';
-            const payload = JSON.stringify({ foo: 'bar' });
-            const payloadHash = hashPayload(payload);
-            const normalizedUrl = normalizeUrl(url);
-            const request = new Apify.Request({ url, method: 'post', payload, useExtendedUniqueKey: true });
+    test('should create unique key based on url, method and payload for POST requests', () => {
+        const url = 'https://user:pass@website.com/a/vb/c /d?q=1&q=kjnjkn$lkn#lkmlkml';
+        const payload = JSON.stringify({ foo: 'bar' });
+        const payloadHash = hashPayload(payload);
+        const normalizedUrl = normalizeUrl(url);
+        const request = new Apify.Request({ url, method: 'post', payload, useExtendedUniqueKey: true });
 
-            const uniqueKey = `POST(${payloadHash}):${normalizedUrl}`;
+        const uniqueKey = `POST(${payloadHash}):${normalizedUrl}`;
 
-            expect(request.uniqueKey).toEqual(uniqueKey);
-        },
-    );
+        expect(request.uniqueKey).toEqual(uniqueKey);
+    });
 
     test('works', () => {
         const data = {
@@ -118,5 +118,16 @@ describe('Apify.Request', () => {
     test('should not allow to have a GET request with payload', () => {
         expect(() => new Apify.Request({ url: 'http://example.com', payload: 'foo' })).toThrowError();
         expect(() => new Apify.Request({ url: 'http://example.com', payload: 'foo', method: 'POST' })).not.toThrowError();
+    });
+
+    test('should have acceptable request creation time', () => {
+        const requests = [];
+        const start = Date.now();
+        for (let i = 0; i < 1000; i++) requests.push(new Apify.Request({ url: `https://example.com/${i}` }));
+        const durationMillis = Date.now() - start;
+        // Under normal load, the Requests are created in ~25-30ms
+        // In tests the load is high, so we only check if it doesn't
+        // overshoot some crazy range like 100ms.
+        expect(durationMillis).toBeLessThan(100);
     });
 });
