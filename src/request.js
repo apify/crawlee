@@ -16,6 +16,23 @@ export function hashPayload(payload) {
         .substr(0, 8);
 }
 
+const requestPredicate = ow.object.exactShape({
+    url: ow.string.url,
+    id: ow.optional.string,
+    loadedUrl: ow.optional.string.url,
+    uniqueKey: ow.optional.string,
+    method: ow.optional.string,
+    payload: ow.optional.any(ow.string, ow.buffer),
+    noRetry: ow.optional.boolean,
+    retryCount: ow.optional.number,
+    errorMessages: ow.optional.array.ofType(ow.string),
+    headers: ow.optional.object,
+    userData: ow.optional.object,
+    handledAt: ow.optional.any(ow.string.date, ow.date),
+    keepUrlFragment: ow.optional.boolean,
+    useExtendedUniqueKey: ow.optional.boolean,
+});
+
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
  * The `Request` object also stores information about errors that occurred during processing of the request.
@@ -81,22 +98,7 @@ class Request {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            url: ow.string.url,
-            id: ow.optional.string,
-            loadedUrl: ow.optional.string.url,
-            uniqueKey: ow.optional.string,
-            method: ow.optional.string,
-            payload: ow.optional.any(ow.string, ow.buffer),
-            noRetry: ow.optional.boolean,
-            retryCount: ow.optional.number,
-            errorMessages: ow.optional.array.ofType(ow.string),
-            headers: ow.optional.object,
-            userData: ow.optional.object,
-            handledAt: ow.optional.any(ow.string.date, ow.date),
-            keepUrlFragment: ow.optional.boolean,
-            useExtendedUniqueKey: ow.optional.boolean,
-        }));
+        ow(options, 'RequestOptions', requestPredicate);
 
         const {
             id,

@@ -119,4 +119,11 @@ describe('Apify.Request', () => {
         expect(() => new Apify.Request({ url: 'http://example.com', payload: 'foo' })).toThrowError();
         expect(() => new Apify.Request({ url: 'http://example.com', payload: 'foo', method: 'POST' })).not.toThrowError();
     });
+
+    test('should have acceptable request creation time', () => {
+        const start = Date.now();
+        const requests = [];
+        for (let i = 0; i < 1000; i++) requests.push(new Apify.Request({ url: `https://example.com/${i}` }));
+        expect(Date.now() - start).toBeLessThan(150);
+    });
 });
