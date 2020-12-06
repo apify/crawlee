@@ -1,6 +1,6 @@
 import ow from 'ow';
 import * as _ from 'underscore';
-import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
+import { BrowserPool, BrowserControllerContext } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -9,7 +9,6 @@ import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-dup
 import { validators } from '../validators';
 import defaultLog from '../utils_log';
 import {
-    getSessionIdFromProxyUrl,
     throwOnBlockedRequest,
 } from './crawler_utils';
 
@@ -24,11 +23,17 @@ class BrowserCrawler {
             handlePageTimeoutSecs = 60,
             gotoTimeoutSecs = 60,
             persistCookiesPerSession = true,
+            useSessionPool = true,
+            sessionPoolOptions,
             proxyConfiguration,
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
         } = options;
+
+        if (!useSessionPool && persistCookiesPerSession) {
+            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
+        }
 
         this.log = defaultLog.child({ prefix: 'BrowserCrawler' });
         this.handlePageFunction = handlePageFunction;
@@ -44,13 +49,19 @@ class BrowserCrawler {
         this.postNavigationHooks = postNavigationHooks;
 
         this.basicCrawler = this._createBasicCrawler(options);
-        this.sessionPool = this._maybeCreateSessionPool(options);
+
+        if (useSessionPool) {
+            this.sessionPool = new SessionPool({
+                ...sessionPoolOptions,
+                log: this.log,
+            });
+        }
 
         this.browserPool = new BrowserPool({
             ...browserPoolOptions,
             browserPlugins: browserPoolOptions.browserPlugins.map((plugin) => {
-                if (!plugin.createProxyUrlFunction && this.proxyConfiguration) {
-                    plugin.createProxyUrlFunction = this._createProxyUrlFunction.bind(this);
+                if (this.proxyConfiguration || this.sessionPool) {
+                    plugin.createContextFunction = this._createContextFunction.bind(this);
                 }
                 return plugin;
             }),
@@ -90,28 +101,12 @@ class BrowserCrawler {
         });
     }
 
-    _maybeCreateSessionPool(options) {
-        const {
-            useSessionPool = true,
-            sessionPoolOptions = {},
-        } = options;
-
-        if (useSessionPool || this.persistCookiesPerSession) {
-            return new SessionPool({
-                ...sessionPoolOptions,
-                log: this.log,
-            });
-        }
-    }
-
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        this._maybeAddSessionPoolToBrowserPool();
-        this.maybeAddProxyConfigurationToBrowserPool();
-
         if (this.sessionPool) {
             await this.sessionPool.initialize();
+            this._addSessionPoolToBrowserPool();
         }
 
         try {
@@ -127,33 +122,8 @@ class BrowserCrawler {
         }
     }
 
-    _maybeAddSessionPoolToBrowserPool() {
-        if (this.sessionPool) {
-            // @TODO: proper session retirement
-            this.browserPool.postLaunchHooks.push(this._sessionPoolPostLaunchHook.bind(this));
-        }
-    }
-
-    async _sessionPoolPostLaunchHook(browserController) {
-        const { proxyUrl } = browserController;
-
-        if (proxyUrl) {
-            const sessionIdFromUrl = getSessionIdFromProxyUrl(proxyUrl);
-            browserController.userData.session = this.sessionPool.sessions.find(({ id }) => id === sessionIdFromUrl);
-        }
-
-        browserController.userData.session = await this.sessionPool.getSession();
-    }
-
-    maybeAddProxyConfigurationToBrowserPool() {
-        if (this.proxyConfiguration) {
-            this.browserPool.postLaunchHooks.push(this._proxyConfigurationHook.bind(this));
-        }
-    }
-
-    async _proxyConfigurationHook(browserController) {
-        const { session } = browserController.userData;
-        browserController.userData.proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
+    _addSessionPoolToBrowserPool() {
+        // @TODO: proper session retirement in this.browserPool.postPageCloseHooks
     }
 
     /**
@@ -208,13 +178,8 @@ class BrowserCrawler {
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
-        if (this.sessionPool) {
-            crawlingContext.session = browserControllerInstance.userData.session;
-        }
-
-        if (this.proxyConfiguration) {
-            crawlingContext.proxyInfo = browserControllerInstance.userData.proxyInfo;
-        }
+        crawlingContext.session = browserControllerInstance.session;
+        crawlingContext.proxyInfo = browserControllerInstance.proxyInfo;
 
         crawlingContext.crawler = this;
     }
@@ -280,14 +245,21 @@ class BrowserCrawler {
         this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 
-    async _createProxyUrlFunction() {
+    async _createContextFunction(pluginOptions) {
         let session;
+        let proxyInfo;
+        let proxyUrl;
 
         if (this.sessionPool) {
             session = await this.sessionPool.getSession();
         }
 
-        return this.proxyConfiguration.newUrl(session && session.id);
+        if (this.proxyConfiguration) {
+            proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
+            proxyUrl = proxyInfo.url;
+        }
+
+        return new BrowserControllerContext({ pluginOptions, proxyUrl, proxyInfo, session });
     }
 
     // @TODO: create a validator to have a one line validation.

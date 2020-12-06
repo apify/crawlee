@@ -62,7 +62,7 @@
         "@types/tough-cookie": "^4.0.0",
         "apify-client": "1.0.0-beta.21",
         "apify-shared": "^0.5.0",
-        "browser-pool": "0.0.6",
+        "browser-pool": "0.1.0-beta.4",
         "cheerio": "^1.0.0-rc.3",
         "content-type": "^1.0.4",
         "express": "^4.17.1",
