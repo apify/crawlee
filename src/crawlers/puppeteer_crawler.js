@@ -1,12 +1,8 @@
 import ow from 'ow';
-import * as _ from 'underscore';
 import PuppeteerPool from '../puppeteer_pool'; // eslint-disable-line import/no-duplicates
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
-import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -214,78 +210,63 @@ import { validators } from '../validators';
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  *
  */
-class PuppeteerCrawler {
+class PuppeteerCrawler extends BasicCrawler {
+    static optionsShape = {
+        ...BasicCrawler.optionsShape,
+        // TODO temporary until the API is unified in V2
+        handleRequestFunction: ow.undefined,
+
+        handlePageFunction: ow.function,
+        gotoFunction: ow.optional.function,
+        handlePageTimeoutSecs: ow.optional.number,
+        gotoTimeoutSecs: ow.optional.number,
+        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        persistCookiesPerSession: ow.optional.boolean,
+
+        // PuppeteerPool options and shorthands
+        puppeteerPoolOptions: ow.optional.object,
+        launchPuppeteerFunction: ow.optional.function,
+        launchPuppeteerOptions: ow.optional.object,
+    }
+
     /**
      * @param {PuppeteerCrawlerOptions} options
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            handlePageFunction: ow.function,
-            gotoFunction: ow.optional.function,
-            handlePageTimeoutSecs: ow.optional.number,
-            gotoTimeoutSecs: ow.optional.number,
-
-            // AutoscaledPool shorthands
-            maxConcurrency: ow.optional.number,
-            minConcurrency: ow.optional.number,
-
-            // BasicCrawler options
-            requestList: ow.optional.object.validate(validators.requestList),
-            requestQueue: ow.optional.object.validate(validators.requestQueue),
-            maxRequestRetries: ow.optional.number,
-            maxRequestsPerCrawl: ow.optional.number,
-            handleFailedRequestFunction: ow.optional.function,
-            autoscaledPoolOptions: ow.optional.object,
-
-            // PuppeteerPool options and shorthands
-            puppeteerPoolOptions: ow.optional.object,
-            launchPuppeteerFunction: ow.optional.function,
-            launchPuppeteerOptions: ow.optional.object,
-
-            sessionPoolOptions: ow.optional.object,
-            persistCookiesPerSession: ow.optional.boolean,
-            useSessionPool: ow.optional.boolean,
-            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
-        }));
+        ow(options, ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
             handlePageFunction,
-            gotoFunction = this._defaultGotoFunction,
+            gotoFunction,
             handlePageTimeoutSecs = 60,
             gotoTimeoutSecs = 60,
-
-            // AutoscaledPool shorthands
-            maxConcurrency,
-            minConcurrency,
-
-            // BasicCrawler options
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
-            autoscaledPoolOptions,
+            proxyConfiguration,
+            persistCookiesPerSession = false,
 
             // PuppeteerPool options and shorthands
             puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
 
-            sessionPoolOptions = {},
-            persistCookiesPerSession = false,
-            useSessionPool = false,
-            proxyConfiguration,
+            ...basicCrawlerOptions
         } = options;
+
+        super({
+            ...basicCrawlerOptions,
+            // TODO temporary until the API is unified in V2
+            handleRequestFunction: handlePageFunction,
+            // We need to add some time for internal functions to finish,
+            // but not too much so that we would stall the crawler.
+            handleRequestTimeoutSecs: (gotoTimeoutSecs + handlePageTimeoutSecs * 2) + 5,
+        });
 
         if (proxyConfiguration && (launchPuppeteerOptions && launchPuppeteerOptions.proxyUrl)) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
                 + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
         }
 
-        this.log = defaultLog.child({ prefix: 'PuppeteerCrawler' });
-
-        if (persistCookiesPerSession && !useSessionPool) {
+        if (persistCookiesPerSession && !this.useSessionPool) {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
         }
 
@@ -294,7 +275,6 @@ class PuppeteerCrawler {
                 + 'The timeout value will not be used. With a custom gotoFunction, you need to set the timeout in the function itself.');
         }
 
-        this.handlePageFunction = handlePageFunction;
         this.gotoFunction = gotoFunction;
 
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
@@ -304,36 +284,13 @@ class PuppeteerCrawler {
             ...puppeteerPoolOptions,
             launchPuppeteerFunction,
             launchPuppeteerOptions,
+            proxyConfiguration,
+            log: this.log,
         };
 
         this.puppeteerPool = null; // Constructed when .run()
-        this.useSessionPool = useSessionPool;
-        this.sessionPoolOptions = {
-            ...sessionPoolOptions,
-            log: this.log,
-        };
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
-
-        /** @ignore */
-        this.basicCrawler = new BasicCrawler({
-            // Basic crawler options.
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-            handleFailedRequestFunction,
-
-            // Autoscaled pool options.
-            maxConcurrency,
-            minConcurrency,
-            autoscaledPoolOptions,
-
-            // log
-            log: this.log,
-        });
     }
 
     /**
@@ -344,26 +301,16 @@ class PuppeteerCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        if (this.useSessionPool) {
-            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
+        await this._init();
+
+        if (this.sessionPool) {
             this.puppeteerPoolOptions.sessionPool = this.sessionPool;
         }
-
-        if (this.proxyConfiguration) {
-            this.puppeteerPoolOptions.proxyConfiguration = this.proxyConfiguration;
-        }
-
-        this.puppeteerPoolOptions.log = this.log;
         this.puppeteerPool = new PuppeteerPool(this.puppeteerPoolOptions);
-        try {
-            this.isRunningPromise = this.basicCrawler.run();
-            this.autoscaledPool = this.basicCrawler.autoscaledPool;
 
-            await this.isRunningPromise;
+        try {
+            await super.run();
         } finally {
-            if (this.useSessionPool) {
-                await this.sessionPool.teardown();
-            }
             await this.puppeteerPool.destroy();
         }
     }
@@ -401,7 +348,7 @@ class PuppeteerCrawler {
         try {
             let response;
             try {
-                response = await this.gotoFunction(crawlingContext);
+                response = await this._navigationHandler(crawlingContext);
             } catch (err) {
                 // It would be better to compare the instances,
                 // but we don't have access to puppeteer.errors here.
@@ -431,7 +378,7 @@ class PuppeteerCrawler {
             crawlingContext.puppeteerPool = this.puppeteerPool;
 
             await addTimeoutToPromise(
-                this.handlePageFunction(crawlingContext),
+                this.userProvidedHandler(crawlingContext),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
@@ -443,9 +390,9 @@ class PuppeteerCrawler {
     }
 
     /**
-     * @param {Object} options
-     * @param {PuppeteerPage} options.page
-     * @param {Request} options.request
+     * @param {Object} crawlingContext
+     * @param {PuppeteerPage} crawlingContext.page
+     * @param {Request} crawlingContext.request
      * @property {AutoscaledPool} autoscaledPool
      * @property {PuppeteerPool} puppeteerPool
      * @property {Session} [session]
@@ -453,20 +400,9 @@ class PuppeteerCrawler {
      * @return {Promise<PuppeteerResponse>}
      * @ignore
      */
-    async _defaultGotoFunction({ page, request }) {
-        return gotoExtended(page, request, { timeout: this.gotoTimeoutMillis });
-    }
-
-    /**
-     * @param {Object} options
-     * @param {Error} options.error
-     * @param {Request} options.request
-     * @return {Promise<void>}
-     * @ignore
-     */
-    async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        this.log.exception(error, 'Request failed and reached maximum retries', details);
+    async _navigationHandler(crawlingContext) {
+        if (this.gotoFunction) return this.gotoFunction(crawlingContext);
+        return gotoExtended(crawlingContext.page, crawlingContext.request, { timeout: this.gotoTimeoutMillis });
     }
 
     /**
