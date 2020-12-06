@@ -1,6 +1,6 @@
 import { normalizeUrl } from 'apify-shared/utilities';
 import * as crypto from 'crypto';
-import ow from 'ow';
+import ow, { ArgumentError } from 'ow';
 import * as util from 'util';
 import defaultLog from './utils_log';
 
@@ -15,6 +15,22 @@ export function hashPayload(payload) {
         .replace(/(\+|\/|=)/g, '')
         .substr(0, 8);
 }
+
+const requestOptionalPredicates = {
+    id: ow.optional.string,
+    loadedUrl: ow.optional.string.url,
+    uniqueKey: ow.optional.string,
+    method: ow.optional.string,
+    payload: ow.optional.any(ow.string, ow.buffer),
+    noRetry: ow.optional.boolean,
+    retryCount: ow.optional.number,
+    errorMessages: ow.optional.array.ofType(ow.string),
+    headers: ow.optional.object,
+    userData: ow.optional.object,
+    handledAt: ow.optional.any(ow.string.date, ow.date),
+    keepUrlFragment: ow.optional.boolean,
+    useExtendedUniqueKey: ow.optional.boolean,
+};
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -81,22 +97,24 @@ class Request {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            url: ow.string.url,
-            id: ow.optional.string,
-            loadedUrl: ow.optional.string.url,
-            uniqueKey: ow.optional.string,
-            method: ow.optional.string,
-            payload: ow.optional.any(ow.string, ow.buffer),
-            noRetry: ow.optional.boolean,
-            retryCount: ow.optional.number,
-            errorMessages: ow.optional.array.ofType(ow.string),
-            headers: ow.optional.object,
-            userData: ow.optional.object,
-            handledAt: ow.optional.any(ow.string.date, ow.date),
-            keepUrlFragment: ow.optional.boolean,
-            useExtendedUniqueKey: ow.optional.boolean,
-        }));
+        ow(options, 'RequestOptions', ow.object);
+        ow(options.url, 'RequestOptions.url', ow.string.url);
+        // 'ow' validation is slow, because it checks all predicates
+        // even if the validated object has only 1 property.
+        // This custom validation loop iterates only over existing
+        // properties and speeds up the validation cca 3-fold.
+        // See https://github.com/sindresorhus/ow/issues/193
+        Object.keys(options).forEach((prop) => {
+            const predicate = requestOptionalPredicates[prop];
+            const value = options[prop];
+            if (predicate) {
+                ow(value, `RequestOptions.${prop}`, predicate);
+                // 'url' is checked above because it's not optional
+            } else if (prop !== 'url') {
+                const msg = `Did not expect property \`${prop}\` to exist, got \`${value}\` in object \`RequestOptions\``;
+                throw new ArgumentError(msg, this.constructor);
+            }
+        });
 
         const {
             id,
@@ -125,9 +143,9 @@ class Request {
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
-        this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
-        this.headers = JSON.parse(JSON.stringify(headers));
-        this.userData = JSON.parse(JSON.stringify(userData));
+        this.errorMessages = [...errorMessages];
+        this.headers = { ...headers };
+        this.userData = { ...userData };
         // Requests received from API will have ISOString dates,
         // but we want to have a Date instance.
         this.handledAt = typeof handledAt === 'string'
