@@ -282,7 +282,7 @@ describe('CheerioCrawler', () => {
             });
 
             // Override low value to prevent seeing timeouts from BasicCrawler
-            cheerioCrawler.basicCrawler.handleRequestTimeoutMillis = 10000;
+            cheerioCrawler.handleRequestTimeoutMillis = 10000;
 
             await cheerioCrawler.run();
 
@@ -987,6 +987,7 @@ describe('CheerioCrawler', () => {
             expect(cheerioCrawler.useSessionPool).toEqual(true);
             expect(cheerioCrawler.prepareRequestFunction).toEqual(prepareRequestFunction);
             expect(cheerioCrawler.handlePageFunction).toBeUndefined();
+            expect(cheerioCrawler.userProvidedHandler).toBeUndefined();
         });
     });
 });
