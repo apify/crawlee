@@ -269,6 +269,8 @@ class BrowserCrawler {
             gotoFunction: ow.optional.function,
             handlePageTimeoutSecs: ow.optional.number,
             gotoTimeoutSecs: ow.optional.number,
+            preNavigationHooks: ow.optional.array,
+            postNavigationHooks: ow.optional.array,
 
             // AutoscaledPool shorthands
             maxConcurrency: ow.optional.number,
