@@ -17,6 +17,9 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
+      "api/cache-container": {
+        "title": "CacheContainer"
+      },
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
       },
@@ -82,6 +85,9 @@
       },
       "api/statistics": {
         "title": "Statistics"
+      },
+      "api/storage-manager": {
+        "title": "StorageManager"
       },
       "api/system-status": {
         "title": "SystemStatus"
@@ -259,6 +265,12 @@
       },
       "typedefs/memory-info": {
         "title": "MemoryInfo"
+      },
+      "typedefs/post-response": {
+        "title": "PostResponse"
+      },
+      "typedefs/post-response-inputs": {
+        "title": "PostResponseInputs"
       },
       "typedefs/prepare-request": {
         "title": "PrepareRequest"

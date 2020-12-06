@@ -51,16 +51,28 @@ const DISABLE_OUTDATED_WARNING = 'APIFY_DISABLE_OUTDATED_WARNING';
 const psTreePromised = util.promisify(psTree);
 
 /**
- * Creates an instance of ApifyClient using options as defined in the environment variables.
- * This function is exported to enable unit testing.
+ * Returns a new instance of the Apify API client. The `ApifyClient` class is provided
+ * by the <a href="https://www.npmjs.com/package/apify-client" target="_blank">apify-client</a>
+ * NPM package, and it is automatically configured using the `APIFY_API_BASE_URL`, and `APIFY_TOKEN`
+ * environment variables. You can override the token via the available options. That's useful
+ * if you want to use the client as a different Apify user than the SDK internals are using.
  *
  * @param {object} [options]
- * @returns {ApifyClient}
- * @ignore
+ * @param {string} [options.token]
+ * @param {string} [options.maxRetries]
+ * @param {string} [options.minDelayBetweenRetriesMillis]
+ * @memberof module:Apify
+ * @function
+ * @name newClient
+ * @return {ApifyClient}
  */
 export const newClient = (options = {}) => {
-    // Only set baseUrl if overridden by env var, so that 'https://api.apify.com' is used by default.
-    // This simplifies local development, which should run against production unless user wants otherwise.
+    ow(options, ow.object.exactShape({
+        baseUrl: ow.optional.string.url,
+        token: ow.optional.string,
+        maxRetries: ow.optional.number,
+        minDelayBetweenRetriesMillis: ow.optional.number,
+    }));
     const {
         baseUrl = process.env[ENV_VARS.API_BASE_URL],
         token = process.env[ENV_VARS.TOKEN],
@@ -110,28 +122,16 @@ export const logSystemInfo = () => {
 };
 
 /**
- * Gets the default instance of the `ApifyClient` class provided
- * <a href="https://docs.apify.com/api/apify-client-js/latest"
- * target="_blank">apify-client</a> by the NPM package.
- * The instance is created automatically by the Apify SDK and it is configured using the
- * `APIFY_API_BASE_URL`, `APIFY_USER_ID` and `APIFY_TOKEN` environment variables.
- *
- * The instance is used for all underlying calls to the Apify API in functions such as
- * {@link Apify#getValue} or {@link Apify#call}.
- * The settings of the client can be globally altered by calling the
- * <a href="https://docs.apify.com/api/apify-client-js/latest#ApifyClient-setOptions"
- * target="_blank">`Apify.client.setOptions()`</a> function.
- * Beware that altering these settings might have unintended effects on the entire Apify SDK package.
+ * The default instance of `ApifyClient` used internally
+ * by the SDK.
  *
  * @type {*}
- *
- * @memberof module:Apify
- * @name client
+ * @ignore
  */
 export const apifyClient = newClient();
 
 /**
- * Gets the default instance of the `ApifyStorageLocal` class.
+ * The default instance of the `ApifyStorageLocal` class.
  * The instance is created automatically by the Apify SDK and it is configured using the
  * `APIFY_LOCAL_STORAGE_DIR` environment variable.
  *
@@ -139,9 +139,7 @@ export const apifyClient = newClient();
  * in Apify Storages such as {@link RequestQueue}.
  *
  * @type {*}
- *
- * @memberof module:Apify
- * @name storageLocal
+ * @ignore
  */
 export const apifyStorageLocal = newStorageLocal();
 

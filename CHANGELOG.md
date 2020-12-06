@@ -11,7 +11,9 @@ We've updated the underlying `apify-client` package which powers all communicati
 the Apify API to version `1.0.0`. This means a completely new API for all internal calls.
 If you use `Apify.client` calls in your code, this will be a large breaking change for you.
 Visit the [client docs](https://github.com/apify/apify-client-js/blob/master/README.md)
-to see what's new.
+to see what's new in the client, but also note that we removed the default client
+available under `Apify.client` and replaced it with `Apify.newClient()` function.
+We think it's better to have separate clients for users and internal use.
 
 Until now, local emulation of Apify Storages has been a part of the SDK. We moved the logic
 into a separate package `@apify/storage-local` which shares interface with `apify-client`.
@@ -23,7 +25,7 @@ After collecting common developer mistakes, we've decided to make argument valid
 You will no longer be able to pass extra arguments to functions and constructors. This is
 to alleviate frustration, when you mistakenly pass `useChrome` to `PuppeteerPoolOptions`
 instead of `LaunchPuppeteerOptions` and don't realize it. Before this version, SDK wouldn't
-let you know and just silently continue with Chromium. Now, it will throw an error saying
+let you know and would silently continue with Chromium. Now, it will throw an error saying
 that `useChrome` is not an allowed property of `PuppeteerPoolOptions`.
 
 Based on developer feedback, we decided to remove `--no-sandbox` from the default Puppeteer
@@ -39,7 +41,8 @@ screen-casting live view of the running browser.
 Full list of changes:
 
 - **BREAKING:** Updated `apify-client` to `1.0.0` with a completely new interface.
-  This means that all client calls made using `Apify.client` will break.
+  We also removed the `Apify.client` property and replaced it with an `Apify.newClient()`
+  function that creates a new `ApifyClient` instance.
 - **BREAKING:** Removed `--no-sandbox` from default Puppeteer launch arguments.
   This will most likely be breaking for Linux and Docker users.
 - **BREAKING:** Function argument validation is now more strict and will not accept extra
@@ -47,8 +50,14 @@ Full list of changes:
 - **DEPRECATED:** `puppeteerPoolOptions.useLiveView` is now deprecated.
   Use the `devtools-server` NPM package instead.
 
-- Updated `Apify.requestAsBrowser()` headers to the latest Firefox.
-- Updated `apify-client` to version `1.0.0`.
+- Added `postResponseFunction` to `CheerioCrawlerOptions`. It allows you to override
+  properties on the HTTP response before processing by `CheerioCrawler`.
+- Added HTTP2 support to `utils.requestAsBrowser()`. Set `useHttp2` to `true`
+  in `RequestAsBrowserOptions` to enable it.
+- Fixed handling of XML content types in `CheerioCrawler`.
+- Fixed capitalization of headers when using `utils.puppeteer.addInterceptRequestHandler`.
+- Fixed `utils.puppeteer.saveSnapshot()` overwriting screenshots with HTML on local.
+- Updated `puppeteer` to version `5.4.1` with Chrom(ium) 87.
 - Removed `RequestQueueLocal` in favor of `@apify/storage-local` API emulator.
 - Removed `KeyValueStoreLocal` in favor of `@apify/storage-local` API emulator.
 - Removed `DatasetLocal` in favor of `@apify/storage-local` API emulator.

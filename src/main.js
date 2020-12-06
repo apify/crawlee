@@ -14,7 +14,7 @@ import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { createProxyConfiguration } from './proxy_configuration';
 import { openRequestQueue } from './storages/request_queue';
-import { apifyClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
+import { newClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
@@ -42,7 +42,7 @@ const exportedUtils = Object.assign(publicUtils, {
  * the [Getting Started](/docs/guides/getting-started) tutorial.
  *
  * **Important:**
- * > The following functions: `addWebhook`, `call`, `callTask` and Apify Client available under `client` are features of the
+ * > The following functions: `addWebhook`, `call`, `callTask` and `newClient` invoke features of the
  * > [Apify platform](/docs/guides/apify-platform) and require your scripts to be authenticated.
  * > See the [authentication guide](/docs/guides/apify-platform#logging-into-apify-platform-from-apify-sdk) for instructions.
  *
@@ -56,7 +56,7 @@ export {
     metamorph,
     getMemoryInfo,
     isAtHome,
-    apifyClient as client,
+    newClient,
     addWebhook,
 
     AutoscaledPool,

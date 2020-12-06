@@ -235,5 +235,10 @@ describe('Apify.utils_request', () => {
                 if (err.name === 'MaxRedirectsError') throw err;
             }
         });
+
+        test('works with useHttp2', async () => {
+            const url = 'https://www.amazon.com/s?k=iphone';
+            await requestAsBrowser({ url, useHttp2: true });
+        });
     });
 });
