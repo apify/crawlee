@@ -1,3 +1,7 @@
+0.21.10 / 2020/12/07
+====================
+- Bump Puppeteer to 5.5.0 and Chrom(ium) 88.
+
 0.21.9 / 2020/11/03
 ====================
 - Fix various issues in `stealth`.
