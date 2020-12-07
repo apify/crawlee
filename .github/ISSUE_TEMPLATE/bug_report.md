@@ -7,10 +7,7 @@ assignees: ''
 
 ---
 
-**Start with giving us feedback**
-It's hard to build software for people we've never met. Please spend 5 minutes to tell us how YOU are using the Apify SDK by filling out our [developer feedback survey](https://apify.typeform.com/to/eV6Rqb).
-
-**Now describe the bug**
+**Describe the bug**
 A clear and concise description of what the bug is.
 
 **To Reproduce**
@@ -22,7 +19,7 @@ A clear and concise description of what you expected to happen.
 
 **System information:**
  - OS: [e.g. MacOS]
- - Node.js version [e.g. 22]
+ - Node.js version [e.g. 14.7]
  - Apify SDK version [e.g. 0.20.4]
 
 **Additional context**
