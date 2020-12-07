@@ -1,23 +1,28 @@
 import { PuppeteerPlugin } from 'browser-pool';
+import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
+import { gotoExtended } from '../puppeteer_utils';
 
 class PuppeteerCrawler extends BrowserCrawler {
+    static optionsShape = {
+        ...BrowserCrawler.optionsShape,
+        gotoFunction: ow.optional.function,
+        browserPoolOptions: ow.optional.object,
+        gotoTimeoutSecs: ow.optional.number,
+        launchPuppeteerOptions: ow.optional.object,
+    }
+
     constructor(options = {}) {
-        // @TODO transform options;
-        // @TODO: Should we preserve the options or can we use the PuppeteerCrawler BrowserPool once?
-        // @TODO: Can we throw away the launchFunction?
+        ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
             puppeteerModule = require('puppeteer'), // eslint-disable-line
             launchPuppeteerOptions = {},
             browserPoolOptions = {},
-            ...rest
+            ...browserCrawlerOptions
         } = options;
-        const browserCrawlerOptions = {
-            browserPoolOptions,
-            ...rest,
-        };
+
         browserCrawlerOptions.postNavigationHooks = [({ error, session }) => {
             // It would be better to compare the instances,
             // but we don't have access to puppeteer.errors here.
@@ -25,7 +30,8 @@ class PuppeteerCrawler extends BrowserCrawler {
                 handleRequestTimeout(session, error.message);
             }
         }];
-        browserCrawlerOptions.browserPoolOptions.browserPlugins = [
+
+        browserPoolOptions.browserPlugins = [
             new PuppeteerPlugin(
                 // eslint-disable-next-line
                 puppeteerModule,
@@ -34,10 +40,18 @@ class PuppeteerCrawler extends BrowserCrawler {
                 },
             ),
         ];
-        super(browserCrawlerOptions);
+        super({
+            ...browserCrawlerOptions,
+            browserPoolOptions,
+        });
 
         this.launchPuppeteerOptions = launchPuppeteerOptions;
         this.puppeteerModule = puppeteerModule;
+    }
+
+    async _navigationHandler(crawlingContext) {
+        if (this.gotoFunction) return this.gotoFunction(crawlingContext);
+        return gotoExtended(crawlingContext.page, crawlingContext.request, { timeout: this.gotoTimeoutMillis });
     }
 }
 

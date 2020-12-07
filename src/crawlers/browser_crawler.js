@@ -1,5 +1,4 @@
 import ow from 'ow';
-import * as _ from 'underscore';
 import { BrowserPool, BrowserControllerContext } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { gotoExtended } from '../puppeteer_utils';
@@ -7,21 +6,39 @@ import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-li
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import { validators } from '../validators';
-import defaultLog from '../utils_log';
 import {
     throwOnBlockedRequest,
 } from './crawler_utils';
 
 // eslint-enable-line import/no-duplicates
 
-class BrowserCrawler {
-    constructor(options) {
-        this._validateOptions(options);
+class BrowserCrawler extends BasicCrawler{
+    static optionsShape = {
+        ...BasicCrawler.optionsShape,
+        // TODO temporary until the API is unified in V2
+        handleRequestFunction: ow.undefined,
 
+        handlePageFunction: ow.function,
+        gotoFunction: ow.function,
+
+        handlePageTimeoutSecs: ow.optional.number,
+        preNavigationHooks: ow.optional.array,
+        postNavigationHooks: ow.optional.array,
+
+        browserPoolOptions: ow.object,
+        sessionPoolOptions: ow.optional.object,
+        persistCookiesPerSession: ow.optional.boolean,
+        useSessionPool: ow.optional.boolean,
+        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+    };
+
+    constructor(options) {
+        ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
             gotoTimeoutSecs = 60,
+            gotoFunction,
             persistCookiesPerSession = true,
             useSessionPool = true,
             sessionPoolOptions,
@@ -29,13 +46,19 @@ class BrowserCrawler {
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
+            ...basicCrawlerOptions
         } = options;
 
         if (!useSessionPool && persistCookiesPerSession) {
             throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
 
-        this.log = defaultLog.child({ prefix: 'BrowserCrawler' });
+        super({
+            ...basicCrawlerOptions,
+            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
+            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
+        })
+
         this.handlePageFunction = handlePageFunction;
 
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
@@ -47,8 +70,6 @@ class BrowserCrawler {
 
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
-
-        this.basicCrawler = this._createBasicCrawler(options);
 
         if (useSessionPool) {
             this.sessionPool = new SessionPool({
@@ -66,60 +87,6 @@ class BrowserCrawler {
                 return plugin;
             }),
         });
-    }
-
-    _createBasicCrawler(options) {
-        const {
-            maxConcurrency,
-            minConcurrency,
-            // BasicCrawler options
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
-            autoscaledPoolOptions,
-        } = options;
-        /** @ignore */
-        return new BasicCrawler({
-            // Basic crawler options.
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: this.handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-            handleFailedRequestFunction,
-
-            // Autoscaled pool options.
-            maxConcurrency,
-            minConcurrency,
-            autoscaledPoolOptions,
-
-            // log
-            log: this.log,
-        });
-    }
-
-    async run() {
-        if (this.isRunningPromise) return this.isRunningPromise;
-
-        if (this.sessionPool) {
-            await this.sessionPool.initialize();
-            this._addSessionPoolToBrowserPool();
-        }
-
-        try {
-            this.isRunningPromise = this.basicCrawler.run();
-            this.autoscaledPool = this.basicCrawler.autoscaledPool;
-
-            await this.isRunningPromise;
-        } finally {
-            if (this.sessionPool) {
-                await this.sessionPool.teardown();
-            }
-            await this.browserPool.destroy();
-        }
     }
 
     _addSessionPoolToBrowserPool() {
@@ -187,7 +154,7 @@ class BrowserCrawler {
     async _handleNavigation(crawlingContext) {
         try {
             await this._executeHooks(this.preNavigationHooks, crawlingContext);
-            crawlingContext.response = await this.gotoFunction(crawlingContext);
+            crawlingContext.response = await this.gotoFunction(crawlingContext);;
         } catch (err) {
             crawlingContext.error = err;
 
@@ -195,6 +162,10 @@ class BrowserCrawler {
         }
 
         await this._executeHooks(this.postNavigationHooks, crawlingContext);
+    }
+
+    async _navigationHandler(crawlingContext) {
+        return this.gotoFunction(crawlingContext);
     }
 
     /**
@@ -233,18 +204,6 @@ class BrowserCrawler {
         return gotoExtended(page, request, { timeout: this.gotoTimeoutMillis });
     }
 
-    /**
-     * @param {Object} options
-     * @param {Error} options.error
-     * @param {Request} options.request
-     * @return {Promise<void>}
-     * @ignore
-     */
-    async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        this.log.exception(error, 'Request failed and reached maximum retries', details);
-    }
-
     async _createContextFunction(pluginOptions) {
         let session;
         let proxyInfo;
@@ -260,36 +219,6 @@ class BrowserCrawler {
         }
 
         return new BrowserControllerContext({ pluginOptions, proxyUrl, proxyInfo, session });
-    }
-
-    // @TODO: create a validator to have a one line validation.
-    _validateOptions(options) {
-        ow(options, ow.object.exactShape({
-            handlePageFunction: ow.function,
-            gotoFunction: ow.optional.function,
-            handlePageTimeoutSecs: ow.optional.number,
-            gotoTimeoutSecs: ow.optional.number,
-            preNavigationHooks: ow.optional.array,
-            postNavigationHooks: ow.optional.array,
-
-            // AutoscaledPool shorthands
-            maxConcurrency: ow.optional.number,
-            minConcurrency: ow.optional.number,
-
-            // BasicCrawler options
-            requestList: ow.optional.object.validate(validators.requestList),
-            requestQueue: ow.optional.object.validate(validators.requestQueue),
-            maxRequestRetries: ow.optional.number,
-            maxRequestsPerCrawl: ow.optional.number,
-            handleFailedRequestFunction: ow.optional.function,
-            autoscaledPoolOptions: ow.optional.object,
-
-            browserPoolOptions: ow.object,
-            sessionPoolOptions: ow.optional.object,
-            persistCookiesPerSession: ow.optional.boolean,
-            useSessionPool: ow.optional.boolean,
-            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
-        }));
     }
 
     async _executeHooks(hooks, ...args) {
