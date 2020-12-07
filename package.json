@@ -45,7 +45,7 @@
         "build-readme": "node ./tools/build_readme.js",
         "test": "npm run build && jest --testTimeout=20000 --maxWorkers=3 --silent",
         "prepare": "npm run build",
-        "prepublishOnly": "(test $TRAVIS || (echo \"Publishing is reserved to the Travis CI!\"; exit 1))",
+        "prepublishOnly": "(test $CI || (echo \"Publishing is reserved to CI!\"; exit 1))",
         "clean": "rm -rf ./build ./types",
         "lint": "eslint ./src ./test",
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
