@@ -1,7 +1,6 @@
 import ow from 'ow';
 import { BrowserPool, BrowserControllerContext } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { gotoExtended } from '../puppeteer_utils';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
@@ -12,14 +11,14 @@ import {
 
 // eslint-enable-line import/no-duplicates
 
-class BrowserCrawler extends BasicCrawler{
+class BrowserCrawler extends BasicCrawler {
     static optionsShape = {
         ...BasicCrawler.optionsShape,
         // TODO temporary until the API is unified in V2
         handleRequestFunction: ow.undefined,
 
         handlePageFunction: ow.function,
-        gotoFunction: ow.function,
+        gotoFunction: ow.optional.function,
 
         handlePageTimeoutSecs: ow.optional.number,
         preNavigationHooks: ow.optional.array,
@@ -57,13 +56,14 @@ class BrowserCrawler extends BasicCrawler{
             ...basicCrawlerOptions,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-        })
+        });
 
         this.handlePageFunction = handlePageFunction;
-
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
+
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
+        this.gotoFunction = gotoFunction;
 
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
@@ -114,7 +114,8 @@ class BrowserCrawler extends BasicCrawler{
 
         try {
             await this._handleNavigation(crawlingContext);
-            await this._handleResponse(crawlingContext);
+
+            await this._responseHandler(crawlingContext);
 
             // save cookies
             if (this.persistCookiesPerSession) {
@@ -154,7 +155,7 @@ class BrowserCrawler extends BasicCrawler{
     async _handleNavigation(crawlingContext) {
         try {
             await this._executeHooks(this.preNavigationHooks, crawlingContext);
-            crawlingContext.response = await this.gotoFunction(crawlingContext);;
+            crawlingContext.response = await this._navigationHandler(crawlingContext);
         } catch (err) {
             crawlingContext.error = err;
 
@@ -165,17 +166,22 @@ class BrowserCrawler extends BasicCrawler{
     }
 
     async _navigationHandler(crawlingContext) {
+        if (!this.gotoFunction) {
+            // @TODO: although it is optional in the validation,
+            //  because when you make automation library specific you can override this handler.
+            throw new Error('BrowserCrawler: You must specify a gotoFunction!');
+        }
         return this.gotoFunction(crawlingContext);
     }
 
     /**
      * Should be overriden in case of different automation library that does not support this response API.
-     * // @TODO: This can be also don as a postNavigation hook except the loadedUrl marking.
+     * // @TODO: This can be also done as a postNavigation hook except the loadedUrl marking.
      * @param crawlingContext
      * @return {Promise<void>}
      * @private
      */
-    async _handleResponse(crawlingContext) {
+    async _responseHandler(crawlingContext) {
         const { response, session, request, page } = crawlingContext;
 
         if (this.sessionPool && response) {
@@ -187,21 +193,6 @@ class BrowserCrawler extends BasicCrawler{
         }
 
         request.loadedUrl = await page.url();
-    }
-
-    /**
-     * @param {Object} options
-     * @param {PuppeteerPage} options.page
-     * @param {Request} options.request
-     * @property {AutoscaledPool} autoscaledPool
-     * @property {PuppeteerPool} puppeteerPool
-     * @property {Session} [session]
-     * @property {ProxyInfo} [proxyInfo]
-     * @return {Promise<PuppeteerResponse>}
-     * @ignore
-     */
-    async gotoFunction({ page, request }) {
-        return gotoExtended(page, request, { timeout: this.gotoTimeoutMillis });
     }
 
     async _createContextFunction(pluginOptions) {

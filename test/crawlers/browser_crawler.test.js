@@ -65,6 +65,7 @@ describe('BrowserCrawler', () => {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
+            gotoFunction: ({ page, request }) => page.goto(request.url),
             minConcurrency: 1,
             maxConcurrency: 1,
             handlePageFunction,
@@ -98,6 +99,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
+                gotoFunction: ({ page, request }) => page.goto(request.url),
                 handlePageFunction: ({ page }) => {
                     page.close = async () => {
                         if (i === 0) {
@@ -251,6 +253,7 @@ describe('BrowserCrawler', () => {
             handlePageFunction: async () => { // eslint-disable-line no-loop-func
                 called = true;
             },
+            gotoFunction: ({ page, request }) => page.goto(request.url),
             handleFailedRequestFunction: async ({ request }) => {
                 failedRequests.push(request);
             },
@@ -289,6 +292,7 @@ describe('BrowserCrawler', () => {
             handlePageFunction: async () => { // eslint-disable-line no-loop-func
                 called = true;
             },
+            gotoFunction: ({ page, request }) => page.goto(request.url),
             handleFailedRequestFunction: async ({ request }) => {
                 failedRequests.push(request);
             },
@@ -350,7 +354,7 @@ describe('BrowserCrawler', () => {
                 requestList,
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
-                gotoTimeoutSecs: 1,
+                gotoFunction: ({ page, request }) => page.goto(request.url, {timeout: 1000}),
                 handlePageFunction: async () => {
                 },
                 proxyConfiguration,
@@ -386,6 +390,7 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
                 handlePageFunction,
+                gotoFunction: ({ page, request }) => page.goto(request.url),
                 proxyConfiguration,
                 useSessionPool: true,
                 sessionPoolOptions: {
