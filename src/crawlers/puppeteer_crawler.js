@@ -7,7 +7,6 @@ import { gotoExtended } from '../puppeteer_utils';
 class PuppeteerCrawler extends BrowserCrawler {
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
-        gotoFunction: ow.optional.function,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
         launchPuppeteerOptions: ow.optional.object,
@@ -19,6 +18,7 @@ class PuppeteerCrawler extends BrowserCrawler {
         const {
             puppeteerModule = require('puppeteer'), // eslint-disable-line
             launchPuppeteerOptions = {},
+            gotoTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
@@ -40,10 +40,13 @@ class PuppeteerCrawler extends BrowserCrawler {
                 },
             ),
         ];
+
         super({
             ...browserCrawlerOptions,
             browserPoolOptions,
         });
+
+        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
         this.launchPuppeteerOptions = launchPuppeteerOptions;
         this.puppeteerModule = puppeteerModule;

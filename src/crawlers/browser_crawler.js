@@ -36,7 +36,6 @@ class BrowserCrawler extends BasicCrawler {
         const {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
-            gotoTimeoutSecs = 60,
             gotoFunction,
             persistCookiesPerSession = true,
             useSessionPool = true,
@@ -49,6 +48,7 @@ class BrowserCrawler extends BasicCrawler {
         } = options;
 
         if (!useSessionPool && persistCookiesPerSession) {
+            // @TODO: Maybe we could also automatically set persistCookiesPerSession to false when useSessionPool is false and log warning
             throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
 
@@ -62,7 +62,6 @@ class BrowserCrawler extends BasicCrawler {
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
 
-        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
         this.gotoFunction = gotoFunction;
 
         this.persistCookiesPerSession = persistCookiesPerSession;

@@ -311,9 +311,13 @@ describe('PuppeteerCrawler', () => {
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
                 gotoTimeoutSecs: 1,
-                postLaunchHooks: [(browserController) => {
-                    browserProxy = browserController.proxyUrl;
-                }],
+                useSessionPool: false,
+                persistCookiesPerSession: false,
+                browserPoolOptions: {
+                    postLaunchHooks: [(browserController) => {
+                        browserProxy = browserController.proxyUrl;
+                    }],
+                },
                 handlePageFunction: async () => {
                 },
                 proxyConfiguration,
@@ -379,13 +383,15 @@ describe('PuppeteerCrawler', () => {
                 },
                 gotoFunction: async () => {
                 },
-                maxOpenPagesPerBrowser: 1,
+                browserPoolOptions: {
+                    maxOpenPagesPerBrowser: 1,
+                    postLaunchHooks: [(browserController) => {
+                        browserProxies.push(browserController.proxyUrl);
+                    }],
+                },
                 proxyConfiguration,
                 maxRequestRetries: 0,
                 minConcurrency: 3,
-                postLaunchHooks: [(browserController) => {
-                    browserProxies.push(browserController.proxyUrl);
-                }],
             });
 
             await puppeteerCrawler.run();
@@ -430,7 +436,8 @@ describe('PuppeteerCrawler', () => {
                 expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
-                expect(crawlingContext.browserPool).toBeInstanceOf(BrowserPool);
+                expect(crawlingContext.crawler).toBeInstanceOf(Apify.PuppeteerCrawler);
+                expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
                 throw new Error('some error');
@@ -442,7 +449,8 @@ describe('PuppeteerCrawler', () => {
                 expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
-                expect(crawlingContext.browserPool).toBeInstanceOf(BrowserPool);
+                expect(crawlingContext.crawler).toBeInstanceOf(Apify.PuppeteerCrawler);
+                expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
                 expect(crawlingContext.error).toBeInstanceOf(Error);
