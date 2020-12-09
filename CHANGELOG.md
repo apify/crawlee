@@ -1,4 +1,4 @@
-0.22.0 / XXX
+0.22.1 / XXX
 ====================
 This is the last major release before SDK v1.0.0. We're committed to deliver v1 at the
 end of 2020 so stay tuned. Besides Playwright integration via a new `BrowserPool`,
@@ -77,6 +77,10 @@ Full list of changes:
   Use `request.noRetry = true`.
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
+
+0.22.0 / 2020/12/07
+====================
+- Technical release, see 0.22.1
 
 0.21.10 / 2020/12/07
 ====================
