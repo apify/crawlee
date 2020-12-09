@@ -73,16 +73,31 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  * Thanks to this function, the target web server has no simple way to find out the request
  * hasn't been sent by a full web browser. Using a headless browser for such requests
  * is an order of magnitude more resource-intensive than this function.
- * By default tt aborts all requests that returns 406 status codes or non-HTML content-types.
+ * By default it aborts all requests that returns 406 status codes or non-HTML content-types.
  * You can override this behavior by passing custom `abortFunction`.
  *
  * Currently, the function sends requests the same way as Firefox web browser does.
  * In the future, it might add support for other browsers too.
  *
- * Internally, the function uses httpRequest function from the [@apify/httpRequest](https://github.com/apify/http-request)
+ * Internally, the function uses `httpRequest` function from the [@apify/http-request](https://github.com/apify/http-request)
  * NPM package to perform the request.
  * All `options` not recognized by this function are passed to it,
  * so see it for more details.
+ *
+ * **Example usage:**
+ * ```js
+ * const Apify = require('apify');
+ *
+ * const { utils: { requestAsBrowser } } = Apify;
+ *
+ * ...
+ *
+ * const response = await requestAsBrowser({ url: 'https://www.example.com/' });
+ *
+ * const html = response.body;
+ * const status = response.statusCode;
+ * const contentType = response.headers['content-type'];
+ * ```
  *
  * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
