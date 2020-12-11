@@ -6,14 +6,11 @@ import * as htmlparser from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import * as iconv from 'iconv-lite';
 import ow from 'ow';
-import * as _ from 'underscore';
 import * as util from 'util';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import defaultLog from '../utils_log';
 import CrawlerExtension from './crawler_extension';
 
 // TYPE IMPORTS
@@ -35,7 +32,7 @@ import { validators } from '../validators';
  */
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
-const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
+const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
         maxBlockedMillis: 100,
@@ -329,42 +326,34 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
-class CheerioCrawler {
+class CheerioCrawler extends BasicCrawler {
+    static optionsShape = {
+        ...BasicCrawler.optionsShape,
+        // TODO temporary until the API is unified in V2
+        handleRequestFunction: ow.undefined,
+
+        handlePageFunction: ow.function,
+        requestTimeoutSecs: ow.optional.number,
+        handlePageTimeoutSecs: ow.optional.number,
+        ignoreSslErrors: ow.optional.boolean,
+        additionalMimeTypes: ow.optional.array.ofType(ow.string),
+        suggestResponseEncoding: ow.optional.string,
+        forceResponseEncoding: ow.optional.string,
+        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        prepareRequestFunction: ow.optional.function,
+        postResponseFunction: ow.optional.function,
+        persistCookiesPerSession: ow.optional.boolean,
+
+        // Deprecated
+        requestOptions: ow.optional.object,
+    }
+
     /**
      * @param {CheerioCrawlerOptions} options
      * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            handlePageFunction: ow.function,
-            requestTimeoutSecs: ow.optional.number,
-            handlePageTimeoutSecs: ow.optional.number,
-            ignoreSslErrors: ow.optional.boolean,
-            additionalMimeTypes: ow.optional.array.ofType(ow.string),
-            suggestResponseEncoding: ow.optional.string,
-            forceResponseEncoding: ow.optional.string,
-            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
-
-            // Autoscaled pool shorthands
-            minConcurrency: ow.optional.number,
-            maxConcurrency: ow.optional.number,
-
-            // Basic crawler options
-            requestList: ow.optional.object.validate(validators.requestList),
-            requestQueue: ow.optional.object.validate(validators.requestQueue),
-            maxRequestRetries: ow.optional.number,
-            maxRequestsPerCrawl: ow.optional.number,
-            handleFailedRequestFunction: ow.optional.function,
-            autoscaledPoolOptions: ow.optional.object,
-            prepareRequestFunction: ow.optional.function,
-            postResponseFunction: ow.optional.function,
-            useSessionPool: ow.optional.boolean,
-            sessionPoolOptions: ow.optional.object,
-            persistCookiesPerSession: ow.optional.boolean,
-
-            // Deprecated
-            requestOptions: ow.optional.object,
-        }));
+        ow(options, 'CheerioCrawlerOptions', ow.object.exactShape(CheerioCrawler.optionsShape));
 
         const {
             handlePageFunction,
@@ -375,31 +364,29 @@ class CheerioCrawler {
             suggestResponseEncoding,
             forceResponseEncoding,
             proxyConfiguration,
-
-            // Autoscaled pool shorthands
-            minConcurrency,
-            maxConcurrency,
-
-            // Basic crawler options
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
-            autoscaledPoolOptions = DEFAULT_AUTOSCALED_POOL_OPTIONS,
             prepareRequestFunction,
             postResponseFunction,
-            useSessionPool = false,
-            sessionPoolOptions = {},
             persistCookiesPerSession = false,
 
             // Deprecated
             requestOptions,
+
+            // BasicCrawler
+            autoscaledPoolOptions = CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
+            ...basicCrawlerOptions
         } = options;
 
-        this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
+        super({
+            ...basicCrawlerOptions,
+            // TODO temporary until the API is unified in V2
+            handleRequestFunction: handlePageFunction,
+            autoscaledPoolOptions,
+            // We need to add some time for internal functions to finish,
+            // but not too much so that we would stall the crawler.
+            handleRequestTimeoutSecs: (requestTimeoutSecs + handlePageTimeoutSecs * 2) + 5,
+        });
 
-        if (persistCookiesPerSession && !useSessionPool) {
+        if (persistCookiesPerSession && !this.useSessionPool) {
             throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
         }
 
@@ -416,7 +403,6 @@ class CheerioCrawler {
             this.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
         }
 
-        this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
         this.requestTimeoutMillis = requestTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
@@ -426,48 +412,6 @@ class CheerioCrawler {
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
         this.persistCookiesPerSession = persistCookiesPerSession;
-        this.useSessionPool = useSessionPool;
-        this.sessionPoolOptions = sessionPoolOptions;
-
-        /** @ignore */
-        this.basicCrawler = new BasicCrawler({
-            // Basic crawler options.
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-            handleFailedRequestFunction,
-
-            // Autoscaled pool options.
-            minConcurrency,
-            maxConcurrency,
-            autoscaledPoolOptions,
-
-            // Session pool options
-            sessionPoolOptions: this.sessionPoolOptions,
-            useSessionPool: this.useSessionPool,
-
-            // log
-            log: this.log,
-        });
-
-        this.isRunningPromise = null;
-    }
-
-    /**
-     * Runs the crawler. Returns promise that gets resolved once all the requests got processed.
-     *
-     * @return {Promise<void>}
-     */
-    async run() {
-        if (this.isRunningPromise) return this.isRunningPromise;
-
-        this.isRunningPromise = this.basicCrawler.run();
-        this.autoscaledPool = this.basicCrawler.autoscaledPool;
-
-        await this.isRunningPromise;
     }
 
     /**
@@ -479,6 +423,9 @@ class CheerioCrawler {
         ow(extension, ow.object.instanceOf(CrawlerExtension));
 
         const extensionOptions = extension.getCrawlerOptions();
+        // TODO temporary until the API is unified in V2
+        extensionOptions.userProvidedHandler = extensionOptions.handlePageFunction;
+        delete extensionOptions.handlePageFunction;
 
         for (const [key, value] of Object.entries(extensionOptions)) {
             const isConfigurable = this.hasOwnProperty(key); // eslint-disable-line
@@ -569,7 +516,7 @@ class CheerioCrawler {
         });
 
         return addTimeoutToPromise(
-            this.handlePageFunction(crawlingContext),
+            this.userProvidedHandler(crawlingContext),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -772,18 +719,6 @@ class CheerioCrawler {
     _handleRequestTimeout(session) {
         if (session) session.markBad();
         throw new Error(`request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
-    }
-
-    /**
-     * @param {Object} options
-     * @param {Error} options.error
-     * @param {Request} options.request
-     * @return {Promise<void>}
-     * @ignore
-     */
-    async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 

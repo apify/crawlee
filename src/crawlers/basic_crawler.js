@@ -173,40 +173,42 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 class BasicCrawler {
+    static optionsShape = {
+        requestList: ow.optional.object.validate(validators.requestList),
+        requestQueue: ow.optional.object.validate(validators.requestQueue),
+        // Subclasses override this function instead of passing it
+        // in constructor, so this validation needs to apply only
+        // if the user creates an instance of BasicCrawler directly.
+        handleRequestFunction: ow.function,
+        handleRequestTimeoutSecs: ow.optional.number,
+        handleFailedRequestFunction: ow.optional.function,
+        maxRequestRetries: ow.optional.number,
+        maxRequestsPerCrawl: ow.optional.number,
+        autoscaledPoolOptions: ow.optional.object,
+        sessionPoolOptions: ow.optional.object,
+        useSessionPool: ow.optional.boolean,
+
+        // AutoscaledPool shorthands
+        minConcurrency: ow.optional.number,
+        maxConcurrency: ow.optional.number,
+
+        // internal
+        log: ow.optional.object,
+    };
+
     /**
      * @param {BasicCrawlerOptions} options
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            requestList: ow.optional.object.validate(validators.requestList),
-            requestQueue: ow.optional.object.validate(validators.requestQueue),
-            handleRequestFunction: ow.function,
-            handleRequestTimeoutSecs: ow.optional.number,
-            handleFailedRequestFunction: ow.optional.function,
-            maxRequestRetries: ow.optional.number,
-            maxRequestsPerCrawl: ow.optional.number,
-            autoscaledPoolOptions: ow.optional.object,
-            sessionPoolOptions: ow.optional.object,
-            useSessionPool: ow.optional.boolean,
-
-            // AutoscaledPool shorthands
-            minConcurrency: ow.optional.number,
-            maxConcurrency: ow.optional.number,
-
-            // internal
-            log: ow.optional.object,
-        }));
+        ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
 
         const {
             requestList,
             requestQueue,
             handleRequestFunction,
             handleRequestTimeoutSecs = 60,
-            handleFailedRequestFunction = ({ request }) => {
-                const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-                log.error('Request failed and reached maximum retries', details);
-            },
+            handleFailedRequestFunction,
             maxRequestRetries = 3,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
@@ -218,7 +220,7 @@ class BasicCrawler {
             maxConcurrency,
 
             // internal
-            log = defaultLog.child({ prefix: 'BasicCrawler' }),
+            log = defaultLog.child({ prefix: this.constructor.name }),
         } = options;
 
         if (!requestList && !requestQueue) {
@@ -229,7 +231,8 @@ class BasicCrawler {
         this.log = log;
         this.requestList = requestList;
         this.requestQueue = requestQueue;
-        this.handleRequestFunction = handleRequestFunction;
+        this.userProvidedHandler = handleRequestFunction;
+        this.failedContextHandler = handleFailedRequestFunction;
         this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
@@ -302,17 +305,7 @@ class BasicCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
-        // so that the caller can get a reference to it before awaiting the promise returned from run()
-        // (otherwise there would be no way)
-        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-
-        if (this.useSessionPool) {
-            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
-        }
-
-        await this._loadHandledRequestCount();
-
+        await this._init();
         this.isRunningPromise = this.autoscaledPool.run();
         await this.stats.startCapturing();
 
@@ -333,6 +326,32 @@ class BasicCrawler {
                 ...finalStats,
             });
         }
+    }
+
+    /**
+     * @return {Promise<void>}
+     * @private
+     */
+    async _init() {
+        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
+        // so that the caller can get a reference to it before awaiting the promise returned from run()
+        // (otherwise there would be no way)
+        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+
+        if (this.useSessionPool) {
+            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
+        }
+
+        await this._loadHandledRequestCount();
+    }
+
+    /**
+     * @param {object} crawlingContext
+     * @return {Promise<void>}
+     * @private
+     */
+    async _handleRequestFunction(crawlingContext) { // eslint-disable-line no-unused-vars
+        await this.userProvidedHandler(crawlingContext);
     }
 
     async _pauseOnMigration() {
@@ -431,7 +450,7 @@ class BasicCrawler {
 
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction(crawlingContext),
+                this._handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
@@ -490,33 +509,54 @@ class BasicCrawler {
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
      * @param {object} crawlingContext
+     * @param {Request} crawlingContext.request
      * @param {(RequestList|RequestQueue)} source
-     * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
+     * @return {Promise<void>}
      * @ignore
      */
     async _requestFunctionErrorHandler(error, crawlingContext, source) {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
-        // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
-        if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
+        const shouldRetryRequest = !request.noRetry && request.retryCount < this.maxRequestRetries;
+        if (shouldRetryRequest) {
             request.retryCount++;
             this.log.exception(
                 error,
                 'handleRequestFunction failed, reclaiming failed request back to the list or queue',
                 _.pick(request, 'url', 'retryCount', 'id'),
             );
-            return source.reclaimRequest(request);
+            await source.reclaimRequest(request);
+        } else {
+            // If we get here, the request is either not retryable
+            // or failed more than retryCount times and will not be retried anymore.
+            // Mark the request as failed and do not retry.
+            this.handledRequestsCount++;
+            await source.markRequestHandled(request);
+            this.stats.failJob(request.id || request.url);
+            crawlingContext.error = error;
+            await this._handleFailedRequestFunction(crawlingContext); // This function prints an error message.
         }
+    }
 
-        // If we get here, the request is either not retriable
-        // or failed more than retryCount times and will not be retried anymore.
-        // Mark the request as failed and do not retry.
-        this.handledRequestsCount++;
-        await source.markRequestHandled(request);
-        this.stats.failJob(request.id || request.url);
-        crawlingContext.error = error;
-        return this.handleFailedRequestFunction(crawlingContext); // This function prints an error message.
+    /**
+     * @param {object} crawlingContext
+     * @param {Error} crawlingContext.error
+     * @param {Request} crawlingContext.request
+     * @return {Promise<void>}
+     * @private
+     */
+    async _handleFailedRequestFunction(crawlingContext) {
+        if (this.failedContextHandler) {
+            await this.failedContextHandler(crawlingContext);
+        } else {
+            const { id, url, method, uniqueKey } = crawlingContext.request;
+            this.log.exception(
+                crawlingContext.error,
+                'Request failed and reached maximum retries',
+                { id, url, method, uniqueKey },
+            );
+        }
     }
 
     /**

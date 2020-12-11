@@ -47,7 +47,7 @@ describe('PuppeteerCrawler', () => {
         const failed = [];
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async ({ page, request, response }) => {
-            await page.waitFor('title');
+            await page.waitForSelector('title');
 
             expect(await response.status()).toBe(200);
             request.userData.title = await page.title();

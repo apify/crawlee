@@ -191,32 +191,24 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         expect(message).toBeUndefined();
     });
 
-    describe('puppeteer crawler test', async () => {
-        let requestList;
-        let puppeteerCrawler;
-
-        beforeEach(async () => {
-            requestList = await Apify.openRequestList('test', [testUrl]);
-            puppeteerCrawler = new Apify.PuppeteerCrawler({
-                requestList,
-                launchPuppeteerOptions: {
-                    stealth: true,
-                    useChrome: true,
-                    headless: true,
-                },
-                handlePageFunction: () => {},
-            });
-        });
-        test('should work in crawler', async () => {
-            puppeteerCrawler.handlePageFunction = async ({ page: activePage }) => {
+    test('should work in puppeteer crawler', async () => {
+        const requestList = await Apify.openRequestList(null, [testUrl]);
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            launchPuppeteerOptions: {
+                stealth: true,
+                useChrome: true,
+                headless: true,
+            },
+            handlePageFunction: async ({ page: activePage }) => {
                 const fingerprint = await getFingerPrint(activePage);
                 values.push(fingerprint);
-            };
-            const values = [];
-            await puppeteerCrawler.run();
-            const fingerprint = values[0];
-            expect(fingerprint.webDriver).toBe(false); // eslint-disable-line
-            expect(fingerprint.webDriverValue).toBeUndefined(); // eslint-disable-line
+            },
         });
+        const values = [];
+        await puppeteerCrawler.run();
+        const fingerprint = values[0];
+        expect(fingerprint.webDriver).toBe(false);
+        expect(fingerprint.webDriverValue).toBeUndefined();
     });
 });
