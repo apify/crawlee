@@ -1,4 +1,4 @@
-0.22.1 / XXX
+0.22.1 / 2020/12/09
 ====================
 This is the last major release before SDK v1.0.0. We're committed to deliver v1 at the
 end of 2020 so stay tuned. Besides Playwright integration via a new `BrowserPool`,
