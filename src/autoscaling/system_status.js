@@ -23,13 +23,13 @@ import { weightedAvg } from '../utils';
  * @property {number} [maxMemoryOverloadedRatio=0.2]
  *   Sets the maximum ratio of overloaded snapshots in a memory sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @property {number} [maxEventLoopOverloadedRatio=0.2]
+ * @property {number} [maxEventLoopOverloadedRatio=0.6]
  *   Sets the maximum ratio of overloaded snapshots in an event loop sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
  * @property {number} [maxCpuOverloadedRatio=0.4]
  *   Sets the maximum ratio of overloaded snapshots in a CPU sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
- * @property {number} [maxClientOverloadedRatio=0.2]
+ * @property {number} [maxClientOverloadedRatio=0.3]
  *   Sets the maximum ratio of overloaded snapshots in a Client sample.
  *   If the sample exceeds this ratio, the system will be overloaded.
  * @property {Snapshotter} [snapshotter]
@@ -74,7 +74,7 @@ class SystemStatus {
         const {
             currentHistorySecs = 5,
             maxMemoryOverloadedRatio = 0.2,
-            maxEventLoopOverloadedRatio = 0.4,
+            maxEventLoopOverloadedRatio = 0.6,
             maxCpuOverloadedRatio = 0.4,
             maxClientOverloadedRatio = 0.3,
             snapshotter,
