@@ -88,6 +88,10 @@ Full list of changes:
 ====================
 - Technical release, see 0.22.1
 
+0.21.11 / 2020/12/22
+====================
+- Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.
+
 0.21.10 / 2020/12/07
 ====================
 - Bump Puppeteer to 5.5.0 and Chrom(ium) 88.
