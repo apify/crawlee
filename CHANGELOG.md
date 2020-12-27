@@ -1,3 +1,9 @@
+0.22.2 / 2020/12/22
+====================
+- Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.
+- Increased default `maxEventLoopOverloadedRatio` in `SystemStatusOptions` to 0.6.
+- Updated packages and improved docs.
+
 0.22.1 / 2020/12/09
 ====================
 This is the last major release before SDK v1.0.0. We're committed to deliver v1 at the
@@ -81,6 +87,10 @@ Full list of changes:
 0.22.0 / 2020/12/07
 ====================
 - Technical release, see 0.22.1
+
+0.21.11 / 2020/12/22
+====================
+- Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.
 
 0.21.10 / 2020/12/07
 ====================
