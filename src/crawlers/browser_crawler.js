@@ -143,11 +143,13 @@ class BrowserCrawler extends BasicCrawler {
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
 
+        // This is the wierd spam because of browser to proxy not page to proxy.
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
         crawlingContext.session = browserControllerInstance.launchContext.session;
         crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        browserControllerInstance.launchContext.crawlingContext = crawlingContext;
 
         crawlingContext.crawler = this;
     }
