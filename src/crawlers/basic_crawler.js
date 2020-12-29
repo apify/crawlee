@@ -1,4 +1,5 @@
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
@@ -18,6 +19,7 @@ import { RequestQueue } from '../storages/request_queue';
 import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
+
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -243,6 +245,7 @@ class BasicCrawler {
             log,
         };
         this.useSessionPool = useSessionPool;
+        this.crawlingContexts = new Map();
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
@@ -446,7 +449,13 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
 
         // Shared crawling context
-        const crawlingContext = { request, autoscaledPool: this.autoscaledPool, session };
+        const crawlingContext = {
+            id: cryptoRandomObjectId(10),
+            request,
+            autoscaledPool: this.autoscaledPool,
+            session,
+        };
+        this.crawlingContexts.set(crawlingContext.id, crawlingContext);
 
         try {
             await addTimeoutToPromise(
@@ -471,6 +480,8 @@ class BasicCrawler {
                     + 'will make sure that the run continues where it left off, if programmed to handle restarts correctly.');
                 throw secondaryError;
             }
+        } finally {
+            this.crawlingContexts.delete(crawlingContext.id);
         }
     }
 
