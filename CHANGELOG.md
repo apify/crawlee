@@ -1,4 +1,10 @@
-0.22.0 / XXX
+0.22.2 / 2020/12/22
+====================
+- Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.
+- Increased default `maxEventLoopOverloadedRatio` in `SystemStatusOptions` to 0.6.
+- Updated packages and improved docs.
+
+0.22.1 / 2020/12/09
 ====================
 This is the last major release before SDK v1.0.0. We're committed to deliver v1 at the
 end of 2020 so stay tuned. Besides Playwright integration via a new `BrowserPool`,
@@ -77,6 +83,18 @@ Full list of changes:
   Use `request.noRetry = true`.
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
+
+0.22.0 / 2020/12/07
+====================
+- Technical release, see 0.22.1
+
+0.21.11 / 2020/12/22
+====================
+- Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.
+
+0.21.10 / 2020/12/07
+====================
+- Bump Puppeteer to 5.5.0 and Chrom(ium) 88.
 
 0.21.9 / 2020/11/03
 ====================
