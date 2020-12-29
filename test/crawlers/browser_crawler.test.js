@@ -354,7 +354,7 @@ describe('BrowserCrawler', () => {
                 requestList,
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
-                gotoFunction: ({ page, request }) => page.goto(request.url, {timeout: 1000}),
+                gotoFunction: ({ page, request }) => page.goto(request.url, { timeout: 1000 }),
                 handlePageFunction: async () => {
                 },
                 proxyConfiguration,
