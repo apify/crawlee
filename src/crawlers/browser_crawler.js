@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { BrowserPool, BrowserControllerContext } from 'browser-pool'; // eslint-disable-line import/no-duplicates
+import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
@@ -77,14 +77,14 @@ class BrowserCrawler extends BasicCrawler {
             });
         }
 
+        const { preLaunchHooks = [], ...rest } = browserPoolOptions;
+
         this.browserPool = new BrowserPool({
-            ...browserPoolOptions,
-            browserPlugins: browserPoolOptions.browserPlugins.map((plugin) => {
-                if (this.proxyConfiguration || this.sessionPool) {
-                    plugin.createContextFunction = this._createContextFunction.bind(this);
-                }
-                return plugin;
-            }),
+            ...rest,
+            preLaunchHooks: [
+                this.extendLaunchContext.bind(this),
+                ...preLaunchHooks,
+            ],
         });
     }
 
@@ -102,7 +102,8 @@ class BrowserCrawler extends BasicCrawler {
      * @ignore
      */
     async _handleRequestFunction(crawlingContext) {
-        const page = await this.browserPool.newPage();
+        const { id } = crawlingContext;
+        const page = await this.browserPool.newPage({ contextId: id });
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);
 
         const { request, session } = crawlingContext;
@@ -145,8 +146,8 @@ class BrowserCrawler extends BasicCrawler {
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
-        crawlingContext.session = browserControllerInstance.session;
-        crawlingContext.proxyInfo = browserControllerInstance.proxyInfo;
+        crawlingContext.session = browserControllerInstance.launchContext.session;
+        crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
 
         crawlingContext.crawler = this;
     }
@@ -194,21 +195,24 @@ class BrowserCrawler extends BasicCrawler {
         request.loadedUrl = await page.url();
     }
 
-    async _createContextFunction(pluginOptions) {
+    async extendLaunchContext(launchContext) {
+        const crawlingContext = this.crawlingContexts.get(launchContext.contextId);
+
+        launchContext.crawlingContext = crawlingContext;
+
         let session;
-        let proxyInfo;
-        let proxyUrl;
 
         if (this.sessionPool) {
             session = await this.sessionPool.getSession();
+            launchContext.session = session;
         }
 
         if (this.proxyConfiguration) {
-            proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
-            proxyUrl = proxyInfo.url;
-        }
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
 
-        return new BrowserControllerContext({ pluginOptions, proxyUrl, proxyInfo, session });
+            launchContext.proxyUrl = proxyInfo.url;
+            launchContext.proxyInfo = proxyInfo;
+        }
     }
 
     async _executeHooks(hooks, ...args) {
