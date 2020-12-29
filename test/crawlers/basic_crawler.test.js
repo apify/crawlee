@@ -701,4 +701,47 @@ describe('BasicCrawler', () => {
             expect(crawler.sessionPool).toBeUndefined();
         });
     });
+
+    describe('CrawlingContext', () => {
+        test('should be kept and later deleted', async () => {
+            const urls = [
+                'https://example.com/0',
+                'https://example.com/1',
+                'https://example.com/2',
+                'https://example.com/3',
+            ];
+            const requestList = await Apify.openRequestList(null, urls);
+            let counter = 0;
+            let finish;
+            const allFinishedPromise = new Promise((resolve) => {
+                finish = resolve;
+            });
+            const mainContexts = [];
+            const otherContexts = [];
+            const crawler = new Apify.BasicCrawler({
+                requestList,
+                minConcurrency: 4,
+                async handleRequestFunction(crawlingContext) {
+                    mainContexts[counter] = crawler.crawlingContexts.get(crawlingContext.id);
+                    otherContexts[counter] = Array.from(crawler.crawlingContexts).map(([, v]) => v);
+                    counter++;
+                    if (counter === 4) finish();
+                    await allFinishedPromise;
+                },
+            });
+            await crawler.run();
+
+            expect(counter).toBe(4);
+            expect(mainContexts).toHaveLength(4);
+            expect(otherContexts).toHaveLength(4);
+            expect(crawler.crawlingContexts.size).toBe(0);
+            mainContexts.forEach((ctx, idx) => {
+                expect(typeof ctx.id).toBe('string');
+                expect(otherContexts[idx]).toContain(ctx);
+            });
+            otherContexts.forEach((list, idx) => {
+                expect(list).toHaveLength(idx + 1);
+            });
+        });
+    });
 });
