@@ -17,6 +17,9 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
+      "api/browser-crawler": {
+        "title": "BrowserCrawler"
+      },
       "api/cache-container": {
         "title": "CacheContainer"
       },
@@ -199,6 +202,9 @@
       },
       "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
+      },
+      "typedefs/browser-crawler-options": {
+        "title": "BrowserCrawlerOptions"
       },
       "typedefs/cheerio-crawler-options": {
         "title": "CheerioCrawlerOptions"

@@ -23,8 +23,10 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
     ...LAUNCH_PUPPETEER_LOG_OMIT_OPTS,
     'useChrome', 'stealth',
 ];
+
 /**
  * @typedef PuppeteerCrawlerOptions
+ * @extends BrowserCrawlerOptions
  * @property {PuppeteerHandlePage} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
@@ -62,14 +64,6 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
- * @property {RequestList} [requestList]
- *   Static list of URLs to be processed.
- *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {RequestQueue} [requestQueue]
- *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
- *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {number} [handlePageTimeoutSecs=60]
- *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
  * @property {PuppeteerGoto} [gotoFunction]
  *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
  *   [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function,
@@ -89,56 +83,22 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *
  *   The function receives the following object as an argument:
  * ```
- * {
- *   error: Error,
+  * {
  *   request: Request,
  *   response: Response,
  *   page: Page,
- *   puppeteerPool: PuppeteerPool,
+ *   browserPool: BrowserPool,
  *   autoscaledPool: AutoscaledPool,
  *   session: Session,
+ *   browserController: BrowserController,
  *   proxyInfo: ProxyInfo,
  * }
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {number} [maxRequestRetries=3]
- *    Indicates how many times the request is retried if either `handlePageFunction()` or `gotoFunction()` fails.
- * @property {number} [maxRequestsPerCrawl]
- *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
- *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
- *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
- * @property {BrowserPoolOptions} [browserPoolOptions]
- *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
- *   You can tweak those to fine-tune browser management.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
- * @property {AutoscaledPoolOptions} [autoscaledPoolOptions]
- *   Custom options passed to the underlying {@link AutoscaledPool} instance constructor.
- *   Note that the `runTaskFunction`, `isTaskReadyFunction` and `isFinishedFunction` options
- *   are provided by `PuppeteerCrawler` and should not be overridden.
- * @property {number} [minConcurrency=1]
- *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the
- *   corresponding {@link AutoscaledPoolOptions.minConcurrency} option.
- *
- *   *WARNING:* If you set this value too high with respect to the available system memory and CPU,
- *   your crawler will run extremely slow or crash. If you're not sure, just keep the default value
- *   and the concurrency will scale up automatically.
- * @property {number} [maxConcurrency=1000]
- *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the
- *   corresponding {@link AutoscaledPoolOptions.maxConcurrency} option.
- * @property {boolean} [useSessionPool=false]
- *   If set to true Crawler will automatically use Session Pool. It will automatically retire
- *   sessions on 403, 401 and 429 status codes. It also marks Session as bad after a request timeout.
- * @property {SessionPoolOptions} [sessionPoolOptions]
- *   Custom options passed to the underlying {@link SessionPool} constructor.
- * @property {boolean} [persistCookiesPerSession=false]
- *   Automatically saves cookies to Session. Works only if Session Pool is used.
- * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerCrawler` will be configured for all connections to use
- *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
- *   For more information, see the [documentation](https://docs.apify.com/proxy).
- */
+* */
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -200,13 +160,6 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *
  * await crawler.run();
  * ```
- * @property {AutoscaledPool} autoscaledPool
- *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
- *  Note that this property is only initialized after calling the {@link PuppeteerCrawler#run} function.
- *  You can use it to change the concurrency settings on the fly,
- *  to pause the crawler by calling {@link AutoscaledPool#pause}
- *  or to abort it by calling {@link AutoscaledPool#abort}.
- *
  */
 class PuppeteerCrawler extends BrowserCrawler {
     static optionsShape = {
