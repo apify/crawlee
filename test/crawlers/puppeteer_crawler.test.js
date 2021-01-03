@@ -499,4 +499,60 @@ describe('PuppeteerCrawler', () => {
             stub.restore();
         });
     });
+
+    describe('launchPuppeteerOptions', () => {
+        const sources = ['http://example.com/'];
+        let requestList;
+        let actualLogLevel;
+        beforeEach(async () => {
+            actualLogLevel = log.getLevel();
+            log.setLevel(log.LEVELS.OFF);
+            requestList = await Apify.openRequestList(null, sources.slice());
+        });
+
+        afterAll(() => {
+            log.setLevel(actualLogLevel);
+        });
+        test('supports useChrome option', async () => {
+            const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                launchPuppeteerOptions: {
+                    useChrome: true,
+                    headless: true,
+                },
+                handlePageFunction: async () => {
+                },
+            });
+
+            expect(spy.calledOnce).toBe(true);
+            spy.restore();
+        });
+
+        test('supports userAgent option', async () => {
+            const opts = {
+                // Have space in user-agent to test passing of params
+                userAgent: 'MyUserAgent/1234 AnotherString/456',
+                headless: true,
+            };
+            let loadedUserAgent;
+
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                launchPuppeteerOptions: opts,
+                handlePageFunction: async ({ page }) => {
+                    loadedUserAgent = await page.evaluate(() => window.navigator.userAgent);
+                },
+            });
+
+            await puppeteerCrawler.run();
+
+            expect(loadedUserAgent).toEqual(opts.userAgent);
+        });
+    });
 });
