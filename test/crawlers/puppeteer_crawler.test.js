@@ -406,6 +406,32 @@ describe('PuppeteerCrawler', () => {
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
         });
+
+        test('should throw on proxyConfiguration together with proxyUrl from launchPuppeteerOptions', async () => {
+            process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
+
+            const proxyConfiguration = await Apify.createProxyConfiguration({
+                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
+            });
+
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const puppeteerCrawler = new Apify.PuppeteerCrawler({
+                    requestList,
+                    handlePageFunction: async () => { },
+                    gotoFunction: async () => { },
+                    proxyConfiguration,
+                    launchPuppeteerOptions: {
+                        proxyUrl: 'http://proxy.com:1111',
+                    },
+                });
+                throw new Error('wrong error');
+            } catch (err) {
+                expect(err.message).toMatch('It is not possible to combine "options.proxyConfiguration"');
+            }
+
+            delete process.env[ENV_VARS.PROXY_PASSWORD];
+        });
     });
     describe('Crawling context', () => {
         const sources = ['http://example.com/'];
@@ -516,7 +542,7 @@ describe('PuppeteerCrawler', () => {
         test('supports useChrome option', async () => {
             const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
