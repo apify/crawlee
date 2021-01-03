@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import { ENV_VARS } from 'apify-shared/consts';
 import sinon from 'sinon';
 import { BrowserPool, PuppeteerPlugin } from 'browser-pool';
@@ -234,41 +235,6 @@ describe('BrowserCrawler', () => {
         expect(called).toBe(false);
     });
 
-    test.skip('should throw on goto timeouts (markBad session)', async () => { // this will work only with the puppeteer specific postNavigationHook
-        const baseUrl = 'https://example.com/';
-        const requestList = await Apify.openRequestList(null, [baseUrl]);
-        const gotoTimeoutSecs = 0.001;
-
-        let called = false;
-        const failedRequests = [];
-        const crawler = new Apify.BrowserCrawler({
-            browserPoolOptions: {
-                browserPlugins: [puppeteerPlugin],
-            },
-            requestList,
-            useSessionPool: true,
-            persistCookiesPerSession: false,
-            maxRequestRetries: 0,
-            gotoTimeoutSecs,
-            handlePageFunction: async () => { // eslint-disable-line no-loop-func
-                called = true;
-            },
-            gotoFunction: ({ page, request }) => page.goto(request.url),
-            handleFailedRequestFunction: async ({ request }) => {
-                failedRequests.push(request);
-            },
-        });
-
-        await crawler.run();
-
-        expect(failedRequests.length).toBe(1);
-        failedRequests.forEach((fr) => {
-            const [msg] = fr.errorMessages;
-            expect(msg).toContain(`gotoFunction timed out after ${gotoTimeoutSecs} seconds.`);
-        });
-        expect(called).toBe(false);
-    });
-
     test('should throw on "blocked" status codes (retire session)', async () => {
         const baseUrl = 'https://example.com/';
         const sources = STATUS_CODES_BLOCKED.map((statusCode) => {
@@ -339,14 +305,14 @@ describe('BrowserCrawler', () => {
 
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration();
-            const generatedProxyUrl = await proxyConfiguration.newUrl();
+            const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href;
             let browserProxy;
 
             const browserCrawler = new Apify.BrowserCrawler({
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
-                    postLaunchHooks: [(browserController) => {
-                        browserProxy = browserController.proxyUrl;
+                    postLaunchHooks: [(pageId, browserController) => {
+                        browserProxy = browserController.launchContext.proxyUrl;
                     }],
                 },
                 useSessionPool: false,
@@ -367,7 +333,7 @@ describe('BrowserCrawler', () => {
             stub.restore();
         });
 
-        test.skip('handlePageFunction should expose the proxyInfo object with sessions correctly', async () => {
+        test('handlePageFunction should expose the proxyInfo object with sessions correctly', async () => {
             process.env[ENV_VARS.PROXY_PASSWORD] = 'abc123';
             const status = { connected: true };
             const fakeCall = async () => {
@@ -422,28 +388,28 @@ describe('BrowserCrawler', () => {
                 browserPoolOptions: {
                     browserPlugins: [puppeteerPlugin],
                     maxOpenPagesPerBrowser: 1,
+                    retireBrowserAfterPageCount: 1,
                 },
                 requestList,
                 handlePageFunction: async () => {
                 },
                 proxyConfiguration,
                 maxRequestRetries: 0,
-                minConcurrency: 3,
+                maxConcurrency: 1,
             });
 
             browserCrawler.gotoFunction = async () => {
             };
 
-            browserCrawler.browserPool.postLaunchHooks.push((browserController) => {
-                browserProxies.push(browserController.proxyUrl);
+            browserCrawler.browserPool.postLaunchHooks.push((pageId, browserController) => {
+                browserProxies.push(browserController.launchContext.proxyUrl);
             });
 
             await browserCrawler.run();
 
             const proxiesToUse = proxyConfiguration.proxyUrls;
-
             for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(proxyUrl)).toBeTruthy();
+                expect(browserProxies.includes(new URL(proxyUrl).href)).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];

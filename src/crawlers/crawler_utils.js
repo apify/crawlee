@@ -8,7 +8,7 @@ import { URL } from 'url';
  */
 export function handleRequestTimeout(session, errorMessage) {
     if (session) session.markBad();
-    const timeoutMillis = errorMessage.match(/(\d+) ms/)[1]; // first capturing group
+    const timeoutMillis = errorMessage.match(/(\d+)\s?ms/)[1]; // first capturing group
     const timeoutSecs = Number(timeoutMillis) / 1000;
     throw new Error(`gotoFunction timed out after ${timeoutSecs} seconds.`);
 }

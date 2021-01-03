@@ -78,18 +78,13 @@ class BrowserCrawler extends BasicCrawler {
         }
 
         const { preLaunchHooks = [], ...rest } = browserPoolOptions;
-
         this.browserPool = new BrowserPool({
             ...rest,
             preLaunchHooks: [
-                this.extendLaunchContext.bind(this),
+                this._extendLaunchContext.bind(this),
                 ...preLaunchHooks,
             ],
         });
-    }
-
-    _addSessionPoolToBrowserPool() {
-        // @TODO: proper session retirement in this.browserPool.postPageCloseHooks
     }
 
     /**
@@ -103,13 +98,14 @@ class BrowserCrawler extends BasicCrawler {
      */
     async _handleRequestFunction(crawlingContext) {
         const { id } = crawlingContext;
-        const page = await this.browserPool.newPage({ contextId: id });
+        const page = await this.browserPool.newPage({ id });
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);
 
         const { request, session } = crawlingContext;
 
         if (this.persistCookiesPerSession) {
-            await page.setCookie(...crawlingContext.session.getPuppeteerCookies(request.url));
+            const cookies = crawlingContext.session.getPuppeteerCookies(request.url);
+            await crawlingContext.browserController.setCookies(page, cookies);
         }
 
         try {
@@ -118,8 +114,9 @@ class BrowserCrawler extends BasicCrawler {
             await this._responseHandler(crawlingContext);
 
             // save cookies
+            // @TODO: Should we save the cookies also after/only the handle page?
             if (this.persistCookiesPerSession) {
-                const cookies = await page.cookies(request.loadedUrl);
+                const cookies = await crawlingContext.browserController.getCookies(page);
                 session.setPuppeteerCookies(cookies, request.loadedUrl);
             }
 
@@ -149,7 +146,6 @@ class BrowserCrawler extends BasicCrawler {
 
         crawlingContext.session = browserControllerInstance.launchContext.session;
         crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
-        browserControllerInstance.launchContext.crawlingContext = crawlingContext;
 
         crawlingContext.crawler = this;
     }
@@ -197,24 +193,22 @@ class BrowserCrawler extends BasicCrawler {
         request.loadedUrl = await page.url();
     }
 
-    async extendLaunchContext(launchContext) {
-        const crawlingContext = this.crawlingContexts.get(launchContext.contextId);
-
-        launchContext.crawlingContext = crawlingContext;
-
-        let session;
+    async _extendLaunchContext(pageId, launchContext) {
+        const launchContextExtends = {};
 
         if (this.sessionPool) {
-            session = await this.sessionPool.getSession();
-            launchContext.session = session;
+            launchContextExtends.session = await this.sessionPool.getSession();
         }
 
         if (this.proxyConfiguration) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session && session.id);
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session && launchContextExtends.session.id);
 
             launchContext.proxyUrl = proxyInfo.url;
-            launchContext.proxyInfo = proxyInfo;
+
+            launchContextExtends.proxyInfo = proxyInfo;
         }
+
+        launchContext.extend(launchContextExtends);
     }
 
     async _executeHooks(hooks, ...args) {

@@ -12,7 +12,7 @@ import Request from '../../build/request';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 import { Session } from '../../build/session_pool/session';
 
-describe('PuppeteerCrawler', () => {
+describe('PlaywrightCrawler', () => {
     let prevEnvHeadless;
     let logLevel;
     let localStorageEmulator;
@@ -48,14 +48,12 @@ describe('PuppeteerCrawler', () => {
         const failed = [];
         const requestList = new Apify.RequestList({ sources });
         const handlePageFunction = async ({ page, request, response }) => {
-            await page.waitForSelector('title');
-
             expect(await response.status()).toBe(200);
             request.userData.title = await page.title();
             processed.push(request);
         };
 
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+        const playwrightCrawler = new Apify.PlaywrightCrawler({
             requestList,
             minConcurrency: 1,
             maxConcurrency: 1,
@@ -64,9 +62,9 @@ describe('PuppeteerCrawler', () => {
         });
 
         await requestList.initialize();
-        await puppeteerCrawler.run();
+        await playwrightCrawler.run();
 
-        expect(puppeteerCrawler.autoscaledPool.minConcurrency).toBe(1);
+        expect(playwrightCrawler.autoscaledPool.minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
@@ -85,7 +83,7 @@ describe('PuppeteerCrawler', () => {
             });
             let failedCalled = false;
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
                 requestList,
                 handlePageFunction: ({ page }) => {
                     page.close = async () => {
@@ -102,7 +100,7 @@ describe('PuppeteerCrawler', () => {
                 },
             });
             await requestList.initialize();
-            await puppeteerCrawler.run();
+            await playwrightCrawler.run();
             expect(failedCalled).toBe(false);
         }
     });
@@ -115,7 +113,7 @@ describe('PuppeteerCrawler', () => {
         });
         const handlePageSessions = [];
         const goToPageSessions = [];
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+        const playwrightCrawler = new Apify.PlaywrightCrawler({
             requestList,
             useSessionPool: true,
             handlePageFunction: async ({ session }) => {
@@ -129,9 +127,9 @@ describe('PuppeteerCrawler', () => {
         });
 
         await requestList.initialize();
-        await puppeteerCrawler.run();
+        await playwrightCrawler.run();
 
-        expect(puppeteerCrawler.sessionPool.constructor.name).toEqual('SessionPool');
+        expect(playwrightCrawler.sessionPool.constructor.name).toEqual('SessionPool');
         expect(handlePageSessions).toHaveLength(1);
         expect(goToPageSessions).toHaveLength(1);
         handlePageSessions.forEach((session) => expect(session.constructor.name).toEqual('Session'));
@@ -157,8 +155,17 @@ describe('PuppeteerCrawler', () => {
                 loadedCookies.push(session.getCookieString(request.url));
                 return Promise.resolve();
             },
-            gotoFunction: async ({ session, page, request }) => {
-                await page.setCookie({ name: 'TEST', value: '12321312312', domain: 'example.com', expires: Date.now() + 100000 });
+            gotoFunction: async ({ session, page, request, browserController }) => {
+                const cookies = [{
+                    name: 'TEST',
+                    value: '12321312312',
+                    url: 'http://example.com',
+                    expires: Date.now() + 100000,
+                }];
+                await browserController.setCookies(
+                    page,
+                    cookies,
+                );
                 goToPageSessions.push(session);
                 return page.goto(request.url);
             },
@@ -167,6 +174,7 @@ describe('PuppeteerCrawler', () => {
         await requestList.initialize();
         await puppeteerCrawler.run();
         expect(loadedCookies).toHaveLength(4);
+        expect(goToPageSessions).toHaveLength(4);
         loadedCookies.forEach((cookie) => expect(cookie).toEqual('TEST=12321312312'));
     });
 
@@ -182,7 +190,7 @@ describe('PuppeteerCrawler', () => {
 
         let called = false;
         const failedRequests = [];
-        const crawler = new Apify.PuppeteerCrawler({
+        const crawler = new Apify.PlaywrightCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -215,7 +223,7 @@ describe('PuppeteerCrawler', () => {
 
         let called = false;
         const failedRequests = [];
-        const crawler = new Apify.PuppeteerCrawler({
+        const crawler = new Apify.PlaywrightCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -251,7 +259,7 @@ describe('PuppeteerCrawler', () => {
 
         let called = false;
         const failedRequests = [];
-        const crawler = new Apify.PuppeteerCrawler({
+        const crawler = new Apify.PlaywrightCrawler({
             requestList,
             useSessionPool: true,
             persistCookiesPerSession: false,
@@ -307,7 +315,7 @@ describe('PuppeteerCrawler', () => {
             const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href;
             let browserProxy;
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
                 requestList,
                 maxRequestsPerCrawl: 1,
                 maxRequestRetries: 0,
@@ -323,7 +331,7 @@ describe('PuppeteerCrawler', () => {
                 },
                 proxyConfiguration,
             });
-            await puppeteerCrawler.run();
+            await playwrightCrawler.run();
             delete process.env[ENV_VARS.PROXY_PASSWORD];
 
             expect(browserProxy).toEqual(generatedProxyUrl);
@@ -348,7 +356,7 @@ describe('PuppeteerCrawler', () => {
                 sessions.push(session);
             };
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
                 requestList,
                 handlePageFunction,
                 proxyConfiguration,
@@ -358,7 +366,7 @@ describe('PuppeteerCrawler', () => {
                 },
             });
 
-            await puppeteerCrawler.run();
+            await playwrightCrawler.run();
 
             expect(proxies[0].sessionId).toEqual(sessions[0].id);
             expect(proxies[1].sessionId).toEqual(sessions[1].id);
@@ -378,7 +386,7 @@ describe('PuppeteerCrawler', () => {
 
             const browserProxies = [];
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
                 requestList,
                 handlePageFunction: async () => {
                 },
@@ -396,7 +404,7 @@ describe('PuppeteerCrawler', () => {
                 maxConcurrency: 1,
             });
 
-            await puppeteerCrawler.run();
+            await playwrightCrawler.run();
 
             const proxiesToUse = proxyConfiguration.proxyUrls;
 
@@ -438,7 +446,7 @@ describe('PuppeteerCrawler', () => {
                 expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
-                expect(crawlingContext.crawler).toBeInstanceOf(Apify.PuppeteerCrawler);
+                expect(crawlingContext.crawler).toBeInstanceOf(Apify.PlaywrightCrawler);
                 expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
@@ -451,7 +459,7 @@ describe('PuppeteerCrawler', () => {
                 expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
-                expect(crawlingContext.crawler).toBeInstanceOf(Apify.PuppeteerCrawler);
+                expect(crawlingContext.crawler).toBeInstanceOf(Apify.PlaywrightCrawler);
                 expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
@@ -459,7 +467,7 @@ describe('PuppeteerCrawler', () => {
                 expect(crawlingContext.error.message).toEqual('some error');
             };
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -469,7 +477,7 @@ describe('PuppeteerCrawler', () => {
                 handleFailedRequestFunction,
             });
 
-            await puppeteerCrawler.run();
+            await playwrightCrawler.run();
         });
 
         test('handleFailedRequestFunction contains proxyInfo', async () => {
@@ -478,7 +486,7 @@ describe('PuppeteerCrawler', () => {
 
             const proxyConfiguration = await Apify.createProxyConfiguration();
 
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -493,7 +501,7 @@ describe('PuppeteerCrawler', () => {
                 },
             });
 
-            await puppeteerCrawler.run();
+            await playwrightCrawler.run();
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
             stub.restore();

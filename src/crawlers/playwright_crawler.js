@@ -1,10 +1,10 @@
-import { PuppeteerPlugin } from 'browser-pool';
+import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../puppeteer_utils';
 
-class PuppeteerCrawler extends BrowserCrawler {
+class PlaywrightCrawler extends BrowserCrawler {
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
@@ -13,32 +13,29 @@ class PuppeteerCrawler extends BrowserCrawler {
     }
 
     constructor(options = {}) {
-        ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
+        ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
-            puppeteerModule = require('puppeteer'), // eslint-disable-line
-            launchPuppeteerOptions = {},
+            playwrightModule = require('playwright').chromium, // eslint-disable-line
+            launchPlaywrightOptions = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
 
-        const
-
         browserCrawlerOptions.postNavigationHooks = [({ error, session }) => {
             // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
             if (error && error.constructor.name === 'TimeoutError') {
                 handleRequestTimeout(session, error.message);
             }
         }];
 
         browserPoolOptions.browserPlugins = [
-            new PuppeteerPlugin(
+            new PlaywrightPlugin(
                 // eslint-disable-next-line
-                puppeteerModule,
+                playwrightModule,
                 {
-                    launchOptions: launchPuppeteerOptions,
+                    launchOptions: launchPlaywrightOptions,
                 },
             ),
         ];
@@ -50,8 +47,8 @@ class PuppeteerCrawler extends BrowserCrawler {
 
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
-        this.launchPuppeteerOptions = launchPuppeteerOptions;
-        this.puppeteerModule = puppeteerModule;
+        this.launchPlaywrightOptions = launchPlaywrightOptions;
+        this.playwrightModule = playwrightModule;
     }
 
     async _navigationHandler(crawlingContext) {
@@ -60,4 +57,4 @@ class PuppeteerCrawler extends BrowserCrawler {
     }
 }
 
-export default PuppeteerCrawler;
+export default PlaywrightCrawler;

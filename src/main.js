@@ -10,6 +10,7 @@ import { getValue, setValue, getInput, openKeyValueStore } from './storages/key_
 import { launchPuppeteer } from './puppeteer';
 import BrowserCrawler from './crawlers/browser_crawler';
 import PuppeteerCrawler from './crawlers/puppeteer_crawler';
+import PlaywrightCrawler from './crawlers/playwright_crawler';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { createProxyConfiguration } from './proxy_configuration';
@@ -80,6 +81,7 @@ export {
     launchPuppeteer,
     BrowserCrawler,
     PuppeteerCrawler,
+    PlaywrightCrawler,
 
     PseudoUrl,
 
