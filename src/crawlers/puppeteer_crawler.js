@@ -45,14 +45,13 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  *   `page` is an instance of the `Puppeteer`
  *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
- *   `response` is an instance of the `Puppeteer`
- *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
  *   which is the main resource response as returned by `page.goto(request.url)`.
  *   `browserPool` is an instance of the
  *   [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool),
  *   `browserController` is an instance of the
  *   [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
- *
+ *   `response` is an instance of the `Puppeteer`
+ *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
  *   The function must return a promise, which is then awaited by the crawler.
  *
  *   If the function throws an exception, the crawler will try to re-crawl the
@@ -110,7 +109,7 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
  *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
  * @property {BrowserPoolOptions} [browserPoolOptions]
- *   Custom options passed to the underlying {@link BrowserPool} constructor.
+ *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
  *   You can tweak those to fine-tune browser management.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
@@ -217,6 +216,10 @@ class PuppeteerCrawler extends BrowserCrawler {
         launchPuppeteerOptions: ow.optional.object,
     }
 
+    /**
+    * @param {PuppeteerCrawlerOptions} options
+    * All `PuppeteerCrawler` parameters are passed via an options object.
+    */
     constructor(options = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
