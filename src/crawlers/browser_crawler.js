@@ -355,25 +355,21 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     async _handleNavigation(crawlingContext) {
-        try {
-            await this._executeHooks(this.preNavigationHooks, crawlingContext);
-            crawlingContext.response = await this._navigationHandler(crawlingContext);
-        } catch (err) {
-            crawlingContext.error = err;
+        const goToOptions = {};
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, goToOptions);
 
-            return this._executeHooks(this.postNavigationHooks, crawlingContext);
-        }
+        crawlingContext.response = await this._navigationHandler(crawlingContext, goToOptions);
 
-        await this._executeHooks(this.postNavigationHooks, crawlingContext);
+        await this._executeHooks(this.postNavigationHooks, crawlingContext, goToOptions);
     }
 
-    async _navigationHandler(crawlingContext) {
+    async _navigationHandler(crawlingContext, goToOptions) {
         if (!this.gotoFunction) {
             // @TODO: although it is optional in the validation,
             //  because when you make automation library specific you can override this handler.
             throw new Error('BrowserCrawler: You must specify a gotoFunction!');
         }
-        return this.gotoFunction(crawlingContext);
+        return this.gotoFunction(crawlingContext, goToOptions);
     }
 
     /**

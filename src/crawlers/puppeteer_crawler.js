@@ -261,7 +261,7 @@ class PuppeteerCrawler extends BrowserCrawler {
                 getPuppeteerOrThrow(puppeteerModule),
                 {
                     proxyUrl,
-                    launchOptions: getDefaultLaunchOptions(launchPuppeteerOptions),
+                    launchOptions: getDefaultLaunchOptions(launchPuppeteerOptions), // @TODO: LaunchOptions
                 },
             ),
         ];

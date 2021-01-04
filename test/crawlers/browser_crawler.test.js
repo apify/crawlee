@@ -86,6 +86,74 @@ describe('BrowserCrawler', () => {
         });
     });
 
+    test('should evaluate preNavigationHooks', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        let isEvaluated = false;
+
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async () => {
+                return Promise.resolve();
+            },
+            maxRequestRetries: 0,
+            gotoFunction: async ({ hookFinished }) => {
+                isEvaluated = hookFinished;
+            },
+            preNavigationHooks: [
+                async (crawlingContext) => {
+                    await Apify.utils.sleep(10);
+                    crawlingContext.hookFinished = true;
+                },
+            ],
+        });
+
+        await requestList.initialize();
+        await browserCrawler.run();
+
+        expect(isEvaluated).toBeTruthy();
+    });
+
+    test('should evaluate postNavigationHooks', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        let isEvaluated = false;
+
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async ({ hookFinished }) => {
+                isEvaluated = hookFinished;
+            },
+            maxRequestRetries: 0,
+            gotoFunction: ({ page, request }) => page.goto(request.url),
+            postNavigationHooks: [
+                async (crawlingContext) => {
+                    await Apify.utils.sleep(10);
+                    crawlingContext.hookFinished = true;
+                },
+            ],
+        });
+
+        await requestList.initialize();
+        await browserCrawler.run();
+
+        expect(isEvaluated).toBeTruthy();
+    });
+
     test('should ignore errors in Page.close()', async () => {
         for (let i = 0; i < 2; i++) {
             const requestList = new Apify.RequestList({
@@ -276,6 +344,27 @@ describe('BrowserCrawler', () => {
             expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);
         });
         expect(called).toBe(false);
+    });
+
+    test.skip('should retire browser with session', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async ({ hookFinished, session }) => {
+            },
+            maxRequestRetries: 0,
+            gotoFunction: ({ page, request }) => page.goto(request.url),
+        });
+        expect(false).toBeTruthy();
     });
 
     describe('proxy', () => {
