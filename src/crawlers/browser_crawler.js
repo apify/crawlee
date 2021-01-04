@@ -22,11 +22,10 @@ import {
  *   request: Request,
  *   response: Response,
  *   page: Page,
- *   browserPool: BrowserPool,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   browserController: BrowserController,
  *   proxyInfo: ProxyInfo,
+ *   crawler: BrowserCrawler,
  * }
  * ```
  *
@@ -83,22 +82,30 @@ import {
  *   If set, `PuppeteerCrawler` will be configured for all connections to use
  *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
- * @property {array<function>} [preNavigationHooks]
- * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies or browser properties before navigation.
- * The function accepts `crawlingContext` as an only parameter.
- * Example:
+ * @property {Array<function>} [preNavigationHooks]
+ *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
+ *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
+ *   which are passed to the `gotoFunction` the crawler calls to navigate.
+ *   Example:
  * ```
  * preNavigationHooks: [
- * ({page, ...otherContextProperties})=> page.evaluate((attr)=>{window.myAttr = attr}, customAttribute)
+ *     async (crawlingContext, gotoOptions) => {
+ *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
+ *     }
  * ]
  * ```
- * @property {array<function>} [postNavigationHooks]
- * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
- * The function accepts `crawlingContext` as an only parameter.
- * Example:
+ * @property {Array<function>} [postNavigationHooks]
+ *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
+ *   The function accepts `crawlingContext` as an only parameter.
+ *   Example:
  * ```
  * postNavigationHooks: [
- * async crawlingContext)=> crawlingContext.isBlocked = await crawlingContext.page.evaluate(isBlockedByProtection);
+ *     async (crawlingContext) => {
+ *         const { page } = crawlingContext;
+ *         if (hasCaptcha(page)) {
+ *             await solveCaptcha (page);
+ *         }
+ *     };
  * ]
  * ```
  * @property {RequestList} [requestList]
@@ -117,6 +124,8 @@ import {
  * {
  *   request: Request,
  *   error: Error,
+ *   session: Session,
+ *   crawler: BrowserCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -209,7 +218,29 @@ import {
  *
  * await crawler.run();
  * ```
- *
+ * @property {Statistics} stats
+ *  Contains statistics about the current run.
+ * @property {?RequestList} requestList
+ *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?RequestQueue} requestQueue
+ *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?SessionPool} sessionPool
+ *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
+ *  Only available if used by the crawler.
+ * @property {?ProxyConfiguration} proxyConfiguration
+ *  A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
+ *  Only available if used by the crawler.
+ * @property {BrowserPool} browserPool
+ *  A reference to the underlying `BrowserPool` class that manages the crawler's browsers.
+ *  For more information about it, see the [`browser-pool` module](https://github.com/apify/browser-pool).
+ * @property {AutoscaledPool} autoscaledPool
+ *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
+ *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
+ *  You can use it to change the concurrency settings on the fly,
+ *  to pause the crawler by calling {@link AutoscaledPool#pause}
+ *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 class BrowserCrawler extends BasicCrawler {
     static optionsShape = {
@@ -296,7 +327,7 @@ class BrowserCrawler extends BasicCrawler {
      *
      * @param {Object} crawlingContext
      * @param {Request} crawlingContext.request
-     * @param {AutoscaledPool} crawlingContext.autoscaledPool
+     * @param {BrowserController} crawlingContext.browserController
      * @param {Session} [crawlingContext.session]
      * @ignore
      */
@@ -402,9 +433,7 @@ class BrowserCrawler extends BasicCrawler {
 
         if (this.proxyConfiguration) {
             const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session && launchContextExtends.session.id);
-
             launchContext.proxyUrl = proxyInfo.url;
-
             launchContextExtends.proxyInfo = proxyInfo;
         }
 

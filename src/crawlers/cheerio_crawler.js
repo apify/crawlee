@@ -70,14 +70,14 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *   // An instance of Node's http.IncomingMessage object,
  *   response: Object,
  *
- *   // Underlying AutoscaledPool instance used to manage the concurrency of crawler
- *   autoscaledPool: AutoscaledPool,
- *
  *   // Session object, useful to work around anti-scraping protections
  *   session: Session
  *
  *   // ProxyInfo object with information about currently used proxy
  *   proxyInfo: ProxyInfo
+ *
+ *   // The running cheerio crawler instance.
+ *   crawler: CheerioCrawler
  * }
  * ```
  *
@@ -117,9 +117,9 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * ```
  * {
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   proxyInfo: ProxyInfo,
+ *   crawler: CheerioCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the initialized request
@@ -151,9 +151,9 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * {
  *   response: Object,
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   proxyInfo: ProxyInfo,
+ *   crawler: CheerioCrawler,
  * }
  * ```
  * The response is an instance of Node's http.IncomingMessage object.
@@ -175,15 +175,14 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * {
  *   error: Error,
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   $: Cheerio,
  *   body: String|Buffer,
  *   json: Object,
- *   request: Request,
  *   contentType: Object,
  *   response: Object,
- *   proxyInfo: ProxyInfo
+ *   proxyInfo: ProxyInfo,
+ *   crawler: CheerioCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -319,6 +318,20 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  * await crawler.run();
  * ```
+ * @property {Statistics} stats
+ *  Contains statistics about the current run.
+ * @property {?RequestList} requestList
+ *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?RequestQueue} requestQueue
+ *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?SessionPool} sessionPool
+ *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
+ *  Only available if used by the crawler.
+ * @property {?ProxyConfiguration} proxyConfiguration
+ *  A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
+ *  Only available if used by the crawler.
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
@@ -455,7 +468,6 @@ class CheerioCrawler extends BasicCrawler {
      *
      * @param {Object} crawlingContext
      * @param {Request} crawlingContext.request
-     * @param {AutoscaledPool} crawlingContext.autoscaledPool
      * @param {Session} [crawlingContext.session]
      * @ignore
      */
@@ -730,10 +742,10 @@ export default CheerioCrawler;
  *  Original instance fo the {Request} object. Must be modified in-place.
  * @property {Session} [session]
  *  The current session
- * @property {AutoscaledPool} autoscaledPool
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
+ * @property {CheerioCrawler} [crawler]
  */
 
 /**
@@ -747,12 +759,12 @@ export default CheerioCrawler;
  * @property {IncomingMessage|Readable} response stream
  * @property {Request} request
  *  Original instance fo the {Request} object. Must be modified in-place.
- * @property {AutoscaledPool} autoscaledPool
  * @property {Session} [session]
  *  The current session
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
+ *  @property {CheerioCrawler} [crawler]
  */
 
 /**
@@ -775,16 +787,11 @@ export default CheerioCrawler;
  *  Parsed `Content-Type header: { type, encoding }`.
  * @property {IncomingMessage} response
  *   An instance of Node's http.IncomingMessage object,
- * @property {AutoscaledPool} autoscaledPool
- *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
- *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
- *  You can use it to change the concurrency settings on the fly,
- *  to pause the crawler by calling {@link AutoscaledPool#pause}
- *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
  * @property {ProxyInfo} [proxyInfo]
  *   An object with information about currently used proxy by the crawler
  *   and configured by the {@link ProxyConfiguration} class.
+ * @property {CheerioCrawler} [crawler]
  */
 
 /**
