@@ -5,7 +5,6 @@ import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../puppeteer_utils';
 /**
  * @typedef PlaywrightCrawlerOptions
- * @extends BrowserCrawlerOptions
  * @property {function} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
@@ -24,15 +23,15 @@ import { gotoExtended } from '../puppeteer_utils';
  * ```
  *
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
- *   `page` is an instance of the `Puppeteer`
- *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
- *   which is the main resource response as returned by `page.goto(request.url)`.
+ *   `page` is an instance of the `Playwright`
+ *   [`Page`](https://playwright.dev/docs/api/class-page)
  *   `browserPool` is an instance of the
  *   [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool),
  *   `browserController` is an instance of the
  *   [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
- *   `response` is an instance of the `Puppeteer`
- *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
+ *   `response` is an instance of the `Playwright`
+ *   [`Response`](https://playwright.dev/docs/api/class-response),
+ *   which is the main resource response as returned by `page.goto(request.url)`.
  *   The function must return a promise, which is then awaited by the crawler.
  *
  *   If the function throws an exception, the crawler will try to re-crawl the
@@ -143,7 +142,7 @@ class PlaywrightCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
-        launchPuppeteerOptions: ow.optional.object,
+        launchPlaywrightOptions: ow.optional.object,
     }
 
     constructor(options = {}) {

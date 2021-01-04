@@ -2,12 +2,11 @@ import { PuppeteerPlugin } from 'browser-pool';
 import ow from 'ow';
 import * as _ from 'underscore';
 
-import { ENV_VARS } from 'apify-shared/consts';
 import BrowserCrawler from './browser_crawler';
-import { handleRequestTimeout } from './crawler_utils';
+import { handleRequestTimeout, getDefaultHeadlessOption, getChromeExecutablePath } from './crawler_utils';
 import { gotoExtended } from '../puppeteer_utils';
 import { DEFAULT_USER_AGENT } from '../constants';
-import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
+import { isAtHome } from '../utils';
 import applyStealthToBrowser from '../stealth/stealth';
 
 const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
@@ -26,7 +25,6 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
 
 /**
  * @typedef PuppeteerCrawlerOptions
- * @extends BrowserCrawlerOptions
  * @property {PuppeteerHandlePage} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
@@ -47,13 +45,13 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  *   `page` is an instance of the `Puppeteer`
  *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
- *   which is the main resource response as returned by `page.goto(request.url)`.
  *   `browserPool` is an instance of the
  *   [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool),
  *   `browserController` is an instance of the
  *   [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
  *   `response` is an instance of the `Puppeteer`
  *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
+ *   which is the main resource response as returned by `page.goto(request.url)`.
  *   The function must return a promise, which is then awaited by the crawler.
  *
  *   If the function throws an exception, the crawler will try to re-crawl the
@@ -98,7 +96,66 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   represents the last error thrown during processing of the request.
  * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
-* */
+ * @property {number} [handlePageTimeoutSecs=60]
+ *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
+ * @property {BrowserPoolOptions} [browserPoolOptions]
+ *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
+ *   You can tweak those to fine-tune browser management.
+ * @property {boolean} [persistCookiesPerSession=false]
+ *   Automatically saves cookies to Session. Works only if Session Pool is used.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
+  * @property {array<function>} [preNavigationHooks]
+ * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies or browser properties before navigation.
+ * The function accepts `crawlingContext` as an only parameter.
+ * Example:
+ * ```
+ * preNavigationHooks: [
+ * ({page, ...otherContextProperties})=> page.evaluate((attr)=>{window.myAttr = attr}, customAttribute)
+ * ]
+ * ```
+ * @property {array<function>} [postNavigationHooks]
+ * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
+ * The function accepts `crawlingContext` as an only parameter.
+ * Example:
+ * ```
+ * postNavigationHooks: [
+ * async crawlingContext)=> crawlingContext.isBlocked = await crawlingContext.page.evaluate(isBlockedByProtection);
+ * ]
+ * ```
+ * @property {RequestList} [requestList]
+ *   Static list of URLs to be processed.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @property {RequestQueue} [requestQueue]
+ *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @property {number} [handleRequestTimeoutSecs=60]
+ *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
+ * @property {number} [maxRequestRetries=3]
+ *   Indicates how many times the request is retried if {@link PuppeteerCrawlerOptions.handlePageFunction} fails.
+ * @property {number} [maxRequestsPerCrawl]
+ *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+ *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
+ *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+ * @property {AutoscaledPoolOptions} [autoscaledPoolOptions]
+ *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
+ *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
+ *   are provided by `BasicCrawler` and cannot be overridden.
+ *   However, you can provide a custom implementation of `isFinishedFunction`.
+ * @property {number} [minConcurrency=1]
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ *
+ *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
+ *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
+ * @property {number} [maxConcurrency=1000]
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ * @property {boolean} [useSessionPool=false]
+ *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
+ *   The session instance will be than available in the `handleRequestFunction`.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
+ */
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -112,26 +169,25 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link PuppeteerCrawlerOptions.requestList}
- * or {@link PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
+ * {@link RequestList} or {@link RequestQueue} instances provided by the {@link BasicCrawlerOptions.requestList}
+ * or {@link BasicCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link PuppeteerCrawlerOptions.requestList} and {@link PuppeteerCrawlerOptions.requestQueue} are used,
+ * If both {@link BasicCrawlerOptions.requestList} and {@link BasicCrawlerOptions.requestQueue} are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
  * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
- * and then calls the function provided by user as the {@link PuppeteerCrawlerOptions.handlePageFunction} option.
+ * and then calls the function provided by user as the {@link BrowserCrawlerOptions.handlePageFunction} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the {@link PuppeteerCrawlerOptions.autoscaledPoolOptions}
+ * All {@link AutoscaledPool} configuration options can be passed to the {@link BasicCrawlerOptions.autoscaledPoolOptions}
  * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
  * {@link AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
  *
  * Note that the pool of Puppeteer instances is internally managed by the {@link BrowserPool} class.
- * Many constructor options such as {@link PuppeteerPoolOptions.maxOpenPagesPerInstance} or
  *
  * **Example usage:**
  *
@@ -271,10 +327,11 @@ function getDefaultLaunchOptions(options) {
     if (isAtHome()) optsCopy.args.push('--no-sandbox');
 
     if (optsCopy.headless == null) {
-        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+        optsCopy.headless = getDefaultHeadlessOption();
     }
-    if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
-        optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
+
+    if (optsCopy.useChrome && !optsCopy.executablePath) {
+        optsCopy.executablePath = getChromeExecutablePath();
     }
 
     if (optsCopy.defaultViewport === undefined) {
@@ -287,6 +344,7 @@ function getDefaultLaunchOptions(options) {
     if (!userAgent && (!optsCopy.executablePath || optsCopy.headless)) {
         userAgent = DEFAULT_USER_AGENT;
     }
+
     if (userAgent) {
         optsCopy.args.push(`--user-agent=${userAgent}`);
     }

@@ -1,5 +1,8 @@
 import { URL } from 'url';
 
+import { ENV_VARS } from 'apify-shared/consts';
+import { getTypicalChromeExecutablePath } from '../utils';
+
 /**
  * Handles timeout request
  * @param {Session} session
@@ -37,4 +40,18 @@ export function getSessionIdFromProxyUrl(proxyUrl) {
     const sessionPart = parts.find((part) => part.includes('session-'));
 
     return sessionPart && sessionPart.replace('session-', '');
+}
+
+/**
+ *
+ */
+export function getDefaultHeadlessOption() {
+    return process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+}
+
+/**
+ *
+ */
+export function getChromeExecutablePath() {
+    return process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
 }
