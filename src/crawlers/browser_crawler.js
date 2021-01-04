@@ -150,16 +150,16 @@ import {
  */
 
 /**
- * @TODO:
  * Provides a simple framework for parallel crawling of web pages
- * using headless browsers with [Puppeteer](https://github.com/puppeteer/puppeteer) and [Playwright](https://github.com/microsoft/playwright).
+ * using headless browsers with [Puppeteer](https://github.com/puppeteer/puppeteer)
+ * and [Playwright](https://github.com/microsoft/playwright).
  * The URLs to crawl are fed either from a static list of URLs
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *
  * Since `BrowserCrawler` uses headless or even headfull browsers to download web pages and extract data,
  * it is useful for crawling of websites that require to execute JavaScript.
  * If the target website doesn't need JavaScript, consider using {@link CheerioCrawler},
- * which downloads the pages using raw HTTP requests and is about 10x faster.
+ * which downloads the pages using raw HTTP requests and is about 10x faster. @TODO: more?
  *
  * The source URLs are represented using {@link Request} objects that are fed from
  * {@link RequestList} or {@link RequestQueue} instances provided by the {@link BrowserCrawlerOptions.requestList}
@@ -171,16 +171,16 @@ import {
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
+ * `BrowserCrawler` opens a new browser page (i.e. tab or window) for each {@link Request} object to crawl
  * and then calls the function provided by user as the {@link BrowserCrawlerOptions.handlePageFunction} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
  * All {@link AutoscaledPool} configuration options can be passed to the {@link BrowserCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ * parameter of the `BrowserCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+ * {@link AutoscaledPoolOptions} are available directly in the `BrowserCrawler` constructor.
  *
- * Note that the pool of Puppeteer instances is internally managed by the {@link BrowserPool} class.
+ * Note that the pool of browser instances is internally managed by the {@link BrowserPool} class.
  *
  * **Example usage:**
  * @TODO:
