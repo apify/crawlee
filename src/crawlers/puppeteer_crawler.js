@@ -61,17 +61,6 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
- * @property {PuppeteerGoto} [gotoFunction]
- *   Overrides the function that opens the page in Puppeteer. The function should return the result of Puppeteer's
- *   [page.goto()](https://pptr.dev/#?product=Puppeteer&show=api-pagegotourl-options) function,
- *   i.e. a `Promise` resolving to the [Response](https://pptr.dev/#?product=Puppeteer&show=api-class-httpresponse) object.
- *
- *   This is useful if you need to select different criteria to determine navigation success and also to do any
- *   pre or post processing such as injecting cookies into the page.
- *
- *   Note that a single page object is only used to process a single request and it is closed afterwards.
- *
- *   By default, the function invokes {@link puppeteer#gotoExtended} with a timeout of 60 seconds.
  * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
@@ -92,7 +81,7 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {LaunchPuppeteerOptions} [launchPuppeteerOptions]
+ * @property {LaunchPuppeteerOptions} [launchOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
@@ -251,7 +240,9 @@ class PuppeteerCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
-        launchPuppeteerOptions: ow.optional.object,
+        launchOptions: ow.optional.object,
+        gotoFunction: ow.undefined,
+
     }
 
     /**
@@ -263,34 +254,25 @@ class PuppeteerCrawler extends BrowserCrawler {
 
         const {
             puppeteerModule, // eslint-disable-line
-            launchPuppeteerOptions = {},
+            launchOptions = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
             proxyConfiguration,
             ...browserCrawlerOptions
         } = options;
 
-        const { stealth, stealthOptions, proxyUrl } = launchPuppeteerOptions;
+        const { stealth, stealthOptions, proxyUrl } = launchOptions;
 
-        if (proxyUrl) {
+        if (proxyUrl && proxyConfiguration) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
                 + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
         }
-
-        browserCrawlerOptions.postNavigationHooks = [({ error, session }) => {
-            // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
-            if (error && error.constructor.name === 'TimeoutError') {
-                handleRequestTimeout(session, error.message);
-            }
-        }];
-
         browserPoolOptions.browserPlugins = [
             new PuppeteerPlugin(
                 getPuppeteerOrThrow(puppeteerModule),
                 {
                     proxyUrl,
-                    launchOptions: getDefaultLaunchOptions(launchPuppeteerOptions), // @TODO: LaunchOptions
+                    launchOptions: getDefaultLaunchOptions(launchOptions),
                 },
             ),
         ];
@@ -301,6 +283,18 @@ class PuppeteerCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
+        this.browserPool.postLaunchHooks.push(({ error, session }) => {
+            // It would be better to compare the instances,
+            // but we don't have access to puppeteer.errors here.
+            if (error && error.constructor.name === 'TimeoutError') {
+                handleRequestTimeout(session, error.message);
+            }
+        });
+
+        if (proxyUrl) {
+            this.log.deprecated('options.launchPuppeteerOptions.proxyUrl is deprecated use the options.proxyConfiguration instead');
+        }
+
         if (stealth) {
             this.browserPool.postLaunchHooks.push(async (pageId, browserController) => {
                 // @TODO: We can do this better now. It is not necessary to override the page.
@@ -308,14 +302,18 @@ class PuppeteerCrawler extends BrowserCrawler {
                 await applyStealthToBrowser(browserController.browser, stealthOptions);
             });
         }
+
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
-        this.launchPuppeteerOptions = launchPuppeteerOptions;
+        this.launchOptions = launchOptions;
         this.puppeteerModule = puppeteerModule;
+
+        this.gotoOptions = {
+            timeout: this.gotoTimeoutMillis,
+        };
     }
 
-    async _navigationHandler(crawlingContext, ) {
-        if (this.gotoFunction) return this.gotoFunction(crawlingContext);
-        return gotoExtended(crawlingContext.page, crawlingContext.request, { timeout: this.gotoTimeoutMillis });
+    async _navigationHandler(crawlingContext, gotoOptions) {
+        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }
 

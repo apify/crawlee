@@ -302,7 +302,7 @@ class BrowserCrawler extends BasicCrawler {
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
 
         this.gotoFunction = gotoFunction;
-        this.goToOptions = {};
+        this.gotoOptions = {};
 
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
@@ -410,26 +410,26 @@ class BrowserCrawler extends BasicCrawler {
      */
     async _handleNavigation(crawlingContext) {
         // @TODO: consider deep clone
-        const goToOptions = _.clone(this.goToOptions);
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, goToOptions);
-        crawlingContext.response = await this._navigationHandler(crawlingContext, goToOptions);
+        const gotoOptions = _.clone(this.gotoOptions);
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+        crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
 
-        await this._executeHooks(this.postNavigationHooks, crawlingContext);
+        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
     }
 
     /**
      *
      * @param {object} crawlingContext
-     * @param {object} goToOptions
+     * @param {object} gotoOptions
      * @private
      */
-    async _navigationHandler(crawlingContext, goToOptions) {
+    async _navigationHandler(crawlingContext, gotoOptions) {
         if (!this.gotoFunction) {
             // @TODO: although it is optional in the validation,
             //  because when you make automation library specific you can override this handler.
             throw new Error('BrowserCrawler: You must specify a gotoFunction!');
         }
-        return this.gotoFunction(crawlingContext, goToOptions);
+        return this.gotoFunction(crawlingContext, gotoOptions);
     }
 
     /**

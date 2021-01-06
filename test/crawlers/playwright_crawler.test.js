@@ -74,6 +74,22 @@ describe('PlaywrightCrawler', () => {
         });
     });
 
+    test('should throw on gotoFunction', async () => {
+        try {
+            const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                handlePageFunction: async () => {
+                },
+                gotoFunction: () => { },
+            });
+        } catch (e) {
+            expect(e.message.includes('Expected property `gotoFunction` to be of type `undefined`')).toBeTruthy();
+        }
+
+        expect.hasAssertions();
+    });
     test('should ignore errors in Page.close()', async () => {
         for (let i = 0; i < 2; i++) {
             const requestList = new Apify.RequestList({

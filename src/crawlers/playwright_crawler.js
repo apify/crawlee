@@ -41,17 +41,6 @@ import { gotoExtended } from '../puppeteer_utils';
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
- @property {PlaywrightGoto} [gotoFunction]
- *   Overrides the function that opens the page in Playwright. The function should return the result of Playwright's
- *   [page.goto()](https://playwright.dev/docs/api/class-page#pagegotourl-options) function,
- *   i.e. a `Promise` resolving to the [Response](https://playwright.dev/docs/api/class-response) object.
- **
- *   This is useful if you need to select different criteria to determine navigation success and also to do any
- *   pre or post processing such as injecting cookies into the page.
- *
- *   Note that a single page object is only used to process a single request and it is closed afterwards.
- *
- *   By default, the function invokes {@link puppeteer#gotoExtended} with a timeout of 60 seconds.
  * @property {number} [gotoTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
@@ -189,7 +178,8 @@ class PlaywrightCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
-        launchPlaywrightOptions: ow.optional.object,
+        launchOptions: ow.optional.object,
+        gotoFunction: ow.undefined,
     }
 
     constructor(options = {}) {
@@ -197,7 +187,7 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         const {
             playwrightModule = require('playwright').chromium, // eslint-disable-line
-            launchPlaywrightOptions = {},
+            launchOptions = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
@@ -215,7 +205,7 @@ class PlaywrightCrawler extends BrowserCrawler {
                 // eslint-disable-next-line
                 playwrightModule,
                 {
-                    launchOptions: launchPlaywrightOptions,
+                    launchOptions,
                 },
             ),
         ];
@@ -227,13 +217,16 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
-        this.launchPlaywrightOptions = launchPlaywrightOptions;
+        this.launchOptions = launchOptions;
         this.playwrightModule = playwrightModule;
+
+        this.goToOptions = {
+            timeout: this.gotoTimeoutMillis,
+        };
     }
 
-    async _navigationHandler(crawlingContext) {
-        if (this.gotoFunction) return this.gotoFunction(crawlingContext);
-        return gotoExtended(crawlingContext.page, crawlingContext.request, { timeout: this.gotoTimeoutMillis });
+    async _navigationHandler(crawlingContext, goToOptions) {
+        return gotoExtended(crawlingContext.page, crawlingContext.request, goToOptions);
     }
 }
 
