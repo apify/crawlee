@@ -118,7 +118,7 @@ describe('PuppeteerCrawler', () => {
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
-                launchOptions: {
+                launchContext: {
                     proxyUrl: 'http://localhost@1234',
                 },
                 proxyConfiguration: await Apify.createProxyConfiguration({ proxyUrls: ['http://localhost@1234'] }),
@@ -138,9 +138,11 @@ describe('PuppeteerCrawler', () => {
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
-            launchOptions: {
+            launchContext: {
                 useChrome: true,
-                headless: true,
+                launchOptions: {
+                    headless: true,
+                },
             },
             handlePageFunction: async () => {
             },
@@ -154,7 +156,9 @@ describe('PuppeteerCrawler', () => {
         const opts = {
             // Have space in user-agent to test passing of params
             userAgent: 'MyUserAgent/1234 AnotherString/456',
-            headless: true,
+            launchOptions: {
+                headless: true,
+            },
         };
         let loadedUserAgent;
 
@@ -162,7 +166,7 @@ describe('PuppeteerCrawler', () => {
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
-            launchOptions: opts,
+            launchContext: opts,
             handlePageFunction: async ({ page }) => {
                 loadedUserAgent = await page.evaluate(() => window.navigator.userAgent);
             },
