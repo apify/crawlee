@@ -31,46 +31,44 @@ describe('PlaywrightCrawler', () => {
     });
 
     describe('should work', () => {
-        ['webkit', 'chromium', 'firefox'].forEach((browser) => {
-            test(`with ${browser}`, async () => {
-                const sourcesLarge = [
-                    { url: 'http://example.com/?q=1' },
-                    { url: 'http://example.com/?q=2' },
-                    { url: 'http://example.com/?q=3' },
-                    { url: 'http://example.com/?q=4' },
-                    { url: 'http://example.com/?q=5' },
-                    { url: 'http://example.com/?q=6' },
-                ];
-                const sourcesCopy = JSON.parse(JSON.stringify(sourcesLarge));
-                const processed = [];
-                const failed = [];
-                const requestListLarge = new Apify.RequestList({ sources: sourcesLarge });
-                const handlePageFunction = async ({ page, request, response }) => {
-                    expect(await response.status()).toBe(200);
-                    request.userData.title = await page.title();
-                    processed.push(request);
-                };
+        test.each(['webkit', 'chromium', 'firefox'])('with %s', async (browser) => {
+            const sourcesLarge = [
+                { url: 'http://example.com/?q=1' },
+                { url: 'http://example.com/?q=2' },
+                { url: 'http://example.com/?q=3' },
+                { url: 'http://example.com/?q=4' },
+                { url: 'http://example.com/?q=5' },
+                { url: 'http://example.com/?q=6' },
+            ];
+            const sourcesCopy = JSON.parse(JSON.stringify(sourcesLarge));
+            const processed = [];
+            const failed = [];
+            const requestListLarge = new Apify.RequestList({ sources: sourcesLarge });
+            const handlePageFunction = async ({ page, request, response }) => {
+                expect(await response.status()).toBe(200);
+                request.userData.title = await page.title();
+                processed.push(request);
+            };
 
-                const playwrightCrawler = new Apify.PlaywrightCrawler({
-                    playwrightModule: playwright[browser],
-                    requestList: requestListLarge,
-                    minConcurrency: 1,
-                    maxConcurrency: 1,
-                    handlePageFunction,
-                    handleFailedRequestFunction: ({ request }) => failed.push(request),
-                });
+            const playwrightCrawler = new Apify.PlaywrightCrawler({
+                playwrightModule: playwright[browser],
+                requestList: requestListLarge,
+                minConcurrency: 1,
+                maxConcurrency: 1,
+                handlePageFunction,
+                handleFailedRequestFunction: ({ request }) => failed.push(request),
+            });
 
-                await requestListLarge.initialize();
-                await playwrightCrawler.run();
+            await requestListLarge.initialize();
+            await playwrightCrawler.run();
 
-                expect(playwrightCrawler.autoscaledPool.minConcurrency).toBe(1);
-                expect(processed).toHaveLength(6);
-                expect(failed).toHaveLength(0);
+            expect(playwrightCrawler.autoscaledPool.minConcurrency).toBe(1);
+            expect(processed).toHaveLength(6);
+            expect(failed).toHaveLength(0);
 
-                processed.forEach((request, id) => {
-                    expect(request.url).toEqual(sourcesCopy[id].url);
-                    expect(request.userData.title).toBe('Example Domain');
-                });
+            processed.forEach((request, id) => {
+                expect(request.url).toEqual(sourcesCopy[id].url);
+                expect(request.userData.title).toBe('Example Domain');
             });
         });
     });

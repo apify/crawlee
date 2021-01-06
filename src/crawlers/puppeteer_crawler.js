@@ -3,25 +3,10 @@ import ow from 'ow';
 import * as _ from 'underscore';
 
 import BrowserCrawler from './browser_crawler';
-import { handleRequestTimeout, getDefaultHeadlessOption, getChromeExecutablePath } from './crawler_utils';
+import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../puppeteer_utils';
-import { DEFAULT_USER_AGENT } from '../constants';
-import { isAtHome } from '../utils';
+import { apifyOptionsToLaunchOptions, getPuppeteerOrThrow } from '../puppeteer';
 import applyStealthToBrowser from '../stealth/stealth';
-
-const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
-    'proxyUrl', 'userAgent', 'puppeteerModule', 'stealthOptions',
-];
-
-const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
-    width: 1366,
-    height: 768,
-};
-
-const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
-    ...LAUNCH_PUPPETEER_LOG_OMIT_OPTS,
-    'useChrome', 'stealth',
-];
 
 /**
  * @typedef PuppeteerCrawlerOptions
@@ -82,7 +67,6 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
  * @property {object} [launchContext]
- * @property {LaunchPuppeteerOptions} [launchContext.launchOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
@@ -320,65 +304,6 @@ class PuppeteerCrawler extends BrowserCrawler {
     async _navigationHandler(crawlingContext, gotoOptions) {
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
-}
-
-/**
- * Requires `puppeteer` package, uses a replacement or throws meaningful error if not installed.
- *
- * @param {(string|Object)} puppeteerModule
- * @ignore
- */
-function getPuppeteerOrThrow(puppeteerModule = 'puppeteer') {
-    if (typeof puppeteerModule === 'object') return puppeteerModule;
-    try {
-        // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
-        return require(puppeteerModule); // eslint-disable-line
-    } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') {
-            const msg = `Cannot find module '${puppeteerModule}'. Did you you install the '${puppeteerModule}' package?`;
-            err.message = isAtHome()
-                ? `${msg} The 'puppeteer' package is automatically bundled when using apify/actor-node-chrome-* Base image.`
-                : msg;
-        }
-
-        throw err;
-    }
-}
-
-function apifyOptionsToLaunchOptions(launchContext) {
-    const { launchOptions = {}, useChrome } = launchContext;
-
-    launchOptions.args = launchOptions.args || [];
-    // Add --no-sandbox for Platform, because running Chrome in Docker
-    // is a very complex problem and most likely requires sys admin privileges,
-    // which is a larger security concern than --no-sandbox itself.
-    // TODO Find if the arg has any impact on browser detection.
-    if (isAtHome()) launchOptions.args.push('--no-sandbox');
-
-    if (launchOptions.headless == null) {
-        launchOptions.headless = getDefaultHeadlessOption();
-    }
-
-    if (useChrome && !launchOptions.executablePath) {
-        launchOptions.executablePath = getChromeExecutablePath();
-    }
-
-    if (launchOptions.launchOptions === undefined) {
-        launchOptions.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
-    }
-
-    // When User-Agent is not set and we're using Chromium or headless mode,
-    // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
-    let { userAgent } = launchContext;
-    if (!userAgent && (!launchOptions.executablePath || launchOptions.headless)) {
-        userAgent = DEFAULT_USER_AGENT;
-    }
-
-    if (userAgent) {
-        launchOptions.args.push(`--user-agent=${userAgent}`);
-    }
-
-    return launchOptions;
 }
 
 export default PuppeteerCrawler;

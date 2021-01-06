@@ -41,17 +41,3 @@ export function getSessionIdFromProxyUrl(proxyUrl) {
 
     return sessionPart && sessionPart.replace('session-', '');
 }
-
-/**
- *
- */
-export function getDefaultHeadlessOption() {
-    return process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
-}
-
-/**
- *
- */
-export function getChromeExecutablePath() {
-    return process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
-}

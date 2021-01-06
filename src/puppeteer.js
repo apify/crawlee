@@ -1,78 +1,16 @@
 import ow from 'ow';
 import * as _ from 'underscore';
-import { anonymizeProxy, closeAnonymizedProxy, redactUrl, parseUrl } from 'proxy-chain';
+
 import { ENV_VARS } from 'apify-shared/consts';
+import { PuppeteerPlugin } from 'browser-pool';
 import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { DEFAULT_USER_AGENT } from './constants';
-import log from './utils_log';
 import { getTypicalChromeExecutablePath, isAtHome } from './utils';
 import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
-
-const LAUNCH_PUPPETEER_LOG_OMIT_OPTS = [
-    'proxyUrl', 'userAgent', 'puppeteerModule', 'stealthOptions',
-];
 
 const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
     width: 1366,
     height: 768,
-};
-
-const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
-    ...LAUNCH_PUPPETEER_LOG_OMIT_OPTS,
-    'useChrome', 'stealth',
-];
-
-/**
- * Launches Puppeteer with proxy used via `proxy-chain` package.
- *
- * @ignore
- */
-const launchPuppeteerWithProxy = async (puppeteer, opts) => {
-    // Parse and validate proxy URL
-    const parsedProxyUrl = parseUrl(opts.proxyUrl);
-    if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
-        throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
-    }
-    if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.scheme)) {
-        throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.scheme}).`);
-    }
-
-    // Anonymize proxy URL if it has username or password
-    let anonymizedProxyUrl = null;
-    if (parsedProxyUrl.username || parsedProxyUrl.password) {
-        if (parsedProxyUrl.scheme !== 'http') {
-            throw new Error('Invalid "proxyUrl" option: authentication is only supported for HTTP proxy type.');
-        }
-        anonymizedProxyUrl = await anonymizeProxy(opts.proxyUrl);
-    }
-
-    opts.args.push(`--proxy-server=${anonymizedProxyUrl || opts.proxyUrl}`);
-    const optsForLog = _.omit(opts, LAUNCH_PUPPETEER_LOG_OMIT_OPTS);
-    optsForLog.proxyUrl = redactUrl(opts.proxyUrl);
-    optsForLog.args = opts.args.slice(0, opts.args.length - 1);
-
-    log.info('Launching Puppeteer', optsForLog);
-    const onlyPuppeteerOptions = _.omit(opts, LAUNCH_PUPPETEER_APIFY_OPTIONS);
-    const browser = await puppeteer.launch(onlyPuppeteerOptions);
-
-    // Close anonymization proxy server when Puppeteer finishes
-    if (anonymizedProxyUrl) {
-        const cleanUp = () => {
-            // Don't wait for finish, only log errors
-            closeAnonymizedProxy(anonymizedProxyUrl, true)
-                .catch((err) => log.exception(err, 'closeAnonymizedProxy() failed.'));
-        };
-
-        browser.on('disconnected', cleanUp);
-
-        const prevClose = browser.close.bind(browser);
-        browser.close = () => {
-            cleanUp();
-            return prevClose();
-        };
-    }
-
-    return browser;
 };
 
 /**
@@ -81,7 +19,7 @@ const launchPuppeteerWithProxy = async (puppeteer, opts) => {
  * @param {(string|Object)} puppeteerModule
  * @ignore
  */
-const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
+export function getPuppeteerOrThrow(puppeteerModule = 'puppeteer') {
     if (typeof puppeteerModule === 'object') return puppeteerModule;
     try {
         // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
@@ -96,7 +34,57 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
 
         throw err;
     }
-};
+}
+
+/**
+ *@ignore
+ */
+export function getDefaultHeadlessOption() {
+    return process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
+}
+
+/**
+ *@ignore
+ */
+export function getChromeExecutablePath() {
+    return process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
+}
+
+export function apifyOptionsToLaunchOptions(launchContext) {
+    const { launchOptions = {}, useChrome } = launchContext;
+
+    launchOptions.args = launchOptions.args || [];
+    // Add --no-sandbox for Platform, because running Chrome in Docker
+    // is a very complex problem and most likely requires sys admin privileges,
+    // which is a larger security concern than --no-sandbox itself.
+    // TODO Find if the arg has any impact on browser detection.
+    if (isAtHome()) launchOptions.args.push('--no-sandbox');
+
+    if (launchOptions.headless == null) {
+        launchOptions.headless = getDefaultHeadlessOption();
+    }
+
+    if (useChrome && !launchOptions.executablePath) {
+        launchOptions.executablePath = getChromeExecutablePath();
+    }
+
+    if (launchOptions.launchOptions === undefined) {
+        launchOptions.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
+    }
+
+    // When User-Agent is not set and we're using Chromium or headless mode,
+    // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
+    let { userAgent } = launchContext;
+    if (!userAgent && (!launchOptions.executablePath || launchOptions.headless)) {
+        userAgent = DEFAULT_USER_AGENT;
+    }
+
+    if (userAgent) {
+        launchOptions.args.push(`--user-agent=${userAgent}`);
+    }
+
+    return launchOptions;
+}
 
 // TODO yin: `@property ...` didn't work. Extend Puppeteer's `LaunchOptions` didn't work. There is a GitHub issue for that:
 //  https://github.com/Microsoft/TypeScript/issues/20077
@@ -137,6 +125,8 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  * @property {StealthOptions} [stealthOptions]
  *   Using this configuration, you can disable some of the hiding tricks.
  *   For these settings to take effect `stealth` must be set to true
+ * @property {object} [launchOptions]
+ *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
  */
 
 /**
@@ -188,8 +178,8 @@ const getPuppeteerOrThrow = (puppeteerModule = 'puppeteer') => {
  * @name launchPuppeteer
  * @function
  */
-export const launchPuppeteer = async (options = {}) => {
-    ow(options, ow.object.partialShape({
+export const launchPuppeteer = async (launchContext = {}) => {
+    ow(launchContext, ow.object.partialShape({
         args: ow.optional.array.ofType(ow.string),
         proxyUrl: ow.optional.string.url,
         puppeteerModule: ow.optional.any(ow.string, ow.object),
@@ -197,51 +187,25 @@ export const launchPuppeteer = async (options = {}) => {
         stealthOptions: ow.optional.object,
     }));
 
-    const puppeteer = getPuppeteerOrThrow(options.puppeteerModule);
+    const {
+        stealth,
+        stealthOptions,
+        proxyUrl,
+        puppeteerModule,
+    } = launchContext;
 
-    const optsCopy = { ...options };
+    const plugin = new PuppeteerPlugin(
+        getPuppeteerOrThrow(puppeteerModule),
+        {
+            proxyUrl,
+            launchOptions: apifyOptionsToLaunchOptions(launchContext),
+        },
+    );
 
-    optsCopy.args = optsCopy.args || [];
-    // Add --no-sandbox for Platform, because running Chrome in Docker
-    // is a very complex problem and most likely requires sys admin privileges,
-    // which is a larger security concern than --no-sandbox itself.
-    // TODO Find if the arg has any impact on browser detection.
-    if (isAtHome()) optsCopy.args.push('--no-sandbox');
+    const { browser } = await plugin.launch();
 
-    if (optsCopy.headless == null) {
-        optsCopy.headless = process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
-    }
-    if (optsCopy.useChrome && (optsCopy.executablePath === undefined || optsCopy.executablePath === null)) {
-        optsCopy.executablePath = process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
-    }
-
-    if (optsCopy.defaultViewport === undefined) {
-        optsCopy.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
-    }
-
-    // When User-Agent is not set and we're using Chromium or headless mode,
-    // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
-    let { userAgent } = optsCopy;
-    if (!userAgent && (!optsCopy.executablePath || optsCopy.headless)) {
-        userAgent = DEFAULT_USER_AGENT;
-    }
-    if (userAgent) {
-        optsCopy.args.push(`--user-agent=${userAgent}`);
-    }
-
-    let browser;
-    if (optsCopy.proxyUrl) {
-        // The log for launching with proxyUrl is inside launchPuppeteerWithProxy
-        browser = await launchPuppeteerWithProxy(puppeteer, optsCopy);
-    } else {
-        log.info('Launching Puppeteer', _.omit(optsCopy, LAUNCH_PUPPETEER_LOG_OMIT_OPTS));
-        const onlyPuppeteerOptions = _.omit(optsCopy, LAUNCH_PUPPETEER_APIFY_OPTIONS);
-        browser = await puppeteer.launch(onlyPuppeteerOptions);
-    }
-
-    // Add stealth
-    if (optsCopy.stealth) {
-        browser = applyStealthToBrowser(browser, optsCopy.stealthOptions);
+    if (stealth) {
+        applyStealthToBrowser(browser, stealthOptions);
     }
 
     return browser;
