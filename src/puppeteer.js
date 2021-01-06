@@ -185,6 +185,8 @@ export const launchPuppeteer = async (launchContext = {}) => {
         launcher: ow.optional.any(ow.string, ow.object),
         stealth: ow.optional.boolean,
         stealthOptions: ow.optional.object,
+        useChrome: ow.optional.boolean,
+        userAgent: ow.optional.string,
     }));
 
     const {

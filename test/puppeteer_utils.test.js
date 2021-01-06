@@ -28,6 +28,7 @@ describe('Apify.utils.puppeteer', () => {
     });
     describe.each([
         ['launchPuppeteer', { launchOptions: { headless: true } }],
+        // ['launchPlaywright', { launchOptions: { headless: true } }],
     ])('with %s', (launchName, launchContext) => {
         test('injectFile()', async () => {
         /* eslint-disable no-shadow */

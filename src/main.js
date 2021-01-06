@@ -8,6 +8,7 @@ import { pushData, openDataset } from './storages/dataset';
 import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, getInput, openKeyValueStore } from './storages/key_value_store';
 import { launchPuppeteer } from './puppeteer';
+import { launchPlaywright } from './playwright';
 import BrowserCrawler from './crawlers/browser_crawler';
 import PuppeteerCrawler from './crawlers/puppeteer_crawler';
 import PlaywrightCrawler from './crawlers/playwright_crawler';
@@ -81,6 +82,7 @@ export {
     openKeyValueStore,
 
     launchPuppeteer,
+    launchPlaywright,
     BrowserCrawler,
     PuppeteerCrawler,
     PlaywrightCrawler,
