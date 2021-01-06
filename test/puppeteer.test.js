@@ -121,7 +121,7 @@ describe('Apify.launchPuppeteer()', () => {
         process.env[ENV_VARS.HEADLESS] = false;
 
         return Apify.launchPuppeteer({
-            headless: true,
+            launchOptions: { headless: true },
             proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
         })
             .then((createdBrowser) => {
@@ -149,7 +149,7 @@ describe('Apify.launchPuppeteer()', () => {
         const opts = {
             // Have space in user-agent to test passing of params
             userAgent: 'MyUserAgent/1234 AnotherString/456',
-            headless: true,
+            launchOptions: { headless: true },
         };
         return Apify.launchPuppeteer(opts)
             .then((result) => {
@@ -177,7 +177,7 @@ describe('Apify.launchPuppeteer()', () => {
         let browser;
         const opts = {
             useChrome: true,
-            headless: true,
+            launchOptions: { headless: true },
         };
 
         try {
@@ -205,7 +205,7 @@ describe('Apify.launchPuppeteer()', () => {
         try {
             browser = await Apify.launchPuppeteer({
                 puppeteerModule: 'puppeteer',
-                headless: true,
+                launchOptions: { headless: true },
             });
         } finally {
             if (browser) await browser.close();
@@ -223,7 +223,7 @@ describe('Apify.launchPuppeteer()', () => {
                     launch: async () => {},
                     someProps,
                 },
-                headless: true,
+                launchOptions: { headless: true },
             });
         } finally {
             if (browser) await browser.close();

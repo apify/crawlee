@@ -68,7 +68,7 @@ export function apifyOptionsToLaunchOptions(launchContext) {
         launchOptions.executablePath = getChromeExecutablePath();
     }
 
-    if (launchOptions.defaultViewport === undefined) {
+    if (launchOptions.launchOptions === undefined) {
         launchOptions.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
     }
 
@@ -201,9 +201,8 @@ export const launchPuppeteer = async (launchContext = {}) => {
             launchOptions: apifyOptionsToLaunchOptions(launchContext),
         },
     );
-    const context = await plugin.createLaunchContext();
 
-    const browser = await plugin.launch(context);
+    const { browser } = await plugin.launch();
 
     if (stealth) {
         applyStealthToBrowser(browser, stealthOptions);

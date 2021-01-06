@@ -47,7 +47,7 @@ describe('enqueueLinks()', () => {
         let page;
 
         beforeEach(async () => {
-            browser = await Apify.launchPuppeteer({ headless: true });
+            browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
             page = await browser.newPage();
             await page.setContent(HTML);
         });

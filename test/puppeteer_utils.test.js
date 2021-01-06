@@ -27,7 +27,7 @@ describe('Apify.utils.puppeteer', () => {
         await localStorageEmulator.destroy();
     });
     describe.each([
-        ['launchPuppeteer', { headless: true }],
+        ['launchPuppeteer', { launchOptions: { headless: true } }],
     ])('with %s', (launchName, launchContext) => {
         test('injectFile()', async () => {
         /* eslint-disable no-shadow */
@@ -334,7 +334,7 @@ describe('Apify.utils.puppeteer', () => {
             function isAtBottom() {
                 return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
             }
-            const browser = await Apify.launchPuppeteer({ headless: true });
+            const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
             try {
                 const page = await browser.newPage();
                 let count = 0;
