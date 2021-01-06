@@ -21,6 +21,9 @@ and also short tutorials how to use many of the new features.
 - [Updated `PuppeteerCrawlerOptions`](#updated-puppeteercrawleroptions)
   * [`launchPuppeteerOptions` => `launchContext`](#launchpuppeteeroptions--launchcontext)
   * [Removal of `launchPuppeteerFunction`](#removal-of-launchpuppeteerfunction)
+- [Launch functions](#launch-functions)
+  * [Updated arguments](#updated-arguments)
+  * [Custom modules](#custom-modules)
 
 <!-- tocstop -->
 
