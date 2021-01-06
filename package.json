@@ -73,6 +73,7 @@
         "mime-types": "^2.1.27",
         "ow": "^0.20.0",
         "proxy-chain": "^0.4.5",
+        "puppeteer": "^5.5.0",
         "rimraf": "^3.0.2",
         "semver": "^7.3.2",
         "socket.io": "^3.0.3",
