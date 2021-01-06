@@ -90,7 +90,8 @@ import { gotoExtended } from '../playwright_utils';
  *     };
  * ]
  * ```
- * @property {object} [launchOptions]
+ * @property {object} [launchContext]
+ * @property {object} [launchContext.launchOptions]
  *   Options used by
  *   [browserType.launch](https://playwright.dev/docs/api/class-browsertype#browsertypelaunchoptions)
  *   to start new Playwright instances.
@@ -236,11 +237,13 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         const {
             playwrightModule = require('playwright').chromium, // eslint-disable-line
-            launchOptions = {},
+            launchContext = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
+
+        const { launchOptions } = launchContext;
 
         browserPoolOptions.browserPlugins = [
             new PlaywrightPlugin(
@@ -266,7 +269,7 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
-        this.launchOptions = launchOptions;
+        this.launchContext = launchContext;
         this.playwrightModule = playwrightModule;
 
         this.gotoOptions = {

@@ -81,7 +81,8 @@ const LAUNCH_PUPPETEER_APIFY_OPTIONS = [
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {LaunchPuppeteerOptions} [launchOptions]
+ * @property {object} [launchContext]
+ * @property {LaunchPuppeteerOptions} [launchContext.launchOptions]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
@@ -240,7 +241,7 @@ class PuppeteerCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
-        launchOptions: ow.optional.object,
+        launchContext: ow.optional.object,
         gotoFunction: ow.undefined,
 
     }
@@ -254,14 +255,18 @@ class PuppeteerCrawler extends BrowserCrawler {
 
         const {
             puppeteerModule, // eslint-disable-line
-            launchOptions = {},
+            launchContext = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
             proxyConfiguration,
             ...browserCrawlerOptions
         } = options;
 
-        const { stealth, stealthOptions, proxyUrl } = launchOptions;
+        const {
+            stealth,
+            stealthOptions,
+            proxyUrl,
+        } = launchContext;
 
         if (proxyUrl && proxyConfiguration) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
@@ -272,7 +277,7 @@ class PuppeteerCrawler extends BrowserCrawler {
                 getPuppeteerOrThrow(puppeteerModule),
                 {
                     proxyUrl,
-                    launchOptions: getDefaultLaunchOptions(launchOptions),
+                    launchOptions: apifyOptionsToLaunchOptions(launchContext),
                 },
             ),
         ];
@@ -304,7 +309,7 @@ class PuppeteerCrawler extends BrowserCrawler {
         }
 
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
-        this.launchOptions = launchOptions;
+        this.launchContext = launchContext;
         this.puppeteerModule = puppeteerModule;
 
         this.gotoOptions = {
@@ -340,40 +345,40 @@ function getPuppeteerOrThrow(puppeteerModule = 'puppeteer') {
     }
 }
 
-function getDefaultLaunchOptions(options) {
-    const optsCopy = { ...options };
+function apifyOptionsToLaunchOptions(launchContext) {
+    const { launchOptions = {}, useChrome } = launchContext;
 
-    optsCopy.args = optsCopy.args || [];
+    launchOptions.args = launchOptions.args || [];
     // Add --no-sandbox for Platform, because running Chrome in Docker
     // is a very complex problem and most likely requires sys admin privileges,
     // which is a larger security concern than --no-sandbox itself.
     // TODO Find if the arg has any impact on browser detection.
-    if (isAtHome()) optsCopy.args.push('--no-sandbox');
+    if (isAtHome()) launchOptions.args.push('--no-sandbox');
 
-    if (optsCopy.headless == null) {
-        optsCopy.headless = getDefaultHeadlessOption();
+    if (launchOptions.headless == null) {
+        launchOptions.headless = getDefaultHeadlessOption();
     }
 
-    if (optsCopy.useChrome && !optsCopy.executablePath) {
-        optsCopy.executablePath = getChromeExecutablePath();
+    if (useChrome && !launchOptions.executablePath) {
+        launchOptions.executablePath = getChromeExecutablePath();
     }
 
-    if (optsCopy.defaultViewport === undefined) {
-        optsCopy.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
+    if (launchOptions.launchOptions === undefined) {
+        launchOptions.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
     }
 
     // When User-Agent is not set and we're using Chromium or headless mode,
     // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
-    let { userAgent } = optsCopy;
-    if (!userAgent && (!optsCopy.executablePath || optsCopy.headless)) {
+    let { userAgent } = launchContext;
+    if (!userAgent && (!launchOptions.executablePath || launchOptions.headless)) {
         userAgent = DEFAULT_USER_AGENT;
     }
 
     if (userAgent) {
-        optsCopy.args.push(`--user-agent=${userAgent}`);
+        launchOptions.args.push(`--user-agent=${userAgent}`);
     }
 
-    return _.omit(optsCopy, LAUNCH_PUPPETEER_APIFY_OPTIONS);
+    return launchOptions;
 }
 
 export default PuppeteerCrawler;
