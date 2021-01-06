@@ -2,7 +2,7 @@ import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
-import { gotoExtended } from '../puppeteer_utils';
+import { gotoExtended } from '../playwright_utils';
 /**
  * @typedef PlaywrightCrawlerOptions
  * @property {function} handlePageFunction
@@ -177,6 +177,7 @@ class PlaywrightCrawler extends BrowserCrawler {
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
+        playwrightModule: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
         launchOptions: ow.optional.object,
         gotoFunction: ow.undefined,
@@ -193,13 +194,6 @@ class PlaywrightCrawler extends BrowserCrawler {
             ...browserCrawlerOptions
         } = options;
 
-        browserCrawlerOptions.postNavigationHooks = [({ error, session }) => {
-            // It would be better to compare the instances,
-            if (error && error.constructor.name === 'TimeoutError') {
-                handleRequestTimeout(session, error.message);
-            }
-        }];
-
         browserPoolOptions.browserPlugins = [
             new PlaywrightPlugin(
                 // eslint-disable-next-line
@@ -215,18 +209,26 @@ class PlaywrightCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
+        this.browserPool.postLaunchHooks.push(({ error, session }) => {
+            // It would be better to compare the instances,
+            // but we don't have access to puppeteer.errors here.
+            if (error && error.constructor.name === 'TimeoutError') {
+                handleRequestTimeout(session, error.message);
+            }
+        });
+
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
         this.launchOptions = launchOptions;
         this.playwrightModule = playwrightModule;
 
-        this.goToOptions = {
+        this.gotoOptions = {
             timeout: this.gotoTimeoutMillis,
         };
     }
 
-    async _navigationHandler(crawlingContext, goToOptions) {
-        return gotoExtended(crawlingContext.page, crawlingContext.request, goToOptions);
+    async _navigationHandler(crawlingContext, gotoOptions) {
+        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }
 

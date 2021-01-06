@@ -17,6 +17,7 @@ import { createProxyConfiguration } from './proxy_configuration';
 import { openRequestQueue } from './storages/request_queue';
 import { newClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
+import { playwrightUtils } from './playwright_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import PseudoUrl from './pseudo_url';
@@ -30,6 +31,7 @@ EventEmitter.defaultMaxListeners = 50;
 
 const exportedUtils = Object.assign(publicUtils, {
     puppeteer: puppeteerUtils,
+    playwright: playwrightUtils,
     social: socialUtils,
     log,
     enqueueLinks,
