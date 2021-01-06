@@ -120,8 +120,5 @@
         "typescript": "3.8.3",
         "ua-parser-js": "^0.7.22",
         "why-is-node-running": "^2.2.0"
-    },
-    "optionalDependencies": {
-        "puppeteer": "5.5.0"
     }
 }
