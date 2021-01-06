@@ -25,7 +25,7 @@ support for even more libraries in the future.
 Thanks to the addition of Playwright we now have a `PlaywrightCrawler`. It is very similar
 to `PuppeteerCrawler` and you can pick the one you prefer. It also means we needed to make
 some interface changes. The `launchPuppeteerFunction` option of `PuppeteerCrawler` is gone
-and `launchPuppeteerOptions` are now just `launchOptions`. We also moved things around
+and `launchPuppeteerOptions` were replaced by `launchContext`. We also moved things around
 in the `handlePageFunction` arguments. See the
 [migration guide](https://github.com/apify/apify-js/blob/master/MIGRATIONS.md)
 for more detailed explanation and migration examples.
@@ -40,8 +40,8 @@ Full list of changes:
 
 - **BREAKING:** Removed `puppeteer` from dependencies. If you want to use Puppeteer,
   you must install it yourself.
-- **BREAKING:** Removed `PuppeteerPool`. Use `browser-pool`.
-- **BREAKING:** Renamed `PuppeteerCrawlerOptions.launchPuppeteerOptions` to `launchOptions`.
+- **BREAKING:** Removed `PuppeteerPool`. Use [`browser-pool`](https://github.com/apify/browser-pool).
+- **BREAKING:** Removed `PuppeteerCrawlerOptions.launchPuppeteerOptions`. Use `launchContext`.
 - **BREAKING:** Removed `PuppeteerCrawlerOptions.launchPuppeteerFunction`.
   Use `PuppeteerCrawlerOptions.preLaunchHooks` and `postLaunchHooks`.
 - **BREAKING:** Removed `PuppeteerCrawlerOptions.gotoFunction`.
@@ -50,13 +50,16 @@ Full list of changes:
   arguments. Use `args.crawler.autoscaledPool` and `args.crawler.browserPool`.
 - **BREAKING:** The `useSessionPool` and `persistCookiesPerSession` options of crawlers
   are now `true` by default. Explicitly set them to `false` to override the behavior.
+- **BREAKING:** `Apify.launchPuppeteer()` no longer accepts `LaunchPuppeteerOptions`.
+  It now accepts `LaunchContext`.
 
 - Added `Apify.PlaywrightCrawler` which is almost identical to `PuppeteerCrawler`,
   but it crawls with the `playwright` library.
-- Added `Apify.launchPlaywright` helper function.
+- Added `Apify.launchPlaywright(launchContext)` helper function.
 - Added `browserPoolOptions` to `PuppeteerCrawler` to configure `BrowserPool`.
+- Added `crawler` to `handle(Request/Page)Function` arguments.
 - Added `browserController` to `handlePageFunction` arguments.
-- TODO
+- Added `crawler.crawlingContexts` `Map` which includes all running `crawlingContext`s.
 
 
 0.22.2 / 2020/12/22

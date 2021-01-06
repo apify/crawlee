@@ -6,7 +6,7 @@
 [![Build Status](https://travis-ci.com/apify/apify-js.svg?branch=master)](https://travis-ci.com/apify/apify-js)
 
 Apify SDK simplifies the development of web crawlers, scrapers, data extractors and web automation jobs.
-It provides tools to manage and automatically scale a pool of headless Chrome / Puppeteer instances,
+It provides tools to manage and automatically scale a pool of headless browsers,
 to maintain queues of URLs to crawl, store crawling results to a local filesystem or into the cloud,
 rotate proxies and much more.
 The SDK is available as the [`apify`](https://www.npmjs.com/package/apify) NPM package.
@@ -18,7 +18,7 @@ running on the [Apify Cloud](https://apify.com/).
 
 ## Motivation
 
-Thanks to tools like [Puppeteer](https://github.com/puppeteer/puppeteer) or
+Thanks to tools like [Puppeteer](https://github.com/puppeteer/puppeteer), [Playwright](https://github.com/microsoft/playwright) or
 [Cheerio](https://www.npmjs.com/package/cheerio), it is easy to write Node.js code to extract data from web pages. But
 eventually things will get complicated. For example, when you try to:
 
@@ -51,9 +51,9 @@ efficient web crawler, but it does not work on websites that require JavaScript.
 a large number of web pages using the headless Chrome browser and [Puppeteer](https://github.com/puppeteer/puppeteer).
 The pool of Chrome browsers is automatically scaled up and down based on available system resources.
 
-- [`PuppeteerPool`](https://sdk.apify.com/docs/api/puppeteer-pool) - Provides web browser tabs for user jobs
-from an automatically-managed pool of Chrome browser instances, with configurable browser recycling
-and retirement policies. Supports reuse of the disk cache to speed up the crawling of websites and reduce proxy bandwidth.
+- [`PlaywrightCrawler`](https://sdk.apify.com/docs/api/playwright-crawler) - Unlike `PuppeteerCrawler`
+you can use [Playwright](https://github.com/microsoft/playwright) to manage almost any headless browser.
+It also provides a cleaner and more mature interface while keeping the ease of use and advanced features.
 
 - [`RequestList`](https://sdk.apify.com/docs/api/request-list) - Represents a list of URLs to crawl.
 The URLs can be passed in code or in a text file hosted on the web. The list persists its state so that crawling
@@ -93,34 +93,38 @@ Apify SDK requires [Node.js](https://nodejs.org/en/) 10.17 or later, with the ex
 Add Apify SDK to any Node.js project by running:
 
 ```bash
-npm install apify --save
+npm install apify playwright
 ```
 
-Run the following example to perform a recursive crawl of a website using Puppeteer. For more examples showcasing various features of the Apify SDK,
-[see the Examples section of the documentation](https://sdk.apify.com/docs/examples/basic-crawler).
+> Neither `playwright` nor `puppeteer` are bundled with the SDK to reduce install size and allow greater
+> flexibility. That's why we install it with NPM. You can choose one, both, or neither.
+
+Run the following example to perform a recursive crawl of a website using Playwright. For more examples showcasing various features of the Apify SDK,
+[see the Examples section of the documentation](https://sdk.apify.com/docs/examples/crawl-multiple-urls).
 
 ```javascript
 const Apify = require('apify');
 
+// Apify.main is a helper function, you don't need to use it.
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
+    // Choose the first URL to open.
     await requestQueue.addRequest({ url: 'https://www.iana.org/' });
-    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
 
-    const crawler = new Apify.PuppeteerCrawler({
+    const crawler = new Apify.PlaywrightCrawler({
         requestQueue,
         handlePageFunction: async ({ request, page }) => {
+            // Extract HTML title of the page.
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
+
+            // Add URLs that match the provided pattern.
             await Apify.utils.enqueueLinks({
                 page,
-                selector: 'a',
-                pseudoUrls,
                 requestQueue,
+                pseudoUrls: ['https://www.iana.org/[.*]'],
             });
         },
-        maxRequestsPerCrawl: 100,
-        maxConcurrency: 10,
     });
 
     await crawler.run();
@@ -145,8 +149,6 @@ Install the CLI by running:
 ```bash
 npm -g install apify-cli
 ```
-
-You might need to run the above command with `sudo`, depending on how crazy your configuration is.
 
 Now create a boilerplate of your new web crawling project by running:
 
