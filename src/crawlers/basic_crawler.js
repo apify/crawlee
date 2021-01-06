@@ -325,7 +325,7 @@ class BasicCrawler {
         try {
             await this.isRunningPromise;
         } finally {
-            await this._teardown();
+            await this.teardown();
             await this.stats.stopCapturing();
             const finalStats = this.stats.calculate();
             const { requestsFailed, requestsFinished } = this.stats.state;
@@ -598,7 +598,7 @@ class BasicCrawler {
 
     /**
      * Function for cleaning up after all request are processed.
-     * @private
+     * @ignore
      */
     async teardown() {
         if (this.useSessionPool) {

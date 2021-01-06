@@ -295,28 +295,25 @@ class PuppeteerCrawler extends BrowserCrawler {
             ),
         ];
 
-        if (stealth) {
-            browserPoolOptions.postLaunchHooks = browserPoolOptions.postLaunchHooks || [];
-
-            browserPoolOptions.postLaunchHooks.push(async (pageId, browserController) => {
-                // @TODO: We can do this better now. It is not necessary to override the page.
-                // we can modify the page in the postPageCreateHook
-                await applyStealthToBrowser(browserController.browser, stealthOptions);
-            });
-        }
-
         super({
             ...browserCrawlerOptions,
             proxyConfiguration,
             browserPoolOptions,
         });
 
+        if (stealth) {
+            this.browserPool.postLaunchHooks.push(async (pageId, browserController) => {
+                // @TODO: We can do this better now. It is not necessary to override the page.
+                // we can modify the page in the postPageCreateHook
+                await applyStealthToBrowser(browserController.browser, stealthOptions);
+            });
+        }
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
         this.launchPuppeteerOptions = launchPuppeteerOptions;
         this.puppeteerModule = puppeteerModule;
     }
 
-    async _navigationHandler(crawlingContext) {
+    async _navigationHandler(crawlingContext, ) {
         if (this.gotoFunction) return this.gotoFunction(crawlingContext);
         return gotoExtended(crawlingContext.page, crawlingContext.request, { timeout: this.gotoTimeoutMillis });
     }

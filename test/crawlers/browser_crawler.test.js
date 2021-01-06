@@ -180,6 +180,38 @@ describe('BrowserCrawler', () => {
         expect(isEvaluated).toBeTruthy();
     });
 
+    test('should allow modifying gotoOptions by pre navigation hooks', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        let optionsGoto;
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async () => {},
+            maxRequestRetries: 0,
+            gotoFunction: ({ page, request }, gotoOptions) => {
+                optionsGoto = gotoOptions;
+                return page.goto(request.url, gotoOptions);
+            },
+            preNavigationHooks: [
+                async (crawlingContext, gotoOptions) => {
+                    gotoOptions.timeout = 60000;
+                },
+            ],
+        });
+
+        await requestList.initialize();
+        await browserCrawler.run();
+
+        expect(optionsGoto.timeout).toEqual(60000);
+    });
+
     test('should ignore errors in Page.close()', async () => {
         for (let i = 0; i < 2; i++) {
             const requestList = new Apify.RequestList({

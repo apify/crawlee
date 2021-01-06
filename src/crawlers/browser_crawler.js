@@ -1,4 +1,5 @@
 import ow from 'ow';
+import _ from 'underscore';
 import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BROWSER_CONTROLLER_EVENTS } from 'browser-pool/src/events';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
@@ -301,6 +302,7 @@ class BrowserCrawler extends BasicCrawler {
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
 
         this.gotoFunction = gotoFunction;
+        this.goToOptions = {};
 
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
@@ -339,7 +341,7 @@ class BrowserCrawler extends BasicCrawler {
      * @param {Request} crawlingContext.request
      * @param {BrowserController} crawlingContext.browserController
      * @param {Session} [crawlingContext.session]
-     * @ignore
+     * @private
      */
     async _handleRequestFunction(crawlingContext) {
         const { id } = crawlingContext;
@@ -386,6 +388,7 @@ class BrowserCrawler extends BasicCrawler {
      *
      * @param {object} crawlingContext
      * @param {Page} page
+     * @private
      */
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
@@ -403,19 +406,22 @@ class BrowserCrawler extends BasicCrawler {
     /**
      *
      * @param {object} crawlingContext
+     * @private
      */
     async _handleNavigation(crawlingContext) {
-        const goToOptions = {};
+        // @TODO: consider deep clone
+        const goToOptions = _.clone(this.goToOptions);
         await this._executeHooks(this.preNavigationHooks, crawlingContext, goToOptions);
         crawlingContext.response = await this._navigationHandler(crawlingContext, goToOptions);
 
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, goToOptions);
+        await this._executeHooks(this.postNavigationHooks, crawlingContext);
     }
 
     /**
      *
      * @param {object} crawlingContext
      * @param {object} goToOptions
+     * @private
      */
     async _navigationHandler(crawlingContext, goToOptions) {
         if (!this.gotoFunction) {
@@ -451,6 +457,7 @@ class BrowserCrawler extends BasicCrawler {
      *
      * @param {string} pageId
      * @param {object} launchContext
+     * @private
      */
     async _extendLaunchContext(pageId, launchContext) {
         const launchContextExtends = {};
@@ -472,6 +479,7 @@ class BrowserCrawler extends BasicCrawler {
   *
   * @param {string} pageId
   * @param {BrowserController} browserController
+  * @private
   */
     _maybeAddSessionRetiredListener(pageId, browserController) {
         if (this.sessionPool) {
@@ -492,6 +500,7 @@ class BrowserCrawler extends BasicCrawler {
      *
      * @param {array} hooks
      * @param  {...any} args
+     * @private
      */
     async _executeHooks(hooks, ...args) {
         if (Array.isArray(hooks) && hooks.length) {
@@ -503,8 +512,9 @@ class BrowserCrawler extends BasicCrawler {
 
     /**
     * Function for cleaning up after all request are processed.
+    * @ignore
     */
-    async _teardown() {
+    async teardown() {
         await this.browserPool.destroy();
         super.teardown();
     }
