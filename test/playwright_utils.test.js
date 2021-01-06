@@ -26,7 +26,7 @@ describe('Apify.utils.playwright', () => {
     });
 
     test('gotoExtended() works', async () => {
-        const browser = await playwright.chromium.launch({ headless: false });
+        const browser = await playwright.chromium.launch({ headless: true });
 
         try {
             const page = await browser.newPage();

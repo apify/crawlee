@@ -195,7 +195,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         const requestList = await Apify.openRequestList(null, [testUrl]);
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
-            launchPuppeteerOptions: {
+            launchOptions: {
                 stealth: true,
                 useChrome: true,
                 headless: true,

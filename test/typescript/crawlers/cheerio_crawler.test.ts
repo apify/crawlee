@@ -24,7 +24,7 @@ describe('CheerioCrawler TS', () => {
                 request: new Apify.Request({url: ' http://www.test1234.com'}),
                 contentType: {type: 'text/html', encoding: 'utf-8'},
                 response: null as any,
-                autoscaledPool: null as any
+                crawler: null as any
             };
         });
 

@@ -5,6 +5,9 @@ import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../playwright_utils';
 /**
  * @typedef PlaywrightCrawlerOptions
+ * @property {object} playwrightModule
+ * Playwright browser module used for launching new browsers. For example: `require("playwright").chromium`
+ * [Playwright list of available modules](https://playwright.dev/docs/api/class-playwright)
  * @property {function} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
@@ -87,7 +90,52 @@ import { gotoExtended } from '../playwright_utils';
  *     };
  * ]
  * ```
-*/
+ * @property {object} [launchOptions]
+ *   Options used by
+ *   [browserType.launch](https://playwright.dev/docs/api/class-browsertype#browsertypelaunchoptions)
+ *   to start new Playwright instances.
+ * @property {number} [handlePageTimeoutSecs=60]
+ *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
+ * @property {BrowserPoolOptions} [browserPoolOptions]
+ *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
+ *   You can tweak those to fine-tune browser management.
+ * @property {boolean} [persistCookiesPerSession=false]
+ *   Automatically saves cookies to Session. Works only if Session Pool is used.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
+ * @property {RequestList} [requestList]
+ *   Static list of URLs to be processed.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @property {RequestQueue} [requestQueue]
+ *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
+ *   Either `requestList` or `requestQueue` option must be provided (or both).
+ * @property {number} [handleRequestTimeoutSecs=60]
+ *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
+ * @property {number} [maxRequestRetries=3]
+ *   Indicates how many times the request is retried if {@link PuppeteerCrawlerOptions.handlePageFunction} fails.
+ * @property {number} [maxRequestsPerCrawl]
+ *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
+ *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
+ *   Note that in cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
+ * @property {AutoscaledPoolOptions} [autoscaledPoolOptions]
+ *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
+ *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
+ *   are provided by `BasicCrawler` and cannot be overridden.
+ *   However, you can provide a custom implementation of `isFinishedFunction`.
+ * @property {number} [minConcurrency=1]
+ *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ *
+ *   *WARNING:* If you set this value too high with respect to the available system memory and CPU, your crawler will run extremely slow or crash.
+ *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
+ * @property {number} [maxConcurrency=1000]
+ *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
+ * @property {boolean} [useSessionPool=false]
+ *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
+ *   The session instance will be than available in the `handleRequestFunction`.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
+ */
 
 /**
  * Provides a simple framework for parallel crawling of web pages
@@ -211,7 +259,6 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         this.browserPool.postLaunchHooks.push(({ error, session }) => {
             // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
             if (error && error.constructor.name === 'TimeoutError') {
                 handleRequestTimeout(session, error.message);
             }
