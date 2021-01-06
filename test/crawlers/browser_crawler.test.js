@@ -12,6 +12,7 @@ import * as utils from '../../build/utils';
 import Request from '../../build/request';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 import { Session } from '../../build/session_pool/session';
+import EVENTS from '../../build/session_pool/events';
 
 describe('BrowserCrawler', () => {
     let prevEnvHeadless;
@@ -84,6 +85,31 @@ describe('BrowserCrawler', () => {
             expect(request.url).toEqual(sourcesCopy[id].url);
             expect(request.userData.title).toBe('Example Domain');
         });
+    });
+    test('should teardown browser pool', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async () => {
+                return Promise.resolve();
+            },
+            maxRequestRetries: 1,
+            gotoFunction: async () => {
+            },
+        });
+        jest.spyOn(browserCrawler.browserPool, 'destroy');
+
+        await requestList.initialize();
+        await browserCrawler.run();
+        expect(browserCrawler.browserPool.destroy).toBeCalled();
     });
 
     test('should evaluate preNavigationHooks', async () => {
@@ -346,25 +372,68 @@ describe('BrowserCrawler', () => {
         expect(called).toBe(false);
     });
 
-    test.skip('should retire browser with session', async () => {
+    test('should retire browser with session', async () => {
         const requestList = new Apify.RequestList({
             sources: [
                 { url: 'http://example.com/?q=1' },
             ],
         });
-
+        let controller;
         const browserCrawler = new Apify.BrowserCrawler({
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
             useSessionPool: true,
-            handlePageFunction: async ({ hookFinished, session }) => {
+            handlePageFunction: async () => {
+                return Promise.resolve();
             },
-            maxRequestRetries: 0,
-            gotoFunction: ({ page, request }) => page.goto(request.url),
+            maxRequestRetries: 1,
+            gotoFunction: async ({ session, browserController }) => {
+                controller = browserController;
+                session.retire();
+            },
         });
-        expect(false).toBeTruthy();
+
+        await requestList.initialize();
+        await browserCrawler.run();
+        expect(controller.launchContext.sessionRetired).toBeTruthy();
+    });
+
+    test('should remove browser listener on session pool', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+                { url: 'http://example.com/?q=2' },
+            ],
+        });
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+                maxOpenPagesPerBrowser: 1,
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async () => {
+                return Promise.resolve();
+            },
+            maxRequestRetries: 1,
+            gotoFunction: async ({ session }) => {
+                expect(session.sessionPool.listeners(EVENTS.SESSION_RETIRED)).toHaveLength(1);
+                session.retire();
+            },
+        });
+        // prevent browser to auto close the browsers
+        const teardown = browserCrawler._teardown // eslint-disable-line
+        browserCrawler._teardown = () => {// eslint-disable-line
+
+        };
+
+        await requestList.initialize();
+        await browserCrawler.run();
+        await Apify.utils.sleep(5000);
+        expect(browserCrawler.sessionPool.listeners(EVENTS.SESSION_RETIRED)).toHaveLength(0);
+        await browserCrawler.browserPool.destroy();
     });
 
     describe('proxy', () => {
@@ -524,7 +593,7 @@ describe('BrowserCrawler', () => {
             const gotoFunction = async (crawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
             };
@@ -532,7 +601,7 @@ describe('BrowserCrawler', () => {
             const handlePageFunction = async (crawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
                 expect(crawlingContext.crawler).toBeInstanceOf(Apify.BrowserCrawler);
@@ -544,7 +613,7 @@ describe('BrowserCrawler', () => {
             const handleFailedRequestFunction = async (crawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
                 expect(crawlingContext.crawler).toBeInstanceOf(Apify.BrowserCrawler);

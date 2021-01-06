@@ -1,7 +1,9 @@
 import ow from 'ow';
 import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
+import { BROWSER_CONTROLLER_EVENTS } from 'browser-pool/src/events';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
+import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import { validators } from '../validators';
@@ -289,6 +291,7 @@ class BrowserCrawler extends BasicCrawler {
 
         super({
             ...basicCrawlerOptions,
+            useSessionPool: false,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
             handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
         });
@@ -310,14 +313,21 @@ class BrowserCrawler extends BasicCrawler {
                 ...sessionPoolOptions,
                 log: this.log,
             });
+
+            // Assuming there are not more thant 20 browsers running at once;
+            this.sessionPool.setMaxListeners(20);
         }
 
-        const { preLaunchHooks = [], ...rest } = browserPoolOptions;
+        const { preLaunchHooks = [], postLaunchHooks = [], ...rest } = browserPoolOptions;
         this.browserPool = new BrowserPool({
             ...rest,
             preLaunchHooks: [
                 this._extendLaunchContext.bind(this),
                 ...preLaunchHooks,
+            ],
+            postLaunchHooks: [
+                this._maybeAddSessionRetiredListener.bind(this),
+                ...postLaunchHooks,
             ],
         });
     }
@@ -372,6 +382,11 @@ class BrowserCrawler extends BasicCrawler {
         }
     }
 
+    /**
+     *
+     * @param {object} crawlingContext
+     * @param {Page} page
+     */
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
 
@@ -385,15 +400,23 @@ class BrowserCrawler extends BasicCrawler {
         crawlingContext.crawler = this;
     }
 
+    /**
+     *
+     * @param {object} crawlingContext
+     */
     async _handleNavigation(crawlingContext) {
         const goToOptions = {};
         await this._executeHooks(this.preNavigationHooks, crawlingContext, goToOptions);
-
         crawlingContext.response = await this._navigationHandler(crawlingContext, goToOptions);
 
         await this._executeHooks(this.postNavigationHooks, crawlingContext, goToOptions);
     }
 
+    /**
+     *
+     * @param {object} crawlingContext
+     * @param {object} goToOptions
+     */
     async _navigationHandler(crawlingContext, goToOptions) {
         if (!this.gotoFunction) {
             // @TODO: although it is optional in the validation,
@@ -424,6 +447,11 @@ class BrowserCrawler extends BasicCrawler {
         request.loadedUrl = await page.url();
     }
 
+    /**
+     *
+     * @param {string} pageId
+     * @param {object} launchContext
+     */
     async _extendLaunchContext(pageId, launchContext) {
         const launchContextExtends = {};
 
@@ -440,12 +468,45 @@ class BrowserCrawler extends BasicCrawler {
         launchContext.extend(launchContextExtends);
     }
 
+    /**
+  *
+  * @param {string} pageId
+  * @param {BrowserController} browserController
+  */
+    _maybeAddSessionRetiredListener(pageId, browserController) {
+        if (this.sessionPool) {
+            const listener = (session) => {
+                const { launchContext } = browserController;
+                if (session.id === launchContext.session.id) {
+                    launchContext.extend({ sessionRetired: true }); // @TODO: kind of dirty trick done mainly for testing this important feature.
+                    this.browserPool._retireBrowser(browserController); //eslint-disable-line
+                }
+            };
+
+            this.sessionPool.on(EVENTS.SESSION_RETIRED, listener);
+            browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => this.sessionPool.removeListener(EVENTS.SESSION_RETIRED, listener));
+        }
+    }
+
+    /**
+     *
+     * @param {array} hooks
+     * @param  {...any} args
+     */
     async _executeHooks(hooks, ...args) {
         if (Array.isArray(hooks) && hooks.length) {
             for (const hook of hooks) {
                 await hook(...args);
             }
         }
+    }
+
+    /**
+    * Function for cleaning up after all request are processed.
+    */
+    async _teardown() {
+        await this.browserPool.destroy();
+        super.teardown();
     }
 }
 

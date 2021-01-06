@@ -325,10 +325,7 @@ class BasicCrawler {
         try {
             await this.isRunningPromise;
         } finally {
-            if (this.useSessionPool) {
-                await this.sessionPool.teardown();
-            }
-
+            await this._teardown();
             await this.stats.stopCapturing();
             const finalStats = this.stats.calculate();
             const { requestsFailed, requestsFinished } = this.stats.state;
@@ -596,6 +593,16 @@ class BasicCrawler {
             this.handledRequestsCount = await this.requestQueue.handledCount();
         } else if (this.requestList) {
             this.handledRequestsCount = this.requestList.handledCount();
+        }
+    }
+
+    /**
+     * Function for cleaning up after all request are processed.
+     * @private
+     */
+    async teardown() {
+        if (this.useSessionPool) {
+            await this.sessionPool.teardown();
         }
     }
 }
