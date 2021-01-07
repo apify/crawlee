@@ -59,58 +59,44 @@ afterAll(() => {
     if (proxyServer) return util.promisify(proxyServer.close).bind(proxyServer)();
 }, 5000);
 
-describe('Apify.launchPuppeteer()', () => {
+describe('Apify.launchPlaywright()', () => {
     test('throws on invalid args', () => {
-        expect(Apify.launchPuppeteer('some non-object')).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer(1234)).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright('some non-object')).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright(1234)).rejects.toThrow(Error);
 
-        expect(Apify.launchPuppeteer({ proxyUrl: 234 })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: {} })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'invalidurl' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'http://host-without-port' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'invalid://somehost:1234' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'https://user:pass@example.com:1234' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'socks4://user:pass@example.com:1234' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
-
-        expect(Apify.launchPuppeteer({ args: 'wrong args' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ args: [12, 34] })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 234 })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: {} })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 'invalidurl' })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 'http://host-without-port' })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 'invalid://somehost:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 'https://user:pass@example.com:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 'socks4://user:pass@example.com:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
+        expect(Apify.launchPlaywright({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
     });
 
     test('opens supports non-HTTP proxies without authentication', async () => {
-        const browser1 = await Apify.launchPuppeteer({ proxyUrl: 'socks4://example.com:1234' });
+        const browser1 = await Apify.launchPlaywright({ proxyUrl: 'socks4://example.com:1234' });
         browser1.close();
 
-        const browser2 = await Apify.launchPuppeteer({ proxyUrl: 'socks5://example.com:1234' });
+        const browser2 = await Apify.launchPlaywright({ proxyUrl: 'socks5://example.com:1234' });
         browser2.close();
 
-        const browser3 = await Apify.launchPuppeteer({ proxyUrl: 'https://example.com:1234' });
+        const browser3 = await Apify.launchPlaywright({ proxyUrl: 'https://example.com:1234' });
         browser3.close();
 
-        const browser4 = await Apify.launchPuppeteer({ proxyUrl: 'HTTP://example.com:1234' });
+        const browser4 = await Apify.launchPlaywright({ proxyUrl: 'HTTP://example.com:1234' });
         browser4.close();
     });
 
-    test('opens https://www.example.com', () => {
-        let browser;
-        let page;
+    test('opens https://www.example.com', async () => {
+        const browser = await Apify.launchPlaywright();
+        const page = await browser.newPage();
 
-        return Apify
-            .launchPuppeteer()
-            .then((createdBrowser) => {
-                browser = createdBrowser;
-
-                return browser.newPage();
-            })
-            .then((openedPage) => {
-                page = openedPage;
-
-                return page.goto('https://www.example.com');
-            })
-            .then(() => page.content())
-            .then((html) => expect(html).toMatch('<h1>Example Domain</h1>'))
-            .then(() => browser.close());
+        await page.goto('https://www.example.com');
+        const html = await page.content();
+        expect(html).toMatch('<h1>Example Domain</h1>');
+        browser.close();
     });
 
     test('opens https://www.example.com via proxy with authentication', () => {
@@ -120,7 +106,7 @@ describe('Apify.launchPuppeteer()', () => {
         // Test headless parameter
         process.env[ENV_VARS.HEADLESS] = false;
 
-        return Apify.launchPuppeteer({
+        return Apify.launchPlaywright({
             launchOptions: { headless: true },
             proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
         })
@@ -143,34 +129,6 @@ describe('Apify.launchPuppeteer()', () => {
             .then(() => browser.close());
     });
 
-    test('supports userAgent option', () => {
-        let browser;
-        let page;
-        const opts = {
-            // Have space in user-agent to test passing of params
-            userAgent: 'MyUserAgent/1234 AnotherString/456',
-            launchOptions: { headless: true },
-        };
-        return Apify.launchPuppeteer(opts)
-            .then((result) => {
-                browser = result;
-            })
-            .then(() => {
-                return browser.newPage();
-            })
-            .then((result) => {
-                page = result;
-                return page.goto('https://api.apify.com/v2/browser-info');
-            })
-            .then(() => {
-                return page.content();
-            })
-            .then((html) => {
-                expect(html).toMatch(`"user-agent": "${opts.userAgent}"`);
-                return browser.close();
-            });
-    });
-
     test('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
 
@@ -181,7 +139,7 @@ describe('Apify.launchPuppeteer()', () => {
         };
 
         try {
-            browser = await Apify.launchPuppeteer(opts);
+            browser = await Apify.launchPlaywright(opts);
             const page = await browser.newPage();
 
             // Add a test to go to an actual domain because we've seen issues
@@ -191,41 +149,10 @@ describe('Apify.launchPuppeteer()', () => {
             const version = await browser.version();
 
             expect(title).toBe('Example Domain');
-            expect(version).toMatch('Chrome');
             expect(version).not.toMatch('Chromium');
             expect(spy.calledOnce).toBe(true);
         } finally {
             spy.restore();
-            if (browser) await browser.close();
-        }
-    });
-
-    test('puppeteerModule option works with type string', async () => {
-        let browser;
-        try {
-            browser = await Apify.launchPuppeteer({
-                puppeteerModule: 'puppeteer',
-                launchOptions: { headless: true },
-            });
-        } finally {
-            if (browser) await browser.close();
-        }
-    });
-
-    test('puppeteerModule option works with type object', async () => {
-        const someProps = { foo: 'bar' };
-        // Make it circular for extra security.
-        someProps.props = someProps;
-        let browser;
-        try {
-            browser = await Apify.launchPuppeteer({
-                puppeteerModule: {
-                    launch: async () => {},
-                    someProps,
-                },
-                launchOptions: { headless: true },
-            });
-        } finally {
             if (browser) await browser.close();
         }
     });

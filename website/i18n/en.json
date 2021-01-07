@@ -17,6 +17,9 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
+      "api/browser-crawler": {
+        "title": "BrowserCrawler"
+      },
       "api/cache-container": {
         "title": "CacheContainer"
       },
@@ -32,17 +35,11 @@
       "api/exports": {
         "title": "exports"
       },
-      "api/global-cache": {
-        "title": "GlobalCache"
-      },
       "api/job": {
         "title": "Job"
       },
       "api/key-value-store": {
         "title": "KeyValueStore"
-      },
-      "api/live-view-server": {
-        "title": "LiveViewServer"
       },
       "api/log": {
         "title": "utils.log"
@@ -58,9 +55,6 @@
       },
       "api/puppeteer-crawler": {
         "title": "PuppeteerCrawler"
-      },
-      "api/puppeteer-pool": {
-        "title": "PuppeteerPool"
       },
       "api/request": {
         "title": "Request"
@@ -209,6 +203,9 @@
       "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
       },
+      "typedefs/browser-crawler-options": {
+        "title": "BrowserCrawlerOptions"
+      },
       "typedefs/cheerio-crawler-options": {
         "title": "CheerioCrawlerOptions"
       },
@@ -251,12 +248,6 @@
       "typedefs/key-consumer": {
         "title": "KeyConsumer"
       },
-      "typedefs/launch-puppeteer": {
-        "title": "LaunchPuppeteer"
-      },
-      "typedefs/launch-puppeteer-function": {
-        "title": "LaunchPuppeteerFunction"
-      },
       "typedefs/launch-puppeteer-options": {
         "title": "LaunchPuppeteerOptions"
       },
@@ -286,21 +277,6 @@
       },
       "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
-      },
-      "typedefs/puppeteer-goto": {
-        "title": "PuppeteerGoto"
-      },
-      "typedefs/puppeteer-goto-inputs": {
-        "title": "PuppeteerGotoInputs"
-      },
-      "typedefs/puppeteer-handle-page": {
-        "title": "PuppeteerHandlePage"
-      },
-      "typedefs/puppeteer-handle-page-inputs": {
-        "title": "PuppeteerHandlePageInputs"
-      },
-      "typedefs/puppeteer-pool-options": {
-        "title": "PuppeteerPoolOptions"
       },
       "typedefs/queue-operation-info": {
         "title": "QueueOperationInfo"

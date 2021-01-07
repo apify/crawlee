@@ -1,3 +1,67 @@
+1.0.0 / 2020/01/XX
+====================
+After 3.5 years of rapid development and a lot of breaking changes and deprecations,
+here comes the result - **Apify SDK v1**. There were two goals for this release. **Stability**
+and **adding support for more browsers** - Firefox and Webkit (Safari).
+
+The SDK has grown quite popular over the years, powering thousands of web scraping
+and automation projects. We think our developers deserve a stable environment to work
+in and by releasing SDK v1, **we commit to only make breaking changes once a year,
+with a new major release**.
+
+We added support for more browsers by replacing `PuppeteerPool` with
+[`browser-pool`](https://github.com/apify/browser-pool). A new library that we created
+specifically for this purpose. It builds on the ideas from `PuppeteerPool` and extends
+them to support [Playwright](https://github.com/microsoft/playwright). Playwright is
+a browser automation library similar to Puppeteer. It works with all well known browsers
+and uses almost the same interface as Puppeteer, while adding useful features and simplifying
+common tasks. Don't worry, you can still use Puppeteer with the new `BrowserPool`.
+
+A large breaking change is that neither `puppeteer` nor `playwright` are bundled with
+the SDK v1. To make the choice of a library easier and installs faster, users will
+have to install the selected modules and versions themselves. This allows us to add
+support for even more libraries in the future.
+
+Thanks to the addition of Playwright we now have a `PlaywrightCrawler`. It is very similar
+to `PuppeteerCrawler` and you can pick the one you prefer. It also means we needed to make
+some interface changes. The `launchPuppeteerFunction` option of `PuppeteerCrawler` is gone
+and `launchPuppeteerOptions` were replaced by `launchContext`. We also moved things around
+in the `handlePageFunction` arguments. See the
+[migration guide](https://github.com/apify/apify-js/blob/master/MIGRATIONS.md)
+for more detailed explanation and migration examples.
+
+What's in store for SDK v2? We want to split the SDK into smaller libraries,
+so that everyone can install only the things they need. We plan a TypeScript migration
+to make crawler development faster and safer. Finally, we will take a good look
+at the interface of the whole SDK and update it to improve the developer experience.
+Bug fixes and scraping features will of course keep landing in versions 1.X as well.
+
+Full list of changes:
+
+- **BREAKING:** Removed `puppeteer` from dependencies. If you want to use Puppeteer,
+  you must install it yourself.
+- **BREAKING:** Removed `PuppeteerPool`. Use [`browser-pool`](https://github.com/apify/browser-pool).
+- **BREAKING:** Removed `PuppeteerCrawlerOptions.launchPuppeteerOptions`. Use `launchContext`.
+- **BREAKING:** Removed `PuppeteerCrawlerOptions.launchPuppeteerFunction`.
+  Use `PuppeteerCrawlerOptions.preLaunchHooks` and `postLaunchHooks`.
+- **BREAKING:** Removed `PuppeteerCrawlerOptions.gotoFunction`.
+  Use `PuppeteerCrawlerOptions.preNavigationHooks` and `postNavigationHooks`.
+- **BREAKING:** Removed `args.autoscaledPool` and `args.puppeteerPool` from `handle(Page/Request)Function`
+  arguments. Use `args.crawler.autoscaledPool` and `args.crawler.browserPool`.
+- **BREAKING:** The `useSessionPool` and `persistCookiesPerSession` options of crawlers
+  are now `true` by default. Explicitly set them to `false` to override the behavior.
+- **BREAKING:** `Apify.launchPuppeteer()` no longer accepts `LaunchPuppeteerOptions`.
+  It now accepts `LaunchContext`.
+
+- Added `Apify.PlaywrightCrawler` which is almost identical to `PuppeteerCrawler`,
+  but it crawls with the `playwright` library.
+- Added `Apify.launchPlaywright(launchContext)` helper function.
+- Added `browserPoolOptions` to `PuppeteerCrawler` to configure `BrowserPool`.
+- Added `crawler` to `handle(Request/Page)Function` arguments.
+- Added `browserController` to `handlePageFunction` arguments.
+- Added `crawler.crawlingContexts` `Map` which includes all running `crawlingContext`s.
+
+
 0.22.2 / 2020/12/22
 ====================
 - Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.

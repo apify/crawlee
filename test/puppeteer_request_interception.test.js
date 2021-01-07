@@ -13,7 +13,7 @@ const HTML_PAGE = `<html><body>
 
 describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandler()', () => {
     test('should allow multiple handlers', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
+        const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
 
         const allUrls = [];
         const loadedUrls = [];
@@ -61,7 +61,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
     test(
         'should not propagate aborted/responded requests to following handlers',
         async () => {
-            const browser = await Apify.launchPuppeteer({ headless: true });
+            const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
             const propagatedUrls = [];
 
             try {
@@ -100,7 +100,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
     );
 
     test('should allow to modify request', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
+        const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
 
         try {
             const page = await browser.newPage();
@@ -137,7 +137,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
     });
 
     test('should allow async handler', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
+        const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
 
         try {
             const page = await browser.newPage();
@@ -178,7 +178,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
         });
 
         test('should correctly capitalize headers', async () => {
-            const browser = await Apify.launchPuppeteer({ headless: true });
+            const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
 
             try {
                 const page = await browser.newPage();
@@ -222,7 +222,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
 
 describe('Apify.utils.puppeteer.removeInterceptRequestHandler()', () => {
     test('works', async () => {
-        const browser = await Apify.launchPuppeteer({ headless: true });
+        const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
 
         const loadedUrls = [];
 

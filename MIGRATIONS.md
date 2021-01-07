@@ -1,172 +1,368 @@
-# Migration from 0.20.x to 0.21.0
-There are 2 key changes to watch out for in version 0.21.0. We redesigned the way proxies
-are used throughout the SDK, and we removed `Apify.utils.getRandomUserAgent()`.
+# Migration from 0.2x.x to 1.0.0
+There are a lot of breaking changes in the v1.0.0 release, but we're confident that
+updating your code will be a matter of minutes. Below, you'll find examples how to do it
+and also short tutorials how to use many of the new features.
 
-## Proxy Configuration
-Configuring proxies the way you were used to will no longer work in SDK 0.21.0.
-To improve the proxy experience, we removed all the various proxy configuration
-options scattered throughout the SDK and replaced them with a single
-`ProxyConfiguration` class.
+> Many of the new features are made with power users in mind,
+> so don't worry if something looks complicated. You don't need to use it.
 
-### Removal of `Apify.getApifyProxyUrl()`
-This function has been fully replaced by the new `ProxyConfiguration` class.
-Make sure to remove any references to it before upgrading.
+<!-- toc -->
 
-### Usage with Apify Proxy:
-The usage of Apify Proxy in SDK was inconsistent. Now, everything is pretty simple
-and as a bonus, we validate your configuration at creation, so if there's something
-wrong, you'll know right away, instead of seeing your crawlers fail with cryptic errors.
+- [Installation](#installation)
+- [Handler arguments are now Crawling Context](#handler-arguments-are-now-crawling-context)
+  * [`Map` of crawling contexts and their IDs](#map-of-crawling-contexts-and-their-ids)
+  * [`autoscaledPool` was moved under `crawlingContext.crawler`](#autoscaledpool-was-moved-under-crawlingcontextcrawler)
+- [Replacement of `PuppeteerPool` with `BrowserPool`](#replacement-of-puppeteerpool-with-browserpool)
+  * [Access to running `BrowserPool`](#access-to-running-browserpool)
+  * [Pages now have IDs](#pages-now-have-ids)
+  * [Configuration and lifecycle hooks](#configuration-and-lifecycle-hooks)
+  * [Introduction of `BrowserController`](#introduction-of-browsercontroller)
+  * [`BrowserPool` methods vs `PuppeteerPool`](#browserpool-methods-vs-puppeteerpool)
+- [Updated `PuppeteerCrawlerOptions`](#updated-puppeteercrawleroptions)
+  * [`launchPuppeteerOptions` => `launchContext`](#launchpuppeteeroptions--launchcontext)
+  * [Removal of `launchPuppeteerFunction`](#removal-of-launchpuppeteerfunction)
+- [Launch functions](#launch-functions)
+  * [Updated arguments](#updated-arguments)
+  * [Custom modules](#custom-modules)
 
-1. You create a `proxyConfiguration` instance.
-2. Are you using `CheerioCrawler` or `PuppeteerCrawler`?
- - YES: You plug it into the crawler, and you're done.
- - NO: You call `proxyConfiguration.newUrl([sessionId])` to get your URL.
+<!-- tocstop -->
 
-> `BasicCrawler` does not automatically use `ProxyConfiguration` because it does not make
-any network requests (automatically).
+## Installation
+Previous versions of the SDK bundled the `puppeteer` package, so you did not have to install
+it. SDK v1 supports also `playwright` and we don't want to force users to install both.
+To install SDK v1 with Pupppeteer (same as previous versions), run:
 
-That's it. See the examples.
-
-```js
-// before
-const crawler = new Apify.PuppeteerCrawler({
-    launchPuppeteerOptions: {
-        useApifyProxy: true,
-        apifyProxyGroups: ['GROUP1', 'GROUP2'],
-    }
-    // ...
-})
-
-// now
-const proxyConfiguration = await Apify.createProxyConfiguration({
-    groups: ['GROUP1', 'GROUP2'],
-})
-
-const crawler = new Apify.PuppeteerCrawler({
-    proxyConfiguration,
-    // ...
-})
+```bash
+npm install apify puppeteer
 ```
 
-```js
-// before
-const browser = await Apify.launchPuppeteer({
-    useApifyProxy: true,
-    apifyProxyGroups: ['GROUP1', 'GROUP2'],
-    apifyProxySession: 'session-123'
-})
+To install SDK v1 with Playwright run:
+```bash
+npm install apify playwright
+```
 
-// now
-const proxyConfiguration = await Apify.createProxyConfiguration({
-    groups: ['GROUP1', 'GROUP2'],
+## Handler arguments are now Crawling Context
+Previously, arguments of user provided handler functions were provided in separate
+objects. This made it difficult to track values across function invocations.
+
+```js
+const handlePageFunction = async (args1) => {
+    args1.hasOwnProperty('proxyInfo') // true
+}
+
+const handleFailedRequestFunction = async (args2) => {
+    args2.hasOwnProperty('proxyInfo') // false
+}
+
+args1 === args2 // false
+```
+
+This happened because a new arguments object was created for each function.
+With SDK v1 we now have a single object called Crawling Context.
+
+```js
+const gotoFunction = async (gotoContext) => {
+    // navigate somewhere
+}
+
+const handlePageFunction = async (handlePageContext) => {
+    handlePageContext.hasOwnProperty('proxyInfo') // true
+}
+
+const handleFailedRequestFunction = async (handleFailedContext) => {
+    handleFailedContext.hasOwnProperty('proxyInfo') // true
+}
+
+// All contexts are the same object.
+gotoContext === handlePageContext // true
+handlePageContext === handleFailedContext // true
+```
+
+### `Map` of crawling contexts and their IDs
+Now that all the objects are the same, we can keep track of all running crawling contexts.
+We can do that by working with the new `id` property of `crawlingContext`
+This is useful when you need cross-context access.
+
+```js
+let masterContextId;
+const handlePageFunction = async ({ id, page, request, crawler }) => {
+    if (request.userData.masterPage) {
+        masterContextId = id;
+        // Prepare the master page.
+    } else {
+        const masterContext = crawler.crawlingContexts.get(masterContextId);
+        const masterPage = masterContext.page;
+        const masterRequest = masterContext.request;
+        // Now we can manipulate the master data from another handlePageFunction.
+    }
+}
+```
+
+### `autoscaledPool` was moved under `crawlingContext.crawler`
+To prevent bloat and to make access to certain key objects easier, we exposed a `crawler`
+property on the handle page arguments.
+
+```js
+const handePageFunction = async ({ request, page, crawler }) => {
+    await crawler.requestQueue.addRequest({ url: 'https://example.com' });
+    await crawler.autoscaledPool.pause();
+}
+```
+
+This also means that some shorthands like `puppeteerPool` or `autoscaledPool` were
+no longer necessary.
+
+```js
+const handePageFunction = async (crawlingContext) => {
+    crawlingContext.autoscaledPool // does NOT exist anymore
+    crawlingContext.crawler.autoscaledPool // <= this is correct usage
+}
+```
+
+## Replacement of `PuppeteerPool` with `BrowserPool`
+`BrowserPool` was created to extend `PuppeteerPool` with the ability to manage other
+browser automation libraries. The API is similar, but not the same.
+
+### Access to running `BrowserPool`
+Only `PuppeteerCrawler` and `PlaywrightCrawler` use `BrowserPool`. You can access it
+on the `crawler` object.
+
+```js
+const crawler = new Apify.PlaywrightCrawler({
+    handlePageFunction: async ({ page, crawler }) => {
+        crawler.browserPool // <-----
+    }
 });
 
-const browser = await Apify.launchPuppeteer({
-    proxyUrl: proxyConfiguration.newUrl('session-123')
-})
+crawler.browserPool // <-----
 ```
 
-#### PuppeteerCrawler warning
-`ProxyConfiguration` integrates seamlessly with `PuppeteerCrawler`, but beware
-wrong usage of `launchPuppeteerFunction`. It receives an options parameter
-that should not be ignored. This is not new, it has always been like that,
-but until now, only non-critical features were dependent on it, so you
-might have been using it wrongly and never really noticed.
-
-**Correct:**
-```javascript
-async function launchPuppeteerFunction(options) {
-    const newOpts = {
-        ...options,
-        foo: 'bar',
-    }
-    // do some other things
-    return Apify.launchPuppeteer(newOpts);
-}
-```
-**Incorrect:**
-```javascript
-async function launchPuppeteerFunction() {
-    const opts = {
-      foo: 'bar',
-    }
-    // Because we ignored the options, correct parameters
-    // will not make it to the browser. This prevents
-    // proxyConfiguration from working correctly.
-    return Apify.launchPuppeteer(opts);
-}
-```
-
-### Usage with your own proxies:
-Using your own proxies was possible, but it was difficult to find where to
-enter your URLs to make use of them. Now it's the same as with Apify Proxy,
-you just add them to the `ProxyConfiguration`. As a bonus, your custom proxies
-can now also be managed by `SessionPool` which was not possible before.
-So if one of your proxies goes bad, `SessionPool` will automatically
-retire it from use.
+### Pages now have IDs
+And they're equal to `crawlingContext.id` which gives you access to full `crawlingContext`
+in hooks. See [Lifecycle hooks](#configuration-and-lifecycle-hooks) below.
 
 ```js
-// before
+const pageId = browserPool.getPageId
+```
+
+### Configuration and lifecycle hooks
+The most important addition with `BrowserPool` are the
+[lifecycle hooks](https://github.com/apify/browser-pool#browserpool).
+You can access them via `browserPoolOptions` in both crawlers. A full list of `browserPoolOptions`
+can be found in [`browser-pool` readme](https://github.com/apify/browser-pool#new-browserpooloptions).
+
+```js
 const crawler = new Apify.PuppeteerCrawler({
-    puppeteerPoolOptions: {
-        proxyUrls: [
-            'http://proxy1.com',
-            'http://proxy2.com',
+    browserPoolOptions: {
+        retireBrowserAfterPageCount: 10,
+        preLaunchHooks: [
+            async (pageId, launchContext) => {
+                const { request } = crawler.crawlingContexts.get(pageId);
+                if (request.userData.useHeadful === true) {
+                    launchContext.launchOptions.headless = false;
+                }
+            }
         ]
     }
-    // ...
 })
+```
 
-// now
-const proxyConfiguration = await Apify.createProxyConfiguration({
-    proxyUrls: [
-        'http://proxy1.com',
-        'http://proxy2.com',
-    ]
+### Introduction of `BrowserController`
+[`BrowserController`](https://github.com/apify/browser-pool#browsercontroller)
+is a class of `browser-pool` that's responsible for browser management.
+Its purpose is to provide a single API for working with both Puppeteer and Playwright browsers.
+It works automatically in the background, but if you ever wanted to close a browser properly,
+you should use a `browserController` to do it. You can find it in the handle page arguments.
+
+```js
+const handlePageFunction = async ({ page, browserController }) => {
+    // Wrong usage. Could backfire because it bypasses BrowserPool.
+    page.browser().close();
+
+    // Correct usage. Allows graceful shutdown.
+    browserController.close();
+
+    const cookies = [/* some cookie objects */];
+    // Wrong usage. Will only work in Puppeteer and not Playwright.
+    page.setCookies(...cookies);
+
+    // Correct usage. Will work in both.
+    browserController.setCookies(page, cookies);
+}
+```
+
+The `BrowserController` also includes important information about the browser, such as
+the context it was launched with. This was difficult to do before SDK v1.
+
+```js
+const handlePageFunction = async ({ browserController }) => {
+    // Information about the proxy used by the browser
+    browserController.launchContext.proxyInfo
+
+    // Session used by the browser
+    browserController.launchContext.session
+}
+```
+
+### `BrowserPool` methods vs `PuppeteerPool`
+Some functions were removed (in line with earlier deprecations), and some were changed a bit:
+
+```js
+// OLD
+puppeteerPool.recyclePage(page);
+
+// NEW
+page.close();
+```
+
+```js
+// OLD
+puppeteerPool.retire(page.browser());
+
+// NEW
+browserPool.retireBrowserByPage(page);
+```
+
+```js
+// OLD
+puppeteerPool.serveLiveViewSnapshot();
+
+// NEW
+// There's no LiveView in BrowserPool
+```
+
+## Updated `PuppeteerCrawlerOptions`
+To keep `PuppeteerCrawler` and `PlaywrightCrawler` consistent, we updated the options.
+
+### `launchPuppeteerOptions` => `launchContext`
+Those were always a point of confusion because they merged custom Apify options with
+`launchOptions` of Puppeteer.
+
+```js
+const launchPuppeteerOptions = {
+    useChrome: true, // Apify option
+    headless: false, // Puppeteer option
+}
+```
+
+Use the new `launchContext` object, which explicitly defines `launchOptions`.
+`launchPuppeteerOptions` were removed.
+
+```js
+const crawler = new Apify.PuppeteerCrawler({
+    launchContext: {
+        useChrome: true, // Apify option
+        launchOptions: {
+            headless: false // Puppeteer option
+        }
+    }
 })
+```
+
+> LaunchContext is also a type of [`browser-pool`](https://github.com/apify/browser-pool) and
+> the structure is exactly the same there. SDK only adds extra options.
+
+### Removal of `launchPuppeteerFunction`
+`browser-pool` introduces the idea of [lifecycle hooks](https://github.com/apify/browser-pool#browserpool),
+which are functions that are executed when a certain event in the browser lifecycle happens.
+
+```js
+const launchPuppeteerFunction = async (launchPuppeteerOptions) => {
+    if (someVariable === 'chrome') {
+        launchPuppeteerOptions.useChrome = true;
+    }
+    return Apify.launchPuppeteer(launchPuppeteerOptions);
+}
 
 const crawler = new Apify.PuppeteerCrawler({
-    proxyConfiguration,
+    launchPuppeteerFunction,
     // ...
 })
 ```
 
+Now you can recreate the same functionality with a `preLaunchHook`:
+
 ```js
-// before
-const browser1 = await Apify.launchPuppeteer({
-    proxyUrl: 'http://proxy1:com',
-})
+const maybeLaunchChrome = (pageId, launchContext) => {
+    if (someVariable === 'chrome') {
+        launchContext.useChrome = true;
+    }
+}
 
-// now
-const proxyConfiguration = await Apify.createProxyConfiguration({
-    proxyUrls: [
-        'http://proxy1.com',
-        'http://proxy2.com',
-    ]
-});
-
-const browser = await Apify.launchPuppeteer({
-    proxyUrl: proxyConfiguration.newUrl('session-123'),
+const crawler = new Apify.PuppeteerCrawler({
+    browserPoolOptions: {
+        preLaunchHooks: [maybeLaunchChrome]
+    },
+    // ...
 })
 ```
 
-## Removal of random user agents
-
-Nowadays, bot walls cannot be bypassed simply by rotating user agents.
-Quite the opposite is true, using a user agent that does not match
-the used browser / network stack, will most likely lead to
-red flags and bans due to detected inconsistencies. For that reason,
-we've decided to remove the `Apify.utils.getRandomUserAgent()` function,
-effective immediately. Leaving a deprecation period would only have
-your scrapers get blocked for longer. Please make sure you remove all
-references to the function from your code.
+This is better in multiple ways. It is consistent across both Puppeteer and Playwright.
+It allows you to easily construct your browsers with pre-defined behavior:
 
 ```js
-// before
-const browser = await Apify.launchPuppeteer({
-    userAgent: Apify.utils.getRandomUserAgent(),
+const preLaunchHooks = [
+    maybeLaunchChrome,
+    useHeadfulIfNeeded,
+    injectNewFingerprint,
+]
+```
+
+And thanks to the addition of [`crawler.crawlingContexts`](#handler-arguments-are-now-crawling-context)
+the functions also have access to the `crawlingContext` of the `request` that triggered the launch.
+
+```js
+const preLaunchHooks = [
+    async function maybeLaunchChrome(pageId, launchContext) {
+        const { request } = crawler.crawlingContexts.get(pageId);
+        if (request.userData.useHeadful === true) {
+            launchContext.launchOptions.headless = false;
+        }
+    }
+]
+```
+
+## Launch functions
+In addition to `Apify.launchPuppeteer()` we now also have `Apify.launchPlaywright()`.
+
+### Updated arguments
+We [updated the launch options object](#launchpuppeteeroptions--launchcontext) because
+it was a frequent source of confusion.
+
+```js
+// OLD
+await Apify.launchPuppeteer({
+    useChrome: true,
+    headless: true,
 })
 
-// now, keep the default
-const browser = await Apify.launchPuppeteer();
+// NEW
+await Apify.launchPuppeteer({
+    useChrome: true,
+    launchOptions: {
+        headless: true,
+    }
+})
+```
+
+### Custom modules
+`Apify.launchPuppeteer` already supported the `puppeteerModule` option. With Playwright,
+we normalized the name to `launcher` because the `playwright` module itself does not
+launch browsers.
+
+```js
+const puppeteer = require('puppeteer');
+const playwright = require('playwright');
+
+await Apify.launchPuppeteer();
+// Is the same as:
+await Apify.launchPuppeteer({
+    launcher: puppeteer
+})
+
+await Apify.launchPlaywright();
+// Is the same as:
+await Apify.launchPlaywright({
+    launcher: playwright.chromium
+})
 ```

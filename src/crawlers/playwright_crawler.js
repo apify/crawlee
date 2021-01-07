@@ -1,15 +1,16 @@
-import { PuppeteerPlugin } from 'browser-pool';
+import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
-
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
-import { gotoExtended } from '../puppeteer_utils';
-import { apifyOptionsToLaunchOptions, getPuppeteerOrThrow } from '../puppeteer';
-import applyStealthToBrowser from '../stealth/stealth';
+import { gotoExtended } from '../playwright_utils';
+import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../playwright';
 
 /**
- * @typedef PuppeteerCrawlerOptions
- * @property {PuppeteerHandlePage} handlePageFunction
+ * @typedef PlaywrightCrawlerOptions
+ * @property {object} playwrightModule
+ * Playwright browser module used for launching new browsers. For example: `require("playwright").chromium`
+ * [Playwright list of available modules](https://playwright.dev/docs/api/class-playwright)
+ * @property {function} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
  *
@@ -21,19 +22,19 @@ import applyStealthToBrowser from '../stealth/stealth';
  *   session: Session,
  *   browserController: BrowserController,
  *   proxyInfo: ProxyInfo,
- *   crawler: PuppeteerCrawler,
+ *   crawler: PlaywrightCrawler,
  * }
  * ```
  *
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
- *   `page` is an instance of the `Puppeteer`
- *   [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+ *   `page` is an instance of the `Playwright`
+ *   [`Page`](https://playwright.dev/docs/api/class-page)
  *   `browserPool` is an instance of the
  *   [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool),
  *   `browserController` is an instance of the
  *   [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
- *   `response` is an instance of the `Puppeteer`
- *   [`Response`](https://pptr.dev/#?product=Puppeteer&show=api-class-response),
+ *   `response` is an instance of the `Playwright`
+ *   [`Response`](https://playwright.dev/docs/api/class-response),
  *   which is the main resource response as returned by `page.goto(request.url)`.
  *   The function must return a promise, which is then awaited by the crawler.
  *
@@ -60,24 +61,11 @@ import applyStealthToBrowser from '../stealth/stealth';
  *   session: Session,
  *   browserController: BrowserController,
  *   proxyInfo: ProxyInfo,
- *   crawler: PuppeteerCrawler,
+ *   crawler: PlaywrightCrawler,
  * }
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {object} [launchContext]
- *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
- * @property {number} [handlePageTimeoutSecs=60]
- *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
- * @property {BrowserPoolOptions} [browserPoolOptions]
- *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
- *   You can tweak those to fine-tune browser management.
- * @property {boolean} [persistCookiesPerSession=false]
- *   Automatically saves cookies to Session. Works only if Session Pool is used.
- * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerCrawler` will be configured for all connections to use
- *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
- *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {Array<function>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
@@ -104,6 +92,19 @@ import applyStealthToBrowser from '../stealth/stealth';
  *     };
  * ]
  * ```
+* @property {object} [launchContext]
+ *   Options used by {@link Apify#launchPlaywright} to start new Playwright instances.
+ *  * @property {number} [handlePageTimeoutSecs=60]
+ *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
+ * @property {BrowserPoolOptions} [browserPoolOptions]
+ *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
+ *   You can tweak those to fine-tune browser management.
+ * @property {boolean} [persistCookiesPerSession=false]
+ *   Automatically saves cookies to Session. Works only if Session Pool is used.
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   If set, `PlaywrightCrawler` will be configured for all connections to use
+ *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
@@ -138,11 +139,11 @@ import applyStealthToBrowser from '../stealth/stealth';
 
 /**
  * Provides a simple framework for parallel crawling of web pages
- * using headless Chrome with [Puppeteer](https://github.com/puppeteer/puppeteer).
+ * using headless Chromium, Firefox and Webkit browsers with [Playwright](https://github.com/microsoft/playwright).
  * The URLs to crawl are fed either from a static list of URLs
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *
- * Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
+ * Since `Playwright` uses headless browser to download web pages and extract data,
  * it is useful for crawling of websites that require to execute JavaScript.
  * If the target website doesn't need JavaScript, consider using {@link CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
@@ -158,7 +159,7 @@ import applyStealthToBrowser from '../stealth/stealth';
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
  * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
- * and then calls the function provided by user as the {@link BrowserCrawlerOptions.handlePageFunction} option.
+ * and then calls the function provided by user as the {@link PlaywrightCrawlerOptions.handlePageFunction} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
@@ -167,6 +168,7 @@ import applyStealthToBrowser from '../stealth/stealth';
  * {@link AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
  *
  * Note that the pool of Puppeteer instances is internally managed by the {@link BrowserPool} class.
+ * Many constructor options such as {@link PuppeteerPoolOptions.maxOpenPagesPerInstance} or
  *
  * **Example usage:**
  *
@@ -219,47 +221,32 @@ import applyStealthToBrowser from '../stealth/stealth';
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
-class PuppeteerCrawler extends BrowserCrawler {
+class PlaywrightCrawler extends BrowserCrawler {
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
+        playwrightModule: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
-        launchContext: ow.optional.object,
+        launchOptions: ow.optional.object,
         gotoFunction: ow.undefined,
-
     }
 
-    /**
-    * @param {PuppeteerCrawlerOptions} options
-    * All `PuppeteerCrawler` parameters are passed via an options object.
-    */
     constructor(options = {}) {
-        ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
+        ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
-            puppeteerModule, // eslint-disable-line
+            playwrightModule,
             launchContext = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
-            proxyConfiguration,
             ...browserCrawlerOptions
         } = options;
 
-        const {
-            stealth,
-            stealthOptions,
-            proxyUrl,
-        } = launchContext;
-
-        if (proxyUrl && proxyConfiguration) {
-            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
-                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
-        }
         browserPoolOptions.browserPlugins = [
-            new PuppeteerPlugin(
-                getPuppeteerOrThrow(puppeteerModule),
+            new PlaywrightPlugin(
+                // eslint-disable-next-line
+                getPlaywrightLauncherOrThrow(playwrightModule),
                 {
-                    proxyUrl,
                     launchOptions: apifyOptionsToLaunchOptions(launchContext),
                 },
             ),
@@ -267,33 +254,20 @@ class PuppeteerCrawler extends BrowserCrawler {
 
         super({
             ...browserCrawlerOptions,
-            proxyConfiguration,
             browserPoolOptions,
         });
 
         this.browserPool.postLaunchHooks.push(({ error, session }) => {
             // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
             if (error && error.constructor.name === 'TimeoutError') {
                 handleRequestTimeout(session, error.message);
             }
         });
 
-        if (proxyUrl) {
-            this.log.deprecated('options.launchPuppeteerOptions.proxyUrl is deprecated use the options.proxyConfiguration instead');
-        }
-
-        if (stealth) {
-            this.browserPool.postLaunchHooks.push(async (pageId, browserController) => {
-                // @TODO: We can do this better now. It is not necessary to override the page.
-                // we can modify the page in the postPageCreateHook
-                await applyStealthToBrowser(browserController.browser, stealthOptions);
-            });
-        }
-
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
+
         this.launchContext = launchContext;
-        this.puppeteerModule = puppeteerModule;
+        this.playwrightModule = playwrightModule;
 
         this.gotoOptions = {
             timeout: this.gotoTimeoutMillis,
@@ -305,4 +279,4 @@ class PuppeteerCrawler extends BrowserCrawler {
     }
 }
 
-export default PuppeteerCrawler;
+export default PlaywrightCrawler;

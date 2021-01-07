@@ -42,12 +42,15 @@ describe('enqueueLinks()', () => {
         log.setLevel(ll);
     });
 
-    describe('using Puppeteer', () => {
+    describe.each([
+        ['launchPuppeteer'],
+        ['launchPlaywright'],
+    ])('using %s', (launchName) => {
         let browser;
         let page;
 
         beforeEach(async () => {
-            browser = await Apify.launchPuppeteer({ headless: true });
+            browser = await Apify[launchName]({ launchOptions: { headless: true } });
             page = await browser.newPage();
             await page.setContent(HTML);
         });
