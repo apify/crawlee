@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import ow from 'ow';
 import * as _ from 'underscore';
 
@@ -67,7 +68,7 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * options in the  {@link Apify#launchPuppeteer}
  * function and in addition, all the options available below.
  *
- * @typedef LaunchPuppeteerOptions
+ * @typedef LaunchPlaywrightOptions
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.
@@ -139,6 +140,15 @@ export const launchPlaywright = async (launchContext = {}) => {
         launcher,
     } = launchContext;
 
+    if (proxyUrl) {
+        const parsedProxyUrl = new URL(proxyUrl);
+        if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
+            throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
+        }
+        if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
+            throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
+        }
+    }
     const plugin = new PlaywrightPlugin(
         getPlaywrightLauncherOrThrow(launcher),
         {

@@ -1,7 +1,6 @@
 import ow from 'ow';
 import _ from 'underscore';
 import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
-import { BROWSER_CONTROLLER_EVENTS } from 'browser-pool/src/events';
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
@@ -487,12 +486,12 @@ class BrowserCrawler extends BasicCrawler {
                 const { launchContext } = browserController;
                 if (session.id === launchContext.session.id) {
                     launchContext.extend({ sessionRetired: true }); // @TODO: kind of dirty trick done mainly for testing this important feature.
-                    this.browserPool._retireBrowser(browserController); //eslint-disable-line
+                    this.browserPool.retireBrowserController(browserController); //eslint-disable-line
                 }
             };
 
             this.sessionPool.on(EVENTS.SESSION_RETIRED, listener);
-            browserController.on(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => this.sessionPool.removeListener(EVENTS.SESSION_RETIRED, listener));
+            browserController.on('browserClosed', () => this.sessionPool.removeListener(EVENTS.SESSION_RETIRED, listener));
         }
     }
 

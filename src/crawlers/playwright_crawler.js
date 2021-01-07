@@ -3,6 +3,8 @@ import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../playwright_utils';
+import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../playwright';
+
 /**
  * @typedef PlaywrightCrawlerOptions
  * @property {object} playwrightModule
@@ -90,12 +92,9 @@ import { gotoExtended } from '../playwright_utils';
  *     };
  * ]
  * ```
- * @property {object} [launchContext]
- * @property {object} [launchContext.launchOptions]
- *   Options used by
- *   [browserType.launch](https://playwright.dev/docs/api/class-browsertype#browsertypelaunchoptions)
- *   to start new Playwright instances.
- * @property {number} [handlePageTimeoutSecs=60]
+* @property {object} [launchContext]
+ *   Options used by {@link Apify#launchPlaywright} to start new Playwright instances.
+ *  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
  * @property {BrowserPoolOptions} [browserPoolOptions]
  *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
@@ -103,7 +102,7 @@ import { gotoExtended } from '../playwright_utils';
  * @property {boolean} [persistCookiesPerSession=false]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
- *   If set, `PuppeteerCrawler` will be configured for all connections to use
+ *   If set, `PlaywrightCrawler` will be configured for all connections to use
  *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {RequestList} [requestList]
@@ -236,21 +235,19 @@ class PlaywrightCrawler extends BrowserCrawler {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
-            playwrightModule = require('playwright').chromium, // eslint-disable-line
+            playwrightModule,
             launchContext = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
 
-        const { launchOptions } = launchContext;
-
         browserPoolOptions.browserPlugins = [
             new PlaywrightPlugin(
                 // eslint-disable-next-line
-                playwrightModule,
+                getPlaywrightLauncherOrThrow(playwrightModule),
                 {
-                    launchOptions,
+                    launchOptions: apifyOptionsToLaunchOptions(launchContext),
                 },
             ),
         ];

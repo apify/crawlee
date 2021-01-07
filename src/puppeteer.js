@@ -196,6 +196,16 @@ export const launchPuppeteer = async (launchContext = {}) => {
         launcher,
     } = launchContext;
 
+    if (proxyUrl) {
+        const parsedProxyUrl = new URL(proxyUrl);
+        if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
+            throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
+        }
+        if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
+            throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
+        }
+    }
+
     const plugin = new PuppeteerPlugin(
         getPuppeteerOrThrow(launcher),
         {
