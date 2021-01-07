@@ -1,8 +1,5 @@
 import { URL } from 'url';
 
-import { ENV_VARS } from 'apify-shared/consts';
-import { getTypicalChromeExecutablePath } from '../utils';
-
 /**
  * Handles timeout request
  * @param {Session} session

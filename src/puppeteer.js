@@ -1,5 +1,4 @@
 import ow from 'ow';
-import * as _ from 'underscore';
 
 import { ENV_VARS } from 'apify-shared/consts';
 import { PuppeteerPlugin } from 'browser-pool';

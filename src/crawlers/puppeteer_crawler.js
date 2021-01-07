@@ -1,6 +1,5 @@
 import { PuppeteerPlugin } from 'browser-pool';
 import ow from 'ow';
-import * as _ from 'underscore';
 
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
