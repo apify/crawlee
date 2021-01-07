@@ -71,7 +71,7 @@ describe('PlaywrightCrawler', () => {
                 expect(request.userData.title).toBe('Example Domain');
             });
         });
-    });
+    }, 40000);
     test('should throw on gotoFunction', async () => {
         try {
             const playwrightCrawler = new Apify.PlaywrightCrawler({ //eslint-disable-line
