@@ -224,8 +224,8 @@ class PuppeteerCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
+        navigationTimeoutSecs: ow.optional.number,
         launchContext: ow.optional.object,
-        gotoFunction: ow.undefined,
 
     }
 
@@ -240,6 +240,7 @@ class PuppeteerCrawler extends BrowserCrawler {
             puppeteerModule, // eslint-disable-line
             launchContext = {},
             gotoTimeoutSecs,
+            navigationTimeoutSecs,
             browserPoolOptions = {},
             proxyConfiguration,
             ...browserCrawlerOptions
@@ -255,6 +256,7 @@ class PuppeteerCrawler extends BrowserCrawler {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
                 + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
         }
+
         browserPoolOptions.browserPlugins = [
             new PuppeteerPlugin(
                 getPuppeteerOrThrow(puppeteerModule),
@@ -279,6 +281,10 @@ class PuppeteerCrawler extends BrowserCrawler {
             }
         });
 
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
+
         if (proxyUrl) {
             this.log.deprecated('options.launchPuppeteerOptions.proxyUrl is deprecated use the options.proxyConfiguration instead');
         }
@@ -291,16 +297,21 @@ class PuppeteerCrawler extends BrowserCrawler {
             });
         }
 
-        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
+        this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
         this.puppeteerModule = puppeteerModule;
 
-        this.gotoOptions = {
-            timeout: this.gotoTimeoutMillis,
+        this.defaultGotoOptions = {
+            timeout: this.navigationTimeoutMillis,
         };
     }
 
     async _navigationHandler(crawlingContext, gotoOptions) {
+        if (this.gotoFunction) {
+            this.log.deprecated('PuppeteerCrawlerOptions.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');
+
+            return this.gotoFunction(crawlingContext, gotoOptions);
+        }
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }

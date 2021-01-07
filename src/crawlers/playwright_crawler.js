@@ -227,8 +227,8 @@ class PlaywrightCrawler extends BrowserCrawler {
         browserPoolOptions: ow.optional.object,
         playwrightModule: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
+        navigationTimeoutSecs: ow.optional.number,
         launchOptions: ow.optional.object,
-        gotoFunction: ow.undefined,
     }
 
     constructor(options = {}) {
@@ -238,6 +238,7 @@ class PlaywrightCrawler extends BrowserCrawler {
             playwrightModule,
             launchContext = {},
             gotoTimeoutSecs,
+            navigationTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
@@ -257,6 +258,10 @@ class PlaywrightCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
+
         this.browserPool.postLaunchHooks.push(({ error, session }) => {
             // It would be better to compare the instances,
             if (error && error.constructor.name === 'TimeoutError') {
@@ -264,17 +269,20 @@ class PlaywrightCrawler extends BrowserCrawler {
             }
         });
 
-        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
-
+        this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
         this.playwrightModule = playwrightModule;
 
-        this.gotoOptions = {
-            timeout: this.gotoTimeoutMillis,
+        this.defaultGotoOptions = {
+            timeout: this.navigationTimeoutMillis,
         };
     }
 
     async _navigationHandler(crawlingContext, gotoOptions) {
+        if (this.gotoFunction) {
+            this.log.deprecated('PlaywrightCrawler.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');
+            return this.gotoFunction(crawlingContext, gotoOptions);
+        }
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }

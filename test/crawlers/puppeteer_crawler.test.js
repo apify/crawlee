@@ -72,24 +72,7 @@ describe('PuppeteerCrawler', () => {
         });
     });
 
-    test('should throw on gotoFunction', async () => {
-        try {
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
-                requestList,
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                handlePageFunction: async () => {
-                },
-                gotoFunction: () => {},
-            });
-        } catch (e) {
-            expect(e.message.includes('Expected property `gotoFunction` to be of type `undefined`')).toBeTruthy();
-        }
-
-        expect.hasAssertions();
-    });
-
-    test('should override goto timeout ', async () => {
+    test('should override goto timeout with gotoTimeoutSecs ', async () => {
         const timeoutSecs = 10;
         let options;
         const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
@@ -104,12 +87,55 @@ describe('PuppeteerCrawler', () => {
             gotoTimeoutSecs: timeoutSecs,
         });
 
-        expect(puppeteerCrawler.gotoOptions.timeout).toEqual(timeoutSecs * 1000);
+        expect(puppeteerCrawler.defaultGotoOptions.timeout).toEqual(timeoutSecs * 1000);
         await puppeteerCrawler.run();
 
         expect(options.timeout).toEqual(timeoutSecs * 1000);
+    });
 
-        expect.hasAssertions();
+    test('should support custom gotoFunction', async () => {
+        const functions = {
+            handlePageFunction: () => {},
+            gotoFunction: ({ page, request }, options) => {
+                return page.goto(request.url, options);
+            },
+        };
+        jest.spyOn(functions, 'gotoFunction');
+        jest.spyOn(functions, 'handlePageFunction');
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            handlePageFunction: functions.handlePageFunction,
+            gotoFunction: functions.gotoFunction,
+        });
+
+        expect(puppeteerCrawler.gotoFunction).toEqual(functions.gotoFunction);
+        await puppeteerCrawler.run();
+
+        expect(functions.gotoFunction).toBeCalled();
+        expect(functions.handlePageFunction).toBeCalled();
+    });
+
+    test('should override goto timeout with navigationTimeoutSecs ', async () => {
+        const timeoutSecs = 10;
+        let options;
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            handlePageFunction: async () => {
+            },
+            preNavigationHooks: [(context, gotoOptions) => {
+                options = gotoOptions;
+            }],
+            navigationTimeoutSecs: timeoutSecs,
+        });
+
+        expect(puppeteerCrawler.defaultGotoOptions.timeout).toEqual(timeoutSecs * 1000);
+        await puppeteerCrawler.run();
+
+        expect(options.timeout).toEqual(timeoutSecs * 1000);
     });
 
     test('should throw if launchOptions.proxyUrl and proxyConfiguration is suplied', async () => {
