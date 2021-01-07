@@ -70,7 +70,7 @@ describe('PlaywrightCrawler', () => {
                 expect(request.url).toEqual(sourcesCopy[id].url);
                 expect(request.userData.title).toBe('Example Domain');
             });
-        }, 90000);
+        }, 180000);
     });
     test('should throw on gotoFunction', async () => {
         try {
