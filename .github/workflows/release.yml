@@ -112,8 +112,10 @@ jobs:
         run: |
           apify=`node -p "require('./package.json').version"`
           echo "::set-output name=apify::$apify"
-          puppeteer=`node -p "require('./package.json').optionalDependencies.puppeteer"`
+          puppeteer=`node -p "require('./package.json').devDependencies.puppeteer"`
           echo "::set-output name=puppeteer::$puppeteer"
+          playwright=`node -p "require('./package.json').devDependencies.playwright"`
+          echo "::set-output name=playwright::$playwright"
       -
         name: Publish to NPM
         run: NODE_AUTH_TOKEN=${{secrets.NPM_TOKEN}} npm publish --tag ${{ env.RELEASE_TAG }}
@@ -137,4 +139,5 @@ jobs:
               "release_tag": "${{ env.RELEASE_TAG }}",
               "apify_version": "${{ steps.versions.outputs.apify }}",
               "puppeteer_version": "${{ steps.versions.outputs.puppeteer }}"
+              "playwright_version": "${{ steps.versions.outputs.playwright }}"
             }
