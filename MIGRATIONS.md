@@ -19,6 +19,7 @@ and also short tutorials how to use many of the new features.
   * [Introduction of `BrowserController`](#introduction-of-browsercontroller)
   * [`BrowserPool` methods vs `PuppeteerPool`](#browserpool-methods-vs-puppeteerpool)
 - [Updated `PuppeteerCrawlerOptions`](#updated-puppeteercrawleroptions)
+  * [Removal of `gotoFunction`](#removal-of-gotofunction)
   * [`launchPuppeteerOptions` => `launchContext`](#launchpuppeteeroptions--launchcontext)
   * [Removal of `launchPuppeteerFunction`](#removal-of-launchpuppeteerfunction)
 - [Launch functions](#launch-functions)
@@ -61,10 +62,6 @@ This happened because a new arguments object was created for each function.
 With SDK v1 we now have a single object called Crawling Context.
 
 ```js
-const gotoFunction = async (gotoContext) => {
-    // navigate somewhere
-}
-
 const handlePageFunction = async (handlePageContext) => {
     handlePageContext.hasOwnProperty('proxyInfo') // true
 }
@@ -74,7 +71,6 @@ const handleFailedRequestFunction = async (handleFailedContext) => {
 }
 
 // All contexts are the same object.
-gotoContext === handlePageContext // true
 handlePageContext === handleFailedContext // true
 ```
 
@@ -233,6 +229,58 @@ puppeteerPool.serveLiveViewSnapshot();
 
 ## Updated `PuppeteerCrawlerOptions`
 To keep `PuppeteerCrawler` and `PlaywrightCrawler` consistent, we updated the options.
+
+### Removal of `gotoFunction`
+The concept of a configurable `gotoFunction` is not ideal. Especially since we use a modified
+`gotoExtended`. Users have to know this when they override `gotoFunction` if they want to
+extend default behavior. We decided to replace `gotoFunction` with `preNavigationHooks` and
+`postNavigationHooks`.
+
+The following example illustrates how `gotoFunction` makes things complicated.
+```js
+const gotoFunction = async ({ request, page }) => {
+    // pre-processing
+    await makePageStealthy(page);
+
+    // Have to remember how to do this:
+    const response = gotoExtended(page, request, {/* have to remember the defaults */});
+
+    // post-processing
+    await page.evaluate(() => {
+        window.foo = 'bar';
+    });
+
+    // Must not forget!
+    return response;
+}
+
+const crawler = new Apify.PuppeteerCrawler({
+    gotoFunction,
+    // ...
+})
+```
+
+With `preNavigationHooks` and `postNavigationHooks` it's much easier. `preNavigationHooks`
+are called with two arguments: `crawlingContext` and `gotoOptions`. `postNavigationHooks`
+are called only with `crawlingContext`.
+
+```js
+const preNavigationHooks = [
+    async ({ page }) => makePageStealthy(page)
+];
+
+const postNavigationHooks = [
+    async ({ page }) => page.evaluate(() => {
+        window.foo = 'bar'
+    })
+]
+
+const crawler = new Apify.PuppeteerCrawler({
+    preNavigationHooks,
+    postNavigationHooks,
+    // ...
+})
+```
 
 ### `launchPuppeteerOptions` => `launchContext`
 Those were always a point of confusion because they merged custom Apify options with
