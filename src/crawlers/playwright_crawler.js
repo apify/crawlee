@@ -46,7 +46,7 @@ import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../pl
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
- * @property {number} [gotoTimeoutSecs=60]
+ * @property {number} [navigationTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
@@ -54,7 +54,7 @@ import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../pl
  *
  *   The function receives the following object as an argument:
  * ```
-  * {
+ * {
  *   request: Request,
  *   response: Response,
  *   page: Page,
