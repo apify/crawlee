@@ -301,7 +301,7 @@ class BrowserCrawler extends BasicCrawler {
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
 
         this.gotoFunction = gotoFunction;
-        this.gotoOptions = {};
+        this.defaultGotoOptions = {};
 
         this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
@@ -409,7 +409,7 @@ class BrowserCrawler extends BasicCrawler {
      */
     async _handleNavigation(crawlingContext) {
         // @TODO: consider deep clone
-        const gotoOptions = _.clone(this.gotoOptions);
+        const gotoOptions = _.clone(this.defaultGotoOptions);
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
 
