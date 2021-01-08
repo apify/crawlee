@@ -9,6 +9,7 @@ import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-dup
 import { validators } from '../validators';
 import {
     throwOnBlockedRequest,
+    handleRequestTimeout,
 } from './crawler_utils';
 
 // eslint-enable-line import/no-duplicates
@@ -411,9 +412,28 @@ class BrowserCrawler extends BasicCrawler {
         // @TODO: consider deep clone
         const gotoOptions = _.clone(this.gotoOptions);
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
-        crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
+        try {
+            crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
+        } catch (error) {
+            this._handleNavigationTimeout(crawlingContext, error);
+
+            throw error;
+        }
 
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+    }
+
+    /**
+     * Marks session bad in case of navigation timeout.
+     * @param {object} crawlingContext
+     * @param {Error} error
+     */
+    _handleNavigationTimeout(crawlingContext, error) {
+        const { session } = crawlingContext;
+
+        if (error && error.constructor.name === 'TimeoutError') {
+            handleRequestTimeout(session, error.message);
+        }
     }
 
     /**

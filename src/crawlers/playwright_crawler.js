@@ -1,7 +1,6 @@
 import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
-import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../playwright_utils';
 import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../playwright';
 
@@ -255,13 +254,6 @@ class PlaywrightCrawler extends BrowserCrawler {
         super({
             ...browserCrawlerOptions,
             browserPoolOptions,
-        });
-
-        this.browserPool.postLaunchHooks.push(({ error, session }) => {
-            // It would be better to compare the instances,
-            if (error && error.constructor.name === 'TimeoutError') {
-                handleRequestTimeout(session, error.message);
-            }
         });
 
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
