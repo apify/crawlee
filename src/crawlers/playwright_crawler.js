@@ -3,12 +3,16 @@ import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
 import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../playwright_utils';
-import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../playwright';
+import {
+    apifyOptionsToLaunchOptions,
+    getPlaywrightLauncherOrThrow,
+    LaunchPlaywrightOptions, // eslint-disable-line
+} from '../playwright';
 
 /**
  * @typedef PlaywrightCrawlerOptions
- * @property {object} playwrightModule
- * Playwright browser module used for launching new browsers. For example: `require("playwright").chromium`
+ * @property {object} launcher
+ * Playwright launcher used for launching new browsers. For example: `require("playwright").chromium`
  * [Playwright list of available modules](https://playwright.dev/docs/api/class-playwright)
  * @property {function} handlePageFunction
  *   Function that is called to process each request.
@@ -92,9 +96,9 @@ import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../pl
  *     };
  * ]
  * ```
-* @property {object} [launchContext]
- *   Options used by {@link Apify#launchPlaywright} to start new Playwright instances.
- *  * @property {number} [handlePageTimeoutSecs=60]
+ * @property {LaunchPlaywrightOptions} [launchContext]
+ *   The same options as used by {@link Apify#launchPlaywright}.
+ * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
  * @property {BrowserPoolOptions} [browserPoolOptions]
  *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
@@ -225,17 +229,16 @@ class PlaywrightCrawler extends BrowserCrawler {
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
-        playwrightModule: ow.optional.object,
+        launcher: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
-        launchOptions: ow.optional.object,
-        gotoFunction: ow.undefined,
+        launchContext: ow.optional.object,
     }
 
     constructor(options = {}) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
-            playwrightModule,
+            launcher,
             launchContext = {},
             gotoTimeoutSecs,
             browserPoolOptions = {},
@@ -245,7 +248,7 @@ class PlaywrightCrawler extends BrowserCrawler {
         browserPoolOptions.browserPlugins = [
             new PlaywrightPlugin(
                 // eslint-disable-next-line
-                getPlaywrightLauncherOrThrow(playwrightModule),
+                getPlaywrightLauncherOrThrow(launcher),
                 {
                     launchOptions: apifyOptionsToLaunchOptions(launchContext),
                 },
@@ -267,7 +270,7 @@ class PlaywrightCrawler extends BrowserCrawler {
         this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
 
         this.launchContext = launchContext;
-        this.playwrightModule = playwrightModule;
+        this.launcher = launcher;
 
         this.gotoOptions = {
             timeout: this.gotoTimeoutMillis,
