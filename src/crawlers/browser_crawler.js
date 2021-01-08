@@ -375,7 +375,7 @@ class BrowserCrawler extends BasicCrawler {
 
             if (session) session.markGood();
         } finally {
-            await page.close().cath((error) => this.log.debug('Error while closing page', { error }));
+            await page.close().catch((error) => this.log.debug('Error while closing page', { error }));
         }
     }
 
