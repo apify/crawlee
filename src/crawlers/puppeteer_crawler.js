@@ -44,7 +44,7 @@ import applyStealthToBrowser from '../stealth/stealth';
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
- * @property {number} [gotoTimeoutSecs=60]
+ * @property {number} [navigationTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
@@ -147,21 +147,21 @@ import applyStealthToBrowser from '../stealth/stealth';
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link BasicCrawlerOptions.requestList}
- * or {@link BasicCrawlerOptions.requestQueue} constructor options, respectively.
+ * {@link RequestList} or {@link RequestQueue} instances provided by the {@link PuppeteerCrawlerOptions.requestList}
+ * or {@link PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link BasicCrawlerOptions.requestList} and {@link BasicCrawlerOptions.requestQueue} are used,
+ * If both {@link PuppeteerCrawlerOptions.requestList} and {@link PuppeteerCrawlerOptions.requestQueue} are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
  * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
- * and then calls the function provided by user as the {@link BrowserCrawlerOptions.handlePageFunction} option.
+ * and then calls the function provided by user as the {@link PuppeteerCrawlerOptions.handlePageFunction} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the {@link BasicCrawlerOptions.autoscaledPoolOptions}
+ * All {@link AutoscaledPool} configuration options can be passed to the {@link PuppeteerCrawlerOptions.autoscaledPoolOptions}
  * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
  * {@link AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
  *
@@ -223,8 +223,8 @@ class PuppeteerCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
+        navigationTimeoutSecs: ow.optional.number,
         launchContext: ow.optional.object,
-        gotoFunction: ow.undefined,
 
     }
 
@@ -236,9 +236,9 @@ class PuppeteerCrawler extends BrowserCrawler {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
-            puppeteerModule, // eslint-disable-line
-            launchContext = {},
+            launchContext = {}, // @TODO: should not launcher be inside launchContext
             gotoTimeoutSecs,
+            navigationTimeoutSecs,
             browserPoolOptions = {},
             proxyConfiguration,
             ...browserCrawlerOptions
@@ -248,15 +248,17 @@ class PuppeteerCrawler extends BrowserCrawler {
             stealth,
             stealthOptions,
             proxyUrl,
+            launcher,
         } = launchContext;
 
         if (proxyUrl && proxyConfiguration) {
             throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
-                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+                + 'custom "proxyUrl" option from "options.launchContext".');
         }
+
         browserPoolOptions.browserPlugins = [
             new PuppeteerPlugin(
-                getPuppeteerOrThrow(puppeteerModule),
+                getPuppeteerOrThrow(launcher),
                 {
                     proxyUrl,
                     launchOptions: apifyOptionsToLaunchOptions(launchContext),
@@ -270,8 +272,12 @@ class PuppeteerCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
+
         if (proxyUrl) {
-            this.log.deprecated('options.launchPuppeteerOptions.proxyUrl is deprecated use the options.proxyConfiguration instead');
+            this.log.deprecated('options.launchContext.proxyUrl is deprecated use the options.proxyConfiguration instead');
         }
 
         if (stealth) {
@@ -282,16 +288,20 @@ class PuppeteerCrawler extends BrowserCrawler {
             });
         }
 
-        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
+        this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
-        this.puppeteerModule = puppeteerModule;
 
-        this.gotoOptions = {
-            timeout: this.gotoTimeoutMillis,
+        this.defaultGotoOptions = {
+            timeout: this.navigationTimeoutMillis,
         };
     }
 
     async _navigationHandler(crawlingContext, gotoOptions) {
+        if (this.gotoFunction) {
+            this.log.deprecated('PuppeteerCrawlerOptions.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');
+
+            return this.gotoFunction(crawlingContext, gotoOptions);
+        }
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }
