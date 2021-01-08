@@ -26,15 +26,3 @@ export function throwOnBlockedRequest(session, statusCode) {
         throw new Error(`Request blocked - received ${statusCode} status code.`);
     }
 }
-
-export function getSessionIdFromProxyUrl(proxyUrl) {
-    const parsedUrl = new URL(proxyUrl);
-    const { username } = parsedUrl.username;
-    if (!username) {
-        return;
-    }
-    const parts = username.split(',');
-    const sessionPart = parts.find((part) => part.includes('session-'));
-
-    return sessionPart && sessionPart.replace('session-', '');
-}
