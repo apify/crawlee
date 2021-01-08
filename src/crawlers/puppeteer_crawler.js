@@ -276,6 +276,10 @@ class PuppeteerCrawler extends BrowserCrawler {
             this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
         }
 
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
+
         if (proxyUrl) {
             this.log.deprecated('options.launchContext.proxyUrl is deprecated use the options.proxyConfiguration instead');
         }

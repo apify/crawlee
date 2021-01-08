@@ -52,7 +52,7 @@ describe('PlaywrightCrawler', () => {
             };
 
             const playwrightCrawler = new Apify.PlaywrightCrawler({
-                playwrightModule: playwright[browser],
+                launcher: playwright[browser],
                 requestList: requestListLarge,
                 minConcurrency: 1,
                 maxConcurrency: 1,
