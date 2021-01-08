@@ -112,6 +112,38 @@ describe('BrowserCrawler', () => {
         expect(browserCrawler.browserPool.destroy).toBeCalled();
     });
 
+    test('should retire session after TimeouError', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        class TimeoutError extends Error {
+
+        }
+        let sessionGoto;
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: true,
+            handlePageFunction: async () => {
+                return Promise.resolve();
+            },
+            maxRequestRetries: 1,
+            gotoFunction: async ({ session }) => {
+                jest.spyOn(session, 'markBad');
+                sessionGoto = session;
+                throw new TimeoutError();
+            },
+        });
+
+        await requestList.initialize();
+        await browserCrawler.run();
+        expect(sessionGoto.markBad).toBeCalled();
+    });
+
     test('should evaluate preNavigationHooks', async () => {
         const requestList = new Apify.RequestList({
             sources: [

@@ -152,7 +152,7 @@ describe('PuppeteerCrawler', () => {
             });
         } catch (e) {
             expect(e.message).toEqual('It is not possible to combine "options.proxyConfiguration" together with '
-                + 'custom "proxyUrl" option from "options.launchPuppeteerOptions".');
+                + 'custom "proxyUrl" option from "options.launchContext".');
         }
 
         expect.hasAssertions();
