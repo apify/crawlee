@@ -2,7 +2,6 @@ import { PuppeteerPlugin } from 'browser-pool';
 import ow from 'ow';
 
 import BrowserCrawler from './browser_crawler';
-import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../puppeteer_utils';
 import { apifyOptionsToLaunchOptions, getPuppeteerOrThrow } from '../puppeteer';
 import applyStealthToBrowser from '../stealth/stealth';
@@ -271,14 +270,6 @@ class PuppeteerCrawler extends BrowserCrawler {
             ...browserCrawlerOptions,
             proxyConfiguration,
             browserPoolOptions,
-        });
-
-        this.browserPool.postLaunchHooks.push(({ error, session }) => {
-            // It would be better to compare the instances,
-            // but we don't have access to puppeteer.errors here.
-            if (error && error.constructor.name === 'TimeoutError') {
-                handleRequestTimeout(session, error.message);
-            }
         });
 
         if (gotoTimeoutSecs) {

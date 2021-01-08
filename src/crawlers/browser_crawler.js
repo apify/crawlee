@@ -9,6 +9,7 @@ import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-dup
 import { validators } from '../validators';
 import {
     throwOnBlockedRequest,
+    handleRequestTimeout,
 } from './crawler_utils';
 
 // eslint-enable-line import/no-duplicates
@@ -315,7 +316,7 @@ class BrowserCrawler extends BasicCrawler {
                 log: this.log,
             });
 
-            // Assuming there are not more thant 20 browsers running at once;
+            // Assuming there are not more than 20 browsers running at once;
             this.sessionPool.setMaxListeners(20);
         }
 
@@ -374,12 +375,7 @@ class BrowserCrawler extends BasicCrawler {
 
             if (session) session.markGood();
         } finally {
-            try {
-                await page.close();
-            } catch (error) {
-                // Only log error in page close.
-                this.log.debug('Error while closing page', { error });
-            }
+            page.close().catch((error) => this.log.debug('Error while closing page', { error }));
         }
     }
 
@@ -398,8 +394,6 @@ class BrowserCrawler extends BasicCrawler {
 
         crawlingContext.session = browserControllerInstance.launchContext.session;
         crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
-
-        crawlingContext.crawler = this;
     }
 
     /**
@@ -411,9 +405,28 @@ class BrowserCrawler extends BasicCrawler {
         // @TODO: consider deep clone
         const gotoOptions = _.clone(this.defaultGotoOptions);
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
-        crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
+        try {
+            crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
+        } catch (error) {
+            this._handleNavigationTimeout(crawlingContext, error);
+
+            throw error;
+        }
 
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+    }
+
+    /**
+     * Marks session bad in case of navigation timeout.
+     * @param {object} crawlingContext
+     * @param {Error} error
+     */
+    _handleNavigationTimeout(crawlingContext, error) {
+        const { session } = crawlingContext;
+
+        if (error && error.constructor.name === 'TimeoutError') {
+            handleRequestTimeout(session, error.message);
+        }
     }
 
     /**

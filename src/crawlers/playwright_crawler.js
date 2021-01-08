@@ -1,7 +1,6 @@
 import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
-import { handleRequestTimeout } from './crawler_utils';
 import { gotoExtended } from '../playwright_utils';
 import { apifyOptionsToLaunchOptions, getPlaywrightLauncherOrThrow } from '../playwright';
 
@@ -258,16 +257,11 @@ class PlaywrightCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
+        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
+
         if (gotoTimeoutSecs) {
             this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
         }
-
-        this.browserPool.postLaunchHooks.push(({ error, session }) => {
-            // It would be better to compare the instances,
-            if (error && error.constructor.name === 'TimeoutError') {
-                handleRequestTimeout(session, error.message);
-            }
-        });
 
         this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
