@@ -179,7 +179,6 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  */
 export const launchPuppeteer = async (launchContext = {}) => {
     ow(launchContext, ow.object.partialShape({
-        args: ow.optional.array.ofType(ow.string),
         proxyUrl: ow.optional.string.url,
         launcher: ow.optional.any(ow.string, ow.object),
         stealth: ow.optional.boolean,
