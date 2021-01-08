@@ -74,8 +74,8 @@ describe('Apify.launchPuppeteer()', () => {
         expect(Apify.launchPuppeteer({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
         expect(Apify.launchPuppeteer({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
 
-        expect(Apify.launchPuppeteer({ args: 'wrong args' })).rejects.toThrow(Error);
-        expect(Apify.launchPuppeteer({ args: [12, 34] })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ launchOptions: { args: 'wrong args' } })).rejects.toThrow(Error);
+        expect(Apify.launchPuppeteer({ launchOptions: { args: [12, 34] } })).rejects.toThrow(Error);
     });
 
     test('opens supports non-HTTP proxies without authentication', async () => {
