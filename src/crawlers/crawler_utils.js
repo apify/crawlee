@@ -1,5 +1,3 @@
-import { URL } from 'url';
-
 /**
  * Handles timeout request
  * @param {Session} session
