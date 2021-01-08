@@ -73,41 +73,8 @@ describe('PlaywrightCrawler', () => {
             });
         });
     });
-    test('should throw on gotoFunction', async () => {
-        try {
-            const playwrightCrawler = new Apify.PlaywrightCrawler({ //eslint-disable-line
-                requestList,
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                handlePageFunction: async () => {
-                },
-                gotoFunction: () => { },
-            });
-        } catch (e) {
-            expect(e.message.includes('Expected property `gotoFunction` to be of type `undefined`')).toBeTruthy();
-        }
 
-        expect.hasAssertions();
-    });
-
-    test('should launch with webkit browser', async () => {
-        try {
-            const playwrightCrawler = new Apify.PlaywrightCrawler({ //eslint-disable-line
-                requestList,
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                handlePageFunction: async () => {
-                },
-                gotoFunction: () => { },
-            });
-        } catch (e) {
-            expect(e.message.includes('Expected property `gotoFunction` to be of type `undefined`')).toBeTruthy();
-        }
-
-        expect.hasAssertions();
-    });
-
-    test('should override goto timeout ', async () => {
+    test('should override goto timeout with gotoTimeoutSecs', async () => {
         const timeoutSecs = 10;
         let options;
         const playwrightCrawler = new Apify.PlaywrightCrawler({ //eslint-disable-line
@@ -122,11 +89,55 @@ describe('PlaywrightCrawler', () => {
             gotoTimeoutSecs: timeoutSecs,
         });
 
-        expect(playwrightCrawler.gotoOptions.timeout).toEqual(timeoutSecs * 1000);
+        expect(playwrightCrawler.defaultGotoOptions.timeout).toEqual(timeoutSecs * 1000);
         await playwrightCrawler.run();
 
         expect(options.timeout).toEqual(timeoutSecs * 1000);
 
         expect.hasAssertions();
+    });
+    test('should support custom gotoFunction', async () => {
+        const functions = {
+            handlePageFunction: () => { },
+            gotoFunction: ({ page, request }, options) => {
+                return page.goto(request.url, options);
+            },
+        };
+        jest.spyOn(functions, 'gotoFunction');
+        jest.spyOn(functions, 'handlePageFunction');
+        const playwrightCrawler = new Apify.PlaywrightCrawler({ //eslint-disable-line
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            handlePageFunction: functions.handlePageFunction,
+            gotoFunction: functions.gotoFunction,
+        });
+
+        expect(playwrightCrawler.gotoFunction).toEqual(functions.gotoFunction);
+        await playwrightCrawler.run();
+
+        expect(functions.gotoFunction).toBeCalled();
+        expect(functions.handlePageFunction).toBeCalled();
+    });
+
+    test('should override goto timeout with navigationTimeoutSecs', async () => {
+        const timeoutSecs = 10;
+        let options;
+        const playwrightCrawler = new Apify.PlaywrightCrawler({ //eslint-disable-line
+            requestList,
+            maxRequestRetries: 0,
+            maxConcurrency: 1,
+            handlePageFunction: async () => {
+            },
+            preNavigationHooks: [(context, gotoOptions) => {
+                options = gotoOptions;
+            }],
+            navigationTimeoutSecs: timeoutSecs,
+        });
+
+        expect(playwrightCrawler.defaultGotoOptions.timeout).toEqual(timeoutSecs * 1000);
+        await playwrightCrawler.run();
+
+        expect(options.timeout).toEqual(timeoutSecs * 1000);
     });
 });

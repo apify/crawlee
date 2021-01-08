@@ -50,7 +50,7 @@ import {
  *   let your function throw exceptions rather than catch them.
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
- * @property {number} [gotoTimeoutSecs=60]
+ * @property {number} [navigationTimeoutSecs=60]
  *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
  *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
@@ -58,7 +58,7 @@ import {
  *
  *   The function receives the following object as an argument:
  * ```
-  * {
+ * {
  *   request: Request,
  *   response: Response,
  *   page: Page,
@@ -231,6 +231,7 @@ class PlaywrightCrawler extends BrowserCrawler {
         browserPoolOptions: ow.optional.object,
         launcher: ow.optional.object,
         gotoTimeoutSecs: ow.optional.number,
+        navigationTimeoutSecs: ow.optional.number,
         launchContext: ow.optional.object,
     }
 
@@ -241,6 +242,7 @@ class PlaywrightCrawler extends BrowserCrawler {
             launcher,
             launchContext = {},
             gotoTimeoutSecs,
+            navigationTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
@@ -260,6 +262,10 @@ class PlaywrightCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
+
         this.browserPool.postLaunchHooks.push(({ error, session }) => {
             // It would be better to compare the instances,
             if (error && error.constructor.name === 'TimeoutError') {
@@ -267,17 +273,20 @@ class PlaywrightCrawler extends BrowserCrawler {
             }
         });
 
-        this.gotoTimeoutMillis = gotoTimeoutSecs * 1000;
-
+        this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
         this.launcher = launcher;
 
-        this.gotoOptions = {
-            timeout: this.gotoTimeoutMillis,
+        this.defaultGotoOptions = {
+            timeout: this.navigationTimeoutMillis,
         };
     }
 
     async _navigationHandler(crawlingContext, gotoOptions) {
+        if (this.gotoFunction) {
+            this.log.deprecated('PlaywrightCrawler.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');
+            return this.gotoFunction(crawlingContext, gotoOptions);
+        }
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }
