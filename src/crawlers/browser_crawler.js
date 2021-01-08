@@ -316,7 +316,7 @@ class BrowserCrawler extends BasicCrawler {
                 log: this.log,
             });
 
-            // Assuming there are not more thant 20 browsers running at once;
+            // Assuming there are not more than 20 browsers running at once;
             this.sessionPool.setMaxListeners(20);
         }
 
@@ -375,12 +375,7 @@ class BrowserCrawler extends BasicCrawler {
 
             if (session) session.markGood();
         } finally {
-            try {
-                await page.close();
-            } catch (error) {
-                // Only log error in page close.
-                this.log.debug('Error while closing page', { error });
-            }
+            await page.close().cath((error) => this.log.debug('Error while closing page', { error }));
         }
     }
 
@@ -399,8 +394,6 @@ class BrowserCrawler extends BasicCrawler {
 
         crawlingContext.session = browserControllerInstance.launchContext.session;
         crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
-
-        crawlingContext.crawler = this;
     }
 
     /**
