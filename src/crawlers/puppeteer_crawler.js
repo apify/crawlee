@@ -247,20 +247,18 @@ class PuppeteerCrawler extends BrowserCrawler {
         const {
             stealth,
             stealthOptions,
-            proxyUrl,
             launcher,
         } = launchContext;
 
-        if (proxyUrl && proxyConfiguration) {
-            throw new Error('It is not possible to combine "options.proxyConfiguration" together with '
-                + 'custom "proxyUrl" option from "options.launchContext".');
+        if (launchContext.proxyUrl) {
+            throw new Error('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.'
+                + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
         }
 
         browserPoolOptions.browserPlugins = [
             new PuppeteerPlugin(
                 getPuppeteerOrThrow(launcher),
                 {
-                    proxyUrl,
                     launchOptions: apifyOptionsToLaunchOptions(launchContext),
                 },
             ),
@@ -278,10 +276,6 @@ class PuppeteerCrawler extends BrowserCrawler {
 
         if (gotoTimeoutSecs) {
             this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
-        }
-
-        if (proxyUrl) {
-            this.log.deprecated('options.launchContext.proxyUrl is deprecated use the options.proxyConfiguration instead');
         }
 
         if (stealth) {

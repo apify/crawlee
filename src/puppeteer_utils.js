@@ -521,8 +521,6 @@ const saveSnapshot = async (page, options = {}) => {
     }
 };
 
-let logEnqueueLinksDeprecationWarning = true;
-
 /**
  * A namespace that contains various utilities for
  * [Puppeteer](https://github.com/puppeteer/puppeteer) - the headless Chrome Node API.
@@ -547,14 +545,6 @@ export const puppeteerUtils = {
     injectFile,
     injectJQuery,
     injectUnderscore,
-    enqueueLinks: async (...args) => {
-        if (logEnqueueLinksDeprecationWarning) {
-            log.warning('Using enqueueLinks() from the Apify.utils.puppeteer namespace is deprecated. '
-                + 'Please use the Apify.utils.enqueueLinks().');
-            logEnqueueLinksDeprecationWarning = false;
-            return enqueueLinks(...args);
-        }
-    },
     enqueueLinksByClickingElements,
     blockRequests,
     blockResources,

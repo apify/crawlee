@@ -85,16 +85,15 @@ export function apifyOptionsToLaunchOptions(launchContext) {
     return launchOptions;
 }
 
-// TODO yin: `@property ...` didn't work. Extend Puppeteer's `LaunchOptions` didn't work. There is a GitHub issue for that:
-//  https://github.com/Microsoft/TypeScript/issues/20077
 /**
  * Apify extends the launch options of Puppeteer.
  * You can use any of the Puppeteer compatible
  * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
- * options in the  {@link Apify#launchPuppeteer}
- * function and in addition, all the options available below.
+ * options by providing the `launchOptions` property.
  *
- * @typedef LaunchPuppeteerOptions
+ * @typedef PuppeteerLaunchContext
+ * @property {object} [launchOptions]
+ *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.
@@ -124,8 +123,6 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * @property {StealthOptions} [stealthOptions]
  *   Using this configuration, you can disable some of the hiding tricks.
  *   For these settings to take effect `stealth` must be set to true
- * @property {object} [launchOptions]
- *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
  */
 
 /**
@@ -167,10 +164,10 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * For an example of usage, see the [Synchronous run Example](../examples/synchronous-run)
  * or the [Puppeteer proxy Example](../examples/puppeteer-with-proxy)
  *
- * @param {LaunchPuppeteerOptions} [options]
+ * @param {PuppeteerLaunchContext} [options]
  *   Optional settings passed to `puppeteer.launch()`. In addition to
  *   [Puppeteer's options](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
- *   the object may contain our own  {@link LaunchPuppeteerOptions} that enable additional features.
+ *   the object may contain our own  {@link PuppeteerLaunchContext} that enable additional features.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify

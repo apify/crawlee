@@ -356,9 +356,6 @@ class CheerioCrawler extends BasicCrawler {
         prepareRequestFunction: ow.optional.function,
         postResponseFunction: ow.optional.function,
         persistCookiesPerSession: ow.optional.boolean,
-
-        // Deprecated
-        requestOptions: ow.optional.object,
     }
 
     /**
@@ -381,9 +378,6 @@ class CheerioCrawler extends BasicCrawler {
             postResponseFunction,
             persistCookiesPerSession = false,
 
-            // Deprecated
-            requestOptions,
-
             // BasicCrawler
             autoscaledPoolOptions = CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
             ...basicCrawlerOptions
@@ -405,12 +399,6 @@ class CheerioCrawler extends BasicCrawler {
 
         this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
-
-        if (requestOptions) {
-            // DEPRECATED 2020-03-22
-            this.requestOptions = requestOptions;
-            this.log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
-        }
 
         if (suggestResponseEncoding && forceResponseEncoding) {
             this.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');

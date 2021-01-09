@@ -58,16 +58,15 @@ export function apifyOptionsToLaunchOptions(launchContext) {
     return launchOptions;
 }
 
-// TODO yin: `@property ...` didn't work. Extend Puppeteer's `LaunchOptions` didn't work. There is a GitHub issue for that:
-//  https://github.com/Microsoft/TypeScript/issues/20077
 /**
- * Apify extends the launch options of Puppeteer.
- * You can use any of the Puppeteer compatible
- * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
- * options in the  {@link Apify#launchPuppeteer}
- * function and in addition, all the options available below.
+ * Apify extends the launch options of Playwright.
+ * You can use any of the Playwright compatible
+ * [`LaunchOptions`](https://playwright.dev/docs/api/class-browsertype#browsertypelaunchoptions)
+ * options by providing the `launchOptions` property.
  *
- * @typedef LaunchPlaywrightOptions
+ * @typedef PlaywrightLaunchContext
+ * @property {object} [launchOptions]
+ *  `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.
@@ -83,9 +82,6 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * @property {(string|Object)} [launcher]
  *   By default this function uses require("playwright").chromium`.
  *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
- *
- * @property {object} [launchOptions]
- *  `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  */
 
 /**
@@ -116,10 +112,10 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * for details.
  *
  *
- * @param {LaunchPlaywrightOptions} [options]
+ * @param {PlaywrightLaunchContext} [options]
  *   Optional settings passed to `browserType.launch()`. In addition to
  *   [Playwright's options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
- *   the object may contain our own  {@link LaunchPlaywrightOptions} that enable additional features.
+ *   the object may contain our own  {@link PlaywrightLaunchContext} that enable additional features.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Playwright's `Browser` instance.
  * @memberof module:Apify

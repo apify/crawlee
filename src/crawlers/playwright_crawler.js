@@ -5,7 +5,7 @@ import { gotoExtended } from '../playwright_utils';
 import {
     apifyOptionsToLaunchOptions,
     getPlaywrightLauncherOrThrow,
-    LaunchPlaywrightOptions, // eslint-disable-line
+    PlaywrightLaunchContext, // eslint-disable-line
 } from '../playwright';
 
 /**
@@ -95,7 +95,7 @@ import {
  *     };
  * ]
  * ```
- * @property {LaunchPlaywrightOptions} [launchContext]
+ * @property {PlaywrightLaunchContext} [launchContext]
  *   The same options as used by {@link Apify#launchPlaywright}.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
@@ -245,6 +245,11 @@ class PlaywrightCrawler extends BrowserCrawler {
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
+
+        if (launchContext.proxyUrl) {
+            throw new Error('PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.'
+                + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
+        }
 
         browserPoolOptions.browserPlugins = [
             new PlaywrightPlugin(

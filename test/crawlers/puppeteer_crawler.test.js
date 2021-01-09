@@ -138,7 +138,7 @@ describe('PuppeteerCrawler', () => {
         expect(options.timeout).toEqual(timeoutSecs * 1000);
     });
 
-    test('should throw if launchOptions.proxyUrl and proxyConfiguration is suplied', async () => {
+    test('should throw if launchOptions.proxyUrl is supplied', async () => {
         try {
             const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
                 requestList,
@@ -147,12 +147,10 @@ describe('PuppeteerCrawler', () => {
                 launchContext: {
                     proxyUrl: 'http://localhost@1234',
                 },
-                proxyConfiguration: await Apify.createProxyConfiguration({ proxyUrls: ['http://localhost@1234'] }),
                 handlePageFunction: async () => {},
             });
         } catch (e) {
-            expect(e.message).toEqual('It is not possible to combine "options.proxyConfiguration" together with '
-                + 'custom "proxyUrl" option from "options.launchContext".');
+            expect(e.message).toMatch('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.');
         }
 
         expect.hasAssertions();

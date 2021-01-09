@@ -128,17 +128,6 @@ describe('Apify.utils.puppeteer', () => {
             }
         });
 
-        // TODO Remove with 1.0.0. This is here as a backwards comp for moving
-        // the function from utils.puppeteer to utils.
-        test('enqueueLinks() exists in this namespace', async () => {
-            expect(Apify.utils.puppeteer.enqueueLinks).toBeInstanceOf(Function);
-            try {
-                await Apify.utils.puppeteer.enqueueLinks({ page: {}, $: () => {} });
-            } catch (err) {
-                expect(err.message).toBe('Only one of the parameters "options.page" or "options.$" must be provided!');
-            }
-        });
-
         describe('blockRequests()', () => {
             let browser = null;
             beforeAll(async () => {

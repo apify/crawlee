@@ -36,8 +36,7 @@ to make crawler development faster and safer. Finally, we will take a good look
 at the interface of the whole SDK and update it to improve the developer experience.
 Bug fixes and scraping features will of course keep landing in versions 1.X as well.
 
-Full list of changes:
-
+## Full list of changes:
 - **BREAKING:** Removed `puppeteer` from dependencies. If you want to use Puppeteer,
   you must install it yourself.
 - **BREAKING:** Removed `PuppeteerPool`. Use [`browser-pool`](https://github.com/apify/browser-pool).
@@ -49,11 +48,24 @@ Full list of changes:
 - **BREAKING:** The `useSessionPool` and `persistCookiesPerSession` options of crawlers
   are now `true` by default. Explicitly set them to `false` to override the behavior.
 - **BREAKING:** `Apify.launchPuppeteer()` no longer accepts `LaunchPuppeteerOptions`.
-  It now accepts `LaunchContext`.
+  It now accepts `PuppeteerLaunchContext`.
 
+### New deprecations:
 - **DEPRECATED:** `PuppeteerCrawlerOptions.gotoFunction`.
   Use `PuppeteerCrawlerOptions.preNavigationHooks` and `postNavigationHooks`.
 
+### Removals of earlier deprecated functions:
+- **BREAKING:** Removed `Apify.utils.puppeteer.enqueueLinks()`. Deprecated in 01/2019.
+  Use `Apify.utils.enqueueLinks()`.
+- **BREAKING:** Removed `autoscaledPool.(set|get)MaxConcurrency()`. Deprecated in 2019.
+  Use `autoscaledPool.maxConcurrency`.
+- **BREAKING:** Removed `CheerioCrawlerOptions.requestOptions`. Deprecated in 03/2020.
+  Use `CheerioCrawlerOptions.prepareRequestFunction`.
+- **BREAKING:** Removed `Launch.requestOptions`. Deprecated in 03/2020.
+  Use `CheerioCrawlerOptions.prepareRequestFunction`.
+
+
+### New features:
 - Added `Apify.PlaywrightCrawler` which is almost identical to `PuppeteerCrawler`,
   but it crawls with the `playwright` library.
 - Added `Apify.launchPlaywright(launchContext)` helper function.
