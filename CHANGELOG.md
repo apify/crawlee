@@ -44,14 +44,15 @@ Full list of changes:
 - **BREAKING:** Removed `PuppeteerCrawlerOptions.launchPuppeteerOptions`. Use `launchContext`.
 - **BREAKING:** Removed `PuppeteerCrawlerOptions.launchPuppeteerFunction`.
   Use `PuppeteerCrawlerOptions.preLaunchHooks` and `postLaunchHooks`.
-- **BREAKING:** Removed `PuppeteerCrawlerOptions.gotoFunction`.
-  Use `PuppeteerCrawlerOptions.preNavigationHooks` and `postNavigationHooks`.
 - **BREAKING:** Removed `args.autoscaledPool` and `args.puppeteerPool` from `handle(Page/Request)Function`
   arguments. Use `args.crawler.autoscaledPool` and `args.crawler.browserPool`.
 - **BREAKING:** The `useSessionPool` and `persistCookiesPerSession` options of crawlers
   are now `true` by default. Explicitly set them to `false` to override the behavior.
 - **BREAKING:** `Apify.launchPuppeteer()` no longer accepts `LaunchPuppeteerOptions`.
   It now accepts `LaunchContext`.
+
+- **DEPRECATED:** `PuppeteerCrawlerOptions.gotoFunction`.
+  Use `PuppeteerCrawlerOptions.preNavigationHooks` and `postNavigationHooks`.
 
 - Added `Apify.PlaywrightCrawler` which is almost identical to `PuppeteerCrawler`,
   but it crawls with the `playwright` library.

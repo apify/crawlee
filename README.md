@@ -5,6 +5,9 @@
 [![npm version](https://badge.fury.io/js/apify.svg)](https://www.npmjs.com/package/apify)
 [![Build Status](https://travis-ci.com/apify/apify-js.svg?branch=master)](https://travis-ci.com/apify/apify-js)
 
+> This README is for the soon to be relased Apify SDK v1.0.0. [Find the 0.22.x README here](https://github.com/apify/apify-js/tree/v0.22.3).
+> You can try the beta of SDK v1 by installing `apify@beta`.
+
 Apify SDK simplifies the development of web crawlers, scrapers, data extractors and web automation jobs.
 It provides tools to manage and automatically scale a pool of headless browsers,
 to maintain queues of URLs to crawl, store crawling results to a local filesystem or into the cloud,

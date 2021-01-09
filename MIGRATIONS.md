@@ -3,12 +3,16 @@ There are a lot of breaking changes in the v1.0.0 release, but we're confident t
 updating your code will be a matter of minutes. Below, you'll find examples how to do it
 and also short tutorials how to use many of the new features.
 
+If you hadn't yet, we suggest reading the [CHANGELOG](https://github.com/apify/apify-js/blob/master/CHANGELOG.md)
+for a high level view of the changes.
+
 > Many of the new features are made with power users in mind,
 > so don't worry if something looks complicated. You don't need to use it.
 
 <!-- toc -->
 
 - [Installation](#installation)
+- [Running on Apify Platform](#running-on-apify-platform)
 - [Handler arguments are now Crawling Context](#handler-arguments-are-now-crawling-context)
   * [`Map` of crawling contexts and their IDs](#map-of-crawling-contexts-and-their-ids)
   * [`autoscaledPool` was moved under `crawlingContext.crawler`](#autoscaledpool-was-moved-under-crawlingcontextcrawler)
@@ -31,7 +35,7 @@ and also short tutorials how to use many of the new features.
 ## Installation
 Previous versions of the SDK bundled the `puppeteer` package, so you did not have to install
 it. SDK v1 supports also `playwright` and we don't want to force users to install both.
-To install SDK v1 with Pupppeteer (same as previous versions), run:
+To install SDK v1 with Puppeteer (same as previous versions), run:
 
 ```bash
 npm install apify puppeteer
@@ -40,6 +44,19 @@ npm install apify puppeteer
 To install SDK v1 with Playwright run:
 ```bash
 npm install apify playwright
+```
+
+> While we tried to add the most important functionality in the initial release,
+> you may find that there are still some utilities or options that are only
+> supported by Puppeteer and not Playwright.
+
+## Running on Apify Platform
+If you want to make use of Playwright on the Apify Platform, you need to use a Docker image
+that supports Playwright. We've created one for you, but note that it includes both
+Puppeteer and Playwright and all their browsers, so the image size is quite large.
+
+```Dockerfile
+FROM apify/actor-node-playwright
 ```
 
 ## Handler arguments are now Crawling Context
@@ -62,16 +79,16 @@ This happened because a new arguments object was created for each function.
 With SDK v1 we now have a single object called Crawling Context.
 
 ```js
-const handlePageFunction = async (handlePageContext) => {
-    handlePageContext.hasOwnProperty('proxyInfo') // true
+const handlePageFunction = async (crawlingContext1) => {
+    crawlingContext1.hasOwnProperty('proxyInfo') // true
 }
 
-const handleFailedRequestFunction = async (handleFailedContext) => {
-    handleFailedContext.hasOwnProperty('proxyInfo') // true
+const handleFailedRequestFunction = async (crawlingContext2) => {
+    crawlingContext2.hasOwnProperty('proxyInfo') // true
 }
 
 // All contexts are the same object.
-handlePageContext === handleFailedContext // true
+crawlingContext1 === crawlingContext2 // true
 ```
 
 ### `Map` of crawling contexts and their IDs
