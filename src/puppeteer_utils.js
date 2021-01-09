@@ -8,7 +8,6 @@ import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-d
 import log from './utils_log';
 import { validators } from './validators';
 
-import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 import { openKeyValueStore } from './storages/key_value_store';
