@@ -1,3 +1,7 @@
+0.22.3 / 2021/01/09
+====================
+- Fix `puppeteerPool` missing in handle page arguments.
+
 0.22.2 / 2020/12/22
 ====================
 - Pinned `cheerio` to `1.0.0-rc.3` to avoid install problems in some builds.

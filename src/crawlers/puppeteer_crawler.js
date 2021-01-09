@@ -326,6 +326,7 @@ class PuppeteerCrawler extends BasicCrawler {
      */
     async _handleRequestFunction(crawlingContext) {
         crawlingContext.page = await this.puppeteerPool.newPage();
+        crawlingContext.puppeteerPool = this.puppeteerPool;
 
         const { page, request } = crawlingContext;
         // eslint-disable-next-line no-underscore-dangle
@@ -375,7 +376,6 @@ class PuppeteerCrawler extends BasicCrawler {
             }
 
             crawlingContext.response = response;
-            crawlingContext.puppeteerPool = this.puppeteerPool;
 
             await addTimeoutToPromise(
                 this.userProvidedHandler(crawlingContext),
