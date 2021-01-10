@@ -1,3 +1,8 @@
+0.22.4 / 2021/01/10
+====================
+- Fix issues with `Apify.pushData()` and `keyValueStore.forEachKey()`
+  by updating `@apify/storage-local` to `1.0.2`.
+
 0.22.3 / 2021/01/09
 ====================
 - Fix `puppeteerPool` missing in handle page arguments.
