@@ -1,4 +1,4 @@
-1.0.0 / 2020/01/XX
+1.0.0 / 2021/01/XX
 ====================
 After 3.5 years of rapid development and a lot of breaking changes and deprecations,
 here comes the result - **Apify SDK v1**. There were two goals for this release. **Stability**
@@ -74,6 +74,14 @@ Bug fixes and scraping features will of course keep landing in versions 1.X as w
 - Added `browserController` to `handlePageFunction` arguments.
 - Added `crawler.crawlingContexts` `Map` which includes all running `crawlingContext`s.
 
+0.22.4 / 2021/01/10
+====================
+- Fix issues with `Apify.pushData()` and `keyValueStore.forEachKey()`
+  by updating `@apify/storage-local` to `1.0.2`.
+
+0.22.3 / 2021/01/09
+====================
+- Fix `puppeteerPool` missing in handle page arguments.
 
 0.22.2 / 2020/12/22
 ====================
