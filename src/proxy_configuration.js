@@ -255,7 +255,8 @@ export class ProxyConfiguration {
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
      *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
-     * @return {string} represents the proxy URL.
+     * @return {string} A string with a proxy URL, including authentication credentials and port number.
+     *  For example, `http://bob:password123@proxy.example.com:8000`
      */
     newUrl(sessionId) {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;

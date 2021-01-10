@@ -1,4 +1,5 @@
 import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import { cryptoRandomObjectId } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
@@ -18,6 +19,7 @@ import { RequestQueue } from '../storages/request_queue';
 import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
+
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -42,8 +44,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * ```
  * {
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
+ *   crawler: BasicCrawler,
  * }
  * ```
  *   where the {@link Request} instance represents the URL to crawl.
@@ -74,6 +76,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * {
  *   request: Request,
  *   error: Error,
+ *   session: Session,
+ *   crawler: BasicCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -103,7 +107,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * @property {boolean} [useSessionPool=false]
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
- * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
  */
 
 /**
@@ -163,8 +167,16 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * await crawler.run();
  * ```
  * @property {Statistics} stats
- *  Contains statistics about the current run
- *
+ *  Contains statistics about the current run.
+ * @property {?RequestList} requestList
+ *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?RequestQueue} requestQueue
+ *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?SessionPool} sessionPool
+ *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
+ *  Only available if used by the crawler.
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
@@ -243,6 +255,7 @@ class BasicCrawler {
             log,
         };
         this.useSessionPool = useSessionPool;
+        this.crawlingContexts = new Map();
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
@@ -312,10 +325,7 @@ class BasicCrawler {
         try {
             await this.isRunningPromise;
         } finally {
-            if (this.useSessionPool) {
-                await this.sessionPool.teardown();
-            }
-
+            await this.teardown();
             await this.stats.stopCapturing();
             const finalStats = this.stats.calculate();
             const { requestsFailed, requestsFinished } = this.stats.state;
@@ -446,7 +456,13 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
 
         // Shared crawling context
-        const crawlingContext = { request, autoscaledPool: this.autoscaledPool, session };
+        const crawlingContext = {
+            id: cryptoRandomObjectId(10),
+            crawler: this,
+            request,
+            session,
+        };
+        this.crawlingContexts.set(crawlingContext.id, crawlingContext);
 
         try {
             await addTimeoutToPromise(
@@ -471,6 +487,8 @@ class BasicCrawler {
                     + 'will make sure that the run continues where it left off, if programmed to handle restarts correctly.');
                 throw secondaryError;
             }
+        } finally {
+            this.crawlingContexts.delete(crawlingContext.id);
         }
     }
 
@@ -577,6 +595,16 @@ class BasicCrawler {
             this.handledRequestsCount = this.requestList.handledCount();
         }
     }
+
+    /**
+     * Function for cleaning up after all request are processed.
+     * @ignore
+     */
+    async teardown() {
+        if (this.useSessionPool) {
+            await this.sessionPool.teardown();
+        }
+    }
 }
 
 export default BasicCrawler;
@@ -589,13 +617,13 @@ export default BasicCrawler;
 /**
  * @typedef HandleRequestInputs
  * @property {Request} request The original {Request} object.
- * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {BasicCrawler} [crawler]
  */
 
 /**
@@ -608,7 +636,6 @@ export default BasicCrawler;
  * @typedef HandleFailedRequestInput
  * @property {Error} error The Error thrown by `handleRequestFunction`.
  * @property {Request} request The original {Request} object.
- * @property {AutoscaledPool} autoscaledPool
  * @property {Session} [session]
  * @property {ProxyInfo} [proxyInfo]
  */

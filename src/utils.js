@@ -17,16 +17,17 @@ import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
-import * as requestUtils from './utils_request';
-import log from './utils_log';
-import { version as apifyVersion } from '../package.json';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
+import { version as apifyVersion } from '../package.json';
+import log from './utils_log';
+import * as requestUtils from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
+
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -361,7 +362,7 @@ export const getTypicalChromeExecutablePath = () => {
     switch (os.platform()) {
         case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
         case 'win32': return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-        default: return 'google-chrome';
+        default: return '/usr/bin/google-chrome';
     }
 };
 

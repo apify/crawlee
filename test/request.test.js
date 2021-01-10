@@ -127,7 +127,7 @@ describe('Apify.Request', () => {
         const durationMillis = Date.now() - start;
         // Under normal load, the Requests are created in ~25-30ms
         // In tests the load is high, so we only check if it doesn't
-        // overshoot some crazy range like 100ms.
-        expect(durationMillis).toBeLessThan(100);
+        // overshoot some crazy range like 500ms.
+        expect(durationMillis).toBeLessThan(500);
     });
 });
