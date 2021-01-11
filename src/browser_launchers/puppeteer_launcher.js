@@ -1,90 +1,15 @@
 import ow from 'ow';
-
-import { ENV_VARS } from 'apify-shared/consts';
 import { PuppeteerPlugin } from 'browser-pool';
-import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import { DEFAULT_USER_AGENT } from './constants';
-import { getTypicalChromeExecutablePath, isAtHome } from './utils';
-import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
+import BrowserLauncher from './browser_launcher';
+import { isAtHome } from '../utils';
+import { DEFAULT_USER_AGENT } from '../constants';
+
+import applyStealthToBrowser, { StealthOptions } from '../stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
 
 const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
     width: 1366,
     height: 768,
 };
-
-/**
- * Requires `puppeteer` package, uses a replacement or throws meaningful error if not installed.
- *
- * @param {(string|Object)} launcher
- * @ignore
- */
-export function getPuppeteerOrThrow(launcher = 'puppeteer') {
-    if (typeof puppeteerModule === 'object') return launcher;
-    try {
-        // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
-        return require(launcher); // eslint-disable-line
-    } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') {
-            const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?`;
-            err.message = isAtHome()
-                ? `${msg} The 'puppeteer' package is automatically bundled when using apify/actor-node-chrome-* Base image.`
-                : msg;
-        }
-
-        throw err;
-    }
-}
-
-/**
- *@ignore
- */
-export function getDefaultHeadlessOption() {
-    return process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
-}
-
-/**
- *@ignore
- */
-export function getChromeExecutablePath() {
-    return process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
-}
-
-export function apifyOptionsToLaunchOptions(launchContext) {
-    const { launchOptions = {}, useChrome } = launchContext;
-
-    launchOptions.args = launchOptions.args || [];
-    // Add --no-sandbox for Platform, because running Chrome in Docker
-    // is a very complex problem and most likely requires sys admin privileges,
-    // which is a larger security concern than --no-sandbox itself.
-    // TODO Find if the arg has any impact on browser detection.
-    if (isAtHome()) launchOptions.args.push('--no-sandbox');
-
-    if (launchOptions.headless == null) {
-        launchOptions.headless = getDefaultHeadlessOption();
-    }
-
-    if (useChrome && !launchOptions.executablePath) {
-        launchOptions.executablePath = getChromeExecutablePath();
-    }
-
-    if (launchOptions.defaultViewport === undefined) {
-        launchOptions.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
-    }
-
-    // When User-Agent is not set and we're using Chromium or headless mode,
-    // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
-    let { userAgent } = launchContext;
-    if (!userAgent && (!launchOptions.executablePath || launchOptions.headless)) {
-        userAgent = DEFAULT_USER_AGENT;
-    }
-
-    if (userAgent) {
-        launchOptions.args.push(`--user-agent=${userAgent}`);
-    }
-
-    return launchOptions;
-}
-
 /**
  * Apify extends the launch options of Puppeteer.
  * You can use any of the Puppeteer compatible
@@ -124,6 +49,73 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  *   Using this configuration, you can disable some of the hiding tricks.
  *   For these settings to take effect `stealth` must be set to true
  */
+export class PuppeteerLauncher extends BrowserLauncher {
+    static optionsShape = {
+        ...BrowserLauncher.optionsShape,
+        launcher: ow.optional.object,
+        userAgent: ow.optional.string,
+        stealth: ow.optional.boolean,
+        stealthOptions: ow.optional.object,
+    }
+
+    /**
+    * @param {PuppeteerLaunchContext} launchContext
+    * All `PuppeteerLauncher` parameters are passed via an launchContext object.
+    */
+    constructor(launchContext = {}) {
+        ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
+
+        launchContext.launcher = launchContext.launcher || require('puppeteer'); // eslint-disable-line
+        const {
+            userAgent,
+            stealth,
+            stealthOptions,
+            ...browserLauncherOptions
+        } = launchContext;
+
+        super(browserLauncherOptions);
+
+        this.userAgent = userAgent;
+        this.stealth = stealth; // @TODO: time to rename to useStealth?
+        this.stealthOptions = stealthOptions;
+
+        this.Plugin = PuppeteerPlugin;
+    }
+
+    async launch() {
+        const browser = await super.launch();
+
+        if (this.stealth) {
+            applyStealthToBrowser(browser, this.stealthOptions);
+        }
+
+        return browser;
+    }
+
+    createPluginLaunchOptions() {
+        const launchOptions = super.createPluginLaunchOptions();
+        launchOptions.args = launchOptions.args || [];
+
+        if (isAtHome()) launchOptions.args.push('--no-sandbox');
+
+        if (launchOptions.defaultViewport === undefined) {
+            launchOptions.defaultViewport = LAUNCH_PUPPETEER_DEFAULT_VIEWPORT;
+        }
+
+        // When User-Agent is not set and we're using Chromium or headless mode,
+        // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
+        let { userAgent } = this;
+        if (!userAgent && (!launchOptions.executablePath || launchOptions.headless)) {
+            userAgent = DEFAULT_USER_AGENT;
+        }
+
+        if (userAgent) {
+            launchOptions.args.push(`--user-agent=${userAgent}`);
+        }
+
+        return launchOptions;
+    }
+}
 
 /**
  * Launches headless Chrome using Puppeteer pre-configured to work within the Apify platform.
@@ -164,57 +156,16 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * For an example of usage, see the [Synchronous run Example](../examples/synchronous-run)
  * or the [Puppeteer proxy Example](../examples/puppeteer-with-proxy)
  *
- * @param {PuppeteerLaunchContext} [options]
- *   Optional settings passed to `puppeteer.launch()`. In addition to
- *   [Puppeteer's options](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
- *   the object may contain our own  {@link PuppeteerLaunchContext} that enable additional features.
+ * @param {PuppeteerLaunchContext} [launchContext]
+* All `PuppeteerLauncher` parameters are passed via an launchContext object.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify
  * @name launchPuppeteer
  * @function
  */
-export const launchPuppeteer = async (launchContext = {}) => {
-    ow(launchContext, ow.object.partialShape({
-        proxyUrl: ow.optional.string.url,
-        launcher: ow.optional.any(ow.string, ow.object),
-        stealth: ow.optional.boolean,
-        stealthOptions: ow.optional.object,
-        useChrome: ow.optional.boolean,
-        userAgent: ow.optional.string,
-    }));
+export const launchPuppeteer = async (launchContext) => {
+    const puppeteerLauncher = new PuppeteerLauncher(launchContext);
 
-    const {
-        stealth,
-        stealthOptions,
-        proxyUrl,
-        launcher,
-    } = launchContext;
-
-    if (proxyUrl) {
-        const parsedProxyUrl = new URL(proxyUrl);
-        if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
-            throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
-        }
-        if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
-            throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
-        }
-    }
-
-    const plugin = new PuppeteerPlugin(
-        getPuppeteerOrThrow(launcher),
-        {
-            proxyUrl,
-            launchOptions: apifyOptionsToLaunchOptions(launchContext),
-        },
-    );
-    const context = await plugin.createLaunchContext();
-
-    const browser = await plugin.launch(context);
-
-    if (stealth) {
-        applyStealthToBrowser(browser, stealthOptions);
-    }
-
-    return browser;
+    return puppeteerLauncher.launch();
 };

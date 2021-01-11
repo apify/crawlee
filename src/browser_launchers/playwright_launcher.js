@@ -1,62 +1,6 @@
-import { URL } from 'url';
 import ow from 'ow';
-
-import { ENV_VARS } from 'apify-shared/consts';
 import { PlaywrightPlugin } from 'browser-pool';
-import { Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import { getTypicalChromeExecutablePath, isAtHome } from './utils';
-import applyStealthToBrowser, { StealthOptions } from './stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
-
-/**
- * Requires `playwright` browserType, uses a replacement or throws meaningful error if not installed.
- *
- * @param {(string|Object)} launcher
- * @ignore
- */
-export function getPlaywrightLauncherOrThrow(launcher = require('playwright').chromium) { // eslint-disable-line
-    if (typeof launcher === 'object') return launcher;
-    try {
-        // This is an optional dependency because it is quite large, only require it when used (ie. image with Chrome)
-        return require(launcher); // eslint-disable-line
-    } catch (err) {
-        if (err.code === 'MODULE_NOT_FOUND') {
-            const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?`;
-            err.message = isAtHome()
-                ? `${msg} The 'playwright' package is automatically bundled when using apify/actor-node-chrome-* Base image.`
-                : msg;
-        }
-
-        throw err;
-    }
-}
-
-/**
- *@ignore
- */
-export function getDefaultHeadlessOption() {
-    return process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
-}
-
-/**
- *@ignore
- */
-export function getChromeExecutablePath() {
-    return process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
-}
-
-export function apifyOptionsToLaunchOptions(launchContext) {
-    const { launchOptions = {}, useChrome } = launchContext;
-
-    if (launchOptions.headless == null) {
-        launchOptions.headless = getDefaultHeadlessOption();
-    }
-
-    if (useChrome && !launchOptions.executablePath) {
-        launchOptions.executablePath = getChromeExecutablePath();
-    }
-
-    return launchOptions;
-}
+import BrowserLauncher from './browser_launcher';
 
 /**
  * Apify extends the launch options of Playwright.
@@ -84,7 +28,28 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
  */
 
-/**
+export class PlaywrightLauncher extends BrowserLauncher {
+    static optionsShape = {
+        ...BrowserLauncher.optionsShape,
+        launcher: ow.optional.object,
+    }
+
+    /**
+    * @param {PlaywrightLaunchContext} launchContext
+    * All `PuppeteerLauncher` parameters are passed via an launchContext object.
+    */
+    constructor(launchContext = {}) {
+        ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
+
+        launchContext.launcher = launchContext.launcher || require('playwright').chromium; // eslint-disable-line
+
+        super(launchContext);
+
+        this.Plugin = PlaywrightPlugin;
+    }
+}
+
+/** @TODO:
  * Launches headless browsers using Playwright pre-configured to work within the Apify platform.
  * The function has the same return value as `browserType.launch()`.
  * See <a href="https://playwright.dev/docs/api/class-browsertype" target="_blank">
@@ -122,38 +87,8 @@ export function apifyOptionsToLaunchOptions(launchContext) {
  * @name launchPlaywright
  * @function
  */
-export const launchPlaywright = async (launchContext = {}) => {
-    ow(launchContext, ow.object.partialShape({
-        proxyUrl: ow.optional.string.url,
-        launcher: ow.optional.any(ow.string, ow.object),
-        useChrome: ow.optional.boolean,
+export const launchPlaywright = async (launchContext) => {
+    const puppeteerLauncher = new PlaywrightLauncher(launchContext);
 
-    }));
-
-    const {
-        proxyUrl,
-        launcher,
-    } = launchContext;
-
-    if (proxyUrl) {
-        const parsedProxyUrl = new URL(proxyUrl);
-        if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
-            throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
-        }
-        if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
-            throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
-        }
-    }
-    const plugin = new PlaywrightPlugin(
-        getPlaywrightLauncherOrThrow(launcher),
-        {
-            proxyUrl,
-            launchOptions: apifyOptionsToLaunchOptions(launchContext),
-        },
-    );
-    const context = await plugin.createLaunchContext();
-
-    const browser = await plugin.launch(context);
-
-    return browser;
+    return puppeteerLauncher.launch();
 };

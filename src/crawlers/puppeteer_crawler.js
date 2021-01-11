@@ -1,9 +1,8 @@
-import { PuppeteerPlugin } from 'browser-pool';
 import ow from 'ow';
 
 import BrowserCrawler from './browser_crawler';
 import { gotoExtended } from '../puppeteer_utils';
-import { apifyOptionsToLaunchOptions, getPuppeteerOrThrow } from '../puppeteer';
+import { PuppeteerLauncher } from '../browser_launchers/puppeteer_launcher';
 import applyStealthToBrowser from '../stealth/stealth';
 
 /**
@@ -247,21 +246,16 @@ class PuppeteerCrawler extends BrowserCrawler {
         const {
             stealth,
             stealthOptions,
-            launcher,
         } = launchContext;
 
         if (launchContext.proxyUrl) {
             throw new Error('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.'
                 + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
         }
+        const puppeteerLauncher = new PuppeteerLauncher(launchContext);
 
         browserPoolOptions.browserPlugins = [
-            new PuppeteerPlugin(
-                getPuppeteerOrThrow(launcher),
-                {
-                    launchOptions: apifyOptionsToLaunchOptions(launchContext),
-                },
-            ),
+            puppeteerLauncher.createBrowserPlugin(),
         ];
 
         super({

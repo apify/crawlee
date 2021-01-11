@@ -1,13 +1,7 @@
-import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
+import { PlaywrightLauncher } from '../browser_launchers/playwright_launcher';
 import { gotoExtended } from '../playwright_utils';
-import {
-    apifyOptionsToLaunchOptions,
-    getPlaywrightLauncherOrThrow,
-    PlaywrightLaunchContext, // eslint-disable-line
-} from '../playwright';
-
 /**
  * @typedef PlaywrightCrawlerOptions
  * @property {object} launcher
@@ -250,15 +244,10 @@ class PlaywrightCrawler extends BrowserCrawler {
             throw new Error('PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.'
                 + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
         }
+        const playwrightLauncher = new PlaywrightLauncher(launchContext);
 
         browserPoolOptions.browserPlugins = [
-            new PlaywrightPlugin(
-                // eslint-disable-next-line
-                getPlaywrightLauncherOrThrow(launcher),
-                {
-                    launchOptions: apifyOptionsToLaunchOptions(launchContext),
-                },
-            ),
+            playwrightLauncher.createBrowserPlugin(),
         ];
 
         super({
