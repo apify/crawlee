@@ -1,5 +1,4 @@
 import ow from 'ow';
-import _ from 'underscore';
 import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -388,7 +387,7 @@ class BrowserCrawler extends BasicCrawler {
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
 
-        // This is the wierd spam because of browser to proxy not page to proxy.
+        // This is the switch because of browser to proxy not page to proxy.
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
@@ -402,8 +401,7 @@ class BrowserCrawler extends BasicCrawler {
      * @private
      */
     async _handleNavigation(crawlingContext) {
-        // @TODO: consider deep clone
-        const gotoOptions = _.clone(this.defaultGotoOptions);
+        const gotoOptions = { ...this.defaultGotoOptions };
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         try {
             crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);

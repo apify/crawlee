@@ -18,7 +18,7 @@ import BrowserLauncher from './browser_launcher';
  *   Example: `http://bob:pass123@proxy.example.com:1234`.
  * @property {boolean} [useChrome=false]
  *   If `true` and `executablePath` is not set,
- *   Puppeteer will launch full Google Chrome browser available on the machine
+ *   Playwright will launch full Google Chrome browser available on the machine
  *   rather than the bundled Chromium. The path to Chrome executable
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
@@ -36,7 +36,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
 
     /**
     * @param {PlaywrightLaunchContext} launchContext
-    * All `PuppeteerLauncher` parameters are passed via an launchContext object.
+    * All `PlaywrightLauncher` parameters are passed via an launchContext object.
     */
     constructor(launchContext = {}) {
         ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
@@ -88,7 +88,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
  * @function
  */
 export const launchPlaywright = async (launchContext) => {
-    const puppeteerLauncher = new PlaywrightLauncher(launchContext);
+    const playwrightLauncher = new PlaywrightLauncher(launchContext);
 
-    return puppeteerLauncher.launch();
+    return playwrightLauncher.launch();
 };
