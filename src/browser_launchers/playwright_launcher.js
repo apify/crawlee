@@ -23,7 +23,7 @@ import BrowserLauncher from './browser_launcher';
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {(string|Object)} [launcher]
+ * @property {Object} [launcher]
  *   By default this function uses require("playwright").chromium`.
  *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
  */

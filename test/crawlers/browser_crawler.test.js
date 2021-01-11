@@ -442,7 +442,12 @@ describe('BrowserCrawler', () => {
                 { url: 'http://example.com/?q=1' },
             ],
         });
-        let controller;
+        let resolve;
+
+        const retirementPromise = new Promise((r) => {
+            resolve = r;
+        });
+        let called = false;
         const browserCrawler = new Apify.BrowserCrawler({
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
@@ -450,18 +455,24 @@ describe('BrowserCrawler', () => {
             requestList,
             useSessionPool: true,
             handlePageFunction: async () => {
-                return Promise.resolve();
+                await retirementPromise;
             },
             maxRequestRetries: 1,
-            gotoFunction: async ({ session, browserController }) => {
-                controller = browserController;
+            gotoFunction: async ({ session, crawler, page, request }) => {
+                crawler.browserPool.on('browserRetired', () => {
+                    resolve();
+                    called = true;
+                });
+
                 session.retire();
+                return page.goto(request.url);
             },
         });
 
         await requestList.initialize();
         await browserCrawler.run();
-        expect(controller.launchContext.sessionRetired).toBeTruthy();
+
+        expect(called).toBeTruthy();
     });
 
     test('should remove browser listener on session pool', async () => {

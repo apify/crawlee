@@ -496,7 +496,6 @@ class BrowserCrawler extends BasicCrawler {
             const listener = (session) => {
                 const { launchContext } = browserController;
                 if (session.id === launchContext.session.id) {
-                    launchContext.extend({ sessionRetired: true }); // @TODO: kind of dirty trick done mainly for testing this important feature.
                     this.browserPool.retireBrowserController(browserController); //eslint-disable-line
                 }
             };

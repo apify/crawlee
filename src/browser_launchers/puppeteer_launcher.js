@@ -35,9 +35,8 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {(string|Object)} [launcher]
- *   Either a require path (`string`) to a package to be used instead of default `puppeteer`,
- *   or an already required module (`Object`). This enables usage of various Puppeteer
+ * @property {Object} [launcher]
+ *   Already required module (`Object`). This enables usage of various Puppeteer
  *   wrappers such as `puppeteer-extra`.
  *
  *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
