@@ -1,15 +1,60 @@
 import ow from 'ow';
 import { ENV_VARS } from 'apify-shared/consts';
-import { getTypicalChromeExecutablePath } from '../utils';
+import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
 
+/**
+ * @typedef BrowserLaunchContext
+ * @property {object} [launchOptions]
+ *  `Options passed to the browser launcher function. Options are based on underlying library.
+ * @property {string} [proxyUrl]
+ *   URL to a HTTP proxy server. It must define the port number,
+ *   and it may also contain proxy username and password.
+ *
+ *   Example: `http://bob:pass123@proxy.example.com:1234`.
+ * @property {boolean} [useChrome=false]
+ *   If `true` and `executablePath` is not set,
+ *   Playwright will launch full Google Chrome browser available on the machine
+ *   rather than the bundled Chromium. The path to Chrome executable
+ *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
+ *   or defaults to the typical Google Chrome executable location specific for the operating system.
+ *   By default, this option is `false`.
+ * @property {Object} [launcher]
+ *   By default this function uses require("playwright").chromium`.
+ *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
+ */
 export default class BrowserLauncher {
     static optionsShape = {
-        launcher: ow.optional.object, // @TODO: I have dropped support for string, since it is not supported by the playwright.
+        launcher: ow.object,
         proxyUrl: ow.optional.string.url,
         useChrome: ow.optional.boolean,
         launchOptions: ow.optional.object,
     }
 
+    /**
+     *
+     * @param {string} launcher
+     * @returns {object}
+     *
+     */
+    static requireLauncherOrThrow(launcher) {
+        try {
+            return require(launcher); // eslint-disable-line
+        } catch (err) {
+            if (err.code === 'MODULE_NOT_FOUND') {
+                const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?`;
+                err.message = isAtHome()
+                    ? `${msg} The '${launcher}' package is automatically bundled when using apify/actor-node-chrome-* Base image.`
+                    : msg;
+            }
+
+            throw err;
+        }
+    }
+
+    /**
+    * @param {BrowserLaunchContext} launchContext
+    * All `BrowserLauncher` parameters are passed via an launchContext object.
+    */
     constructor(launchContext) {
         ow(launchContext, 'BrowserLauncherOptions', ow.object.exactShape(BrowserLauncher.optionsShape));
 
@@ -27,25 +72,29 @@ export default class BrowserLauncher {
         this.useChrome = useChrome;
         this.launchOptions = launchOptions;
 
-        this.Plugin = null; // tight to specific library implementation;
+        this.Plugin = null; // to be provided by child classes;
     }
 
     /**
-     * @return {BrowserPlugin}
+     * @returns {BrowserPlugin}
+     * @private
      */
     createBrowserPlugin() {
         return new this.Plugin(
-            this._getLauncher(this.launcher),
+            this.launcher,
             {
                 proxyUrl: this.proxyUrl,
-                launchOptions: this.createPluginLaunchOptions(),
+                launchOptions: this.createLaunchOptions(),
             },
         );
     }
 
+    /**
+     * Launches an browser instance based on the plugin.
+     * @returns {object} Browser instance.
+     */
     async launch() {
         const plugin = this.createBrowserPlugin();
-
         const context = await plugin.createLaunchContext();
 
         const browser = await plugin.launch(context);
@@ -55,8 +104,9 @@ export default class BrowserLauncher {
 
     /**
      * @returns {object}
+     *
      */
-    createPluginLaunchOptions() {
+    createLaunchOptions() {
         const launchOptions = {
             ...this.launchOptions,
         };
@@ -73,46 +123,38 @@ export default class BrowserLauncher {
     }
 
     /**
+     *
+     * @returns {boolean}
      * @private
-     * @returns {boolean};
      */
     _getDefaultHeadlessOption() {
         return process.env[ENV_VARS.HEADLESS] === '1' && process.env[ENV_VARS.XVFB] !== '1';
     }
 
     /**
-    * @private
     * @returns {string}
+    * @private
     */
     _getChromeExecutablePath() {
         return process.env[ENV_VARS.CHROME_EXECUTABLE_PATH] || getTypicalChromeExecutablePath();
     }
 
     /**
-     * @private
-     * @returns {object}
-     */
-    _getLauncher() {
-        if (typeof this.launcher !== 'object') {
-            throw new Error('Option "launcher" must be object.');
-        }
-        return this.launcher;
-    }
-
-    /**
-     * @private
+     *
      * @param {string} proxyUrl
-     * @return {void}
+     * @private
      */
     _validateProxyUrl(proxyUrl) {
-        if (proxyUrl) {
-            const parsedProxyUrl = new URL(proxyUrl);
-            if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
-                throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
-            }
-            if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
-                throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
-            }
+        if (!proxyUrl) {
+            return;
+        }
+
+        const parsedProxyUrl = new URL(proxyUrl);
+        if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
+            throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
+        }
+        if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
+            throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
         }
     }
 }

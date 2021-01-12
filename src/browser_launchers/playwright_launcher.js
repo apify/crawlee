@@ -36,12 +36,16 @@ export class PlaywrightLauncher extends BrowserLauncher {
 
     /**
     * @param {PlaywrightLaunchContext} launchContext
-    * All `PlaywrightLauncher` parameters are passed via an launchContext object.
+    * All `PlaywrightLauncher` parameters are passed via this launchContext object.
     */
     constructor(launchContext = {}) {
         ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
 
-        launchContext.launcher = launchContext.launcher || require('playwright').chromium; // eslint-disable-line
+        const {
+            launcher = BrowserLauncher.requireLauncherOrThrow('playwright').chromium,
+        } = launchContext;
+
+        launchContext.launcher = launcher;
 
         super(launchContext);
 
@@ -49,7 +53,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
     }
 }
 
-/** @TODO:
+/**
  * Launches headless browsers using Playwright pre-configured to work within the Apify platform.
  * The function has the same return value as `browserType.launch()`.
  * See <a href="https://playwright.dev/docs/api/class-browsertype" target="_blank">

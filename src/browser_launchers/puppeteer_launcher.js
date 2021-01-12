@@ -64,18 +64,20 @@ export class PuppeteerLauncher extends BrowserLauncher {
     constructor(launchContext = {}) {
         ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
 
-        launchContext.launcher = launchContext.launcher || require('puppeteer'); // eslint-disable-line
         const {
+            launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer'),
             userAgent,
             stealth,
             stealthOptions,
             ...browserLauncherOptions
         } = launchContext;
 
+        browserLauncherOptions.launcher = launcher;
+
         super(browserLauncherOptions);
 
         this.userAgent = userAgent;
-        this.stealth = stealth; // @TODO: time to rename to useStealth?
+        this.stealth = stealth;
         this.stealthOptions = stealthOptions;
 
         this.Plugin = PuppeteerPlugin;
@@ -91,8 +93,8 @@ export class PuppeteerLauncher extends BrowserLauncher {
         return browser;
     }
 
-    createPluginLaunchOptions() {
-        const launchOptions = super.createPluginLaunchOptions();
+    createLaunchOptions() {
+        const launchOptions = super.createLaunchOptions();
         launchOptions.args = launchOptions.args || [];
 
         if (isAtHome()) launchOptions.args.push('--no-sandbox');
@@ -156,7 +158,8 @@ export class PuppeteerLauncher extends BrowserLauncher {
  * or the [Puppeteer proxy Example](../examples/puppeteer-with-proxy)
  *
  * @param {PuppeteerLaunchContext} [launchContext]
-* All `PuppeteerLauncher` parameters are passed via an launchContext object.
+ * All `PuppeteerLauncher` parameters are passed via an launchContext object.
+ * If you want to pass a custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify

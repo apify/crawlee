@@ -387,7 +387,10 @@ class BrowserCrawler extends BasicCrawler {
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
 
-        // This is the switch because of browser to proxy not page to proxy.
+        // This switch is because the crawlingContexts are created on per request basis.
+        // However, we need to add the proxy info and session from browser, which is created based on the browser-pool configuration.
+        // We would not have to do this switch if the proxy and configuration worked as in CheerioCrawler,
+        // which configures proxy and session for every new request
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
@@ -496,7 +499,7 @@ class BrowserCrawler extends BasicCrawler {
             const listener = (session) => {
                 const { launchContext } = browserController;
                 if (session.id === launchContext.session.id) {
-                    this.browserPool.retireBrowserController(browserController); //eslint-disable-line
+                    this.browserPool.retireBrowserController(browserController);
                 }
             };
 
