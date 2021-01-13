@@ -183,22 +183,6 @@ class AutoscaledPool {
     }
 
     /**
-     * @ignore
-     */
-    setMaxConcurrency(maxConcurrency) {
-        this.log.deprecated('setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
-        this._maxConcurrency = maxConcurrency;
-    }
-
-    /**
-     * @ignore
-     */
-    setMinConcurrency(minConcurrency) {
-        this.log.deprecated('setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
-        this._minConcurrency = minConcurrency;
-    }
-
-    /**
      * Gets the minimum number of tasks running in parallel.
      *
      * @return {number}

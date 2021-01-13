@@ -44,9 +44,9 @@ export const checkAndSerialize = (item, limitBytes, index) => {
  *
  * The function assumes that none of the items is larger than limitBytes and does not validate.
  *
- * @param {Array<*>} items
+ * @param {Array<string>} items
  * @param {number} limitBytes
- * @returns {Array<*>}
+ * @returns {Array<string>}
  * @ignore
  */
 export const chunkBySize = (items, limitBytes) => {
@@ -189,17 +189,14 @@ export class Dataset {
     }
 
     /**
-     * Returns {DatasetContent} object holding the items in the dataset based on the provided parameters.
+     * Returns {@link DatasetContent} object holding the items in the dataset based on the provided parameters.
      *
-     * **NOTE**: If using dataset with local disk storage, the `format` option must be `json` and
-     * the following options are not supported:
-     * `unwind`, `disableBodyParser`, `attachment`, `bom` and `simplified`.
-     * If you try to use them, you will receive an error.
+     * If you need to get data in an unparsed format, use the {@link Apify#newClient} function to get a new
+     * `apify-client` instance and call
+     * [`datasetClient.downloadItems()`](https://github.com/apify/apify-client-js#DatasetClient+downloadItems)
      *
      * @param {Object} [options] All `getData()` parameters are passed
      *   via an options object with the following keys:
-     * @param {string} [options.format='json']
-     *   Format of the `items` property, possible values are: `json`, `csv`, `xlsx`, `html`, `xml` and `rss`.
      * @param {number} [options.offset=0]
      *   Number of array elements that should be skipped at the start.
      * @param {number} [options.limit=250000]
@@ -212,24 +209,6 @@ export class Dataset {
      * @param {string} [options.unwind]
      *   Specifies a name of the field in the result objects that will be used to unwind the resulting objects.
      *   By default, the results are returned as they are.
-     * @param {boolean} [options.disableBodyParser=false]
-     *   If `true` then response from API will not be parsed.
-     * @param {boolean} [options.attachment=false]
-     *   If `true` then the response will define the `Content-Disposition: attachment` HTTP header, forcing a web
-     *   browser to download the file rather than to display it. By default, this header is not present.
-     * @param {string} [options.delimiter=',']
-     *   A delimiter character for CSV files, only used if `format` is `csv`.
-     * @param {boolean} [options.bom]
-     *   All responses are encoded in UTF-8 encoding. By default, the CSV files are prefixed with the UTF-8 Byte
-     *   Order Mark (BOM), while JSON, JSONL, XML, HTML and RSS files are not. If you want to override this default
-     *   behavior, set `bom` option to `true` to include the BOM, or set `bom` to `false` to skip it.
-     * @param {string} [options.xmlRoot='results']
-     *   Overrides the default root element name of the XML output. By default, the root element is `results`.
-     * @param {string} [options.xmlRow='page']
-     *   Overrides the default element name that wraps each page or page function result object in XML output.
-     *   By default, the element name is `page` or `result`, depending on the value of the `simplified` option.
-     * @param {boolean} [options.skipHeaderRow=false]
-     *   If set to `true` then header row in CSV format is skipped.
      * @param {boolean} [options.clean=false]
      *   If `true` then the function returns only non-empty items and skips hidden fields (i.e. fields starting with `#` character).
      *   Note that the `clean` parameter is a shortcut for `skipHidden: true` and `skipEmpty: true` options.
@@ -238,20 +217,9 @@ export class Dataset {
      * @param {boolean} [options.skipEmpty=false]
      *   If `true` then the function doesn't return empty items.
      *   Note that in this case the returned number of items might be lower than limit parameter and pagination must be done using the `limit` value.
-     * @param {boolean} [options.simplified]
-     *   If `true` then function applies the `fields: ['url','pageFunctionResult','errorInfo']` and `unwind: 'pageFunctionResult'` options.
-     *   This feature is used to emulate simplified results provided by Apify API version 1 used for
-     *   the legacy Apify Crawler and it's not recommended to use it in new integrations.
-     * @param {boolean} [options.skipFailedPages]
-     *   If `true` then, the all the items with errorInfo property will be skipped from the output.
-     *   This feature is here to emulate functionality of Apify API version 1 used for
-     *   the legacy Apify Crawler product and it's not recommended to use it in new integrations.
      * @return {Promise<DatasetContent>}
      */
     async getData(options = {}) {
-        // TODO (JC): Do we really need this function? It only works with API but not locally,
-        // and it's just 1:1 copy of what apify-client provides, and returns { items } which can
-        // be a Buffer ... it doesn't really make much sense
         try {
             return await this.client.listItems(options);
         } catch (e) {
@@ -262,7 +230,6 @@ export class Dataset {
         }
     }
 
-    // TODO yin: After ApifyClient declarations, re-export this typedef for {DatasetInfo}.
     /**
      * Returns an object containing general information about the dataset.
      *

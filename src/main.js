@@ -8,14 +8,17 @@ import { pushData, openDataset } from './storages/dataset';
 import events, { initializeEvents, stopEvents } from './events';
 import { getValue, setValue, getInput, openKeyValueStore } from './storages/key_value_store';
 import { launchPuppeteer } from './puppeteer';
+import { launchPlaywright } from './playwright';
+import BrowserCrawler from './crawlers/browser_crawler';
 import PuppeteerCrawler from './crawlers/puppeteer_crawler';
-import PuppeteerPool from './puppeteer_pool';
+import PlaywrightCrawler from './crawlers/playwright_crawler';
 import Request from './request';
 import { RequestList, openRequestList } from './request_list';
 import { createProxyConfiguration } from './proxy_configuration';
 import { openRequestQueue } from './storages/request_queue';
 import { newClient, getMemoryInfo, isAtHome, publicUtils } from './utils';
 import { puppeteerUtils } from './puppeteer_utils';
+import { playwrightUtils } from './playwright_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import PseudoUrl from './pseudo_url';
@@ -29,6 +32,7 @@ EventEmitter.defaultMaxListeners = 50;
 
 const exportedUtils = Object.assign(publicUtils, {
     puppeteer: puppeteerUtils,
+    playwright: playwrightUtils,
     social: socialUtils,
     log,
     enqueueLinks,
@@ -78,8 +82,10 @@ export {
     openKeyValueStore,
 
     launchPuppeteer,
-    PuppeteerPool,
+    launchPlaywright,
+    BrowserCrawler,
     PuppeteerCrawler,
+    PlaywrightCrawler,
 
     PseudoUrl,
 

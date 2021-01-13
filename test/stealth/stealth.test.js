@@ -30,8 +30,10 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
         browser = await Apify.launchPuppeteer({
             stealth: true,
-            headless: true,
             useChrome: true,
+            launchOptions: {
+                headless: true,
+            },
         });
         page = await browser.newPage();
     });
@@ -195,10 +197,12 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
         const requestList = await Apify.openRequestList(null, [testUrl]);
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
-            launchPuppeteerOptions: {
+            launchContext: {
                 stealth: true,
                 useChrome: true,
-                headless: true,
+                launchOptions: {
+                    headless: true,
+                },
             },
             handlePageFunction: async ({ page: activePage }) => {
                 const fingerprint = await getFingerPrint(activePage);
