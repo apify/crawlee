@@ -28,6 +28,9 @@ import BrowserLauncher from './browser_launcher';
  *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
  */
 
+/**
+ * `PlaywrightLauncher` is based on the `BrowserLauncher`. It launches `playwright` browser instance.
+ */
 export class PlaywrightLauncher extends BrowserLauncher {
     static optionsShape = {
         ...BrowserLauncher.optionsShape,
@@ -42,12 +45,13 @@ export class PlaywrightLauncher extends BrowserLauncher {
         ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
 
         const {
-            launcher = BrowserLauncher.requireLauncherOrThrow('playwright').chromium,
+            launcher = BrowserLauncher.requireLauncherOrThrow('playwright', 'apify/actor-node-playwright-*').chromium,
         } = launchContext;
 
-        launchContext.launcher = launcher;
-
-        super(launchContext);
+        super({
+            ...launchContext,
+            launcher,
+        });
 
         this.Plugin = PlaywrightPlugin;
     }

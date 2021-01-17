@@ -22,6 +22,10 @@ import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
  *   By default this function uses require("playwright").chromium`.
  *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
  */
+
+/**
+ * Abstract class for creating browser lunchers, such as `PlaywrightLauncher` and `PuppeteerLauncher`.
+ */
 export default class BrowserLauncher {
     static optionsShape = {
         launcher: ow.object,
@@ -33,17 +37,18 @@ export default class BrowserLauncher {
     /**
      *
      * @param {string} launcher
+     * @param {string} apifyImageName
      * @returns {object}
      *
      */
-    static requireLauncherOrThrow(launcher) {
+    static requireLauncherOrThrow(launcher, apifyImageName) {
         try {
             return require(launcher); // eslint-disable-line
         } catch (err) {
             if (err.code === 'MODULE_NOT_FOUND') {
                 const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?`;
                 err.message = isAtHome()
-                    ? `${msg} The '${launcher}' package is automatically bundled when using apify/actor-node-chrome-* Base image.`
+                    ? `${msg} The '${launcher}' package is automatically bundled when using ${apifyImageName} Base image.`
                     : msg;
             }
 
@@ -77,7 +82,7 @@ export default class BrowserLauncher {
 
     /**
      * @returns {BrowserPlugin}
-     * @private
+     * @ignore
      */
     createBrowserPlugin() {
         return new this.Plugin(
@@ -90,7 +95,7 @@ export default class BrowserLauncher {
     }
 
     /**
-     * Launches an browser instance based on the plugin.
+     * Launches a browser instance based on the plugin.
      * @returns {object} Browser instance.
      */
     async launch() {
@@ -104,7 +109,6 @@ export default class BrowserLauncher {
 
     /**
      * @returns {object}
-     *
      */
     createLaunchOptions() {
         const launchOptions = {
@@ -123,7 +127,6 @@ export default class BrowserLauncher {
     }
 
     /**
-     *
      * @returns {boolean}
      * @private
      */

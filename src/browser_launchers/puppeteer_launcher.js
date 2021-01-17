@@ -48,6 +48,10 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   Using this configuration, you can disable some of the hiding tricks.
  *   For these settings to take effect `stealth` must be set to true
  */
+
+/**
+ * `PuppeteerLauncher` is based on the `BrowserLauncher`. It launches `puppeteer` browser instance.
+ */
 export class PuppeteerLauncher extends BrowserLauncher {
     static optionsShape = {
         ...BrowserLauncher.optionsShape,
@@ -65,7 +69,7 @@ export class PuppeteerLauncher extends BrowserLauncher {
         ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
 
         const {
-            launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer'),
+            launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-chrome-*'),
             userAgent,
             stealth,
             stealthOptions,
@@ -74,7 +78,10 @@ export class PuppeteerLauncher extends BrowserLauncher {
 
         browserLauncherOptions.launcher = launcher;
 
-        super(browserLauncherOptions);
+        super({
+            ...browserLauncherOptions,
+            launcher,
+        });
 
         this.userAgent = userAgent;
         this.stealth = stealth;
@@ -159,7 +166,7 @@ export class PuppeteerLauncher extends BrowserLauncher {
  *
  * @param {PuppeteerLaunchContext} [launchContext]
  * All `PuppeteerLauncher` parameters are passed via an launchContext object.
- * If you want to pass a custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.
+ * If you want to pass custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.
  * @returns {Promise<Browser>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify
