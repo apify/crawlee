@@ -5,7 +5,7 @@ title: Apify Platform
 
 Apify is a [platform](https://apify.com) built to serve large scale and high performance web scraping
 and automation needs. It provides easy access to [compute instances (Actors)](#what-is-an-actor),
-[convenient storages](/docs/guides/data-storage), [proxies](/docs/guides/proxy-management),
+[convenient storages](../guides/data-storage), [proxies](../guides/proxy-management),
 [scheduling](https://docs.apify.com/scheduler), [webhooks](https://docs.apify.com/webhooks)
 and [more](https://docs.apify.com/), accessible through a [web interface](https://my.apify.com)
 or an [API](https://docs.apify.com/api).
@@ -44,10 +44,10 @@ apify run -p
 
 ### Log in with environment variables
 If you prefer not to use Apify CLI, you can always provide credentials to your scraper
-by setting the [`APIFY_TOKEN`](/docs/guides/environment-variables#apify_token) environment
+by setting the [`APIFY_TOKEN`](../guides/environment-variables#apify_token) environment
 variable to your API token.
 
-> There's also the [`APIFY_PROXY_PASSWORD`](/docs/guides/environment-variables#apify_proxy_password)
+> There's also the [`APIFY_PROXY_PASSWORD`](../guides/environment-variables#apify_proxy_password)
 > environment variable. It is automatically inferred from your token by the SDK, but it can be useful
 > when you need to access proxies from a different account than your token represents.
 

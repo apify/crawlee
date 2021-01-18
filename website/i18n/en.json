@@ -17,32 +17,20 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
-      "api/browser-crawler": {
-        "title": "BrowserCrawler"
-      },
-      "api/cache-container": {
-        "title": "CacheContainer"
-      },
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
       },
-      "api/cookie-parse-error": {
-        "title": "CookieParseError"
-      },
       "api/dataset": {
         "title": "Dataset"
-      },
-      "api/exports": {
-        "title": "exports"
-      },
-      "api/job": {
-        "title": "Job"
       },
       "api/key-value-store": {
         "title": "KeyValueStore"
       },
       "api/log": {
         "title": "utils.log"
+      },
+      "api/playwright-crawler": {
+        "title": "PlaywrightCrawler"
       },
       "api/proxy-configuration": {
         "title": "ProxyConfiguration"
@@ -79,9 +67,6 @@
       },
       "api/statistics": {
         "title": "Statistics"
-      },
-      "api/storage-manager": {
-        "title": "StorageManager"
       },
       "api/system-status": {
         "title": "SystemStatus"
@@ -203,9 +188,6 @@
       "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
       },
-      "typedefs/browser-crawler-options": {
-        "title": "BrowserCrawlerOptions"
-      },
       "typedefs/cheerio-crawler-options": {
         "title": "CheerioCrawlerOptions"
       },
@@ -248,14 +230,17 @@
       "typedefs/key-consumer": {
         "title": "KeyConsumer"
       },
-      "typedefs/launch-puppeteer-options": {
-        "title": "LaunchPuppeteerOptions"
-      },
       "typedefs/logger-options": {
         "title": "LoggerOptions"
       },
       "typedefs/memory-info": {
         "title": "MemoryInfo"
+      },
+      "typedefs/playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "typedefs/playwright-launch-context": {
+        "title": "PlaywrightLaunchContext"
       },
       "typedefs/post-response": {
         "title": "PostResponse"
@@ -277,6 +262,9 @@
       },
       "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
+      },
+      "typedefs/puppeteer-launch-context": {
+        "title": "PuppeteerLaunchContext"
       },
       "typedefs/queue-operation-info": {
         "title": "QueueOperationInfo"
@@ -330,6 +318,366 @@
         "title": "SystemStatusOptions"
       },
       "typedefs/user-func": {
+        "title": "UserFunc"
+      },
+      "version-0.22.4/api/version-0.22.4-apify": {
+        "title": "Apify"
+      },
+      "version-0.22.4/api/version-0.22.4-apify-call-error": {
+        "title": "ApifyCallError"
+      },
+      "version-0.22.4/api/version-0.22.4-autoscaled-pool": {
+        "title": "AutoscaledPool"
+      },
+      "version-0.22.4/api/version-0.22.4-basic-crawler": {
+        "title": "BasicCrawler"
+      },
+      "version-0.22.4/api/version-0.22.4-browser-crawler": {
+        "title": "BrowserCrawler"
+      },
+      "version-0.22.4/api/version-0.22.4-cache-container": {
+        "title": "CacheContainer"
+      },
+      "version-0.22.4/api/version-0.22.4-cheerio-crawler": {
+        "title": "CheerioCrawler"
+      },
+      "version-0.22.4/api/version-0.22.4-cookie-parse-error": {
+        "title": "CookieParseError"
+      },
+      "version-0.22.4/api/version-0.22.4-dataset": {
+        "title": "Dataset"
+      },
+      "version-0.22.4/api/version-0.22.4-exports": {
+        "title": "exports"
+      },
+      "version-0.22.4/api/version-0.22.4-global-cache": {
+        "title": "GlobalCache"
+      },
+      "version-0.22.4/api/version-0.22.4-job": {
+        "title": "Job"
+      },
+      "version-0.22.4/api/version-0.22.4-key-value-store": {
+        "title": "KeyValueStore"
+      },
+      "version-0.22.4/api/version-0.22.4-live-view-server": {
+        "title": "LiveViewServer"
+      },
+      "version-0.22.4/api/version-0.22.4-log": {
+        "title": "utils.log"
+      },
+      "version-0.22.4/api/version-0.22.4-playwright-crawler": {
+        "title": "PlaywrightCrawler"
+      },
+      "version-0.22.4/api/version-0.22.4-proxy-configuration": {
+        "title": "ProxyConfiguration"
+      },
+      "version-0.22.4/api/version-0.22.4-pseudo-url": {
+        "title": "PseudoUrl"
+      },
+      "version-0.22.4/api/version-0.22.4-puppeteer": {
+        "title": "utils.puppeteer"
+      },
+      "version-0.22.4/api/version-0.22.4-puppeteer-crawler": {
+        "title": "PuppeteerCrawler"
+      },
+      "version-0.22.4/api/version-0.22.4-puppeteer-pool": {
+        "title": "PuppeteerPool"
+      },
+      "version-0.22.4/api/version-0.22.4-request": {
+        "title": "Request"
+      },
+      "version-0.22.4/api/version-0.22.4-request-list": {
+        "title": "RequestList"
+      },
+      "version-0.22.4/api/version-0.22.4-request-queue": {
+        "title": "RequestQueue"
+      },
+      "version-0.22.4/api/version-0.22.4-session": {
+        "title": "Session"
+      },
+      "version-0.22.4/api/version-0.22.4-session-pool": {
+        "title": "SessionPool"
+      },
+      "version-0.22.4/api/version-0.22.4-snapshotter": {
+        "title": "Snapshotter"
+      },
+      "version-0.22.4/api/version-0.22.4-social": {
+        "title": "utils.social"
+      },
+      "version-0.22.4/api/version-0.22.4-statistics": {
+        "title": "Statistics"
+      },
+      "version-0.22.4/api/version-0.22.4-storage-manager": {
+        "title": "StorageManager"
+      },
+      "version-0.22.4/api/version-0.22.4-system-status": {
+        "title": "SystemStatus"
+      },
+      "version-0.22.4/api/version-0.22.4-utils": {
+        "title": "utils"
+      },
+      "version-0.22.4/examples/version-0.22.4-accept-user-input": {
+        "title": "Accept user input"
+      },
+      "version-0.22.4/examples/version-0.22.4-add-data-to-dataset": {
+        "title": "Add data to dataset"
+      },
+      "version-0.22.4/examples/version-0.22.4-basic-crawler": {
+        "title": "Basic crawler"
+      },
+      "version-0.22.4/examples/version-0.22.4-call-actor": {
+        "title": "Call actor"
+      },
+      "version-0.22.4/examples/version-0.22.4-capture-screenshot": {
+        "title": "Capture a screenshot"
+      },
+      "version-0.22.4/examples/version-0.22.4-cheerio-crawler": {
+        "title": "Cheerio crawler"
+      },
+      "version-0.22.4/examples/version-0.22.4-crawl-all-links": {
+        "title": "Crawl all links on a website"
+      },
+      "version-0.22.4/examples/version-0.22.4-crawl-multiple-urls": {
+        "title": "Crawl multiple URLs"
+      },
+      "version-0.22.4/examples/version-0.22.4-crawl-relative-links": {
+        "title": "Crawl a website with relative links"
+      },
+      "version-0.22.4/examples/version-0.22.4-crawl-single-url": {
+        "title": "Crawl a single URL"
+      },
+      "version-0.22.4/examples/version-0.22.4-crawl-sitemap": {
+        "title": "Crawl a sitemap"
+      },
+      "version-0.22.4/examples/version-0.22.4-crawl-some-links": {
+        "title": "Crawl some links on a website"
+      },
+      "version-0.22.4/examples/version-0.22.4-forms": {
+        "title": "Forms"
+      },
+      "version-0.22.4/examples/version-0.22.4-handle-broken-links": {
+        "title": "Handle broken links"
+      },
+      "version-0.22.4/examples/version-0.22.4-map-and-reduce": {
+        "title": "Dataset Map and Reduce methods"
+      },
+      "version-0.22.4/examples/version-0.22.4-puppeteer-crawler": {
+        "title": "Puppeteer crawler"
+      },
+      "version-0.22.4/examples/version-0.22.4-puppeteer-recursive-crawl": {
+        "title": "Puppeteer recursive crawl"
+      },
+      "version-0.22.4/examples/version-0.22.4-puppeteer-sitemap": {
+        "title": "Puppeteer sitemap"
+      },
+      "version-0.22.4/examples/version-0.22.4-puppeteer-with-proxy": {
+        "title": "Puppeteer with proxy"
+      },
+      "version-0.22.4/examples/version-0.22.4-screenshots": {
+        "title": "Screenshots"
+      },
+      "version-0.22.4/examples/version-0.22.4-synchronous-run": {
+        "title": "Synchronous run"
+      },
+      "version-0.22.4/guides/version-0.22.4-apify-platform": {
+        "title": "Apify Platform"
+      },
+      "version-0.22.4/guides/version-0.22.4-data-storage": {
+        "title": "Data Storage"
+      },
+      "version-0.22.4/guides/version-0.22.4-environment-variables": {
+        "title": "Environment Variables"
+      },
+      "version-0.22.4/guides/version-0.22.4-getting-started": {
+        "title": "Getting Started"
+      },
+      "version-0.22.4/guides/version-0.22.4-motivation": {
+        "title": "Motivation"
+      },
+      "version-0.22.4/guides/version-0.22.4-proxy-management": {
+        "title": "Proxy Management"
+      },
+      "version-0.22.4/guides/version-0.22.4-quick-start": {
+        "title": "Quick Start"
+      },
+      "version-0.22.4/guides/version-0.22.4-session-management": {
+        "title": "Session Management"
+      },
+      "version-0.22.4/guides/version-0.22.4-type-script-actor": {
+        "title": "TypeScript Actors"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-abort-function": {
+        "title": "AbortFunction"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-actor-run": {
+        "title": "ActorRun"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-apify-env": {
+        "title": "ApifyEnv"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-autoscaled-pool-options": {
+        "title": "AutoscaledPoolOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-basic-crawler-options": {
+        "title": "BasicCrawlerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-browser-crawler-options": {
+        "title": "BrowserCrawlerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-cheerio-crawler-options": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-cheerio-handle-page": {
+        "title": "CheerioHandlePage"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-cheerio-handle-page-inputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-create-session": {
+        "title": "CreateSession"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-dataset-consumer": {
+        "title": "DatasetConsumer"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-dataset-content": {
+        "title": "DatasetContent"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-dataset-mapper": {
+        "title": "DatasetMapper"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-dataset-reducer": {
+        "title": "DatasetReducer"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-handle-failed-request": {
+        "title": "HandleFailedRequest"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-handle-failed-request-input": {
+        "title": "HandleFailedRequestInput"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-handle-request": {
+        "title": "HandleRequest"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-handle-request-inputs": {
+        "title": "HandleRequestInputs"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-intercept-handler": {
+        "title": "InterceptHandler"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-key-consumer": {
+        "title": "KeyConsumer"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-launch-puppeteer": {
+        "title": "LaunchPuppeteer"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-launch-puppeteer-function": {
+        "title": "LaunchPuppeteerFunction"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-launch-puppeteer-options": {
+        "title": "LaunchPuppeteerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-logger-options": {
+        "title": "LoggerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-memory-info": {
+        "title": "MemoryInfo"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-playwright-launch-context": {
+        "title": "PlaywrightLaunchContext"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-post-response": {
+        "title": "PostResponse"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-post-response-inputs": {
+        "title": "PostResponseInputs"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-prepare-request": {
+        "title": "PrepareRequest"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-prepare-request-inputs": {
+        "title": "PrepareRequestInputs"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-proxy-configuration-options": {
+        "title": "ProxyConfigurationOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-proxy-info": {
+        "title": "ProxyInfo"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-goto": {
+        "title": "PuppeteerGoto"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-goto-inputs": {
+        "title": "PuppeteerGotoInputs"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-handle-page": {
+        "title": "PuppeteerHandlePage"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-handle-page-inputs": {
+        "title": "PuppeteerHandlePageInputs"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-launch-context": {
+        "title": "PuppeteerLaunchContext"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-puppeteer-pool-options": {
+        "title": "PuppeteerPoolOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-queue-operation-info": {
+        "title": "QueueOperationInfo"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-request-as-browser-options": {
+        "title": "RequestAsBrowserOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-request-list-options": {
+        "title": "RequestListOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-request-list-state": {
+        "title": "RequestListState"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-request-options": {
+        "title": "RequestOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-request-queue-info": {
+        "title": "RequestQueueInfo"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-request-transform": {
+        "title": "RequestTransform"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-session-options": {
+        "title": "SessionOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-session-pool-options": {
+        "title": "SessionPoolOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-session-state": {
+        "title": "SessionState"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-snapshotter-options": {
+        "title": "SnapshotterOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-social-handles": {
+        "title": "SocialHandles"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-statistic-persisted-state": {
+        "title": "StatisticPersistedState"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-statistic-state": {
+        "title": "StatisticState"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-stealth-options": {
+        "title": "StealthOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-system-info": {
+        "title": "SystemInfo"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-system-status-options": {
+        "title": "SystemStatusOptions"
+      },
+      "version-0.22.4/typedefs/version-0.22.4-user-func": {
         "title": "UserFunc"
       }
     },

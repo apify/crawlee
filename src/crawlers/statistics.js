@@ -6,7 +6,7 @@ import defaultLog from '../utils_log';
 import events from '../events';
 
 /**
- * @private
+ * @ignore
  */
 class Job {
     constructor() {

@@ -159,6 +159,7 @@ import {
  *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
+ * @ignore
  */
 
 /**
@@ -194,31 +195,6 @@ import {
  *
  * Note that the pool of browser instances is internally managed by the {@link BrowserPool} class.
  *
- * **Example usage:**
- * @TODO:
- * ```javascript
- * const crawler = new Apify.PuppeteerCrawler({
- *     requestList,
- *     handlePageFunction: async ({ page, request }) => {
- *         // This function is called to extract data from a single web page
- *         // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
- *         // 'request' is an instance of Request class with information about the page to load
- *         await Apify.pushData({
- *             title: await page.title(),
- *             url: request.url,
- *             succeeded: true,
- *         })
- *     },
- *     handleFailedRequestFunction: async ({ request }) => {
- *         // This function is called when the crawling of a request failed too many times
- *         await Apify.pushData({
- *             url: request.url,
- *             succeeded: false,
- *             errors: request.errorMessages,
- *         })
- *     },
- * });
- *
  * await crawler.run();
  * ```
  * @property {Statistics} stats
@@ -244,6 +220,7 @@ import {
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
+ *  @ignore
  */
 class BrowserCrawler extends BasicCrawler {
     static optionsShape = {

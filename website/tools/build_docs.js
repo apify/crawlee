@@ -8,7 +8,7 @@ const prettierConfig = require('./prettier.config');
 const sidebars = require('../sidebars.json');
 const { readStreamToString } = require('apify-shared/streams_utilities');  // eslint-disable-line
 
-const BASE_URL = '/docs';
+const BASE_URL = '..';
 const DOCS_DIR = path.join(__dirname, '..', '..', 'docs');
 const EXAMPLES_DIR_NAME = path.join(DOCS_DIR, 'examples');
 const EXAMPLES_REPO = 'https://api.github.com/repos/apify/actor-templates/contents/dist/examples';
@@ -174,15 +174,15 @@ const main = async () => {
 
     /* reduce templateData to an array of class names */
     templateData.forEach((identifier) => {
-        if (identifier.kind === 'class' && !identifier.ignore) {
+        if (identifier.kind === 'class' && !identifier.ignore && !identifier.private) {
             classNames.push(identifier.name);
             if (identifier.hideconstructor) {
                 const idx = templateData.findIndex(i => i.id === `${identifier.name}()`);
                 templateData[idx] = EMPTY;
             }
         }
-        if (identifier.kind === 'namespace' && !identifier.ignore) namespaces.push(identifier.name);
-        if (identifier.kind === 'typedef' && !identifier.ignore) typedefs.push(identifier.name);
+        if (identifier.kind === 'namespace' && !identifier.ignore && !identifier.private) namespaces.push(identifier.name);
+        if (identifier.kind === 'typedef' && !identifier.ignore && !identifier.private) typedefs.push(identifier.name);
     });
 
     templateData = templateData.filter(d => d !== EMPTY);

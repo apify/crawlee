@@ -6,7 +6,7 @@ import * as LruCache from 'apify-shared/lru_cache';
  * created as module scoped globals - untouchable. This proved problematic
  * especially in tests, where caches would prevent test separation.
  * @property {Map<string, LruCache>} caches
- * @private
+ * @ignore
  */
 class CacheContainer {
     constructor() {
