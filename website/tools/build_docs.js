@@ -23,7 +23,7 @@ const toId = (name) => {
 };
 
 const getHeader = (title) => {
-    const prefix = /puppeteer|social|log/.test(title) ? 'utils.' : '';
+    const prefix = /playwright|puppeteer|social|log/.test(title) ? 'utils.' : '';
     const id = toId(title);
     return `---\nid: ${id}\ntitle: ${prefix}${title}\n---\n`;
 };

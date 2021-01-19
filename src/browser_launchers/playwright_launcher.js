@@ -8,6 +8,21 @@ import BrowserLauncher from './browser_launcher';
  * [`LaunchOptions`](https://playwright.dev/docs/api/class-browsertype#browsertypelaunchoptions)
  * options by providing the `launchOptions` property.
  *
+ * **Example:**
+ * ```js
+ * // launch a headless Chrome (not Chromium)
+ * const launchContext = {
+ *     // Apify helpers
+ *     useChrome: true,
+ *     proxyUrl: 'http://user:password@some.proxy.com'
+ *     // Native Playwright options
+ *     launchOptions: {
+ *         headless: true,
+ *         args: ['--some-flag'],
+ *     }
+ * }
+ * ```
+ *
  * @typedef PlaywrightLaunchContext
  * @property {object} [launchOptions]
  *  `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
@@ -24,12 +39,13 @@ import BrowserLauncher from './browser_launcher';
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
  * @property {Object} [launcher]
- *   By default this function uses require("playwright").chromium`.
- *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
+ *   By default this function uses `require("playwright").chromium`.
+ *   If you want to use a different browser you can pass it by this property as e.g. `require("playwright").firefox`
  */
 
 /**
  * `PlaywrightLauncher` is based on the `BrowserLauncher`. It launches `playwright` browser instance.
+ * @ignore
  */
 export class PlaywrightLauncher extends BrowserLauncher {
     static optionsShape = {
@@ -68,7 +84,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
  * - Passes the setting from the `APIFY_HEADLESS` environment variable to the `headless` option,
  *   unless it was already defined by the caller or `APIFY_XVFB` environment variable is set to `1`.
  *   Note that Apify Actor cloud platform automatically sets `APIFY_HEADLESS=1` to all running actors.
- * - Takes the `proxyUrl` option, validates it and adds it to `args` as `--proxy-server=XXX`.
+ * - Takes the `proxyUrl` option, validates it and adds it to `launchOptions` in a proper format.
  *   The proxy URL must define a port number and have one of the following schemes: `http://`,
  *   `https://`, `socks4://` or `socks5://`.
  *   If the proxy is HTTP (i.e. has the `http://` scheme) and contains username or password,
@@ -79,8 +95,8 @@ export class PlaywrightLauncher extends BrowserLauncher {
  *
  * To use this function, you need to have the [Playwright](https://www.npmjs.com/package/playwright)
  * NPM package installed in your project.
- * When running on the Apify cloud, you can achieve that simply
- * by using the `apify/actor-node-chrome` base Docker image for your actor - see @TODO:
+ * When running on the Apify Platform, you can achieve that simply
+ * by using the `apify/actor-node-playwright-*` base Docker image for your actor - see
  * [Apify Actor documentation](https://docs.apify.com/actor/build#base-images)
  * for details.
  *

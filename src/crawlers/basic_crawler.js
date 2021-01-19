@@ -104,8 +104,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {boolean} [useSessionPool=false]
- *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
+ * @property {boolean} [useSessionPool=true]
+ *   Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
  */
@@ -225,7 +225,7 @@ class BasicCrawler {
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
             sessionPoolOptions = {},
-            useSessionPool = false,
+            useSessionPool = true,
 
             // AutoscaledPool shorthands
             minConcurrency,

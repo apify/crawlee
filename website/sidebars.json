@@ -82,6 +82,7 @@
                 "ids": [
                     "api/utils",
                     "api/log",
+                    "api/playwright",
                     "api/puppeteer",
                     "api/social"
                 ]

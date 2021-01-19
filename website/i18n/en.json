@@ -29,6 +29,9 @@
       "api/log": {
         "title": "utils.log"
       },
+      "api/playwright": {
+        "title": "utils.playwright"
+      },
       "api/playwright-crawler": {
         "title": "PlaywrightCrawler"
       },
@@ -187,6 +190,9 @@
       },
       "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
+      },
+      "typedefs/browser-launch-context": {
+        "title": "BrowserLaunchContext"
       },
       "typedefs/cheerio-crawler-options": {
         "title": "CheerioCrawlerOptions"

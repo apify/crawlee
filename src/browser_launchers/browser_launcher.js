@@ -25,6 +25,7 @@ import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
 
 /**
  * Abstract class for creating browser launchers, such as `PlaywrightLauncher` and `PuppeteerLauncher`.
+ * @ignore
  */
 export default class BrowserLauncher {
     static optionsShape = {

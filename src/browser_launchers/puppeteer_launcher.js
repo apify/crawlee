@@ -16,6 +16,21 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * [`LaunchOptions`](https://pptr.dev/#?product=Puppeteer&show=api-puppeteerlaunchoptions)
  * options by providing the `launchOptions` property.
  *
+ * **Example:**
+ * ```js
+ * // launch a headless Chrome (not Chromium)
+ * const launchContext = {
+ *     // Apify helpers
+ *     useChrome: true,
+ *     proxyUrl: 'http://user:password@some.proxy.com'
+ *     // Native Puppeteer options
+ *     launchOptions: {
+ *         headless: true,
+ *         args: ['--some-flag'],
+ *     }
+ * }
+ * ```
+ *
  * @typedef PuppeteerLaunchContext
  * @property {object} [launchOptions]
  *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
@@ -51,6 +66,7 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
 
 /**
  * `PuppeteerLauncher` is based on the `BrowserLauncher`. It launches `puppeteer` browser instance.
+ * @ignore
  */
 export class PuppeteerLauncher extends BrowserLauncher {
     static optionsShape = {
@@ -142,15 +158,6 @@ export class PuppeteerLauncher extends BrowserLauncher {
  *   to make the proxy work with headless Chrome. For more information, read the
  *   <a href="https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212"
  *   target="_blank">blog post about proxy-chain library</a>.
- * - If `options.useApifyProxy` is `true` then the function generates a URL of
- *   [Apify Proxy](https://docs.apify.com/proxy)
- *   based on `options.apifyProxyGroups` and `options.apifyProxySession` and passes it as `options.proxyUrl`.
- * - The function adds `--no-sandbox` to `args` to enable running
- *   headless Chrome in a Docker container on the Apify platform.
- * - Sets `defaultViewport` Puppeteer option (if not already set)
- *   to a more reasonable default for screenshots and debugging.
- *   You can set `options.defaultViewport` to `null` if you prefer to let Puppeteer
- *   choose the default viewport size.
  *
  * To use this function, you need to have the [puppeteer](https://www.npmjs.com/package/puppeteer)
  * NPM package installed in your project.

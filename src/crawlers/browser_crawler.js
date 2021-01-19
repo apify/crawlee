@@ -78,7 +78,7 @@ import {
 * @property {BrowserPoolOptions} [browserPoolOptions]
  *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
  *   You can tweak those to fine-tune browser management.
- * @property {boolean} [persistCookiesPerSession=false]
+ * @property {boolean} [persistCookiesPerSession=true]
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
  *   If set, `PuppeteerCrawler` will be configured for all connections to use
@@ -154,8 +154,8 @@ import {
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {boolean} [useSessionPool=false]
- *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
+ * @property {boolean} [useSessionPool=true]
+ *   Browser crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
  * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
  * @ignore
@@ -262,7 +262,6 @@ class BrowserCrawler extends BasicCrawler {
         } = options;
 
         if (!useSessionPool && persistCookiesPerSession) {
-            // @TODO: Maybe we could also automatically set persistCookiesPerSession to false when useSessionPool is false and log warning
             throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
 
