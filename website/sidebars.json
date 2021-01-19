@@ -42,6 +42,7 @@
                 "ids": [
                     "api/basic-crawler",
                     "api/cheerio-crawler",
+                    "api/playwright-crawler",
                     "api/puppeteer-crawler"
                 ]
             },
@@ -58,7 +59,6 @@
                 "label": "Scaling",
                 "ids": [
                     "api/autoscaled-pool",
-                    "api/puppeteer-pool",
                     "api/session",
                     "api/session-pool",
                     "api/proxy-configuration",
@@ -95,12 +95,13 @@
                     "typedefs/autoscaled-pool-options",
                     "typedefs/basic-crawler-options",
                     "typedefs/cheerio-crawler-options",
+                    "typedefs/playwright-crawler-options",
+                    "typedefs/playwright-launch-context",
                     "typedefs/puppeteer-crawler-options",
-                    "typedefs/puppeteer-pool-options",
+                    "typedefs/puppeteer-launch-context",
                     "typedefs/proxy-configuration-options",
                     "typedefs/proxy-info",
                     "typedefs/logger-options",
-                    "typedefs/launch-puppeteer-options",
                     "typedefs/request-options",
                     "typedefs/request-list-options",
                     "typedefs/request-as-browser-options",
@@ -123,11 +124,10 @@
                     "typedefs/handle-request-inputs",
                     "typedefs/prepare-request",
                     "typedefs/prepare-request-inputs",
+                    "typedefs/playwright-handle-page",
+                    "typedefs/playwright-handle-page-inputs",
                     "typedefs/puppeteer-handle-page",
-                    "typedefs/puppeteer-handle-page-inputs",
-                    "typedefs/launch-puppeteer",
-                    "typedefs/puppeteer-goto",
-                    "typedefs/puppeteer-goto-inputs"
+                    "typedefs/puppeteer-handle-page-inputs"
                 ]
             },
             {

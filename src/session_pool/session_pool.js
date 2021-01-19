@@ -29,7 +29,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * Handles the rotation, creation and persistence of user-like sessions.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
  * When some session is marked as blocked. It is removed and new one is created instead.
- * Learn more in the [`Session management guide`](/docs/guides/session-management).
+ * Learn more in the [`Session management guide`](../guides/session-management).
  *
  * You can create one by calling the {@link Apify.openSessionPool} function.
  *

@@ -17,7 +17,7 @@ for your scraping needs.
 If you already subscribed to Apify Proxy or have proxy URLs of your own, you can start using
 them immediately in only a few lines of code.
 
-> If you want to use Apify Proxy, make sure that your [scraper is logged in](/docs/guides/apify-platform).
+> If you want to use Apify Proxy, make sure that your [scraper is logged in](../guides/apify-platform).
 
 <!--DOCUSAURUS_CODE_TABS-->
 
@@ -42,14 +42,14 @@ const proxyUrl = proxyConfiguration.newUrl();
 <!--END_DOCUSAURUS_CODE_TABS-->
 
 ## Proxy Configuration
-All your proxy needs are managed by the [`ProxyConfiguration`](/docs/api/proxy-configuration) class.
-You create an instance using the [`Apify.createProxyConfiguration()`](/docs/api/apify#createproxyconfiguration)
-function. See the [`ProxyConfigurationOptions`](/docs/typedefs/proxy-configuration-options) for all
+All your proxy needs are managed by the [`ProxyConfiguration`](../api/proxy-configuration) class.
+You create an instance using the [`Apify.createProxyConfiguration()`](../api/apify#createproxyconfiguration)
+function. See the [`ProxyConfigurationOptions`](../typedefs/proxy-configuration-options) for all
 the possible constructor options.
 
 ### Crawler integration
-`ProxyConfiguration` integrates seamlessly into [`CheerioCrawler`](/docs/api/cheerio-crawler)
-and [`PuppeteerCrawler`](/docs/api/puppeteer-crawler).
+`ProxyConfiguration` integrates seamlessly into [`CheerioCrawler`](../api/cheerio-crawler)
+and [`PuppeteerCrawler`](../api/puppeteer-crawler).
 
 <!--DOCUSAURUS_CODE_TABS-->
 
@@ -77,12 +77,12 @@ const crawler = new Apify.PuppeteerCrawler({
 Your crawlers will now use the selected proxies for all connections.
 
 ### IP Rotation and session management
-[`proxyConfiguration.newUrl()`](/docs/api/proxy-configuration#newurl) allows you to pass
+[`proxyConfiguration.newUrl()`](../api/proxy-configuration#newurl) allows you to pass
 a `sessionId` parameter. It will then be used to create a `sessionId`-`proxyUrl` pair,
 and subsequent `newUrl()` calls with the same `sessionId` will always return the same
 `proxyUrl`. This is extremely useful in scraping, because you want to create the impression
-of a real user. See the [session management guide](/docs/guides/session-management) and
-[`SessionPool`](/docs/api/session-pool) class for more information on how keeping
+of a real user. See the [session management guide](../guides/session-management) and
+[`SessionPool`](../api/session-pool) class for more information on how keeping
 a real session helps you avoid blocking.
 
 When no `sessionId` is provided, your proxy URLs are rotated round-robin, whereas
@@ -121,8 +121,8 @@ that allows connection through millions of different IP addresses. So the class
 essentially has two modes: Apify Proxy or Your proxy.
 
 The difference is easy to remember.
-[`ProxyConfigurationOptions.proxyUrls`](/docs/typedefs/proxy-configuration-options#proxyurls) and
-[`ProxyConfigurationOptions.newUrlFunction`](/docs/typedefs/proxy-configuration-options#newurlfunction)
+[`ProxyConfigurationOptions.proxyUrls`](../typedefs/proxy-configuration-options#proxyurls) and
+[`ProxyConfigurationOptions.newUrlFunction`](../typedefs/proxy-configuration-options#newurlfunction)
 enable use of your custom proxy URLs, whereas all the other options are there to configure Apify Proxy.
 Visit the [Apify Proxy docs](https://docs.apify.com/proxy) for more info on how these parameters work.
 
@@ -144,6 +144,6 @@ in the [proxy dashboard](https://my.apify.com/proxy).
 
 ## Inspecting current proxy in Crawlers
 `CheerioCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
-in their `handlePageFunction` using a [`proxyInfo`](/docs/typedefs/proxy-info) object.
+in their `handlePageFunction` using a [`proxyInfo`](../typedefs/proxy-info) object.
 With the  object, you can easily access the proxy URL. If you're using Apify Proxy, the other
 configuration parameters will also be available in the `proxyInfo` object.

@@ -15,7 +15,7 @@ const MAX_OPENED_STORAGES = 1000;
  * @property {Function} StorageConstructor
  * @property {string} name
  * @property {LruCache} cache
- * @private
+ * @ignore
  */
 class StorageManager {
     /**
