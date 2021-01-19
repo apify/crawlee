@@ -76,8 +76,6 @@ export class PuppeteerLauncher extends BrowserLauncher {
             ...browserLauncherOptions
         } = launchContext;
 
-        browserLauncherOptions.launcher = launcher;
-
         super({
             ...browserLauncherOptions,
             launcher,
