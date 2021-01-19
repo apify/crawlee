@@ -12,34 +12,38 @@ Apify SDK requires [Node.js](https://nodejs.org/en/) 10.17 or later, with the ex
 Add Apify SDK to any Node.js project by running:
 
 ```bash
-npm install apify --save
+npm install apify playwright
 ```
 
-Run the following example to perform a recursive crawl of a website using Puppeteer. For more examples showcasing various features of the Apify SDK,
-[see the Examples section of the documentation](../examples/basic-crawler).
+> Neither `playwright` nor `puppeteer` are bundled with the SDK to reduce install size and allow greater
+> flexibility. That's why we install it with NPM. You can choose one, both, or neither.
+
+Run the following example to perform a recursive crawl of a website using Playwright. For more examples showcasing various features of the Apify SDK,
+[see the Examples section of the documentation](../examples/crawl-multiple-urls).
 
 ```javascript
 const Apify = require('apify');
 
+// Apify.main is a helper function, you don't need to use it.
 Apify.main(async () => {
     const requestQueue = await Apify.openRequestQueue();
+    // Choose the first URL to open.
     await requestQueue.addRequest({ url: 'https://www.iana.org/' });
-    const pseudoUrls = [new Apify.PseudoUrl('https://www.iana.org/[.*]')];
 
-    const crawler = new Apify.PuppeteerCrawler({
+    const crawler = new Apify.PlaywrightCrawler({
         requestQueue,
         handlePageFunction: async ({ request, page }) => {
+            // Extract HTML title of the page.
             const title = await page.title();
             console.log(`Title of ${request.url}: ${title}`);
+
+            // Add URLs that match the provided pattern.
             await Apify.utils.enqueueLinks({
                 page,
-                selector: 'a',
-                pseudoUrls,
                 requestQueue,
+                pseudoUrls: ['https://www.iana.org/[.*]'],
             });
         },
-        maxRequestsPerCrawl: 100,
-        maxConcurrency: 10,
     });
 
     await crawler.run();
@@ -64,8 +68,6 @@ Install the CLI by running:
 ```bash
 npm -g install apify-cli
 ```
-
-You might need to run the above command with `sudo`, depending on how crazy your configuration is.
 
 Now create a boilerplate of your new web crawling project by running:
 
