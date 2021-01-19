@@ -1,5 +1,4 @@
 import ow from 'ow';
-import _ from 'underscore';
 import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -365,7 +364,10 @@ class BrowserCrawler extends BasicCrawler {
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
 
-        // This is the wierd spam because of browser to proxy not page to proxy.
+        // This switch is because the crawlingContexts are created on per request basis.
+        // However, we need to add the proxy info and session from browser, which is created based on the browser-pool configuration.
+        // We would not have to do this switch if the proxy and configuration worked as in CheerioCrawler,
+        // which configures proxy and session for every new request
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
@@ -379,8 +381,7 @@ class BrowserCrawler extends BasicCrawler {
      * @private
      */
     async _handleNavigation(crawlingContext) {
-        // @TODO: consider deep clone
-        const gotoOptions = _.clone(this.defaultGotoOptions);
+        const gotoOptions = { ...this.defaultGotoOptions };
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         try {
             crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
@@ -475,8 +476,7 @@ class BrowserCrawler extends BasicCrawler {
             const listener = (session) => {
                 const { launchContext } = browserController;
                 if (session.id === launchContext.session.id) {
-                    launchContext.extend({ sessionRetired: true }); // @TODO: kind of dirty trick done mainly for testing this important feature.
-                    this.browserPool.retireBrowserController(browserController); //eslint-disable-line
+                    this.browserPool.retireBrowserController(browserController);
                 }
             };
 

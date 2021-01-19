@@ -1,18 +1,9 @@
-import { PlaywrightPlugin } from 'browser-pool';
 import ow from 'ow';
 import BrowserCrawler from './browser_crawler';
+import { PlaywrightLauncher } from '../browser_launchers/playwright_launcher';
 import { gotoExtended } from '../playwright_utils';
-import {
-    apifyOptionsToLaunchOptions,
-    getPlaywrightLauncherOrThrow,
-    PlaywrightLaunchContext, // eslint-disable-line
-} from '../playwright';
-
 /**
  * @typedef PlaywrightCrawlerOptions
- * @property {object} launcher
- * Playwright launcher used for launching new browsers. For example: `require("playwright").chromium`
- * [Playwright list of available modules](https://playwright.dev/docs/api/class-playwright)
  * @property {function} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
@@ -32,8 +23,6 @@ import {
  *   `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
  *   `page` is an instance of the `Playwright`
  *   [`Page`](https://playwright.dev/docs/api/class-page)
- *   `browserPool` is an instance of the
- *   [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool),
  *   `browserController` is an instance of the
  *   [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
  *   `response` is an instance of the `Playwright`
@@ -117,7 +106,7 @@ import {
  * @property {number} [handleRequestTimeoutSecs=60]
  *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
  * @property {number} [maxRequestRetries=3]
- *   Indicates how many times the request is retried if {@link PuppeteerCrawlerOptions.handlePageFunction} fails.
+ *   Indicates how many times the request is retried if {@link PlaywrightCrawlerOptions.handlePageFunction} fails.
  * @property {number} [maxRequestsPerCrawl]
  *   Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
  *   Always set this value in order to prevent infinite loops in misconfigured crawlers.
@@ -152,35 +141,35 @@ import {
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
  * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link BasicCrawlerOptions.requestList}
- * or {@link BasicCrawlerOptions.requestQueue} constructor options, respectively.
+ * {@link RequestList} or {@link RequestQueue} instances provided by the {@link PlaywrightCrawlerOptions.requestList}
+ * or {@link PlaywrightCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link BasicCrawlerOptions.requestList} and {@link BasicCrawlerOptions.requestQueue} are used,
+ * If both {@link PlaywrightCrawlerOptions.requestList} and {@link PlaywrightCrawlerOptions.requestQueue} are used,
  * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
  * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
+ * `PlaywrightCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
  * and then calls the function provided by user as the {@link PlaywrightCrawlerOptions.handlePageFunction} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the {@link BasicCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ * All {@link AutoscaledPool} configuration options can be passed to the {@link PlaywrightCrawlerOptions.autoscaledPoolOptions}
+ * parameter of the `PlaywrightCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+ * {@link AutoscaledPoolOptions} are available directly in the `PlaywrightCrawler` constructor.
  *
- * Note that the pool of Puppeteer instances is internally managed by the {@link BrowserPool} class.
- * Many constructor options such as {@link PuppeteerPoolOptions.maxOpenPagesPerInstance} or
+ * Note that the pool of Playwright instances is internally managed by the {@link BrowserPool} class.
+ * Many constructor options such as {@link PlaywrightCrawlerOptions.maxOpenPagesPerInstance} or
  *
  * **Example usage:**
  *
  * ```javascript
- * const crawler = new Apify.PuppeteerCrawler({
+ * const crawler = new Apify.PlaywrightCrawler({
  *     requestList,
  *     handlePageFunction: async ({ page, request }) => {
  *         // This function is called to extract data from a single web page
- *         // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
+ *         // 'page' is an instance of Playwright.Page with page.goto(request.url) already called
  *         // 'request' is an instance of Request class with information about the page to load
  *         await Apify.pushData({
  *             title: await page.title(),
@@ -238,7 +227,6 @@ class PlaywrightCrawler extends BrowserCrawler {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
-            launcher,
             launchContext = {},
             gotoTimeoutSecs,
             navigationTimeoutSecs,
@@ -250,15 +238,10 @@ class PlaywrightCrawler extends BrowserCrawler {
             throw new Error('PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.'
                 + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
         }
+        const playwrightLauncher = new PlaywrightLauncher(launchContext);
 
         browserPoolOptions.browserPlugins = [
-            new PlaywrightPlugin(
-                // eslint-disable-next-line
-                getPlaywrightLauncherOrThrow(launcher),
-                {
-                    launchOptions: apifyOptionsToLaunchOptions(launchContext),
-                },
-            ),
+            playwrightLauncher.createBrowserPlugin(),
         ];
 
         super({
@@ -272,7 +255,6 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
-        this.launcher = launcher;
 
         this.defaultGotoOptions = {
             timeout: this.navigationTimeoutMillis,
