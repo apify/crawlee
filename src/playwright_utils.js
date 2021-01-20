@@ -59,6 +59,26 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
     return page.goto(url, gotoOptions);
 };
 
+/**
+ * A namespace that contains various utilities for
+ * [Playwright](https://github.com/microsoft/playwright) - the headless Chrome Node API.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * const Apify = require('apify');
+ * const { playwright } = Apify.utils;
+ *
+ * // Navigate to https://www.example.com in Playwright with a POST request
+ * const browser = await Apify.launchPlaywright();
+ * const page = await browser.newPage();
+ * await playwright.gotoExtended(page, {
+ *     url: 'https://example.com,
+ *     method: 'POST',
+ * });
+ * ```
+ * @namespace playwright
+ */
 export const playwrightUtils = {
     gotoExtended,
 };

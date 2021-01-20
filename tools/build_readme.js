@@ -19,9 +19,9 @@ const hashReplace = '### ';
 
 const fixHeaders = doc => doc.replace(hashRx, hashReplace).replace(headerRx, headerReplace);
 
-const linkRx = /\[(.*)]\((.*)\)/g;
+const linkRx = /\[(.*?)]\((.*?)\)/g;
 const fixLinks = (match, p1, p2) => {
-    const url = new URL(p2, 'https://sdk.apify.com/docs/');
+    const url = new URL(p2, 'https://sdk.apify.com/docs/something/'); // <- the links use ../ so we need something to go up from
     return `[${p1}](${url})`;
 };
 

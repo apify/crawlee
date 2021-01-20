@@ -3,7 +3,7 @@ id: motivation
 title: Motivation
 ---
 
-Thanks to tools like [Puppeteer](https://github.com/puppeteer/puppeteer) or
+Thanks to tools like [Playwright](https://github.com/microsoft/playwright), [Puppeteer](https://github.com/puppeteer/puppeteer) or
 [Cheerio](https://www.npmjs.com/package/cheerio), it is easy to write Node.js code to extract data from web pages. But
 eventually things will get complicated. For example, when you try to:
 

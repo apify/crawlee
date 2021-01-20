@@ -683,23 +683,6 @@ describe('BasicCrawler', () => {
             expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).toEqual(0);
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
-
-        it('should not use SessionPool by default', async () => {
-            const url = 'https://example.com';
-            const requestList = new Apify.RequestList({ sources: [{ url }] });
-            await requestList.initialize();
-
-            const crawler = new Apify.BasicCrawler({
-                requestList,
-                handleRequestTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                handleRequestFunction: async () => {},
-                handleFailedRequestFunction: () => {},
-            });
-            await crawler.run();
-
-            expect(crawler.sessionPool).toBeUndefined();
-        });
     });
 
     describe('CrawlingContext', () => {

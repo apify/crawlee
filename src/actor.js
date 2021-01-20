@@ -108,22 +108,18 @@ export const getEnv = () => {
  *
  * The `Apify.main()` function performs the following actions:
  *
- * <ol>
- *   <li>When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
+ * - When running on the Apify platform (i.e. <code>APIFY_IS_AT_HOME</code> environment variable is set),
  *   it sets up a connection to listen for platform events.
  *   For example, to get a notification about an imminent migration to another server.
  *   See {@link Apify.events} for details.
- *   </li>
- *   <li>It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
+ * - It checks that either <code>APIFY_TOKEN</code> or <code>APIFY_LOCAL_STORAGE_DIR</code> environment variable
  *   is defined. If not, the functions sets <code>APIFY_LOCAL_STORAGE_DIR</code> to <code>./apify_storage</code>
  *   inside the current working directory. This is to simplify running code examples.
- *   </li>
- *   <li>It invokes the user function passed as the <code>userFunc</code> parameter.</li>
- *   <li>If the user function returned a promise, waits for it to resolve.</li>
- *   <li>If the user function throws an exception or some other error is encountered,
- *       prints error details to console so that they are stored to the log.</li>
- *   <li>Exits the Node.js process, with zero exit code on success and non-zero on errors.</li>
- * </ol>
+ * - It invokes the user function passed as the <code>userFunc</code> parameter.
+ * - If the user function returned a promise, waits for it to resolve.
+ * - If the user function throws an exception or some other error is encountered,
+ *   prints error details to console so that they are stored to the log.
+ * - Exits the Node.js process, with zero exit code on success and non-zero on errors.
  *
  * The user function can be synchronous:
  *
