@@ -146,6 +146,9 @@
       "guides/data-storage": {
         "title": "Data Storage"
       },
+      "guides/docker-images": {
+        "title": "Running in Docker"
+      },
       "guides/environment-variables": {
         "title": "Environment Variables"
       },

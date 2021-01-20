@@ -52,12 +52,13 @@ npm install apify playwright
 
 ## Running on Apify Platform
 If you want to make use of Playwright on the Apify Platform, you need to use a Docker image
-that supports Playwright. We've created one for you, but note that it includes both
-Puppeteer and Playwright and all their browsers, so the image size is quite large.
+that supports Playwright. We've created them for you, so head over to the new
+[Docker image guide](https://sdk.apify.com/docs/guides/docker-images) and pick the one
+that best suits your needs.
 
-```Dockerfile
-FROM apify/actor-node-playwright
-```
+Note that your `package.json` **MUST** include `puppeteer` and/or `playwright` as dependencies.
+If you don't list them, the libraries will be uninstalled from your `node_modules` folder
+when you build your actors.
 
 ## Handler arguments are now Crawling Context
 Previously, arguments of user provided handler functions were provided in separate

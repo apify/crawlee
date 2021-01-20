@@ -9,7 +9,8 @@
             "guides/environment-variables",
             "guides/proxy-management",
             "guides/session-management",
-            "guides/type-script-actor"
+            "guides/type-script-actor",
+            "guides/docker-images"
         ],
         "Examples": [
             "examples/accept-user-input",
