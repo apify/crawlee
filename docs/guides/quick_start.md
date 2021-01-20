@@ -55,7 +55,7 @@ When you run the example, you should see Apify SDK automating a Chrome browser.
 ![Chrome Scrape](/img/chrome_scrape.gif)
 
 By default, Apify SDK stores data to `./apify_storage` in the current working directory. You can override this behavior by setting either the
-`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable. For details, see [Environment variables](../guides/environment-variables), [Results storage](../guides/results-storage) and [Requests storage](../guides/requests-storage).
+`APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable. For details, see [Environment variables](../guides/environment-variables), [Requests storage](../guides/requests-storage) and [Results storage](../guides/results-storage).
 
 ## Local usage with Apify command-line interface (CLI)
 
