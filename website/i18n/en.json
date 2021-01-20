@@ -17,11 +17,23 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
+      "api/cache-container": {
+        "title": "CacheContainer"
+      },
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
       },
+      "api/cookie-parse-error": {
+        "title": "CookieParseError"
+      },
       "api/dataset": {
         "title": "Dataset"
+      },
+      "api/exports": {
+        "title": "exports"
+      },
+      "api/job": {
+        "title": "Job"
       },
       "api/key-value-store": {
         "title": "KeyValueStore"
@@ -43,6 +55,9 @@
       },
       "api/puppeteer-crawler": {
         "title": "PuppeteerCrawler"
+      },
+      "api/puppeteer-pool": {
+        "title": "PuppeteerPool"
       },
       "api/request": {
         "title": "Request"
@@ -67,6 +82,9 @@
       },
       "api/statistics": {
         "title": "Statistics"
+      },
+      "api/storage-manager": {
+        "title": "StorageManager"
       },
       "api/system-status": {
         "title": "SystemStatus"
@@ -140,9 +158,6 @@
       "guides/apify-platform": {
         "title": "Apify Platform"
       },
-      "guides/data-storage": {
-        "title": "Data Storage"
-      },
       "guides/environment-variables": {
         "title": "Environment Variables"
       },
@@ -157,6 +172,12 @@
       },
       "guides/quick-start": {
         "title": "Quick Start"
+      },
+      "guides/requests-storage": {
+        "title": "Requests Storage"
+      },
+      "guides/results-storage": {
+        "title": "Results Storage"
       },
       "guides/session-management": {
         "title": "Session Management"
@@ -230,6 +251,15 @@
       "typedefs/key-consumer": {
         "title": "KeyConsumer"
       },
+      "typedefs/launch-puppeteer": {
+        "title": "LaunchPuppeteer"
+      },
+      "typedefs/launch-puppeteer-function": {
+        "title": "LaunchPuppeteerFunction"
+      },
+      "typedefs/launch-puppeteer-options": {
+        "title": "LaunchPuppeteerOptions"
+      },
       "typedefs/logger-options": {
         "title": "LoggerOptions"
       },
@@ -263,8 +293,23 @@
       "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
       },
+      "typedefs/puppeteer-goto": {
+        "title": "PuppeteerGoto"
+      },
+      "typedefs/puppeteer-goto-inputs": {
+        "title": "PuppeteerGotoInputs"
+      },
+      "typedefs/puppeteer-handle-page": {
+        "title": "PuppeteerHandlePage"
+      },
+      "typedefs/puppeteer-handle-page-inputs": {
+        "title": "PuppeteerHandlePageInputs"
+      },
       "typedefs/puppeteer-launch-context": {
         "title": "PuppeteerLaunchContext"
+      },
+      "typedefs/puppeteer-pool-options": {
+        "title": "PuppeteerPoolOptions"
       },
       "typedefs/queue-operation-info": {
         "title": "QueueOperationInfo"
