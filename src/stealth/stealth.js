@@ -29,7 +29,6 @@ const DEFAULT_STEALTH_OPTIONS = {
     emulateWebGL: true,
     emulateConsoleDebug: true,
     addLanguage: true,
-    hideWebDriver: true,
     hackPermissions: true,
     mockChrome: true,
     mockChromeInIframe: true,
