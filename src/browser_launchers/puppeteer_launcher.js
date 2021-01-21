@@ -87,8 +87,8 @@ export class PuppeteerLauncher extends BrowserLauncher {
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-chrome-*'),
             userAgent,
-            stealth,
-            stealthOptions,
+            stealth = false,
+            stealthOptions = {},
             ...browserLauncherOptions
         } = launchContext;
 
@@ -96,10 +96,12 @@ export class PuppeteerLauncher extends BrowserLauncher {
             ...browserLauncherOptions,
             launcher,
         });
-
         this.userAgent = userAgent;
         this.stealth = stealth;
-        this.stealthOptions = stealthOptions;
+        this.stealthOptions = {
+            hideWebDriver: true,
+            ...stealthOptions,
+        };
 
         this.Plugin = PuppeteerPlugin;
     }
@@ -108,7 +110,9 @@ export class PuppeteerLauncher extends BrowserLauncher {
         const browser = await super.launch();
 
         if (this.stealth) {
-            applyStealthToBrowser(browser, this.stealthOptions);
+            const { hideWebDriver, ...newStealthOptions } = this.stealthOptions;
+
+            applyStealthToBrowser(browser, newStealthOptions);
         }
 
         return browser;
@@ -133,6 +137,16 @@ export class PuppeteerLauncher extends BrowserLauncher {
 
         if (userAgent) {
             launchOptions.args.push(`--user-agent=${userAgent}`);
+        }
+
+        if (this.stealthOptions && this.stealthOptions.hideWebDriver) {
+            launchOptions.args.forEach((e) => {
+                if (e.startsWith('--disable-blink-features=')) {
+                    e += ',AutomationControlled';
+                    return // eslint-disable-line
+                }
+            });
+            launchOptions.args.push('--disable-blink-features=AutomationControlled');
         }
 
         return launchOptions;
