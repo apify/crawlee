@@ -251,7 +251,7 @@ class BrowserCrawler extends BasicCrawler {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
             gotoFunction,
-            persistCookiesPerSession = true,
+            persistCookiesPerSession,
             useSessionPool = true,
             sessionPoolOptions,
             proxyConfiguration,
@@ -279,13 +279,14 @@ class BrowserCrawler extends BasicCrawler {
         this.gotoFunction = gotoFunction;
         this.defaultGotoOptions = {};
 
-        this.persistCookiesPerSession = persistCookiesPerSession;
         this.proxyConfiguration = proxyConfiguration;
 
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
 
         if (useSessionPool) {
+            this.persistCookiesPerSession = persistCookiesPerSession || true;
+
             this.sessionPool = new SessionPool({
                 ...sessionPoolOptions,
                 log: this.log,

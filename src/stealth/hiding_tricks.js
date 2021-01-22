@@ -1,18 +1,5 @@
 /* istanbul ignore file */
 
-const hideWebDriver = () => {
-    Object.defineProperty(window, 'navigator', {
-        value: new Proxy(navigator, {
-            has: (target, key) => (key === 'webdriver' ? false : key in target),
-            get: (target, key) => (key === 'webdriver' // eslint-disable-line
-                ? undefined
-                : typeof target[key] === 'function'
-                    ? target[key].bind(target)
-                    : target[key]),
-        }),
-    });
-};
-
 const hackPermissions = () => {
     const originalQuery = window.navigator.permissions.query;
     // eslint-disable-next-line
@@ -357,7 +344,6 @@ export default {
     emulateWebGL,
     emulateConsoleDebug,
     addLanguage,
-    hideWebDriver,
     hackPermissions,
     mockChrome,
     mockChromeInIframe,
