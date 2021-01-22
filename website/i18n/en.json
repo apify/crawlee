@@ -344,26 +344,11 @@
       "version-0.22.4/api/version-0.22.4-browser-crawler": {
         "title": "BrowserCrawler"
       },
-      "version-0.22.4/api/version-0.22.4-cache-container": {
-        "title": "CacheContainer"
-      },
       "version-0.22.4/api/version-0.22.4-cheerio-crawler": {
         "title": "CheerioCrawler"
       },
-      "version-0.22.4/api/version-0.22.4-cookie-parse-error": {
-        "title": "CookieParseError"
-      },
       "version-0.22.4/api/version-0.22.4-dataset": {
         "title": "Dataset"
-      },
-      "version-0.22.4/api/version-0.22.4-exports": {
-        "title": "exports"
-      },
-      "version-0.22.4/api/version-0.22.4-global-cache": {
-        "title": "GlobalCache"
-      },
-      "version-0.22.4/api/version-0.22.4-job": {
-        "title": "Job"
       },
       "version-0.22.4/api/version-0.22.4-key-value-store": {
         "title": "KeyValueStore"
@@ -415,9 +400,6 @@
       },
       "version-0.22.4/api/version-0.22.4-statistics": {
         "title": "Statistics"
-      },
-      "version-0.22.4/api/version-0.22.4-storage-manager": {
-        "title": "StorageManager"
       },
       "version-0.22.4/api/version-0.22.4-system-status": {
         "title": "SystemStatus"
@@ -589,12 +571,6 @@
       },
       "version-0.22.4/typedefs/version-0.22.4-memory-info": {
         "title": "MemoryInfo"
-      },
-      "version-0.22.4/typedefs/version-0.22.4-playwright-crawler-options": {
-        "title": "PlaywrightCrawlerOptions"
-      },
-      "version-0.22.4/typedefs/version-0.22.4-playwright-launch-context": {
-        "title": "PlaywrightLaunchContext"
       },
       "version-0.22.4/typedefs/version-0.22.4-post-response": {
         "title": "PostResponse"
