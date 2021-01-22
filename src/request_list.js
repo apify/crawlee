@@ -144,8 +144,8 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
 /**
  * Represents a static list of URLs to crawl.
  * The URLs can be provided either in code or parsed from a text file hosted on the web.
- * `RequestList` is used by {@link BasicCrawler}, {@link CheerioCrawler}
- * and {@link PuppeteerCrawler} as a source of URLs to crawl.
+ * `RequestList` is used by {@link BasicCrawler}, {@link CheerioCrawler}, {@link PuppeteerCrawler}
+ * and {@link PlaywrightCrawler} as a source of URLs to crawl.
  *
  * Each URL is represented using an instance of the {@link Request} class.
  * The list can only contain unique URLs. More precisely, it can only contain `Request` instances
@@ -157,10 +157,10 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  * Once you create an instance of `RequestList`, you need to call the {@link RequestList#initialize} function
  * before the instance can be used. After that, no more URLs can be added to the list.
  * Unlike {@link RequestQueue}, `RequestList` is static but it can contain even millions of URLs.
- * > Note that `RequestList` could be used together with `RequestQueue` by the same crawler.
+ * > Note that `RequestList` can be used together with `RequestQueue` by the same crawler.
  * > In such cases, each request from `RequestList` is enqueued into `RequestQueue` first and then consumed from the latter.
  * > This is necessary to avoid the same URL being processed more than once (from the list first and then possibly from the queue).
- * > In practical terms, such a combination could be useful when there is a large number of initial URLs,
+ * > In practical terms, such a combination can be useful when there is a large number of initial URLs,
  * > but more URLs would be added dynamically by the crawler.
  *
  * `RequestList` has an internal state where it stores information about which requests were already handled,

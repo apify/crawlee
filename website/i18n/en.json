@@ -158,11 +158,11 @@
       "guides/quick-start": {
         "title": "Quick Start"
       },
-      "guides/requests-storage": {
-        "title": "Requests Storage"
+      "guides/request-storage": {
+        "title": "Request Storage"
       },
-      "guides/results-storage": {
-        "title": "Results Storage"
+      "guides/result-storage": {
+        "title": "Result Storage"
       },
       "guides/session-management": {
         "title": "Session Management"

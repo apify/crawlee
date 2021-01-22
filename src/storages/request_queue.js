@@ -75,8 +75,8 @@ export const getRequestId = (uniqueKey) => {
  * Do not instantiate this class directly, use the
  * {@link Apify#openRequestQueue} function instead.
  *
- * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}
- * and {@link PuppeteerCrawler} as a source of URLs to crawl.
+ * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}, {@link PuppeteerCrawler}
+ * and {@link PlaywrightCrawler} as a source of URLs to crawl.
  * Unlike {@link RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
  * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
  *

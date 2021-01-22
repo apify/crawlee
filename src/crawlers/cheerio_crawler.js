@@ -251,7 +251,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  * Since `CheerioCrawler` uses raw HTTP requests to download web pages,
  * it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
- * to display the content, you might need to use {@link PuppeteerCrawler} instead,
+ * to display the content, you might need to use {@link PuppeteerCrawler} or {@link PlaywrightCrawler} instead,
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,

@@ -1,9 +1,9 @@
 ---
-id: results-storage
-title: Results Storage
+id: result-storage
+title: Result Storage
 ---
 
-The Apify SDK has several results storage types that are useful for specific tasks. The data is stored either on local disk to a directory defined by the
+The Apify SDK has several result storage types that are useful for specific tasks. The data is stored either on local disk to a directory defined by the
 `APIFY_LOCAL_STORAGE_DIR` environment variable, or on the [Apify platform](../guides/apify-platform) under the user account
 identified by the API token defined by the `APIFY_TOKEN` environment variable. If neither of these variables is defined, by default Apify SDK sets
 `APIFY_LOCAL_STORAGE_DIR` to `./apify_storage` in the current working directory and prints a warning.
