@@ -315,6 +315,25 @@ describe('BrowserCrawler', () => {
         goToPageSessions.forEach((session) => expect(session.constructor.name).toEqual('Session'));
     });
 
+    test('should not throw without SessionPool', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            useSessionPool: false,
+            handlePageFunction: async () => {},
+
+        });
+
+        expect(browserCrawler).toBeDefined();
+    });
+
     test('should persist cookies per session', async () => {
         const requestList = new Apify.RequestList({
             sources: [
