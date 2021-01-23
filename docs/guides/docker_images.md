@@ -145,8 +145,6 @@ Similar to [`actor-node-puppeteer-chrome`](#actor-node-puppeteer-chrome), but fo
 [`CheerioCrawler`](../api/cheerio-crawler) and [`PlaywrightCrawler`](../api/playwright-crawler),
 but **NOT** [`PuppeteerCrawler`](../api/puppeteer-crawler).
 
-> Technically, it should also work with Puppeteer if you install it yourself, but it's not guaranteed.
-
 It uses the [`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`](https://playwright.dev/docs/api/environment-variables/)
 environment variable to block installation of more browsers into your images (to keep them small).
 If you want more browsers, either choose the [`actor-node-playwright`](#actor-node-playwright) image
