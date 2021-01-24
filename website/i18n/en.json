@@ -143,9 +143,6 @@
       "guides/apify-platform": {
         "title": "Apify Platform"
       },
-      "guides/data-storage": {
-        "title": "Data Storage"
-      },
       "guides/docker-images": {
         "title": "Running in Docker"
       },
@@ -163,6 +160,12 @@
       },
       "guides/quick-start": {
         "title": "Quick Start"
+      },
+      "guides/request-storage": {
+        "title": "Request Storage"
+      },
+      "guides/result-storage": {
+        "title": "Result Storage"
       },
       "guides/session-management": {
         "title": "Session Management"

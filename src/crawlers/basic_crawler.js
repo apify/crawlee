@@ -118,7 +118,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * `BasicCrawler` is a low-level tool that requires the user to implement the page
  * download and data extraction functionality themselves.
  * If you want a crawler that already facilitates this functionality,
- * please consider using {@link PuppeteerCrawler} or {@link CheerioCrawler}.
+ * please consider using {@link CheerioCrawler}, {@link PuppeteerCrawler} or {@link PlaywrightCrawler}.
  *
  * `BasicCrawler` invokes the user-provided {@link BasicCrawlerOptions.handleRequestFunction}
  * for each {@link Request} object, which represents a single URL to crawl.

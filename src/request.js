@@ -39,7 +39,7 @@ const requestOptionalPredicates = {
  * Each `Request` instance has the `uniqueKey` property, which can be either specified
  * manually in the constructor or generated automatically from the URL. Two requests with the same `uniqueKey`
  * are considered as pointing to the same web resource. This behavior applies to all Apify SDK classes,
- * such as {@link RequestList}, {@link RequestQueue} or {@link PuppeteerCrawler}.
+ * such as {@link RequestList}, {@link RequestQueue}, {@link PuppeteerCrawler} or {@link PlaywrightCrawler}.
  *
  * Example use:
  *
@@ -67,7 +67,7 @@ const requestOptionalPredicates = {
  *   An actually loaded URL after redirects, if present. HTTP redirects are guaranteed
  *   to be included.
  *
- *   When using {@link PuppeteerCrawler}, meta tag and JavaScript redirects may,
+ *   When using {@link PuppeteerCrawler} or {@link PlaywrightCrawler}, meta tag and JavaScript redirects may,
  *   or may not be included, depending on their nature. This generally means that redirects,
  *   which happen immediately will most likely be included, but delayed redirects will not.
  * @property {string} uniqueKey
