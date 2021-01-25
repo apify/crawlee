@@ -418,7 +418,7 @@ class BasicCrawler {
         } catch (err) {
             // If requestQueue.addRequest() fails here then we must reclaim it back to
             // the RequestList because probably it's not yet in the queue!
-            this.log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to the list', { request });
+            this.log.error('Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.', { request });
             await this.requestList.reclaimRequest(request);
             return null;
         }
