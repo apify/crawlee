@@ -181,8 +181,8 @@ export const main = (userFunc) => {
     // This is to enable unit tests where process.exit() is mocked and doesn't really exit the process
     // Note that mocked process.exit() might throw, so set exited flag before calling it to avoid confusion.
     let exited = false;
-    const exitWithError = (err, exitCode, message) => {
-        log.exception(err, message);
+    const exitWithError = (err, exitCode) => {
+        log.exception(err);
         exited = true;
         // console.log(`Exiting with code: ${exitCode}`);
         process.exit(exitCode);
@@ -208,13 +208,13 @@ export const main = (userFunc) => {
             stopEvents();
             clearInterval(intervalId);
             if (!exited) {
-                exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW, 'The function passed to Apify.main() threw an exception:');
+                exitWithError(err, EXIT_CODES.ERROR_USER_FUNCTION_THREW);
             }
         }
     };
 
     run().catch((err) => {
-        exitWithError(err, EXIT_CODES.ERROR_UNKNOWN, 'Unknown error occurred');
+        exitWithError(err, EXIT_CODES.ERROR_UNKNOWN);
     });
 };
 

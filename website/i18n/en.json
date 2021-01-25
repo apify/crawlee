@@ -362,9 +362,6 @@
       "version-0.22.4/api/version-0.22.4-log": {
         "title": "utils.log"
       },
-      "version-0.22.4/api/version-0.22.4-playwright-crawler": {
-        "title": "PlaywrightCrawler"
-      },
       "version-0.22.4/api/version-0.22.4-proxy-configuration": {
         "title": "ProxyConfiguration"
       },

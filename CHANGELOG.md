@@ -168,6 +168,8 @@ Full list of changes:
   Use `request.noRetry = true`.
 - Removed `RequestListOptions.persistSourcesKey` (deprecated in Feb 2020)
   Use `persistRequestsKey`.
+- Removed the `The function passed to Apify.main() threw an exception` error message,
+  because it was confusing to users.
 
 0.22.0 / 2020/12/07
 ====================
