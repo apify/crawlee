@@ -4,7 +4,6 @@ import { jsonStringifyExtended } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
 import { APIFY_API_BASE_URL } from '../constants';
 import StorageManager from './storage_manager';
-import { addCharsetToContentType } from '../utils';
 import log from '../utils_log';
 
 /**
@@ -15,7 +14,7 @@ import log from '../utils_log';
 export const maybeStringify = (value, options) => {
     // If contentType is missing, value will be stringified to JSON
     if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json';
+        options.contentType = 'application/json; charset=utf-8';
 
         try {
             // Format JSON to simplify debugging, the overheads with compression is negligible
@@ -223,13 +222,14 @@ export class KeyValueStore {
         // In this case delete the record.
         if (value === null) return this.client.deleteRecord(key);
 
+        // TODO the function mutates optionsCopy, but is also used in actor.js
+        // Remove the mutation when actor.js usages are removed.
         value = maybeStringify(value, optionsCopy);
 
-        // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
         return this.client.setRecord({
             key,
             value,
-            contentType: addCharsetToContentType(optionsCopy.contentType),
+            contentType: optionsCopy.contentType,
         });
     }
 

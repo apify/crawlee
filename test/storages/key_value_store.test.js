@@ -201,7 +201,7 @@ describe('KeyValueStore remote', () => {
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
 
-            await store.setValue('key-1', 'xxxx', { contentType: 'text/plain' });
+            await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
             expect(mockSetRecord).toHaveBeenCalledTimes(1);
             expect(mockSetRecord).toHaveBeenCalledWith({
