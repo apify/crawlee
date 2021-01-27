@@ -203,7 +203,7 @@ const TryOut = () => (
             {
                 content: 'Install **Apify SDK** into a Node.js project. You must have Node.js 10 or higher installed.\n' +
                     '```\n' +
-                    'npm install apify\n' +
+                    'npm install apify puppeteer\n' +
                     '```\n' +
                     'Copy the following code into a file in the project, for example `main.js`:\n' +
                     '```\n' +
@@ -212,17 +212,18 @@ const TryOut = () => (
                     'Apify.main(async () => {\n' +
                     '    const requestQueue = await Apify.openRequestQueue();\n' +
                     '    await requestQueue.addRequest({ url: \'https://www.iana.org/\' });\n' +
-                    '    const pseudoUrls = [new Apify.PseudoUrl(\'https://www.iana.org/[.*]\')];\n' +
                     '\n' +
                     '    const crawler = new Apify.PuppeteerCrawler({\n' +
                     '        requestQueue,\n' +
                     '        handlePageFunction: async ({ request, page }) => {\n' +
                     '            const title = await page.title();\n' +
                     '            console.log(`Title of ${request.url}: ${title}`);\n' +
-                    '            await Apify.utils.enqueueLinks({ page, selector: \'a\', pseudoUrls, requestQueue });\n' +
+                    '            await Apify.utils.enqueueLinks({\n' +
+                    '               requestQueue,\n' +
+                    '               page,\n' +
+                    '               pseudoUrls: [\'https://www.iana.org/[.*]\'],\n' +
+                    '            });\n' +
                     '        },\n' +
-                    '        maxRequestsPerCrawl: 100,\n' +
-                    '        maxConcurrency: 10,\n' +
                     '    });\n' +
                     '\n' +
                     '    await crawler.run();\n' +
