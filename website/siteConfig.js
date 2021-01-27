@@ -69,9 +69,13 @@ const siteConfig = {
     },
 
     algolia: {
-        apiKey: process.env.ALGOLIA_API_KEY,
+        // The key is search-only and safe to publish.
+        apiKey: '64ce2544769e34add0e6402688c86e92',
         indexName: 'apify_sdk',
-        algoliaOptions: {}, // Optional, if provided by Algolia
+        // Optional, if provided by Algolia
+        algoliaOptions: {
+            facetFilters: ['version:VERSION'],
+        },
     },
 
     /* Custom fonts for website */
@@ -118,21 +122,26 @@ const siteConfig = {
         'https://buttons.github.io/buttons.js',
         'https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js',
         '/js/code-block-buttons.js',
-        // {
-        //     src: 'https://static.hotjar.com/c/hotjar-1021435.js?sv=6',
-        //     async: true,
-        // },
     ],
-    stylesheets: ['/css/code-block-buttons.css'],
 
     // On page navigation for the current documentation page.
     onPageNav: 'separate',
     // No .html extensions for paths.
     cleanUrl: true,
+    deletedDocs: {
+        "1.0.0": [
+            "puppeteer-pool",
+            "puppeteer-pool-options",
+            "launch-puppeteer-function",
+            "launch-puppeteer-options",
+            "puppeteer-goto",
+            "puppeteer-goto-inputs",
+        ]
+    },
 
     // Open Graph and Twitter card images.
-    ogImage: 'img/apify_logo.png',
-    twitterImage: 'img/apify_logo.png',
+    ogImage: 'img/apify_logo.svg',
+    twitterImage: 'img/apify_logo.svg',
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...

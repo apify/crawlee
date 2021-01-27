@@ -1,4 +1,4 @@
-1.0.0 / 2021/01/XX
+1.0.0 / 2021/01/25
 ====================
 After 3.5 years of rapid development and a lot of breaking changes and deprecations,
 here comes the result - **Apify SDK v1**. There were two goals for this release. **Stability**

@@ -344,9 +344,6 @@
       "version-0.22.4/api/version-0.22.4-basic-crawler": {
         "title": "BasicCrawler"
       },
-      "version-0.22.4/api/version-0.22.4-browser-crawler": {
-        "title": "BrowserCrawler"
-      },
       "version-0.22.4/api/version-0.22.4-cheerio-crawler": {
         "title": "CheerioCrawler"
       },
@@ -355,9 +352,6 @@
       },
       "version-0.22.4/api/version-0.22.4-key-value-store": {
         "title": "KeyValueStore"
-      },
-      "version-0.22.4/api/version-0.22.4-live-view-server": {
-        "title": "LiveViewServer"
       },
       "version-0.22.4/api/version-0.22.4-log": {
         "title": "utils.log"
@@ -664,6 +658,93 @@
       },
       "version-0.22.4/typedefs/version-0.22.4-user-func": {
         "title": "UserFunc"
+      },
+      "version-1.0.0/api/version-1.0.0-apify": {
+        "title": "Apify"
+      },
+      "version-1.0.0/api/version-1.0.0-basic-crawler": {
+        "title": "BasicCrawler"
+      },
+      "version-1.0.0/api/version-1.0.0-cheerio-crawler": {
+        "title": "CheerioCrawler"
+      },
+      "version-1.0.0/api/version-1.0.0-dataset": {
+        "title": "Dataset"
+      },
+      "version-1.0.0/api/version-1.0.0-playwright": {
+        "title": "utils.playwright"
+      },
+      "version-1.0.0/api/version-1.0.0-playwright-crawler": {
+        "title": "PlaywrightCrawler"
+      },
+      "version-1.0.0/api/version-1.0.0-proxy-configuration": {
+        "title": "ProxyConfiguration"
+      },
+      "version-1.0.0/api/version-1.0.0-puppeteer-crawler": {
+        "title": "PuppeteerCrawler"
+      },
+      "version-1.0.0/api/version-1.0.0-request": {
+        "title": "Request"
+      },
+      "version-1.0.0/api/version-1.0.0-request-list": {
+        "title": "RequestList"
+      },
+      "version-1.0.0/api/version-1.0.0-request-queue": {
+        "title": "RequestQueue"
+      },
+      "version-1.0.0/guides/version-1.0.0-apify-platform": {
+        "title": "Apify Platform"
+      },
+      "version-1.0.0/guides/version-1.0.0-docker-images": {
+        "title": "Running in Docker"
+      },
+      "version-1.0.0/guides/version-1.0.0-motivation": {
+        "title": "Motivation"
+      },
+      "version-1.0.0/guides/version-1.0.0-quick-start": {
+        "title": "Quick Start"
+      },
+      "version-1.0.0/guides/version-1.0.0-request-storage": {
+        "title": "Request Storage"
+      },
+      "version-1.0.0/guides/version-1.0.0-result-storage": {
+        "title": "Result Storage"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-basic-crawler-options": {
+        "title": "BasicCrawlerOptions"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-browser-launch-context": {
+        "title": "BrowserLaunchContext"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-cheerio-crawler-options": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-cheerio-handle-page-inputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-handle-failed-request-input": {
+        "title": "HandleFailedRequestInput"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-handle-request-inputs": {
+        "title": "HandleRequestInputs"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-playwright-launch-context": {
+        "title": "PlaywrightLaunchContext"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-post-response-inputs": {
+        "title": "PostResponseInputs"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-prepare-request-inputs": {
+        "title": "PrepareRequestInputs"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "version-1.0.0/typedefs/version-1.0.0-puppeteer-launch-context": {
+        "title": "PuppeteerLaunchContext"
       }
     },
     "links": {
