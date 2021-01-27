@@ -28,7 +28,7 @@ const siteConfig = {
     // This is also used as page meta description for SEO, so write it carefully.
     // TODO: Take this from package.json
     // eslint-disable-next-line max-len
-    tagline: 'The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.',
+    tagline: 'The scalable web crawling, scraping and automation library for JavaScript/Node.js.',
     url: 'https://sdk.apify.com', // Your website URL
     cname: 'sdk.apify.com',
     baseUrl: '/', // Base URL for your project */
@@ -140,8 +140,8 @@ const siteConfig = {
     },
 
     // Open Graph and Twitter card images.
-    ogImage: 'img/apify_logo.svg',
-    twitterImage: 'img/apify_logo.svg',
+    ogImage: 'img/apify_og_SDK.png',
+    twitterImage: 'img/apify_og_SDK.png',
 
     // You may provide arbitrary config keys to be used as needed by your
     // template. For example, if you need your repo's URL...

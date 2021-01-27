@@ -3,7 +3,7 @@
   "localized-strings": {
     "next": "Next",
     "previous": "Previous",
-    "tagline": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    "tagline": "The scalable web crawling, scraping and automation library for JavaScript/Node.js.",
     "docs": {
       "api/apify": {
         "title": "Apify"

@@ -116,25 +116,27 @@ const Features = () => (
     <Block layout="fourColumn" paddingBottomOnly>
         {[
             {
-                content: '**JavaScript** is the language of the web. Although there are JavaScript tools like [puppeteer](https://www.npmjs.com/package/puppeteer) and [cheerio](https://www.npmjs.com/package/cheerio), ' +
-                    'there was no universal framework that would enable **large-scale high-performance** web scraping and crawling of any website. **Until now!**',
+                content: '**JavaScript** is the language of the web. Apify SDK builds on popular tools like [playwright](https://www.npmjs.com/package/playwright), ' +
+                    '[puppeteer](https://www.npmjs.com/package/puppeteer) and [cheerio](https://www.npmjs.com/package/cheerio), ' +
+                    'to deliver **large-scale high-performance** web scraping and crawling of any website.',
                 image: imgUrl('javascript_logo.svg'),
                 imageAlign: 'top',
                 title: 'Runs on JavaScript',
             },
             {
-                content: 'Run **headless Chrome** or Selenium, manage **lists and queues** of URLs to crawl, run crawlers in **parallel** at maximum system capacity. ' +
+                content: 'Run **headless Chrome, Firefox, WebKit** or other browsers, manage **lists and queues** of URLs to crawl, ' +
+                    'run crawlers in **parallel** at maximum system capacity. ' +
                     'Handle **storage and export** of results and rotate **proxies**.',
                 image: imgUrl('robot.png'),
                 imageAlign: 'top',
                 title: 'Automates any web workflow',
             },
             {
-                content: 'Apify SDK can be used **stand-alone** in your Node.js projects or it can run as a **serverless microservice on the Apify Cloud**. ' +
-                    '[Get started with Apify Cloud](https://my.apify.com/actors)',
+                content: 'Apify SDK can be used **stand-alone** on your own systems or it can run as a **serverless microservice on the Apify Platform**. ' +
+                    '[Get started with Apify Platform](https://my.apify.com/actors)',
                 image: imgUrl('cloud_icon.svg'),
                 imageAlign: 'top',
-                title: 'Works locally and in the cloud',
+                title: 'Works on any system',
             }
         ]}
     </Block>
@@ -169,8 +171,8 @@ const EasyCrawling = () => (
                 content: 'There are three main classes that you can use to start crawling the web in no time. ' +
                     'Need to crawl plain HTML? Use the **blazing fast** [`CheerioCrawler`](docs/examples/cheerio-crawler).\n' +
                     'For complex websites that use **React**, **Vue** or other front-end javascript libraries and require JavaScript execution, ' +
-                    'spawn a headless browser with [`PuppeteerCrawler`](docs/examples/puppeteer-crawler).\n' +
-                    'To **control all aspects** of your crawling, just use the bare bones [`BasicCrawler`](docs/examples/basic-crawler)',
+                    'spawn a headless browser with [`PlaywrightCrawler`](docs/api/playwright-crawler) or ' +
+                    '[`PuppeteerCrawler`](docs/examples/puppeteer-crawler)',
                 image: imgUrl('chrome_scrape.gif'),
                 imageAlign: 'right',
                 title: 'Easy crawling',
@@ -184,7 +186,7 @@ const PowerfulTools = () => (
         {[
             {
                 content: 'All the crawlers are automatically **scaled** based on available system resources using the [`AutoscaledPool`](docs/api/autoscaled-pool) class. ' +
-                    'When you run your code on the [Apify Cloud](https://my.apify.com/actors), you can also take advantage of a [pool of proxies](https://apify.com/proxy) to avoid detection. ' +
+                    'When you run your code on the [Apify Platform](https://my.apify.com/actors), you can also take advantage of a [pool of proxies](https://apify.com/proxy) to avoid detection. ' +
                     'For data storage, you can use the [`Dataset`](docs/api/dataset), [`KeyValueStore`](docs/api/key-value-store) and [`RequestQueue`](docs/api/request-queue) classes.',
                 image: imgUrl('source_code.png'),
                 imageAlign: 'left',
