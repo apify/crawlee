@@ -130,12 +130,12 @@ const siteConfig = {
     cleanUrl: true,
     deletedDocs: {
         "1.0.0": [
-            "puppeteer-pool",
-            "puppeteer-pool-options",
-            "launch-puppeteer-function",
-            "launch-puppeteer-options",
-            "puppeteer-goto",
-            "puppeteer-goto-inputs",
+            "api/puppeteer-pool",
+            "typedefs/puppeteer-pool-options",
+            "typedefs/launch-puppeteer-function",
+            "typedefs/launch-puppeteer-options",
+            "typedefs/puppeteer-goto",
+            "typedefs/puppeteer-goto-inputs",
         ]
     },
 
