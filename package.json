@@ -43,7 +43,7 @@
         "build": "npm run clean && tsc -p tsconfig.json && node ./tools/typescript_fixes.js",
         "build-docs": "npm run build && node ./website/tools/build_docs.js",
         "build-readme": "node ./tools/build_readme.js",
-        "test": "npm run build && jest --testTimeout=20000 --maxWorkers=3 --silent",
+        "test": "npm run build && jest --testTimeout=30000 --maxWorkers=3 --silent",
         "prepare": "npm run build",
         "prepublishOnly": "(test $CI || (echo \"Publishing is reserved to CI!\"; exit 1))",
         "clean": "rm -rf ./build ./types",
