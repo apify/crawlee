@@ -21,9 +21,14 @@ const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
  */
 export const checkAndSerialize = (item, limitBytes, index) => {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
+
+    const isItemObject = item && typeof item === 'object' && !Array.isArray(item);
+    if (!isItemObject) {
+        throw new Error(`Data item${s}is not an object. You can push only objects into a dataset.`);
+    }
+
     let payload;
     try {
-        ow(item, ow.object.plain);
         payload = JSON.stringify(item);
     } catch (err) {
         throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);

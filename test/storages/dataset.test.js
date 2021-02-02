@@ -447,8 +447,7 @@ describe('dataset', () => {
             await expect(dataset.pushData(123)).rejects.toThrow('Expected argument to be of type `object` but received type `number`');
             await expect(dataset.pushData(true)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
             await expect(dataset.pushData(false)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
-            await expect(dataset.pushData(() => {})).rejects.toThrow('Data item is not serializable to JSON.\n'
-                + 'Cause: Expected object `item` to be a plain object');
+            await expect(dataset.pushData(() => {})).rejects.toThrow('Data item is not an object. You can push only objects into a dataset.');
 
             const circularObj = {};
             circularObj.xxx = circularObj;
