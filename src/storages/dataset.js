@@ -22,7 +22,7 @@ const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
 export const checkAndSerialize = (item, limitBytes, index) => {
     const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
 
-    const isItemObject = item && typeof item === 'object';
+    const isItemObject = item && typeof item === 'object' && !Array.isArray(item);
     if (!isItemObject) {
         throw new Error(`Data item${s}is not an object. You can push only objects into a dataset.`);
     }
