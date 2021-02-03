@@ -140,13 +140,13 @@ export class PuppeteerLauncher extends BrowserLauncher {
         }
 
         if (this.stealthOptions && this.stealthOptions.hideWebDriver) {
-            launchOptions.args.forEach((e) => {
-                if (e.startsWith('--disable-blink-features=')) {
-                    e += ',AutomationControlled';
-                    return // eslint-disable-line
-                }
-            });
-            launchOptions.args.push('--disable-blink-features=AutomationControlled');
+            const idx = launchOptions.args.findIndex((arg) => arg.startsWith('--disable-blink-features='));
+            if (idx !== -1) {
+                const arg = launchOptions.args[idx];
+                launchOptions.args[idx] = `${arg},AutomationControlled`;
+            } else {
+                launchOptions.args.push('--disable-blink-features=AutomationControlled');
+            }
         }
 
         return launchOptions;
