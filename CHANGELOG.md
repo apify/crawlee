@@ -1,3 +1,8 @@
+1.0.1 / 2021/02/03
+====================
+- Fix `dataset.pushData()` validation which would not allow other than plain objects.
+- Fix `PuppeteerLaunchContext.stealth` throwing when used in `PuppeteerCrawler`.
+
 1.0.0 / 2021/01/25
 ====================
 After 3.5 years of rapid development and a lot of breaking changes and deprecations,
