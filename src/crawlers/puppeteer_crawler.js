@@ -63,7 +63,7 @@ import applyStealthToBrowser from '../stealth/stealth';
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {object} [launchContext]
+ * @property {PuppeteerLaunchContext} [launchContext]
  *   Options used by {@link Apify#launchPuppeteer} to start new Puppeteer instances.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
