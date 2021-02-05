@@ -742,6 +742,54 @@
       },
       "version-1.0.0/typedefs/version-1.0.0-puppeteer-launch-context": {
         "title": "PuppeteerLaunchContext"
+      },
+      "version-1.0.1/examples/version-1.0.1-add-data-to-dataset": {
+        "title": "Add data to dataset"
+      },
+      "version-1.0.1/examples/version-1.0.1-basic-crawler": {
+        "title": "Basic crawler"
+      },
+      "version-1.0.1/examples/version-1.0.1-call-actor": {
+        "title": "Call actor"
+      },
+      "version-1.0.1/examples/version-1.0.1-capture-screenshot": {
+        "title": "Capture a screenshot"
+      },
+      "version-1.0.1/examples/version-1.0.1-cheerio-crawler": {
+        "title": "Cheerio crawler"
+      },
+      "version-1.0.1/examples/version-1.0.1-crawl-all-links": {
+        "title": "Crawl all links on a website"
+      },
+      "version-1.0.1/examples/version-1.0.1-crawl-multiple-urls": {
+        "title": "Crawl multiple URLs"
+      },
+      "version-1.0.1/examples/version-1.0.1-crawl-sitemap": {
+        "title": "Crawl a sitemap"
+      },
+      "version-1.0.1/examples/version-1.0.1-forms": {
+        "title": "Forms"
+      },
+      "version-1.0.1/examples/version-1.0.1-playwright-crawler": {
+        "title": "Playwright crawler"
+      },
+      "version-1.0.1/examples/version-1.0.1-puppeteer-crawler": {
+        "title": "Puppeteer crawler"
+      },
+      "version-1.0.1/examples/version-1.0.1-puppeteer-recursive-crawl": {
+        "title": "Puppeteer recursive crawl"
+      },
+      "version-1.0.1/examples/version-1.0.1-puppeteer-with-proxy": {
+        "title": "Puppeteer with proxy"
+      },
+      "version-1.0.1/examples/version-1.0.1-synchronous-run": {
+        "title": "Synchronous run"
+      },
+      "version-1.0.1/examples/version-1.0.1-use-stealth-mode": {
+        "title": "use-stealth-mode"
+      },
+      "version-1.0.1/typedefs/version-1.0.1-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
       }
     },
     "links": {
