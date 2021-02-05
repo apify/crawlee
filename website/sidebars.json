@@ -27,14 +27,13 @@
             "examples/crawl-sitemap",
             "examples/crawl-some-links",
             "examples/forms",
-            "examples/handle-broken-links",
             "examples/map-and-reduce",
+            "examples/playwright-crawler",
             "examples/puppeteer-crawler",
             "examples/puppeteer-recursive-crawl",
-            "examples/puppeteer-sitemap",
             "examples/puppeteer-with-proxy",
-            "examples/screenshots",
-            "examples/synchronous-run"
+            "examples/synchronous-run",
+            "examples/use-stealth-mode"
         ],
         "API Reference": [
             "api/apify",

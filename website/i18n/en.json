@@ -116,11 +116,11 @@
       "examples/forms": {
         "title": "Forms"
       },
-      "examples/handle-broken-links": {
-        "title": "Handle broken links"
-      },
       "examples/map-and-reduce": {
         "title": "Dataset Map and Reduce methods"
+      },
+      "examples/playwright-crawler": {
+        "title": "Playwright crawler"
       },
       "examples/puppeteer-crawler": {
         "title": "Puppeteer crawler"
@@ -128,17 +128,14 @@
       "examples/puppeteer-recursive-crawl": {
         "title": "Puppeteer recursive crawl"
       },
-      "examples/puppeteer-sitemap": {
-        "title": "Puppeteer sitemap"
-      },
       "examples/puppeteer-with-proxy": {
         "title": "Puppeteer with proxy"
       },
-      "examples/screenshots": {
-        "title": "Screenshots"
-      },
       "examples/synchronous-run": {
         "title": "Synchronous run"
+      },
+      "examples/use-stealth-mode": {
+        "title": "use-stealth-mode"
       },
       "guides/apify-platform": {
         "title": "Apify Platform"
