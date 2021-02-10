@@ -11,7 +11,8 @@
       "version-1.0.0-guides/proxy-management",
       "version-1.0.0-guides/session-management",
       "version-1.0.0-guides/type-script-actor",
-      "version-1.0.0-guides/docker-images"
+      "version-1.0.0-guides/docker-images",
+      "version-1.0.0-guides/migration-to-v1"
     ],
     "Examples": [
       "version-1.0.0-examples/accept-user-input",
@@ -45,7 +46,8 @@
           "version-1.0.0-api/basic-crawler",
           "version-1.0.0-api/cheerio-crawler",
           "version-1.0.0-api/playwright-crawler",
-          "version-1.0.0-api/puppeteer-crawler"
+          "version-1.0.0-api/puppeteer-crawler",
+          "version-1.0.0-api/statistics"
         ]
       },
       {

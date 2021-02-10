@@ -9,7 +9,8 @@
       "version-0.22.4-guides/environment-variables",
       "version-0.22.4-guides/proxy-management",
       "version-0.22.4-guides/session-management",
-      "version-0.22.4-guides/type-script-actor"
+      "version-0.22.4-guides/type-script-actor",
+      "version-0.22.4-guides/migration-to-v1"
     ],
     "Examples": [
       "version-0.22.4-examples/accept-user-input",

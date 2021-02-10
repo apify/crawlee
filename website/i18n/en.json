@@ -149,6 +149,9 @@
       "guides/getting-started": {
         "title": "Getting Started"
       },
+      "guides/migration-to-v1": {
+        "title": "Migration to version 1"
+      },
       "guides/motivation": {
         "title": "Motivation"
       },
@@ -472,6 +475,9 @@
       },
       "version-0.22.4/guides/version-0.22.4-getting-started": {
         "title": "Getting Started"
+      },
+      "version-0.22.4/guides/version-0.22.4-migration-to-v1": {
+        "title": "Migration to version 1"
       },
       "version-0.22.4/guides/version-0.22.4-motivation": {
         "title": "Motivation"
