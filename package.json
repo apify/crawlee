@@ -61,7 +61,7 @@
         "@types/socket.io": "^2.1.11",
         "@types/tough-cookie": "^4.0.0",
         "apify-client": "^1.0.3",
-        "apify-shared": "^0.5.0",
+        "apify-shared": "^0.6.0",
         "browser-pool": "^1.0.2",
         "cheerio": "1.0.0-rc.3",
         "content-type": "^1.0.4",
