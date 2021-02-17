@@ -24,6 +24,8 @@ const proxyUrlNoSession = 'http://groups-GROUP1+GROUP2,country-CZ:test12345@prox
 afterEach(() => {
     delete process.env[ENV_VARS.TOKEN];
     delete process.env[ENV_VARS.PROXY_PASSWORD];
+    delete process.env[ENV_VARS.PROXY_HOSTNAME];
+    delete process.env[ENV_VARS.PROXY_STATUS_URL];
 });
 
 describe('ProxyConfiguration', () => {
@@ -147,7 +149,6 @@ describe('ProxyConfiguration', () => {
             newUrlFunction,
         });
         try {
-            // eslint-disable-next-line no-unused-vars
             proxyConfiguration.newUrl();
             throw new Error('wrong error');
         } catch (err) {
@@ -396,8 +397,7 @@ describe('Apify.createProxyConfiguration()', () => {
         const stub = sinon.stub(requestUtils, 'requestAsBrowser').callsFake(fakeCall);
 
         try {
-            // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = await Apify.createProxyConfiguration();
+            await Apify.createProxyConfiguration();
             throw new Error('wrong error');
         } catch (err) {
             expect(err.message).toMatch('Apify Proxy password must be provided');
@@ -422,8 +422,7 @@ describe('Apify.createProxyConfiguration()', () => {
             .returns({ get: async () => userData });
 
         try {
-            // eslint-disable-next-line no-unused-vars
-            const proxyConfiguration = await Apify.createProxyConfiguration({ groups });
+            await Apify.createProxyConfiguration({ groups });
             throw new Error('wrong error');
         } catch (err) {
             expect(err.message).toMatch(connectionError);
@@ -464,8 +463,7 @@ describe('Apify.createProxyConfiguration()', () => {
             }))
             .resolves({ body: { connected: true } });
 
-        // eslint-disable-next-line no-unused-vars
-        const proxyConfiguration = await Apify.createProxyConfiguration();
+        await Apify.createProxyConfiguration();
 
         mock.verify();
     });
