@@ -1,12 +1,3 @@
----
-name: Question
-about: When you need help with something.
-title: ''
-labels: question
-assignees: ''
-
----
-
 Please submit new issues for new feature requests and bug reports only.
 For questions please join Apify Discord. You could get help from Apify team memebers and the community there.
 
