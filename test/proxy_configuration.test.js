@@ -449,4 +449,24 @@ describe('Apify.createProxyConfiguration()', () => {
         requestUtilsMock.verify();
         logMock.verify();
     });
+
+    test('should connect to proxy in environments other than production', async () => {
+        process.env.APIFY_PROXY_STATUS_URL = 'http://proxy-domain.apify.com';
+        process.env.APIFY_PROXY_HOSTNAME = 'proxy-domain.apify.com';
+        process.env.APIFY_PROXY_PASSWORD = password;
+
+        const mock = sinon.mock(requestUtils);
+        mock.expects('requestAsBrowser')
+            .once()
+            .withArgs(sinon.match({
+                url: `${process.env.APIFY_PROXY_STATUS_URL}/?format=json`,
+                proxyUrl: `http://auto:${password}@${process.env.APIFY_PROXY_HOSTNAME}:8000`,
+            }))
+            .resolves({ body: { connected: true } });
+
+        // eslint-disable-next-line no-unused-vars
+        const proxyConfiguration = await Apify.createProxyConfiguration();
+
+        mock.verify();
+    });
 });
