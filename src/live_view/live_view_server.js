@@ -189,7 +189,9 @@ class LiveViewServer {
      * Returns an absolute path to the screenshot with the given index.
      * @param {number} screenshotIndex
      * @return {string}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _getScreenshotPath(screenshotIndex) {
         return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.jpeg`);
@@ -198,7 +200,9 @@ class LiveViewServer {
     /**
      * @param {Page} page
      * @return {Promise<Snapshot>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _makeSnapshot(page) {
         const pageUrl = page.url();
@@ -225,7 +229,9 @@ class LiveViewServer {
 
     /**
      * @param {Snapshot} snapshot
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _pushSnapshot(snapshot) {
         // Send new snapshot to clients
@@ -236,13 +242,20 @@ class LiveViewServer {
     /**
      * Initiates an async delete and does not wait for it to complete.
      * @param {number} screenshotIndex
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _deleteScreenshot(screenshotIndex) {
         unlink(this._getScreenshotPath(screenshotIndex))
             .catch((err) => this.log.exception(err, 'Cannot delete live view screenshot.'));
     }
 
+    /**
+     * @ignore
+     * @protected
+     * @internal
+     */
     _setupHttpServer() {
         const containerPort = process.env[ENV_VARS.CONTAINER_PORT] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT];
 
@@ -278,7 +291,9 @@ class LiveViewServer {
 
     /**
      * @param {socketio.Socket} socket
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _socketConnectionHandler(socket) {
         this.clientCount++;

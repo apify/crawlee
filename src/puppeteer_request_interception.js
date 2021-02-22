@@ -43,8 +43,8 @@ class ObservableSet extends EventEmitter {
 
 /**
  * Makes all request headers capitalized to more look like in browser
- * @param {object} headers
- * @returns {object}
+ * @param {Object<string, string>} headers
+ * @returns {Object<string, string>}
  */
 const browserifyHeaders = (headers) => {
     const finalHeaders = {};

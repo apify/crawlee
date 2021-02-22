@@ -1,17 +1,36 @@
 import ow from 'ow';
-import { BrowserPool } from 'browser-pool'; // eslint-disable-line import/no-duplicates
+import { BrowserPool, BrowserController } from 'browser-pool'; // eslint-disable-line import/no-duplicates,no-unused-vars
 import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
-import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import { validators } from '../validators';
 import {
     throwOnBlockedRequest,
     handleRequestTimeout,
 } from './crawler_utils';
 
-// eslint-enable-line import/no-duplicates
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import BasicCrawler, { CrawlingContext } from './basic_crawler';
+import { HandleFailedRequest } from './basic_crawler';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
+import { Session } from '../session_pool/session';
+import { BrowserPoolOptions } from 'browser-pool';
+import { RequestList } from '../request_list';
+import { RequestQueue } from '../storages/request_queue';
+import Request from '../request';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @typedef BrowserCrawlingContext
+ * @property {BrowserController} browserController
+ */
+/**
+ * @callback Hook
+ * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+ * @param {Object<string,*>} gotoOptions
+ * @returns {Promise<void>}
+ */
 
 /**
  * @typedef BrowserCrawlerOptions
@@ -84,7 +103,7 @@ import {
  *   If set, `PuppeteerCrawler` will be configured for all connections to use
  *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
- * @property {Array<function>} [preNavigationHooks]
+ * @property {Array<Hook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
  *   which are passed to the `gotoFunction` the crawler calls to navigate.
@@ -96,7 +115,7 @@ import {
  *     }
  * ]
  * ```
- * @property {Array<function>} [postNavigationHooks]
+ * @property {Array<Hook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as an only parameter.
  *   Example:
@@ -198,16 +217,16 @@ import {
  * ```
  * @property {Statistics} stats
  *  Contains statistics about the current run.
- * @property {?RequestList} requestList
+ * @property {RequestList} [requestList]
  *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?RequestQueue} requestQueue
+ * @property {RequestQueue} [requestQueue]
  *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?SessionPool} sessionPool
+ * @property {SessionPool} [sessionPool]
  *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
  *  Only available if used by the crawler.
- * @property {?ProxyConfiguration} proxyConfiguration
+ * @property {ProxyConfiguration} [proxyConfiguration]
  *  A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
  *  Only available if used by the crawler.
  * @property {BrowserPool} browserPool
@@ -281,7 +300,9 @@ class BrowserCrawler extends BasicCrawler {
 
         this.proxyConfiguration = proxyConfiguration;
 
+        /** @type {Array<Hook>} */
         this.preNavigationHooks = preNavigationHooks;
+        /** @type {Array<Hook>} */
         this.postNavigationHooks = postNavigationHooks;
 
         if (useSessionPool) {
@@ -313,11 +334,10 @@ class BrowserCrawler extends BasicCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} crawlingContext
-     * @param {Request} crawlingContext.request
-     * @param {BrowserController} crawlingContext.browserController
-     * @param {Session} [crawlingContext.session]
-     * @private
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @ignore
+     * @protected
+     * @internal
      */
     async _handleRequestFunction(crawlingContext) {
         const { id } = crawlingContext;
@@ -351,15 +371,16 @@ class BrowserCrawler extends BasicCrawler {
 
             if (session) session.markGood();
         } finally {
-            page.close().catch((error) => this.log.debug('Error while closing page', { error }));
+            await page.close().catch((error) => this.log.debug('Error while closing page', { error }));
         }
     }
 
     /**
-     *
-     * @param {object} crawlingContext
-     * @param {Page} page
-     * @private
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @param {*} page
+     * @ignore
+     * @protected
+     * @internal
      */
     _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
         crawlingContext.page = page;
@@ -376,11 +397,13 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-     *
-     * @param {object} crawlingContext
-     * @private
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @ignore
+     * @protected
+     * @internal
      */
     async _handleNavigation(crawlingContext) {
+        /** @type {*} */
         const gotoOptions = { ...this.defaultGotoOptions };
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         try {
@@ -396,8 +419,11 @@ class BrowserCrawler extends BasicCrawler {
 
     /**
      * Marks session bad in case of navigation timeout.
-     * @param {object} crawlingContext
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
      * @param {Error} error
+     * @ignore
+     * @protected
+     * @internal
      */
     _handleNavigationTimeout(crawlingContext, error) {
         const { session } = crawlingContext;
@@ -408,10 +434,11 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-     *
-     * @param {object} crawlingContext
-     * @param {object} gotoOptions
-     * @private
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @param {Object<string, *>} gotoOptions
+     * @ignore
+     * @protected
+     * @internal
      */
     async _navigationHandler(crawlingContext, gotoOptions) {
         if (!this.gotoFunction) {
@@ -425,9 +452,11 @@ class BrowserCrawler extends BasicCrawler {
     /**
      * Should be overriden in case of different automation library that does not support this response API.
      * // @TODO: This can be also done as a postNavigation hook except the loadedUrl marking.
-     * @param crawlingContext
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
      * @return {Promise<void>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _responseHandler(crawlingContext) {
         const { response, session, request, page } = crawlingContext;
@@ -444,10 +473,11 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-     *
      * @param {string} pageId
-     * @param {object} launchContext
-     * @private
+     * @param {*} launchContext
+     * @ignore
+     * @protected
+     * @internal
      */
     async _extendLaunchContext(pageId, launchContext) {
         const launchContextExtends = {};
@@ -457,7 +487,7 @@ class BrowserCrawler extends BasicCrawler {
         }
 
         if (this.proxyConfiguration) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session && launchContextExtends.session.id);
+            const proxyInfo = this.proxyConfiguration.newProxyInfo(launchContextExtends.session && launchContextExtends.session.id);
             launchContext.proxyUrl = proxyInfo.url;
             launchContextExtends.proxyInfo = proxyInfo;
         }
@@ -466,11 +496,13 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-  *
-  * @param {string} pageId
-  * @param {BrowserController} browserController
-  * @private
-  */
+     *
+     * @param {string} pageId
+     * @param {BrowserController} browserController
+     * @ignore
+     * @protected
+     * @internal
+     */
     _maybeAddSessionRetiredListener(pageId, browserController) {
         if (this.sessionPool) {
             const listener = (session) => {
@@ -486,10 +518,11 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-     *
-     * @param {array} hooks
-     * @param  {...any} args
-     * @private
+     * @param {Array<Hook>} hooks
+     * @param  {[BrowserCrawlingContext & CrawlingContext, CrawlingContext]} args
+     * @ignore
+     * @protected
+     * @internal
      */
     async _executeHooks(hooks, ...args) {
         if (Array.isArray(hooks) && hooks.length) {

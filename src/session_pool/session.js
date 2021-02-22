@@ -302,7 +302,9 @@ export class Session {
      * Transforms puppeteer cookie to tough-cookie.
      * @param {PuppeteerCookie} puppeteerCookie Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _puppeteerCookieToTough(puppeteerCookie) {
         const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
@@ -325,7 +327,9 @@ export class Session {
      * Transforms tough-cookie to puppeteer cookie .
      * @param {Cookie} toughCookie - Cookie from CookieJar
      * @return {PuppeteerCookie} - Cookie from Puppeteer
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _toughCookieToPuppeteer(toughCookie) {
         return {
@@ -343,7 +347,9 @@ export class Session {
      * Sets cookies.
      * @param {Cookie[]} cookies
      * @param {string} url
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _setCookies(cookies, url) {
         const errorMessages = [];
@@ -362,8 +368,11 @@ export class Session {
 
     /**
      * Calculate cookie expiration date
+     * @param {number} maxAgeSecs
      * @return {Date} - calculated date by session max age seconds.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _getDefaultCookieExpirationDate(maxAgeSecs) {
         return new Date(Date.now() + (maxAgeSecs * 1000));
@@ -371,7 +380,9 @@ export class Session {
 
     /**
      * Checks if session is not usable. if it is not retires the session.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _maybeSelfRetire() {
         if (!this.isUsable()) {

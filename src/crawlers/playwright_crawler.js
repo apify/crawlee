@@ -1,10 +1,37 @@
 import ow from 'ow';
-import BrowserCrawler from './browser_crawler';
-import { PlaywrightLauncher } from '../browser_launchers/playwright_launcher';
+
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { Page } from 'playwright';
+import { BrowserPoolOptions, BrowserPool } from 'browser-pool';
+import { PlaywrightLauncher, PlaywrightLaunchContext } from '../browser_launchers/playwright_launcher';
+import BrowserCrawler, { Hook, BrowserCrawlingContext } from './browser_crawler';
+import BasicCrawler, { HandleFailedRequest, CrawlingContext } from './basic_crawler';
+import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
+import { SessionPoolOptions } from '../session_pool/session_pool';
+import { RequestList } from '../request_list';
+import { RequestQueue } from '../storages/request_queue';
+import Statistics from './statistics';
+import Request from '../request';
+import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 import { gotoExtended } from '../playwright_utils';
+
+/**
+ * @typedef PlaywrightHandlePageFunctionParam
+ * @property {Page} page
+ * @property {PlaywrightCrawler} crawler
+ */
+
+/**
+ * @callback PlaywrightHandlePageFunction
+ * @param {PlaywrightHandlePageFunctionParam & BrowserCrawlingContext & CrawlingContext} context
+ * @returns {Promise<void>}
+ */
+
 /**
  * @typedef PlaywrightCrawlerOptions
- * @property {function} handlePageFunction
+ * @property {PlaywrightHandlePageFunction} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
  *
@@ -58,7 +85,7 @@ import { gotoExtended } from '../playwright_utils';
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {Array<function>} [preNavigationHooks]
+ * @property {Array<Hook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
  *   which are passed to the `gotoFunction` the crawler calls to navigate.
@@ -70,7 +97,7 @@ import { gotoExtended } from '../playwright_utils';
  *     }
  * ]
  * ```
- * @property {Array<function>} [postNavigationHooks]
+ * @property {Array<Hook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as an only parameter.
  *   Example:
@@ -191,16 +218,16 @@ import { gotoExtended } from '../playwright_utils';
  * ```
  * @property {Statistics} stats
  *  Contains statistics about the current run.
- * @property {?RequestList} requestList
+ * @property {RequestList} requestList
  *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?RequestQueue} requestQueue
+ * @property {RequestQueue} requestQueue
  *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?SessionPool} sessionPool
+ * @property {SessionPool} sessionPool
  *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
  *  Only available if used by the crawler.
- * @property {?ProxyConfiguration} proxyConfiguration
+ * @property {ProxyConfiguration} proxyConfiguration
  *  A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
  *  Only available if used by the crawler.
  * @property {BrowserPool} browserPool
@@ -227,7 +254,7 @@ class PlaywrightCrawler extends BrowserCrawler {
      * @param {PlaywrightCrawlerOptions} options
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options = {}) {
+    constructor(options) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
@@ -265,6 +292,13 @@ class PlaywrightCrawler extends BrowserCrawler {
         };
     }
 
+    /**
+     * @param {*} crawlingContext
+     * @param {*} gotoOptions
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _navigationHandler(crawlingContext, gotoOptions) {
         if (this.gotoFunction) {
             this.log.deprecated('PlaywrightCrawler.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');

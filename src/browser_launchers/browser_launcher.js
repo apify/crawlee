@@ -1,10 +1,11 @@
 import ow from 'ow';
 import { ENV_VARS } from 'apify-shared/consts';
 import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
+import { BrowserPlugin } from './browser_plugin'; // eslint-disable-line no-unused-vars
 
 /**
  * @typedef BrowserLaunchContext
- * @property {object} [launchOptions]
+ * @property {Object<string, *>} [launchOptions]
  *  `Options passed to the browser launcher function. Options are based on underlying library.
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
@@ -18,7 +19,7 @@ import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {Object} [launcher]
+ * @property {*} [launcher]
  *   By default this function uses require("playwright").chromium`.
  *   If you want to use a different browser you can pass it by this property as `require("playwright").firefox
  */
@@ -39,7 +40,7 @@ export default class BrowserLauncher {
      *
      * @param {string} launcher
      * @param {string} apifyImageName
-     * @returns {object}
+     * @returns {*}
      *
      */
     static requireLauncherOrThrow(launcher, apifyImageName) {
@@ -73,11 +74,15 @@ export default class BrowserLauncher {
 
         this._validateProxyUrl(proxyUrl);
 
+        // those need to be reassigned otherwise they are {} in types
+        /** @type {*} */
         this.launcher = launcher;
         this.proxyUrl = proxyUrl;
         this.useChrome = useChrome;
+        /** @type {Object<string, *>} */
         this.launchOptions = launchOptions;
 
+        /** @type {BrowserPlugin} */
         this.Plugin = null; // to be provided by child classes;
     }
 
@@ -97,7 +102,7 @@ export default class BrowserLauncher {
 
     /**
      * Launches a browser instance based on the plugin.
-     * @returns {object} Browser instance.
+     * @returns {Promise<*>} Browser instance.
      */
     async launch() {
         const plugin = this.createBrowserPlugin();
@@ -109,7 +114,7 @@ export default class BrowserLauncher {
     }
 
     /**
-     * @returns {object}
+     * @returns {Object<string, *>}
      */
     createLaunchOptions() {
         const launchOptions = {

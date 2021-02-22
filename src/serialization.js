@@ -16,6 +16,7 @@ const pipeline = util.promisify(stream.pipeline);
  * fashion to save memory. It operates in batches to speed
  * up the process.
  * @ignore
+ * @internal
  */
 class ArrayToJson extends stream.Readable {
     constructor(data, options = {}) {
@@ -59,7 +60,7 @@ class ArrayToJson extends stream.Readable {
  * This could be further improved by outputting a Stream, if and when
  * apify-client supports streams.
  *
- * @param {Array} data
+ * @param {Array<*>} data
  * @returns {Promise<Buffer>}
  * @ignore
  */
@@ -83,7 +84,7 @@ export const serializeArray = async (data) => {
  * when apify-client supports streams.
  *
  * @param {Buffer} compressedData
- * @returns {Promise<Array>}
+ * @returns {Promise<Array<*>>}
  * @ignore
  */
 export const deserializeArray = async (compressedData) => {

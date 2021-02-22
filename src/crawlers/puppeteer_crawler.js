@@ -1,9 +1,26 @@
 import ow from 'ow';
 
-import BrowserCrawler from './browser_crawler';
 import { gotoExtended } from '../puppeteer_utils';
 import { PuppeteerLauncher } from '../browser_launchers/puppeteer_launcher';
 import applyStealthToBrowser from '../stealth/stealth';
+
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import BrowserCrawler, { HandleFailedRequest } from './basic_crawler';
+import { ProxyConfiguration } from '../proxy_configuration';
+import { BrowserCrawlingContext } from './browser_crawler';
+import { CrawlingContext } from './basic_crawler';
+import { Page } from 'puppeteer';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @typedef {BrowserCrawlingContext & CrawlingContext & { page: Page, crawler: PuppeteerCrawler }} PuppeteerHandlePageFunctionParam
+ */
+
+/**
+ * @callback PuppeteerHandlePage
+ * @param {PuppeteerHandlePageFunctionParam} context
+ * @returns {Promise<void>}
+ */
 
 /**
  * @typedef PuppeteerCrawlerOptions
@@ -288,6 +305,13 @@ class PuppeteerCrawler extends BrowserCrawler {
         };
     }
 
+    /**
+     * @param {*} crawlingContext
+     * @param {*} gotoOptions
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _navigationHandler(crawlingContext, gotoOptions) {
         if (this.gotoFunction) {
             this.log.deprecated('PuppeteerCrawlerOptions.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');

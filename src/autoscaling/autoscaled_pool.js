@@ -150,6 +150,9 @@ class AutoscaledPool {
             log = defaultLog,
         } = options;
 
+        /**
+         * @type {defaultLog.Log}
+         */
         this.log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
@@ -361,6 +364,8 @@ class AutoscaledPool {
      * It doesn't allow multiple concurrent runs of this method.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _maybeRunTask(intervalCallback) {
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
@@ -432,6 +437,8 @@ class AutoscaledPool {
      * If the system IS overloaded and the settings allow it, it scales down.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     _autoscale(intervalCallback) {
         // Don't scale if paused.
@@ -480,6 +487,8 @@ class AutoscaledPool {
      *
      * @param {Object} systemStatus for logging
      * @ignore
+     * @protected
+     * @internal
      */
     _scaleUp(systemStatus) {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
@@ -497,6 +506,8 @@ class AutoscaledPool {
      *
      * @param {Object} systemStatus for logging
      * @ignore
+     * @protected
+     * @internal
      */
     _scaleDown(systemStatus) {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
@@ -515,6 +526,8 @@ class AutoscaledPool {
      * It doesn't allow multiple concurrent runs of this method.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _maybeFinish() {
         if (this.queryingIsFinished) return;
@@ -539,6 +552,8 @@ class AutoscaledPool {
      * Cleans up resources.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _destroy() {
         this.resolve = null;

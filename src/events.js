@@ -15,12 +15,14 @@ const events = new EventEmitter();
 
 /**
  * Websocket connection to actor events.
+ * @type {*}
  * @ignore
  */
 let eventsWs = null;
 
 /**
  * Interval that emits persist state events.
+ * @type {*}
  * @ignore
  */
 let persistStateInterval = null;

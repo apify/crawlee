@@ -24,7 +24,7 @@ import BrowserLauncher from './browser_launcher';
  * ```
  *
  * @typedef PlaywrightLaunchContext
- * @property {object} [launchOptions]
+ * @property {Object<string, *>} [launchOptions]
  *  `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
@@ -38,7 +38,7 @@ import BrowserLauncher from './browser_launcher';
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {Object} [launcher]
+ * @property {*} [launcher]
  *   By default this function uses `require("playwright").chromium`.
  *   If you want to use a different browser you can pass it by this property as e.g. `require("playwright").firefox`
  */
@@ -101,11 +101,11 @@ export class PlaywrightLauncher extends BrowserLauncher {
  * for details.
  *
  *
- * @param {PlaywrightLaunchContext} [options]
+ * @param {PlaywrightLaunchContext} [launchContext]
  *   Optional settings passed to `browserType.launch()`. In addition to
  *   [Playwright's options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  *   the object may contain our own  {@link PlaywrightLaunchContext} that enable additional features.
- * @returns {Promise<Browser>}
+ * @returns {Promise<*>}
  *   Promise that resolves to Playwright's `Browser` instance.
  * @memberof module:Apify
  * @name launchPlaywright

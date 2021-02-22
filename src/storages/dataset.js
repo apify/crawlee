@@ -4,6 +4,13 @@ import { MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
 import StorageManager from './storage_manager';
 import log from '../utils_log';
 
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+// @ts-ignore
+import * as ApifyClient from 'apify-client';
+// @ts-ignore
+import * as ApifyStorageLocal from '@apify/storage-local';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
 export const LOCAL_FILENAME_DIGITS = 9;
 const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
@@ -13,7 +20,7 @@ const SAFETY_BUFFER_PERCENT = 0.01 / 100; // 0.01%
  * and validates its serialized size against limitBytes. Optionally accepts its index
  * in an array to provide better error messages. Returns serialized object.
  *
- * @param {Object} item
+ * @param {*} item
  * @param {number} limitBytes
  * @param {number} [index]
  * @returns {string}

@@ -39,7 +39,7 @@ import { validators } from '../validators';
  * });
  * ```
  *
- * @param {Object} options
+ * @param {object} options
  *   All `enqueueLinks()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} [options.page]
@@ -47,7 +47,7 @@ import { validators } from '../validators';
  *   Either `page` or `$` option must be provided.
  * @param {Number} [options.limit]
  *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
- * @param {CheerioStatic} [options.$]
+ * @param {cheerio.CheerioAPI} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
@@ -57,7 +57,7 @@ import { validators } from '../validators';
  * @param {string} [options.baseUrl]
  *   A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
  *   since the relative URL resolution is done inside the browser automatically.
- * @param {Array<Object>|Array<string>} [options.pseudoUrls]
+ * @param {Array<Object<string, *>>|Array<string>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -158,7 +158,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {CheerioStatic} $
+ * @param {cheerio.CheerioAPI} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}
