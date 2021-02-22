@@ -497,7 +497,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {(string|cheerio.CheerioAPI)} html HTML text or parsed HTML represented using a
+ * @param {(string|cheerio.Root)} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {string} Plain text
  * @memberOf utils
@@ -512,7 +512,7 @@ const htmlToText = (html) => {
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
     /**
-     * @type {cheerio.CheerioAPI}
+     * @type {cheerio.Root}
      * @ignore
      */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });

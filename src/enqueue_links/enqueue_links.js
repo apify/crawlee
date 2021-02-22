@@ -7,7 +7,8 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import { Page } from 'puppeteer';
+import { Page as PuppeteerPage } from 'puppeteer';
+import { Page as PlaywrightPage } from 'playwright';
 import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestTransform } from './shared';
 import PseudoUrl from '../pseudo_url';
@@ -42,12 +43,12 @@ import { validators } from '../validators';
  * @param {object} options
  *   All `enqueueLinks()` parameters are passed
  *   via an options object with the following keys:
- * @param {Page} [options.page]
+ * @param {PuppeteerPage|PlaywrightPage} [options.page]
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  *   Either `page` or `$` option must be provided.
  * @param {Number} [options.limit]
  *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
- * @param {cheerio.CheerioAPI} [options.$]
+ * @param {(cheerio.Root|cheerio.Selector)} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
@@ -145,7 +146,7 @@ export async function enqueueLinks(options) {
 /**
  * Extracts URLs from a given Puppeteer Page.
  *
- * @param {Page} page
+ * @param {PuppeteerPage|PlaywrightPage} page
  * @param {string} selector
  * @return {Promise<Array<string>>}
  * @ignore
@@ -158,7 +159,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {cheerio.CheerioAPI} $
+ * @param {(cheerio.Root|cheerio.Selector)} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

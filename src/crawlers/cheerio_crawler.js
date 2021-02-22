@@ -790,7 +790,7 @@ export default CheerioCrawler;
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {cheerio.CheerioAPI} $
+ * @property {cheerio.Root} $
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
  * @property {(string|Buffer)} body
  *  The request body of the web page.

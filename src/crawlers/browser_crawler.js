@@ -532,7 +532,7 @@ class BrowserCrawler extends BasicCrawler {
 
     /**
      * @param {Array<Hook>} hooks
-     * @param  {[BrowserCrawlingContext & CrawlingContext, CrawlingContext]} args
+     * @param  {*} args
      * @ignore
      * @protected
      * @internal
