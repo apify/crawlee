@@ -19,6 +19,8 @@ import { BrowserPoolOptions } from 'browser-pool';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';
 import Request from '../request';
+import { SessionPoolOptions } from '../session_pool/session_pool';
+import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -31,10 +33,21 @@ import Request from '../request';
  * @param {Object<string,*>} gotoOptions
  * @returns {Promise<void>}
  */
+/**
+ * @callback BrowserHandlePageFunction
+ * @param {BrowserCrawlingContext & CrawlingContext} context
+ * @returns {Promise<void>}
+ */
+/**
+ * @callback GotoFunction
+ * @param {BrowserCrawlingContext & CrawlingContext} context
+ * @param {Object<string,*>} gotoOptions
+ * @returns {Promise<*>}
+ */
 
 /**
  * @typedef BrowserCrawlerOptions
- * @property {function} handlePageFunction
+ * @property {BrowserHandlePageFunction} handlePageFunction
  *   Function that is called to process each request.
  *   It is passed an object with the following fields:
  *
@@ -74,7 +87,7 @@ import Request from '../request';
  *   {@link Request#pushErrorMessage} function.
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, in seconds.
- * @property {function} [gotoFunction]
+ * @property {GotoFunction} [gotoFunction]
  *   Navigation function for corresponding library. `page.goto(url)` is supported by both `playwright` and `puppeteer`.
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -238,7 +251,7 @@ import Request from '../request';
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
- *  @ignore
+ * @ignore
  */
 class BrowserCrawler extends BasicCrawler {
     static optionsShape = {
@@ -435,7 +448,7 @@ class BrowserCrawler extends BasicCrawler {
 
     /**
      * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
-     * @param {Object<string, *>} gotoOptions
+     * @param {Object<string,*>} gotoOptions
      * @ignore
      * @protected
      * @internal

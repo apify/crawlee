@@ -5,7 +5,7 @@ import { Page } from 'playwright';
 import { BrowserPoolOptions, BrowserPool } from 'browser-pool';
 import { PlaywrightLauncher, PlaywrightLaunchContext } from '../browser_launchers/playwright_launcher';
 import BrowserCrawler, { Hook, BrowserCrawlingContext } from './browser_crawler';
-import BasicCrawler, { HandleFailedRequest, CrawlingContext } from './basic_crawler';
+import { HandleFailedRequest, CrawlingContext } from './basic_crawler';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { RequestList } from '../request_list';
