@@ -202,6 +202,17 @@ describe('Session - testing session behaviour ', () => {
         expect(session.getCookieString(url)).toBe('cookie1=my-cookie; cookie2=your-cookie');
     });
 
+    test('setPuppeteerCookies should work for session (with expiration date: -1) cookies', () => {
+        const url = 'https://example.com';
+        const cookies = [
+            { name: 'session_cookie', value: 'session-cookie-value', expires: -1 },
+        ];
+
+        session = new Session({ sessionPool });
+        session.setPuppeteerCookies(cookies, url);
+        expect(session.getCookieString(url)).toBe('session_cookie=session-cookie-value');
+    });
+
     test('setPuppeteerCookies works with leading dots in domains', () => {
         const url = 'https://www.example.com';
         const cookies = [

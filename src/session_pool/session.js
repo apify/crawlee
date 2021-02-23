@@ -305,7 +305,7 @@ export class Session {
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie) {
-        const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
+        const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number' && puppeteerCookie.expires !== -1;
         const expires = isExpiresValid ? new Date(puppeteerCookie.expires * 1000) : this._getDefaultCookieExpirationDate(this.maxAgeSecs);
         const domain = typeof puppeteerCookie.domain === 'string' && puppeteerCookie.domain.startsWith('.')
             ? puppeteerCookie.domain.slice(1)
