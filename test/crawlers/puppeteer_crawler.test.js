@@ -217,6 +217,7 @@ describe('PuppeteerCrawler', () => {
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             useSessionPool: true,
+            persistCookiesPerSession: true,
             sessionPoolOptions: {
                 createSessionFunction: (sessionPool) => {
                     const session = new Apify.Session({ sessionPool });
