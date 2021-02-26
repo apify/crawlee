@@ -251,7 +251,7 @@ class BrowserCrawler extends BasicCrawler {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
             gotoFunction,
-            persistCookiesPerSession,
+            persistCookiesPerSession = true,
             useSessionPool = true,
             sessionPoolOptions,
             proxyConfiguration,
@@ -285,7 +285,7 @@ class BrowserCrawler extends BasicCrawler {
         this.postNavigationHooks = postNavigationHooks;
 
         if (useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession || true;
+            this.persistCookiesPerSession = persistCookiesPerSession;
 
             this.sessionPool = new SessionPool({
                 ...sessionPoolOptions,
@@ -326,9 +326,9 @@ class BrowserCrawler extends BasicCrawler {
 
         const { request, session } = crawlingContext;
 
-        if (this.persistCookiesPerSession) {
-            const cookies = crawlingContext.session.getPuppeteerCookies(request.url);
-            await crawlingContext.browserController.setCookies(page, cookies);
+        const sessionCookies = crawlingContext.session.getPuppeteerCookies(request.url);
+        if (sessionCookies.length) {
+            await crawlingContext.browserController.setCookies(page, sessionCookies);
         }
 
         try {

@@ -331,7 +331,7 @@ export class Session {
         return {
             name: toughCookie.key,
             value: toughCookie.value,
-            expires: new Date(toughCookie.expires).getTime(),
+            expires: new Date(toughCookie.expires).getTime() / 1000,
             domain: toughCookie.domain,
             path: toughCookie.path,
             secure: toughCookie.secure,
