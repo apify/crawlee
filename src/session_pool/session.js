@@ -331,6 +331,7 @@ export class Session {
         return {
             name: toughCookie.key,
             value: toughCookie.value,
+            // Puppeteer and Playwright expect 'expires' to be 'Unix time in seconds', not ms
             expires: new Date(toughCookie.expires).getTime() / 1000,
             domain: toughCookie.domain,
             path: toughCookie.path,

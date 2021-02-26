@@ -251,7 +251,7 @@ class BrowserCrawler extends BasicCrawler {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
             gotoFunction,
-            persistCookiesPerSession = true,
+            persistCookiesPerSession,
             useSessionPool = true,
             sessionPoolOptions,
             proxyConfiguration,
@@ -261,6 +261,7 @@ class BrowserCrawler extends BasicCrawler {
             ...basicCrawlerOptions
         } = options;
 
+        // Cookies should be persisted per session only if session pool is used
         if (!useSessionPool && persistCookiesPerSession) {
             throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
@@ -285,7 +286,7 @@ class BrowserCrawler extends BasicCrawler {
         this.postNavigationHooks = postNavigationHooks;
 
         if (useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession;
+            this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
 
             this.sessionPool = new SessionPool({
                 ...sessionPoolOptions,
@@ -294,6 +295,8 @@ class BrowserCrawler extends BasicCrawler {
 
             // Assuming there are not more than 20 browsers running at once;
             this.sessionPool.setMaxListeners(20);
+        } else {
+            this.persistCookiesPerSession = false;
         }
 
         const { preLaunchHooks = [], postLaunchHooks = [], ...rest } = browserPoolOptions;

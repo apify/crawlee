@@ -231,7 +231,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=true]
  *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
  *   It also marks Session as bad after a request timeout.
  * @property {SessionPoolOptions} [sessionPoolOptions]
@@ -376,7 +376,7 @@ class CheerioCrawler extends BasicCrawler {
             proxyConfiguration,
             prepareRequestFunction,
             postResponseFunction,
-            persistCookiesPerSession = false,
+            persistCookiesPerSession,
 
             // BasicCrawler
             autoscaledPoolOptions = CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -393,8 +393,9 @@ class CheerioCrawler extends BasicCrawler {
             handleRequestTimeoutSecs: (requestTimeoutSecs + handlePageTimeoutSecs * 2) + 5,
         });
 
-        if (persistCookiesPerSession && !this.useSessionPool) {
-            throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+        // Cookies should be persisted per session only if session pool is used
+        if (!this.useSessionPool && persistCookiesPerSession) {
+            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
 
         this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
@@ -412,7 +413,12 @@ class CheerioCrawler extends BasicCrawler {
         this.prepareRequestFunction = prepareRequestFunction;
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
-        this.persistCookiesPerSession = persistCookiesPerSession;
+
+        if (this.useSessionPool) {
+            this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
+        } else {
+            this.persistCookiesPerSession = false;
+        }
     }
 
     /**
@@ -538,7 +544,7 @@ class CheerioCrawler extends BasicCrawler {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
 
-        if (this.persistCookiesPerSession) {
+        if (this.useSessionPool) {
             const { headers } = request;
             headers.Cookie = session.getCookieString(request.url);
         }
