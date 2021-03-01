@@ -6,12 +6,11 @@ import applyStealthToBrowser from '../stealth/stealth';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { PuppeteerLauncher, PuppeteerLaunchContext } from '../browser_launchers/puppeteer_launcher';
 import { HandleFailedRequest } from './basic_crawler';
-import BrowserCrawler from './browser_crawler';
+import BrowserCrawler, { BrowserCrawlingContext } from './browser_crawler';
 import { ProxyConfiguration } from '../proxy_configuration';
-import { BrowserCrawlingContext, Hook } from './browser_crawler';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { CrawlingContext } from './basic_crawler';
-import { Page } from 'puppeteer';
+import { Page, DirectNavigationOptions } from 'puppeteer';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
@@ -19,17 +18,21 @@ import { BrowserPoolOptions } from 'browser-pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
+ * @callback PuppeteerHook
+ * @param {{ page: Page, crawler: PuppeteerCrawler } & BrowserCrawlingContext & CrawlingContext} crawlingContext
+ * @param {DirectNavigationOptions} gotoOptions
+ * @returns {Promise<void>}
+ */
+/**
  * @typedef PuppeteerHandlePageFunctionParam
  * @property {Page} page
  * @property {PuppeteerCrawler} crawler
  */
-
 /**
  * @callback PuppeteerHandlePage
  * @param {CrawlingContext & BrowserCrawlingContext & { page: Page, crawler: PuppeteerCrawler }} context
  * @returns {Promise<void>}
  */
-
 /**
  * @typedef PuppeteerCrawlerOptions
  * @property {PuppeteerHandlePage} handlePageFunction
@@ -101,7 +104,7 @@ import { BrowserPoolOptions } from 'browser-pool';
  *   If set, `PuppeteerCrawler` will be configured for all connections to use
  *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
- * @property {Array<Hook>} [preNavigationHooks]
+ * @property {Array<PuppeteerHook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
  *   which are passed to the `gotoFunction` the crawler calls to navigate.
@@ -109,11 +112,12 @@ import { BrowserPoolOptions } from 'browser-pool';
  * ```
  * preNavigationHooks: [
  *     async (crawlingContext, gotoOptions) => {
+ *         const { page } = crawlingContext;
  *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
  *     }
  * ]
  * ```
- * @property {Array<Hook>} [postNavigationHooks]
+ * @property {Array<PuppeteerHook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as an only parameter.
  *   Example:

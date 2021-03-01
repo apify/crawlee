@@ -4,7 +4,7 @@ import ow from 'ow';
 import { Page } from 'playwright';
 import { BrowserPoolOptions, BrowserPool } from 'browser-pool';
 import { PlaywrightLauncher, PlaywrightLaunchContext } from '../browser_launchers/playwright_launcher';
-import BrowserCrawler, { Hook, BrowserCrawlingContext } from './browser_crawler';
+import BrowserCrawler, { BrowserCrawlingContext } from './browser_crawler';
 import { HandleFailedRequest, CrawlingContext } from './basic_crawler';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { SessionPoolOptions } from '../session_pool/session_pool';
@@ -18,11 +18,30 @@ import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled
 import { gotoExtended } from '../playwright_utils';
 
 /**
+ * @typedef PlaywrightGotoOptions
+ * @property {number} [timeout]
+ *   Maximum operation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout.
+ *   The default value can be changed by using the browserContext.setDefaultNavigationTimeout(timeout),
+ *   browserContext.setDefaultTimeout(timeout), page.setDefaultNavigationTimeout(timeout) or page.setDefaultTimeout(timeout) methods.
+ * @property {"domcontentloaded"|"load"|"networkidle"} [waitUntil]
+ *   When to consider operation succeeded, defaults to `load`. Events can be either:
+ *     - `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+ *     - `'load'` - consider operation to be finished when the `load` event is fired.
+ *     - `'networkidle'` - consider operation to be finished when there are no network connections for at least `500` ms.
+ * @property {string} [referer]
+ *   Referer header value. If provided it will take preference over the referer header value set by page.setExtraHTTPHeaders(headers).
+ */
+/**
+ * @callback PlaywrightHook
+ * @param {{ page: Page, crawler: PlaywrightCrawler } & BrowserCrawlingContext & CrawlingContext} crawlingContext
+ * @param {PlaywrightGotoOptions} gotoOptions
+ * @returns {Promise<void>}
+ */
+/**
  * @typedef PlaywrightHandlePageFunctionParam
  * @property {Page} page
  * @property {PlaywrightCrawler} crawler
  */
-
 /**
  * @callback PlaywrightHandlePageFunction
  * @param {PlaywrightHandlePageFunctionParam & BrowserCrawlingContext & CrawlingContext} context
@@ -85,7 +104,7 @@ import { gotoExtended } from '../playwright_utils';
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
- * @property {Array<Hook>} [preNavigationHooks]
+ * @property {Array<PlaywrightHook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
  *   which are passed to the `gotoFunction` the crawler calls to navigate.
@@ -97,7 +116,7 @@ import { gotoExtended } from '../playwright_utils';
  *     }
  * ]
  * ```
- * @property {Array<Hook>} [postNavigationHooks]
+ * @property {Array<PlaywrightHook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as an only parameter.
  *   Example:

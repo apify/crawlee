@@ -37,6 +37,7 @@ const getRenderOptions = (template, data) => ({
     'property-list-format': 'list',
     'heading-depth': 1,
     helper: [path.join(__dirname, 'helpers.js')],
+    plugins: ["jsdoc-plugin-intersection"],
     partial: [
         path.join(__dirname, 'partials', 'params-list.hbs'),
         path.join(__dirname, 'partials', 'properties-list.hbs'),
@@ -165,7 +166,10 @@ const main = async () => {
     const typeFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'typedefs');
 
     /* get template data */
-    let templateData = await jsdoc2md.getTemplateData({ files: sourceFiles });
+    let templateData = await jsdoc2md.getTemplateData({
+        files: sourceFiles,
+        configure: path.join(__dirname, 'conf.json'),
+    });
 
     // handle examples
     await getExamplesFromRepo();

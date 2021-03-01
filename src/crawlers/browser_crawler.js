@@ -124,6 +124,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  * ```
  * preNavigationHooks: [
  *     async (crawlingContext, gotoOptions) => {
+ *         const { page } = crawlingContext;
  *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
  *     }
  * ]
