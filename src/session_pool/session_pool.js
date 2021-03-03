@@ -17,7 +17,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * @typedef SessionPoolOptions
  * @property {number} [maxPoolSize=1000] - Maximum size of the pool.
  * Indicates how many sessions are rotated.
- * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
+ * @property {SessionOptions} [sessionOptions] The configuration options for {@link Session} instances.
  * @property {string} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
  * @property {string} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
  * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
@@ -133,6 +133,7 @@ export class SessionPool extends EventEmitter {
         // Operative states
         this.keyValueStore = null;
         this.sessions = [];
+        this.sessionMap = new Map();
     }
 
     /**
@@ -169,25 +170,57 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
+     * Explicitly creates and adds new session to the session pool.
+     * @param {SessionOptions} [options] - The configuration options for the session being added to the session pool.
+     */
+    async addSession(options = {}) {
+        const { id } = options;
+        if (id) {
+            const sessionExists = this.sessionMap.has(id);
+            if (sessionExists) {
+                throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
+            }
+        }
+
+        if (!this._hasSpaceForSession()) {
+            this._removeRetiredSessions();
+        }
+
+        const newSession = await this.createSessionFunction(this, { sessionOptions: options });
+        this.log.debug(`Created new Session - ${newSession.id}`);
+
+        this._addSession(newSession);
+    }
+
+    /**
      * Gets session.
-     * If there is space for new session, it creates and return new session.
+     * If there is space for new session, it creates and returns new session.
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      *
+     * @param {String} [sessionId] - If provided, it attempts to return the session with corresponding `id` first.
      * @return {Promise<Session>}
      */
-    async getSession() {
+    async getSession(sessionId) {
+        if (sessionId) {
+            const sessionExists = this.sessionMap.has(sessionId);
+            if (sessionExists) {
+                const session = this.sessionMap.get(sessionId);
+                if (session.isUsable()) return session;
+                this._removeRetiredSessions();
+            }
+        }
+
         if (this._hasSpaceForSession()) {
             return this._createSession();
         }
 
         const pickedSession = this._pickSession();
-
         if (pickedSession.isUsable()) {
             return pickedSession;
         }
 
-        this._removeSession(pickedSession);
+        this._removeRetiredSessions();
         return this._createSession();
     }
 
@@ -228,15 +261,17 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Removes `Session` instance from `SessionPool`.
-     * @param {Session} session  - Session to be removed
+     * Removes retired `Session` instances from `SessionPool`.
      * @private
      */
-    _removeSession(session) {
-        const sessionIndex = this.sessions.findIndex((storedSession) => storedSession.id === session.id);
+    _removeRetiredSessions() {
+        this.sessions = this.sessions.filter((storedSession) => {
+            const sessionIsUsable = storedSession.isUsable();
+            if (sessionIsUsable) return storedSession;
 
-        const [removedSession] = this.sessions.splice(sessionIndex, 1);
-        this.log.debug(`Removed Session - ${removedSession.id}`);
+            this.sessionMap.delete(storedSession.id);
+            this.log.debug(`Removed Session - ${storedSession.id}`);
+        });
     }
 
     /**
@@ -246,6 +281,7 @@ export class SessionPool extends EventEmitter {
      */
     _addSession(newSession) {
         this.sessions.push(newSession);
+        this.sessionMap.set(newSession.id, newSession);
     }
 
     /**
@@ -260,12 +296,17 @@ export class SessionPool extends EventEmitter {
     /**
      * Creates new session without any extra behavior.
      * @param {SessionPool} sessionPool
+     * @param {Object} [options]
+     * @param {SessionOptions} [options.sessionOptions] - The configuration options for the session being created
      * @return {Session} - New session.
      * @private
      */
-    _defaultCreateSessionFunction(sessionPool) {
+    _defaultCreateSessionFunction(sessionPool, options = {}) {
+        ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
+        const { sessionOptions = {} } = options;
         return new Session({
             ...this.sessionOptions,
+            ...sessionOptions,
             sessionPool,
         });
     }
