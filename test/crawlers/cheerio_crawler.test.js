@@ -738,7 +738,7 @@ describe('CheerioCrawler', () => {
                     },
                 });
             } catch (e) {
-                expect(e.message).toEqual('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+                expect(e.message).toEqual('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
             }
         });
 

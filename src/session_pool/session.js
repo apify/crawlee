@@ -305,7 +305,7 @@ export class Session {
      * @private
      */
     _puppeteerCookieToTough(puppeteerCookie) {
-        const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number';
+        const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number' && puppeteerCookie.expires > 0;
         const expires = isExpiresValid ? new Date(puppeteerCookie.expires * 1000) : this._getDefaultCookieExpirationDate(this.maxAgeSecs);
         const domain = typeof puppeteerCookie.domain === 'string' && puppeteerCookie.domain.startsWith('.')
             ? puppeteerCookie.domain.slice(1)
@@ -331,7 +331,8 @@ export class Session {
         return {
             name: toughCookie.key,
             value: toughCookie.value,
-            expires: new Date(toughCookie.expires).getTime(),
+            // Puppeteer and Playwright expect 'expires' to be 'Unix time in seconds', not ms
+            expires: new Date(toughCookie.expires).getTime() / 1000,
             domain: toughCookie.domain,
             path: toughCookie.path,
             secure: toughCookie.secure,

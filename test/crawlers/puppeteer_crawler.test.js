@@ -200,4 +200,39 @@ describe('PuppeteerCrawler', () => {
 
         expect(loadedUserAgent).toEqual(opts.userAgent);
     });
+
+    test('should set cookies assigned to session to page', async () => {
+        const cookies = [
+            {
+                name: 'example_cookie_name',
+                domain: '.example.com',
+                value: 'example_cookie_value',
+                expires: -1,
+            },
+        ];
+
+        let pageCookies;
+        let sessionCookies;
+
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList,
+            useSessionPool: true,
+            persistCookiesPerSession: true,
+            sessionPoolOptions: {
+                createSessionFunction: (sessionPool) => {
+                    const session = new Apify.Session({ sessionPool });
+                    session.setPuppeteerCookies(cookies, 'http://www.example.com');
+                    return session;
+                },
+            },
+            handlePageFunction: async ({ page, session }) => {
+                pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
+                sessionCookies = session.getCookieString('http://www.example.com');
+            },
+        });
+
+        await puppeteerCrawler.run();
+
+        expect(pageCookies).toEqual(sessionCookies);
+    });
 });
