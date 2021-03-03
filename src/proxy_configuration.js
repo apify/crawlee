@@ -8,7 +8,6 @@ import defaultLog from './utils_log';
 
 // CONSTANTS
 const PROTOCOL = 'http';
-const APIFY_PROXY_STATUS_URL = 'http://proxy.apify.com/?format=json';
 // https://docs.apify.com/proxy/datacenter-proxy#username-parameters
 const MAX_SESSION_ID_LENGTH = 50;
 const CHECK_ACCESS_REQUEST_TIMEOUT_SECS = 4;
@@ -302,6 +301,15 @@ export class ProxyConfiguration {
     }
 
     /**
+     * Returns Apify proxy status url.
+     * @return {string} the Apify proxy status url
+     * @ignore
+     */
+    _getApifyProxyStatusUrl() {
+        return process.env[ENV_VARS.PROXY_STATUS_URL] || `${PROTOCOL}://${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}`;
+    }
+
+    /**
      * Checks if Apify Token is provided in env
      * and gets the password via API and sets it to env
      * @returns {Promise<void>}
@@ -353,7 +361,7 @@ export class ProxyConfiguration {
      */
     async _fetchStatus() {
         const requestOpts = {
-            url: APIFY_PROXY_STATUS_URL,
+            url: `${this._getApifyProxyStatusUrl()}/?format=json`,
             proxyUrl: this.newUrl(),
             json: true,
             timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
