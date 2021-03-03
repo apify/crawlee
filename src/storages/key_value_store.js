@@ -423,6 +423,10 @@ export const setValue = async (key, value, options) => {
  * await store.getValue('INPUT');
  * ```
  *
+ * Note that the `getInput()` function does not cache the value read from the key-value store.
+ * If you need to use the input multiple times in your actor,
+ * it is far more efficient to read it once and store it locally.
+ *
  * For more information, see  {@link Apify#openKeyValueStore}
  * and {@link KeyValueStore#getValue}.
  *
