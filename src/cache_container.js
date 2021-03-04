@@ -5,7 +5,7 @@ import * as LruCache from 'apify-shared/lru_cache';
  * or dataset cache. Before creation of this class, those caches were
  * created as module scoped globals - untouchable. This proved problematic
  * especially in tests, where caches would prevent test separation.
- * @property {Map<string, LruCache>} caches
+ * @property {Object<string, LruCache>} caches
  * @ignore
  */
 class CacheContainer {

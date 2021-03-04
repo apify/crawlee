@@ -54,7 +54,7 @@ const STARTING_Z_INDEX = 2147400000;
  *   ],
  * });
  * ```
- * @param {Object} options
+ * @param {object} options
  *   All `enqueueLinksByClickingElements()` parameters are passed
  *   via an options object with the following keys:
  * @param {Page} options.page
@@ -64,7 +64,7 @@ const STARTING_Z_INDEX = 2147400000;
  * @param {string} options.selector
  *   A CSS selector matching elements to be clicked on. Unlike in {@link utils#enqueueLinks}, there is no default
  *   value. This is to prevent suboptimal use of this function by using it too broadly.
- * @param {Array<(string|RegExp|Object)>} [options.pseudoUrls]
+ * @param {Array<(string|RegExp|Object<string, *>)>} [options.pseudoUrls]
  *   An array of {@link PseudoUrl}s matching the URLs to be enqueued,
  *   or an array of strings or RegExps or plain Objects from which the {@link PseudoUrl}s can be constructed.
  *
@@ -161,10 +161,12 @@ export async function enqueueLinksByClickingElements(options) {
  * Catches and intercepts all initiated navigation requests and opened pages.
  * Returns a list of all target URLs.
  *
- * @param {Object} options
+ * @param {object} options
  * @param {Page} options.page
  * @param {string} options.selector
- * @return {Promise<Array<object>>}
+ * @param {number} [options.waitForPageIdleMillis]
+ * @param {number} [options.maxWaitForPageIdleMillis]
+ * @return {Promise<Array<*>>}
  * @ignore
  */
 export async function clickElementsAndInterceptNavigationRequests(options) {

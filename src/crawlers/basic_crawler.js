@@ -13,14 +13,23 @@ import { validators } from '../validators';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
+import { ProxyInfo } from '../proxy_configuration';
 import Request from '../request';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';
 import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
-
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @typedef {object} CrawlingContext
+ * @property {string} id
+ * @property {Request} request
+ * @property {Session} session
+ * @property {ProxyInfo} proxyInfo
+ * @property {*} response
+ */
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -168,13 +177,13 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * ```
  * @property {Statistics} stats
  *  Contains statistics about the current run.
- * @property {?RequestList} requestList
+ * @property {RequestList} [requestList]
  *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?RequestQueue} requestQueue
+ * @property {RequestQueue} [requestQueue]
  *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?SessionPool} sessionPool
+ * @property {SessionPool} [sessionPool]
  *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
  *  Only available if used by the crawler.
  * @property {AutoscaledPool} autoscaledPool
@@ -240,6 +249,8 @@ class BasicCrawler {
             throw new ArgumentError(msg, this.constructor);
         }
 
+        // assigning {} to the options as default break proper typing
+        /** @type {defaultLog.Log} */
         this.log = log;
         this.requestList = requestList;
         this.requestQueue = requestQueue;
@@ -250,6 +261,7 @@ class BasicCrawler {
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:` });
+        /** @type {SessionPoolOptions} */
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,
@@ -340,7 +352,9 @@ class BasicCrawler {
 
     /**
      * @return {Promise<void>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _init() {
         // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
@@ -356,14 +370,21 @@ class BasicCrawler {
     }
 
     /**
-     * @param {object} crawlingContext
+     * @param {CrawlingContext} crawlingContext
      * @return {Promise<void>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _handleRequestFunction(crawlingContext) { // eslint-disable-line no-unused-vars
         await this.userProvidedHandler(crawlingContext);
     }
 
+    /**
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _pauseOnMigration() {
         if (this.autoscaledPool) {
             // if run wasn't called, this is going to crash
@@ -406,6 +427,8 @@ class BasicCrawler {
      * and RequestQueue is present then enqueues it to the queue first.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _fetchNextRequest() {
         if (!this.requestList) return this.requestQueue.fetchNextRequest();
@@ -434,6 +457,8 @@ class BasicCrawler {
      * then retries them in a case of an error, etc.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _runTaskFunction() {
         const source = this.requestQueue || this.requestList;
@@ -496,6 +521,8 @@ class BasicCrawler {
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _isTaskReadyFunction() {
         // First check RequestList, since it's only in memory.
@@ -510,6 +537,8 @@ class BasicCrawler {
      * Returns true if both RequestList and RequestQueue have all requests finished.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _defaultIsFinishedFunction() {
         const [
@@ -531,6 +560,8 @@ class BasicCrawler {
      * @param {(RequestList|RequestQueue)} source
      * @return {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _requestFunctionErrorHandler(error, crawlingContext, source) {
         const { request } = crawlingContext;
@@ -562,7 +593,9 @@ class BasicCrawler {
      * @param {Error} crawlingContext.error
      * @param {Request} crawlingContext.request
      * @return {Promise<void>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _handleFailedRequestFunction(crawlingContext) {
         if (this.failedContextHandler) {
@@ -587,6 +620,8 @@ class BasicCrawler {
      *
      * @return {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _loadHandledRequestCount() {
         if (this.requestQueue) {
@@ -629,13 +664,13 @@ export default BasicCrawler;
 /**
  * @callback HandleFailedRequest
  * @param {HandleFailedRequestInput} inputs Arguments passed to this callback.
- * @returns {(void|Promise<void>)}
+ * @returns {Promise<void>}
  */
 
 /**
  * @typedef HandleFailedRequestInput
  * @property {Error} error The Error thrown by `handleRequestFunction`.
  * @property {Request} request The original {Request} object.
- * @property {Session} [session]
- * @property {ProxyInfo} [proxyInfo]
+ * @property {Session} session
+ * @property {ProxyInfo} proxyInfo
  */

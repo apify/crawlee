@@ -9,10 +9,10 @@ import { weightedAvg } from '../utils';
  * @typedef SystemInfo
  * @property {boolean} isSystemIdle
  *   If true, system is being overloaded.
- * @property {object} memInfo
+ * @property {Object<string, *>} memInfo
  *   Memory
- * @property {object} eventLoopInfo
- * @property {object} cpuInfo
+ * @property {Object<string, *>} eventLoopInfo
+ * @property {Object<string, *>} cpuInfo
  */
 
 /**
@@ -136,6 +136,8 @@ class SystemStatus {
      * @param {number} [sampleDurationMillis]
      * @return {SystemInfo}
      * @ignore
+     * @protected
+     * @internal
      */
     _isSystemIdle(sampleDurationMillis) {
         const memInfo = this._isMemoryOverloaded(sampleDurationMillis);
@@ -158,6 +160,8 @@ class SystemStatus {
      * @param {number} sampleDurationMillis
      * @return {object}
      * @ignore
+     * @protected
+     * @internal
      */
     _isMemoryOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getMemorySample(sampleDurationMillis);
@@ -171,6 +175,8 @@ class SystemStatus {
      * @param {number} sampleDurationMillis
      * @return {object}
      * @ignore
+     * @protected
+     * @internal
      */
     _isEventLoopOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getEventLoopSample(sampleDurationMillis);
@@ -184,6 +190,8 @@ class SystemStatus {
      * @param {number} sampleDurationMillis
      * @return {object}
      * @ignore
+     * @protected
+     * @internal
      */
     _isCpuOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getCpuSample(sampleDurationMillis);
@@ -195,7 +203,9 @@ class SystemStatus {
      * if the client has been overloaded in the last sampleDurationMillis.
      * @param {number} sampleDurationMillis
      * @return {{isOverloaded: boolean, maxOverloadedRatio: number, actualRatio: number}}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _isClientOverloaded(sampleDurationMillis) {
         const sample = this.snapshotter.getClientSample(sampleDurationMillis);
@@ -210,6 +220,8 @@ class SystemStatus {
      * @param {number} ratio
      * @return {object}
      * @ignore
+     * @protected
+     * @internal
      */
     _isSampleOverloaded(sample, ratio) { // eslint-disable-line class-methods-use-this
         const weights = [];

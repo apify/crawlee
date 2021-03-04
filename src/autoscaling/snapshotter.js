@@ -99,6 +99,7 @@ class Snapshotter {
             log = defaultLog,
         } = options;
 
+        /** @type {defaultLog.Log} */
         this.log = log.child({ prefix: 'Snapshotter' });
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;
@@ -209,6 +210,8 @@ class Snapshotter {
      * @param {number} [sampleDurationMillis]
      * @return {Array<*>}
      * @ignore
+     * @protected
+     * @internal
      */
     _getSample(snapshots, sampleDurationMillis) { // eslint-disable-line class-methods-use-this
         if (!sampleDurationMillis) return snapshots;
@@ -231,6 +234,8 @@ class Snapshotter {
      * using the Apify platform `systemInfo` event.
      * @param {*} systemInfo
      * @ignore
+     * @protected
+     * @internal
      */
     _snapshotMemoryOnPlatform(systemInfo) {
         const now = new Date();
@@ -252,6 +257,8 @@ class Snapshotter {
      * @param {Function} intervalCallback
      * @return {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _snapshotMemoryOnLocal(intervalCallback) {
         try {
@@ -279,6 +286,8 @@ class Snapshotter {
      * Checks for critical memory overload and logs it to the console.
      * @param {*} systemInfo
      * @ignore
+     * @protected
+     * @internal
      */
     _memoryOverloadWarning({ memCurrentBytes }) {
         const now = new Date();
@@ -302,6 +311,8 @@ class Snapshotter {
      * Creates a snapshot of current event loop delay.
      * @param {Function} intervalCallback
      * @ignore
+     * @protected
+     * @internal
      */
     _snapshotEventLoop(intervalCallback) {
         const now = new Date();
@@ -331,6 +342,8 @@ class Snapshotter {
      * using the Apify platform `systemInfo` event.
      * @param {Object} systemInfo
      * @ignore
+     * @protected
+     * @internal
      */
     _snapshotCpuOnPlatform(systemInfo) {
         const { cpuCurrentUsage, isCpuOverloaded } = systemInfo;
@@ -349,6 +362,8 @@ class Snapshotter {
      * using OS provided metrics.
      * @param {Function} intervalCallback
      * @ignore
+     * @protected
+     * @internal
      */
     _snapshotCpuOnLocal(intervalCallback) {
         const now = new Date();
@@ -377,6 +392,11 @@ class Snapshotter {
         intervalCallback();
     }
 
+    /**
+     * @ignore
+     * @protected
+     * @internal
+     */
     _getCurrentCpuTicks() { // eslint-disable-line class-methods-use-this
         const cpus = os.cpus();
         return cpus.reduce((acc, cpu) => {
@@ -397,7 +417,9 @@ class Snapshotter {
      * overloading.
      *
      * @param intervalCallback
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _snapshotClient(intervalCallback) {
         const now = new Date();
@@ -429,6 +451,8 @@ class Snapshotter {
      * @param {Array<*>} snapshots
      * @param {Date} now
      * @ignore
+     * @protected
+     * @internal
      */
     _pruneSnapshots(snapshots, now) {
         let oldCount = 0;
@@ -443,6 +467,8 @@ class Snapshotter {
     /**
      * Calculate max memory for platform or local usage.
      * @ignore
+     * @protected
+     * @internal
      */
     async _ensureCorrectMaxMemory() {
         if (this.maxMemoryBytes) return;

@@ -83,9 +83,9 @@ const requestOptionalPredicates = {
  *   Indicates the number of times the crawling of the request has been retried on error.
  * @property {string[]} errorMessages
  *   An array of error messages from request processing.
- * @property {object} headers
+ * @property {Object<string, string>} headers
  *   Object with HTTP headers. Key is header name, value is the value.
- * @property {object} userData
+ * @property {Object<string, *>} userData
  *   Custom user data assigned to the request.
  * @property {Date} handledAt
  *   Indicates the time when the request has been processed.
@@ -144,7 +144,11 @@ class Request {
         this.noRetry = noRetry;
         this.retryCount = retryCount;
         this.errorMessages = [...errorMessages];
+        // @property are ignored when reassigning, needs to enforced set again,
+        // otherwise the type will be {}
+        /** @type {Object<string, string>} */
         this.headers = { ...headers };
+        /** @type {Object<string, any>} */
         this.userData = { ...userData };
         // Requests received from API will have ISOString dates,
         // but we want to have a Date instance.
@@ -164,7 +168,7 @@ class Request {
      * as possible, since just throwing a bad type error makes any debugging rather difficult.
      *
      * @param {(Error|string)} errorOrMessage Error object or error message to be stored in the request.
-     * @param {Object} [options]
+     * @param {object} [options]
      * @param {boolean} [options.omitStack=false] Only push the error message without stack trace when true.
      */
     pushErrorMessage(errorOrMessage, options = {}) {
@@ -201,7 +205,8 @@ class Request {
 
     /**
      * @ignore
-     * @private
+     * @protected
+     * @internal
      */
     _computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
         const normalizedMethod = method.toUpperCase();
@@ -245,7 +250,7 @@ export default Request;
  * @property {string} [method='GET']
  * @property {(string|Buffer)} [payload]
  *   HTTP request payload, e.g. for POST requests.
- * @property {Object} [headers={}]
+ * @property {Object<string,string>} [headers]
  *   HTTP headers in the following format:
  *   ```
  *   {
@@ -253,7 +258,7 @@ export default Request;
  *       'Content-Type': 'application/json'
  *   }
  *   ```
- * @property {object} [userData={}]
+ * @property {Object<string,*>} [userData]
  *   Custom user data assigned to the request. Use this to save any request related data to the
  *   request's scope, keeping them accessible on retries, failures etc.
  * @property {boolean} [keepUrlFragment=false]

@@ -6,6 +6,17 @@ import { APIFY_API_BASE_URL } from '../constants';
 import StorageManager from './storage_manager';
 import log from '../utils_log';
 
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+// @ts-ignore
+import * as ApifyClient from 'apify-client';
+// @ts-ignore
+import * as ApifyStorageLocal from '@apify/storage-local';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @typedef {(Object<string, *>|null|Buffer|string)} KeyValueStoreValueTypes
+ */
+
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
  *
@@ -141,7 +152,7 @@ export class KeyValueStore {
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<(object|Buffer|string|null)>}
+     * @returns {Promise<KeyValueStoreValueTypes>}
      *   Returns a promise that resolves to an object, string
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
@@ -191,13 +202,13 @@ export class KeyValueStore {
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @param {(Object|string|Buffer|null)} value
+     * @param {KeyValueStoreValueTypes} value
      *   Record data, which can be one of the following values:
      *    - If `null`, the record in the key-value store is deleted.
      *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
      *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
      *   For any other value an error will be thrown.
-     * @param {Object} [options]
+     * @param {object} [options]
      * @param {string} [options.contentType]
      *   Specifies a custom MIME content type of the record.
      * @returns {Promise<void>}
@@ -275,7 +286,7 @@ export class KeyValueStore {
      * ```
      *
      * @param {KeyConsumer} iteratee A function that is called for every key in the key-value store.
-     * @param {Object} [options] All `forEachKey()` parameters are passed
+     * @param {object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise<void>}
@@ -351,7 +362,7 @@ export const openKeyValueStore = async (storeIdOrName, options = {}) => {
  *
  * @param {string} key
  *   Unique record key.
- * @returns {Promise<object|string|Buffer|null>}
+ * @returns {Promise<Object<string, *>|string|Buffer|null>}
  *   Returns a promise that resolves to an object, string
  *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
  *   on the MIME content type of the record, or `null`
@@ -388,13 +399,13 @@ export const getValue = async (key) => {
  *
  * @param {string} key
  *   Unique record key.
- * @param {object} value
+ * @param {*} value
  *   Record data, which can be one of the following values:
  *    - If `null`, the record in the key-value store is deleted.
  *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
  *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
  *   For any other value an error will be thrown.
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {string} [options.contentType]
  *   Specifies a custom MIME content type of the record.
  * @return {Promise<void>}
@@ -430,7 +441,7 @@ export const setValue = async (key, value, options) => {
  * For more information, see  {@link Apify#openKeyValueStore}
  * and {@link KeyValueStore#getValue}.
  *
- * @returns {Promise<object|string|Buffer|null>}
+ * @returns {Promise<Object<string, *>|string|Buffer|null>}
  *   Returns a promise that resolves to an object, string
  *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
  *   on the MIME content type of the record, or `null`
@@ -448,7 +459,7 @@ export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || 
  *   Current {KeyValue} key being processed.
  * @param {number} index
  *   Position of the current key in {@link KeyValueStore}.
- * @param {object} info
+ * @param {*} info
  *   Information about the current {@link KeyValueStore} entry.
  * @param {number} info.size
  *   Size of the value associated with the current key in bytes.

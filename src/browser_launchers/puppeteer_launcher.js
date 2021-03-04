@@ -32,7 +32,7 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * ```
  *
  * @typedef PuppeteerLaunchContext
- * @property {object} [launchOptions]
+ * @property {Object<string, *>} [launchOptions]
  *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
@@ -50,7 +50,7 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   is taken from the `APIFY_CHROME_EXECUTABLE_PATH` environment variable if provided,
  *   or defaults to the typical Google Chrome executable location specific for the operating system.
  *   By default, this option is `false`.
- * @property {Object} [launcher]
+ * @property {*} [launcher]
  *   Already required module (`Object`). This enables usage of various Puppeteer
  *   wrappers such as `puppeteer-extra`.
  *
@@ -98,6 +98,7 @@ export class PuppeteerLauncher extends BrowserLauncher {
         });
         this.userAgent = userAgent;
         this.stealth = stealth;
+        /** @type {StealthOptions} */
         this.stealthOptions = {
             hideWebDriver: true,
             ...stealthOptions,
@@ -186,7 +187,7 @@ export class PuppeteerLauncher extends BrowserLauncher {
  * @param {PuppeteerLaunchContext} [launchContext]
  * All `PuppeteerLauncher` parameters are passed via an launchContext object.
  * If you want to pass custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.
- * @returns {Promise<Browser>}
+ * @returns {Promise<*>}
  *   Promise that resolves to Puppeteer's `Browser` instance.
  * @memberof module:Apify
  * @name launchPuppeteer

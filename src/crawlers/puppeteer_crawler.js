@@ -1,10 +1,38 @@
 import ow from 'ow';
 
-import BrowserCrawler from './browser_crawler';
 import { gotoExtended } from '../puppeteer_utils';
-import { PuppeteerLauncher } from '../browser_launchers/puppeteer_launcher';
 import applyStealthToBrowser from '../stealth/stealth';
 
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { PuppeteerLauncher, PuppeteerLaunchContext } from '../browser_launchers/puppeteer_launcher';
+import { HandleFailedRequest } from './basic_crawler';
+import BrowserCrawler, { BrowserCrawlingContext } from './browser_crawler';
+import { ProxyConfiguration } from '../proxy_configuration';
+import { SessionPoolOptions } from '../session_pool/session_pool';
+import { CrawlingContext } from './basic_crawler';
+import { Page, DirectNavigationOptions } from 'puppeteer';
+import { RequestList } from '../request_list';
+import { RequestQueue } from '../storages/request_queue';
+import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
+import { BrowserPoolOptions } from 'browser-pool';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @callback PuppeteerHook
+ * @param {{ page: Page, crawler: PuppeteerCrawler } & BrowserCrawlingContext & CrawlingContext} crawlingContext
+ * @param {DirectNavigationOptions} gotoOptions
+ * @returns {Promise<void>}
+ */
+/**
+ * @typedef PuppeteerHandlePageFunctionParam
+ * @property {Page} page
+ * @property {PuppeteerCrawler} crawler
+ */
+/**
+ * @callback PuppeteerHandlePage
+ * @param {CrawlingContext & BrowserCrawlingContext & { page: Page, crawler: PuppeteerCrawler }} context
+ * @returns {Promise<void>}
+ */
 /**
  * @typedef PuppeteerCrawlerOptions
  * @property {PuppeteerHandlePage} handlePageFunction
@@ -76,7 +104,7 @@ import applyStealthToBrowser from '../stealth/stealth';
  *   If set, `PuppeteerCrawler` will be configured for all connections to use
  *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
- * @property {Array<function>} [preNavigationHooks]
+ * @property {Array<PuppeteerHook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
  *   which are passed to the `gotoFunction` the crawler calls to navigate.
@@ -84,11 +112,12 @@ import applyStealthToBrowser from '../stealth/stealth';
  * ```
  * preNavigationHooks: [
  *     async (crawlingContext, gotoOptions) => {
+ *         const { page } = crawlingContext;
  *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
  *     }
  * ]
  * ```
- * @property {Array<function>} [postNavigationHooks]
+ * @property {Array<PuppeteerHook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as an only parameter.
  *   Example:
@@ -195,16 +224,16 @@ import applyStealthToBrowser from '../stealth/stealth';
  * ```
  * @property {Statistics} stats
  *  Contains statistics about the current run.
- * @property {?RequestList} requestList
+ * @property {RequestList} [requestList]
  *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?RequestQueue} requestQueue
+ * @property {RequestQueue} [requestQueue]
  *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
  *  Only available if used by the crawler.
- * @property {?SessionPool} sessionPool
+ * @property {SessionPool} [sessionPool]
  *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
  *  Only available if used by the crawler.
- * @property {?ProxyConfiguration} proxyConfiguration
+ * @property {ProxyConfiguration} proxyConfiguration
  *  A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
  *  Only available if used by the crawler.
  * @property {BrowserPool} browserPool
@@ -224,7 +253,6 @@ class PuppeteerCrawler extends BrowserCrawler {
         gotoTimeoutSecs: ow.optional.number,
         navigationTimeoutSecs: ow.optional.number,
         launchContext: ow.optional.object,
-
     }
 
     /**
@@ -288,6 +316,13 @@ class PuppeteerCrawler extends BrowserCrawler {
         };
     }
 
+    /**
+     * @param {*} crawlingContext
+     * @param {*} gotoOptions
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _navigationHandler(crawlingContext, gotoOptions) {
         if (this.gotoFunction) {
             this.log.deprecated('PuppeteerCrawlerOptions.gotoFunction is deprecated. Use "preNavigationHooks" and "postNavigationHooks" instead.');

@@ -74,7 +74,7 @@ class Statistics {
 
         /**
          * @private
-         * @type {Map<string | number, Job>}
+         * @type {Object<string|number, Job>}
          */
         this.requestsInProgress = new Map();
 
@@ -214,8 +214,10 @@ class Statistics {
     }
 
     /**
-     * @private
      * @param {Job} job
+     * @ignore
+     * @protected
+     * @internal
      */
     _saveRetryCountForJob(job) {
         const retryCount = job.retryCount();
@@ -241,7 +243,9 @@ class Statistics {
 
     /**
      * Loads the current statistic from the key value store if any
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _maybeLoadStatistics() {
         // this might be called before startCapturing was called without using await, should not crash
@@ -284,7 +288,9 @@ class Statistics {
     }
 
     /**
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _teardown() {
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
@@ -300,7 +306,7 @@ class Statistics {
      * Make this class serializable when called with `JSON.stringify(statsInstance)` directly
      * or through `keyValueStore.setValue('KEY', statsInstance)`
      *
-     * @returns {StatisticPersistedState | StatisticState}
+     * @returns {StatisticPersistedState & StatisticState}
      */
     toJSON() {
         // merge all the current state information that can be used from the outside

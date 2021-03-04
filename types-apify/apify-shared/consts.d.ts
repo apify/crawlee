@@ -20,6 +20,11 @@ declare module 'apify-shared/consts' {
         DEFAULT_KEY_VALUE_STORE_ID: string;
         ACTOR_EVENTS_WS_URL: string;
         INPUT_KEY: string;
+        HEADLESS: string;
+        XVFB: string;
+        PROXY_PASSWORD: string;
+        DEFAULT_REQUEST_QUEUE_ID: string;
+        CHROME_EXECUTABLE_PATH: string;
     };
     export const KEY_VALUE_STORE_KEYS: {
         INPUT: string;

@@ -6,17 +6,17 @@ import defaultLog from '../utils_log';
 
 /**
  * @typedef AutoscaledPoolOptions
- * @property {Function} runTaskFunction
+ * @property {Function} [runTaskFunction]
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.
  *
- * @property {Function} isTaskReadyFunction
+ * @property {Function} [isTaskReadyFunction]
  *   A function that indicates whether `runTaskFunction` should be called.
  *   This function is called every time there is free capacity for a new task and it should
  *   indicate whether it should start a new task or not by resolving to either `true` or `false`.
  *   Besides its obvious use, it is also useful for task throttling to save resources.
  *
- * @property {Function} isFinishedFunction
+ * @property {Function} [isFinishedFunction]
  *   A function that is called only when there are no tasks to be processed.
  *   If it resolves to `true` then the pool's run finishes. Being called only
  *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
@@ -150,6 +150,9 @@ class AutoscaledPool {
             log = defaultLog,
         } = options;
 
+        /**
+         * @type {defaultLog.Log}
+         */
         this.log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
@@ -361,6 +364,8 @@ class AutoscaledPool {
      * It doesn't allow multiple concurrent runs of this method.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _maybeRunTask(intervalCallback) {
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
@@ -432,6 +437,8 @@ class AutoscaledPool {
      * If the system IS overloaded and the settings allow it, it scales down.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     _autoscale(intervalCallback) {
         // Don't scale if paused.
@@ -480,6 +487,8 @@ class AutoscaledPool {
      *
      * @param {Object} systemStatus for logging
      * @ignore
+     * @protected
+     * @internal
      */
     _scaleUp(systemStatus) {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
@@ -497,6 +506,8 @@ class AutoscaledPool {
      *
      * @param {Object} systemStatus for logging
      * @ignore
+     * @protected
+     * @internal
      */
     _scaleDown(systemStatus) {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
@@ -515,6 +526,8 @@ class AutoscaledPool {
      * It doesn't allow multiple concurrent runs of this method.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _maybeFinish() {
         if (this.queryingIsFinished) return;
@@ -539,6 +552,8 @@ class AutoscaledPool {
      * Cleans up resources.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _destroy() {
         this.resolve = null;

@@ -35,7 +35,7 @@ const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
  * @typedef SessionOptions
  * @property {string} [id] - Id of session used for generating fingerprints. It is used as proxy session name.
  * @property {number} [maxAgeSecs=3000] - Number of seconds after which the session is considered as expired.
- * @property {object} [userData] - Object where custom user data can be stored. For example custom headers.
+ * @property {Object<string,*>} [userData] - Object where custom user data can be stored. For example custom headers.
  * @property {number} [maxErrorScore=3] - Maximum number of marking session as blocked usage.
  *   If the `errorScore` reaches the `maxErrorScore` session is marked as block and it is thrown away.
  *   It starts at 0. Calling the `markBad` function increases the `errorScore` by 1.
@@ -107,6 +107,7 @@ export class Session {
         this.cookieJar = cookieJar.setCookie ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
+        /** @type {Object<string,*>} */
         this.userData = userData;
         this.maxErrorScore = maxErrorScore;
         this.errorScoreDecrement = errorScoreDecrement;
@@ -302,7 +303,9 @@ export class Session {
      * Transforms puppeteer cookie to tough-cookie.
      * @param {PuppeteerCookie} puppeteerCookie Cookie from puppeteer `page.cookies method.
      * @return {Cookie}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _puppeteerCookieToTough(puppeteerCookie) {
         const isExpiresValid = puppeteerCookie.expires && typeof puppeteerCookie.expires === 'number' && puppeteerCookie.expires > 0;
@@ -325,7 +328,9 @@ export class Session {
      * Transforms tough-cookie to puppeteer cookie .
      * @param {Cookie} toughCookie - Cookie from CookieJar
      * @return {PuppeteerCookie} - Cookie from Puppeteer
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _toughCookieToPuppeteer(toughCookie) {
         return {
@@ -344,7 +349,9 @@ export class Session {
      * Sets cookies.
      * @param {Cookie[]} cookies
      * @param {string} url
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _setCookies(cookies, url) {
         const errorMessages = [];
@@ -363,8 +370,11 @@ export class Session {
 
     /**
      * Calculate cookie expiration date
+     * @param {number} maxAgeSecs
      * @return {Date} - calculated date by session max age seconds.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _getDefaultCookieExpirationDate(maxAgeSecs) {
         return new Date(Date.now() + (maxAgeSecs * 1000));
@@ -372,7 +382,9 @@ export class Session {
 
     /**
      * Checks if session is not usable. if it is not retires the session.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _maybeSelfRetire() {
         if (!this.isUsable()) {
