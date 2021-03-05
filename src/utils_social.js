@@ -537,7 +537,7 @@ try {
  * ```
  *
  * @param {string} html HTML text
- * @param {Object} data Optional object which will receive the `text` and `$` properties
+ * @param {*|null} [data] Optional object which will receive the `text` and `$` properties
  *   that contain text content of the HTML and `cheerio` object, respectively. This is an optimization
  *   so that the caller doesn't need to parse the HTML document again, if needed.
  * @return {SocialHandles} An object with the social handles.

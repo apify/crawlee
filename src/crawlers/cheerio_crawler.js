@@ -16,8 +16,9 @@ import CrawlerExtension from './crawler_extension';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
+import { Readable } from 'stream';
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
-import { HandleFailedRequest } from './basic_crawler';
+import { HandleFailedRequest, CrawlingContext } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
@@ -460,10 +461,10 @@ class CheerioCrawler extends BasicCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} crawlingContext
-     * @param {Request} crawlingContext.request
-     * @param {Session} [crawlingContext.session]
+     * @param {CrawlingContext} crawlingContext
      * @ignore
+     * @protected
+     * @internal
      */
     async _handleRequestFunction(crawlingContext) {
         const { request, session } = crawlingContext;
@@ -533,12 +534,14 @@ class CheerioCrawler extends BasicCrawler {
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      *
-     * @param {Object} options
+     * @param {object} options
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {string} options.proxyUrl
      * @returns {Promise<IncomingMessage|Readable>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _requestFunction({ request, session, proxyUrl }) {
         // Using the streaming API of Request to be able to
@@ -571,6 +574,8 @@ class CheerioCrawler extends BasicCrawler {
      * @param {IncomingMessage|Readable} responseStream
      * @returns {Promise<object>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _parseResponse(request, responseStream) {
         const { statusCode } = responseStream;
@@ -607,6 +612,8 @@ class CheerioCrawler extends BasicCrawler {
      * @param {Session} [session]
      * @param {string} [proxyUrl]
      * @ignore
+     * @protected
+     * @internal
      */
     _getRequestOptions(request, session, proxyUrl) {
         const mandatoryRequestOptions = {
@@ -642,6 +649,14 @@ class CheerioCrawler extends BasicCrawler {
         return { ...this.requestOptions, ...mandatoryRequestOptions };
     }
 
+    /**
+     * @param {*} request
+     * @param {*} response
+     * @param {*} encoding
+     * @ignore
+     * @protected
+     * @internal
+     */
     _encodeResponse(request, response, encoding) {
         if (this.forceResponseEncoding) {
             encoding = this.forceResponseEncoding;
@@ -675,6 +690,12 @@ class CheerioCrawler extends BasicCrawler {
         throw new Error(`Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
     }
 
+    /**
+     * @param {*} response
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _parseHtmlToDom(response) {
         return new Promise((resolve, reject) => {
             const domHandler = new htmlparser.DomHandler((err, dom) => {
@@ -691,6 +712,8 @@ class CheerioCrawler extends BasicCrawler {
      * Checks and extends supported mime types
      * @param {Array<(string|Object)>} additionalMimeTypes
      * @ignore
+     * @protected
+     * @internal
      */
     _extendSupportedMimeTypes(additionalMimeTypes) {
         additionalMimeTypes.forEach((mimeType) => {
@@ -707,7 +730,9 @@ class CheerioCrawler extends BasicCrawler {
      * Handles blocked request
      * @param {Session} session
      * @param {number} statusCode
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _throwOnBlockedRequest(session, statusCode) {
         const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
@@ -720,7 +745,9 @@ class CheerioCrawler extends BasicCrawler {
     /**
      * Handles timeout request
      * @param {Session} session
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _handleRequestTimeout(session) {
         if (session) session.markBad();
@@ -750,7 +777,7 @@ export default CheerioCrawler;
 
 /**
  * @typedef PostResponseInputs
- * @property {IncomingMessage|Readable} response stream
+ * @property {(IncomingMessage|Readable)} response stream
  * @property {Request} request
  *  Original instance fo the {Request} object. Must be modified in-place.
  * @property {Session} [session]
@@ -758,7 +785,7 @@ export default CheerioCrawler;
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
- *  @property {CheerioCrawler} [crawler]
+ *  @property {CheerioCrawler} crawler
  */
 
 /**
@@ -769,11 +796,11 @@ export default CheerioCrawler;
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {cheerio.Selector} [$]
+ * @property {cheerio.Root} $
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
  * @property {(string|Buffer)} body
  *  The request body of the web page.
- * @property {*} [json]
+ * @property {*} json
  *  The parsed object from JSON string if the response contains the content type application/json.
  * @property {Request} request
  *   The original {@link Request} object.
@@ -781,11 +808,11 @@ export default CheerioCrawler;
  *  Parsed `Content-Type header: { type, encoding }`.
  * @property {IncomingMessage} response
  *   An instance of Node's http.IncomingMessage object,
- * @property {Session} [session]
- * @property {ProxyInfo} [proxyInfo]
+ * @property {Session} session
+ * @property {ProxyInfo} proxyInfo
  *   An object with information about currently used proxy by the crawler
  *   and configured by the {@link ProxyConfiguration} class.
- * @property {CheerioCrawler} [crawler]
+ * @property {CheerioCrawler} crawler
  */
 
 /**

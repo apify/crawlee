@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const jsdoc2md = require('jsdoc-to-markdown'); // eslint-disable-line
 const path = require('path');
 const prettier = require('prettier'); // eslint-disable-line
-const httpRequest = require('@apify/http-request');
+const got = require('got');
 const prettierConfig = require('./prettier.config');
 const sidebars = require('../sidebars.json');
 const { readStreamToString } = require('apify-shared/streams_utilities');  // eslint-disable-line
@@ -37,6 +37,7 @@ const getRenderOptions = (template, data) => ({
     'property-list-format': 'list',
     'heading-depth': 1,
     helper: [path.join(__dirname, 'helpers.js')],
+    plugins: ["jsdoc-plugin-intersection"],
     partial: [
         path.join(__dirname, 'partials', 'params-list.hbs'),
         path.join(__dirname, 'partials', 'properties-list.hbs'),
@@ -122,10 +123,7 @@ const generateFinalMarkdown = (title, text, entityMap) => {
 async function getExamplesFromRepo() {
     await fs.emptyDir(EXAMPLES_DIR_NAME);
     process.chdir(EXAMPLES_DIR_NAME);
-    const { body } = await httpRequest({
-        url: EXAMPLES_REPO,
-        json: true,
-    });
+    const body = await got(EXAMPLES_REPO).json();
     const builtExamples = await buildExamples(body);
     await addExamplesToSidebars(builtExamples);
 }
@@ -133,20 +131,12 @@ async function getExamplesFromRepo() {
 async function buildExamples(exampleLinks) {
     const examples = [];
     for (const example of exampleLinks) {
-        const responseStream = await httpRequest({
-            url: example.download_url,
-            stream: true,
-        });
-        try {
-            console.log(`Rendering example ${example.name}`);
-            const fileContent = await readStreamToString(responseStream);
-            const markdown = prettier.format(fileContent, prettierConfig);
-            fs.writeFileSync(example.name, markdown);
-            const exampleName = example.name.split('.')[0];
-            examples.push(`examples/${exampleName.replace(/_/g, '-')}`);
-        } catch (err) {
-            throw err;
-        }
+        const fileContent = await got(example.download_url).text();
+        console.log(`Rendering example ${example.name}`);
+        const markdown = prettier.format(fileContent, prettierConfig);
+        fs.writeFileSync(example.name, markdown);
+        const exampleName = example.name.split('.')[0];
+        examples.push(`examples/${exampleName.replace(/_/g, '-')}`);
     }
     return examples;
 }
@@ -165,7 +155,10 @@ const main = async () => {
     const typeFilesOutputDir = path.join(__dirname, '..', '..', 'docs', 'typedefs');
 
     /* get template data */
-    let templateData = await jsdoc2md.getTemplateData({ files: sourceFiles });
+    let templateData = await jsdoc2md.getTemplateData({
+        files: sourceFiles,
+        configure: path.join(__dirname, 'conf.json'),
+    });
 
     // handle examples
     await getExamplesFromRepo();

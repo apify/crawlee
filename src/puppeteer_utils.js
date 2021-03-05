@@ -20,6 +20,16 @@ const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
 /**
+ * @typedef {object} CompiledScriptParams
+ * @property {Page} params.page
+ * @property {Request} params.request
+ */
+/**
+ * @callback CompiledScriptFunction
+ * @param {CompiledScriptParams} params
+ * @returns {Promise<*>}
+ */
+/**
  * Cache contents of previously injected files to limit file system access.
  */
 const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE });
@@ -34,7 +44,7 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  * @param {Page} page
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {string} filePath File path
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {boolean} [options.surviveNavigations]
  *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
  *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
@@ -160,7 +170,7 @@ const injectUnderscore = (page) => {
  *
  * @param {Page} page
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {string[]} [options.urlPatterns]
  *   The patterns of URLs to block from being loaded by the browser.
  *   Only `*` can be used as a wildcard. It is also automatically added to the beginning
@@ -212,7 +222,7 @@ const blockResources = async (page, resourceTypes = ['stylesheet', 'font', 'imag
  *   This issue should be resolved or atleast mitigated in future iterations of this feature.
  * @param {Page} page
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {Object} cache
+ * @param {Object<string, *>} cache
  *   Object in which responses are stored
  * @param {Array<(string|RegExp)>} responseUrlRules
  *   List of rules that are used to check if the response should be cached.
@@ -293,8 +303,8 @@ const cacheResponses = async (page, cache, responseUrlRules) => {
  * secured copies beforehand.
  *
  * @param {string} scriptString
- * @param {Object} context
- * @return {Function} `async ({ page, request }) => { scriptString }`
+ * @param {Object<string, *>} context
+ * @return {CompiledScriptFunction}
  * @memberOf puppeteer
  */
 const compileScript = (scriptString, context = Object.create(null)) => {
@@ -325,7 +335,7 @@ const compileScript = (scriptString, context = Object.create(null)) => {
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
  * @param {Request} request
  * @param {DirectNavigationOptions} [gotoOptions] Custom options for `page.goto()`.
- * @return {Promise<(Response | null)>}
+ * @return {Promise<(Response|null)>}
  *
  * @memberOf puppeteer
  * @name gotoExtended
@@ -375,14 +385,14 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
  * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
  * @param {Page} page
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {number} [options.timeoutSecs=0]
  *   How many seconds to scroll for. If 0, will scroll until bottom of page.
  * @param {number} [options.waitForSecs=4]
  *   How many seconds to wait for no new content to load before exit.
- * @param {Boolean} [options.scrollDownAndUp=false]
+ * @param {boolean} [options.scrollDownAndUp=false]
  *   If true, it will scroll up a bit after each scroll down. This is required on some websites for the scroll to work.
- * @param {String} [options.buttonSelector]
+ * @param {string} [options.buttonSelector]
  *   Optionally checks and clicks a button if it appears while scrolling. This is required on some websites for the scroll to work.
  * @returns {Promise<void>}
  * @memberOf puppeteer
@@ -469,7 +479,7 @@ export const infiniteScroll = async (page, options = {}) => {
  * Saves a full screenshot and HTML of the current page into a Key-Value store.
  * @param {Page} page
  *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {string} [options.key=SNAPSHOT]
  *   Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.
  * @param {number} [options.screenshotQuality=50]
@@ -478,7 +488,7 @@ export const infiniteScroll = async (page, options = {}) => {
  *   If true, it will save a full screenshot of the current page as a record with `key` appended by `.jpg`.
  * @param {boolean} [options.saveHtml=true]
  *   If true, it will save a full HTML of the current page as a record with `key` appended by `.html`.
- * @param {string} [options.keyValueStoreName=null]
+ * @param {string|null} [options.keyValueStoreName=null]
  *   Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.
  * @returns {Promise<void>}
  * @memberOf puppeteer

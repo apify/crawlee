@@ -57,6 +57,10 @@ const tryParseDate = (str) => {
  */
 
 /**
+ * @typedef {Array<('ACTOR.RUN.SUCCEEDED' | 'ACTOR.RUN.ABORTED' | 'ACTOR.RUN.CREATED' | 'ACTOR.RUN.FAILED' | 'ACTOR.RUN.TIMED_OUT')>} EventTypes
+ */
+
+/**
  * Returns a new {@link ApifyEnv} object which contains information parsed from all the `APIFY_XXX` environment variables.
  *
  * For the list of the `APIFY_XXX` environment variables, see
@@ -219,6 +223,14 @@ export const main = (userFunc) => {
 };
 
 /**
+ * @typedef AdhocWebhook
+ * @property {EventTypes} eventTypes
+ * @property {string} requestUrl
+ * @property {string} [idempotencyKey]
+ * @property {string} [payloadTemplate]
+ */
+
+/**
  * Runs an actor on the Apify platform using the current user account (determined by the `APIFY_TOKEN` environment variable),
  * waits for the actor to finish and fetches its output.
  *
@@ -248,11 +260,11 @@ export const main = (userFunc) => {
  *
  * @param {string} actId
  *  Allowed formats are `username/actor-name`, `userId/actor-name` or actor ID.
- * @param {object} [input]
+ * @param {Object<string, *>} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
- * @param {Object} [options={}]
+ * @param {object} [options]
  *   Object with the settings below:
  * @param {string} [options.contentType]
  *  Content type for the `input`. If not specified,
@@ -280,7 +292,7 @@ export const main = (userFunc) => {
  * @param {boolean} [options.disableBodyParser=false]
  *  If `true` then the function will not attempt to parse the
  *  actor's output and will return it in a raw `Buffer`.
- * @param {Array<object>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ * @param {Array<AdhocWebhook>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
  *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
  * @returns {Promise<ActorRun>}
@@ -381,11 +393,11 @@ export const call = async (actId, input, options = {}) => {
  *
  * @param {string} taskId
  *  Allowed formats are `username/task-name`, `userId/task-name` or task ID.
- * @param {object} [input]
+ * @param {Object<string, *>} [input]
  *  Input overrides for the actor task. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Provided input will be merged with actor task input.
- * @param {Object} [options={}]
+ * @param {object} [options]
  *   Object with the settings below:
  * @param {string} [options.token]
  *  User API token that is used to run the actor. By default, it is taken from the `APIFY_TOKEN` environment variable.
@@ -403,7 +415,7 @@ export const call = async (actId, input, options = {}) => {
  *  If the limit is reached, the returned promise is resolved to a run object that will have
  *  status `READY` or `RUNNING` and it will not contain the actor run output.
  *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
- * @param {Array<object>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+ * @param {Array<AdhocWebhook>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
  *  to receive a notification e.g. when the actor finished or failed, see
  *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
  * @returns {Promise<ActorRun>}
@@ -481,11 +493,11 @@ function isRunUnsuccessful(status) {
  *
  * @param {string} targetActorId
  *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
- * @param {object} [input]
+ * @param {Object<string, *>} [input]
  *  Input for the actor. If it is an object, it will be stringified to
  *  JSON and its content type set to `application/json; charset=utf-8`.
  *  Otherwise the `options.contentType` parameter must be provided.
- * @param {Object} [options={}]
+ * @param {object} [options]
  *   Object with the settings below:
  * @param {string} [options.contentType]
  *  Content type for the `input`. If not specified,
@@ -533,6 +545,22 @@ export const metamorph = async (targetActorId, input, options = {}) => {
 };
 
 /**
+ * @typedef WebhookRun
+ * @property {string} id
+ * @property {string} createdAt
+ * @property {string} modifiedAt
+ * @property {string} userId
+ * @property {boolean} isAdHoc
+ * @property {EventTypes} eventTypes
+ * @property {*} condition
+ * @property {boolean} ignoreSslErrors
+ * @property {boolean} doNotRetry
+ * @property {string} requestUrl
+ * @property {string} payloadTemplate
+ * @property {*} lastDispatch
+ * @property {*} stats
+ */
+/**
  *
  * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.
  * For more information about Apify actor webhooks, please see the [documentation](https://docs.apify.com/webhooks).
@@ -540,8 +568,8 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  * Note that webhooks are only supported for actors running on the Apify platform.
  * In local environment, the function will print a warning and have no effect.
  *
- * @param {Object} options
- * @param {string[]} options.eventTypes
+ * @param {object} options
+ * @param {EventTypes} options.eventTypes
  *   Array of event types, which you can set for actor run, see
  *   the [actor run events](https://docs.apify.com/webhooks/events#actor-run) in the Apify doc.
  * @param {string}  options.requestUrl
@@ -558,7 +586,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
  *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
  *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
  *   {@link Apify#getEnv} function.
- * @return {Promise<object>} The return value is the Webhook object.
+ * @return {Promise<WebhookRun|undefined>} The return value is the Webhook object.
  * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
  *
  * @memberof module:Apify

@@ -52,7 +52,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1GA5sSQhQjB_REes8I5IKg31S-TuRcznWOPjcpNqtxmU/gviz/tq?tqx=out:csv' }
  * ]
  * ```
- * @property {Function} [sourcesFunction]
+ * @property {RequestListSourcesFunction} [sourcesFunction]
  *   A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
  *   was not able to fetch their persisted version (see {@link RequestListOptions.persistRequestsKey}).
  *   It must return an `Array` of {@link Request} or {@link RequestOptions}.
@@ -242,6 +242,7 @@ export class RequestList {
 
         // Array of all requests from all sources, in the order as they appeared in sources.
         // All requests in the array have distinct uniqueKey!
+        /** @type {Array<Request>} */
         this.requests = [];
 
         // Index to the next item in requests array to fetch. All previous requests are either handled or in progress.
@@ -316,6 +317,8 @@ export class RequestList {
      * to a Stream once apify-client supports streams.
      * @param {Buffer} persistedRequests
      * @ignore
+     * @protected
+     * @internal
      */
     async _addPersistedRequests(persistedRequests) {
         // We don't need the sources so we purge them to
@@ -339,6 +342,8 @@ export class RequestList {
      * to reduce memory footprint with very large sources.
      * @returns {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _addRequestsFromSources() {
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
@@ -403,6 +408,8 @@ export class RequestList {
      *
      * @return {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _persistRequests() {
         const serializedRequests = await serializeArray(this.requests);
@@ -415,6 +422,8 @@ export class RequestList {
      *
      * @param {RequestListState} state
      * @ignore
+     * @protected
+     * @internal
      */
     _restoreState(state) {
         // If there's no state it means we've not persisted any (yet).
@@ -477,6 +486,8 @@ export class RequestList {
      *
      * @return {Promise<Array<(RequestListState|null)>>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _loadStateAndPersistedRequests() {
         let state;
@@ -519,7 +530,7 @@ export class RequestList {
      * would return `null`, otherwise it resolves to `false`.
      * Note that even if the list is empty, there might be some pending requests currently being processed.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isEmpty() {
         this._ensureIsInitialized();
@@ -530,7 +541,7 @@ export class RequestList {
     /**
      * Returns `true` if all requests were already handled and there are no more left.
      *
-     * @returns {Promise<Boolean>}
+     * @returns {Promise<boolean>}
      */
     async isFinished() {
         this._ensureIsInitialized();
@@ -609,6 +620,8 @@ export class RequestList {
      * Adds all fetched requests from a URL from a remote resource.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _addFetchedRequests(source, fetchedRequests) {
         const { requestsFromUrl, regex } = source;
@@ -631,9 +644,11 @@ export class RequestList {
 
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
-     * @param source
+     * @param {*} source
      * @return {Promise<Array<RequestOptions>>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _fetchRequestsFromUrl(source) {
         const sharedOpts = _.omit(source, 'requestsFromUrl', 'regex');
@@ -662,8 +677,10 @@ export class RequestList {
      * If the `source` parameter is a string or plain object and not an instance
      * of a `Request`, then the function creates a `Request` instance.
      *
-     * @param {string|Request|object} source
+     * @param {(string|Request|object)} source
      * @ignore
+     * @protected
+     * @internal
      */
     _addRequest(source) {
         let request;
@@ -702,6 +719,8 @@ export class RequestList {
      * Throws an error if uniqueKey is not a non-empty string.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     _ensureUniqueKeyValid(uniqueKey) { // eslint-disable-line class-methods-use-this
         if (typeof uniqueKey !== 'string' || !uniqueKey) {
@@ -713,6 +732,8 @@ export class RequestList {
      * Checks that request is not reclaimed and throws an error if so.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     _ensureInProgressAndNotReclaimed(uniqueKey) {
         if (!this.inProgress[uniqueKey]) {
@@ -727,6 +748,8 @@ export class RequestList {
      * Throws an error if request list wasn't initialized.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     _ensureIsInitialized() {
         if (!this.isInitialized) {
@@ -852,4 +875,9 @@ export const openRequestList = async (listName, sources, options = {}) => {
  *   Key of the next request to be processed.
  * @property {Object<string,boolean>} inProgress
  *   An object mapping request keys to a boolean value respresenting whether they are being processed at the moment.
+ */
+
+/**
+ * @callback RequestListSourcesFunction
+ * @return {Promise<Array<(RequestOptions|Request|string)>>}
  */

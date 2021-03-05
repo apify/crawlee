@@ -10,7 +10,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * Factory user-function which creates customized {@link Session} instances.
  * @callback CreateSession
  * @param {SessionPool} sessionPool Pool requesting the new session.
- * @returns {Session}
+ * @returns {Promise<Session>}
  */
 
 /**
@@ -132,6 +132,7 @@ export class SessionPool extends EventEmitter {
 
         // Operative states
         this.keyValueStore = null;
+        /** @type {Session[]} */
         this.sessions = [];
         this.sessionMap = new Map();
     }
@@ -263,7 +264,9 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Removes retired `Session` instances from `SessionPool`.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _removeRetiredSessions() {
         this.sessions = this.sessions.filter((storedSession) => {
@@ -277,7 +280,9 @@ export class SessionPool extends EventEmitter {
     /**
      * Adds `Session` instance to `SessionPool`.
      * @param {Session} newSession `Session` instance to be added.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _addSession(newSession) {
         this.sessions.push(newSession);
@@ -287,7 +292,9 @@ export class SessionPool extends EventEmitter {
     /**
      * Gets random index.
      * @return {number}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _getRandomIndex() {
         return Math.floor(Math.random() * this.sessions.length);
@@ -299,7 +306,9 @@ export class SessionPool extends EventEmitter {
      * @param {Object} [options]
      * @param {SessionOptions} [options.sessionOptions] - The configuration options for the session being created
      * @return {Session} - New session.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _defaultCreateSessionFunction(sessionPool, options = {}) {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
@@ -314,7 +323,9 @@ export class SessionPool extends EventEmitter {
     /**
      * Creates new session and adds it to the pool.
      * @return {Promise<Session>} - Newly created `Session` instance.
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _createSession() {
         const newSession = await this.createSessionFunction(this);
@@ -328,7 +339,9 @@ export class SessionPool extends EventEmitter {
     /**
      * Decides whether there is enough space for creating new session.
      * @return {boolean}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _hasSpaceForSession() {
         return this.sessions.length < this.maxPoolSize;
@@ -337,7 +350,9 @@ export class SessionPool extends EventEmitter {
     /**
      * Picks random session from the `SessionPool`.
      * @return {Session} - Picked `Session`
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _pickSession() {
         return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
@@ -347,7 +362,9 @@ export class SessionPool extends EventEmitter {
      * Potentially loads `SessionPool`.
      * If the state was persisted it loads the `SessionPool` from the persisted state.
      * @return {Promise<void>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _maybeLoadSessionPool() {
         const loadedSessionPool = await this.keyValueStore.getValue(this.persistStateKey);

@@ -21,6 +21,7 @@
         "emitDeclarationOnly": false,
         "strict": true,
         "noImplicitAny": true,
+        "stripInternal": true,
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "alwaysStrict": true,

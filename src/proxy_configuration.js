@@ -14,6 +14,12 @@ const CHECK_ACCESS_REQUEST_TIMEOUT_SECS = 4;
 const CHECK_ACCESS_MAX_ATTEMPTS = 2;
 
 /**
+ * @callback ProxyConfigurationFunction
+ * @param {string|number} sessionId
+ * @returns {string}
+ */
+
+/**
  * @typedef ProxyConfigurationOptions
  * @property {string} [password]
  *   User's password for the proxy. By default, it is taken from the `APIFY_PROXY_PASSWORD`
@@ -41,7 +47,7 @@ const CHECK_ACCESS_MAX_ATTEMPTS = 2;
  *   An array of custom proxy URLs to be rotated.
  *   Custom proxies are not compatible with Apify Proxy and an attempt to use both
  *   configuration options will cause an error to be thrown on initialize.
- * @property {function} [newUrlFunction]
+ * @property {ProxyConfigurationFunction} [newUrlFunction]
  *   Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
  *   and should always return stringified proxy URL.
  *   This function is used to generate the URL when {@link ProxyConfiguration.newUrl} or {@link ProxyConfiguration.newProxyInfo} is called.
@@ -277,6 +283,8 @@ export class ProxyConfiguration {
      * @param {string} [sessionId]
      * @return {string} the proxy username
      * @ignore
+     * @protected
+     * @internal
      */
     _getUsername(sessionId) {
         let username;
@@ -314,6 +322,8 @@ export class ProxyConfiguration {
      * and gets the password via API and sets it to env
      * @returns {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _setPasswordIfToken() {
         const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
@@ -340,7 +350,9 @@ export class ProxyConfiguration {
      * prevent program crashes caused by short downtimes of Proxy.
      *
      * @returns {Promise<void>}
+     * @protected
      * @ignore
+     * @internal
      */
     async _checkAccess() {
         const status = await this._fetchStatus();
@@ -356,8 +368,10 @@ export class ProxyConfiguration {
     /**
      * Apify Proxy can be down for a second or a minute, but this should not crash processes.
      *
-     * @return {Promise<?{ connected: boolean, connectionError: string }>}
+     * @return {Promise<{ connected: boolean, connectionError: string }|undefined>}
+     * @protected
      * @ignore
+     * @internal
      */
     async _fetchStatus() {
         const requestOpts = {
@@ -380,7 +394,9 @@ export class ProxyConfiguration {
      * Handles custom url rotation with session
      * @param {string} [sessionId]
      * @returns {string} url
+     * @protected
      * @ignore
+     * @internal
      */
     _handleCustomUrl(sessionId) {
         let customUrlToUse;
@@ -400,7 +416,9 @@ export class ProxyConfiguration {
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      * @param {string} [sessionId]
+     * @protected
      * @ignore
+     * @internal
      */
     _callNewUrlFunction(sessionId) {
         let proxyUrl;
@@ -416,7 +434,9 @@ export class ProxyConfiguration {
     /**
      * Throws invalid custom newUrlFunction return
      * @param {Error} err
+     * @protected
      * @ignore
+     * @internal
      */
     _throwNewUrlFunctionInvalid(err) {
         throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
@@ -426,7 +446,9 @@ export class ProxyConfiguration {
      * Throws invalid proxy value error
      * @param {string} param
      * @param {string} value
+     * @protected
      * @ignore
+     * @internal
      */
     _throwInvalidProxyValueError(param, value) {
         throw new Error(`The provided proxy ${param} name "${value}" can only contain the following characters: 0-9, a-z, A-Z, ".", "_" and "~"`);
@@ -434,7 +456,9 @@ export class ProxyConfiguration {
 
     /**
      * Throws Apify Proxy is not connected
+     * @protected
      * @ignore
+     * @internal
      */
     _throwApifyProxyConnectionError(errorMessage) {
         throw new Error(errorMessage);
@@ -442,7 +466,9 @@ export class ProxyConfiguration {
 
     /**
      * Throws cannot combine custom proxies with Apify Proxy
+     * @protected
      * @ignore
+     * @internal
      */
     _throwCannotCombineCustomWithApify() {
         throw new Error('Cannot combine custom proxies with Apify Proxy!'
@@ -452,7 +478,9 @@ export class ProxyConfiguration {
 
     /**
      * Throws cannot combine custom 2 custom methods
+     * @protected
      * @ignore
+     * @internal
      */
     _throwCannotCombineCustomMethods() {
         throw new Error('Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".');
@@ -494,12 +522,12 @@ export class ProxyConfiguration {
  * { useApifyProxy: false }
  * ```
  *
-* @param {ProxyConfigurationOptions} [proxyConfigurationOptions]
-* @returns {Promise<?ProxyConfiguration>}
-* @memberof module:Apify
-* @name createProxyConfiguration
-* @function
-    */
+ * @param {ProxyConfigurationOptions} [proxyConfigurationOptions]
+ * @returns {Promise<ProxyConfiguration|undefined>}
+ * @memberof module:Apify
+ * @name createProxyConfiguration
+ * @function
+ */
 export const createProxyConfiguration = async (proxyConfigurationOptions = {}) => {
     // Compatibility fix for Input UI where proxy: None returns { useApifyProxy: false }
     // Without this, it would cause proxy to use the zero config / auto mode.

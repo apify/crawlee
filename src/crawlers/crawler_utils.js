@@ -1,3 +1,8 @@
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { Session } from '../session_pool/session';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
 /**
  * Handles timeout request
  * @param {Session} session

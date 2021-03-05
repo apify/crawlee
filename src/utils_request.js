@@ -18,12 +18,16 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
 };
 
 /**
+ * @typedef {(IncomingMessage & Readable & { body: string })} RequestAsBrowserResult
+ */
+
+/**
  * @typedef RequestAsBrowserOptions
  * @property {string} url
  *  URL of the target endpoint. Supports both HTTP and HTTPS schemes.
- * @property {string} [method=GET]
+ * @property {string} [method="GET"]
  *  HTTP method.
- * @property {Object} [headers]
+ * @property {Object<string, string>} [headers]
  *  Additional HTTP headers to add. It's only recommended to use this option,
  *  with headers that are typically added by websites, such as cookies. Overriding
  *  default browser headers will remove the masking this function provides.
@@ -101,7 +105,7 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *
  * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
- * @return {Promise<(IncomingMessage|Readable)>} This will typically be a
+ * @return {Promise<RequestAsBrowserResult>} This will typically be a
  * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),
  * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
  * @memberOf utils

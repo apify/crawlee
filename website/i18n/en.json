@@ -17,6 +17,9 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
+      "api/browser-plugin": {
+        "title": "BrowserPlugin"
+      },
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
       },
@@ -188,6 +191,9 @@
       "typedefs/actor-run": {
         "title": "ActorRun"
       },
+      "typedefs/adhoc-webhook": {
+        "title": "AdhocWebhook"
+      },
       "typedefs/apify-env": {
         "title": "ApifyEnv"
       },
@@ -196,6 +202,12 @@
       },
       "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
+      },
+      "typedefs/browser-crawling-context": {
+        "title": "BrowserCrawlingContext"
+      },
+      "typedefs/browser-handle-page-function": {
+        "title": "BrowserHandlePageFunction"
       },
       "typedefs/browser-launch-context": {
         "title": "BrowserLaunchContext"
@@ -208,6 +220,15 @@
       },
       "typedefs/cheerio-handle-page-inputs": {
         "title": "CheerioHandlePageInputs"
+      },
+      "typedefs/compiled-script-function": {
+        "title": "CompiledScriptFunction"
+      },
+      "typedefs/compiled-script-params": {
+        "title": "CompiledScriptParams"
+      },
+      "typedefs/crawling-context": {
+        "title": "CrawlingContext"
       },
       "typedefs/create-session": {
         "title": "CreateSession"
@@ -224,6 +245,15 @@
       "typedefs/dataset-reducer": {
         "title": "DatasetReducer"
       },
+      "typedefs/direct-navigation-options": {
+        "title": "DirectNavigationOptions"
+      },
+      "typedefs/event-types": {
+        "title": "EventTypes"
+      },
+      "typedefs/goto-function": {
+        "title": "GotoFunction"
+      },
       "typedefs/handle-failed-request": {
         "title": "HandleFailedRequest"
       },
@@ -236,11 +266,17 @@
       "typedefs/handle-request-inputs": {
         "title": "HandleRequestInputs"
       },
+      "typedefs/hook": {
+        "title": "Hook"
+      },
       "typedefs/intercept-handler": {
         "title": "InterceptHandler"
       },
       "typedefs/key-consumer": {
         "title": "KeyConsumer"
+      },
+      "typedefs/key-value-store-value-types": {
+        "title": "KeyValueStoreValueTypes"
       },
       "typedefs/logger-options": {
         "title": "LoggerOptions"
@@ -250,6 +286,18 @@
       },
       "typedefs/playwright-crawler-options": {
         "title": "PlaywrightCrawlerOptions"
+      },
+      "typedefs/playwright-goto-options": {
+        "title": "PlaywrightGotoOptions"
+      },
+      "typedefs/playwright-handle-page-function": {
+        "title": "PlaywrightHandlePageFunction"
+      },
+      "typedefs/playwright-handle-page-function-param": {
+        "title": "PlaywrightHandlePageFunctionParam"
+      },
+      "typedefs/playwright-hook": {
+        "title": "PlaywrightHook"
       },
       "typedefs/playwright-launch-context": {
         "title": "PlaywrightLaunchContext"
@@ -266,6 +314,9 @@
       "typedefs/prepare-request-inputs": {
         "title": "PrepareRequestInputs"
       },
+      "typedefs/proxy-configuration-function": {
+        "title": "ProxyConfigurationFunction"
+      },
       "typedefs/proxy-configuration-options": {
         "title": "ProxyConfigurationOptions"
       },
@@ -274,6 +325,15 @@
       },
       "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
+      },
+      "typedefs/puppeteer-handle-page": {
+        "title": "PuppeteerHandlePage"
+      },
+      "typedefs/puppeteer-handle-page-function-param": {
+        "title": "PuppeteerHandlePageFunctionParam"
+      },
+      "typedefs/puppeteer-hook": {
+        "title": "PuppeteerHook"
       },
       "typedefs/puppeteer-launch-context": {
         "title": "PuppeteerLaunchContext"
@@ -284,8 +344,14 @@
       "typedefs/request-as-browser-options": {
         "title": "RequestAsBrowserOptions"
       },
+      "typedefs/request-as-browser-result": {
+        "title": "RequestAsBrowserResult"
+      },
       "typedefs/request-list-options": {
         "title": "RequestListOptions"
+      },
+      "typedefs/request-list-sources-function": {
+        "title": "RequestListSourcesFunction"
       },
       "typedefs/request-list-state": {
         "title": "RequestListState"
@@ -331,6 +397,9 @@
       },
       "typedefs/user-func": {
         "title": "UserFunc"
+      },
+      "typedefs/webhook-run": {
+        "title": "WebhookRun"
       },
       "version-0.22.4/api/version-0.22.4-apify": {
         "title": "Apify"
@@ -796,6 +865,177 @@
       },
       "version-1.0.1/typedefs/version-1.0.1-puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
+      },
+      "version-1.0.2/api/version-1.0.2-apify": {
+        "title": "Apify"
+      },
+      "version-1.0.2/api/version-1.0.2-autoscaled-pool": {
+        "title": "AutoscaledPool"
+      },
+      "version-1.0.2/api/version-1.0.2-basic-crawler": {
+        "title": "BasicCrawler"
+      },
+      "version-1.0.2/api/version-1.0.2-browser-plugin": {
+        "title": "BrowserPlugin"
+      },
+      "version-1.0.2/api/version-1.0.2-key-value-store": {
+        "title": "KeyValueStore"
+      },
+      "version-1.0.2/api/version-1.0.2-log": {
+        "title": "utils.log"
+      },
+      "version-1.0.2/api/version-1.0.2-playwright": {
+        "title": "utils.playwright"
+      },
+      "version-1.0.2/api/version-1.0.2-pseudo-url": {
+        "title": "PseudoUrl"
+      },
+      "version-1.0.2/api/version-1.0.2-puppeteer": {
+        "title": "utils.puppeteer"
+      },
+      "version-1.0.2/api/version-1.0.2-request": {
+        "title": "Request"
+      },
+      "version-1.0.2/api/version-1.0.2-request-list": {
+        "title": "RequestList"
+      },
+      "version-1.0.2/api/version-1.0.2-request-queue": {
+        "title": "RequestQueue"
+      },
+      "version-1.0.2/api/version-1.0.2-session": {
+        "title": "Session"
+      },
+      "version-1.0.2/api/version-1.0.2-session-pool": {
+        "title": "SessionPool"
+      },
+      "version-1.0.2/api/version-1.0.2-snapshotter": {
+        "title": "Snapshotter"
+      },
+      "version-1.0.2/api/version-1.0.2-social": {
+        "title": "utils.social"
+      },
+      "version-1.0.2/api/version-1.0.2-utils": {
+        "title": "utils"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-actor-run": {
+        "title": "ActorRun"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-adhoc-webhook": {
+        "title": "AdhocWebhook"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-browser-crawling-context": {
+        "title": "BrowserCrawlingContext"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-browser-handle-page-function": {
+        "title": "BrowserHandlePageFunction"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-browser-launch-context": {
+        "title": "BrowserLaunchContext"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-cheerio-crawler-options": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-cheerio-handle-page-inputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-compiled-script-function": {
+        "title": "CompiledScriptFunction"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-compiled-script-params": {
+        "title": "CompiledScriptParams"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-crawling-context": {
+        "title": "CrawlingContext"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-create-session": {
+        "title": "CreateSession"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-direct-navigation-options": {
+        "title": "DirectNavigationOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-event-types": {
+        "title": "EventTypes"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-goto-function": {
+        "title": "GotoFunction"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-handle-failed-request": {
+        "title": "HandleFailedRequest"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-hook": {
+        "title": "Hook"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-key-consumer": {
+        "title": "KeyConsumer"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-key-value-store-value-types": {
+        "title": "KeyValueStoreValueTypes"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-logger-options": {
+        "title": "LoggerOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-playwright-goto-options": {
+        "title": "PlaywrightGotoOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-playwright-handle-page-function": {
+        "title": "PlaywrightHandlePageFunction"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-playwright-handle-page-function-param": {
+        "title": "PlaywrightHandlePageFunctionParam"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-playwright-hook": {
+        "title": "PlaywrightHook"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-playwright-launch-context": {
+        "title": "PlaywrightLaunchContext"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-proxy-configuration-function": {
+        "title": "ProxyConfigurationFunction"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-proxy-configuration-options": {
+        "title": "ProxyConfigurationOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-puppeteer-handle-page": {
+        "title": "PuppeteerHandlePage"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-puppeteer-handle-page-function-param": {
+        "title": "PuppeteerHandlePageFunctionParam"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-puppeteer-hook": {
+        "title": "PuppeteerHook"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-puppeteer-launch-context": {
+        "title": "PuppeteerLaunchContext"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-request-as-browser-options": {
+        "title": "RequestAsBrowserOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-request-as-browser-result": {
+        "title": "RequestAsBrowserResult"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-request-list-options": {
+        "title": "RequestListOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-request-list-sources-function": {
+        "title": "RequestListSourcesFunction"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-request-options": {
+        "title": "RequestOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-session-options": {
+        "title": "SessionOptions"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-system-info": {
+        "title": "SystemInfo"
+      },
+      "version-1.0.2/typedefs/version-1.0.2-webhook-run": {
+        "title": "WebhookRun"
       }
     },
     "links": {

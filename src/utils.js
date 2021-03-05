@@ -370,10 +370,10 @@ export const getTypicalChromeExecutablePath = () => {
  * Wraps the provided Promise with another one that rejects with the given errorMessage
  * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
  *
- * @param {Promise<object>} promise
+ * @param {Promise<*>} promise
  * @param {number} timeoutMillis
  * @param {string} errorMessage
- * @return {Promise<object>}
+ * @return {Promise<*>}
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
@@ -428,7 +428,7 @@ export const sleep = (millis) => {
  * Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
  * Optionally, custom regular expression and encoding may be provided.
  *
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.url URL to the file
  * @param {string} [options.encoding='utf8'] The encoding of the file.
  * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
@@ -453,7 +453,7 @@ const downloadListOfUrls = async (options) => {
 
 /**
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.string
  * @param {RegExp} [options.urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
  * @returns {string[]}
@@ -497,7 +497,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {(string|CheerioStatic)} html HTML text or parsed HTML represented using a
+ * @param {(string|cheerio.Root)} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {string} Plain text
  * @memberOf utils
@@ -512,7 +512,7 @@ const htmlToText = (html) => {
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
     /**
-     * @type {CheerioStatic}
+     * @type {cheerio.Root}
      * @ignore
      */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
@@ -558,12 +558,12 @@ const htmlToText = (html) => {
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
  * @param {(Request|RequestOptions)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {(IncomingMessage|PuppeteerResponse)} [response]
+ * @param {(*|IncomingMessage|PuppeteerResponse)} [response]
  *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
- * @param {Object} [additionalFields] Object containing additional fields to be added.
+ * @param {Object<string, *>} [additionalFields] Object containing additional fields to be added.
 
- * @return {object}
+ * @return {Object<string, *>}
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
     ow(request, ow.object);
