@@ -118,21 +118,14 @@ describe('SessionPool - testing session pool', () => {
 
         test('should delete picked session when it is unusable and create a new one', async () => {
             sessionPool.maxPoolSize = 1;
-            await sessionPool.getSession();
-            const session = sessionPool.sessions[0];
+            await sessionPool.addSession();
+
+            const session = await sessionPool.getSession();
+            expect(sessionPool.sessions[0].id === session.id).toBe(true);
 
             session.errorScore += session.maxErrorScore;
-            let isCalled = false;
-            const oldRemove = sessionPool._removeRetiredSessions; //eslint-disable-line
-
-            sessionPool._removeRetiredSessions = (session) => { //eslint-disable-line
-                isCalled = true;
-                return oldRemove.bind(sessionPool)(session);
-            };
-
             await sessionPool.getSession();
 
-            expect(isCalled).toBe(true);
             expect(sessionPool.sessions[0].id === session.id).toBe(false);
             expect(sessionPool.sessions).toHaveLength(1);
         });
@@ -246,7 +239,7 @@ describe('SessionPool - testing session pool', () => {
         session.errorScore += session.maxErrorScore;
         const { id: retiredSessionId } = session;
 
-        await sessionPool.getSession(retiredSessionId);
+        await sessionPool.getSession();
 
         expect(sessionPool.sessions.find((s) => s.id === retiredSessionId)).toEqual(undefined);
     });
@@ -316,10 +309,19 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should be able to create session with provided id', async () => {
-        sessionPool.maxPoolSize = 1;
         await sessionPool.addSession({ id: 'test-session' });
         const session = sessionPool.sessions[0];
         expect(session.id).toBe('test-session');
+    });
+
+    test('should be able to add session instance and create new session with provided sessionOptions with addSession() ', async () => {
+        const session = new Apify.Session({ sessionPool, id: 'test-session-instance' });
+        await sessionPool.addSession(session);
+
+        await sessionPool.addSession({ id: 'test-session' });
+
+        expect(await sessionPool.getSession('test-session')).toBeDefined();
+        expect(await sessionPool.getSession('test-session-instance')).toBeDefined();
     });
 
     test('should not be able to add session to the pool with id already in the pool', async () => {
@@ -329,6 +331,7 @@ describe('SessionPool - testing session pool', () => {
         } catch (e) {
             expect(e.message).toBe("Cannot add session with id 'test-session' as it already exists in the pool");
         }
+        expect.assertions(1);
     });
 
     test('should be able to retrieve session with provided id', async () => {
@@ -338,5 +341,31 @@ describe('SessionPool - testing session pool', () => {
 
         const session = await sessionPool.getSession('test-session');
         expect(session.id).toBe('test-session');
+    });
+
+    test('should correctly populate session array and session map', async () => {
+        sessionPool.maxPoolSize = 10;
+
+        for (let i = 0; i < 20; i++) await sessionPool.getSession();
+
+        expect(sessionPool.sessions.length).toEqual(10);
+        expect(sessionPool.sessionMap.size).toEqual(10);
+        expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
+    });
+
+    test('should correctly remove retired sessions both from array and session map', async () => {
+        sessionPool.maxPoolSize = 10;
+
+        for (let i = 0; i < 10; i++) {
+            await sessionPool.addSession({ id: `session_${i}` });
+            const session = await sessionPool.getSession(`session_${i}`);
+            session.errorScore += session.maxErrorScore;
+        }
+
+        await sessionPool.getSession();
+
+        expect(sessionPool.sessions.length).toEqual(1);
+        expect(sessionPool.sessionMap.size).toEqual(1);
+        expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
     });
 });
