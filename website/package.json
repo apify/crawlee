@@ -15,12 +15,12 @@
     "decamelize": "^4.0.0",
     "docusaurus": "^1.13.0",
     "fs-extra": "^8.1.0",
+    "got": "^11.8.2",
     "jsdoc-plugin-intersection": "^1.0.4",
     "jsdoc-to-markdown": "^7.0.0",
     "prettier": "^1.18.2"
   },
   "dependencies": {
-    "@apify/http-request": "^1.1.5",
     "remarkable-extlink": "^1.1.0"
   }
 }

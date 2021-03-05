@@ -1,3 +1,9 @@
+1.0.2 / 2021/03/05
+====================
+- Add the ability to override `ProxyConfiguration` status check URL with the `APIFY_PROXY_STATUS_URL` env var.
+- Fix inconsistencies in cookie handling when `SessionPool` was used.
+- Fix TS types in multiple places. TS is still not a first class citizen, but this should improve the experience.
+
 1.0.1 / 2021/02/03
 ====================
 - Fix `dataset.pushData()` validation which would not allow other than plain objects.

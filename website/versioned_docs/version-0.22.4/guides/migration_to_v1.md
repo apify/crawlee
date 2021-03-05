@@ -9,21 +9,21 @@ original_id: migration-to-v1
 - [Installation](#installation)
 - [Running on Apify Platform](#running-on-apify-platform)
 - [Handler arguments are now Crawling Context](#handler-arguments-are-now-crawling-context)
-    * [`Map` of crawling contexts and their IDs](#map-of-crawling-contexts-and-their-ids)
-    * [`autoscaledPool` was moved under `crawlingContext.crawler`](#autoscaledpool-was-moved-under-crawlingcontextcrawler)
+  - [`Map` of crawling contexts and their IDs](#map-of-crawling-contexts-and-their-ids)
+  - [`autoscaledPool` was moved under `crawlingContext.crawler`](#autoscaledpool-was-moved-under-crawlingcontextcrawler)
 - [Replacement of `PuppeteerPool` with `BrowserPool`](#replacement-of-puppeteerpool-with-browserpool)
-    * [Access to running `BrowserPool`](#access-to-running-browserpool)
-    * [Pages now have IDs](#pages-now-have-ids)
-    * [Configuration and lifecycle hooks](#configuration-and-lifecycle-hooks)
-    * [Introduction of `BrowserController`](#introduction-of-browsercontroller)
-    * [`BrowserPool` methods vs `PuppeteerPool`](#browserpool-methods-vs-puppeteerpool)
+  - [Access to running `BrowserPool`](#access-to-running-browserpool)
+  - [Pages now have IDs](#pages-now-have-ids)
+  - [Configuration and lifecycle hooks](#configuration-and-lifecycle-hooks)
+  - [Introduction of `BrowserController`](#introduction-of-browsercontroller)
+  - [`BrowserPool` methods vs `PuppeteerPool`](#browserpool-methods-vs-puppeteerpool)
 - [Updated `PuppeteerCrawlerOptions`](#updated-puppeteercrawleroptions)
-    * [Removal of `gotoFunction`](#removal-of-gotofunction)
-    * [`launchPuppeteerOptions` => `launchContext`](#launchpuppeteeroptions--launchcontext)
-    * [Removal of `launchPuppeteerFunction`](#removal-of-launchpuppeteerfunction)
+  - [Removal of `gotoFunction`](#removal-of-gotofunction)
+  - [`launchPuppeteerOptions` => `launchContext`](#launchpuppeteeroptions--launchcontext)
+  - [Removal of `launchPuppeteerFunction`](#removal-of-launchpuppeteerfunction)
 - [Launch functions](#launch-functions)
-    * [Updated arguments](#updated-arguments)
-    * [Custom modules](#custom-modules)
+  - [Updated arguments](#updated-arguments)
+  - [Custom modules](#custom-modules)
 
 ## Summary
 After 3.5 years of rapid development and a lot of breaking changes and deprecations,
@@ -229,17 +229,17 @@ you should use a `browserController` to do it. You can find it in the handle pag
 ```js
 const handlePageFunction = async ({ page, browserController }) => {
     // Wrong usage. Could backfire because it bypasses BrowserPool.
-    page.browser().close();
+    await page.browser().close();
 
     // Correct usage. Allows graceful shutdown.
-    browserController.close();
+    await browserController.close();
 
     const cookies = [/* some cookie objects */];
     // Wrong usage. Will only work in Puppeteer and not Playwright.
-    page.setCookies(...cookies);
+    await page.setCookies(...cookies);
 
     // Correct usage. Will work in both.
-    browserController.setCookies(page, cookies);
+    await browserController.setCookies(page, cookies);
 }
 ```
 
@@ -261,15 +261,15 @@ Some functions were removed (in line with earlier deprecations), and some were c
 
 ```js
 // OLD
-puppeteerPool.recyclePage(page);
+await puppeteerPool.recyclePage(page);
 
 // NEW
-page.close();
+await page.close();
 ```
 
 ```js
 // OLD
-puppeteerPool.retire(page.browser());
+await puppeteerPool.retire(page.browser());
 
 // NEW
 browserPool.retireBrowserByPage(page);
@@ -277,7 +277,7 @@ browserPool.retireBrowserByPage(page);
 
 ```js
 // OLD
-puppeteerPool.serveLiveViewSnapshot();
+await puppeteerPool.serveLiveViewSnapshot();
 
 // NEW
 // There's no LiveView in BrowserPool
@@ -299,7 +299,7 @@ const gotoFunction = async ({ request, page }) => {
     await makePageStealthy(page);
 
     // Have to remember how to do this:
-    const response = gotoExtended(page, request, {/* have to remember the defaults */});
+    const response = await gotoExtended(page, request, {/* have to remember the defaults */});
 
     // post-processing
     await page.evaluate(() => {

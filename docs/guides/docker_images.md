@@ -73,23 +73,13 @@ with v1.7.1.
 
 Installing `apify/actor-node-puppeteer-chrome` (without a tag) will install the latest available version.
 
-We recommend reflecting this in your `package.json` files. Either by providing the same version of
-the library as the selected image:
+We recommend using asterisk `*` as the version in your `package.json` files. It makes sure the pre-installed
+version of Puppeteer or Playwright is not reinstalled. This is important, because those libraries are only
+guaranteed to work with specific versions of browsers, and those browsers come pre-installed in the image.
 
 ```dockerfile
-FROM apify/actor-node-playwright-chrome:1.7.1
+FROM apify/actor-node-playwright-chrome
 ```
-
-```json
-{
-    "dependencies": {
-        "playwright": "1.7.1"
-    }
-}
-```
-
-Or by using an asterisk as your version. This will make sure the library version pre-installed in the
-docker image is left untouched.
 
 ```json
 {
@@ -107,7 +97,7 @@ Be careful when installing new dependencies. Nothing prevents you from installin
 `actor-node-puppeteer-chrome` image, but the resulting image will be about 3 times larger and extremely
 slow to download and build.
 
-Use only what you need and you'll be rewarded with reasonable build and start times.
+Use only what you need, and you'll be rewarded with reasonable build and start times.
 
 ## actor-node
 This is the smallest image we have based on Alpine Linux. It does not include any browsers, and it's therefore
