@@ -1,3 +1,7 @@
+1.1.0 / 2021/03/XX
+====================
+- Add `sessionPool.addSession()` `async` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id). Add the ability to retrieve a session from the session pool with the specific session id.
+
 1.0.2 / 2021/03/05
 ====================
 - Add the ability to override `ProxyConfiguration` status check URL with the `APIFY_PROXY_STATUS_URL` env var.
