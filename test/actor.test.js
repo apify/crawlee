@@ -240,6 +240,8 @@ describe('Apify.call()', () => {
     const defaultKeyValueStoreId = 'some-store-id';
     const input = 'something';
     const contentType = 'text/plain';
+    const outputKey = 'OUTPUT';
+    const outputValue = 'some-output';
     const build = 'xxx';
 
     const run = { id: 'some-run-id', actId, defaultKeyValueStoreId };
@@ -248,8 +250,8 @@ describe('Apify.call()', () => {
     const runningRun = { ...run, status: ACT_JOB_STATUSES.RUNNING };
     const readyRun = { ...run, status: ACT_JOB_STATUSES.READY };
 
-    const output = { contentType, input: 'some-output' };
-    const expected = { ...finishedRun, output };
+    const output = { contentType, key: outputKey, value: outputValue };
+    const expected = { ...finishedRun, output: { contentType, body: outputValue } };
 
     test('works as expected', async () => {
         const memoryMbytes = 1024;
@@ -392,8 +394,11 @@ describe('Apify.callTask()', () => {
     const runningRun = { ...run, status: ACT_JOB_STATUSES.RUNNING };
     const finishedRun = { ...run, status: ACT_JOB_STATUSES.SUCCEEDED };
     const failedRun = { ...run, status: ACT_JOB_STATUSES.ABORTED };
-    const output = { contentType: 'application/json', body: 'some-output' };
-    const expected = { ...finishedRun, output };
+    const contentType = 'application/json';
+    const outputKey = 'OUTPUT';
+    const outputValue = 'some-output';
+    const output = { contentType, key: outputKey, value: outputValue };
+    const expected = { ...finishedRun, output: { contentType, body: outputValue } };
     const input = { foo: 'bar' };
     const memoryMbytes = 256;
     const timeoutSecs = 60;

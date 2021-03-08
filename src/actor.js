@@ -358,9 +358,9 @@ export const call = async (actId, input, options = {}) => {
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const { value: body, contentType } = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
-    return { ...run, output };
+    return { ...run, output: { contentType, body } };
 };
 
 /**
@@ -476,9 +476,9 @@ export const callTask = async (taskId, input, options = {}) => {
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const output = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const { value: body, contentType } = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
-    return { ...run, output };
+    return { ...run, output: { contentType, body } };
 };
 
 function isRunUnsuccessful(status) {
