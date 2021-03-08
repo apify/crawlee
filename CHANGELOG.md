@@ -1,6 +1,7 @@
 1.1.0 / 2021/03/XX
 ====================
-- Add `sessionPool.addSession()` `async` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id). Add the ability to retrieve a session from the session pool with the specific session id.
+- Add `sessionPool.addSession()` `async` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id).
+- Add optional parameter `sessionId` to `sessionPool.getSession()` to be able to retrieve a session from the session pool with the specific session id.
 
 1.0.2 / 2021/03/05
 ====================
