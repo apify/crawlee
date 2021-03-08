@@ -1,3 +1,7 @@
+1.1.0 / 2021/03/XX
+====================
+- Fix `Apify.call()` and `Apify.callTask()` output - make it backwards compatible with previous versions of the client.
+
 1.0.2 / 2021/03/05
 ====================
 - Add the ability to override `ProxyConfiguration` status check URL with the `APIFY_PROXY_STATUS_URL` env var.
