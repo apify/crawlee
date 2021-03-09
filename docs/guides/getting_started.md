@@ -300,13 +300,13 @@ $('[href]')
 > This is not to show that Cheerio is better than plain browser JavaScript. Some might actually prefer the more expressive way plain JS provides.
 > Unfortunately, the browser JavaScript methods are not available in Node.js, so Cheerio is our best bet to do the parsing.
 
-### When to use [`CheerioCrawler`](../api/cheerio-crawler)
+### When to use `CheerioCrawler`
 
 Even though using `CheerioCrawler` is extremely easy, it probably will not be your first choice for most kinds of crawling or scraping in production
 environments. Since most websites nowadays use modern JavaScript to create rich, responsive and data driven user experiences, the plain HTTP requests
 the crawler uses may just fall short of your needs.
 
-But `CheerioCrawler` is far from useless! It really shines when you need to do extremely high workloads. With just 4 GBs of memory and a single CPU
+But [`CheerioCrawler`](../api/cheerio-crawler) is far from useless! It really shines when you need to do extremely high workloads. With just 4 GBs of memory and a single CPU
 core, you can scrape 500 or more pages a minute! _(assuming each page contains approximately 400KB of HTML)_ To get this high with a full browser
 scraper, such as the [`PuppeteerCrawler`](../api/puppeteer-crawler), you'd need significantly more computing power.
 
@@ -324,7 +324,7 @@ scraper, such as the [`PuppeteerCrawler`](../api/puppeteer-crawler), you'd need 
 -   May easily overload the target website with requests
 -   Does not enable any manipulation of the website before scraping
 
-### Basic use of [`CheerioCrawler`](../api/cheerio-crawler)
+### Basic use of `CheerioCrawler`
 
 Now that we have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by
 letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
