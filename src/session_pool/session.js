@@ -293,7 +293,7 @@ export class Session {
      * key1=value1; key2=value2 format, ready to be used in
      * a cookie header or elsewhere.
      * @param {string} url
-     * @return {string} - represents `Cookie` header.
+     * @return {string} represents `Cookie` header.
      */
     getCookieString(url) {
         return this.cookieJar.getCookieStringSync(url, {});

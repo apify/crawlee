@@ -17,7 +17,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
  * @typedef SessionPoolOptions
  * @property {number} [maxPoolSize=1000] - Maximum size of the pool.
  * Indicates how many sessions are rotated.
- * @property {SessionOptions} [sessionOptions] The configuration options for {Session} instances.
+ * @property {SessionOptions} [sessionOptions] The configuration options for {@link Session} instances.
  * @property {string} [persistStateKeyValueStoreId] - Name or Id of `KeyValueStore` where is the `SessionPool` state stored.
  * @property {string} [persistStateKey="SESSION_POOL_STATE"] - Session pool persists it's state under this key in Key value store.
  * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
@@ -28,7 +28,7 @@ import { ACTOR_EVENT_NAMES_EX } from '../constants';
 /**
  * Handles the rotation, creation and persistence of user-like sessions.
  * Creates a pool of {@link Session} instances, that are randomly rotated.
- * When some session is marked as blocked. It is removed and new one is created instead.
+ * When some session is marked as blocked, it is removed and new one is created instead (the pool never returns an unusable session).
  * Learn more in the [`Session management guide`](../guides/session-management).
  *
  * You can create one by calling the {@link Apify.openSessionPool} function.
@@ -134,6 +134,7 @@ export class SessionPool extends EventEmitter {
         this.keyValueStore = null;
         /** @type {Session[]} */
         this.sessions = [];
+        this.sessionMap = new Map();
     }
 
     /**
@@ -170,25 +171,58 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
+     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
+     * but this allows you to add more sessions once the max pool size is reached.
+     * This also allows you to add session with overridden session options (e.g. with specific session id).
+     * @param {Session|SessionOptions} [options] - The configuration options for the session being added to the session pool.
+     */
+    async addSession(options = {}) {
+        const { id } = options;
+        if (id) {
+            const sessionExists = this.sessionMap.has(id);
+            if (sessionExists) {
+                throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
+            }
+        }
+
+        if (!this._hasSpaceForSession()) {
+            this._removeRetiredSessions();
+        }
+
+        const newSession = options instanceof Session
+            ? options
+            : await this.createSessionFunction(this, { sessionOptions: options });
+        this.log.debug(`Adding new Session - ${newSession.id}`);
+
+        this._addSession(newSession);
+    }
+
+    /**
      * Gets session.
-     * If there is space for new session, it creates and return new session.
+     * If there is space for new session, it creates and returns new session.
      * If the session pool is full, it picks a session from the pool,
      * If the picked session is usable it is returned, otherwise it creates and returns a new one.
      *
+     * @param {String} [sessionId] - If provided, it returns the usable session with this id, `undefined` otherwise.
      * @return {Promise<Session>}
      */
-    async getSession() {
+    async getSession(sessionId) {
+        if (sessionId) {
+            const session = this.sessionMap.get(sessionId);
+            if (session && session.isUsable()) return session;
+            return;
+        }
+
         if (this._hasSpaceForSession()) {
             return this._createSession();
         }
 
         const pickedSession = this._pickSession();
-
         if (pickedSession.isUsable()) {
             return pickedSession;
         }
 
-        this._removeSession(pickedSession);
+        this._removeRetiredSessions();
         return this._createSession();
     }
 
@@ -229,17 +263,18 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Removes `Session` instance from `SessionPool`.
-     * @param {Session} session  - Session to be removed
+     * Removes retired `Session` instances from `SessionPool`.
      * @ignore
      * @protected
      * @internal
      */
-    _removeSession(session) {
-        const sessionIndex = this.sessions.findIndex((storedSession) => storedSession.id === session.id);
+    _removeRetiredSessions() {
+        this.sessions = this.sessions.filter((storedSession) => {
+            if (storedSession.isUsable()) return true;
 
-        const [removedSession] = this.sessions.splice(sessionIndex, 1);
-        this.log.debug(`Removed Session - ${removedSession.id}`);
+            this.sessionMap.delete(storedSession.id);
+            this.log.debug(`Removed Session - ${storedSession.id}`);
+        });
     }
 
     /**
@@ -251,6 +286,7 @@ export class SessionPool extends EventEmitter {
      */
     _addSession(newSession) {
         this.sessions.push(newSession);
+        this.sessionMap.set(newSession.id, newSession);
     }
 
     /**
@@ -267,14 +303,19 @@ export class SessionPool extends EventEmitter {
     /**
      * Creates new session without any extra behavior.
      * @param {SessionPool} sessionPool
+     * @param {Object} [options]
+     * @param {SessionOptions} [options.sessionOptions] - The configuration options for the session being created
      * @return {Session} - New session.
      * @ignore
      * @protected
      * @internal
      */
-    _defaultCreateSessionFunction(sessionPool) {
+    _defaultCreateSessionFunction(sessionPool, options = {}) {
+        ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
+        const { sessionOptions = {} } = options;
         return new Session({
             ...this.sessionOptions,
+            ...sessionOptions,
             sessionPool,
         });
     }

@@ -1,5 +1,7 @@
 1.1.0 / 2021/03/XX
 ====================
+- Add `sessionPool.addSession()` `async` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id).
+- Add optional parameter `sessionId` to `sessionPool.getSession()` to be able to retrieve a session from the session pool with the specific session id.
 - Fix `Apify.call()` and `Apify.callTask()` output - make it backwards compatible with previous versions of the client.
 
 1.0.2 / 2021/03/05
