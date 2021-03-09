@@ -300,13 +300,13 @@ $('[href]')
 > This is not to show that Cheerio is better than plain browser JavaScript. Some might actually prefer the more expressive way plain JS provides.
 > Unfortunately, the browser JavaScript methods are not available in Node.js, so Cheerio is our best bet to do the parsing.
 
-### When to use [`CheerioCrawler`](../api/cheerio-crawler)
+### When to use `CheerioCrawler`
 
 Even though using `CheerioCrawler` is extremely easy, it probably will not be your first choice for most kinds of crawling or scraping in production
 environments. Since most websites nowadays use modern JavaScript to create rich, responsive and data driven user experiences, the plain HTTP requests
 the crawler uses may just fall short of your needs.
 
-But `CheerioCrawler` is far from useless! It really shines when you need to do extremely high workloads. With just 4 GBs of memory and a single CPU
+But [`CheerioCrawler`](../api/cheerio-crawler) is far from useless! It really shines when you need to do extremely high workloads. With just 4 GBs of memory and a single CPU
 core, you can scrape 500 or more pages a minute! _(assuming each page contains approximately 400KB of HTML)_ To get this high with a full browser
 scraper, such as the [`PuppeteerCrawler`](../api/puppeteer-crawler), you'd need significantly more computing power.
 
@@ -324,7 +324,7 @@ scraper, such as the [`PuppeteerCrawler`](../api/puppeteer-crawler), you'd need 
 -   May easily overload the target website with requests
 -   Does not enable any manipulation of the website before scraping
 
-### Basic use of [`CheerioCrawler`](../api/cheerio-crawler)
+### Basic use of `CheerioCrawler`
 
 Now that we have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by
 letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
@@ -1226,41 +1226,37 @@ return {
 
 Getting the actor's description is a little more involved, but still pretty straightforward. We can't just simply search for a `<p>` tag, because
 there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description is nested within
-the `<header>` element too, same as the title. Sadly, we're still left with two `<p>` tags. To finally select only the
-description, we choose the `<p>` tag that has a `class` that starts with `Text__Paragraph`.
+the `<header>` element too, same as the title. Moreover, the actual description is nested inside a `<span>` tag with a class `actor-description`.
 
 ![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
 
 ```js
 return {
     title: $('header h1').text(),
-    description: $('header p[class^=Text__Paragraph]').text(),
+    description: $('header span.actor-description').text(),
 };
 ```
 
 ##### Last run date
 
-The DevTools tell us that the `lastRunDate` can be found in the second of the two `<time>` elements in the page.
+The DevTools tell us that the `lastRunDate` can be found in the `<time>` element inside `<ul class="ActorHeader-stats">`.
 
 ![actor last run date selector](/img/getting-started/last-run-date.jpg 'Finding actor last run date in DevTools.')
 
 ```js
 return {
     title: $('header h1').text(),
-    description: $('header p[class^=Text__Paragraph]').text(),
+    description: $('header span.actor-description').text(),
     lastRunDate: new Date(
         Number(
-            $('time')
-                .eq(1)
-                .attr('datetime'),
+            $('ul.ActorHeader-stats time').attr('datetime'),
         ),
     ),
 };
 ```
 
-It might look a little too complex at first glance, but let me walk you through it. We find all the `<time>` elements. There are two, so we grab the
-second one using the `.eq(1)` call (it's zero indexed) and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a
-`string`.
+It might look a little too complex at first glance, but let me walk you through it. We find the right `<time>` element,
+and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
 
 But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()`
 constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`.
@@ -1274,25 +1270,29 @@ transformation on the result.
 ```js
 return {
     title: $('header h1').text(),
-    description: $('header p[class^=Text__Paragraph]').text(),
+    description: $('header span.actor-description').text(),
     lastRunDate: new Date(
         Number(
-            $('time')
-                .eq(1)
-                .attr('datetime'),
+            $('ul.ActorHeader-stats time').attr('datetime'),
         ),
     ),
     runCount: Number(
-        $('ul.stats li:nth-of-type(3)')
+        $('ul.ActorHeader-stats > li:nth-of-type(3)')
             .text()
-            .match(/\d+/)[0],
+            .match(/[\d,]+/)[0]
+            .replace(',', ''),
     ),
 };
 ```
 
-The `ul.stats > li:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<ul class="stats ...">` element and within that
+The `ul.ActorHeader-stats > li:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<ul class="ActorHeader-stats ...">` element and within that
 element we're looking for the third `<li>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out
 using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
+
+> The numbers are formatted with commas as thousands separators (e.g. `'1,234,567'`), so to extract it, we
+> first use regular expression `/[\d,]+/` - it will search for consecutive number or comma characters.
+> Then we extract the match via `.match(/[\d,]+/)[0]` and finally remove the commas by calling `.replace(',', '')`.
+> This will give us a string (e.g. `'1234567'`) that can be converted via `Number` function.
 
 And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier
 and we're good to go.
@@ -1305,18 +1305,17 @@ const results = {
     uniqueIdentifier: urlArr.join('/'),
     owner: urlArr[0],
     title: $('header h1').text(),
-    description: $('header p[class^=Text__Paragraph]').text(),
+    description: $('header span.actor-description').text(),
     lastRunDate: new Date(
         Number(
-            $('time')
-                .eq(1)
-                .attr('datetime'),
+            $('ul.ActorHeader-stats time').attr('datetime'),
         ),
     ),
     runCount: Number(
-        $('ul.stats li:nth-of-type(3)')
+        $('ul.ActorHeader-stats > li:nth-of-type(3)')
             .text()
-            .match(/\d+/)[0],
+            .match(/[\d,]+/)[0]
+            .replace(',', ''),
     ),
 };
 
@@ -1356,18 +1355,17 @@ Apify.main(async () => {
                     uniqueIdentifier: urlArr.join('/'),
                     owner: urlArr[0],
                     title: $('header h1').text(),
-                    description: $('header p[class^=Text__Paragraph]').text(),
+                    description: $('header span.actor-description').text(),
                     lastRunDate: new Date(
                         Number(
-                            $('time')
-                                .eq(1)
-                                .attr('datetime'),
+                            $('ul.ActorHeader-stats time').attr('datetime'),
                         ),
                     ),
                     runCount: Number(
-                        $('ul.stats li:nth-of-type(3)')
+                        $('ul.ActorHeader-stats > li:nth-of-type(3)')
                             .text()
-                            .match(/\d+/)[0],
+                            .match(/[\d,]+/)[0]
+                            .replace(',', ''),
                     ),
                 };
                 console.log('RESULTS', results);
@@ -1440,18 +1438,17 @@ Apify.main(async () => {
                     uniqueIdentifier: urlArr.join('/'),
                     owner: urlArr[0],
                     title: $('header h1').text(),
-                    description: $('header p[class^=Text__Paragraph]').text(),
+                    description: $('header span.actor-description').text(),
                     lastRunDate: new Date(
                         Number(
-                            $('time')
-                                .eq(1)
-                                .attr('datetime'),
+                            $('ul.ActorHeader-stats time').attr('datetime'),
                         ),
                     ),
                     runCount: Number(
-                        $('ul.stats li:nth-of-type(3)')
+                        $('ul.ActorHeader-stats > li:nth-of-type(3)')
                             .text()
-                            .match(/\d+/)[0],
+                            .match(/[\d,]+/)[0]
+                            .replace(',', ''),
                     ),
                 };
                 await Apify.pushData(results);
@@ -1690,18 +1687,17 @@ exports.DETAIL = async ({ $, request }) => {
         uniqueIdentifier: urlArr.join('/'),
         owner: urlArr[0],
         title: $('header h1').text(),
-        description: $('header p[class^=Text__Paragraph]').text(),
+        description: $('header span.actor-description').text(),
         lastRunDate: new Date(
             Number(
-                $('time')
-                    .eq(1)
-                    .attr('datetime'),
+                $('ul.ActorHeader-stats time').attr('datetime'),
             ),
         ),
         runCount: Number(
-            $('ul.stats li:nth-of-type(3)')
+            $('ul.ActorHeader-stats > li:nth-of-type(3)')
                 .text()
-                .match(/\d+/)[0],
+                .match(/[\d,]+/)[0]
+                .replace(',', ''),
         ),
     };
 

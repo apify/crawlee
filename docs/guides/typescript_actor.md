@@ -52,7 +52,7 @@ To use TypeScript in your actors, you'll need the following prerequisites.
            "module": "commonjs",
            "moduleResolution": "node",
            "strict": true,
-           "noImplicityAny": false,
+           "noImplicitAny": false,
            "strictNullChecks": false,
            "lib": [
                "es2018",
