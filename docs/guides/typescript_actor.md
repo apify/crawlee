@@ -48,17 +48,22 @@ To use TypeScript in your actors, you'll need the following prerequisites.
    ```json
    {
        "compilerOptions": {
-           "target": "es2018",
+           "target": "es2019",
            "module": "commonjs",
            "moduleResolution": "node",
            "strict": true,
            "noImplicitAny": false,
            "strictNullChecks": false,
            "lib": [
-               "es2018",
-               "es2018.asynciterable",
-               "dom",
-               "dom.iterable"
+                "DOM",
+                "DOM.Iterable",
+                "ES2015",
+                "ES2016",
+                "ES2018",
+                "ES2019.Object",
+                "ES2018.AsyncIterable",
+                "ES2020.String",
+                "ES2019.Array"
            ],
            "rootDir": "src/",
            "outDir": "build/"
@@ -91,7 +96,7 @@ return types, in the Apify SDK.
 Caveats
 ========
 
-As of version 0.20, the generated typings, due to JSDoc limitations, have some properties
+As of version 1.0+, the generated typings, due to JSDoc limitations, have some properties
 and parameters annotated with `any` type, therefore the settings `noImplicitAny` and `strictNullChecks`, set to `true`, may not be advised. You may try enabling them, but it might hinder development because of the need for typecasts to be able to compile, your mileage may vary.
 
 Besides the _implicit any_ errors that might occur in the code when writing in TypeScript, the
@@ -104,7 +109,7 @@ interface MySchema {
     expectedParam2?: number;
 }
 
-const input: MySchema = await Apify.getInput(); // getInput returns Promise<any> here
+const input: MySchema = (await Apify.getInput()) as any; // getInput returns Promise<Object<string, *>|string|Buffer|null> here
 
 if (!input?.expectedParam1) { // input is MySchema now and you can check in a type-safe way
     throw new Error('Missing expectedParam1');
@@ -124,17 +129,4 @@ await dataset.forEach((item: ExpectedShape) => {
     // deal with item.id / item.someFields
     // otherwise item is "any"
 })
-```
-
-When using `launchPuppeteer()`, puppeteer's `LaunchOptions` needs to be
-provided as an intersection using `&`, with the `LaunchPuppeteerOptions`,
-so you can have all the options available:
-
-```typescript
-// manually import the types from puppeteer
-import { PuppeteerOptions } from 'puppeteer'
-import { LaunchPuppeteerOptions } from 'apify'
-
-Apify.launchPuppeteer({ } as PuppeteerOptions & LaunchPuppeteerOptions)
-// should show all available options intersected
 ```
