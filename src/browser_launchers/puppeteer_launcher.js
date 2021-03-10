@@ -1,4 +1,5 @@
 import ow from 'ow';
+import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 import { isAtHome } from '../utils';
@@ -32,7 +33,7 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * ```
  *
  * @typedef PuppeteerLaunchContext
- * @property {Object<string, *>} [launchOptions]
+ * @property {LaunchOptions} [launchOptions]
  *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,

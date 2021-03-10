@@ -1,4 +1,5 @@
 import ow from 'ow';
+import { LaunchOptions } from 'playwright'; // eslint-disable-line no-unused-vars,import/named
 import { PlaywrightPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 
@@ -24,7 +25,7 @@ import BrowserLauncher from './browser_launcher';
  * ```
  *
  * @typedef PlaywrightLaunchContext
- * @property {Object<string, *>} [launchOptions]
+ * @property {LaunchOptions} [launchOptions]
  *  `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
