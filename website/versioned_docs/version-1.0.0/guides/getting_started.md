@@ -1,11 +1,12 @@
 ---
-id: getting-started
+id: version-1.0.0-getting-started
 title: Getting Started
+original_id: getting-started
 ---
 
 Without the right tools, crawling and scraping the web can be a difficult thing. At the very least, you need an HTTP client to make the necessary
 requests, but that only gets you raw HTML and sometimes not even that. Then you have to read this HTML and extract the data you're interested in. Once
-extracted, it must be stored in a machine readable format and easily accessible for further processing, because it is the processed data that hold
+extracted, it must be stored in a machine-readable format and easily accessible for further processing, because it is the processed data that hold
 value.
 
 Apify SDK covers the process end-to-end. From crawling the web for links and scraping the raw data to storing it in various machine readable formats,
