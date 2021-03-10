@@ -50,6 +50,8 @@ Apify.main(async () => {
 });
 ```
 
+> To read more about what pseudo-URL is, check the [getting-started](getting_started#introduction-to-pseudo-urls).
+
 When you run the example, you should see Apify SDK automating a Chrome browser.
 
 ![Chrome Scrape](/img/chrome_scrape.gif)
