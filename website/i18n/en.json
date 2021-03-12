@@ -770,6 +770,9 @@
       "version-1.0.0/guides/version-1.0.0-docker-images": {
         "title": "Running in Docker"
       },
+      "version-1.0.0/guides/version-1.0.0-getting-started": {
+        "title": "Getting Started"
+      },
       "version-1.0.0/guides/version-1.0.0-motivation": {
         "title": "Motivation"
       },
