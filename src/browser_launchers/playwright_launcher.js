@@ -93,6 +93,10 @@ function getDefaultExecutablePath(launchOptions) {
         return launchOptions.executablePath;
     }
 
+    if (launchOptions.useChrome) {
+        return;
+    }
+
     if (pathFromPlaywrightImage) {
         return pathFromPlaywrightImage;
     }
