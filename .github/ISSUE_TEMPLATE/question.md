@@ -8,7 +8,7 @@ assignees: ''
 ---	
 
 Please submit new issues for new feature requests and bug reports only.
-For questions please join Apify Discord. You could get help from Apify team memebers and the community there.
+For questions please join Apify Discord. You could get help from Apify team members and the community there.
 
 - [Discord](https://discord.gg/jyEM2PRvMU)
 
