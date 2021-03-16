@@ -119,7 +119,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  * @property {Array<Hook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
- *   which are passed to the `gotoFunction` the crawler calls to navigate.
+ *   which are passed to the `page.goto()` function the crawler calls to navigate.
  *   Example:
  * ```
  * preNavigationHooks: [

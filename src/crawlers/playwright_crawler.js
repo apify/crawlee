@@ -85,8 +85,7 @@ import { gotoExtended } from '../playwright_utils';
  *   The exceptions are logged to the request using the
  *   {@link Request#pushErrorMessage} function.
  * @property {number} [navigationTimeoutSecs=60]
- *   Timeout in which page navigation needs to finish, in seconds. When `gotoFunction()` is used and thus the default
- *   function is overridden, this timeout will not be used and needs to be configured in the new `gotoFunction()`.
+ *   Timeout in which page navigation needs to finish, in seconds.
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
  *
@@ -107,7 +106,7 @@ import { gotoExtended } from '../playwright_utils';
  * @property {Array<PlaywrightHook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
- *   which are passed to the `gotoFunction` the crawler calls to navigate.
+ *   which are passed to the `page.goto()` function the crawler calls to navigate.
  *   Example:
  * ```
  * preNavigationHooks: [
