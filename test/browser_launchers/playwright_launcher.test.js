@@ -9,6 +9,8 @@ import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../../build/index';
 import * as utils from '../../build/utils';
 
+import { PlaywrightLauncher } from '../../build/browser_launchers/playwright_launcher';
+
 let prevEnvHeadless;
 let proxyServer;
 let proxyPort; // eslint-disable-line no-unused-vars
@@ -155,5 +157,65 @@ describe('Apify.launchPlaywright()', () => {
             spy.restore();
             if (browser) await browser.close();
         }
+    });
+
+    describe('Default browser path', () => {
+        const path = 'test';
+
+        beforeAll(() => {
+            process.env.APIFY_DEFAULT_BROWSER_PATH = path;
+        });
+
+        afterAll(() => {
+            delete process.env.APIFY_DEFAULT_BROWSER_PATH;
+        });
+
+        test('uses Apify default browser path', () => {
+            const launcher = new PlaywrightLauncher({
+                launcher: {},
+            });
+            const plugin = launcher.createBrowserPlugin();
+
+            expect(plugin.launchOptions.executablePath).toEqual(path);
+        });
+        test('does not use default when using chrome', () => {
+            const launcher = new PlaywrightLauncher({
+                useChrome: true,
+                launcher: {},
+            });
+            const plugin = launcher.createBrowserPlugin();
+
+            expect(plugin.launchOptions.executablePath).not.toBe(path);
+        });
+
+        test('allows to be overriden', () => {
+            const newPath = 'newPath';
+
+            const launcher = new PlaywrightLauncher({
+                launchOptions: {
+                    executablePath: newPath,
+                },
+                launcher: {},
+            });
+            const plugin = launcher.createBrowserPlugin();
+
+            expect(plugin.launchOptions.executablePath).toEqual(newPath);
+        });
+
+        test('works without default path', async () => {
+            delete process.env.APIFY_DEFAULT_BROWSER_PATH;
+            let browser;
+            try {
+                browser = await Apify.launchPlaywright({});
+                const page = await browser.newPage();
+
+                await page.goto('https://example.com');
+                const title = await page.title();
+
+                expect(title).toBe('Example Domain');
+            } finally {
+                if (browser) await browser.close();
+            }
+        });
     });
 });
