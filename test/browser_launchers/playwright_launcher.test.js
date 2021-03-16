@@ -207,7 +207,7 @@ describe('Apify.launchPlaywright()', () => {
             let browser;
             try {
                 browser = await Apify.launchPlaywright({
-                    launchOptions: { headless: true }
+                    launchOptions: { headless: true },
                 });
                 const page = await browser.newPage();
 
