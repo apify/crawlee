@@ -206,7 +206,9 @@ describe('Apify.launchPlaywright()', () => {
             delete process.env.APIFY_DEFAULT_BROWSER_PATH;
             let browser;
             try {
-                browser = await Apify.launchPlaywright({});
+                browser = await Apify.launchPlaywright({
+                    launchOptions: { headless: true }
+                });
                 const page = await browser.newPage();
 
                 await page.goto('https://example.com');
