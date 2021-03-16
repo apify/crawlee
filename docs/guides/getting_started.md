@@ -14,7 +14,7 @@ ready for processing. With this guide in hand, you should have your own data ext
 ## Intro
 
 The goal of this getting started guide is to provide a step-by-step introduction to all the features of the Apify SDK. It will walk you through
-creating the simplest of crawlers that only print text to console, all the way up to complex systems that crawl pages, interact with them as if a real
+creating the simplest of crawlers that only prints text to console, all the way up to complex systems that crawl pages, interact with them as if a real
 user were sitting in front of a real browser and output structured data.
 
 Since Apify SDK is usable both locally on any computer and on the [Apify Platform](../guides/apify-platform), you will be able
