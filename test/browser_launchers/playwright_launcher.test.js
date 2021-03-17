@@ -178,6 +178,7 @@ describe('Apify.launchPlaywright()', () => {
 
             expect(plugin.launchOptions.executablePath).toEqual(path);
         });
+
         test('does not use default when using chrome', () => {
             const launcher = new PlaywrightLauncher({
                 useChrome: true,
@@ -185,7 +186,7 @@ describe('Apify.launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin.launchOptions.executablePath).not.toBe(path);
+            expect(plugin.launchOptions.executablePath).toBe(utils.getTypicalChromeExecutablePath());
         });
 
         test('allows to be overriden', () => {
