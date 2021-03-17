@@ -100,44 +100,45 @@ describe('Apify.launchPlaywright()', () => {
         expect(html).toMatch('<h1>Example Domain</h1>');
         browser.close();
     });
-
-    test('opens https://www.example.com via proxy with authentication', () => {
+    describe('headful mode', () => {
         let browser;
-        let page;
 
-        // Test headless parameter
-        process.env[ENV_VARS.HEADLESS] = false;
+        beforeAll(() => {
+            // Test headless parameter
+            process.env[ENV_VARS.HEADLESS] = '0';
+        });
 
-        return Apify.launchPlaywright({
-            launchOptions: { headless: true },
-            proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
-        })
-            .then((createdBrowser) => {
-                browser = createdBrowser;
+        beforeEach(async () => {
+            browser = await Apify.launchPlaywright({
+                launchOptions: { headless: true },
+                proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
+            });
+        });
 
-                return browser.newPage();
-            })
-            .then((openedPage) => {
-                page = openedPage;
+        afterEach(async () => {
+            if (browser) await browser.close();
+        });
 
-                return page.goto('https://example.com');
-            })
-            .then(() => {
-                expect(wasProxyCalled).toBe(true);
+        afterAll(() => {
+            process.env[ENV_VARS.HEADLESS] = '1';
+        });
 
-                return page.content();
-            })
-            .then((html) => expect(html).toMatch('<h1>Example Domain</h1>'))
-            .then(() => browser.close());
+        test('opens https://www.example.com via proxy with authentication', async () => {
+            const page = await browser.newPage();
+
+            await page.goto('https://example.com');
+            expect(wasProxyCalled).toBe(true);
+
+            const html = await page.content();
+            expect(html).toMatch('<h1>Example Domain</h1>');
+        });
     });
 
     test('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
-
         let browser;
         const opts = {
             useChrome: true,
-            launchOptions: { headless: true },
         };
 
         try {
@@ -207,9 +208,7 @@ describe('Apify.launchPlaywright()', () => {
             delete process.env.APIFY_DEFAULT_BROWSER_PATH;
             let browser;
             try {
-                browser = await Apify.launchPlaywright({
-                    launchOptions: { headless: true },
-                });
+                browser = await Apify.launchPlaywright();
                 const page = await browser.newPage();
 
                 await page.goto('https://example.com');
