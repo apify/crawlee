@@ -66,22 +66,14 @@ export class PlaywrightLauncher extends BrowserLauncher {
 
         const { launchOptions = {}, ...rest } = launchContext;
 
-        const browserLauncherOptions = {
+        super({
             ...rest,
             launchOptions: {
                 ...launchOptions,
+                executablePath: getDefaultExecutablePath(launchContext),
             },
             launcher,
-        };
-
-        const defaultExecutablePath = getDefaultExecutablePath(launchContext);
-
-        if (defaultExecutablePath) {
-            // if undefined is passed playwright treats it as a no path and crashes.
-            browserLauncherOptions.launchOptions.executablePath = defaultExecutablePath;
-        }
-
-        super(browserLauncherOptions);
+        });
 
         this.Plugin = PlaywrightPlugin;
     }
