@@ -364,7 +364,7 @@ class BrowserCrawler extends BasicCrawler {
         const { request, session } = crawlingContext;
 
         if (this.useSessionPool) {
-            const sessionCookies = crawlingContext.session.getPuppeteerCookies(request.url);
+            const sessionCookies = session.getPuppeteerCookies(request.url);
             if (sessionCookies.length) {
                 await crawlingContext.browserController.setCookies(page, sessionCookies);
             }
