@@ -263,8 +263,6 @@ class PlaywrightCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         launcher: ow.optional.object,
-        gotoTimeoutSecs: ow.optional.number,
-        navigationTimeoutSecs: ow.optional.number,
         launchContext: ow.optional.object,
     }
 
@@ -277,8 +275,6 @@ class PlaywrightCrawler extends BrowserCrawler {
 
         const {
             launchContext = {},
-            gotoTimeoutSecs,
-            navigationTimeoutSecs,
             browserPoolOptions = {},
             ...browserCrawlerOptions
         } = options;
@@ -298,16 +294,7 @@ class PlaywrightCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
-        if (gotoTimeoutSecs) {
-            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
-        }
-
-        this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
-
-        this.defaultGotoOptions = {
-            timeout: this.navigationTimeoutMillis,
-        };
     }
 
     /**

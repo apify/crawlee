@@ -840,7 +840,7 @@ export class RequestList {
 export const openRequestList = async (listName, sources, options = {}) => {
     ow(listName, ow.any(ow.string, ow.null));
     ow(sources, ow.array);
-    // options will get validated in RequestList constructor
+    ow(options, ow.object.is((v) => !Array.isArray(v)));
 
     const rl = new RequestList({
         ...options,

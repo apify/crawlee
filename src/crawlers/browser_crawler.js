@@ -1,6 +1,6 @@
 import ow from 'ow';
 import { BrowserPool, BrowserController } from 'browser-pool'; // eslint-disable-line import/no-duplicates,no-unused-vars
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
+import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
@@ -263,7 +263,9 @@ class BrowserCrawler extends BasicCrawler {
         handlePageFunction: ow.function,
         gotoFunction: ow.optional.function,
 
-        handlePageTimeoutSecs: ow.optional.number,
+        gotoTimeoutSecs: ow.optional.number.greaterThan(0),
+        navigationTimeoutSecs: ow.optional.number.greaterThan(0),
+        handlePageTimeoutSecs: ow.optional.number.greaterThan(0),
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
 
@@ -283,7 +285,9 @@ class BrowserCrawler extends BasicCrawler {
         const {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
-            gotoFunction,
+            navigationTimeoutSecs = 60,
+            gotoFunction, // deprecated
+            gotoTimeoutSecs, // deprecated
             persistCookiesPerSession,
             useSessionPool = true,
             sessionPoolOptions,
@@ -303,15 +307,22 @@ class BrowserCrawler extends BasicCrawler {
             ...basicCrawlerOptions,
             useSessionPool: false,
             handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
+            handleRequestTimeoutSecs: navigationTimeoutSecs + handlePageTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
         });
+
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
 
         this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
+        this.navigationTimeoutMillis = (gotoTimeoutSecs || navigationTimeoutSecs) * 1000;
 
         this.gotoFunction = gotoFunction;
-        this.defaultGotoOptions = {};
+        this.defaultGotoOptions = {
+            timeout: this.navigationTimeoutMillis,
+        };
 
         this.proxyConfiguration = proxyConfiguration;
 

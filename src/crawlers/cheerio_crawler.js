@@ -7,6 +7,7 @@ import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import * as iconv from 'iconv-lite';
 import ow from 'ow';
 import * as util from 'util';
+import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { TimeoutError } from '../errors';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
@@ -391,7 +392,7 @@ class CheerioCrawler extends BasicCrawler {
             autoscaledPoolOptions,
             // We need to add some time for internal functions to finish,
             // but not too much so that we would stall the crawler.
-            handleRequestTimeoutSecs: (requestTimeoutSecs + handlePageTimeoutSecs * 2) + 5,
+            handleRequestTimeoutSecs: requestTimeoutSecs + handlePageTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
         });
 
         // Cookies should be persisted per session only if session pool is used

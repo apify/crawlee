@@ -249,8 +249,6 @@ class PuppeteerCrawler extends BrowserCrawler {
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
-        gotoTimeoutSecs: ow.optional.number,
-        navigationTimeoutSecs: ow.optional.number,
         launchContext: ow.optional.object,
     }
 
@@ -263,8 +261,6 @@ class PuppeteerCrawler extends BrowserCrawler {
 
         const {
             launchContext = {}, // @TODO: should not launcher be inside launchContext
-            gotoTimeoutSecs,
-            navigationTimeoutSecs,
             browserPoolOptions = {},
             proxyConfiguration,
             ...browserCrawlerOptions
@@ -290,14 +286,6 @@ class PuppeteerCrawler extends BrowserCrawler {
             browserPoolOptions,
         });
 
-        if (gotoTimeoutSecs) {
-            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
-        }
-
-        if (gotoTimeoutSecs) {
-            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
-        }
-
         if (stealth) {
             this.browserPool.postLaunchHooks.push(async (pageId, browserController) => {
                 // @TODO: We can do this better now. It is not necessary to override the page.
@@ -307,12 +295,7 @@ class PuppeteerCrawler extends BrowserCrawler {
             });
         }
 
-        this.navigationTimeoutMillis = (navigationTimeoutSecs || gotoTimeoutSecs) * 1000;
         this.launchContext = launchContext;
-
-        this.defaultGotoOptions = {
-            timeout: this.navigationTimeoutMillis,
-        };
     }
 
     /**
