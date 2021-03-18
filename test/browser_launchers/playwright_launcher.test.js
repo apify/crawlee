@@ -9,6 +9,8 @@ import { ENV_VARS } from 'apify-shared/consts';
 import Apify from '../../build/index';
 import * as utils from '../../build/utils';
 
+import { PlaywrightLauncher } from '../../build/browser_launchers/playwright_launcher';
+
 let prevEnvHeadless;
 let proxyServer;
 let proxyPort; // eslint-disable-line no-unused-vars
@@ -98,44 +100,45 @@ describe('Apify.launchPlaywright()', () => {
         expect(html).toMatch('<h1>Example Domain</h1>');
         browser.close();
     });
-
-    test('opens https://www.example.com via proxy with authentication', () => {
+    describe('headful mode', () => {
         let browser;
-        let page;
 
-        // Test headless parameter
-        process.env[ENV_VARS.HEADLESS] = false;
+        beforeAll(() => {
+            // Test headless parameter
+            process.env[ENV_VARS.HEADLESS] = '0';
+        });
 
-        return Apify.launchPlaywright({
-            launchOptions: { headless: true },
-            proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
-        })
-            .then((createdBrowser) => {
-                browser = createdBrowser;
+        beforeEach(async () => {
+            browser = await Apify.launchPlaywright({
+                launchOptions: { headless: true },
+                proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
+            });
+        });
 
-                return browser.newPage();
-            })
-            .then((openedPage) => {
-                page = openedPage;
+        afterEach(async () => {
+            if (browser) await browser.close();
+        });
 
-                return page.goto('https://example.com');
-            })
-            .then(() => {
-                expect(wasProxyCalled).toBe(true);
+        afterAll(() => {
+            process.env[ENV_VARS.HEADLESS] = '1';
+        });
 
-                return page.content();
-            })
-            .then((html) => expect(html).toMatch('<h1>Example Domain</h1>'))
-            .then(() => browser.close());
+        test('opens https://www.example.com via proxy with authentication', async () => {
+            const page = await browser.newPage();
+
+            await page.goto('https://example.com');
+            expect(wasProxyCalled).toBe(true);
+
+            const html = await page.content();
+            expect(html).toMatch('<h1>Example Domain</h1>');
+        });
     });
 
     test('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
-
         let browser;
         const opts = {
             useChrome: true,
-            launchOptions: { headless: true },
         };
 
         try {
@@ -155,5 +158,66 @@ describe('Apify.launchPlaywright()', () => {
             spy.restore();
             if (browser) await browser.close();
         }
+    });
+
+    describe('Default browser path', () => {
+        const path = 'test';
+
+        beforeAll(() => {
+            process.env.APIFY_DEFAULT_BROWSER_PATH = path;
+        });
+
+        afterAll(() => {
+            delete process.env.APIFY_DEFAULT_BROWSER_PATH;
+        });
+
+        test('uses Apify default browser path', () => {
+            const launcher = new PlaywrightLauncher({
+                launcher: {},
+            });
+            const plugin = launcher.createBrowserPlugin();
+
+            expect(plugin.launchOptions.executablePath).toEqual(path);
+        });
+
+        test('does not use default when using chrome', () => {
+            const launcher = new PlaywrightLauncher({
+                useChrome: true,
+                launcher: {},
+            });
+            const plugin = launcher.createBrowserPlugin();
+
+            expect(plugin.launchOptions.executablePath).toBe(utils.getTypicalChromeExecutablePath());
+        });
+
+        test('allows to be overriden', () => {
+            const newPath = 'newPath';
+
+            const launcher = new PlaywrightLauncher({
+                launchOptions: {
+                    executablePath: newPath,
+                },
+                launcher: {},
+            });
+            const plugin = launcher.createBrowserPlugin();
+
+            expect(plugin.launchOptions.executablePath).toEqual(newPath);
+        });
+
+        test('works without default path', async () => {
+            delete process.env.APIFY_DEFAULT_BROWSER_PATH;
+            let browser;
+            try {
+                browser = await Apify.launchPlaywright();
+                const page = await browser.newPage();
+
+                await page.goto('https://example.com');
+                const title = await page.title();
+
+                expect(title).toBe('Example Domain');
+            } finally {
+                if (browser) await browser.close();
+            }
+        });
     });
 });

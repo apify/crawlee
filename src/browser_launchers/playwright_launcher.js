@@ -65,12 +65,41 @@ export class PlaywrightLauncher extends BrowserLauncher {
             launcher = BrowserLauncher.requireLauncherOrThrow('playwright', 'apify/actor-node-playwright-*').chromium,
         } = launchContext;
 
+        const { launchOptions = {}, ...rest } = launchContext;
+
         super({
-            ...launchContext,
+            ...rest,
+            launchOptions: {
+                ...launchOptions,
+                executablePath: getDefaultExecutablePath(launchContext),
+            },
             launcher,
         });
 
         this.Plugin = PlaywrightPlugin;
+    }
+}
+
+/**
+ * @param {PlaywrightLaunchContext} launchContext
+ * @returns {string|undefined} default path to browser.
+ * If actor-node-playwright-* image is used the APIFY_DEFAULT_BROWSER_PATH is considered as default.
+ * @ignore
+ */
+function getDefaultExecutablePath(launchContext) {
+    const pathFromPlaywrightImage = process.env.APIFY_DEFAULT_BROWSER_PATH;
+    const { launchOptions = {} } = launchContext;
+
+    if (launchOptions.executablePath) {
+        return launchOptions.executablePath;
+    }
+
+    if (launchContext.useChrome) {
+        return;
+    }
+
+    if (pathFromPlaywrightImage) {
+        return pathFromPlaywrightImage;
     }
 }
 
