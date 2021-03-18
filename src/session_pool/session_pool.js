@@ -177,6 +177,7 @@ export class SessionPool extends EventEmitter {
      * @param {Session|SessionOptions} [options] - The configuration options for the session being added to the session pool.
      */
     async addSession(options = {}) {
+        this._throwIfNotInitialized();
         const { id } = options;
         if (id) {
             const sessionExists = this.sessionMap.has(id);
@@ -207,6 +208,7 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<Session>}
      */
     async getSession(sessionId) {
+        this._throwIfNotInitialized();
         if (sessionId) {
             const session = this.sessionMap.get(sessionId);
             if (session && session.isUsable()) return session;
@@ -260,6 +262,16 @@ export class SessionPool extends EventEmitter {
     async teardown() {
         events.removeListener(ACTOR_EVENT_NAMES_EX.PERSIST_STATE, this._listener);
         await this.persistState();
+    }
+
+    /**
+     * SessionPool should not work before initialization.
+     * @ignore
+     * @protected
+     * @internal
+     */
+    _throwIfNotInitialized() {
+        if (!this._listener) throw new Error('SessionPool is not initialized.');
     }
 
     /**
