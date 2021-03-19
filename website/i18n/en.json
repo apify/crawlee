@@ -578,9 +578,6 @@
       "version-0.22.4/typedefs/version-0.22.4-basic-crawler-options": {
         "title": "BasicCrawlerOptions"
       },
-      "version-0.22.4/typedefs/version-0.22.4-browser-crawler-options": {
-        "title": "BrowserCrawlerOptions"
-      },
       "version-0.22.4/typedefs/version-0.22.4-cheerio-crawler-options": {
         "title": "CheerioCrawlerOptions"
       },
@@ -1039,6 +1036,36 @@
       },
       "version-1.0.2/typedefs/version-1.0.2-webhook-run": {
         "title": "WebhookRun"
+      },
+      "version-1.1.0/api/version-1.1.0-session": {
+        "title": "Session"
+      },
+      "version-1.1.0/api/version-1.1.0-session-pool": {
+        "title": "SessionPool"
+      },
+      "version-1.1.0/guides/version-1.1.0-getting-started": {
+        "title": "Getting Started"
+      },
+      "version-1.1.0/guides/version-1.1.0-quick-start": {
+        "title": "Quick Start"
+      },
+      "version-1.1.0/guides/version-1.1.0-type-script-actor": {
+        "title": "TypeScript Actors"
+      },
+      "version-1.1.0/typedefs/version-1.1.0-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-1.1.0/typedefs/version-1.1.0-playwright-launch-context": {
+        "title": "PlaywrightLaunchContext"
+      },
+      "version-1.1.0/typedefs/version-1.1.0-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "version-1.1.0/typedefs/version-1.1.0-puppeteer-launch-context": {
+        "title": "PuppeteerLaunchContext"
+      },
+      "version-1.1.0/typedefs/version-1.1.0-session-pool-options": {
+        "title": "SessionPoolOptions"
       }
     },
     "links": {
