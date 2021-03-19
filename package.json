@@ -72,7 +72,7 @@
         "jquery": "^3.5.1",
         "mime-types": "^2.1.27",
         "ow": "^0.23.0",
-        "proxy-chain": "^0.4.5",
+        "proxy-chain": "^1.0.0",
         "rimraf": "^3.0.2",
         "semver": "^7.3.2",
         "socket.io": "^3.0.3",
