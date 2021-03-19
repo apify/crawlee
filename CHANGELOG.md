@@ -6,7 +6,7 @@
 - Fix `Apify.call()` and `Apify.callTask()` output - make it backwards compatible with previous versions of the client.
 - Improve handling of browser executable paths when using the official SDK Docker images.
 - Update `browser-pool` to fix issues with failing hooks causing browsers to get stuck in limbo.
-- Update `proxy-chain` to fix various issues.
+- Removed `proxy-chain` dependency because now it's covered in `browser-pool`.
 
 1.0.2 / 2021/03/05
 ====================
