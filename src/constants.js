@@ -32,12 +32,12 @@ export const ACTOR_EVENT_NAMES_EX = { ...ACTOR_EVENT_NAMES, PERSIST_STATE: 'pers
 export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
 
 /**
- * Multiplier used in CheerioCrawler and PuppeteerCrawler to set a reasonable
- * handleRequestTimeoutSecs in BasicCrawler that would not impare functionality.
+ * Additional number of seconds used in CheerioCrawler and BrowserCrawler to set a reasonable
+ * handleRequestTimeoutSecs for BasicCrawler that would not impare functionality (not timeout before crawlers).
  *
  * @type {number}
  */
-export const BASIC_CRAWLER_TIMEOUT_MULTIPLIER = 10;
+export const BASIC_CRAWLER_TIMEOUT_BUFFER_SECS = 10;
 
 export const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 

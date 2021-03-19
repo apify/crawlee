@@ -1,8 +1,12 @@
 1.1.0 / 2021/03/XX
 ====================
-- Add `sessionPool.addSession()` `async` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id).
+- Add `sessionPool.addSession()` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id).
 - Add optional parameter `sessionId` to `sessionPool.getSession()` to be able to retrieve a session from the session pool with the specific session id.
+- Fix `SessionPool` not working properly in both `PuppeteerCrawler` and `PlaywrightCrawler`.
 - Fix `Apify.call()` and `Apify.callTask()` output - make it backwards compatible with previous versions of the client.
+- Improve handling of browser executable paths when using the official SDK Docker images.
+- Update `browser-pool` to fix issues with failing hooks causing browsers to get stuck in limbo.
+- Removed `proxy-chain` dependency because now it's covered in `browser-pool`.
 
 1.0.2 / 2021/03/05
 ====================

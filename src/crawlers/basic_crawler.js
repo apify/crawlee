@@ -364,6 +364,8 @@ class BasicCrawler {
 
         if (this.useSessionPool) {
             this.sessionPool = await openSessionPool(this.sessionPoolOptions);
+            // Assuming there are not more than 20 browsers running at once;
+            this.sessionPool.setMaxListeners(20);
         }
 
         await this._loadHandledRequestCount();

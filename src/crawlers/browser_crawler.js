@@ -1,7 +1,6 @@
 import ow from 'ow';
 import { BrowserPool, BrowserController } from 'browser-pool'; // eslint-disable-line import/no-duplicates,no-unused-vars
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { SessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
+import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
 import { addTimeoutToPromise } from '../utils';
 import { validators } from '../validators';
@@ -263,7 +262,9 @@ class BrowserCrawler extends BasicCrawler {
         handlePageFunction: ow.function,
         gotoFunction: ow.optional.function,
 
-        handlePageTimeoutSecs: ow.optional.number,
+        gotoTimeoutSecs: ow.optional.number.greaterThan(0),
+        navigationTimeoutSecs: ow.optional.number.greaterThan(0),
+        handlePageTimeoutSecs: ow.optional.number.greaterThan(0),
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
 
@@ -283,9 +284,10 @@ class BrowserCrawler extends BasicCrawler {
         const {
             handlePageFunction,
             handlePageTimeoutSecs = 60,
-            gotoFunction,
+            navigationTimeoutSecs = 60,
+            gotoFunction, // deprecated
+            gotoTimeoutSecs, // deprecated
             persistCookiesPerSession,
-            useSessionPool = true,
             sessionPoolOptions,
             proxyConfiguration,
             browserPoolOptions,
@@ -294,24 +296,30 @@ class BrowserCrawler extends BasicCrawler {
             ...basicCrawlerOptions
         } = options;
 
+        super({
+            ...basicCrawlerOptions,
+            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
+            handleRequestTimeoutSecs: navigationTimeoutSecs + handlePageTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+        });
+
         // Cookies should be persisted per session only if session pool is used
-        if (!useSessionPool && persistCookiesPerSession) {
+        if (!this.useSessionPool && persistCookiesPerSession) {
             throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
 
-        super({
-            ...basicCrawlerOptions,
-            useSessionPool: false,
-            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-        });
+        if (gotoTimeoutSecs) {
+            this.log.deprecated('Option "gotoTimeoutSecs" is deprecated. Use "navigationTimeoutSecs" instead.');
+        }
 
         this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutSecs = handlePageTimeoutSecs;
         this.handlePageTimeoutMillis = this.handlePageTimeoutSecs * 1000;
+        this.navigationTimeoutMillis = (gotoTimeoutSecs || navigationTimeoutSecs) * 1000;
 
         this.gotoFunction = gotoFunction;
-        this.defaultGotoOptions = {};
+        this.defaultGotoOptions = {
+            timeout: this.navigationTimeoutMillis,
+        };
 
         this.proxyConfiguration = proxyConfiguration;
 
@@ -320,16 +328,8 @@ class BrowserCrawler extends BasicCrawler {
         /** @type {Array<Hook>} */
         this.postNavigationHooks = postNavigationHooks;
 
-        if (useSessionPool) {
+        if (this.useSessionPool) {
             this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
-
-            this.sessionPool = new SessionPool({
-                ...sessionPoolOptions,
-                log: this.log,
-            });
-
-            // Assuming there are not more than 20 browsers running at once;
-            this.sessionPool.setMaxListeners(20);
         } else {
             this.persistCookiesPerSession = false;
         }
@@ -363,9 +363,11 @@ class BrowserCrawler extends BasicCrawler {
 
         const { request, session } = crawlingContext;
 
-        const sessionCookies = crawlingContext.session.getPuppeteerCookies(request.url);
-        if (sessionCookies.length) {
-            await crawlingContext.browserController.setCookies(page, sessionCookies);
+        if (this.useSessionPool) {
+            const sessionCookies = session.getPuppeteerCookies(request.url);
+            if (sessionCookies.length) {
+                await crawlingContext.browserController.setCookies(page, sessionCookies);
+            }
         }
 
         try {
