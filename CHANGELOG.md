@@ -1,5 +1,21 @@
-1.1.0 / 2021/03/XX
+1.1.0 / 2021/03/19
 ====================
+In this minor release we focused on the `SessionPool`. Besides fixing a few bugs, we added one important feature: setting and getting of sessions by ID.
+
+```js
+// Now you can add specific sessions to the pool,
+// instead of relying on random generation.
+await sessionPool.addSession({
+    id: 'my-session',
+    // ... some config
+});
+
+// Later, you can retrieve the session. This is useful
+// for example when you need a specific login session.
+const session = await sessionPool.getSession('my-session');
+```
+
+## Full list of changes:
 - Add `sessionPool.addSession()` function to add a new session to the session pool (possibly with the provided options, e.g. with specific session id).
 - Add optional parameter `sessionId` to `sessionPool.getSession()` to be able to retrieve a session from the session pool with the specific session id.
 - Fix `SessionPool` not working properly in both `PuppeteerCrawler` and `PlaywrightCrawler`.
