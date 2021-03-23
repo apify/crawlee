@@ -334,6 +334,32 @@ describe('BrowserCrawler', () => {
         expect(browserCrawler).toBeDefined();
     });
 
+    test('should correctly set session pool options', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+
+        const crawler = new Apify.BrowserCrawler({
+            requestList,
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            useSessionPool: true,
+            persistCookiesPerSession: false,
+            sessionPoolOptions: {
+                sessionOptions: {
+                    maxUsageCount: 1,
+                },
+                persistStateKeyValueStoreId: 'abc',
+            },
+            handlePageFunction: async () => {},
+        });
+        expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
+        expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
+    });
+
     test('should persist cookies per session', async () => {
         const requestList = new Apify.RequestList({
             sources: [

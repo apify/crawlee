@@ -288,7 +288,6 @@ class BrowserCrawler extends BasicCrawler {
             gotoFunction, // deprecated
             gotoTimeoutSecs, // deprecated
             persistCookiesPerSession,
-            sessionPoolOptions,
             proxyConfiguration,
             browserPoolOptions,
             preNavigationHooks = [],

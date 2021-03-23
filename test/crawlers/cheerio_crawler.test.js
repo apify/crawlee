@@ -658,6 +658,24 @@ describe('CheerioCrawler', () => {
                 },
             });
             await crawler.run();
+            expect.assertions(1);
+        });
+
+        test('should correctly set session pool options', async () => {
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                useSessionPool: true,
+                persistCookiesPerSession: false,
+                sessionPoolOptions: {
+                    sessionOptions: {
+                        maxUsageCount: 1,
+                    },
+                    persistStateKeyValueStoreId: 'abc',
+                },
+                handlePageFunction: async () => {},
+            });
+            expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
+            expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
         });
 
         test('should markBad sessions after request timeout', async () => {

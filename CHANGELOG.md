@@ -1,3 +1,8 @@
+1.1.1 / 2021/03/23
+====================
+- Fix `SessionPoolOptions` not being correctly used in `BrowserCrawler`.
+- Improve error messages for missing `puppeteer` or `playwright` installations.
+
 1.1.0 / 2021/03/19
 ====================
 In this minor release we focused on the `SessionPool`. Besides fixing a few bugs, we added one important feature: setting and getting of sessions by ID.

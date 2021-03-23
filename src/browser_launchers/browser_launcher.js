@@ -48,9 +48,10 @@ export default class BrowserLauncher {
             return require(launcher); // eslint-disable-line
         } catch (err) {
             if (err.code === 'MODULE_NOT_FOUND') {
-                const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?`;
+                const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?`
+                    + `Make sure you have '${launcher} in your package.json dependencies and in your package-lock.json, if you use it.`;
                 err.message = isAtHome()
-                    ? `${msg} The '${launcher}' package is automatically bundled when using ${apifyImageName} Base image.`
+                    ? `${msg} On the Apify platform, '${launcher}' can only be used with the ${apifyImageName} Docker image.`
                     : msg;
             }
 
