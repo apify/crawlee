@@ -49,7 +49,7 @@ export default class BrowserLauncher {
         } catch (err) {
             if (err.code === 'MODULE_NOT_FOUND') {
                 const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?\n`
-                    + `Make sure you have '${launcher} in your package.json dependencies and in your package-lock.json, if you use it.`;
+                    + `Make sure you have '${launcher}' in your package.json dependencies and in your package-lock.json, if you use it.`;
                 err.message = isAtHome()
                     ? `${msg}\nOn the Apify platform, '${launcher}' can only be used with the ${apifyImageName} Docker image.`
                     : msg;

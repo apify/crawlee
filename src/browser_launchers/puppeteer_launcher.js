@@ -86,7 +86,7 @@ export class PuppeteerLauncher extends BrowserLauncher {
         ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
 
         const {
-            launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-chrome-*'),
+            launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
             userAgent,
             stealth = false,
             stealthOptions = {},
