@@ -88,9 +88,10 @@ export const maybeStringify = (value, options) => {
  * **Example usage:**
  *
  * ```javascript
- * // Get actor input from the default key-value store
+ * // Get actor input from the default key-value store.
  * const input = await Apify.getInput();
- * const otherValue = Apify.getValue('my-key');
+ * // Get some value from the default key-value store.
+ * const otherValue = await Apify.getValue('my-key');
  *
  * // Write actor output to the default key-value store.
  * await Apify.setValue('OUTPUT', { myResult: 123 });
