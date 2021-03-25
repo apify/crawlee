@@ -165,18 +165,15 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             expect(deviceMemory).not.toBe(0);
         });
 
-        test(
-            'it should bypass all of the known tests for browser fingerprinting',
-            async () => {
-                await page.goto(testUrl);
-                const fingerPrint = await getFingerPrint(page);
-                const testedFingerprint = scanner.analyseFingerprint(fingerPrint);
-                const failedChecks = Object.values(testedFingerprint).filter((val) => val.consistent < 3);
+        test('it should bypass all of the known tests for browser fingerprinting', async () => {
+            await page.goto(testUrl);
+            const fingerPrint = await getFingerPrint(page);
+            const testedFingerprint = scanner.analyseFingerprint(fingerPrint);
+            const failedChecks = Object.values(testedFingerprint).filter((val) => val.consistent < 3);
 
-                // webdriver check is failing due to the outdated fp analyzer
-                expect(failedChecks.length).toBe(1);
-            },
-        );
+            // webdriver check is failing due to the outdated fp analyzer
+            expect(failedChecks.length).toBe(1);
+        });
 
         test('logs the evaluation warning in "page" when limit is exceeded', async () => {
             const numberOfIframes = 14;
