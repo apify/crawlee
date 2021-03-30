@@ -1,4 +1,4 @@
-name: Check & Release Beta
+name: Check & Release
 
 on:
   # Push to master will deploy a beta version

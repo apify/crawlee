@@ -7,60 +7,34 @@ on:
 
 jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
-    build_and_test:
-        name: Build & Test
+    test:
+        name: Test
         if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
         runs-on: ubuntu-latest
 
         strategy:
             fail-fast: false
             matrix:
-                node-version: [10, 12, 14, 15]
+                node-version: [ 10, 12, 14, 15 ]
 
         steps:
-            -
-                uses: actions/checkout@v2
-            -
-                name: Use Node.js ${{ matrix.node-version }}
+            -   uses: actions/checkout@v2
+            -   name: Use Node.js ${{ matrix.node-version }}
                 uses: actions/setup-node@v1
                 with:
                     node-version: ${{ matrix.node-version }}
-            -
-                name: Cache Node Modules
-                if: ${{ matrix.node-version == 14 }}
-                uses: actions/cache@v2
-                with:
-                    path: |
-                        node_modules
-                        build
-                    key: cache-${{ github.run_id }}-v14
-            -
-                name: Install Dependencies
+            -   name: Install Dependencies
                 run: npm install
-            -
-                name: Run Tests
+            -   name: Run Tests
                 run: npm test
-
     lint:
         name: Lint
-        needs: [build_and_test]
+        if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
         runs-on: ubuntu-latest
-
         steps:
-            -
-                uses: actions/checkout@v2
-            -
-                name: Use Node.js 14
-                uses: actions/setup-node@v1
-                with:
-                    node-version: 14
-            -
-                name: Load Cache
-                uses: actions/cache@v2
-                with:
-                    path: |
-                        node_modules
-                        build
-                    key: cache-${{ github.run_id }}-v14
-            -
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v1
+            -   name: Install Dependencies
+                run: npm install
+            -   name: Run Linter
                 run: npm run lint
