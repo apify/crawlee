@@ -7,8 +7,8 @@ on:
 
 jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
-    build_and_test:
-        name: Build & Test
+    test:
+        name: Test
         if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
         runs-on: ubuntu-latest
 
@@ -25,8 +25,16 @@ jobs:
                     node-version: ${{ matrix.node-version }}
             -   name: Install Dependencies
                 run: npm install
-            -   name: Run Linter
-                if: matrix.node-version == '15'
-                run: npm run lint
             -   name: Run Tests
                 run: npm test
+    lint:
+        name: Lint
+        if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v1
+            -   name: Install Dependencies
+                run: npm install
+            -   name: Run Linter
+                run: npm run lint
