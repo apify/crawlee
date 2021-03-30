@@ -136,8 +136,6 @@ import { BrowserPoolOptions } from 'browser-pool';
  * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {number} [handleRequestTimeoutSecs=60]
- *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
  * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if {@link PuppeteerCrawlerOptions.handlePageFunction} fails.
  * @property {number} [maxRequestsPerCrawl]
@@ -147,7 +145,7 @@ import { BrowserPoolOptions } from 'browser-pool';
  * @property {AutoscaledPoolOptions} [autoscaledPoolOptions]
  *   Custom options passed to the underlying {@link AutoscaledPool} constructor.
  *   Note that the `runTaskFunction` and `isTaskReadyFunction` options
- *   are provided by `BasicCrawler` and cannot be overridden.
+ *   are provided by the crawler and cannot be overridden.
  *   However, you can provide a custom implementation of `isFinishedFunction`.
  * @property {number} [minConcurrency=1]
  *   Sets the minimum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.

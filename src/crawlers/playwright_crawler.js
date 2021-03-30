@@ -148,8 +148,6 @@ import { gotoExtended } from '../playwright_utils';
  * @property {RequestQueue} [requestQueue]
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
- * @property {number} [handleRequestTimeoutSecs=60]
- *   Timeout in which the function passed as `handleRequestFunction` needs to finish, in seconds.
  * @property {number} [maxRequestRetries=3]
  *   Indicates how many times the request is retried if {@link PlaywrightCrawlerOptions.handlePageFunction} fails.
  * @property {number} [maxRequestsPerCrawl]
