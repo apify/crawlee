@@ -1,3 +1,7 @@
+NEXT
+====================
+- **DEPRECATED:** `utils.waitForRunToFinish` please use `apify-client` and its `waitForFinish` functions. Sorry, forgot to deprecate this with v1 release.
+
 1.1.1 / 2021/03/23
 ====================
 - Fix `SessionPoolOptions` not being correctly used in `BrowserCrawler`.

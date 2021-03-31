@@ -679,6 +679,9 @@ export const parseContentTypeFromResponse = (response) => {
  * @memberOf utils
  * @name waitForRunToFinish
  * @function
+ * @deprecated
+ *  Please use the 'waitForFinish' functions of 'apify-client'.
+ * @ignore
  */
 export const waitForRunToFinish = async (options) => {
     ow(options, ow.object.exactShape({
@@ -707,7 +710,7 @@ export const waitForRunToFinish = async (options) => {
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        run = await apifyClient.run(runId, actorId).waitForFinish({ waitSecs: waitForFinish }); // TODO waitForFinish
+        run = await apifyClient.run(runId, actorId).waitForFinish({ waitSecs: waitForFinish });
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
