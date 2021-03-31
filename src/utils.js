@@ -707,7 +707,7 @@ export const waitForRunToFinish = async (options) => {
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        run = await apifyClient.run(runId, actorId).waitForFinish({ waitForFinish }); // TODO waitForFinish
+        run = await apifyClient.run(runId, actorId).waitForFinish({ waitSecs: waitForFinish }); // TODO waitForFinish
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.
