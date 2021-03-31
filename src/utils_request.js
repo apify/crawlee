@@ -1,20 +1,18 @@
-import * as httpRequest from '@apify/http-request';
+import * as gotScraping from 'got-scraping';
 import * as errors from '@apify/http-request/src/errors';
+import log from './utils_log';
 /* eslint-disable no-unused-vars,import/named,import/order */
 import { TimeoutError } from './errors';
 import { IncomingMessage } from 'http';
 import { Readable } from 'stream';
 /* eslint-enable no-unused-vars,import/named,import/order */
-
-export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
-export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
-
 const DEFAULT_HTTP_REQUEST_OPTIONS = {
     useBrotli: true,
     json: false,
     useCaseSensitiveHeaders: true,
     stream: false,
     timeoutSecs: 30,
+    maxRedirects: 20,
 };
 
 /**
@@ -33,6 +31,7 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  default browser headers will remove the masking this function provides.
  * @property {string} [proxyUrl]
  *  An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
+ * @property {object} [headerGeneratorOptions] - @TODO: proper type import and link
  * @property {string} [languageCode=en]
  *  Two-letter ISO 639 language code.
  * @property {string} [countryCode=US]
@@ -125,53 +124,86 @@ export const requestAsBrowser = async (options) => {
         ignoreSslErrors = true,
         useInsecureHttpParser = true,
         useHttp2 = false,
+        timeoutSecs = 30,
+        throwOnHttpErrors = false,
+        headerGeneratorOptions,
+        stream = false,
         ...otherParams
     } = options;
 
-    const defaultHeaders = {
-        'User-Agent': useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': `${languageCode}-${countryCode},${languageCode};q=0.5`,
-        'Accept-Encoding': 'gzip, deflate, br',
-        Connection: useHttp2 ? undefined : 'keep-alive',
-    };
-
-    const requestOpts = {
+    let requestOptions = {
         ...DEFAULT_HTTP_REQUEST_OPTIONS,
         ...otherParams,
         url,
         method,
-        // Users can provide headers in lowercase so we need to make sure
-        // that their values are applied, but names are kept upper-case.
-        headers: mergeHeaders(headers, defaultHeaders),
+        headers,
         proxyUrl,
         abortFunction,
         ignoreSslErrors,
         insecureHTTPParser: useInsecureHttpParser,
-        useHttp2,
+        http2: useHttp2,
+        timeout: timeoutSecs * 1000,
+        https: {
+            rejectUnauthorized: !ignoreSslErrors,
+        },
+        headerGeneratorOptions,
+        throwHttpErrors: throwOnHttpErrors,
+        isStream: stream,
+
     };
 
+    logDeprecatedOptions(options);
+
+    if (abortFunction) {
+        const abortRequestOptions = {
+            hooks: {
+                afterResponse: [
+                    (response) => {
+                        const shouldAbort = abortFunction(response);
+
+                        if (shouldAbort) {
+                            throw new Error(`Request for ${url} aborted due to abortFunction`, response);
+                        }
+
+                        return response;
+                    },
+                ],
+            },
+        };
+        requestOptions = gotScraping.mergeOptions(gotScraping.defaults.options, requestOptions, abortRequestOptions);
+    }
+
+    if (!headerGeneratorOptions) {
+        // Default values for backwards compatibility.
+        // @TODO: I think we could omit the firefox browser and use all of them.
+        requestOptions.headerGeneratorOptions = {
+            devices: useMobileVersion ? ['mobile'] : ['desktop'],
+            locales: [`${languageCode}-${countryCode}`],
+        };
+    }
+
     try {
-        return await httpRequest(requestOpts);
+        return await gotScraping(requestOptions);
     } catch (e) {
         if (e instanceof errors.TimeoutError) {
-            throw new TimeoutError(`Request Timed-out after ${requestOpts.timeoutSecs} seconds.`);
+            throw new TimeoutError(`Request Timed-out after ${requestOptions.timeoutSecs} seconds.`);
         }
 
         throw e;
     }
 };
 
-function mergeHeaders(userHeaders, defaultHeaders) {
-    const headers = { ...defaultHeaders, ...userHeaders };
-    Object.keys(headers).forEach((key) => {
-        const lowerCaseKey = key.toLowerCase();
-        const keyIsNotLowerCase = key !== lowerCaseKey;
-        // eslint-disable-next-line
-        if (keyIsNotLowerCase && headers.hasOwnProperty(lowerCaseKey)) {
-            headers[key] = headers[lowerCaseKey];
-            delete headers[lowerCaseKey];
+/**
+ *
+ * @param {RequestAsBrowserOptions} options
+ * @ignore
+ */
+function logDeprecatedOptions(options) {
+    const deprecatedOptions = ['languageCode', 'countryCode', 'useMobileVersion'];
+
+    for (const deprecatedOption of deprecatedOptions) {
+        if (options.hasOwnProperty(deprecatedOption)) {
+            log.deprecated(`"options.${deprecatedOption}" is deprecated. "options.headerGeneratorOptions" instead.`);
         }
-    });
-    return headers;
+    }
 }
