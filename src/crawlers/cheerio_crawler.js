@@ -554,10 +554,10 @@ class CheerioCrawler extends BasicCrawler {
         }
 
         const opts = this._getRequestOptions(request, session, proxyUrl);
-        let responseStream;
+        let responseWithStream;
 
         try {
-            responseStream = await utilsRequest.requestAsBrowser(opts);
+            responseWithStream = await utilsRequest.requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -566,7 +566,7 @@ class CheerioCrawler extends BasicCrawler {
             }
         }
 
-        return responseStream;
+        return responseWithStream;
     }
 
     /**
@@ -705,7 +705,9 @@ class CheerioCrawler extends BasicCrawler {
             });
             const parser = new WritableStream(domHandler, { decodeEntities: true });
             parser.on('error', reject);
-            response.on('error', reject).pipe(parser);
+            response
+                .on('error', reject)
+                .pipe(parser);
         });
     }
 

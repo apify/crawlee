@@ -48,6 +48,11 @@ describe('Apify.utils_request', () => {
             res.send();
         });
 
+        app.post('/empty1', async (req, res) => {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.send();
+        });
+
         app.get('/invalidHeaderChar', (req) => {
             const headers = {
                 'Invalid Header With Space': 'some\value',
@@ -212,10 +217,20 @@ describe('Apify.utils_request', () => {
             expect(response.request.options.http2).toBe(true);
         });
 
-        test('works with streams', async () => {
+        test('get works with streams', async () => {
             const response = await requestAsBrowser({
                 url: 'https://apify.com/',
                 stream: true,
+            });
+            expect(response.options.isStream).toBe(true);
+        });
+
+        test('post works with streams', async () => {
+            const response = await requestAsBrowser({
+                method: 'POST',
+                url: `http://${HOSTNAME}:${port}/empty1`,
+                stream: true,
+                payload: 'TEST',
             });
             expect(response.options.isStream).toBe(true);
         });

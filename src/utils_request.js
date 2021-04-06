@@ -1,15 +1,18 @@
 import * as gotScraping from 'got-scraping';
-import * as errors from '@apify/http-request/src/errors';
-import log from './utils_log';
+
 /* eslint-disable no-unused-vars,import/named,import/order */
 import { TimeoutError } from './errors';
 import { IncomingMessage } from 'http';
-import { Readable } from 'stream';
+import { Readable, pipeline } from 'stream';
+
+import { promisify } from 'util';
+import log from './utils_log';
+
+const pipelinePromise = promisify(pipeline);
+
 /* eslint-enable no-unused-vars,import/named,import/order */
 const DEFAULT_HTTP_REQUEST_OPTIONS = {
-    useBrotli: true,
     json: false,
-    useCaseSensitiveHeaders: true,
     stream: false,
     timeoutSecs: 30,
     maxRedirects: 20,
@@ -116,6 +119,7 @@ export const requestAsBrowser = async (options) => {
         url,
         method = 'GET',
         headers = {},
+        payload, // also body
         proxyUrl,
         languageCode = 'en',
         countryCode = 'US',
@@ -128,6 +132,8 @@ export const requestAsBrowser = async (options) => {
         throwOnHttpErrors = false,
         headerGeneratorOptions,
         stream = false,
+        json = false, // @TODO: To responseType json
+        decodeBody, // decompress
         ...otherParams
     } = options;
 
@@ -137,9 +143,9 @@ export const requestAsBrowser = async (options) => {
         url,
         method,
         headers,
+        body: payload,
         proxyUrl,
         abortFunction,
-        ignoreSslErrors,
         insecureHTTPParser: useInsecureHttpParser,
         http2: useHttp2,
         timeout: timeoutSecs * 1000,
@@ -154,7 +160,7 @@ export const requestAsBrowser = async (options) => {
 
     logDeprecatedOptions(options);
 
-    if (abortFunction) {
+    if (abortFunction && !stream) {
         const abortRequestOptions = {
             hooks: {
                 afterResponse: [
@@ -175,7 +181,6 @@ export const requestAsBrowser = async (options) => {
 
     if (!headerGeneratorOptions) {
         // Default values for backwards compatibility.
-        // @TODO: I think we could omit the firefox browser and use all of them.
         requestOptions.headerGeneratorOptions = {
             devices: useMobileVersion ? ['mobile'] : ['desktop'],
             locales: [`${languageCode}-${countryCode}`],
@@ -183,9 +188,39 @@ export const requestAsBrowser = async (options) => {
     }
 
     try {
-        return await gotScraping(requestOptions);
+        if (!stream) {
+            return await gotScraping(requestOptions);
+        }
+        const duplexStream = await gotScraping(requestOptions);
+
+        if (payload) {
+            await pipelinePromise(
+                Readable.from([payload]),
+                duplexStream,
+            );
+        }
+
+        return await new Promise((resolve, reject) => duplexStream
+            .on('error', reject)
+            .on('response', (res) => {
+                try {
+                    const shouldAbort = abortFunction && abortFunction(res);
+
+                    if (shouldAbort) {
+                        duplexStream.destroy();
+                        return reject(new Error(`Request for ${url} aborted due to abortFunction`, res));
+                    }
+                } catch (e) {
+                    duplexStream.destroy();
+                    return reject(e);
+                }
+                // Add response props
+                addResponsePropertiesToStream(duplexStream, res);
+
+                return resolve(duplexStream);
+            }));
     } catch (e) {
-        if (e instanceof errors.TimeoutError) {
+        if (e instanceof gotScraping.TimeoutError) {
             throw new TimeoutError(`Request Timed-out after ${requestOptions.timeoutSecs} seconds.`);
         }
 
@@ -206,4 +241,19 @@ function logDeprecatedOptions(options) {
             log.deprecated(`"options.${deprecatedOption}" is deprecated. "options.headerGeneratorOptions" instead.`);
         }
     }
+}
+
+function addResponsePropertiesToStream(stream, response) {
+    const properties = [
+        'statusCode', 'statusMessage', 'headers',
+        'complete', 'httpVersion', 'rawHeaders',
+        'rawTrailers', 'trailers', 'url',
+        'request',
+    ];
+
+    properties.forEach((prop) => {
+        stream[prop] = response[prop];
+    });
+
+    return stream;
 }
