@@ -603,6 +603,40 @@ export const snakeCaseToCamelCase = (snakeCaseStr) => {
 };
 
 /**
+ * Unescapes HTML chracters
+ *
+ * @param {string} text
+ * @return {string}
+ * @ignore
+ */
+export const unescapeHtml = (text) => {
+    let result = text;
+    const charsToReplace = {
+        '&quot;': '"',
+        '&#34;': '"',
+
+        '&apos;': '\'',
+        '&#39;': '\'',
+
+        '&amp;': '&',
+        '&#38;': '&',
+
+        '&gt;': '>',
+        '&#62;': '>',
+
+        '&lt;': '<',
+        '&#60;': '<',
+    };
+
+    for (const [escapedChar, unescapedChar] of Object.entries(charsToReplace)) {
+        while (result.includes(escapedChar)) {
+            result = result.replace(escapedChar, unescapedChar);
+        }
+    }
+    return result;
+};
+
+/**
  * Prints a warning if this version of Apify SDK is outdated.
  *
  * @ignore

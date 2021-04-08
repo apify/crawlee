@@ -2,7 +2,7 @@ import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import ow from 'ow';
 import { COUNTRY_CODE_REGEX } from './constants';
-import { apifyClient } from './utils';
+import { apifyClient, unescapeHtml } from './utils';
 import { requestAsBrowser } from './utils_request';
 import defaultLog from './utils_log';
 
@@ -210,7 +210,6 @@ export class ProxyConfiguration {
     async initialize() {
         if (this.usesApifyProxy) {
             await this._setPasswordIfToken();
-
             await this._checkAccess();
         }
     }
@@ -358,7 +357,7 @@ export class ProxyConfiguration {
         const status = await this._fetchStatus();
         if (status) {
             const { connected, connectionError } = status;
-            if (!connected) this._throwApifyProxyConnectionError(connectionError);
+            if (!connected) this._throwApifyProxyConnectionError(unescapeHtml(connectionError));
         } else {
             this.log.warning('Apify Proxy access check timed out. Watch out for errors with status code 407. '
                 + 'If you see some, it most likely means you don\'t have access to either all or some of the proxies you\'re trying to use.');

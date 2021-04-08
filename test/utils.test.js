@@ -649,6 +649,15 @@ describe('utils.snakeCaseToCamelCase()', () => {
     });
 });
 
+describe('utils.unescapeHtml()', () => {
+    test('correctly unescapes common HTML characters', () => {
+        // eslint-disable-next-line max-len
+        const text = '&quot;Jan&quot;&amp;&#34;Jakub&#34; (&apos;Jakub&apos;&#38;&#39;Jan&#39;) are solving a puzzle. If 3 &gt; 2 and 2 &#62; 1 and 1 &lt; 4, is 1 &#60; 3?';
+        const expected = '"Jan"&"Jakub" (\'Jakub\'&\'Jan\') are solving a puzzle. If 3 > 2 and 2 > 1 and 1 < 4, is 1 < 3?';
+        expect(utils.unescapeHtml(text)).toEqual(expected);
+    });
+});
+
 describe('utils.addTimeoutToPromise()', () => {
     test('should timeout', async () => {
         const clock = sinon.useFakeTimers();
