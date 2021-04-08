@@ -1,22 +1,15 @@
 import * as gotScraping from 'got-scraping';
-
-/* eslint-disable no-unused-vars,import/named,import/order */
-import { TimeoutError } from './errors';
-import { IncomingMessage } from 'http';
+import ow from 'ow';
 import { Readable, pipeline } from 'stream';
-
 import { promisify } from 'util';
+import { TimeoutError } from './errors';
 import log from './utils_log';
 
-const pipelinePromise = promisify(pipeline);
-
+/* eslint-disable no-unused-vars,import/named,import/order */
+import { IncomingMessage } from 'http';
 /* eslint-enable no-unused-vars,import/named,import/order */
-const DEFAULT_HTTP_REQUEST_OPTIONS = {
-    json: false,
-    stream: false,
-    timeoutSecs: 30,
-    maxRedirects: 20,
-};
+
+const pipelinePromise = promisify(pipeline);
 
 /**
  * @typedef {(IncomingMessage & Readable & { body: string })} RequestAsBrowserResult
@@ -34,7 +27,9 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  default browser headers will remove the masking this function provides.
  * @property {string} [proxyUrl]
  *  An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
- * @property {object} [headerGeneratorOptions] - @TODO: proper type import and link
+ * @property {object} [headerGeneratorOptions]
+ *  Configuration to be used for generating correct browser headers.
+ *  See the [`header-generator`](https://github.com/apify/header-generator) library.
  * @property {string} [languageCode=en]
  *  Two-letter ISO 639 language code.
  * @property {string} [countryCode=US]
@@ -114,51 +109,73 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  * @name requestAsBrowser
  * @function
  */
-export const requestAsBrowser = async (options) => {
+export const requestAsBrowser = async (options = {}) => {
+    logDeprecatedOptions(options);
+    ow(options, 'RequestAsBrowserOptions', ow.object.partialShape({
+        payload: ow.optional.any(ow.string, ow.buffer),
+        proxyUrl: ow.optional.string.url,
+        languageCode: ow.optional.string.length(2),
+        countryCode: ow.optional.string.length(2),
+        useMobileVersion: ow.optional.boolean,
+        abortFunction: ow.optional.function,
+        ignoreSslErrors: ow.optional.boolean,
+        useInsecureHttpParser: ow.optional.boolean,
+        useHttp2: ow.optional.boolean,
+        timeoutSecs: ow.optional.boolean,
+        throwOnHttpErrors: ow.optional.boolean,
+        headerGeneratorOptions: ow.optional.object,
+        stream: ow.optional.boolean,
+        decodeBody: ow.optional.boolean,
+        // json, @TODO: To responseType json
+    }));
+
+    // We created the `got-scraping` package which replaced underlying @apify/http-request.
+    // At the same time, we want users to be able to use requestAsBrowser without breaking changes.
+    // So we do a lot of property mapping here, to make sure that everything works as expected.
+    // TODO Update this with SDK v2 and use `got-scraping` API directly.
     const {
-        url,
-        method = 'GET',
-        headers = {},
-        payload, // also body
+        payload, // alias for body to allow direct passing of our Request objects
         proxyUrl,
         languageCode = 'en',
         countryCode = 'US',
         useMobileVersion = false,
-        abortFunction,
+        abortFunction = () => false,
         ignoreSslErrors = true,
         useInsecureHttpParser = true,
-        useHttp2 = false,
+        useHttp2 = true, // TODO delete connection header
         timeoutSecs = 30,
         throwOnHttpErrors = false,
         headerGeneratorOptions,
         stream = false,
-        json = false, // @TODO: To responseType json
+        json, // @TODO: To responseType json
         decodeBody, // decompress
-        ...otherParams
+        ...gotParams
     } = options;
 
-    let requestOptions = {
-        ...DEFAULT_HTTP_REQUEST_OPTIONS,
-        ...otherParams,
-        url,
-        method,
-        headers,
-        body: payload,
+    let gotScrapingOptions = {
         proxyUrl,
-        abortFunction,
         insecureHTTPParser: useInsecureHttpParser,
         http2: useHttp2,
         timeout: timeoutSecs * 1000,
-        https: {
-            rejectUnauthorized: !ignoreSslErrors,
-        },
         headerGeneratorOptions,
         throwHttpErrors: throwOnHttpErrors,
         isStream: stream,
-
+        // Overwrite old
+        ...gotParams,
     };
 
-    logDeprecatedOptions(options);
+    if (useHttp2) {
+        delete gotScrapingOptions.headers?.connection;
+        delete gotScrapingOptions.headers?.Connection;
+        delete gotScrapingOptions.headers?.host;
+        delete gotScrapingOptions.headers?.Host;
+    }
+
+    if (gotScrapingOptions.https) {
+        gotScrapingOptions.https.rejectUnauthorized = !ignoreSslErrors;
+    } else {
+        gotScrapingOptions.https = { rejectUnauthorized: !ignoreSslErrors };
+    }
 
     if (abortFunction && !stream) {
         const abortRequestOptions = {
@@ -176,12 +193,12 @@ export const requestAsBrowser = async (options) => {
                 ],
             },
         };
-        requestOptions = gotScraping.mergeOptions(gotScraping.defaults.options, requestOptions, abortRequestOptions);
+        gotScrapingOptions = gotScraping.mergeOptions(gotScraping.defaults.options, gotScrapingOptions, abortRequestOptions);
     }
 
     if (!headerGeneratorOptions) {
         // Default values for backwards compatibility.
-        requestOptions.headerGeneratorOptions = {
+        gotScrapingOptions.headerGeneratorOptions = {
             devices: useMobileVersion ? ['mobile'] : ['desktop'],
             locales: [`${languageCode}-${countryCode}`],
         };
@@ -189,9 +206,9 @@ export const requestAsBrowser = async (options) => {
 
     try {
         if (!stream) {
-            return await gotScraping(requestOptions);
+            return await gotScraping(gotScrapingOptions);
         }
-        const duplexStream = await gotScraping(requestOptions);
+        const duplexStream = await gotScraping(gotScrapingOptions);
 
         if (payload) {
             await pipelinePromise(
@@ -221,7 +238,7 @@ export const requestAsBrowser = async (options) => {
             }));
     } catch (e) {
         if (e instanceof gotScraping.TimeoutError) {
-            throw new TimeoutError(`Request Timed-out after ${requestOptions.timeoutSecs} seconds.`);
+            throw new TimeoutError(`Request Timed-out after ${gotScrapingOptions.timeoutSecs} seconds.`);
         }
 
         throw e;
@@ -229,9 +246,21 @@ export const requestAsBrowser = async (options) => {
 };
 
 /**
+ * got-scraping uses 'body', but we also support 'payload' from {@link Request}.
+ * got.stream() also doesn't send a request until at least an empty body is provided.
+ * @param {RequestAsBrowserOptions} options
+ * @ignore
+ * @private
+ */
+function getNormalizedBody(options) {
+    const { stream, body, payload } = options;
+}
+
+/**
  *
  * @param {RequestAsBrowserOptions} options
  * @ignore
+ * @private
  */
 function logDeprecatedOptions(options) {
     const deprecatedOptions = ['languageCode', 'countryCode', 'useMobileVersion'];
@@ -243,6 +272,18 @@ function logDeprecatedOptions(options) {
     }
 }
 
+/**
+ * The stream object returned from got does not have the below properties.
+ * At the same time, you can't read data directly from the response stream,
+ * because they won't get emitted unless you also read from the primary
+ * got stream. To be able to work with only one stream, we move the expected props
+ * from the response stream to the got stream.
+ * @param {GotStream} stream
+ * @param {http.IncomingMessage} response
+ * @return {GotStream}
+ * @ignore
+ * @private
+ */
 function addResponsePropertiesToStream(stream, response) {
     const properties = [
         'statusCode', 'statusMessage', 'headers',
@@ -252,7 +293,9 @@ function addResponsePropertiesToStream(stream, response) {
     ];
 
     properties.forEach((prop) => {
-        stream[prop] = response[prop];
+        if (stream[prop] === undefined) {
+            stream[prop] = response[prop];
+        }
     });
 
     return stream;
