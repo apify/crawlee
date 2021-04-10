@@ -7,10 +7,15 @@ The most important new feature is that the full set of headers `requestAsBrowser
 We also switched the default HTTP version from 1 to 2 in `requestAsBrowser`. We don't expect this change to be breaking, and we took precautions, but we're aware that there are always some edge cases, so please let us know if it causes trouble for you.
 
 ## Full list of changes:
-- **DEPRECATED:** `utils.waitForRunToFinish` please use `apify-client` and its `waitForFinish` functions. Sorry, forgot to deprecate this with v1 release.
 - Replace the underlying HTTP client of `utils.requestAsBrowser()` with `got-scraping`.
 - Make `useHttp2` `true` by default with `utils.requestAsBrowser()`.
 - Update `puppeteer` to `8.0.0` and `playwright` to `1.10.0` with Chromium 90 in Docker images.
+
+1.1.2 / 2021/04/10
+====================
+- **DEPRECATED:** `utils.waitForRunToFinish` please use the `apify-client` package and its `waitForFinish` functions. Sorry, forgot to deprecate this with v1 release.
+- Fix internal `require` that broke the SDK with `underscore` 1.13 release.
+- Update `@apify/storage-local` to v2 written in TypeScript.
 
 1.1.1 / 2021/03/23
 ====================

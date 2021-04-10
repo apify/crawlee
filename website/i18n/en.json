@@ -1066,6 +1066,18 @@
       },
       "version-1.1.0/typedefs/version-1.1.0-session-pool-options": {
         "title": "SessionPoolOptions"
+      },
+      "version-1.1.2/api/version-1.1.2-key-value-store": {
+        "title": "KeyValueStore"
+      },
+      "version-1.1.2/api/version-1.1.2-utils": {
+        "title": "utils"
+      },
+      "version-1.1.2/typedefs/version-1.1.2-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-1.1.2/typedefs/version-1.1.2-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
       }
     },
     "links": {

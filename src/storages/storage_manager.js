@@ -6,7 +6,7 @@ import * as utils from '../utils';
 // @ts-ignore
 import * as ApifyClient from 'apify-client';
 // @ts-ignore
-import * as ApifyStorageLocal from '@apify/storage-local';
+import { ApifyStorageLocal } from '@apify/storage-local';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const DEFAULT_ID_ENV_VAR_NAMES = {
