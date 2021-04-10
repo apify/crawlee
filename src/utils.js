@@ -1,6 +1,6 @@
 import * as psTree from '@apify/ps-tree';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import * as ApifyStorageLocal from '@apify/storage-local';
+import { ApifyStorageLocal } from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
