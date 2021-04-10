@@ -12,8 +12,8 @@ import { enqueueLinksByClickingElements } from './enqueue_links/click_elements';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 import { openKeyValueStore } from './storages/key_value_store';
 
-const jqueryPath = require.resolve('jquery/dist/jquery.min');
-const underscorePath = require.resolve('underscore/underscore-min');
+const jqueryPath = require.resolve('jquery');
+const underscorePath = require.resolve('underscore');
 const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;

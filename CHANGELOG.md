@@ -1,6 +1,8 @@
-NEXT
+1.1.2 / 2021/04/10
 ====================
-- **DEPRECATED:** `utils.waitForRunToFinish` please use `apify-client` and its `waitForFinish` functions. Sorry, forgot to deprecate this with v1 release.
+- **DEPRECATED:** `utils.waitForRunToFinish` please use the `apify-client` package and its `waitForFinish` functions. Sorry, forgot to deprecate this with v1 release.
+- Fix internal `require` that broke the SDK with `underscore` 1.13 release.
+- Update `@apify/storage-local` to v2 written in TypeScript.
 
 1.1.1 / 2021/03/23
 ====================
