@@ -1,3 +1,7 @@
+0.22.5 / 2021/04/11
+====================
+- Pin `underscore` version to fix `require` issues.
+
 0.22.4 / 2021/01/10
 ====================
 - Fix issues with `Apify.pushData()` and `keyValueStore.forEachKey()`
