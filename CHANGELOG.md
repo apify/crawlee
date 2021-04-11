@@ -1,3 +1,7 @@
+0.21.12 / 2021/04/11
+====================
+- Pin `underscore` to fix a `require` issue.
+
 0.21.10 / 2020/12/07
 ====================
 - Bump Puppeteer to 5.5.0 and Chrom(ium) 88.
