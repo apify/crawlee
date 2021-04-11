@@ -75,7 +75,7 @@
         "socket.io": "^2.3.0",
         "stream-json": "^1.5.0",
         "tough-cookie": "^4.0.0",
-        "underscore": "^1.10.2",
+        "underscore": "1.12.1",
         "ws": "^7.3.0"
     },
     "devDependencies": {
