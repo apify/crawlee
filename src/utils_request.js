@@ -1,15 +1,10 @@
 import * as gotScraping from 'got-scraping';
 import ow from 'ow';
-import { Readable, pipeline } from 'stream';
-import { promisify } from 'util';
-import { TimeoutError } from './errors';
 import log from './utils_log';
 
 /* eslint-disable no-unused-vars,import/named,import/order */
 import { IncomingMessage } from 'http';
 /* eslint-enable no-unused-vars,import/named,import/order */
-
-const pipelinePromise = promisify(pipeline);
 
 /**
  * @typedef {(IncomingMessage & Readable & { body: string })} RequestAsBrowserResult
@@ -47,12 +42,12 @@ const pipelinePromise = promisify(pipeline);
  *  although the risk should be negligible as these vulnerabilities mainly relate to server applications, not clients.
  *  Learn more in this [blog post](https://snyk.io/blog/node-js-release-fixes-a-critical-http-security-vulnerability/).
  * @property {AbortFunction} [abortFunction]
- *  Function accepts `response` object as a single parameter and should return true or false.
- *  If function returns true request gets aborted. This function is passed to the
- *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
- * @property {boolean} [useHttp2=false]
- *  If set to true, it will additionally accept HTTP2 requests.
- *  It will choose either HTTP/1.1 or HTTP/2 depending on the ALPN protocol.
+ *  Function accepts `response` object as a single parameter and should return `true` or `false`.
+ *  If function returns true, request gets aborted.
+ * @property {boolean} [useHttp2=true]
+ *  If set to false, it will prevent use of HTTP2 requests. This is strongly discouraged. Websites
+ *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
+ *  to HTTP/1.1 for websites that do not support HTTP2.
  */
 
 /**
@@ -102,9 +97,9 @@ const pipelinePromise = promisify(pipeline);
  *
  * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
- * @return {Promise<RequestAsBrowserResult>} This will typically be a
- * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),
- * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
+ * @return {Promise<RequestAsBrowserResult>} The result can be various objects, but it will always be like a
+ * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
+ * with a 'body' property for the parsed response body, unless the 'stream' option is used.
  * @memberOf utils
  * @name requestAsBrowser
  * @function
@@ -121,13 +116,17 @@ export const requestAsBrowser = async (options = {}) => {
         ignoreSslErrors: ow.optional.boolean,
         useInsecureHttpParser: ow.optional.boolean,
         useHttp2: ow.optional.boolean,
-        timeoutSecs: ow.optional.boolean,
+        timeoutSecs: ow.optional.number,
         throwOnHttpErrors: ow.optional.boolean,
         headerGeneratorOptions: ow.optional.object,
         stream: ow.optional.boolean,
         decodeBody: ow.optional.boolean,
-        // json, @TODO: To responseType json
     }));
+
+    ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({
+        validator: areBodyOptionsCompatible(opts),
+        message: (label) => `The 'payload', 'body', 'json' and 'form' options of ${label} are mutually exclusive.`,
+    })));
 
     // We created the `got-scraping` package which replaced underlying @apify/http-request.
     // At the same time, we want users to be able to use requestAsBrowser without breaking changes.
@@ -136,128 +135,210 @@ export const requestAsBrowser = async (options = {}) => {
     const {
         payload, // alias for body to allow direct passing of our Request objects
         proxyUrl,
+        json,
+        headerGeneratorOptions,
         languageCode = 'en',
         countryCode = 'US',
         useMobileVersion = false,
         abortFunction = () => false,
         ignoreSslErrors = true,
         useInsecureHttpParser = true,
-        useHttp2 = true, // TODO delete connection header
+        useHttp2 = true,
         timeoutSecs = 30,
         throwOnHttpErrors = false,
-        headerGeneratorOptions,
         stream = false,
-        json, // @TODO: To responseType json
-        decodeBody, // decompress
+        decodeBody = true,
         ...gotParams
     } = options;
 
-    let gotScrapingOptions = {
+    const gotScrapingOptions = {
         proxyUrl,
         insecureHTTPParser: useInsecureHttpParser,
         http2: useHttp2,
         timeout: timeoutSecs * 1000,
-        headerGeneratorOptions,
         throwHttpErrors: throwOnHttpErrors,
         isStream: stream,
-        // Overwrite old
+        decompress: decodeBody,
+        // We overwrite the above arguments because we want to give the official
+        // got interface a priority over our requestAsBrowser one.
+        // E.g. { isStream: false, stream: true } should produce { isStream: false }.
         ...gotParams,
     };
 
-    if (useHttp2) {
-        delete gotScrapingOptions.headers?.connection;
-        delete gotScrapingOptions.headers?.Connection;
-        delete gotScrapingOptions.headers?.host;
-        delete gotScrapingOptions.headers?.Host;
-    }
-
-    if (gotScrapingOptions.https) {
-        gotScrapingOptions.https.rejectUnauthorized = !ignoreSslErrors;
-    } else {
-        gotScrapingOptions.https = { rejectUnauthorized: !ignoreSslErrors };
-    }
-
-    if (abortFunction && !stream) {
-        const abortRequestOptions = {
-            hooks: {
-                afterResponse: [
-                    (response) => {
-                        const shouldAbort = abortFunction(response);
-
-                        if (shouldAbort) {
-                            throw new Error(`Request for ${url} aborted due to abortFunction`, response);
-                        }
-
-                        return response;
-                    },
-                ],
-            },
-        };
-        gotScrapingOptions = gotScraping.mergeOptions(gotScraping.defaults.options, gotScrapingOptions, abortRequestOptions);
-    }
-
+    // Order is important for payload and json.
+    normalizePayloadOption(payload, gotScrapingOptions);
+    normalizeJsonOption(json, gotScrapingOptions);
+    normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions);
+    ensureCorrectHttp2Headers(gotScrapingOptions);
+    maybeAddAbortHook(abortFunction, gotScrapingOptions);
     if (!headerGeneratorOptions) {
-        // Default values for backwards compatibility.
+        // Values that respect old requestAsBrowser user-agents and settings
         gotScrapingOptions.headerGeneratorOptions = {
             devices: useMobileVersion ? ['mobile'] : ['desktop'],
             locales: [`${languageCode}-${countryCode}`],
         };
     }
 
-    try {
-        if (!stream) {
-            return await gotScraping(gotScrapingOptions);
-        }
-        const duplexStream = await gotScraping(gotScrapingOptions);
+    if (!gotScrapingOptions.isStream) return gotScraping(gotScrapingOptions);
 
-        if (payload) {
-            await pipelinePromise(
-                Readable.from([payload]),
-                duplexStream,
-            );
-        }
-
-        return await new Promise((resolve, reject) => duplexStream
+    // abortFunction must be handled separately for streams :(
+    const duplexStream = await gotScraping(gotScrapingOptions);
+    ensureRequestIsDispatched(duplexStream, gotScrapingOptions);
+    return new Promise((resolve, reject) => {
+        duplexStream
             .on('error', reject)
             .on('response', (res) => {
                 try {
-                    const shouldAbort = abortFunction && abortFunction(res);
-
+                    const shouldAbort = abortFunction(res);
                     if (shouldAbort) {
-                        duplexStream.destroy();
-                        return reject(new Error(`Request for ${url} aborted due to abortFunction`, res));
+                        const err = new Error(`Request for ${gotScrapingOptions.url} aborted due to abortFunction.`);
+                        duplexStream.destroy(err);
+                        return reject(err);
                     }
                 } catch (e) {
-                    duplexStream.destroy();
+                    duplexStream.destroy(e);
                     return reject(e);
                 }
-                // Add response props
+
                 addResponsePropertiesToStream(duplexStream, res);
 
                 return resolve(duplexStream);
-            }));
-    } catch (e) {
-        if (e instanceof gotScraping.TimeoutError) {
-            throw new TimeoutError(`Request Timed-out after ${gotScrapingOptions.timeoutSecs} seconds.`);
-        }
-
-        throw e;
-    }
+            });
+    });
 };
 
 /**
- * got-scraping uses 'body', but we also support 'payload' from {@link Request}.
- * got.stream() also doesn't send a request until at least an empty body is provided.
- * @param {RequestAsBrowserOptions} options
- * @ignore
+ * `got` has a `body` option and 2 helpers, `json` and `form`, to provide specific bodies.
+ * Those options are mutually exclusive. `requestAsBrowser` also supports `payload` as
+ * an alias of `body`. It must be exclusive as well.
+ * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+ * @return {boolean}
  * @private
+ * @ignore
  */
-function getNormalizedBody(options) {
-    const { stream, body, payload } = options;
+function areBodyOptionsCompatible(requestAsBrowserOptions) {
+    const { payload, json, body, form } = requestAsBrowserOptions;
+    // A boolean is old requestAsBrowser interface and not a real "body"
+    // See the normalizeJsonOption function.
+    const jsonBody = typeof json !== 'boolean' ? undefined : json;
+
+    const possibleOpts = [payload, jsonBody, body, form];
+    const usedOpts = possibleOpts.filter((opt) => opt !== undefined);
+
+    // Only a single option out of the 4 can be used.
+    return usedOpts.length <= 1;
 }
 
 /**
- *
+ * got-scraping uses 'body', but we also support 'payload' from {@link Request}.
+ * @param {string|Buffer} payload
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function normalizePayloadOption(payload, gotScrapingOptions) {
+    if (payload !== undefined) gotScrapingOptions.body = payload;
+}
+
+/**
+ * `json` is a boolean flag in `requestAsBrowser`, but a `body` alias that
+ * adds a 'content-type: application/json' header in got. To stay backwards
+ * compatible we need to figure out which option the user provided.
+ * @param {*} json
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function normalizeJsonOption(json, gotScrapingOptions) {
+    // If it's a boolean, then it's the old requestAsBrowser API.
+    if (typeof json === 'boolean') {
+        gotScrapingOptions.responseType = 'json';
+        gotScrapingOptions.ciphers = undefined;
+        // If there is a body, we move it under `json` to get the automatic
+        // 'content-type' header injection.
+        if (gotScrapingOptions.body !== undefined) gotScrapingOptions.json = gotScrapingOptions.body;
+    } else {
+        // If it's something else, we let `got` handle it.
+        gotScrapingOptions.json = json;
+    }
+}
+
+/**
+ * @param {boolean} ignoreSslErrors
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions) {
+    if (gotScrapingOptions.https) {
+        gotScrapingOptions.https.rejectUnauthorized = !ignoreSslErrors;
+    } else {
+        gotScrapingOptions.https = { rejectUnauthorized: !ignoreSslErrors };
+    }
+}
+
+/**
+ * 'connection' and 'host' headers are forbidden when using HTTP2. We delete
+ * them from user-provided headers because we switched the default from HTTP1 to 2.
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function ensureCorrectHttp2Headers(gotScrapingOptions) {
+    if (gotScrapingOptions.http2) {
+        delete gotScrapingOptions.headers?.connection;
+        delete gotScrapingOptions.headers?.Connection;
+        delete gotScrapingOptions.headers?.host;
+        delete gotScrapingOptions.headers?.Host;
+    }
+}
+
+/**
+ * `abortFunction` is an old `requestAsBrowser` interface for aborting requests before
+ * the response body is read to save bandwidth.
+ * @param {function} abortFunction
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function maybeAddAbortHook(abortFunction, gotScrapingOptions) {
+    // Stream aborting must be handled on the response object because `got`
+    // does not execute `afterResponse` hooks for streams :(
+    if (gotScrapingOptions.isStream) return;
+
+    const abortHook = (response) => {
+        const shouldAbort = abortFunction(response);
+        if (shouldAbort) {
+            throw new Error(`Request for ${gotScrapingOptions.url} aborted due to abortFunction.`);
+        }
+        return response;
+    };
+
+    const abortRequestOptions = {
+        hooks: {
+            afterResponse: [abortHook],
+        },
+    };
+    gotScrapingOptions = gotScraping.mergeOptions(gotScraping.defaults.options, gotScrapingOptions, abortRequestOptions);
+}
+
+/**
+ * 'got' will not dispatch non-GET request stream until a body is provided.
+ * @param {stream.Duplex} duplexStream
+ * @param {GotScrapingOptions} gotScrapingOptions
+ */
+function ensureRequestIsDispatched(duplexStream, gotScrapingOptions) {
+    const { method } = gotScrapingOptions;
+    const bodyIsEmpty = gotScrapingOptions.body === undefined
+        && gotScrapingOptions.json === undefined
+        && gotScrapingOptions.form === undefined;
+
+    if (method && method.toLowerCase() !== 'get' && bodyIsEmpty) {
+        duplexStream.end();
+    }
+}
+
+/**
  * @param {RequestAsBrowserOptions} options
  * @ignore
  * @private
@@ -267,7 +348,7 @@ function logDeprecatedOptions(options) {
 
     for (const deprecatedOption of deprecatedOptions) {
         if (options.hasOwnProperty(deprecatedOption)) {
-            log.deprecated(`"options.${deprecatedOption}" is deprecated. "options.headerGeneratorOptions" instead.`);
+            log.deprecated(`"options.${deprecatedOption}" is deprecated. Use "options.headerGeneratorOptions" instead.`);
         }
     }
 }

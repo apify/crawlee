@@ -48,9 +48,9 @@ describe('Apify.utils_request', () => {
             res.send();
         });
 
-        app.post('/empty1', async (req, res) => {
+        app.post('/echo-body', async (req, res) => {
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            res.send();
+            req.pipe(res);
         });
 
         app.get('/invalidHeaderChar', (req) => {
@@ -162,7 +162,7 @@ describe('Apify.utils_request', () => {
             expect(JSON.parse(response.body)['user-agent']).toEqual(options.headers['User-Agent']);
         });
 
-        test('custom headers in lowercase override uppercase defaults', async () => {
+        test('custom headers in uppercase for HTTP1', async () => {
             const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/rawHeaders`,
@@ -170,6 +170,7 @@ describe('Apify.utils_request', () => {
                     Accept: 'foo',
                     bar: 'BAZ',
                 },
+                useHttp2: false,
             };
 
             const response = await requestAsBrowser(options);
@@ -211,28 +212,45 @@ describe('Apify.utils_request', () => {
             }
         });
 
+        // TODO we need to do this better, it will be flaky. The test above is not flaky,
+        // because it only checks for a very specific error so it won't fail on network errors.
         test('works with useHttp2', async () => {
             const url = 'https://www.amazon.com/s?k=iphone';
-            const response = await requestAsBrowser({ url, useHttp2: true });
+            const response = await requestAsBrowser({ url, useHttp2: true, ciphers: undefined }); // TODO waiting for ciphers fix in got-scraping
             expect(response.request.options.http2).toBe(true);
+            expect(response.body.length).toBeGreaterThan(10000);
         });
 
+        // TODO same here
         test('get works with streams', async () => {
             const response = await requestAsBrowser({
                 url: 'https://apify.com/',
                 stream: true,
             });
             expect(response.options.isStream).toBe(true);
+            const chunks = [];
+            for await (const chunk of response) {
+                chunks.push(chunk);
+            }
+            const body = chunks.join();
+            expect(body.length).toBeGreaterThan(10000);
         });
 
+        // TODO This does not work because https://github.com/apify/got-scraping/issues/11
         test('post works with streams', async () => {
             const response = await requestAsBrowser({
                 method: 'POST',
-                url: `http://${HOSTNAME}:${port}/empty1`,
+                url: `http://${HOSTNAME}:${port}/echo-body`,
                 stream: true,
                 payload: 'TEST',
             });
             expect(response.options.isStream).toBe(true);
+            const chunks = [];
+            for await (const chunk of response) {
+                chunks.push(chunk);
+            }
+            const body = chunks.join();
+            expect(body).toBe('TEST');
         });
     });
 });
