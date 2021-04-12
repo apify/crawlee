@@ -25,7 +25,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getDefaults().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {

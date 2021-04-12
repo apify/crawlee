@@ -5,6 +5,7 @@ import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
 import { requestAsBrowser } from './utils_request';
 import defaultLog from './utils_log';
+import { Configuration } from './configuration';
 
 // CONSTANTS
 const PROTOCOL = 'http';
@@ -51,6 +52,7 @@ const CHECK_ACCESS_MAX_ATTEMPTS = 2;
  *   Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
  *   and should always return stringified proxy URL.
  *   This function is used to generate the URL when {@link ProxyConfiguration.newUrl} or {@link ProxyConfiguration.newProxyInfo} is called.
+ * @property {ProxyConfigurationFunction} [useApifyProxy]
  */
 
 /**
@@ -149,8 +151,9 @@ export class ProxyConfiguration {
      * Configuration of proxy.
      *
      * @param {ProxyConfigurationOptions} [options] All `ProxyConfiguration` options.
+     * @param {Configuration} [config]
      */
-    constructor(options = {}) {
+    constructor(options = {}, config = Configuration.getDefaults()) {
         ow(options, ow.object.exactShape({
             groups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
             apifyProxyGroups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
@@ -169,14 +172,14 @@ export class ProxyConfiguration {
             countryCode,
             apifyProxyCountry,
             proxyUrls,
-            password = process.env[ENV_VARS.PROXY_PASSWORD],
+            password = config.get('proxyPassword'),
             newUrlFunction,
         } = options;
 
         const groupsToUse = groups.length ? groups : apifyProxyGroups;
         const countryCodeToUse = countryCode || apifyProxyCountry;
-        const hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME];
-        const port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
+        const hostname = config.get('proxyHostname', LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]);
+        const port = +config.get('proxyPort', LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
 
         // Validation
         if (((proxyUrls || newUrlFunction) && ((groupsToUse.length) || countryCodeToUse))) {
@@ -195,6 +198,7 @@ export class ProxyConfiguration {
         this.newUrlFunction = newUrlFunction;
         this.usesApifyProxy = !this.proxyUrls && !this.newUrlFunction;
         this.log = defaultLog.child({ prefix: 'ProxyConfiguration' });
+        this.config = config;
     }
 
     /**
@@ -314,7 +318,7 @@ export class ProxyConfiguration {
      * @ignore
      */
     _getApifyProxyStatusUrl() {
-        return process.env[ENV_VARS.PROXY_STATUS_URL] || `${PROTOCOL}://${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}`;
+        return this.config.get('proxyStatusUrl', `${PROTOCOL}://${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}`);
     }
 
     /**
@@ -326,7 +330,7 @@ export class ProxyConfiguration {
      * @internal
      */
     async _setPasswordIfToken() {
-        const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
+        const token = this.config.get('token', LOCAL_ENV_VARS[ENV_VARS.TOKEN]);
         if (token) {
             const { proxy: { password } } = await apifyClient.user().get();
             if (this.password) {

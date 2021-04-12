@@ -49,6 +49,7 @@ const DEFAULT_SCREENSHOT_DIR_PATH = path.resolve(LOCAL_STORAGE_DIR, 'live_view')
  *
  * When running locally, it is often best to use a headful browser for debugging, since it provides
  * a better view into the browser, including DevTools, but `LiveViewServer` works too.
+ * @deprecated no longer supported, will be removed in 2.0
  * @ignore
  */
 class LiveViewServer {

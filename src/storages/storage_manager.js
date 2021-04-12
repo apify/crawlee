@@ -7,6 +7,7 @@ import * as utils from '../utils';
 import * as ApifyClient from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
+import { Configuration } from '../configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const DEFAULT_ID_ENV_VAR_NAMES = {
@@ -15,7 +16,11 @@ const DEFAULT_ID_ENV_VAR_NAMES = {
     RequestQueue: ENV_VARS.DEFAULT_REQUEST_QUEUE_ID,
 };
 
-const MAX_OPENED_STORAGES = 1000;
+const DEFAULT_ID_CONFIG_KEYS = {
+    Dataset: 'defaultDatasetId',
+    KeyValueStore: 'defaultKeyValueStoreId',
+    RequestQueue: 'defaultRequestQueueId',
+};
 
 /**
  * @template T
@@ -25,42 +30,40 @@ const MAX_OPENED_STORAGES = 1000;
  * @property {LruCache} cache
  * @ignore
  */
-class StorageManager {
+export default class StorageManager {
     /**
      * @param {T} StorageConstructor
+     * @param {Configuration} [config]
      */
-    constructor(StorageConstructor) {
+    constructor(StorageConstructor, config = Configuration.getDefaults()) {
         this.StorageConstructor = StorageConstructor;
         this.name = StorageConstructor.name;
-        this.cache = cacheContainer.openCache(this.name, MAX_OPENED_STORAGES);
+        this.cache = cacheContainer.openCache(this.name, config.get('maxOpenedStorages'));
+        this.config = config;
     }
 
     /**
-     * @param {string} idOrName
+     * @param {string} [idOrName]
      * @param {object} [options]
      * @param {boolean} [options.forceCloud]
      * @return {Promise<T>}
      */
     async openStorage(idOrName, options = {}) {
-        if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
-            throw new Error(`Cannot use ${this.name} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN}`
-                + ' environment variable is set. You need to set one these variables in order to enable data storage.');
-        }
-
-        const isLocal = !!(process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !options.forceCloud);
+        const isLocal = !!(this.config.get('localStorageDir') && !options.forceCloud);
 
         if (!idOrName) {
             const defaultIdEnvVarName = DEFAULT_ID_ENV_VAR_NAMES[this.name];
-            idOrName = process.env[defaultIdEnvVarName];
+            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
+            idOrName = this.config.get(defaultIdConfigKey);
             if (!idOrName && isLocal) idOrName = LOCAL_ENV_VARS[defaultIdEnvVarName];
             if (!idOrName) throw new Error(`The '${defaultIdEnvVarName}' environment variable is not defined.`);
         }
 
         const cacheKey = this._createCacheKey(idOrName, isLocal);
-
         let storage = this.cache.get(cacheKey);
+
         if (!storage) {
-            const client = isLocal ? utils.apifyStorageLocal : utils.apifyClient;
+            const client = isLocal ? this.config.createLocalStorage() : this.config.createClient();
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
             storage = new this.StorageConstructor({
                 id: storageObject.id,
@@ -162,5 +165,3 @@ class StorageManager {
         }
     }
 }
-
-export default StorageManager;

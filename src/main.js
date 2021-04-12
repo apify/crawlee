@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import log from './utils_log';
 import { main, getEnv, call, callTask, metamorph, addWebhook } from './actor';
+import { Apify } from './apify';
+import { Configuration } from './configuration';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
 import BasicCrawler from './crawlers/basic_crawler';
 import CheerioCrawler from './crawlers/cheerio_crawler';
@@ -53,6 +55,8 @@ const exportedUtils = Object.assign(publicUtils, {
  * @module Apify
  */
 export {
+    Apify,
+    Configuration,
     main,
     getEnv,
     call,

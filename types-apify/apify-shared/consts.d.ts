@@ -11,7 +11,9 @@ declare module 'apify-shared/consts' {
         IS_AT_HOME: string;
         SDK_LATEST_VERSION: string;
         TOKEN: string;
+        ACTOR_ID: string;
         ACTOR_RUN_ID: string;
+        ACTOR_TASK_ID: string;
         CONTAINER_PORT: string;
         CONTAINER_URL: string;
         LOCAL_STORAGE_DIR: string;
@@ -22,7 +24,10 @@ declare module 'apify-shared/consts' {
         INPUT_KEY: string;
         HEADLESS: string;
         XVFB: string;
+        PROXY_HOSTNAME: string;
         PROXY_PASSWORD: string;
+        PROXY_PORT: string;
+        PROXY_STATUS_URL: string;
         DEFAULT_REQUEST_QUEUE_ID: string;
         CHROME_EXECUTABLE_PATH: string;
     };

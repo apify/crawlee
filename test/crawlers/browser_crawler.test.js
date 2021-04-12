@@ -29,7 +29,7 @@ describe('BrowserCrawler', () => {
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getDefaults().set('localStorageDir', storageDir);
         puppeteerPlugin = new PuppeteerPlugin(puppeteer);
     });
     afterEach(() => {
