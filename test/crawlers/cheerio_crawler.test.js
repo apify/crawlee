@@ -15,7 +15,6 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 import CrawlerExtension from '../../build/crawlers/crawler_extension';
 import Request from '../../build/request';
-import * as utils from '../../build/utils';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 const HOST = '127.0.0.1';

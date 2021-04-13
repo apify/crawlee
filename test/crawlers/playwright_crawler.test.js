@@ -3,7 +3,6 @@ import playwright from 'playwright';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
-import * as utils from '../../build/utils';
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless;

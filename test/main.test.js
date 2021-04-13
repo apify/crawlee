@@ -7,7 +7,6 @@ import ApifyDefault from '../build/index';
 // eslint-disable-next-line import/no-duplicates
 import * as ApifyWithWildcard from '../build/index';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
-import * as utils from '../build/utils';
 // eslint-disable-next-line global-require
 const Apify = require('../build');
 

@@ -1,7 +1,6 @@
 import playwright from 'playwright';
 import Apify from '../build/index';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
-import * as utils from '../build/utils';
 
 const { utils: { log } } = Apify;
 

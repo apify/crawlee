@@ -61,7 +61,7 @@ describe('Statistics', () => {
             await stats.startCapturing();
             await stats.persistState();
 
-            console.dir(stats);
+            // console.dir(stats);
             // eslint-disable-next-line no-unused-vars
             const state = await stats.keyValueStore.getValue(stats.persistStateKey);
 

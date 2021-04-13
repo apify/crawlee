@@ -1,9 +1,10 @@
+/* eslint-disable no-console */
+
 import scanner from 'fpscanner';
 import path from 'path';
 
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
-import * as utils from '../../build/utils';
 
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
 const pathToHTML = path.join(__dirname, 'test_html.html');

@@ -104,6 +104,7 @@ export class Apify {
      */
     main(userFunc) {
         if (!userFunc || typeof (userFunc) !== 'function') {
+            // eslint-disable-next-line max-len
             throw new Error(`Apify.main() accepts a single parameter that must be a function (was '${userFunc === null ? 'null' : typeof userFunc}').`);
         }
 
@@ -125,7 +126,7 @@ export class Apify {
         // Set dummy interval to ensure the process will not be killed while awaiting empty promise:
         // await new Promise(() => {})
         // Such a construct is used for testing of actor timeouts and aborts.
-        const intervalId = setInterval(i => i, 9999999);
+        const intervalId = setInterval((i) => i, 9999999);
 
         // Using async here to have nice stack traces for errors
         try {
@@ -376,6 +377,7 @@ export class Apify {
         }
 
         if (this._isRunUnsuccessful(run.status)) {
+            // eslint-disable-next-line max-len
             const message = `The actor task ${taskId} invoked by Apify.callTask() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
             throw new ApifyCallError(run, message);
         }
@@ -390,11 +392,12 @@ export class Apify {
         const { value: body, contentType } = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
 
         return { ...run, output: { contentType, body } };
-    };
+    }
 
     /**
-     * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts the new container
-     * instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key in the same default key-value store.
+     * Transforms this actor run to an actor run of a given actor. The system stops the current container and starts
+     * the new container instead. All the default storages are preserved and the new input is stored under the `INPUT-METAMORPH-1` key
+     * in the same default key-value store.
      *
      * @param {string} targetActorId
      *  Either `username/actor-name` or actor ID of an actor to which we want to metamorph.
@@ -951,5 +954,4 @@ export class Apify {
             && status !== ACT_JOB_STATUSES.RUNNING
             && status !== ACT_JOB_STATUSES.READY;
     }
-
 }

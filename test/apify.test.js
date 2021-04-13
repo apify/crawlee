@@ -1,11 +1,11 @@
 import path from 'path';
 import _ from 'underscore';
 import { ACT_JOB_STATUSES, ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
+import ApifyClient from 'apify-client';
 import { ApifyCallError } from '../build/errors';
 import * as utils from '../build/utils';
 import { Dataset } from '../build/storages/dataset';
 import { KeyValueStore } from '../build/storages/key_value_store';
-import ApifyClient from 'apify-client';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
 import StorageManager from '../build/storages/storage_manager';
 import { ProxyConfiguration } from '../build/proxy_configuration';
@@ -19,19 +19,18 @@ const { Apify, RequestList, utils: { log, sleep } } = require('../build/index');
  */
 const testMain = async ({ userFunc, exitCode }) => {
     const exitSpy = jest.spyOn(process, 'exit');
-    exitSpy.mockImplementationOnce(i => i); // prevent `process.exit()`
+    exitSpy.mockImplementationOnce((i) => i); // prevent `process.exit()`
 
     let error = null;
     const sdk = new Apify();
 
     try {
         await sdk.main(() => {
-            sdk.config.get('')
+            sdk.config.get('');
             if (userFunc) {
                 return userFunc(sdk);
             }
-        }).catch(err => error = err);
-        console.log(error);
+        }).catch((err) => { error = err; });
 
         // Waits max 1000 millis for process.exit() mock to be called
         await new Promise((resolve) => {
@@ -95,8 +94,8 @@ describe('new Apify({ ... })', () => {
     describe('getEnv()', () => {
         let prevEnv;
 
-        beforeAll(() => prevEnv = new Apify().getEnv());
-        afterAll(() => setEnv(prevEnv));
+        beforeAll(() => { prevEnv = new Apify().getEnv(); });
+        afterAll(() => { setEnv(prevEnv); });
 
         test('works with null values', () => {
             const expectedEnv = getEmptyEnv();
@@ -261,7 +260,14 @@ describe('new Apify({ ... })', () => {
             const keyValueStoreSpy = jest.spyOn(ApifyClient.prototype, 'keyValueStore');
             keyValueStoreSpy.mockReturnValueOnce({ getRecord: getRecordMock });
 
-            const callOutput = await new Apify({ token }).call(actId, input, { contentType, disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks });
+            const callOutput = await new Apify({ token }).call(actId, input, {
+                contentType,
+                disableBodyParser: true,
+                build,
+                memoryMbytes,
+                timeoutSecs,
+                webhooks,
+            });
 
             expect(callOutput).toEqual(expected);
             expect(newClientSpy).toBeCalledWith({ token });
@@ -310,13 +316,13 @@ describe('new Apify({ ... })', () => {
             expect(keyValueStoreSpy).not.toBeCalled();
         });
 
-        test(`throws if run doesn't succeed`, async () => {
+        test("throws if run doesn't succeed", async () => {
             const callMock = jest.fn();
             callMock.mockResolvedValueOnce(failedRun);
             const actorSpy = jest.spyOn(ApifyClient.prototype, 'actor');
             actorSpy.mockReturnValueOnce({ call: callMock });
 
-            const err = `The actor some-act-id invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/some-run-id`;
+            const err = 'The actor some-act-id invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/some-run-id';
             await expect(new Apify().call(actId, null)).rejects.toThrowError(new ApifyCallError(failedRun, err));
 
             expect(actorSpy).toBeCalledWith('some-act-id');
@@ -371,7 +377,13 @@ describe('new Apify({ ... })', () => {
             const keyValueStoreSpy = jest.spyOn(ApifyClient.prototype, 'keyValueStore');
             keyValueStoreSpy.mockReturnValueOnce({ getRecord: getRecordMock });
 
-            const callOutput = await new Apify({ token }).callTask(taskId, input, { disableBodyParser: true, build, memoryMbytes, timeoutSecs, webhooks });
+            const callOutput = await new Apify({ token }).callTask(taskId, input, {
+                disableBodyParser: true,
+                build,
+                memoryMbytes,
+                timeoutSecs,
+                webhooks,
+            });
 
             expect(callOutput).toEqual(expected);
             expect(newClientSpy).toBeCalledWith({ token });
@@ -433,13 +445,14 @@ describe('new Apify({ ... })', () => {
             expect(taskSpy).toBeCalledWith('some-task-id');
         });
 
-        test(`throws if run doesn't succeed`, async () => {
+        test("throws if run doesn't succeed", async () => {
             const callMock = jest.fn();
             callMock.mockResolvedValueOnce(failedRun);
             const taskSpy = jest.spyOn(ApifyClient.prototype, 'task');
             taskSpy.mockReturnValueOnce({ call: callMock });
 
-            const err = `The actor task some-task-id invoked by Apify.callTask() did not succeed. For details, see https://my.apify.com/view/runs/some-run-id`;
+            // eslint-disable-next-line max-len
+            const err = 'The actor task some-task-id invoked by Apify.callTask() did not succeed. For details, see https://my.apify.com/view/runs/some-run-id';
             await expect(new Apify().callTask(taskId)).rejects.toThrowError(new ApifyCallError(failedRun, err));
 
             expect(taskSpy).toBeCalledWith('some-task-id');
@@ -469,7 +482,7 @@ describe('new Apify({ ... })', () => {
             const metamorphMock = jest.fn();
             metamorphMock.mockResolvedValueOnce(run);
             const runSpy = jest.spyOn(ApifyClient.prototype, 'run');
-            runSpy.mockReturnValueOnce({ metamorph: metamorphMock })
+            runSpy.mockReturnValueOnce({ metamorph: metamorphMock });
 
             await new Apify().metamorph(targetActorId, input, { contentType, build, customAfterSleepMillis: 1 });
 
@@ -483,7 +496,7 @@ describe('new Apify({ ... })', () => {
             const metamorphMock = jest.fn();
             metamorphMock.mockResolvedValueOnce(run);
             const runSpy = jest.spyOn(ApifyClient.prototype, 'run');
-            runSpy.mockReturnValueOnce({ metamorph: metamorphMock })
+            runSpy.mockReturnValueOnce({ metamorph: metamorphMock });
 
             await new Apify().metamorph(targetActorId, undefined, { customAfterSleepMillis: 1 });
 
@@ -531,18 +544,19 @@ describe('new Apify({ ... })', () => {
         });
 
         test('on local logs warning and does nothing', async () => {
-            const webhooksMock = jest.fn();
-            const warningMock = jest.spyOn(log, 'warning')
+            const metamorphMock = jest.fn();
+            const warningMock = jest.spyOn(log, 'warning');
             const runSpy = jest.spyOn(ApifyClient.prototype, 'run');
-            runSpy.mockReturnValueOnce({ metamorph: webhooksMock })
+            runSpy.mockReturnValueOnce({ metamorph: metamorphMock });
 
             const sdk = new Apify();
             await sdk.addWebhook({ eventTypes: expectedEventTypes, requestUrl: expectedRequestUrl });
 
-            expect(webhooksMock).not.toBeCalled();
-            console.log(warningMock.mock.calls);
+            expect(metamorphMock).not.toBeCalled();
             expect(warningMock).toBeCalledTimes(2);
+            // eslint-disable-next-line max-len
             expect(warningMock).toBeCalledWith(`Neither APIFY_LOCAL_STORAGE_DIR nor APIFY_TOKEN environment variable is set, defaulting to APIFY_LOCAL_STORAGE_DIR="${sdk.config.get('localStorageDir')}"`);
+            // eslint-disable-next-line max-len
             expect(warningMock).toBeCalledWith('Apify.addWebhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
         });
 
@@ -563,7 +577,7 @@ describe('new Apify({ ... })', () => {
         test('openSessionPool should create SessionPool', async () => {
             const sdk = new Apify();
             const initializeSpy = jest.spyOn(SessionPool.prototype, 'initialize');
-            initializeSpy.mockImplementationOnce(i => i);
+            initializeSpy.mockImplementationOnce((i) => i);
             await sdk.openSessionPool();
             expect(initializeSpy).toBeCalledTimes(1);
         });
@@ -571,7 +585,7 @@ describe('new Apify({ ... })', () => {
         test('createProxyConfiguration should create ProxyConfiguration', async () => {
             const sdk = new Apify();
             const initializeSpy = jest.spyOn(ProxyConfiguration.prototype, 'initialize');
-            initializeSpy.mockImplementationOnce(i => i);
+            initializeSpy.mockImplementationOnce((i) => i);
             await sdk.createProxyConfiguration();
             expect(initializeSpy).toBeCalledTimes(1);
         });
@@ -581,12 +595,12 @@ describe('new Apify({ ... })', () => {
         let localStorageEmulator;
         let sdk;
 
-        beforeAll(async () => localStorageEmulator = new LocalStorageDirEmulator());
-        beforeEach(async () => sdk = new Apify({ localStorageDir: await localStorageEmulator.init() }));
-        afterAll(async () => await localStorageEmulator.destroy());
+        beforeAll(() => { localStorageEmulator = new LocalStorageDirEmulator(); });
+        beforeEach(async () => { sdk = new Apify({ localStorageDir: await localStorageEmulator.init() }); });
+        afterAll(() => localStorageEmulator.destroy());
 
         test('getInput()', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue')
+            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
             getValueSpy.mockImplementation(() => 123);
 
             // Uses default value.
@@ -606,8 +620,8 @@ describe('new Apify({ ... })', () => {
 
         test('setValue()', async () => {
             const record = { foo: 'bar' };
-            const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue')
-            setValueSpy.mockImplementationOnce(i => i);
+            const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+            setValueSpy.mockImplementationOnce((i) => i);
 
             await sdk.setValue('key-1', record);
             expect(setValueSpy).toBeCalledTimes(1);
@@ -615,7 +629,7 @@ describe('new Apify({ ... })', () => {
         });
 
         test('getValue()', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue')
+            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
             getValueSpy.mockImplementationOnce(() => 123);
 
             const val = await sdk.getValue('key-1');
@@ -625,8 +639,8 @@ describe('new Apify({ ... })', () => {
         });
 
         test('pushData()', async () => {
-            const pushDataSpy = jest.spyOn(Dataset.prototype, 'pushData')
-            pushDataSpy.mockImplementationOnce(i => i);
+            const pushDataSpy = jest.spyOn(Dataset.prototype, 'pushData');
+            pushDataSpy.mockImplementationOnce((i) => i);
 
             await sdk.pushData({ foo: 'bar' });
             expect(pushDataSpy).toBeCalledTimes(1);
@@ -635,7 +649,7 @@ describe('new Apify({ ... })', () => {
 
         test('openRequestList should create RequestList', async () => {
             const initializeSpy = jest.spyOn(RequestList.prototype, 'initialize');
-            initializeSpy.mockImplementationOnce(i => i);
+            initializeSpy.mockImplementationOnce((i) => i);
             const list = await sdk.openRequestList('my-list', ['url-1', 'url-2', 'url-3']);
             expect(initializeSpy).toBeCalledTimes(1);
             expect(list.sources).toEqual(['url-1', 'url-2', 'url-3']);
@@ -647,7 +661,7 @@ describe('new Apify({ ... })', () => {
             const queueId = 'abc';
             const options = { forceCloud: true };
             const openStorageSpy = jest.spyOn(StorageManager.prototype, 'openStorage');
-            openStorageSpy.mockImplementationOnce(i => i);
+            openStorageSpy.mockImplementationOnce((i) => i);
             await sdk.openRequestQueue(queueId, options);
             expect(openStorageSpy).toBeCalledWith(queueId, options);
             expect(openStorageSpy).toBeCalledTimes(1);

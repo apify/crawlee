@@ -8,7 +8,6 @@ import * as Apify from '../../build';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
-import * as utils from '../../build/utils';
 import Request from '../../build/request';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 import { Session } from '../../build/session_pool/session';

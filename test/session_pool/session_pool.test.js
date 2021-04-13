@@ -1,7 +1,6 @@
 import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
-import * as utils from '../../build/utils';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';

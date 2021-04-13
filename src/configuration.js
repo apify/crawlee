@@ -64,6 +64,7 @@ export class Configuration {
         if (!this.get('localStorageDir') && !this.get('token')) {
             const dir = join(process.cwd(), './apify_storage');
             this.set('localStorageDir', dir);
+            // eslint-disable-next-line max-len
             log.warning(`Neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN} environment variable is set, defaulting to ${ENV_VARS.LOCAL_STORAGE_DIR}="${dir}"`);
         }
     }

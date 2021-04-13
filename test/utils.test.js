@@ -715,7 +715,6 @@ describe('utils.printOutdatedSdkWarning()', () => {
 
     test('should correctly work when outdated', () => {
         process.env[ENV_VARS.SDK_LATEST_VERSION] = semver.inc(currentVersion, 'minor');
-        console.log(process.env[ENV_VARS.SDK_LATEST_VERSION]);
         logMock.expects('warning').once();
         utils.printOutdatedSdkWarning();
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];

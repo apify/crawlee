@@ -127,9 +127,9 @@ describe('Apify.events', () => {
         await closePromise;
         expect(wsClosed).toBe(true);
 
-        // Due to some race condition or leaks in this test implementation with shared static register of events, this test sometimes ends without
-        // actually closing the WS connection, resulting in failures of the following test that will reuse the existing ws connection instead of new one.
-        // Short wait helps to mitigate that.
+        // Due to some race condition or leaks in this test implementation with shared static register of events,
+        // this test sometimes ends without actually closing the WS connection, resulting in failures of the following
+        // test that will reuse the existing ws connection instead of new one. Short wait helps to mitigate that.
         await sleep(10);
     });
 
