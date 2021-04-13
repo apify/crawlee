@@ -47,10 +47,14 @@ export class Configuration {
     static INTEGER_VARS = ['proxyPort', 'internalPort', 'memoryMbytes', 'containerPort'];
 
     static DEFAULTS = {
-        ...Object.entries(LOCAL_ENV_VARS).reduce((o, [k, v]) => {
-            o[Configuration.ENV_MAP_REVERSED[k]] = v;
-            return o;
-        }, {}),
+        defaultKeyValueStoreId: 'default',
+        defaultDatasetId: 'default',
+        defaultRequestQueueId: 'default',
+        proxyPort: 8000,
+        proxyHostname: 'proxy.apify.com',
+        proxyStatusUrl: 'http://proxy.apify.com',
+        containerPort: 4321,
+        containerUrl: 'http://localhost:4321', // Must match `containerPort` above!
         maxOpenedStorages: 1000,
         metamorphAfterSleepMillis: 300e3,
         persistStateIntervalMillis: 60e3, // This value is mentioned in jsdoc in `events.js`, if you update it here, update it there too.
@@ -174,5 +178,4 @@ export class Configuration {
 
         return Configuration.defaults;
     }
-
 }

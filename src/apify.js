@@ -1,10 +1,11 @@
-import { getEnv, initializeEvents, RequestList, stopEvents } from './main';
 import ow from 'ow';
+import { ACT_JOB_STATUSES, ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
+import { getEnv } from './actor';
+import { initializeEvents, stopEvents } from './events';
 import StorageManager from './storages/storage_manager';
 import { Dataset } from './storages/dataset';
-import { ACT_JOB_STATUSES, ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { KeyValueStore, maybeStringify } from './storages/key_value_store';
-import { REQUESTS_PERSISTENCE_KEY, STATE_PERSISTENCE_KEY } from './request_list';
+import { RequestList, REQUESTS_PERSISTENCE_KEY, STATE_PERSISTENCE_KEY } from './request_list';
 import { RequestQueue } from './storages/request_queue';
 import { SessionPool } from './session_pool/session_pool';
 import { ProxyConfiguration } from './proxy_configuration';
@@ -32,7 +33,6 @@ import { ApifyCallError } from './errors';
  * @property {Map<Function, StorageManager>} _storageManagers
  */
 export class Apify {
-
     constructor(options = {}) {
         this.config = new Configuration(options);
         this._storageManagers = new Map();

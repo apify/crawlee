@@ -1,12 +1,11 @@
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
-import cacheContainer from '../cache_container';
-import * as utils from '../utils';
+import { ENV_VARS } from 'apify-shared/consts';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 // @ts-ignore
 import * as ApifyClient from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
+import cacheContainer from '../cache_container';
 import { Configuration } from '../configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
@@ -55,7 +54,6 @@ export default class StorageManager {
             const defaultIdEnvVarName = DEFAULT_ID_ENV_VAR_NAMES[this.name];
             const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
             idOrName = this.config.get(defaultIdConfigKey);
-            if (!idOrName && isLocal) idOrName = LOCAL_ENV_VARS[defaultIdEnvVarName];
             if (!idOrName) throw new Error(`The '${defaultIdEnvVarName}' environment variable is not defined.`);
         }
 

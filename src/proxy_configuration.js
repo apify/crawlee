@@ -1,4 +1,4 @@
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import ow from 'ow';
 import { COUNTRY_CODE_REGEX } from './constants';
@@ -153,7 +153,7 @@ export class ProxyConfiguration {
      * @param {ProxyConfigurationOptions} [options] All `ProxyConfiguration` options.
      * @param {Configuration} [config]
      */
-    constructor(options = {}, config = Configuration.getDefaults()) {
+    constructor(options = {}, config = Configuration.getGlobalConfig()) {
         ow(options, ow.object.exactShape({
             groups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
             apifyProxyGroups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
@@ -178,8 +178,8 @@ export class ProxyConfiguration {
 
         const groupsToUse = groups.length ? groups : apifyProxyGroups;
         const countryCodeToUse = countryCode || apifyProxyCountry;
-        const hostname = config.get('proxyHostname', LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]);
-        const port = +config.get('proxyPort', LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
+        const hostname = config.get('proxyHostname');
+        const port = config.get('proxyPort');
 
         // Validation
         if (((proxyUrls || newUrlFunction) && ((groupsToUse.length) || countryCodeToUse))) {
@@ -318,7 +318,7 @@ export class ProxyConfiguration {
      * @ignore
      */
     _getApifyProxyStatusUrl() {
-        return this.config.get('proxyStatusUrl', `${PROTOCOL}://${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}`);
+        return this.config.get('proxyStatusUrl');
     }
 
     /**
@@ -330,7 +330,7 @@ export class ProxyConfiguration {
      * @internal
      */
     async _setPasswordIfToken() {
-        const token = this.config.get('token', LOCAL_ENV_VARS[ENV_VARS.TOKEN]);
+        const token = this.config.get('token');
         if (token) {
             const { proxy: { password } } = await apifyClient.user().get();
             if (this.password) {
