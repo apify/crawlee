@@ -1,11 +1,10 @@
-import { ENV_VARS, INTEGER_ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from 'apify-shared/consts';
 import { join } from 'path';
-import log from './utils_log';
 import { ApifyStorageLocal } from '@apify/storage-local';
 import * as ApifyClient from 'apify-client';
+import log from './utils_log';
 
 export class Configuration {
-
     static ENV_MAP = {
         TOKEN: 'token',
         LOCAL_STORAGE_DIR: 'localStorageDir',
@@ -43,7 +42,9 @@ export class Configuration {
         return obj;
     }, {});
 
-    static BOOLEAN_ENV_VARS = ['LOCAL_STORAGE_ENABLE_WAL_MODE'];
+    static BOOLEAN_VARS = ['localStorageEnableWalMode'];
+
+    static INTEGER_VARS = ['proxyPort', 'internalPort', 'memoryMbytes', 'containerPort'];
 
     static DEFAULTS = {
         ...Object.entries(LOCAL_ENV_VARS).reduce((o, [k, v]) => {
@@ -80,16 +81,7 @@ export class Configuration {
         const envValue = process.env[envKey] ?? process.env[ENV_VARS[envKey]];
 
         if (envValue != null) {
-            if (envKey in INTEGER_ENV_VARS) {
-                return +envValue;
-            }
-
-            if (envKey in Configuration.BOOLEAN_ENV_VARS) {
-                // 0, false and empty string are considered falsy values
-                return !['0', 'false', ''].includes(envValue.toLowerCase());
-            }
-
-            return envValue;
+            return this._cast(key, envValue, true);
         }
 
         // check instance level options
@@ -98,7 +90,31 @@ export class Configuration {
         }
 
         // fallback to defaults
-        return defaultValue ?? Configuration.DEFAULTS[key];
+        return defaultValue ?? Configuration.DEFAULTS[key] ?? envValue;
+    }
+
+    /**
+     * @param {string} key
+     * @param {number | string | boolean} value
+     * @param {boolean} [env=false]
+     * @return {boolean}
+     * @private
+     */
+    _cast(key, value, env = false) {
+        if (key in Configuration.INTEGER_VARS) {
+            return +value;
+        }
+
+        if (key in Configuration.BOOLEAN_VARS) {
+            if (env) {
+                // 0, false and empty string are considered falsy values
+                return !['0', 'false', ''].includes(value.toLowerCase());
+            }
+
+            return !!value;
+        }
+
+        return value;
     }
 
     /**
