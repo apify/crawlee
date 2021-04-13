@@ -23,7 +23,7 @@ describe('Statistics', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        Apify.Configuration.getDefaults().set('localStorageDir', storageDir);
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         clock = sinon.useFakeTimers();
         stats = new Statistics();
     });

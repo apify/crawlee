@@ -169,13 +169,15 @@ export class Configuration {
     }
 
     /**
+     * Returns the global configuration instance. It will respect the environment variables.
+     * As opposed to this method, we can also get the SDK instance configuration via `sdk.config` property.
      * @return {Configuration}
      */
-    static getDefaults() {
-        if (!Configuration.defaults) {
-            Configuration.defaults = new Configuration();
+    static getGlobalConfig() {
+        if (!Configuration.globalConfig) {
+            Configuration.globalConfig = new Configuration();
         }
 
-        return Configuration.defaults;
+        return Configuration.globalConfig;
     }
 }

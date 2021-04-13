@@ -20,8 +20,7 @@ describe('PuppeteerCrawler', () => {
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        Apify.Configuration.getDefaults().set('localStorageDir', storageDir);
-        console.log('should use ', { storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         const sources = ['http://example.com/'];
         requestList = await Apify.openRequestList(`sources-${Math.random * 10000}`, sources);
     });

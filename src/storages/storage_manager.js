@@ -34,7 +34,7 @@ export default class StorageManager {
      * @param {T} StorageConstructor
      * @param {Configuration} [config]
      */
-    constructor(StorageConstructor, config = Configuration.getDefaults()) {
+    constructor(StorageConstructor, config = Configuration.getGlobalConfig()) {
         this.StorageConstructor = StorageConstructor;
         this.name = StorageConstructor.name;
         this.cache = cacheContainer.openCache(this.name, config.get('maxOpenedStorages'));

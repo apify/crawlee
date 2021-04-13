@@ -83,7 +83,7 @@ const emitPersistStateEvent = (isMigrating = false) => {
  * @function
  * @ignore
  */
-export const initializeEvents = (config = Configuration.getDefaults()) => {
+export const initializeEvents = (config = Configuration.getGlobalConfig()) => {
     if (eventsWs) return;
 
     const log = defaultLog.child({ prefix: 'Events' });

@@ -16,7 +16,7 @@ describe('SessionPool - testing session pool', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        Apify.Configuration.getDefaults().set('localStorageDir', storageDir);
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         sessionPool = await Apify.openSessionPool();
     });
 
