@@ -4,6 +4,21 @@ import { ApifyStorageLocal } from '@apify/storage-local';
 import * as ApifyClient from 'apify-client';
 import log from './utils_log';
 
+/**
+ * `Configuration` is a value object holding the SDK configuration. We can use it in two ways:
+ *
+ * 1. When using `Apify` class, we can get the instance configuration via `sdk.config`
+ *   ```js
+ *   const { Apify } = require('apify-js');
+ *
+ *   const sdk = new Apify({ token: '123' });
+ *   console.log(sdk.config.get('token')); // '123'
+ *   ```
+ * 2. To get the global configuration (singleton instance). It will respect the environment variables.
+ *   ```js
+ *   console.log(Configuration.getGlobalConfig().get('token')); // returns the token from APIFY_TOKEN env var
+ *   ```
+ */
 export class Configuration {
     static ENV_MAP = {
         TOKEN: 'token',
@@ -61,7 +76,7 @@ export class Configuration {
     };
 
     /**
-     * @param {Record<keyof Configuration.ENV_MAP_REVERSED, number | string>} options
+     * @param {Record<string, number | string>} options
      */
     constructor(options = {}) {
         this.options = options;

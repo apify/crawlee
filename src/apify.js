@@ -29,8 +29,7 @@ import { ApifyCallError } from './errors';
  */
 
 /**
- * @property {Configuration} config
- * @property {Map<Function, StorageManager>} _storageManagers
+ * @property {Configuration} config Configuration of this SDK instance (provided to its constructor). See {@link Configuration} for details.
  */
 export class Apify {
     constructor(options = {}) {
