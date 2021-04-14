@@ -26,12 +26,6 @@ export const EXIT_CODES = {
 export const ACTOR_EVENT_NAMES_EX = { ...ACTOR_EVENT_NAMES, PERSIST_STATE: 'persistState' };
 
 /**
- * Base URL of Apify's API endpoints.
- * @type {string}
- */
-export const APIFY_API_BASE_URL = 'https://api.apify.com/v2';
-
-/**
  * Additional number of seconds used in CheerioCrawler and BrowserCrawler to set a reasonable
  * handleRequestTimeoutSecs for BasicCrawler that would not impare functionality (not timeout before crawlers).
  *

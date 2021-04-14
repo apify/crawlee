@@ -20,6 +20,7 @@ import log from './utils_log';
  *   ```
  */
 export class Configuration {
+    // all env vars also supports `APIFY_` prefix
     static ENV_MAP = {
         TOKEN: 'token',
         LOCAL_STORAGE_DIR: 'localStorageDir',
@@ -29,7 +30,7 @@ export class Configuration {
         DEFAULT_REQUEST_QUEUE_ID: 'defaultRequestQueueId',
         METAMORPH_AFTER_SLEEP_MILLIS: 'metamorphAfterSleepMillis',
         PERSIST_STATE_INTERVAL_MILLIS: 'persistStateIntervalMillis',
-        APIFY_TEST_PERSIST_INTERVAL_MILLIS: 'persistStateIntervalMillis', // for BC, seems to be unused
+        TEST_PERSIST_INTERVAL_MILLIS: 'persistStateIntervalMillis', // for BC, seems to be unused
         ACTOR_EVENTS_WS_URL: 'actorEventsWsUrl',
         INPUT_KEY: 'inputKey',
         ACTOR_ID: 'actorId',
@@ -44,6 +45,7 @@ export class Configuration {
         PROXY_PASSWORD: 'proxyPassword',
         PROXY_STATUS_URL: 'proxyStatusUrl',
         PROXY_PORT: 'proxyPort',
+        MAX_OPENED_STORAGES: 'maxOpenedStorages',
 
         // not supported, use env vars directly:
         // MEMORY_MBYTES: 'memoryMbytes',
@@ -65,14 +67,17 @@ export class Configuration {
         defaultKeyValueStoreId: 'default',
         defaultDatasetId: 'default',
         defaultRequestQueueId: 'default',
-        proxyPort: 8000,
+        inputKey: 'INPUT',
         proxyHostname: 'proxy.apify.com',
+        apiBaseUrl: 'https://api.apify.com/v2',
         proxyStatusUrl: 'http://proxy.apify.com',
+        proxyPort: 8000,
         containerPort: 4321,
         containerUrl: 'http://localhost:4321', // Must match `containerPort` above!
         maxOpenedStorages: 1000,
         metamorphAfterSleepMillis: 300e3,
         persistStateIntervalMillis: 60e3, // This value is mentioned in jsdoc in `events.js`, if you update it here, update it there too.
+        localStorageEnableWalMode: true,
     };
 
     /**

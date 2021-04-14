@@ -2,7 +2,6 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
-import { APIFY_API_BASE_URL } from '../constants';
 import StorageManager from './storage_manager';
 import log from '../utils_log';
 
@@ -11,6 +10,7 @@ import log from '../utils_log';
 import * as ApifyClient from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
+import { Configuration } from '../configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -119,13 +119,15 @@ export class KeyValueStore {
      * @param {string} [options.name]
      * @param {ApifyClient|ApifyStorageLocal} options.client
      * @param {boolean} options.isLocal
+     * @param {Configuration} [config]
      */
-    constructor(options) {
+    constructor(options, config = Configuration.getGlobalConfig()) {
         this.id = options.id;
         this.name = options.name;
         this.isLocal = options.isLocal;
         this.client = options.client.keyValueStore(this.id);
         this.log = log.child({ prefix: 'KeyValueStore' });
+        this.config = config;
     }
 
     /**
@@ -265,7 +267,7 @@ export class KeyValueStore {
      * @return {string}
      */
     getPublicUrl(key) {
-        return `${APIFY_API_BASE_URL}/key-value-stores/${this.id}/records/${key}`;
+        return `${this.config.get('apiBaseUrl')}/key-value-stores/${this.id}/records/${key}`;
     }
 
     /**

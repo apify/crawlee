@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { ACT_JOB_STATUSES, ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
+import { ACT_JOB_STATUSES, ENV_VARS } from 'apify-shared/consts';
 import { getEnv } from './actor';
 import { initializeEvents, stopEvents } from './events';
 import StorageManager from './storages/storage_manager';
@@ -680,7 +680,7 @@ export class Apify {
      *   if the record is missing.
      */
     async getInput() {
-        return this.getValue(this.config.get('inputKey', KEY_VALUE_STORE_KEYS.INPUT));
+        return this.getValue(this.config.get('inputKey'));
     }
 
     /**
