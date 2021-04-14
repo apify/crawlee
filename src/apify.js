@@ -29,7 +29,12 @@ import { ApifyCallError } from './errors';
  */
 
 /**
+ * `Apify` class serves as an alternative approach to the static helpers exported from the package. It allows to pass configuration
+ * that will be used on the instance methods. Environment variables are will have precedence over this configuration.
+ * See {@link Configuration} for details about what can be configured and what are the default values.
+ *
  * @property {Configuration} config Configuration of this SDK instance (provided to its constructor). See {@link Configuration} for details.
+ * @ignore
  */
 export class Apify {
     constructor(options = {}) {

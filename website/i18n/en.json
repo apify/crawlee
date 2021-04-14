@@ -23,6 +23,9 @@
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
       },
+      "api/configuration": {
+        "title": "Configuration"
+      },
       "api/dataset": {
         "title": "Dataset"
       },

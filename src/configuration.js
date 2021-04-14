@@ -18,6 +18,43 @@ import log from './utils_log';
  *   ```js
  *   console.log(Configuration.getGlobalConfig().get('token')); // returns the token from APIFY_TOKEN env var
  *   ```
+ *
+ * ## Supported Configuration Options
+ *
+ * > All env vars are also accessible with `APIFY_` prefix (e.g. `APIFY_TOKEN`)
+ *
+ * Key | Environment Variable | Default Value
+ * ---|---|---
+ * `token` | `TOKEN` | -
+ * `localStorageDir` | `LOCAL_STORAGE_DIR` | `'./apify_storage'`
+ * `localStorageEnableWalMode` | `LOCAL_STORAGE_ENABLE_WAL_MODE` | `true`
+ * `defaultDatasetId` | `DEFAULT_DATASET_ID` | `'default'`
+ * `defaultKeyValueStoreId` | `DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
+ * `defaultRequestQueueId` | `DEFAULT_REQUEST_QUEUE_ID` | `'default'`
+ * `metamorphAfterSleepMillis` | `METAMORPH_AFTER_SLEEP_MILLIS` | `300e3`
+ * `persistStateIntervalMillis` | `PERSIST_STATE_INTERVAL_MILLIS` | `60e3`
+ * `actorEventsWsUrl` | `ACTOR_EVENTS_WS_URL` | -
+ * `inputKey` | `INPUT_KEY` | `'INPUT'`
+ * `actorId` | `ACTOR_ID` | -
+ * `apiBaseUrl` | `API_BASE_URL` | `'https://api.apify.com/v2'`
+ * `isAtHome` | `IS_AT_HOME` | -
+ * `actorRunId` | `ACTOR_RUN_ID` | -
+ * `actorTaskId` | `ACTOR_TASK_ID` | -
+ * `containerPort` | `CONTAINER_PORT` | `4321`
+ * `containerUrl` | `CONTAINER_URL` | `'http://localhost:4321'`
+ * `userId` | `USER_ID` | -
+ * `proxyHostname` | `PROXY_HOSTNAME` | `'proxy.apify.com'`
+ * `proxyPassword` | `PROXY_PASSWORD` | -
+ * `proxyStatusUrl` | `PROXY_STATUS_URL` | `'http://proxy.apify.com'`
+ * `proxyPort` | `PROXY_PORT` | `8000`
+ * `maxOpenedStorages` | `MAX_OPENED_STORAGES` | `1000`
+ *
+ * ## Not Supported environment variables
+ *
+ * - `MEMORY_MBYTES`
+ * - `HEADLESS`
+ * - `XVFB`
+ * - `CHROME_EXECUTABLE_PATH`
  */
 export class Configuration {
     // all env vars also supports `APIFY_` prefix
@@ -81,7 +118,9 @@ export class Configuration {
     };
 
     /**
-     * @param {Record<string, number | string>} options
+     * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
+     *
+     * @param {Record<string, number | string | boolean>} options
      */
     constructor(options = {}) {
         this.options = options;
@@ -95,6 +134,10 @@ export class Configuration {
     }
 
     /**
+     * Returns configured value. First checks the environment variables, then provided configuration,
+     * fallbacks to the `defaultValue` argument if provided, otherwise uses the default value as described
+     * in the above section.
+     *
      * @param {string} key
      * @param {string | number | boolean} [defaultValue]
      * @return {string | number | boolean}
@@ -102,7 +145,7 @@ export class Configuration {
     get(key, defaultValue) {
         // prefer env vars
         const envKey = Configuration.ENV_MAP_REVERSED[key] ?? key;
-        const envValue = process.env[envKey] ?? process.env[ENV_VARS[envKey]];
+        const envValue = process.env[envKey] ?? process.env[ENV_VARS[envKey] ?? process.env[`APIFY_${envKey}`]];
 
         if (envValue != null) {
             return this._cast(key, envValue, true);
@@ -142,15 +185,19 @@ export class Configuration {
     }
 
     /**
+     * Sets value for given option. Only affects this `Configuration` instance, the value will not be propagated down to the env var.
+     * To reset a value, we can omit the `value` argument or pass `undefined` there.
+     *
      * @param {string} key
-     * @param {string | number} value
+     * @param {string | number | boolean} [value]
      */
     set(key, value) {
         this.options[key] = value;
     }
 
     /**
-     * Creates an instance of ApifyClient using options as defined in the environment variables.
+     * Creates an instance of ApifyClient using options as defined in the environment variables or in this `Configuration` instance.
+     *
      * @param {object} [options]
      * @param {string} [options.token]
      * @param {string} [options.maxRetries]
@@ -167,7 +214,8 @@ export class Configuration {
     }
 
     /**
-     * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
+     * Creates an instance of ApifyStorageLocal using options as defined in the environment variables or in this `Configuration` instance.
+     *
      * @param {object} [options]
      * @param {string} [options.storageDir]
      * @param {boolean} [options.enableWalMode=true]
@@ -191,6 +239,7 @@ export class Configuration {
     /**
      * Returns the global configuration instance. It will respect the environment variables.
      * As opposed to this method, we can also get the SDK instance configuration via `sdk.config` property.
+     *
      * @return {Configuration}
      */
     static getGlobalConfig() {
