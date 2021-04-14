@@ -4,7 +4,7 @@ import { main, getEnv, call, callTask, metamorph, addWebhook } from './actor';
 import { Apify } from './apify';
 import { Configuration } from './configuration';
 import AutoscaledPool from './autoscaling/autoscaled_pool';
-import BasicCrawler from './crawlers/basic_crawler';
+import { BasicCrawler } from './crawlers/basic_crawler';
 import CheerioCrawler from './crawlers/cheerio_crawler';
 import { pushData, openDataset } from './storages/dataset';
 import events, { initializeEvents, stopEvents } from './events';

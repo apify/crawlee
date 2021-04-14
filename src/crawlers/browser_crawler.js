@@ -10,7 +10,7 @@ import {
 } from './crawler_utils';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import BasicCrawler, { CrawlingContext } from './basic_crawler';
+import { BasicCrawler, CrawlingContext } from './basic_crawler';
 import { HandleFailedRequest } from './basic_crawler';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { Session } from '../session_pool/session';
