@@ -217,7 +217,12 @@ describe('Apify.utils_request', () => {
         test('works with useHttp2', async () => {
             const url = 'https://apify.com';
             const response = await requestAsBrowser({ url, useHttp2: true });
-            expect(response.request.options.http2).toBe(true);
+            // TODO Node v10 does not support HTTP2 well, remove when we drop support.
+            if (process.version.startsWith('v10')) {
+                expect(response.request.options.http2).toBe(false);
+            } else {
+                expect(response.request.options.http2).toBe(true);
+            }
             expect(response.body.length).toBeGreaterThan(10000);
         });
 
