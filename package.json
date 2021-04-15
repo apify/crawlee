@@ -95,7 +95,7 @@
         "@types/request-promise-native": "^1.0.17",
         "@types/rimraf": "^3.0.0",
         "@types/semver": "^7.3.4",
-        "@types/sinon": "^9.0.11",
+        "@types/sinon": "^10.0.0",
         "@types/underscore": "^1.11.0",
         "@types/ws": "^7.4.0",
         "basic-auth-parser": "^0.0.2",
