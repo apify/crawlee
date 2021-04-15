@@ -215,7 +215,7 @@ describe('Apify.utils_request', () => {
         // TODO we need to do this better, it will be flaky. The test above is not flaky,
         // because it only checks for a very specific error so it won't fail on network errors.
         test('works with useHttp2', async () => {
-            const url = 'https://www.amazon.com/s?k=iphone';
+            const url = 'https://apify.com';
             const response = await requestAsBrowser({ url, useHttp2: true });
             expect(response.request.options.http2).toBe(true);
             expect(response.body.length).toBeGreaterThan(10000);
