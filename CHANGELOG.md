@@ -1,3 +1,16 @@
+1.2.0 / BETA
+====================
+This release brings the long awaited HTTP2 capabilities to `requestAsBrowser`. It could make HTTP2 requests even before, but it was not very helpful in making browser-like ones. This is very important for disguising as a browser and reduction in the number of blocked requests. `requestAsBrowser` now uses [`got-scraping`](https://github.com/apify/got-scraping).
+
+The most important new feature is that the full set of headers `requestAsBrowser` uses will now be generated using live data about browser headers that we collect. This means that the "header fingeprint" will always match existing browsers and should be indistinguishable from a real browser request. The header sets will be automatically rotated for you to further reduce the chances of blocking.
+
+We also switched the default HTTP version from 1 to 2 in `requestAsBrowser`. We don't expect this change to be breaking, and we took precautions, but we're aware that there are always some edge cases, so please let us know if it causes trouble for you.
+
+## Full list of changes:
+- Replace the underlying HTTP client of `utils.requestAsBrowser()` with `got-scraping`.
+- Make `useHttp2` `true` by default with `utils.requestAsBrowser()`.
+- Update `puppeteer` to `8.0.0` and `playwright` to `1.10.0` with Chromium 90 in Docker images.
+
 1.1.2 / 2021/04/10
 ====================
 - **DEPRECATED:** `utils.waitForRunToFinish` please use the `apify-client` package and its `waitForFinish` functions. Sorry, forgot to deprecate this with v1 release.

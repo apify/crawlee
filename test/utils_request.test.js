@@ -1,8 +1,6 @@
 import express from 'express';
 import {
     requestAsBrowser,
-    FIREFOX_MOBILE_USER_AGENT,
-    FIREFOX_DESKTOP_USER_AGENT,
 } from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
 
@@ -50,6 +48,11 @@ describe('Apify.utils_request', () => {
             res.send();
         });
 
+        app.post('/echo-body', async (req, res) => {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            req.pipe(res);
+        });
+
         app.get('/invalidHeaderChar', (req) => {
             const headers = {
                 'Invalid Header With Space': 'some\value',
@@ -91,7 +94,7 @@ describe('Apify.utils_request', () => {
                 };
                 const response = await requestAsBrowser(data);
                 expect(response.statusCode).toBe(200);
-                expect(JSON.parse(response.body)['user-agent']).toEqual(FIREFOX_MOBILE_USER_AGENT);
+                expect(response.request.options.context.headerGeneratorOptions.devices).toEqual(['mobile']);
             },
         );
 
@@ -101,7 +104,7 @@ describe('Apify.utils_request', () => {
             };
             const response = await requestAsBrowser(data);
             expect(response.statusCode).toBe(200);
-            expect(JSON.parse(response.body)['user-agent']).toEqual(FIREFOX_DESKTOP_USER_AGENT);
+            expect(response.request.options.context.headerGeneratorOptions.devices).toEqual(['desktop']);
         });
 
         test('sets correct hosts', async () => {
@@ -127,7 +130,7 @@ describe('Apify.utils_request', () => {
             const response = await requestAsBrowser(options);
 
             expect(response.statusCode).toBe(200);
-            expect(JSON.parse(response.body)['accept-language']).toEqual(`${languageCode}-${countryCode},${languageCode};q=0.5`);
+            expect(response.request.options.context.headerGeneratorOptions.locales).toEqual([`${languageCode}-${countryCode}`]);
         });
 
         test('does not throw for empty response body', async () => {
@@ -159,47 +162,20 @@ describe('Apify.utils_request', () => {
             expect(JSON.parse(response.body)['user-agent']).toEqual(options.headers['User-Agent']);
         });
 
-        test('headers has same format as in firefox', async () => {
-            const host = `${HOSTNAME}:${port}`;
-            const options = {
-                url: `http://${host}/rawHeaders`,
-            };
-
-            const response = await requestAsBrowser(options);
-            const headersArray = JSON.parse(response.body);
-            expect(response.statusCode).toBe(200);
-
-            expect(headersArray[0]).toBe('Host');
-            expect(headersArray[1]).toEqual(host);
-            expect(headersArray[2]).toBe('User-Agent');
-            expect(headersArray[3]).toEqual(FIREFOX_DESKTOP_USER_AGENT);
-            expect(headersArray[4]).toBe('Accept');
-            expect(headersArray[5]).toBe('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
-            expect(headersArray[6]).toBe('Accept-Language');
-            expect(headersArray[7]).toBe('en-US,en;q=0.5');
-            expect(headersArray[8]).toBe('Accept-Encoding');
-            expect(headersArray[9]).toBe('gzip, deflate, br');
-            expect(headersArray[10]).toBe('Connection');
-            expect(headersArray[11]).toBe('keep-alive');
-        });
-
-        test('custom headers in lowercase override uppercase defaults', async () => {
+        test('custom headers in uppercase for HTTP1', async () => {
             const host = `${HOSTNAME}:${port}`;
             const options = {
                 url: `http://${host}/rawHeaders`,
                 headers: {
-                    accept: 'foo',
+                    Accept: 'foo',
                     bar: 'BAZ',
                 },
+                useHttp2: false,
             };
 
             const response = await requestAsBrowser(options);
-            const headersArray = JSON.parse(response.body);
             expect(response.statusCode).toBe(200);
-            expect(headersArray[4]).toBe('Accept');
-            expect(headersArray[5]).toBe('foo');
-            expect(headersArray[12]).toBe('bar');
-            expect(headersArray[13]).toBe('BAZ');
+            expect(response.request.options.headers).toMatchObject(options.headers);
         });
 
         test('correctly handles invalid header characters', async () => {
@@ -236,9 +212,49 @@ describe('Apify.utils_request', () => {
             }
         });
 
+        // TODO we need to do this better, it will be flaky. The test above is not flaky,
+        // because it only checks for a very specific error so it won't fail on network errors.
         test('works with useHttp2', async () => {
-            const url = 'https://www.amazon.com/s?k=iphone';
-            await requestAsBrowser({ url, useHttp2: true });
+            const url = 'https://apify.com';
+            const response = await requestAsBrowser({ url, useHttp2: true });
+            // TODO Node v10 does not support HTTP2 well, remove when we drop support.
+            if (process.version.startsWith('v10')) {
+                expect(response.request.options.http2).toBe(false);
+            } else {
+                expect(response.request.options.http2).toBe(true);
+            }
+            expect(response.body.length).toBeGreaterThan(10000);
+        });
+
+        // TODO same here
+        test('get works with streams', async () => {
+            const response = await requestAsBrowser({
+                url: 'https://apify.com/',
+                stream: true,
+            });
+            expect(response.options.isStream).toBe(true);
+            const chunks = [];
+            for await (const chunk of response) {
+                chunks.push(chunk);
+            }
+            const body = chunks.join();
+            expect(body.length).toBeGreaterThan(10000);
+        });
+
+        test('post works with streams', async () => {
+            const response = await requestAsBrowser({
+                method: 'POST',
+                url: `http://${HOSTNAME}:${port}/echo-body`,
+                stream: true,
+                payload: 'TEST',
+            });
+            expect(response.options.isStream).toBe(true);
+            const chunks = [];
+            for await (const chunk of response) {
+                chunks.push(chunk);
+            }
+            const body = chunks.join();
+            expect(body).toBe('TEST');
         });
     });
 });

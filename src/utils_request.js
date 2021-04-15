@@ -1,21 +1,10 @@
-import * as httpRequest from '@apify/http-request';
-import * as errors from '@apify/http-request/src/errors';
+import * as gotScraping from 'got-scraping';
+import ow from 'ow';
+import log from './utils_log';
+
 /* eslint-disable no-unused-vars,import/named,import/order */
-import { TimeoutError } from './errors';
 import { IncomingMessage } from 'http';
-import { Readable } from 'stream';
 /* eslint-enable no-unused-vars,import/named,import/order */
-
-export const FIREFOX_MOBILE_USER_AGENT = 'Mozilla/5.0 (Android; Mobile; rv:14.0) Gecko/14.0 Firefox/14.0';
-export const FIREFOX_DESKTOP_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:68.0) Gecko/20100101 Firefox/68.0';
-
-const DEFAULT_HTTP_REQUEST_OPTIONS = {
-    useBrotli: true,
-    json: false,
-    useCaseSensitiveHeaders: true,
-    stream: false,
-    timeoutSecs: 30,
-};
 
 /**
  * @typedef {(IncomingMessage & Readable & { body: string })} RequestAsBrowserResult
@@ -33,6 +22,9 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  default browser headers will remove the masking this function provides.
  * @property {string} [proxyUrl]
  *  An HTTP proxy to be passed down to the HTTP request. Supports proxy authentication with Basic Auth.
+ * @property {object} [headerGeneratorOptions]
+ *  Configuration to be used for generating correct browser headers.
+ *  See the [`header-generator`](https://github.com/apify/header-generator) library.
  * @property {string} [languageCode=en]
  *  Two-letter ISO 639 language code.
  * @property {string} [countryCode=US]
@@ -50,12 +42,13 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *  although the risk should be negligible as these vulnerabilities mainly relate to server applications, not clients.
  *  Learn more in this [blog post](https://snyk.io/blog/node-js-release-fixes-a-critical-http-security-vulnerability/).
  * @property {AbortFunction} [abortFunction]
- *  Function accepts `response` object as a single parameter and should return true or false.
- *  If function returns true request gets aborted. This function is passed to the
- *  [@apify/http-request](https://www.npmjs.com/package/@apify/http-request) NPM package.
- * @property {boolean} [useHttp2=false]
- *  If set to true, it will additionally accept HTTP2 requests.
- *  It will choose either HTTP/1.1 or HTTP/2 depending on the ALPN protocol.
+ *  Function accepts `response` object as a single parameter and should return `true` or `false`.
+ *  If function returns true, request gets aborted.
+ * @property {boolean} [useHttp2=true]
+ *  If set to false, it will prevent use of HTTP2 requests. This is strongly discouraged. Websites
+ *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
+ *  to HTTP/1.1 for websites that do not support HTTP2. For Node 10 this option is always set to `false`
+ *  because Node 10 does not support HTTP2 very well. Upgrade to Node 12 for better performance.
  */
 
 /**
@@ -71,22 +64,19 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  * scenarios, please set `useInsecureHttpParser: false` and `ignoreSslErrors: false`.
  *
  * Sends a HTTP request that looks like a request sent by a web browser,
- * fully emulating browser's HTTP headers.
+ * fully emulating browser's HTTP headers. It uses HTTP2 by default for Node 12+.
  *
  * This function is useful for web scraping of websites that send the full HTML in the first response.
  * Thanks to this function, the target web server has no simple way to find out the request
- * hasn't been sent by a full web browser. Using a headless browser for such requests
+ * hasn't been sent by a human's web browser. Using a headless browser for such requests
  * is an order of magnitude more resource-intensive than this function.
- * By default it aborts all requests that returns 406 status codes or non-HTML content-types.
- * You can override this behavior by passing custom `abortFunction`.
  *
- * Currently, the function sends requests the same way as Firefox web browser does.
- * In the future, it might add support for other browsers too.
+ * The function emulates the Chrome and Firefox web browsers. If you want more control
+ * over the browsers and their versions, use the `headerGeneratorOptions` property.
+ * You can find more info in the readme of the [`header-generator`](https://github.com/apify/header-generator) library.
  *
- * Internally, the function uses `httpRequest` function from the [@apify/http-request](https://github.com/apify/http-request)
- * NPM package to perform the request.
- * All `options` not recognized by this function are passed to it,
- * so see it for more details.
+ * Internally, the function uses the [`got-scraping`](https://github.com/apify/got-scraping) library to perform the request.
+ * All `options` not recognized by this function are passed to it so see it for more details.
  *
  * **Example usage:**
  * ```js
@@ -105,73 +95,301 @@ const DEFAULT_HTTP_REQUEST_OPTIONS = {
  *
  * @param {RequestAsBrowserOptions} options All `requestAsBrowser` configuration options.
  *
- * @return {Promise<RequestAsBrowserResult>} This will typically be a
- * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage),
- * however, if returned from the cache it will be a [response-like object](https://github.com/lukechilds/responselike) which behaves in the same way.
+ * @return {Promise<RequestAsBrowserResult>} The result can be various objects, but it will always be like a
+ * [Node.js HTTP response stream](https://nodejs.org/api/http.html#http_class_http_incomingmessage)
+ * with a 'body' property for the parsed response body, unless the 'stream' option is used.
  * @memberOf utils
  * @name requestAsBrowser
  * @function
  */
-export const requestAsBrowser = async (options) => {
+export const requestAsBrowser = async (options = {}) => {
+    logDeprecatedOptions(options);
+    ow(options, 'RequestAsBrowserOptions', ow.object.partialShape({
+        payload: ow.optional.any(ow.string, ow.buffer),
+        proxyUrl: ow.optional.string.url,
+        languageCode: ow.optional.string.length(2),
+        countryCode: ow.optional.string.length(2),
+        useMobileVersion: ow.optional.boolean,
+        abortFunction: ow.optional.function,
+        ignoreSslErrors: ow.optional.boolean,
+        useInsecureHttpParser: ow.optional.boolean,
+        useHttp2: ow.optional.boolean,
+        timeoutSecs: ow.optional.number,
+        throwOnHttpErrors: ow.optional.boolean,
+        headerGeneratorOptions: ow.optional.object,
+        stream: ow.optional.boolean,
+        decodeBody: ow.optional.boolean,
+    }));
+
+    ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({
+        validator: areBodyOptionsCompatible(opts),
+        message: (label) => `The 'payload', 'body', 'json' and 'form' options of ${label} are mutually exclusive.`,
+    })));
+
+    // We created the `got-scraping` package which replaced underlying @apify/http-request.
+    // At the same time, we want users to be able to use requestAsBrowser without breaking changes.
+    // So we do a lot of property mapping here, to make sure that everything works as expected.
+    // TODO Update this with SDK v2 and use `got-scraping` API directly.
     const {
-        url,
-        method = 'GET',
-        headers = {},
+        payload, // alias for body to allow direct passing of our Request objects
         proxyUrl,
+        json,
+        headerGeneratorOptions,
         languageCode = 'en',
         countryCode = 'US',
         useMobileVersion = false,
-        abortFunction,
+        abortFunction = () => false,
         ignoreSslErrors = true,
         useInsecureHttpParser = true,
-        useHttp2 = false,
-        ...otherParams
+        useHttp2 = true,
+        timeoutSecs = 30,
+        throwOnHttpErrors = false,
+        stream = false,
+        decodeBody = true,
+        ...gotParams
     } = options;
 
-    const defaultHeaders = {
-        'User-Agent': useMobileVersion ? FIREFOX_MOBILE_USER_AGENT : FIREFOX_DESKTOP_USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': `${languageCode}-${countryCode},${languageCode};q=0.5`,
-        'Accept-Encoding': 'gzip, deflate, br',
-        Connection: useHttp2 ? undefined : 'keep-alive',
-    };
-
-    const requestOpts = {
-        ...DEFAULT_HTTP_REQUEST_OPTIONS,
-        ...otherParams,
-        url,
-        method,
-        // Users can provide headers in lowercase so we need to make sure
-        // that their values are applied, but names are kept upper-case.
-        headers: mergeHeaders(headers, defaultHeaders),
+    const gotScrapingOptions = {
         proxyUrl,
-        abortFunction,
-        ignoreSslErrors,
         insecureHTTPParser: useInsecureHttpParser,
-        useHttp2,
+        http2: useHttp2,
+        timeout: timeoutSecs * 1000,
+        throwHttpErrors: throwOnHttpErrors,
+        isStream: stream,
+        decompress: decodeBody,
+        // We overwrite the above arguments because we want to give the official
+        // got interface a priority over our requestAsBrowser one.
+        // E.g. { isStream: false, stream: true } should produce { isStream: false }.
+        ...gotParams,
     };
 
-    try {
-        return await httpRequest(requestOpts);
-    } catch (e) {
-        if (e instanceof errors.TimeoutError) {
-            throw new TimeoutError(`Request Timed-out after ${requestOpts.timeoutSecs} seconds.`);
-        }
+    // TODO remove when we drop support for Node 10
+    ensureValidConfigForNode10(gotScrapingOptions);
 
-        throw e;
+    // Order is important for payload and json.
+    normalizePayloadOption(payload, gotScrapingOptions);
+    normalizeJsonOption(json, gotScrapingOptions);
+    normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions);
+    ensureCorrectHttp2Headers(gotScrapingOptions);
+    maybeAddAbortHook(abortFunction, gotScrapingOptions);
+    if (!headerGeneratorOptions) {
+        // Values that respect old requestAsBrowser user-agents and settings
+        gotScrapingOptions.headerGeneratorOptions = {
+            devices: useMobileVersion ? ['mobile'] : ['desktop'],
+            locales: [`${languageCode}-${countryCode}`],
+        };
     }
+
+    if (!gotScrapingOptions.isStream) return gotScraping(gotScrapingOptions);
+
+    // abortFunction must be handled separately for streams :(
+    const duplexStream = await gotScraping(gotScrapingOptions);
+    ensureRequestIsDispatched(duplexStream, gotScrapingOptions);
+    return new Promise((resolve, reject) => {
+        duplexStream
+            .on('error', reject)
+            .on('response', (res) => {
+                try {
+                    const shouldAbort = abortFunction(res);
+                    if (shouldAbort) {
+                        const err = new Error(`Request for ${gotScrapingOptions.url} aborted due to abortFunction.`);
+                        duplexStream.destroy(err);
+                        return reject(err);
+                    }
+                } catch (e) {
+                    duplexStream.destroy(e);
+                    return reject(e);
+                }
+
+                addResponsePropertiesToStream(duplexStream, res);
+
+                return resolve(duplexStream);
+            });
+    });
 };
 
-function mergeHeaders(userHeaders, defaultHeaders) {
-    const headers = { ...defaultHeaders, ...userHeaders };
-    Object.keys(headers).forEach((key) => {
-        const lowerCaseKey = key.toLowerCase();
-        const keyIsNotLowerCase = key !== lowerCaseKey;
-        // eslint-disable-next-line
-        if (keyIsNotLowerCase && headers.hasOwnProperty(lowerCaseKey)) {
-            headers[key] = headers[lowerCaseKey];
-            delete headers[lowerCaseKey];
+function ensureValidConfigForNode10(gotScrapingOptions) {
+    if (process.version.startsWith('v10')) {
+        if (gotScrapingOptions.http2 === true) {
+            // Using log.deprecated to log only once.
+            log.deprecated('utils.requestAsBrowser does not support HTTP2 on Node 10. Please upgrade to Node 12+ or set useHttp2 to false.');
+        }
+        gotScrapingOptions.http2 = false;
+        gotScrapingOptions.ciphers = undefined;
+    }
+}
+
+/**
+ * `got` has a `body` option and 2 helpers, `json` and `form`, to provide specific bodies.
+ * Those options are mutually exclusive. `requestAsBrowser` also supports `payload` as
+ * an alias of `body`. It must be exclusive as well.
+ * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+ * @return {boolean}
+ * @private
+ * @ignore
+ */
+function areBodyOptionsCompatible(requestAsBrowserOptions) {
+    const { payload, json, body, form } = requestAsBrowserOptions;
+    // A boolean is old requestAsBrowser interface and not a real "body"
+    // See the normalizeJsonOption function.
+    const jsonBody = typeof json !== 'boolean' ? undefined : json;
+
+    const possibleOpts = [payload, jsonBody, body, form];
+    const usedOpts = possibleOpts.filter((opt) => opt !== undefined);
+
+    // Only a single option out of the 4 can be used.
+    return usedOpts.length <= 1;
+}
+
+/**
+ * got-scraping uses 'body', but we also support 'payload' from {@link Request}.
+ * @param {string|Buffer} payload
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function normalizePayloadOption(payload, gotScrapingOptions) {
+    if (payload !== undefined) gotScrapingOptions.body = payload;
+}
+
+/**
+ * `json` is a boolean flag in `requestAsBrowser`, but a `body` alias that
+ * adds a 'content-type: application/json' header in got. To stay backwards
+ * compatible we need to figure out which option the user provided.
+ * @param {*} json
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function normalizeJsonOption(json, gotScrapingOptions) {
+    // If it's a boolean, then it's the old requestAsBrowser API.
+    if (typeof json === 'boolean') {
+        gotScrapingOptions.responseType = 'json';
+        gotScrapingOptions.ciphers = undefined;
+        // If there is a body, we move it under `json` to get the automatic
+        // 'content-type' header injection.
+        if (gotScrapingOptions.body !== undefined) gotScrapingOptions.json = gotScrapingOptions.body;
+    } else {
+        // If it's something else, we let `got` handle it.
+        gotScrapingOptions.json = json;
+    }
+}
+
+/**
+ * @param {boolean} ignoreSslErrors
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions) {
+    if (gotScrapingOptions.https) {
+        gotScrapingOptions.https.rejectUnauthorized = !ignoreSslErrors;
+    } else {
+        gotScrapingOptions.https = { rejectUnauthorized: !ignoreSslErrors };
+    }
+}
+
+/**
+ * 'connection' and 'host' headers are forbidden when using HTTP2. We delete
+ * them from user-provided headers because we switched the default from HTTP1 to 2.
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function ensureCorrectHttp2Headers(gotScrapingOptions) {
+    if (gotScrapingOptions.http2) {
+        delete gotScrapingOptions.headers?.connection;
+        delete gotScrapingOptions.headers?.Connection;
+        delete gotScrapingOptions.headers?.host;
+        delete gotScrapingOptions.headers?.Host;
+    }
+}
+
+/**
+ * `abortFunction` is an old `requestAsBrowser` interface for aborting requests before
+ * the response body is read to save bandwidth.
+ * @param {function} abortFunction
+ * @param {GotScrapingOptions} gotScrapingOptions
+ * @ignore
+ * @private
+ */
+function maybeAddAbortHook(abortFunction, gotScrapingOptions) {
+    // Stream aborting must be handled on the response object because `got`
+    // does not execute `afterResponse` hooks for streams :(
+    if (gotScrapingOptions.isStream) return;
+
+    const abortHook = (response) => {
+        const shouldAbort = abortFunction(response);
+        if (shouldAbort) {
+            throw new Error(`Request for ${gotScrapingOptions.url} aborted due to abortFunction.`);
+        }
+        return response;
+    };
+
+    const abortRequestOptions = {
+        hooks: {
+            afterResponse: [abortHook],
+        },
+    };
+    gotScrapingOptions = gotScraping.mergeOptions(gotScraping.defaults.options, gotScrapingOptions, abortRequestOptions);
+}
+
+/**
+ * 'got' will not dispatch non-GET request stream until a body is provided.
+ * @param {stream.Duplex} duplexStream
+ * @param {GotScrapingOptions} gotScrapingOptions
+ */
+function ensureRequestIsDispatched(duplexStream, gotScrapingOptions) {
+    const { method } = gotScrapingOptions;
+    const bodyIsEmpty = gotScrapingOptions.body === undefined
+        && gotScrapingOptions.json === undefined
+        && gotScrapingOptions.form === undefined;
+
+    if (method && method.toLowerCase() !== 'get' && bodyIsEmpty) {
+        duplexStream.end();
+    }
+}
+
+/**
+ * @param {RequestAsBrowserOptions} options
+ * @ignore
+ * @private
+ */
+function logDeprecatedOptions(options) {
+    const deprecatedOptions = ['languageCode', 'countryCode', 'useMobileVersion'];
+
+    for (const deprecatedOption of deprecatedOptions) {
+        if (options.hasOwnProperty(deprecatedOption)) {
+            log.deprecated(`"options.${deprecatedOption}" is deprecated. Use "options.headerGeneratorOptions" instead.`);
+        }
+    }
+}
+
+/**
+ * The stream object returned from got does not have the below properties.
+ * At the same time, you can't read data directly from the response stream,
+ * because they won't get emitted unless you also read from the primary
+ * got stream. To be able to work with only one stream, we move the expected props
+ * from the response stream to the got stream.
+ * @param {GotStream} stream
+ * @param {http.IncomingMessage} response
+ * @return {GotStream}
+ * @ignore
+ * @private
+ */
+function addResponsePropertiesToStream(stream, response) {
+    const properties = [
+        'statusCode', 'statusMessage', 'headers',
+        'complete', 'httpVersion', 'rawHeaders',
+        'rawTrailers', 'trailers', 'url',
+        'request',
+    ];
+
+    properties.forEach((prop) => {
+        if (stream[prop] === undefined) {
+            stream[prop] = response[prop];
         }
     });
-    return headers;
+
+    return stream;
 }

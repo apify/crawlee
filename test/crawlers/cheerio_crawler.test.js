@@ -340,7 +340,11 @@ describe('CheerioCrawler', () => {
 
             await crawler.run();
             expect(headers).toHaveLength(4);
-            headers.forEach((h) => expect(h.Accept).toBe('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'));
+            headers.forEach((h) => {
+                const acceptHeader = h.accept || h.Accept;
+                expect(acceptHeader.includes('text/html')).toBe(true);
+                expect(acceptHeader.includes('application/xhtml+xml')).toBe(true);
+            });
         });
 
         describe('by throwing', () => {
