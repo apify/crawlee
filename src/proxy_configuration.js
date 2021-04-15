@@ -379,6 +379,7 @@ export class ProxyConfiguration {
             proxyUrl: this.newUrl(),
             json: true,
             timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
+            ciphers: undefined, // Without this we can't make the request on Node 10.
         };
         for (let attempt = 1; attempt <= CHECK_ACCESS_MAX_ATTEMPTS; attempt++) {
             try {

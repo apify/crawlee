@@ -216,7 +216,7 @@ describe('Apify.utils_request', () => {
         // because it only checks for a very specific error so it won't fail on network errors.
         test('works with useHttp2', async () => {
             const url = 'https://www.amazon.com/s?k=iphone';
-            const response = await requestAsBrowser({ url, useHttp2: true, ciphers: undefined }); // TODO waiting for ciphers fix in got-scraping
+            const response = await requestAsBrowser({ url, useHttp2: true });
             expect(response.request.options.http2).toBe(true);
             expect(response.body.length).toBeGreaterThan(10000);
         });
@@ -236,7 +236,6 @@ describe('Apify.utils_request', () => {
             expect(body.length).toBeGreaterThan(10000);
         });
 
-        // TODO This does not work because https://github.com/apify/got-scraping/issues/11
         test('post works with streams', async () => {
             const response = await requestAsBrowser({
                 method: 'POST',
