@@ -47,7 +47,8 @@ import { IncomingMessage } from 'http';
  * @property {boolean} [useHttp2=true]
  *  If set to false, it will prevent use of HTTP2 requests. This is strongly discouraged. Websites
  *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
- *  to HTTP/1.1 for websites that do not support HTTP2.
+ *  to HTTP/1.1 for websites that do not support HTTP2. For Node 10 this option is always set to `false`
+ *  because Node 10 does not support HTTP2 very well. Upgrade to Node 12 for better performance.
  */
 
 /**
@@ -63,22 +64,19 @@ import { IncomingMessage } from 'http';
  * scenarios, please set `useInsecureHttpParser: false` and `ignoreSslErrors: false`.
  *
  * Sends a HTTP request that looks like a request sent by a web browser,
- * fully emulating browser's HTTP headers.
+ * fully emulating browser's HTTP headers. It uses HTTP2 by default for Node 12+.
  *
  * This function is useful for web scraping of websites that send the full HTML in the first response.
  * Thanks to this function, the target web server has no simple way to find out the request
- * hasn't been sent by a full web browser. Using a headless browser for such requests
+ * hasn't been sent by a human's web browser. Using a headless browser for such requests
  * is an order of magnitude more resource-intensive than this function.
- * By default it aborts all requests that returns 406 status codes or non-HTML content-types.
- * You can override this behavior by passing custom `abortFunction`.
  *
- * Currently, the function sends requests the same way as Firefox web browser does.
- * In the future, it might add support for other browsers too.
+ * The function emulates the Chrome and Firefox web browsers. If you want more control
+ * over the browsers and their versions, use the `headerGeneratorOptions` property.
+ * You can find more info in the readme of the [`header-generator`](https://github.com/apify/header-generator) library.
  *
- * Internally, the function uses `httpRequest` function from the [@apify/http-request](https://github.com/apify/http-request)
- * NPM package to perform the request.
- * All `options` not recognized by this function are passed to it,
- * so see it for more details.
+ * Internally, the function uses the [`got-scraping`](https://github.com/apify/got-scraping) library to perform the request.
+ * All `options` not recognized by this function are passed to it so see it for more details.
  *
  * **Example usage:**
  * ```js
@@ -165,6 +163,9 @@ export const requestAsBrowser = async (options = {}) => {
         ...gotParams,
     };
 
+    // TODO remove when we drop support for Node 10
+    ensureValidConfigForNode10(gotScrapingOptions);
+
     // Order is important for payload and json.
     normalizePayloadOption(payload, gotScrapingOptions);
     normalizeJsonOption(json, gotScrapingOptions);
@@ -206,6 +207,17 @@ export const requestAsBrowser = async (options = {}) => {
             });
     });
 };
+
+function ensureValidConfigForNode10(gotScrapingOptions) {
+    if (process.version.startsWith('v10')) {
+        if (gotScrapingOptions.http2 === true) {
+            // Using log.deprecated to log only once.
+            log.deprecated('utils.requestAsBrowser does not support HTTP2 on Node 10. Please upgrade to Node 12+ or set useHttp2 to false.');
+        }
+        gotScrapingOptions.http2 = false;
+        gotScrapingOptions.ciphers = undefined;
+    }
+}
 
 /**
  * `got` has a `body` option and 2 helpers, `json` and `form`, to provide specific bodies.
