@@ -358,9 +358,16 @@ export const call = async (actId, input, options = {}) => {
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const { value: body, contentType } = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const actorOutput = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const result = { ...run };
+    if (actorOutput) {
+        result.output = {
+            body: actorOutput.value,
+            contentType: actorOutput.contentType,
+        };
+    }
 
-    return { ...run, output: { contentType, body } };
+    return result;
 };
 
 /**
@@ -476,9 +483,16 @@ export const callTask = async (taskId, input, options = {}) => {
     let getRecordOptions = {};
     if (disableBodyParser) getRecordOptions = { buffer: true };
 
-    const { value: body, contentType } = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const actorOutput = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT', getRecordOptions);
+    const result = { ...run };
+    if (actorOutput) {
+        result.output = {
+            body: actorOutput.value,
+            contentType: actorOutput.contentType,
+        };
+    }
 
-    return { ...run, output: { contentType, body } };
+    return result;
 };
 
 function isRunUnsuccessful(status) {
