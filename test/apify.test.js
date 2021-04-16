@@ -94,7 +94,7 @@ describe('new Apify({ ... })', () => {
     describe('getEnv()', () => {
         let prevEnv;
 
-        beforeAll(() => { prevEnv = new Apify().getEnv(); console.log(prevEnv); });
+        beforeAll(() => { prevEnv = new Apify().getEnv(); });
         afterAll(() => { setEnv(prevEnv); });
 
         test('works with null values', () => {

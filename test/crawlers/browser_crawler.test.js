@@ -1,3 +1,5 @@
+/* eslint-disable no-prototype-builtins */
+
 import { URL } from 'url';
 import { ENV_VARS } from 'apify-shared/consts';
 import sinon from 'sinon';

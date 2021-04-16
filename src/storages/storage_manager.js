@@ -61,7 +61,7 @@ export class StorageManager {
         let storage = this.cache.get(cacheKey);
 
         if (!storage) {
-            const client = isLocal ? this.config.createLocalStorage() : this.config.createClient();
+            const client = isLocal ? this.config.getStorageLocal() : this.config.getClient();
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
             storage = new this.StorageConstructor({
                 id: storageObject.id,

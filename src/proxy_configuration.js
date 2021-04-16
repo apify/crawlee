@@ -52,7 +52,7 @@ const CHECK_ACCESS_MAX_ATTEMPTS = 2;
  *   Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
  *   and should always return stringified proxy URL.
  *   This function is used to generate the URL when {@link ProxyConfiguration.newUrl} or {@link ProxyConfiguration.newProxyInfo} is called.
- * @property {ProxyConfigurationFunction} [useApifyProxy]
+ * @property {boolean} [useApifyProxy]
  */
 
 /**

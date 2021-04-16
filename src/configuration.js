@@ -129,6 +129,7 @@ export class Configuration {
      */
     constructor(options = {}) {
         this.options = new Map(Object.entries(options));
+        this.services = new Map();
 
         if (!this.get('localStorageDir') && !this.get('token')) {
             const dir = join(process.cwd(), './apify_storage');
@@ -196,6 +197,68 @@ export class Configuration {
     }
 
     /**
+     * Returns cached instance of {@link ApifyClient} using options as defined in the environment variables or in
+     * this {@link Configuration} instance. Only first call of this method will create the client, following calls will
+     * return the same client instance.
+     *
+     * Caching works based on the API URL and token, so calling this method with different options will return
+     * multiple instances, one for each variant of the options.
+     *
+     * @param {object} [options]
+     * @param {string} [options.token]
+     * @param {string} [options.maxRetries]
+     * @param {string} [options.minDelayBetweenRetriesMillis]
+     * @return {ApifyClient}
+     * @internal
+     */
+    getClient(options = {}) {
+        const baseUrl = options.baseUrl ?? this.get('apiBaseUrl');
+        const token = options.token ?? this.get('token');
+        const cacheKey = `${baseUrl}~${token}`;
+
+        return this._getService('ApifyClient', () => this.createClient(options), cacheKey);
+    }
+
+    /**
+     * Returns cached instance of {@link ApifyStorageLocal} using options as defined in the environment variables or in
+     * this {@link Configuration} instance. Only first call of this method will create the client, following calls will return
+     * the same client instance.
+     *
+     * Caching works based on the `storageDir` option, so calling this method with different `storageDir` will return
+     * multiple instances, one for each directory.
+     *
+     * @param {object} [options]
+     * @param {string} [options.storageDir]
+     * @param {boolean} [options.enableWalMode=true]
+     * @return {ApifyStorageLocal}
+     * @internal
+     */
+    getStorageLocal(options = {}) {
+        const cacheKey = options.storageDir ?? this.get('localStorageDir');
+        return this._getService('ApifyStorageLocal', () => this.createStorageLocal(options), cacheKey);
+    }
+
+    /**
+     * Returns cached (singleton) instance of a service by its name. If the service does not exist yet, it will be created
+     * via the `createCallback`. To have multiple instances of one service, we can use unique values in the `cacheKey`.
+     *
+     * @param {string} name
+     * @param {Function} createCallback
+     * @param {string} [cacheKey]
+     * @return {unknown}
+     * @private
+     */
+    _getService(name, createCallback, cacheKey = name) {
+        cacheKey = `${name}~${cacheKey}`;
+
+        if (!this.services.has(cacheKey)) {
+            this.services.set(cacheKey, createCallback());
+        }
+
+        return this.services.get(cacheKey);
+    }
+
+    /**
      * Creates an instance of ApifyClient using options as defined in the environment variables or in this `Configuration` instance.
      *
      * @param {object} [options]
@@ -222,7 +285,7 @@ export class Configuration {
      * @return {ApifyStorageLocal}
      * @internal
      */
-    createLocalStorage(options = {}) {
+    createStorageLocal(options = {}) {
         const storageDir = options.storageDir ?? this.get('localStorageDir');
         const enableWalMode = options.enableWalMode ?? this.get('localStorageEnableWalMode');
         const storage = new ApifyStorageLocal({ ...options, storageDir, enableWalMode });
