@@ -7,7 +7,7 @@ import * as utils from '../build/utils';
 import { Dataset } from '../build/storages/dataset';
 import { KeyValueStore } from '../build/storages/key_value_store';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
-import StorageManager from '../build/storages/storage_manager';
+import { StorageManager } from '../build/storages/storage_manager';
 import { ProxyConfiguration } from '../build/proxy_configuration';
 import { SessionPool } from '../build/session_pool/session_pool';
 
@@ -94,7 +94,7 @@ describe('new Apify({ ... })', () => {
     describe('getEnv()', () => {
         let prevEnv;
 
-        beforeAll(() => { prevEnv = new Apify().getEnv(); });
+        beforeAll(() => { prevEnv = new Apify().getEnv(); console.log(prevEnv); });
         afterAll(() => { setEnv(prevEnv); });
 
         test('works with null values', () => {

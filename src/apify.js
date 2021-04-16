@@ -935,17 +935,17 @@ export class Apify {
     }
 
     /**
-     * @param {Function} cls
+     * @param {Function} storageClass
      * @return {StorageManager}
      * @private
      */
-    _getStorageManager(cls) {
-        if (!this._storageManagers.has(cls)) {
-            const manager = new StorageManager(cls, this.config);
-            this._storageManagers.set(cls, manager);
+    _getStorageManager(storageClass) {
+        if (!this._storageManagers.has(storageClass)) {
+            const manager = new StorageManager(storageClass, this.config);
+            this._storageManagers.set(storageClass, manager);
         }
 
-        return this._storageManagers.get(cls);
+        return this._storageManagers.get(storageClass);
     }
 
     /**

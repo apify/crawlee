@@ -6,7 +6,7 @@ import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '../../build/storages/request_queue';
-import StorageManager from '../../build/storages/storage_manager';
+import { StorageManager } from '../../build/storages/storage_manager';
 
 jest.mock('../../build/storages/storage_manager');
 

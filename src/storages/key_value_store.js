@@ -339,7 +339,7 @@ export const openKeyValueStore = async (storeIdOrName, options = {}) => {
         forceCloud: ow.optional.boolean,
     }));
 
-    const manager = new StorageManager(KeyValueStore, this.config);
+    const manager = new StorageManager(KeyValueStore);
     return manager.openStorage(storeIdOrName, options);
 };
 

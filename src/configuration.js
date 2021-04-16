@@ -128,7 +128,7 @@ export class Configuration {
      * @param {Record<string, number | string | boolean>} options
      */
     constructor(options = {}) {
-        this.options = options;
+        this.options = new Map(Object.entries(options));
 
         if (!this.get('localStorageDir') && !this.get('token')) {
             const dir = join(process.cwd(), './apify_storage');
@@ -157,8 +157,8 @@ export class Configuration {
         }
 
         // check instance level options
-        if (key in this.options) {
-            return this.options[key];
+        if (this.options.has(key)) {
+            return this.options.get(key);
         }
 
         // fallback to defaults
@@ -192,7 +192,7 @@ export class Configuration {
      * @param {string | number | boolean} [value]
      */
     set(key, value) {
-        this.options[key] = value;
+        this.options.set(key, value);
     }
 
     /**

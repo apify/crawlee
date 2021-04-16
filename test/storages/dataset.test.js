@@ -9,7 +9,7 @@ import {
     chunkBySize,
 } from '../../build/storages/dataset';
 import * as Apify from '../../build';
-import StorageManager from '../../build/storages/storage_manager';
+import { StorageManager } from '../../build/storages/storage_manager';
 
 jest.mock('../../build/storages/storage_manager');
 

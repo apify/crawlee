@@ -22,8 +22,8 @@ const DEFAULT_ID_CONFIG_KEYS = {
 };
 
 /**
- * @template T
  * StorageManager takes care of opening remote or local storages.
+ * @template T
  * @property {Function} StorageConstructor
  * @property {string} name
  * @property {LruCache} cache
