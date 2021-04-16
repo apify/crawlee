@@ -1,4 +1,4 @@
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
 import { join } from 'path';
 import { ApifyStorageLocal } from '@apify/storage-local';
 import * as ApifyClient from 'apify-client';
@@ -20,8 +20,6 @@ import log from './utils_log';
  *   ```
  *
  * ## Supported Configuration Options
- *
- * > All env vars are also accessible with `APIFY_` prefix (e.g. `APIFY_TOKEN`)
  *
  * Key | Environment Variable | Default Value
  * ---|---|---
@@ -111,12 +109,12 @@ export class Configuration {
         defaultDatasetId: 'default',
         defaultRequestQueueId: 'default',
         inputKey: 'INPUT',
-        proxyHostname: 'proxy.apify.com',
         apiBaseUrl: 'https://api.apify.com/v2',
         proxyStatusUrl: 'http://proxy.apify.com',
-        proxyPort: 8000,
-        containerPort: 4321,
-        containerUrl: 'http://localhost:4321', // Must match `containerPort` above!
+        proxyHostname: LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
+        proxyPort: +LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT],
+        containerPort: +LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT],
+        containerUrl: LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL],
         maxOpenedStorages: 1000,
         metamorphAfterSleepMillis: 300e3,
         persistStateIntervalMillis: 60e3, // This value is mentioned in jsdoc in `events.js`, if you update it here, update it there too.
