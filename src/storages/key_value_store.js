@@ -2,7 +2,7 @@ import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
 import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
 import { jsonStringifyExtended } from 'apify-shared/utilities';
 import ow, { ArgumentError } from 'ow';
-import StorageManager from './storage_manager';
+import { StorageManager } from './storage_manager';
 import log from '../utils_log';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -255,7 +255,7 @@ export class KeyValueStore {
      */
     async drop() {
         await this.client.delete();
-        const manager = new StorageManager(KeyValueStore);
+        const manager = new StorageManager(KeyValueStore, this.config);
         manager.closeStorage(this);
     }
 
@@ -339,7 +339,7 @@ export const openKeyValueStore = async (storeIdOrName, options = {}) => {
         forceCloud: ow.optional.boolean,
     }));
 
-    const manager = new StorageManager(KeyValueStore);
+    const manager = new StorageManager(KeyValueStore, this.config);
     return manager.openStorage(storeIdOrName, options);
 };
 

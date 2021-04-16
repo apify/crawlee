@@ -29,7 +29,7 @@ const DEFAULT_ID_CONFIG_KEYS = {
  * @property {LruCache} cache
  * @ignore
  */
-export default class StorageManager {
+export class StorageManager {
     /**
      * @param {T} StorageConstructor
      * @param {Configuration} [config]

@@ -2,7 +2,7 @@ import ow from 'ow';
 import { ACT_JOB_STATUSES, ENV_VARS } from 'apify-shared/consts';
 import { getEnv } from './actor';
 import { initializeEvents, stopEvents } from './events';
-import StorageManager from './storages/storage_manager';
+import { StorageManager } from './storages/storage_manager';
 import { Dataset } from './storages/dataset';
 import { KeyValueStore, maybeStringify } from './storages/key_value_store';
 import { RequestList, REQUESTS_PERSISTENCE_KEY, STATE_PERSISTENCE_KEY } from './request_list';
@@ -30,7 +30,7 @@ import { ApifyCallError } from './errors';
 
 /**
  * `Apify` class serves as an alternative approach to the static helpers exported from the package. It allows to pass configuration
- * that will be used on the instance methods. Environment variables are will have precedence over this configuration.
+ * that will be used on the instance methods. Environment variables will have precedence over this configuration.
  * See {@link Configuration} for details about what can be configured and what are the default values.
  *
  * @property {Configuration} config Configuration of this SDK instance (provided to its constructor). See {@link Configuration} for details.

@@ -9,7 +9,7 @@ import log from './utils_log';
  *
  * 1. When using `Apify` class, we can get the instance configuration via `sdk.config`
  *   ```js
- *   const { Apify } = require('apify-js');
+ *   const { Apify } = require('apify');
  *
  *   const sdk = new Apify({ token: '123' });
  *   console.log(sdk.config.get('token')); // '123'
@@ -25,29 +25,34 @@ import log from './utils_log';
  *
  * Key | Environment Variable | Default Value
  * ---|---|---
- * `token` | `TOKEN` | -
- * `localStorageDir` | `LOCAL_STORAGE_DIR` | `'./apify_storage'`
- * `localStorageEnableWalMode` | `LOCAL_STORAGE_ENABLE_WAL_MODE` | `true`
  * `defaultDatasetId` | `DEFAULT_DATASET_ID` | `'default'`
  * `defaultKeyValueStoreId` | `DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
  * `defaultRequestQueueId` | `DEFAULT_REQUEST_QUEUE_ID` | `'default'`
- * `metamorphAfterSleepMillis` | `METAMORPH_AFTER_SLEEP_MILLIS` | `300e3`
+ * `localStorageDir` | `LOCAL_STORAGE_DIR` | `'./apify_storage'`
+ * `localStorageEnableWalMode` | `LOCAL_STORAGE_ENABLE_WAL_MODE` | `true`
  * `persistStateIntervalMillis` | `PERSIST_STATE_INTERVAL_MILLIS` | `60e3`
+ * `token` | `TOKEN` | -
+ *
+ * ## Advanced Configuration Options
+ *
+ * Key | Environment Variable | Default Value
+ * ---|---|---
  * `actorEventsWsUrl` | `ACTOR_EVENTS_WS_URL` | -
- * `inputKey` | `INPUT_KEY` | `'INPUT'`
  * `actorId` | `ACTOR_ID` | -
- * `apiBaseUrl` | `API_BASE_URL` | `'https://api.apify.com/v2'`
- * `isAtHome` | `IS_AT_HOME` | -
  * `actorRunId` | `ACTOR_RUN_ID` | -
  * `actorTaskId` | `ACTOR_TASK_ID` | -
+ * `apiBaseUrl` | `API_BASE_URL` | `'https://api.apify.com/v2'`
  * `containerPort` | `CONTAINER_PORT` | `4321`
  * `containerUrl` | `CONTAINER_URL` | `'http://localhost:4321'`
- * `userId` | `USER_ID` | -
+ * `inputKey` | `INPUT_KEY` | `'INPUT'`
+ * `isAtHome` | `IS_AT_HOME` | -
+ * `maxOpenedStorages` | `MAX_OPENED_STORAGES` | `1000`
+ * `metamorphAfterSleepMillis` | `METAMORPH_AFTER_SLEEP_MILLIS` | `300e3`
  * `proxyHostname` | `PROXY_HOSTNAME` | `'proxy.apify.com'`
  * `proxyPassword` | `PROXY_PASSWORD` | -
- * `proxyStatusUrl` | `PROXY_STATUS_URL` | `'http://proxy.apify.com'`
  * `proxyPort` | `PROXY_PORT` | `8000`
- * `maxOpenedStorages` | `MAX_OPENED_STORAGES` | `1000`
+ * `proxyStatusUrl` | `PROXY_STATUS_URL` | `'http://proxy.apify.com'`
+ * `userId` | `USER_ID` | -
  *
  * ## Not Supported environment variables
  *
@@ -148,7 +153,7 @@ export class Configuration {
         const envValue = process.env[envKey] ?? process.env[ENV_VARS[envKey] ?? process.env[`APIFY_${envKey}`]];
 
         if (envValue != null) {
-            return this._cast(key, envValue, true);
+            return this._castEnvValue(key, envValue);
         }
 
         // check instance level options
@@ -163,22 +168,17 @@ export class Configuration {
     /**
      * @param {string} key
      * @param {number | string | boolean} value
-     * @param {boolean} [env=false]
      * @return {boolean}
      * @private
      */
-    _cast(key, value, env = false) {
+    _castEnvValue(key, value) {
         if (key in Configuration.INTEGER_VARS) {
             return +value;
         }
 
         if (key in Configuration.BOOLEAN_VARS) {
-            if (env) {
-                // 0, false and empty string are considered falsy values
-                return !['0', 'false', ''].includes(value.toLowerCase());
-            }
-
-            return !!value;
+            // 0, false and empty string are considered falsy values
+            return !['0', 'false', ''].includes(value.toLowerCase());
         }
 
         return value;

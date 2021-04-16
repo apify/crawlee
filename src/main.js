@@ -56,10 +56,10 @@ const exportedUtils = Object.assign(publicUtils, {
  *
  * As opposed to those helper functions, there is an alternative approach using `Apify` class (a named export).
  * It has mostly the same API, but the methods on `Apify` instance will use the configuration provided in the constructor.
- * Environment variables are will have precedence over this configuration.
+ * Environment variables will have precedence over this configuration.
  *
  * ```js
- * const { Apify } = require('apify-js'); // use named export to get the class
+ * const { Apify } = require('apify'); // use named export to get the class
  *
  * const sdk = new Apify({ token: '123' });
  * console.log(sdk.config.get('token')); // '123'
@@ -72,7 +72,7 @@ const exportedUtils = Object.assign(publicUtils, {
  * Another example shows how the default dataset name can be changed:
  *
  * ```js
- * const { Apify } = require('apify-js'); // use named export to get the class
+ * const { Apify } = require('apify'); // use named export to get the class
  *
  * const sdk = new Apify({ defaultDatasetId: 'custom-name' });
  * await sdk.pushData({ myValue: 123 });
@@ -80,7 +80,7 @@ const exportedUtils = Object.assign(publicUtils, {
  *
  * is equivalent to:
  * ```js
- * const Apify = require('apify-js'); // use default export to get the helper functions
+ * const Apify = require('apify'); // use default export to get the helper functions
  *
  * const dataset = await Apify.openDataset('custom-name');
  * await dataset.pushData({ myValue: 123 });
