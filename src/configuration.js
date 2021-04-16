@@ -25,34 +25,34 @@ import log from './utils_log';
  *
  * Key | Environment Variable | Default Value
  * ---|---|---
- * `defaultDatasetId` | `DEFAULT_DATASET_ID` | `'default'`
- * `defaultKeyValueStoreId` | `DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
- * `defaultRequestQueueId` | `DEFAULT_REQUEST_QUEUE_ID` | `'default'`
- * `localStorageDir` | `LOCAL_STORAGE_DIR` | `'./apify_storage'`
- * `localStorageEnableWalMode` | `LOCAL_STORAGE_ENABLE_WAL_MODE` | `true`
- * `persistStateIntervalMillis` | `PERSIST_STATE_INTERVAL_MILLIS` | `60e3`
- * `token` | `TOKEN` | -
+ * `defaultDatasetId` | `APIFY_DEFAULT_DATASET_ID` | `'default'`
+ * `defaultKeyValueStoreId` | `APIFY_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
+ * `defaultRequestQueueId` | `APIFY_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
+ * `localStorageDir` | `APIFY_LOCAL_STORAGE_DIR` | `'./apify_storage'`
+ * `localStorageEnableWalMode` | `APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE` | `true`
+ * `persistStateIntervalMillis` | `APIFY_PERSIST_STATE_INTERVAL_MILLIS` | `60e3`
+ * `token` | `APIFY_TOKEN` | -
  *
  * ## Advanced Configuration Options
  *
  * Key | Environment Variable | Default Value
  * ---|---|---
- * `actorEventsWsUrl` | `ACTOR_EVENTS_WS_URL` | -
- * `actorId` | `ACTOR_ID` | -
- * `actorRunId` | `ACTOR_RUN_ID` | -
- * `actorTaskId` | `ACTOR_TASK_ID` | -
- * `apiBaseUrl` | `API_BASE_URL` | `'https://api.apify.com/v2'`
- * `containerPort` | `CONTAINER_PORT` | `4321`
- * `containerUrl` | `CONTAINER_URL` | `'http://localhost:4321'`
- * `inputKey` | `INPUT_KEY` | `'INPUT'`
- * `isAtHome` | `IS_AT_HOME` | -
- * `maxOpenedStorages` | `MAX_OPENED_STORAGES` | `1000`
- * `metamorphAfterSleepMillis` | `METAMORPH_AFTER_SLEEP_MILLIS` | `300e3`
- * `proxyHostname` | `PROXY_HOSTNAME` | `'proxy.apify.com'`
- * `proxyPassword` | `PROXY_PASSWORD` | -
- * `proxyPort` | `PROXY_PORT` | `8000`
- * `proxyStatusUrl` | `PROXY_STATUS_URL` | `'http://proxy.apify.com'`
- * `userId` | `USER_ID` | -
+ * `actorEventsWsUrl` | `APIFY_ACTOR_EVENTS_WS_URL` | -
+ * `actorId` | `APIFY_ACTOR_ID` | -
+ * `actorRunId` | `APIFY_ACTOR_RUN_ID` | -
+ * `actorTaskId` | `APIFY_ACTOR_TASK_ID` | -
+ * `apiBaseUrl` | `APIFY_API_BASE_URL` | `'https://api.apify.com/v2'`
+ * `containerPort` | `APIFY_CONTAINER_PORT` | `4321`
+ * `containerUrl` | `APIFY_CONTAINER_URL` | `'http://localhost:4321'`
+ * `inputKey` | `APIFY_INPUT_KEY` | `'INPUT'`
+ * `isAtHome` | `APIFY_IS_AT_HOME` | -
+ * `maxOpenedStorages` | `APIFY_MAX_OPENED_STORAGES` | `1000`
+ * `metamorphAfterSleepMillis` | `APIFY_METAMORPH_AFTER_SLEEP_MILLIS` | `300e3`
+ * `proxyHostname` | `APIFY_PROXY_HOSTNAME` | `'proxy.apify.com'`
+ * `proxyPassword` | `APIFY_PROXY_PASSWORD` | -
+ * `proxyPort` | `APIFY_PROXY_PORT` | `8000`
+ * `proxyStatusUrl` | `APIFY_PROXY_STATUS_URL` | `'http://proxy.apify.com'`
+ * `userId` | `APIFY_USER_ID` | -
  *
  * ## Not Supported environment variables
  *
@@ -62,40 +62,41 @@ import log from './utils_log';
  * - `CHROME_EXECUTABLE_PATH`
  */
 export class Configuration {
-    // all env vars also supports `APIFY_` prefix
+    // maps environment variables to config keys (e.g. `APIFY_PROXY_PORT` to `proxyPort`)
     static ENV_MAP = {
-        TOKEN: 'token',
-        LOCAL_STORAGE_DIR: 'localStorageDir',
-        LOCAL_STORAGE_ENABLE_WAL_MODE: 'localStorageEnableWalMode',
-        DEFAULT_DATASET_ID: 'defaultDatasetId',
-        DEFAULT_KEY_VALUE_STORE_ID: 'defaultKeyValueStoreId',
-        DEFAULT_REQUEST_QUEUE_ID: 'defaultRequestQueueId',
-        METAMORPH_AFTER_SLEEP_MILLIS: 'metamorphAfterSleepMillis',
-        PERSIST_STATE_INTERVAL_MILLIS: 'persistStateIntervalMillis',
-        TEST_PERSIST_INTERVAL_MILLIS: 'persistStateIntervalMillis', // for BC, seems to be unused
-        ACTOR_EVENTS_WS_URL: 'actorEventsWsUrl',
-        INPUT_KEY: 'inputKey',
-        ACTOR_ID: 'actorId',
-        API_BASE_URL: 'apiBaseUrl',
-        IS_AT_HOME: 'isAtHome',
-        ACTOR_RUN_ID: 'actorRunId',
-        ACTOR_TASK_ID: 'actorTaskId',
-        CONTAINER_PORT: 'containerPort',
-        CONTAINER_URL: 'containerUrl',
-        USER_ID: 'userId',
-        PROXY_HOSTNAME: 'proxyHostname',
-        PROXY_PASSWORD: 'proxyPassword',
-        PROXY_STATUS_URL: 'proxyStatusUrl',
-        PROXY_PORT: 'proxyPort',
-        MAX_OPENED_STORAGES: 'maxOpenedStorages',
+        APIFY_TOKEN: 'token',
+        APIFY_LOCAL_STORAGE_DIR: 'localStorageDir',
+        APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE: 'localStorageEnableWalMode',
+        APIFY_DEFAULT_DATASET_ID: 'defaultDatasetId',
+        APIFY_DEFAULT_KEY_VALUE_STORE_ID: 'defaultKeyValueStoreId',
+        APIFY_DEFAULT_REQUEST_QUEUE_ID: 'defaultRequestQueueId',
+        APIFY_METAMORPH_AFTER_SLEEP_MILLIS: 'metamorphAfterSleepMillis',
+        APIFY_PERSIST_STATE_INTERVAL_MILLIS: 'persistStateIntervalMillis',
+        APIFY_TEST_PERSIST_INTERVAL_MILLIS: 'persistStateIntervalMillis', // for BC, seems to be unused
+        APIFY_ACTOR_EVENTS_WS_URL: 'actorEventsWsUrl',
+        APIFY_INPUT_KEY: 'inputKey',
+        APIFY_ACTOR_ID: 'actorId',
+        APIFY_API_BASE_URL: 'apiBaseUrl',
+        APIFY_IS_AT_HOME: 'isAtHome',
+        APIFY_ACTOR_RUN_ID: 'actorRunId',
+        APIFY_ACTOR_TASK_ID: 'actorTaskId',
+        APIFY_CONTAINER_PORT: 'containerPort',
+        APIFY_CONTAINER_URL: 'containerUrl',
+        APIFY_USER_ID: 'userId',
+        APIFY_PROXY_HOSTNAME: 'proxyHostname',
+        APIFY_PROXY_PASSWORD: 'proxyPassword',
+        APIFY_PROXY_STATUS_URL: 'proxyStatusUrl',
+        APIFY_PROXY_PORT: 'proxyPort',
+        APIFY_MAX_OPENED_STORAGES: 'maxOpenedStorages',
 
         // not supported, use env vars directly:
-        // MEMORY_MBYTES: 'memoryMbytes',
-        // HEADLESS: 'headless',
-        // XVFB: 'xvfb',
-        // CHROME_EXECUTABLE_PATH: 'chromeExecutablePath',
+        // APIFY_MEMORY_MBYTES: 'memoryMbytes',
+        // APIFY_HEADLESS: 'headless',
+        // APIFY_XVFB: 'xvfb',
+        // APIFY_CHROME_EXECUTABLE_PATH: 'chromeExecutablePath',
     };
 
+    // maps config keys to environment variables (e.g. `proxyPort` to `APIFY_PROXY_PORT`)
     static ENV_MAP_REVERSED = Object.entries(Configuration.ENV_MAP).reduce((obj, [key, value]) => {
         obj[value] = key;
         return obj;
@@ -103,7 +104,7 @@ export class Configuration {
 
     static BOOLEAN_VARS = ['localStorageEnableWalMode'];
 
-    static INTEGER_VARS = ['proxyPort', 'internalPort', 'memoryMbytes', 'containerPort'];
+    static INTEGER_VARS = ['proxyPort', 'memoryMbytes', 'containerPort'];
 
     static DEFAULTS = {
         defaultKeyValueStoreId: 'default',
@@ -151,7 +152,7 @@ export class Configuration {
     get(key, defaultValue) {
         // prefer env vars
         const envKey = Configuration.ENV_MAP_REVERSED[key] ?? key;
-        const envValue = process.env[envKey] ?? process.env[ENV_VARS[envKey] ?? process.env[`APIFY_${envKey}`]];
+        const envValue = process.env[envKey];
 
         if (envValue != null) {
             return this._castEnvValue(key, envValue);
