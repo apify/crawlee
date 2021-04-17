@@ -368,16 +368,26 @@ class AutoscaledPool {
      * @internal
      */
     async _maybeRunTask(intervalCallback) {
+        this.log.perf('Attempting to run a task.');
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
 
         // Prevent starting a new task if:
         // - the pool is paused or aborted
-        if (this.isStopped) return done();
+        if (this.isStopped) {
+            this.log.perf('Task will not run. AutoscaledPool is stopped.');
+            return done();
+        }
         // - we are already querying for a task.
-        if (this.queryingIsTaskReady) return done();
+        if (this.queryingIsTaskReady) {
+            this.log.perf('Task will not run. Waiting for a ready task.');
+            return done();
+        }
         // - we would exceed desired concurrency.
-        if (this._currentConcurrency >= this._desiredConcurrency) return done();
+        if (this._currentConcurrency >= this._desiredConcurrency) {
+            this.log.perf('Task will not run. Desired concurrency achieved.');
+            return done();
+        }
         // - system is overloaded now and we are at or above minConcurrency
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
@@ -389,8 +399,10 @@ class AutoscaledPool {
         this.queryingIsTaskReady = true;
         let isTaskReady;
         try {
+            this.log.perf('Checking for ready tasks.');
             isTaskReady = await this.isTaskReadyFunction();
         } catch (err) {
+            this.log.perf('Checking for ready tasks failed.');
             // We might have already rejected this promise.
             if (this.reject) {
                 // No need to log all concurrent errors.
@@ -401,6 +413,7 @@ class AutoscaledPool {
             this.queryingIsTaskReady = false;
         }
         if (!isTaskReady) {
+            this.log.perf('Task will not run. No tasks are ready.');
             done();
             // No tasks could mean that we're finished with all tasks.
             return this._maybeFinish();
@@ -417,11 +430,14 @@ class AutoscaledPool {
             done();
 
             // Execute the current task.
+            this.log.perf('Running a task.');
             await this.runTaskFunction();
+            this.log.perf('Task finished.');
             this._currentConcurrency--;
             // Run task after the previous one finished.
             setImmediate(this._maybeRunTask);
         } catch (err) {
+            this.log.perf('Running a task failed.');
             // We might have already rejected this promise.
             if (this.reject) {
                 // No need to log all concurrent errors.
