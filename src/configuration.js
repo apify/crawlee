@@ -105,9 +105,9 @@ export class Configuration {
     static INTEGER_VARS = ['proxyPort', 'memoryMbytes', 'containerPort'];
 
     static DEFAULTS = {
-        defaultKeyValueStoreId: 'default',
-        defaultDatasetId: 'default',
-        defaultRequestQueueId: 'default',
+        defaultKeyValueStoreId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID],
+        defaultDatasetId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_DATASET_ID],
+        defaultRequestQueueId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID],
         inputKey: 'INPUT',
         apiBaseUrl: 'https://api.apify.com/v2',
         proxyStatusUrl: 'http://proxy.apify.com',
