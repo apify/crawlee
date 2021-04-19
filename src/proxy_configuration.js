@@ -312,15 +312,6 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Returns Apify proxy status url.
-     * @return {string} the Apify proxy status url
-     * @ignore
-     */
-    _getApifyProxyStatusUrl() {
-        return this.config.get('proxyStatusUrl');
-    }
-
-    /**
      * Checks if Apify Token is provided in env
      * and gets the password via API and sets it to env
      * @returns {Promise<void>}
@@ -371,14 +362,14 @@ export class ProxyConfiguration {
     /**
      * Apify Proxy can be down for a second or a minute, but this should not crash processes.
      *
-     * @return {Promise<{ connected: boolean, connectionError: string }|undefined>}
+     * @return {Promise<{ connected: boolean, connectionError: string } | undefined>}
      * @protected
      * @ignore
      * @internal
      */
     async _fetchStatus() {
         const requestOpts = {
-            url: `${this._getApifyProxyStatusUrl()}/?format=json`,
+            url: `${this.config.get('proxyStatusUrl')}/?format=json`,
             proxyUrl: this.newUrl(),
             json: true,
             timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
