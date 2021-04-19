@@ -164,7 +164,7 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
 
         // TODO: Perhaps we should add options.contentType or options.asBuffer/asString
-        // to enforce the representation of value
+        //   to enforce the representation of value
         const record = await this.client.getRecord(key);
 
         return record ? record.value : null;
@@ -292,6 +292,7 @@ export class KeyValueStore {
      * @param {object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
+     * @param {number} [index=0]
      * @return {Promise<void>}
      */
     async forEachKey(iteratee, options = {}, index = 0) {
