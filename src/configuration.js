@@ -44,7 +44,6 @@ import log from './utils_log';
  * `containerUrl` | `APIFY_CONTAINER_URL` | `'http://localhost:4321'`
  * `inputKey` | `APIFY_INPUT_KEY` | `'INPUT'`
  * `isAtHome` | `APIFY_IS_AT_HOME` | -
- * `maxOpenedStorages` | `APIFY_MAX_OPENED_STORAGES` | `1000`
  * `metamorphAfterSleepMillis` | `APIFY_METAMORPH_AFTER_SLEEP_MILLIS` | `300e3`
  * `proxyHostname` | `APIFY_PROXY_HOSTNAME` | `'proxy.apify.com'`
  * `proxyPassword` | `APIFY_PROXY_PASSWORD` | -
@@ -85,7 +84,6 @@ export class Configuration {
         APIFY_PROXY_PASSWORD: 'proxyPassword',
         APIFY_PROXY_STATUS_URL: 'proxyStatusUrl',
         APIFY_PROXY_PORT: 'proxyPort',
-        APIFY_MAX_OPENED_STORAGES: 'maxOpenedStorages',
 
         // not supported, use env vars directly:
         // APIFY_MEMORY_MBYTES: 'memoryMbytes',
@@ -115,7 +113,6 @@ export class Configuration {
         proxyPort: +LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT],
         containerPort: +LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT],
         containerUrl: LOCAL_ENV_VARS[ENV_VARS.CONTAINER_URL],
-        maxOpenedStorages: 1000,
         metamorphAfterSleepMillis: 300e3,
         persistStateIntervalMillis: 60e3, // This value is mentioned in jsdoc in `events.js`, if you update it here, update it there too.
         localStorageEnableWalMode: true,

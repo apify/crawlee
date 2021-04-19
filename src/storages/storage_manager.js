@@ -9,6 +9,8 @@ import cacheContainer from '../cache_container';
 import { Configuration } from '../configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
+const MAX_OPENED_STORAGES = 1000;
+
 const DEFAULT_ID_ENV_VAR_NAMES = {
     Dataset: ENV_VARS.DEFAULT_DATASET_ID,
     KeyValueStore: ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID,
@@ -37,7 +39,7 @@ export class StorageManager {
     constructor(StorageConstructor, config = Configuration.getGlobalConfig()) {
         this.StorageConstructor = StorageConstructor;
         this.name = StorageConstructor.name;
-        this.cache = cacheContainer.openCache(this.name, config.get('maxOpenedStorages'));
+        this.cache = cacheContainer.openCache(this.name, MAX_OPENED_STORAGES);
         this.config = config;
     }
 
