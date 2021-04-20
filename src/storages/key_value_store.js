@@ -292,10 +292,20 @@ export class KeyValueStore {
      * @param {object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
-     * @param {number} [index=0]
      * @return {Promise<void>}
      */
-    async forEachKey(iteratee, options = {}, index = 0) {
+    async forEachKey(iteratee, options = {}) {
+        return this._forEachKey(iteratee, options);
+    }
+
+    /**
+     * @param {KeyConsumer} iteratee
+     * @param {Record<string, any>} [options]
+     * @param {number} [index=0]
+     * @return {Promise<Promise<void> | undefined>}
+     * @private
+     */
+    async _forEachKey(iteratee, options = {}, index = 0) {
         const { exclusiveStartKey } = options;
         ow(iteratee, ow.function);
         ow(options, ow.object.exactShape({
@@ -308,7 +318,7 @@ export class KeyValueStore {
             await iteratee(item.key, index++, { size: item.size });
         }
         return isTruncated
-            ? this.forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
+            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
             : undefined; // [].forEach() returns undefined.
     }
 }

@@ -67,7 +67,6 @@ describe('ProxyConfiguration', () => {
         const apifyProxyCountry = 'CZ';
 
         const input = {
-            useApifyProxy: true,
             apifyProxyGroups,
             apifyProxyCountry,
         };

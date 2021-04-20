@@ -161,8 +161,6 @@ export class ProxyConfiguration {
             proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
             password: ow.optional.string,
             newUrlFunction: ow.optional.function,
-            // This is not an actual param, but it's here for legacy purposes.
-            useApifyProxy: ow.optional.boolean,
         }));
 
         const {
