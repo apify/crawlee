@@ -138,7 +138,7 @@
         "title": "Synchronous run"
       },
       "examples/use-stealth-mode": {
-        "title": "use-stealth-mode"
+        "title": "Use stealth mode"
       },
       "guides/apify-platform": {
         "title": "Apify Platform"
@@ -861,7 +861,7 @@
         "title": "Synchronous run"
       },
       "version-1.0.1/examples/version-1.0.1-use-stealth-mode": {
-        "title": "use-stealth-mode"
+        "title": "Use stealth mode"
       },
       "version-1.0.1/typedefs/version-1.0.1-puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
