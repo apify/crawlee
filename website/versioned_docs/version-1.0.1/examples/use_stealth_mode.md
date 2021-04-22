@@ -1,6 +1,6 @@
 ---
 id: version-1.0.1-use-stealth-mode
-title: use-stealth-mode
+title: Use stealth mode
 original_id: use-stealth-mode
 ---
 
