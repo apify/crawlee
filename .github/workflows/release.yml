@@ -139,5 +139,6 @@ jobs:
               "release_tag": "${{ env.RELEASE_TAG }}",
               "apify_version": "${{ steps.versions.outputs.apify }}",
               "puppeteer_version": "${{ steps.versions.outputs.puppeteer }}",
-              "playwright_version": "${{ steps.versions.outputs.playwright }}"
+              "playwright_version": "${{ steps.versions.outputs.playwright }}",
+              "node_version": "15"
             }
