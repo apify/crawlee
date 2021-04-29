@@ -46,7 +46,7 @@
         "test": "npm run build && jest --silent",
         "prepare": "npm run build",
         "prepublishOnly": "(test $CI || (echo \"Publishing is reserved to CI!\"; exit 1))",
-        "clean": "rm -rf ./build ./types",
+        "clean": "shx rm -rf ./build ./types",
         "lint": "eslint ./src ./test",
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
@@ -112,6 +112,7 @@
         "prettier": "^2.1.2",
         "proxy": "^1.0.2",
         "puppeteer": "8.0.0",
+        "shx": "^0.3.3",
         "sinon": "^9.2.0",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^3.0.3",
