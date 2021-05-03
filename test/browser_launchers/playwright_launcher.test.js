@@ -23,7 +23,7 @@ beforeAll(() => {
     process.env[ENV_VARS.HEADLESS] = '1';
 
     // Find free port for the proxy
-    return portastic.find({ min: 50000, max: 50100 }).then((ports) => {
+    return portastic.find({ min: 50000, max: 50099 }).then((ports) => {
         return new Promise((resolve, reject) => {
             const httpServer = http.createServer();
 
@@ -190,7 +190,7 @@ describe('Apify.launchPlaywright()', () => {
             expect(plugin.launchOptions.executablePath).toBe(utils.getTypicalChromeExecutablePath());
         });
 
-        test('allows to be overriden', () => {
+        test('allows to be overridden', () => {
             const newPath = 'newPath';
 
             const launcher = new PlaywrightLauncher({
@@ -219,5 +219,39 @@ describe('Apify.launchPlaywright()', () => {
                 if (browser) await browser.close();
             }
         });
+    });
+
+    test('supports useIncognitoPages: true', async () => {
+        let browser;
+        try {
+            browser = await Apify.launchPlaywright({
+                useIncognitoPages: true,
+                launchOptions: { headless: true },
+            });
+            const page1 = await browser.newPage();
+            const context1 = page1.context();
+            const page2 = await browser.newPage();
+            const context2 = page2.context();
+            expect(context1).not.toBe(context2);
+        } finally {
+            if (browser) await browser.close();
+        }
+    });
+
+    test('supports useIncognitoPages: false', async () => {
+        let browser;
+        try {
+            browser = await Apify.launchPlaywright({
+                useIncognitoPages: false,
+                launchOptions: { headless: true },
+            });
+            const page1 = await browser.newPage();
+            const context1 = page1.context();
+            const page2 = await browser.newPage();
+            const context2 = page2.context();
+            expect(context1).toBe(context2);
+        } finally {
+            if (browser) await browser.close();
+        }
     });
 });
