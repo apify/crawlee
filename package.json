@@ -52,7 +52,7 @@
     },
     "dependencies": {
         "@apify/http-request": "^2.1.1",
-        "@apify/ps-tree": "^1.1.3",
+        "@apify/ps-tree": "^1.1.4",
         "@apify/storage-local": "^2.0.1-beta.0",
         "@types/cheerio": "^0.22.28",
         "@types/domhandler": "^2.4.1",
