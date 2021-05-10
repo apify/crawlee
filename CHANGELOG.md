@@ -1,4 +1,4 @@
-1.2.0 / BETA
+1.2.0 / 2021/05/10
 ====================
 This release brings the long awaited HTTP2 capabilities to `requestAsBrowser`. It could make HTTP2 requests even before, but it was not very helpful in making browser-like ones. This is very important for disguising as a browser and reduction in the number of blocked requests. `requestAsBrowser` now uses [`got-scraping`](https://github.com/apify/got-scraping).
 
@@ -9,7 +9,10 @@ We also switched the default HTTP version from 1 to 2 in `requestAsBrowser`. We 
 ## Full list of changes:
 - Replace the underlying HTTP client of `utils.requestAsBrowser()` with `got-scraping`.
 - Make `useHttp2` `true` by default with `utils.requestAsBrowser()`.
+- Fix `Apify.call()` failing with empty `OUTPUT`.
 - Update `puppeteer` to `8.0.0` and `playwright` to `1.10.0` with Chromium 90 in Docker images.
+- Update `@apify/ps-tree` to support Windows better.
+- Update `@apify/storage-local` to support Node.js 16 prebuilds.
 
 1.1.2 / 2021/04/10
 ====================
