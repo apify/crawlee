@@ -75,7 +75,7 @@
         "ow": "^0.23.0",
         "rimraf": "^3.0.2",
         "semver": "^7.3.2",
-        "socket.io": "^3.0.3",
+        "socket.io": "^4.1.1",
         "stream-json": "^1.7.1",
         "tough-cookie": "^4.0.0",
         "underscore": "^1.13.0",
