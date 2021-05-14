@@ -5,6 +5,7 @@ import {
 import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
+const JSON_CONTENT = JSON.stringify({ content: CONTENT });
 const HOSTNAME = '127.0.0.1';
 
 describe('Apify.utils_request', () => {
@@ -27,9 +28,14 @@ describe('Apify.utils_request', () => {
             res.send(JSON.stringify(req.rawHeaders));
         });
 
-        app.get('/invalidContentType', (req, res) => {
-            res.setHeader('content-type', 'application/json');
-            res.send(CONTENT);
+        app.get('/json', (req, res) => {
+            res.setHeader('content-type', 'application/json; charset=utf-8');
+            res.send(JSON_CONTENT);
+        });
+
+        app.post('/jsonEcho', (req, res) => {
+            res.setHeader('content-type', 'application/json; charset=utf-8');
+            req.pipe(res);
         });
 
         app.get('/invalidContentHeader', (req, res) => {
@@ -255,6 +261,110 @@ describe('Apify.utils_request', () => {
             }
             const body = chunks.join();
             expect(body).toBe('TEST');
+        });
+
+        describe('old requestAsBrowser API', () => {
+            test('correctly handles json: true without payload', async () => {
+                const host = `${HOSTNAME}:${port}`;
+                const options = {
+                    url: `http://${host}/json`,
+                    json: true,
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                const parsedContent = JSON.parse(JSON_CONTENT);
+                expect(response.body).toEqual(parsedContent);
+            });
+
+            test('correctly handles json: true with payload', async () => {
+                const host = `${HOSTNAME}:${port}`;
+                const body = { hello: 'world' };
+                const options = {
+                    url: `http://${host}/jsonEcho`,
+                    method: 'POST',
+                    json: true,
+                    headers: { 'content-type': 'application/json' },
+                    payload: JSON.stringify(body),
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                expect(response.body).toEqual(body);
+            });
+
+            test('correctly handles json: false without payload', async () => {
+                const host = `${HOSTNAME}:${port}`;
+                const options = {
+                    url: `http://${host}/json`,
+                    json: false,
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                expect(response.body).toEqual(JSON_CONTENT);
+            });
+
+            test('correctly handles json: false with payload', async () => {
+                const host = `${HOSTNAME}:${port}`;
+                const payload = JSON.stringify({ hello: 'world' });
+                const options = {
+                    url: `http://${host}/jsonEcho`,
+                    json: false,
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    payload,
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                expect(response.body).toEqual(payload);
+            });
+
+            test('correctly handles json: undefined without payload', async () => {
+                const host = `${HOSTNAME}:${port}`;
+                const options = {
+                    url: `http://${host}/json`,
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                expect(response.body).toEqual(JSON_CONTENT);
+            });
+
+            test('correctly handles json: undefined with payload', async () => {
+                const host = `${HOSTNAME}:${port}`;
+                const payload = JSON.stringify({ hello: 'world' });
+                const options = {
+                    url: `http://${host}/jsonEcho`,
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    payload,
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                expect(response.body).toEqual(payload);
+            });
+
+            test('correctly handles json: object', async () => {
+                // This is a check if we did not break the got API.
+                // got needs responseType: 'json' to automatically parse the response.
+                // Here we test that it correctly sends the request body,
+                // but the response stays unparsed.
+
+                const host = `${HOSTNAME}:${port}`;
+                const json = { foo: 'bar' };
+                const options = {
+                    url: `http://${host}/jsonEcho`,
+                    method: 'POST',
+                    json,
+                };
+
+                const response = await requestAsBrowser(options);
+                expect(response.statusCode).toBe(200);
+                expect(response.body).toEqual(JSON.stringify(json));
+            });
         });
     });
 });

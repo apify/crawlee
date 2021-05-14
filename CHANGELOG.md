@@ -1,3 +1,7 @@
+1.2.1 / 2021/05/14
+====================
+- Fix `requestAsBrowser` behavior with various combinations of `json`, `payload` legacy options.
+
 1.2.0 / 2021/05/10
 ====================
 This release brings the long awaited HTTP2 capabilities to `requestAsBrowser`. It could make HTTP2 requests even before, but it was not very helpful in making browser-like ones. This is very important for disguising as a browser and reduction in the number of blocked requests. `requestAsBrowser` now uses [`got-scraping`](https://github.com/apify/got-scraping).

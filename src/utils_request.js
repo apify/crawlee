@@ -232,7 +232,7 @@ function areBodyOptionsCompatible(requestAsBrowserOptions) {
     const { payload, json, body, form } = requestAsBrowserOptions;
     // A boolean is old requestAsBrowser interface and not a real "body"
     // See the normalizeJsonOption function.
-    const jsonBody = typeof json !== 'boolean' ? undefined : json;
+    const jsonBody = typeof json === 'boolean' ? undefined : json;
 
     const possibleOpts = [payload, jsonBody, body, form];
     const usedOpts = possibleOpts.filter((opt) => opt !== undefined);
@@ -263,14 +263,14 @@ function normalizePayloadOption(payload, gotScrapingOptions) {
  */
 function normalizeJsonOption(json, gotScrapingOptions) {
     // If it's a boolean, then it's the old requestAsBrowser API.
-    if (typeof json === 'boolean') {
+    // If it's true, it means the user expects a JSON response.
+    if (json === true) {
         gotScrapingOptions.responseType = 'json';
         gotScrapingOptions.ciphers = undefined;
-        // If there is a body, we move it under `json` to get the automatic
-        // 'content-type' header injection.
-        if (gotScrapingOptions.body !== undefined) gotScrapingOptions.json = gotScrapingOptions.body;
+    } else if (json === false) {
+        // Do nothing, it means the user expects something else than JSON.
     } else {
-        // If it's something else, we let `got` handle it.
+        // If it's something else, we let `got` handle it as a request body.
         gotScrapingOptions.json = json;
     }
 }
