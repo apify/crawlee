@@ -1078,6 +1078,18 @@
       },
       "version-1.1.2/typedefs/version-1.1.2-puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
+      },
+      "version-1.2.0/api/version-1.2.0-utils": {
+        "title": "utils"
+      },
+      "version-1.2.0/examples/version-1.2.0-use-stealth-mode": {
+        "title": "Use stealth mode"
+      },
+      "version-1.2.0/guides/version-1.2.0-docker-images": {
+        "title": "Running in Docker"
+      },
+      "version-1.2.0/typedefs/version-1.2.0-request-as-browser-options": {
+        "title": "RequestAsBrowserOptions"
       }
     },
     "links": {
