@@ -103,7 +103,7 @@ Your script will be uploaded to the Apify platform and built there so that it ca
 ## Usage on the Apify platform
 
 You can also develop your web scraping project in an online code editor directly on the [Apify platform](../guides/apify-platform).
-You'll need to have an Apify Account. Go to [Actors](https://my.apify.com/actors), page in the app, click <i>Create new</i>
+You'll need to have an Apify Account. Go to the [Actors](https://my.apify.com/actors) page in the app, click <i>Create new</i>
 and then go to the <i>Source</i> tab and start writing your code or paste one of the examples from the Examples section.
 
 For more information, view the [Apify actors quick start guide](https://docs.apify.com/actor/quick-start).
