@@ -51,7 +51,7 @@ variable to your API token.
 > environment variable. It is automatically inferred from your token by the SDK, but it can be useful
 > when you need to access proxies from a different account than your token represents.
 
-## What is an actor?
+## What is an actor
 When you deploy your script to the Apify platform, it becomes an [actor](https://apify.com/actors).
 An actor is a serverless microservice that accepts an input and produces an output. It can run for
 a few seconds, hours or even infinitely. An actor can perform anything from a simple action such
