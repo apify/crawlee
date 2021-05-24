@@ -104,7 +104,7 @@ haven't already. Don't forget to verify your email. Without it, you won't be abl
 
 Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide to some of our new features. Feel free to finish that,
 if you'd like, but once you're done, click on the **Actors** tab in the left menu. To read more about **Actors**, see:
-[What is an actor?](../guides/apify-platform#what-is-an-actor?)
+[What is an actor](../guides/apify-platform#what-is-an-actor)
 
 ### Creating a new project
 
