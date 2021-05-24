@@ -3,28 +3,28 @@ id: apify-platform
 title: Apify Platform
 ---
 
-Apify is a [platform](https://apify.com) built to serve large scale and high performance web scraping
+Apify is a [platform](https://apify.com) built to serve large-scale and high-performance web scraping
 and automation needs. It provides easy access to [compute instances (Actors)](#what-is-an-actor),
 convenient [request](../guides/request-storage) and [result](../guides/result-storage) storages, [proxies](../guides/proxy-management),
 [scheduling](https://docs.apify.com/scheduler), [webhooks](https://docs.apify.com/webhooks)
 and [more](https://docs.apify.com/), accessible through a [web interface](https://my.apify.com)
 or an [API](https://docs.apify.com/api).
 
-While we think that the Apify platform is super cool, and you should definitely try the
+While we think that the Apify platform is super cool, and you should definitely sign up for a
 [free account](https://my.apify.com/sign-up), **Apify SDK is and will always be open source**,
 runnable locally or on any cloud infrastructure.
 
 > Note that we do not test Apify SDK in other cloud environments such as Lambda or on specific
-> architectures such as Raspberry PI. We strive to make it work, but there's no guarantee.
+> architectures such as Raspberry PI. We strive to make it work, but there are no guarantees.
 
 ## Logging into Apify platform from Apify SDK
 To access your [Apify account](https://my.apify.com/sign-up) from the SDK, you must provide
 credentials - [your API token](https://my.apify.com/account#/integrations). You can do that
-either by utilizing [Apify CLI](https://github.com/apify/apify-cli) or by environment
+either by utilizing [Apify CLI](https://github.com/apify/apify-cli) or with environment
 variables.
 
 Once you provide credentials to your scraper, you will be able to use all the Apify platform
-features of the SDK, such as calling Actors, saving to cloud storages, using Apify proxies,
+features of the SDK, such as calling actors, saving to cloud storages, using Apify proxies,
 setting up webhooks and so on.
 
 ### Log in with CLI
@@ -51,9 +51,9 @@ variable to your API token.
 > environment variable. It is automatically inferred from your token by the SDK, but it can be useful
 > when you need to access proxies from a different account than your token represents.
 
-## What is an Actor
+## What is an actor
 When you deploy your script to the Apify platform, it becomes an [actor](https://apify.com/actors).
-Actor is a serverless microservice that accepts an input and produces an output. It can run for
+An actor is a serverless microservice that accepts an input and produces an output. It can run for
 a few seconds, hours or even infinitely. An actor can perform anything from a simple action such
 as filling out a web form or sending an email, to complex operations such as crawling an entire website
 and removing duplicates from a large dataset.
