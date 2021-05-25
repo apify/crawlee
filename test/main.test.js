@@ -27,7 +27,6 @@ describe('Apify module', () => {
 
 describe('Apify functions for storages', () => {
     let localStorageEmulator;
-    let localStorageDir;
 
     beforeAll(async () => {
         localStorageEmulator = new LocalStorageDirEmulator();
@@ -44,7 +43,6 @@ describe('Apify functions for storages', () => {
 
     describe('Apify.getInput', () => {
         test('should work', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
             const defaultStore = await Apify.openKeyValueStore();
             // Uses default value.
             const oldGet = defaultStore.getValue;
@@ -56,7 +54,6 @@ describe('Apify functions for storages', () => {
             defaultStore.getValue = async (key) => expect(key).toBe('some-value');
             await Apify.getInput();
 
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             delete process.env[ENV_VARS.INPUT_KEY];
 
             defaultStore.getValue = oldGet;
