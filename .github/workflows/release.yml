@@ -71,8 +71,10 @@ jobs:
             node_modules
             build
           key: cache-${{ github.run_id }}-v14
-      -
-        run: npm run lint
+      -   name: Install Dependencies
+          run: npm install
+      -   name: Run Linter
+          run: npm run lint
 
 
   # The deploy job is long but there are only 2 important parts. NPM publish
