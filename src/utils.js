@@ -1,10 +1,9 @@
 import * as psTree from '@apify/ps-tree';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ApifyStorageLocal } from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
-import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from 'apify-shared/consts';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
@@ -87,30 +86,6 @@ export const newClient = (options = {}) => {
 };
 
 /**
- * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
- * @param {object} [options]
- * @return {ApifyStorageLocal}
- */
-export const newStorageLocal = (options = {}) => {
-    const {
-        storageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR],
-    } = options;
-
-    const storage = new ApifyStorageLocal({
-        ...options,
-        storageDir,
-    });
-
-    process.on('exit', () => {
-        // TODO this is not public API, need to update
-        // storage local with some teardown
-        storage.dbConnections.closeAllConnections();
-    });
-
-    return storage;
-};
-
-/**
  * Logs info about system, node version and apify package version.
  */
 export const logSystemInfo = () => {
@@ -130,19 +105,6 @@ export const logSystemInfo = () => {
  * @ignore
  */
 export const apifyClient = newClient();
-
-/**
- * The default instance of the `ApifyStorageLocal` class.
- * The instance is created automatically by the Apify SDK and it is configured using the
- * `APIFY_LOCAL_STORAGE_DIR` environment variable.
- *
- * The instance is lazy loaded and used for local emulation of calls to the Apify API
- * in Apify Storages such as {@link RequestQueue}.
- *
- * @type {*}
- * @ignore
- */
-export const apifyStorageLocal = newStorageLocal();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.

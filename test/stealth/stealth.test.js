@@ -1,9 +1,10 @@
+/* eslint-disable no-console */
+
 import scanner from 'fpscanner';
 import path from 'path';
 
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
-import * as utils from '../../build/utils';
 
 const fingerPrintPath = require.resolve('fpcollect/dist/fpCollect.min.js');
 const pathToHTML = path.join(__dirname, 'test_html.html');
@@ -25,7 +26,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {

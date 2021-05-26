@@ -1,7 +1,6 @@
 import playwright from 'playwright';
 import Apify from '../build/index';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
-import * as utils from '../build/utils';
 
 const { utils: { log } } = Apify;
 
@@ -17,7 +16,7 @@ describe('Apify.utils.playwright', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {

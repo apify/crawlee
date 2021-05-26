@@ -1,3 +1,5 @@
+/* eslint-disable no-prototype-builtins */
+
 import { URL } from 'url';
 import { ENV_VARS } from 'apify-shared/consts';
 import sinon from 'sinon';
@@ -8,7 +10,6 @@ import * as Apify from '../../build';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
-import * as utils from '../../build/utils';
 import Request from '../../build/request';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 import { Session } from '../../build/session_pool/session';
@@ -29,7 +30,7 @@ describe('BrowserCrawler', () => {
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         puppeteerPlugin = new PuppeteerPlugin(puppeteer);
     });
     afterEach(() => {

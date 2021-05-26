@@ -20,7 +20,7 @@ describe('PuppeteerCrawler', () => {
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         const sources = ['http://example.com/'];
         requestList = await Apify.openRequestList(`sources-${Math.random * 10000}`, sources);
     });
@@ -79,8 +79,7 @@ describe('PuppeteerCrawler', () => {
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
-            handlePageFunction: async () => {
-            },
+            handlePageFunction: async () => {},
             preNavigationHooks: [(context, gotoOptions) => {
                 options = gotoOptions;
             }],
@@ -95,7 +94,7 @@ describe('PuppeteerCrawler', () => {
 
     test('should support custom gotoFunction', async () => {
         const functions = {
-            handlePageFunction: () => {},
+            handlePageFunction: async () => {},
             gotoFunction: ({ page, request }, options) => {
                 return page.goto(request.url, options);
             },
@@ -124,8 +123,7 @@ describe('PuppeteerCrawler', () => {
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
-            handlePageFunction: async () => {
-            },
+            handlePageFunction: async () => {},
             preNavigationHooks: [(context, gotoOptions) => {
                 options = gotoOptions;
             }],
@@ -155,10 +153,10 @@ describe('PuppeteerCrawler', () => {
 
         expect.hasAssertions();
     });
+
     test('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
-
-            const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
@@ -168,8 +166,7 @@ describe('PuppeteerCrawler', () => {
                     headless: true,
                 },
             },
-            handlePageFunction: async () => {
-            },
+            handlePageFunction: async () => {},
         });
 
         expect(spy.calledOnce).toBe(true);

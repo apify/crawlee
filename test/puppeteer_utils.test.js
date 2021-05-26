@@ -3,7 +3,6 @@ import path from 'path';
 import Apify from '../build/index';
 import * as keyValueStore from '../build/storages/key_value_store';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
-import * as utils from '../build/utils';
 
 const { utils: { log } } = Apify;
 
@@ -19,7 +18,7 @@ describe('Apify.utils.puppeteer', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {
@@ -281,7 +280,7 @@ describe('Apify.utils.puppeteer', () => {
                 compileScript(scriptStringBad);
                 throw new Error('Should fail.');
             } catch (err) {
-            // TODO figure out why the err.message comes out empty in the logs.
+                // TODO figure out why the err.message comes out empty in the logs.
                 expect(err.message).toMatch(/Unexpected token '?const'?/);
             }
             const browser = await Apify[launchName](launchContext);

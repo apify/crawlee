@@ -1,3 +1,46 @@
+1.3.0 / BETA
+====================
+Adds two new named exports:
+
+- `Configuration` class that serves as the main configuration holder, replacing explicit usage of
+environment variables.
+- `Apify` class that allows configuring the SDK. Env vars still have precedence over the SDK configuration.
+
+When using the Apify class, there should be no side effects.
+Also adds new configuration for WAL mode in `ApifyStorageLocal`.
+
+As opposed to using the global helper functions like `main`, there is an alternative approach using `Apify` class.
+It has mostly the same API, but the methods on `Apify` instance will use the configuration provided in the constructor.
+Environment variables will have precedence over this configuration.
+
+```js
+const { Apify } = require('apify'); // use named export to get the class
+
+const sdk = new Apify({ token: '123' });
+console.log(sdk.config.get('token')); // '123'
+
+// the token will be passed to the `call` method automatically
+const run = await sdk.call('apify/hello-world', { myInput: 123 });
+console.log(`Received message: ${run.output.body.message}`);
+```
+
+Another example shows how the default dataset name can be changed:
+
+```js
+const { Apify } = require('apify'); // use named export to get the class
+
+const sdk = new Apify({ defaultDatasetId: 'custom-name' });
+await sdk.pushData({ myValue: 123 });
+```
+
+is equivalent to:
+```js
+const Apify = require('apify'); // use default export to get the helper functions
+
+const dataset = await Apify.openDataset('custom-name');
+await dataset.pushData({ myValue: 123 });
+```
+
 1.2.1 / 2021/05/14
 ====================
 - Fix `requestAsBrowser` behavior with various combinations of `json`, `payload` legacy options.

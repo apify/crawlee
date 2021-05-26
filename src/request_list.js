@@ -262,8 +262,7 @@ export class RequestList {
         this.reclaimed = {};
 
         this.persistStateKey = persistStateKey ? `SDK_${persistStateKey}` : persistStateKey;
-        this.persistRequestsKey = persistRequestsKey;
-        this.persistRequestsKey = this.persistRequestsKey ? `SDK_${persistRequestsKey}` : this.persistRequestsKey;
+        this.persistRequestsKey = persistRequestsKey ? `SDK_${persistRequestsKey}` : persistRequestsKey;
 
         this.initialState = state;
 

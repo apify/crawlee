@@ -123,12 +123,14 @@ function applyStealthTricks(page, evaluationDebugMessage, options) {
 
     /* istanbul ignore next */
     const addFunctions = (functionsArr, errorMessagePrefix, debugMessage) => {
+        // eslint-disable-next-line no-console
         console.log(debugMessage);
         // add functions
         for (const func of functionsArr) {
             try {
                 eval(func)(); // eslint-disable-line
             } catch (e) {
+                // eslint-disable-next-line no-console
                 console.error(`${errorMessagePrefix}: Failed to apply stealth trick reason: ${e.message}`);
             }
         }

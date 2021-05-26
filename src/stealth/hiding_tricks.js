@@ -56,6 +56,7 @@ const emulateWebGL = () => {
             return getParameterOld(parameter);
         };
     } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('hiding_tricks: Could not emulate WebGL');
     }
 };

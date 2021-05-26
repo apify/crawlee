@@ -16,11 +16,13 @@ describe('Apify.events', () => {
         process.env[ENV_VARS.TOKEN] = 'dummy';
     });
     afterEach((done) => {
-        wss.close(done);
         clock.restore();
         delete process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
         delete process.env[ENV_VARS.TOKEN];
+        Apify.events.removeAllListeners();
+        wss.close(done);
     });
+
     test('is there and works as EventEmitter', () => {
         return new Promise((resolve, reject) => {
             try {
@@ -124,6 +126,11 @@ describe('Apify.events', () => {
         Apify.stopEvents();
         await closePromise;
         expect(wsClosed).toBe(true);
+
+        // Due to some race condition or leaks in this test implementation with shared static register of events,
+        // this test sometimes ends without actually closing the WS connection, resulting in failures of the following
+        // test that will reuse the existing ws connection instead of new one. Short wait helps to mitigate that.
+        await sleep(10);
     });
 
     test('should send persist state events in regular interval', async () => {
@@ -133,9 +140,7 @@ describe('Apify.events', () => {
         clock.tick(60001);
         clock.tick(60001);
         clock.tick(60001);
-        await Apify.stopEvents();
-        const eventCount = eventsReceived.length;
-        expect(eventCount).toBe(3);
-        expect(eventsReceived.length).toEqual(eventCount);
+        Apify.stopEvents();
+        expect(eventsReceived.length).toBe(3);
     });
 });

@@ -1,7 +1,7 @@
 import ow from 'ow';
 import * as _ from 'underscore';
 import { MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
-import StorageManager from './storage_manager';
+import { StorageManager } from './storage_manager';
 import log from '../utils_log';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */

@@ -1,7 +1,6 @@
 import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
-import * as utils from '../../build/utils';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
@@ -17,7 +16,7 @@ describe('SessionPool - testing session pool', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         sessionPool = await Apify.openSessionPool();
     });
 
@@ -29,7 +28,6 @@ describe('SessionPool - testing session pool', () => {
         await localStorageEmulator.destroy();
     });
 
-   // eslint-disable-line
     test('should initialize with default values for first time', async () => {
         expect(sessionPool.sessions.length).toBeDefined();
         expect(sessionPool.maxPoolSize).toBeDefined();
@@ -93,7 +91,7 @@ describe('SessionPool - testing session pool', () => {
             sessionPool = await Apify.openSessionPool({ sessionOptions: { maxAgeSecs: 100, maxUsageCount: 10 } });
             const session = await sessionPool.getSession();
             expect(sessionPool.sessions.length).toBe(1);
-            expect(session.id).toBeDefined(); // eslint-disable-line
+            expect(session.id).toBeDefined();
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.sessionPool).toEqual(sessionPool);
@@ -191,9 +189,9 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should create session', async () => {
-       await sessionPool._createSession(); // eslint-disable-line
+        await sessionPool._createSession(); // eslint-disable-line
         expect(sessionPool.sessions.length).toBe(1);
-        expect(sessionPool.sessions[0].id).toBeDefined(); // eslint-disable-line
+        expect(sessionPool.sessions[0].id).toBeDefined();
     });
 
     describe('should persist state', () => {
@@ -293,13 +291,13 @@ describe('SessionPool - testing session pool', () => {
         let isCalled;
         const createSessionFunction = (sessionPool2) => {
             isCalled = true;
-            expect(sessionPool2 instanceof SessionPool).toBe(true); // eslint-disable-line
+            expect(sessionPool2 instanceof SessionPool).toBe(true);
             return new Session({ sessionPool: sessionPool2 });
         };
         const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
         const session = await newSessionPool.getSession();
-        expect(isCalled).toBe(true); // eslint-disable-line
-        expect(session.constructor.name).toBe("Session") // eslint-disable-line
+        expect(isCalled).toBe(true);
+        expect(session.constructor.name).toBe('Session');
     });
 
     it('should remove persist state event listener', async () => {

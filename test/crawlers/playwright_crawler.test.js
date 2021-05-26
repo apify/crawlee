@@ -3,7 +3,6 @@ import playwright from 'playwright';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
-import * as utils from '../../build/utils';
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless;
@@ -20,7 +19,7 @@ describe('PlaywrightCrawler', () => {
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         const sources = ['http://example.com/'];
         requestList = await Apify.openRequestList(`sources-${Math.random * 10000}`, sources);
     });

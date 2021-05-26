@@ -23,6 +23,9 @@
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
       },
+      "api/configuration": {
+        "title": "Configuration"
+      },
       "api/dataset": {
         "title": "Dataset"
       },
@@ -193,6 +196,9 @@
       },
       "typedefs/adhoc-webhook": {
         "title": "AdhocWebhook"
+      },
+      "typedefs/apify-class": {
+        "title": "ApifyClass"
       },
       "typedefs/apify-env": {
         "title": "ApifyEnv"

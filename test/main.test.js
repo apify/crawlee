@@ -7,7 +7,6 @@ import ApifyDefault from '../build/index';
 // eslint-disable-next-line import/no-duplicates
 import * as ApifyWithWildcard from '../build/index';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
-import * as utils from '../build/utils';
 // eslint-disable-next-line global-require
 const Apify = require('../build');
 
@@ -28,7 +27,6 @@ describe('Apify module', () => {
 
 describe('Apify functions for storages', () => {
     let localStorageEmulator;
-    let localStorageDir;
 
     beforeAll(async () => {
         localStorageEmulator = new LocalStorageDirEmulator();
@@ -36,7 +34,7 @@ describe('Apify functions for storages', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {
@@ -45,7 +43,6 @@ describe('Apify functions for storages', () => {
 
     describe('Apify.getInput', () => {
         test('should work', async () => {
-            process.env[ENV_VARS.LOCAL_STORAGE_DIR] = localStorageDir;
             const defaultStore = await Apify.openKeyValueStore();
             // Uses default value.
             const oldGet = defaultStore.getValue;
@@ -57,7 +54,6 @@ describe('Apify functions for storages', () => {
             defaultStore.getValue = async (key) => expect(key).toBe('some-value');
             await Apify.getInput();
 
-            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
             delete process.env[ENV_VARS.INPUT_KEY];
 
             defaultStore.getValue = oldGet;

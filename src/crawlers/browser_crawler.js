@@ -10,7 +10,7 @@ import {
 } from './crawler_utils';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import BasicCrawler, { CrawlingContext } from './basic_crawler';
+import { BasicCrawler, CrawlingContext } from './basic_crawler';
 import { HandleFailedRequest } from './basic_crawler';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
 import { Session } from '../session_pool/session';
@@ -106,7 +106,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  * ```
  *   Where the {@link Request} instance corresponds to the failed request, and the `Error` instance
  *   represents the last error thrown during processing of the request.
-* @property {BrowserPoolOptions} [browserPoolOptions]
+ * @property {BrowserPoolOptions} [browserPoolOptions]
  *   Custom options passed to the underlying [`BrowserPool`](https://github.com/apify/browser-pool#BrowserPool) constructor.
  *   You can tweak those to fine-tune browser management.
  * @property {boolean} [persistCookiesPerSession=true]
@@ -253,7 +253,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @ignore
  */
-class BrowserCrawler extends BasicCrawler {
+export default class BrowserCrawler extends BasicCrawler {
     static optionsShape = {
         ...BasicCrawler.optionsShape,
         // TODO temporary until the API is unified in V2
@@ -276,9 +276,9 @@ class BrowserCrawler extends BasicCrawler {
     };
 
     /**
-   * @param {BrowserCrawlerOptions} options
-   * All `BrowserCrawler` parameters are passed via an options object.
-   */
+     * @param {BrowserCrawlerOptions} options
+     * All `BrowserCrawler` parameters are passed via an options object.
+     */
     constructor(options) {
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
@@ -551,13 +551,11 @@ class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-    * Function for cleaning up after all request are processed.
-    * @ignore
-    */
+     * Function for cleaning up after all request are processed.
+     * @ignore
+     */
     async teardown() {
         await this.browserPool.destroy();
-        super.teardown();
+        await super.teardown();
     }
 }
-
-export default BrowserCrawler;

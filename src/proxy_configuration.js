@@ -1,10 +1,11 @@
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from 'apify-shared/consts';
 import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
 import ow from 'ow';
 import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
 import { requestAsBrowser } from './utils_request';
 import defaultLog from './utils_log';
+import { Configuration } from './configuration';
 
 // CONSTANTS
 const PROTOCOL = 'http';
@@ -149,8 +150,9 @@ export class ProxyConfiguration {
      * Configuration of proxy.
      *
      * @param {ProxyConfigurationOptions} [options] All `ProxyConfiguration` options.
+     * @param {Configuration} [config]
      */
-    constructor(options = {}) {
+    constructor(options = {}, config = Configuration.getGlobalConfig()) {
         ow(options, ow.object.exactShape({
             groups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
             apifyProxyGroups: ow.optional.array.ofType(ow.string.matches(APIFY_PROXY_VALUE_REGEX)),
@@ -159,8 +161,6 @@ export class ProxyConfiguration {
             proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
             password: ow.optional.string,
             newUrlFunction: ow.optional.function,
-            // This is not an actual param, but it's here for legacy purposes.
-            useApifyProxy: ow.optional.boolean,
         }));
 
         const {
@@ -169,14 +169,14 @@ export class ProxyConfiguration {
             countryCode,
             apifyProxyCountry,
             proxyUrls,
-            password = process.env[ENV_VARS.PROXY_PASSWORD],
+            password = config.get('proxyPassword'),
             newUrlFunction,
         } = options;
 
         const groupsToUse = groups.length ? groups : apifyProxyGroups;
         const countryCodeToUse = countryCode || apifyProxyCountry;
-        const hostname = process.env[ENV_VARS.PROXY_HOSTNAME] || LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME];
-        const port = Number(process.env[ENV_VARS.PROXY_PORT] || LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT]);
+        const hostname = config.get('proxyHostname');
+        const port = config.get('proxyPort');
 
         // Validation
         if (((proxyUrls || newUrlFunction) && ((groupsToUse.length) || countryCodeToUse))) {
@@ -195,6 +195,7 @@ export class ProxyConfiguration {
         this.newUrlFunction = newUrlFunction;
         this.usesApifyProxy = !this.proxyUrls && !this.newUrlFunction;
         this.log = defaultLog.child({ prefix: 'ProxyConfiguration' });
+        this.config = config;
     }
 
     /**
@@ -309,15 +310,6 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Returns Apify proxy status url.
-     * @return {string} the Apify proxy status url
-     * @ignore
-     */
-    _getApifyProxyStatusUrl() {
-        return process.env[ENV_VARS.PROXY_STATUS_URL] || `${PROTOCOL}://${LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME]}`;
-    }
-
-    /**
      * Checks if Apify Token is provided in env
      * and gets the password via API and sets it to env
      * @returns {Promise<void>}
@@ -326,7 +318,7 @@ export class ProxyConfiguration {
      * @internal
      */
     async _setPasswordIfToken() {
-        const token = process.env[ENV_VARS.TOKEN] || LOCAL_ENV_VARS[ENV_VARS.TOKEN];
+        const token = this.config.get('token');
         if (token) {
             const { proxy: { password } } = await apifyClient.user().get();
             if (this.password) {
@@ -368,14 +360,14 @@ export class ProxyConfiguration {
     /**
      * Apify Proxy can be down for a second or a minute, but this should not crash processes.
      *
-     * @return {Promise<{ connected: boolean, connectionError: string }|undefined>}
+     * @return {Promise<{ connected: boolean, connectionError: string } | undefined>}
      * @protected
      * @ignore
      * @internal
      */
     async _fetchStatus() {
         const requestOpts = {
-            url: `${this._getApifyProxyStatusUrl()}/?format=json`,
+            url: `${this.config.get('proxyStatusUrl')}/?format=json`,
             proxyUrl: this.newUrl(),
             json: true,
             timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
@@ -531,11 +523,12 @@ export class ProxyConfiguration {
 export const createProxyConfiguration = async (proxyConfigurationOptions = {}) => {
     // Compatibility fix for Input UI where proxy: None returns { useApifyProxy: false }
     // Without this, it would cause proxy to use the zero config / auto mode.
-    const dontUseApifyProxy = proxyConfigurationOptions.useApifyProxy === false;
+    const { useApifyProxy, ...options } = proxyConfigurationOptions;
+    const dontUseApifyProxy = useApifyProxy === false;
     const dontUseCustomProxies = !proxyConfigurationOptions.proxyUrls;
     if (dontUseApifyProxy && dontUseCustomProxies) return undefined;
 
-    const proxyConfiguration = new ProxyConfiguration(proxyConfigurationOptions);
+    const proxyConfiguration = new ProxyConfiguration(options);
     await proxyConfiguration.initialize();
 
     return proxyConfiguration;

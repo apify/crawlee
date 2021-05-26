@@ -38,6 +38,7 @@
         ],
         "API Reference": [
             "api/apify",
+            "api/configuration",
             {
                 "type": "subcategory",
                 "label": "Crawlers",

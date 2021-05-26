@@ -3,9 +3,7 @@ import * as WebSocket from 'ws';
 import { ENV_VARS, ACTOR_EVENT_NAMES } from 'apify-shared/consts';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import defaultLog from './utils_log';
-
-// NOTE: This value is mentioned below in docs, if you update it here, update it there too.
-const PERSIST_STATE_INTERVAL_MILLIS = 60 * 1000;
+import { Configuration } from './configuration';
 
 /**
  * Event emitter providing events from underlying Actor infrastructure and Apify package.
@@ -81,21 +79,21 @@ const emitPersistStateEvent = (isMigrating = false) => {
  *
  * @memberof module:Apify
  * @name initializeEvents
+ * @param {Configuration} [config]
  * @function
  * @ignore
  */
-export const initializeEvents = () => {
+export const initializeEvents = (config = Configuration.getGlobalConfig()) => {
     if (eventsWs) return;
 
     const log = defaultLog.child({ prefix: 'Events' });
 
     if (!persistStateInterval) {
-        // This is overridable only to enable unit testing.
-        const intervalMillis = process.env.APIFY_TEST_PERSIST_INTERVAL_MILLIS || PERSIST_STATE_INTERVAL_MILLIS;
+        const intervalMillis = config.get('persistStateIntervalMillis');
         persistStateInterval = setInterval(() => emitPersistStateEvent(), intervalMillis);
     }
 
-    const eventsWsUrl = process.env[ENV_VARS.ACTOR_EVENTS_WS_URL];
+    const eventsWsUrl = config.get('actorEventsWsUrl');
 
     // Locally there is no web socket to connect, so just print a log message.
     if (!eventsWsUrl) {

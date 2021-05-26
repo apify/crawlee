@@ -193,7 +193,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
-class BasicCrawler {
+export class BasicCrawler {
     static optionsShape = {
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
@@ -643,8 +643,6 @@ class BasicCrawler {
         }
     }
 }
-
-export default BasicCrawler;
 
 /**
  * @callback HandleRequest

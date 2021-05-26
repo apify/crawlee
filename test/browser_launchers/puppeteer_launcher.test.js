@@ -21,7 +21,7 @@ beforeAll(() => {
     process.env[ENV_VARS.HEADLESS] = '1';
 
     // Find free port for the proxy
-    return portastic.find({ min: 50000, max: 50100 }).then((ports) => {
+    return portastic.find({ min: 50100, max: 50199 }).then((ports) => {
         return new Promise((resolve, reject) => {
             const httpServer = http.createServer();
 
