@@ -810,7 +810,7 @@ export default CheerioCrawler;
  * @property {{ type: string, encoding: string }} contentType
  *  Parsed `Content-Type header: { type, encoding }`.
  * @property {IncomingMessage} response
- *   An instance of Node's http.IncomingMessage object,
+ *   An instance of Node's [http.IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage) object,
  * @property {Session} session
  * @property {ProxyInfo} proxyInfo
  *   An object with information about currently used proxy by the crawler
