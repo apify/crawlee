@@ -62,7 +62,7 @@
         "apify-client": "^1.0.3",
         "apify-shared": "^0.7.5",
         "browser-pool": "^1.1.2",
-        "cheerio": "1.0.0-rc.3",
+        "cheerio": "1.0.0-rc.9",
         "content-type": "^1.0.4",
         "express": "^4.17.1",
         "fs-extra": "^9.1.0",
