@@ -51,7 +51,6 @@
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
-        "@apify/http-request": "^2.1.1",
         "@apify/ps-tree": "^1.1.4",
         "@apify/storage-local": "^2.0.1-beta.0",
         "@types/cheerio": "^0.22.28",
@@ -107,11 +106,11 @@
         "fpscanner": "^0.1.5",
         "jest": "^26.6.3",
         "jest-circus": "^26.6.3",
-        "playwright": "1.10.0",
+        "playwright": "1.11.1",
         "portastic": "^1.0.1",
         "prettier": "^2.1.2",
         "proxy": "^1.0.2",
-        "puppeteer": "8.0.0",
+        "puppeteer": "9.1.1",
         "sinon": "^9.2.0",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^3.0.3",
