@@ -1,6 +1,6 @@
 import {
     ENV_VARS,
-} from 'apify-shared/consts';
+} from '@apify/consts';
 import { apifyClient } from '../../build/utils';
 import {
     KeyValueStore,

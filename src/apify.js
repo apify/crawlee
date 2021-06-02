@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { ACT_JOB_STATUSES, ENV_VARS } from 'apify-shared/consts';
+import { ACT_JOB_STATUSES, ENV_VARS } from '@apify/consts';
 import { getEnv } from './actor';
 import { initializeEvents, stopEvents } from './events';
 import { StorageManager } from './storages/storage_manager';

@@ -2,7 +2,7 @@
 import {
     ENV_VARS,
     KEY_VALUE_STORE_KEYS,
-} from 'apify-shared/consts';
+} from '@apify/consts';
 import ApifyDefault from '../build/index';
 // eslint-disable-next-line import/no-duplicates
 import * as ApifyWithWildcard from '../build/index';

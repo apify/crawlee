@@ -3,7 +3,7 @@ import * as psTree from '@apify/ps-tree';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
-import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from 'apify-shared/consts';
+import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';

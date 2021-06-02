@@ -1,7 +1,7 @@
 import ow from 'ow';
 import * as path from 'path';
 import * as _ from 'underscore';
-import { ENV_VARS, INTEGER_ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, INTEGER_ENV_VARS, ACT_JOB_STATUSES } from '@apify/consts';
 import log from './utils_log';
 import { EXIT_CODES } from './constants';
 import { initializeEvents, stopEvents } from './events';

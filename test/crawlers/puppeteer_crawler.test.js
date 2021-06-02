@@ -1,4 +1,4 @@
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';

@@ -1,7 +1,7 @@
 import path from 'path';
 import _ from 'underscore';
 import sinon from 'sinon';
-import { ENV_VARS, ACT_JOB_STATUSES } from 'apify-shared/consts';
+import { ENV_VARS, ACT_JOB_STATUSES } from '@apify/consts';
 import { ApifyCallError } from '../build/errors';
 import * as utils from '../build/utils';
 

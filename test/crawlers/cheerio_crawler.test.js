@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';

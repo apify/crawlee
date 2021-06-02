@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import Apify from '../build/index';
 import * as requestUtils from '../build/utils_request';
 import * as utils from '../build/utils';

@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import { getTypicalChromeExecutablePath, isAtHome } from '../utils';
 import { BrowserPlugin } from './browser_plugin'; // eslint-disable-line no-unused-vars
 

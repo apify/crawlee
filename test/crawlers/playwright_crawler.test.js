@@ -1,4 +1,4 @@
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import playwright from 'playwright';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';

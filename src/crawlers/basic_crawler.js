@@ -1,5 +1,5 @@
-import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
+import { ACTOR_EVENT_NAMES } from '@apify/consts';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates

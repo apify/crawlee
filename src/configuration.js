@@ -1,4 +1,4 @@
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import { join } from 'path';
 import { ApifyStorageLocal } from '@apify/storage-local';
 import * as ApifyClient from 'apify-client';

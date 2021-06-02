@@ -1,7 +1,7 @@
 /* eslint-disable no-prototype-builtins */
 
 import { URL } from 'url';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
 import { BrowserPool, PuppeteerPlugin } from 'browser-pool';
 import puppeteer from 'puppeteer';

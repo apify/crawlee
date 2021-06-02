@@ -1,4 +1,4 @@
-import { normalizeUrl } from 'apify-shared/utilities';
+import { normalizeUrl } from '@apify/utilities';
 import * as crypto from 'crypto';
 import ow, { ArgumentError } from 'ow';
 import * as util from 'util';
