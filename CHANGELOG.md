@@ -1,3 +1,7 @@
+1.3.1 / TODO
+====================
+- Added new event `aborting` for handling gracefully aborted run from Apify platform.
+
 1.3.0 / BETA
 ====================
 Adds two new named exports:
