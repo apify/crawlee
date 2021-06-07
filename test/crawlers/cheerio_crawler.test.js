@@ -688,7 +688,8 @@ describe('CheerioCrawler', () => {
             const sessions = [];
             const failed = [];
             const cheerioCrawler = new Apify.CheerioCrawler({
-                requestList: await Apify.openRequestList('timeoutTest', [`http://${HOST}:${port}/timeout?a=12`,
+                requestList: await Apify.openRequestList(`timeoutTest-${Math.random()}`, [
+                    `http://${HOST}:${port}/timeout?a=12`,
                     `http://${HOST}:${port}/timeout?a=23`,
                 ]),
                 maxRequestRetries: 1,
