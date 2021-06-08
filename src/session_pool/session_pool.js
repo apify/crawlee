@@ -394,6 +394,10 @@ export class SessionPool extends EventEmitter {
             sessionObject.expiresAt = new Date(sessionObject.expiresAt);
             const recreatedSession = new Session(sessionObject);
 
+            // Recreated session should obey current pool's maxUsageCount
+            if(this.sessionOptions.maxUsageCount)
+                sessionObject.maxUsageCount = this.sessionOptions.maxUsageCount
+
             if (recreatedSession.isUsable()) {
                 this._addSession(recreatedSession);
             }
