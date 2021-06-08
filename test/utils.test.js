@@ -6,7 +6,7 @@ import path from 'path';
 import os from 'os';
 import cheerio from 'cheerio';
 import semver from 'semver';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';

@@ -1,6 +1,5 @@
-import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
-import { jsonStringifyExtended } from 'apify-shared/utilities';
+import { ENV_VARS, KEY_VALUE_STORE_KEYS, KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
+import { jsonStringifyExtended } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import { StorageManager } from './storage_manager';
 import log from '../utils_log';

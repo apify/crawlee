@@ -1,4 +1,4 @@
-import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES } from '@apify/consts';
 
 /**
  * The default user agent used by `Apify.launchPuppeteer`.

@@ -1,7 +1,7 @@
 import {
     ENV_VARS,
     MAX_PAYLOAD_SIZE_BYTES,
-} from 'apify-shared/consts';
+} from '@apify/consts';
 import { apifyClient } from '../../build/utils';
 import {
     Dataset,

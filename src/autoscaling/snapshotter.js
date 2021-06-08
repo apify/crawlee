@@ -1,7 +1,7 @@
 import * as os from 'os';
 import ow from 'ow';
-import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
-import { ACTOR_EVENT_NAMES, ENV_VARS } from 'apify-shared/consts';
+import { betterSetInterval, betterClearInterval } from '@apify/utilities';
+import { ACTOR_EVENT_NAMES, ENV_VARS } from '@apify/consts';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
 import defaultLog from '../utils_log';

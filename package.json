@@ -51,17 +51,20 @@
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
+        "@apify/consts": "^1.0.0",
+        "@apify/datastructures": "^1.0.0",
+        "@apify/log": "^1.0.0",
         "@apify/ps-tree": "^1.1.4",
-        "@apify/storage-local": "^2.0.1-beta.0",
+        "@apify/storage-local": "^2.0.1",
+        "@apify/utilities": "^1.0.0",
         "@types/cheerio": "^0.22.28",
         "@types/domhandler": "^2.4.1",
         "@types/node": "^14",
         "@types/puppeteer": "^5.4.3",
         "@types/socket.io": "^2.1.13",
         "@types/tough-cookie": "^4.0.0",
-        "apify-client": "^1.0.3",
-        "apify-shared": "^0.7.5",
-        "browser-pool": "^1.1.2",
+        "apify-client": "^1.2.4",
+        "browser-pool": "^1.2.0-beta.1",
         "cheerio": "1.0.0-rc.3",
         "content-type": "^1.0.4",
         "express": "^4.17.1",
@@ -78,7 +81,7 @@
         "stream-json": "^1.7.1",
         "tough-cookie": "^4.0.0",
         "underscore": "^1.13.0",
-        "ws": "^7.3.1"
+        "ws": "^7.4.6"
     },
     "devDependencies": {
         "@apify/eslint-config": "^0.1.3",

@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';
@@ -688,7 +688,8 @@ describe('CheerioCrawler', () => {
             const sessions = [];
             const failed = [];
             const cheerioCrawler = new Apify.CheerioCrawler({
-                requestList: await Apify.openRequestList('timeoutTest', [`http://${HOST}:${port}/timeout?a=12`,
+                requestList: await Apify.openRequestList(`timeoutTest-${Math.random()}`, [
+                    `http://${HOST}:${port}/timeout?a=12`,
                     `http://${HOST}:${port}/timeout?a=23`,
                 ]),
                 maxRequestRetries: 1,

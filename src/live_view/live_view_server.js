@@ -4,8 +4,8 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as express from 'express';
 import * as socketio from 'socket.io';
-import { promisifyServerListen } from 'apify-shared/utilities';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { promisifyServerListen } from '@apify/utilities';
+import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { addTimeoutToPromise } from '../utils';
 import Snapshot from './snapshot';

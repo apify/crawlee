@@ -5,7 +5,7 @@ import portastic from 'portastic';
 import basicAuthParser from 'basic-auth-parser';
 import _ from 'underscore';
 import sinon from 'sinon';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import Apify from '../../build/index';
 import * as utils from '../../build/utils';
 

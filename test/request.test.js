@@ -1,5 +1,5 @@
 import util from 'util';
-import { normalizeUrl } from 'apify-shared/utilities';
+import { normalizeUrl } from '@apify/utilities';
 import { hashPayload } from '../build/request';
 import Apify from '../build/index';
 

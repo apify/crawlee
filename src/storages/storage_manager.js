@@ -1,4 +1,4 @@
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 // @ts-ignore

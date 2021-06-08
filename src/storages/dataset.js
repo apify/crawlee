@@ -1,6 +1,6 @@
 import ow from 'ow';
 import * as _ from 'underscore';
-import { MAX_PAYLOAD_SIZE_BYTES } from 'apify-shared/consts';
+import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import { StorageManager } from './storage_manager';
 import log from '../utils_log';
 

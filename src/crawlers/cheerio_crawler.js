@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
+import { readStreamToString, concatStreamToBuffer } from '@apify/utilities';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as htmlparser from 'htmlparser2';

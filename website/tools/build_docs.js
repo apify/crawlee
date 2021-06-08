@@ -6,7 +6,6 @@ const prettier = require('prettier'); // eslint-disable-line
 const got = require('got');
 const prettierConfig = require('./prettier.config');
 const sidebars = require('../sidebars.json');
-const { readStreamToString } = require('apify-shared/streams_utilities');  // eslint-disable-line
 
 const BASE_URL = '..';
 const DOCS_DIR = path.join(__dirname, '..', '..', 'docs');

@@ -1,5 +1,4 @@
-import { ENV_VARS } from 'apify-shared/consts';
-import { APIFY_PROXY_VALUE_REGEX } from 'apify-shared/regexs';
+import { APIFY_PROXY_VALUE_REGEX, ENV_VARS } from '@apify/consts';
 import ow from 'ow';
 import { COUNTRY_CODE_REGEX } from './constants';
 import { apifyClient } from './utils';
