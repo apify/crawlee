@@ -264,7 +264,7 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should set maxUsageCount of recreated sessions according to current SessionPool options', async () => {
-        sessionPool = await Apify.openSessionPool({maxPoolSize: 1});
+        sessionPool = await Apify.openSessionPool({maxPoolSize: 1, sessionOptions: { maxUsageCount: 66 }});
         await sessionPool.getSession();
         await sessionPool.persistState();
         const loadedSessionPool = new SessionPool({maxPoolSize: 1, sessionOptions: { maxUsageCount: 88 } });
@@ -272,7 +272,7 @@ describe('SessionPool - testing session pool', () => {
 
         let recreatedSession = await loadedSessionPool.getSession();
 
-        expect(recreatedSession.maxUsageCount).toEqual(88);
+        expect(recreatedSession.maxUsageCount).toEqual(66);
     });
 
     test('should persist state on teardown', async () => {

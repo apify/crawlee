@@ -188,6 +188,7 @@ export class Session {
             expiresAt: this.expiresAt.toISOString(),
             createdAt: this.createdAt.toISOString(),
             usageCount: this.usageCount,
+            maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
         };
     }
