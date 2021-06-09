@@ -263,6 +263,18 @@ describe('SessionPool - testing session pool', () => {
         await newSessionPool.teardown();
     });
 
+    test('should restore persisted maxUsageCount of recreated sessions', async () => {
+        sessionPool = await Apify.openSessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 66 } });
+        await sessionPool.getSession();
+        await sessionPool.persistState();
+        const loadedSessionPool = new SessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 88 } });
+        await loadedSessionPool.initialize();
+
+        const recreatedSession = await loadedSessionPool.getSession();
+
+        expect(recreatedSession.maxUsageCount).toEqual(66);
+    });
+
     test('should persist state on teardown', async () => {
         const persistStateKey = 'TEST-KEY';
         const persistStateKeyValueStoreId = 'TEST-VALUE-STORE';
