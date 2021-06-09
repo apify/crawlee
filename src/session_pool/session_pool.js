@@ -393,6 +393,7 @@ export class SessionPool extends EventEmitter {
             sessionObject.createdAt = new Date(sessionObject.createdAt);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt);
             const recreatedSession = new Session(sessionObject);
+
             if (recreatedSession.isUsable()) {
                 this._addSession(recreatedSession);
             }
