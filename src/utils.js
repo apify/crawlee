@@ -1,10 +1,9 @@
 import * as psTree from '@apify/ps-tree';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import * as ApifyStorageLocal from '@apify/storage-local';
 import { execSync } from 'child_process';
 import * as ApifyClient from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
-import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as fs from 'fs';
@@ -17,16 +16,17 @@ import * as semver from 'semver';
 import * as _ from 'underscore';
 import { URL } from 'url';
 import * as util from 'util';
-import * as requestUtils from './utils_request';
-import log from './utils_log';
-import { version as apifyVersion } from '../package.json';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
+import { version as apifyVersion } from '../package.json';
+import log from './utils_log';
+import * as requestUtils from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
+
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -86,30 +86,6 @@ export const newClient = (options = {}) => {
 };
 
 /**
- * Creates an instance of ApifyStorageLocal using options as defined in the environment variables.
- * @param {object} [options]
- * @return {ApifyStorageLocal}
- */
-export const newStorageLocal = (options = {}) => {
-    const {
-        storageDir = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || LOCAL_ENV_VARS[ENV_VARS.LOCAL_STORAGE_DIR],
-    } = options;
-
-    const storage = new ApifyStorageLocal({
-        ...options,
-        storageDir,
-    });
-
-    process.on('exit', () => {
-        // TODO this is not public API, need to update
-        // storage local with some teardown
-        storage.dbConnections.closeAllConnections();
-    });
-
-    return storage;
-};
-
-/**
  * Logs info about system, node version and apify package version.
  */
 export const logSystemInfo = () => {
@@ -129,19 +105,6 @@ export const logSystemInfo = () => {
  * @ignore
  */
 export const apifyClient = newClient();
-
-/**
- * The default instance of the `ApifyStorageLocal` class.
- * The instance is created automatically by the Apify SDK and it is configured using the
- * `APIFY_LOCAL_STORAGE_DIR` environment variable.
- *
- * The instance is lazy loaded and used for local emulation of calls to the Apify API
- * in Apify Storages such as {@link RequestQueue}.
- *
- * @type {*}
- * @ignore
- */
-export const apifyStorageLocal = newStorageLocal();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
@@ -361,7 +324,7 @@ export const getTypicalChromeExecutablePath = () => {
     switch (os.platform()) {
         case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
         case 'win32': return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-        default: return 'google-chrome';
+        default: return '/usr/bin/google-chrome';
     }
 };
 
@@ -369,10 +332,10 @@ export const getTypicalChromeExecutablePath = () => {
  * Wraps the provided Promise with another one that rejects with the given errorMessage
  * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
  *
- * @param {Promise<object>} promise
+ * @param {Promise<*>} promise
  * @param {number} timeoutMillis
  * @param {string} errorMessage
- * @return {Promise<object>}
+ * @return {Promise<*>}
  * @ignore
  */
 export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
@@ -427,7 +390,7 @@ export const sleep = (millis) => {
  * Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
  * Optionally, custom regular expression and encoding may be provided.
  *
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.url URL to the file
  * @param {string} [options.encoding='utf8'] The encoding of the file.
  * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
@@ -452,7 +415,7 @@ const downloadListOfUrls = async (options) => {
 
 /**
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.string
  * @param {RegExp} [options.urlRegExp=Apify.utils.URL_NO_COMMAS_REGEX]
  * @returns {string[]}
@@ -496,7 +459,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {(string|CheerioStatic)} html HTML text or parsed HTML represented using a
+ * @param {(string|cheerio.Root)} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {string} Plain text
  * @memberOf utils
@@ -511,7 +474,7 @@ const htmlToText = (html) => {
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
     /**
-     * @type {CheerioStatic}
+     * @type {cheerio.Root}
      * @ignore
      */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });
@@ -557,12 +520,12 @@ const htmlToText = (html) => {
  * Creates a standardized debug info from request and response. This info is usually added to dataset under the hidden `#debug` field.
  *
  * @param {(Request|RequestOptions)} request [Apify.Request](https://sdk.apify.com/docs/api/request) object.
- * @param {(IncomingMessage|PuppeteerResponse)} [response]
+ * @param {(*|IncomingMessage|PuppeteerResponse)} [response]
  *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
- * @param {Object} [additionalFields] Object containing additional fields to be added.
+ * @param {Object<string, *>} [additionalFields] Object containing additional fields to be added.
 
- * @return {object}
+ * @return {Object<string, *>}
  */
 const createRequestDebugInfo = (request, response = {}, additionalFields = {}) => {
     ow(request, ow.object);
@@ -678,6 +641,9 @@ export const parseContentTypeFromResponse = (response) => {
  * @memberOf utils
  * @name waitForRunToFinish
  * @function
+ * @deprecated
+ *  Please use the 'waitForFinish' functions of 'apify-client'.
+ * @ignore
  */
 export const waitForRunToFinish = async (options) => {
     ow(options, ow.object.exactShape({
@@ -706,7 +672,7 @@ export const waitForRunToFinish = async (options) => {
             ? Math.round(waitSecs - (Date.now() - startedAt) / 1000)
             : 999999;
 
-        run = await apifyClient.run(runId, actorId).waitForFinish({ waitForFinish }); // TODO waitForFinish
+        run = await apifyClient.run(runId, actorId).waitForFinish({ waitSecs: waitForFinish });
 
         // It might take some time for database replicas to get up-to-date,
         // so getRun() might return null. Wait a little bit and try it again.

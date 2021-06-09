@@ -1,13 +1,19 @@
 import * as crypto from 'crypto';
-import * as LruCache from 'apify-shared/lru_cache';
-import * as ListDictionary from 'apify-shared/list_dictionary';
-import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
+import { ListDictionary, LruCache } from '@apify/datastructures';
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import ow from 'ow';
-import Request, { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
-import StorageManager from './storage_manager';
+import { StorageManager } from './storage_manager';
 import { sleep } from '../utils';
 import log from '../utils_log';
+
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import Request, { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
+// @ts-ignore
+import * as ApifyClient from 'apify-client';
+// @ts-ignore
+import { ApifyStorageLocal } from '@apify/storage-local';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const MAX_CACHED_REQUESTS = 1000 * 1000;
 
@@ -75,8 +81,8 @@ export const getRequestId = (uniqueKey) => {
  * Do not instantiate this class directly, use the
  * {@link Apify#openRequestQueue} function instead.
  *
- * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}
- * and {@link PuppeteerCrawler} as a source of URLs to crawl.
+ * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}, {@link PuppeteerCrawler}
+ * and {@link PlaywrightCrawler} as a source of URLs to crawl.
  * Unlike {@link RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
  * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
  *
@@ -230,7 +236,7 @@ export class RequestQueue {
      * Gets the request from the queue specified by ID.
      *
      * @param {string} id ID of the request.
-     * @return {Promise<(Request | null)>} Returns the request object, or `null` if it was not found.
+     * @return {Promise<(Request|null)>} Returns the request object, or `null` if it was not found.
      */
     async getRequest(id) {
         ow(id, ow.string);
@@ -370,7 +376,7 @@ export class RequestQueue {
      * For example, this lets you store the number of retries or error messages for the request.
      *
      * @param {Request} request
-     * @param {Object} [options]
+     * @param {object} [options]
      * @param {boolean} [options.forefront=false]
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
      * in the next call to {@link RequestQueue#fetchNextRequest}.
@@ -450,6 +456,8 @@ export class RequestQueue {
      * @param {string} queueOperationInfo.requestId
      * @param {boolean} queueOperationInfo.wasAlreadyHandled
      * @ignore
+     * @protected
+     * @internal
      */
     _cacheRequest(cacheKey, queueOperationInfo) {
         this.requestsCache.add(cacheKey, {
@@ -468,6 +476,8 @@ export class RequestQueue {
      * @param {number} [iteration] Used when this function is called recursively to limit the recursion.
      * @return {Promise<boolean>} Indicates if queue head is consistent (true) or inconsistent (false).
      * @ignore
+     * @protected
+     * @internal
      */
     async _ensureHeadIsNonEmpty(
         ensureConsistency = false,

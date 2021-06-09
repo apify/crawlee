@@ -1,4 +1,4 @@
-import { ACTOR_BASE_DOCKER_IMAGES, BUILD_TAG_LATEST, ENV_VARS } from 'apify-shared/consts';
+import { ACTOR_BASE_DOCKER_IMAGES, BUILD_TAG_LATEST, ENV_VARS } from '@apify/consts';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 
 describe('consts', () => {

@@ -7,16 +7,24 @@ import Apify from '../build/index';
 import * as keyValueStore from '../build/storages/key_value_store';
 import * as utils from '../build/utils';
 import * as requestUtils from '../build/utils_request';
+import LocalStorageDirEmulator from './local_storage_dir_emulator';
 
 describe('Apify.RequestList', () => {
     let ll;
+    let localStorageEmulator;
     beforeAll(() => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
+        localStorageEmulator = new LocalStorageDirEmulator();
     });
 
-    afterAll(() => {
+    beforeEach(async () => {
+        await localStorageEmulator.init();
+    });
+
+    afterAll(async () => {
         log.setLevel(ll);
+        await localStorageEmulator.destroy();
     });
 
     test('should not accept to pages with same uniqueKey', async () => {

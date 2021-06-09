@@ -1,4 +1,4 @@
-import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
+import { betterSetInterval, betterClearInterval } from '@apify/utilities';
 import ow from 'ow';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
@@ -6,17 +6,17 @@ import defaultLog from '../utils_log';
 
 /**
  * @typedef AutoscaledPoolOptions
- * @property {Function} runTaskFunction
+ * @property {Function} [runTaskFunction]
  *   A function that performs an asynchronous resource-intensive task.
  *   The function must either be labeled `async` or return a promise.
  *
- * @property {Function} isTaskReadyFunction
+ * @property {Function} [isTaskReadyFunction]
  *   A function that indicates whether `runTaskFunction` should be called.
  *   This function is called every time there is free capacity for a new task and it should
  *   indicate whether it should start a new task or not by resolving to either `true` or `false`.
  *   Besides its obvious use, it is also useful for task throttling to save resources.
  *
- * @property {Function} isFinishedFunction
+ * @property {Function} [isFinishedFunction]
  *   A function that is called only when there are no tasks to be processed.
  *   If it resolves to `true` then the pool's run finishes. Being called only
  *   when there are no tasks being processed means that as long as `isTaskReadyFunction()`
@@ -150,6 +150,9 @@ class AutoscaledPool {
             log = defaultLog,
         } = options;
 
+        /**
+         * @type {defaultLog.Log}
+         */
         this.log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
@@ -180,22 +183,6 @@ class AutoscaledPool {
         if (!ssoCopy.snapshotter) ssoCopy.snapshotter = new Snapshotter({ ...snapshotterOptions, log: this.log });
         this.snapshotter = ssoCopy.snapshotter;
         this.systemStatus = new SystemStatus(ssoCopy);
-    }
-
-    /**
-     * @ignore
-     */
-    setMaxConcurrency(maxConcurrency) {
-        this.log.deprecated('setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
-        this._maxConcurrency = maxConcurrency;
-    }
-
-    /**
-     * @ignore
-     */
-    setMinConcurrency(minConcurrency) {
-        this.log.deprecated('setMaxConcurrency() is deprecated, use the "maxConcurrency" property instead');
-        this._minConcurrency = minConcurrency;
     }
 
     /**
@@ -377,18 +364,30 @@ class AutoscaledPool {
      * It doesn't allow multiple concurrent runs of this method.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _maybeRunTask(intervalCallback) {
+        this.log.perf('Attempting to run a task.');
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
 
         // Prevent starting a new task if:
         // - the pool is paused or aborted
-        if (this.isStopped) return done();
+        if (this.isStopped) {
+            this.log.perf('Task will not run. AutoscaledPool is stopped.');
+            return done();
+        }
         // - we are already querying for a task.
-        if (this.queryingIsTaskReady) return done();
+        if (this.queryingIsTaskReady) {
+            this.log.perf('Task will not run. Waiting for a ready task.');
+            return done();
+        }
         // - we would exceed desired concurrency.
-        if (this._currentConcurrency >= this._desiredConcurrency) return done();
+        if (this._currentConcurrency >= this._desiredConcurrency) {
+            this.log.perf('Task will not run. Desired concurrency achieved.');
+            return done();
+        }
         // - system is overloaded now and we are at or above minConcurrency
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
@@ -400,8 +399,10 @@ class AutoscaledPool {
         this.queryingIsTaskReady = true;
         let isTaskReady;
         try {
+            this.log.perf('Checking for ready tasks.');
             isTaskReady = await this.isTaskReadyFunction();
         } catch (err) {
+            this.log.perf('Checking for ready tasks failed.');
             // We might have already rejected this promise.
             if (this.reject) {
                 // No need to log all concurrent errors.
@@ -412,6 +413,7 @@ class AutoscaledPool {
             this.queryingIsTaskReady = false;
         }
         if (!isTaskReady) {
+            this.log.perf('Task will not run. No tasks are ready.');
             done();
             // No tasks could mean that we're finished with all tasks.
             return this._maybeFinish();
@@ -428,11 +430,14 @@ class AutoscaledPool {
             done();
 
             // Execute the current task.
+            this.log.perf('Running a task.');
             await this.runTaskFunction();
+            this.log.perf('Task finished.');
             this._currentConcurrency--;
             // Run task after the previous one finished.
             setImmediate(this._maybeRunTask);
         } catch (err) {
+            this.log.perf('Running a task failed.');
             // We might have already rejected this promise.
             if (this.reject) {
                 // No need to log all concurrent errors.
@@ -448,6 +453,8 @@ class AutoscaledPool {
      * If the system IS overloaded and the settings allow it, it scales down.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     _autoscale(intervalCallback) {
         // Don't scale if paused.
@@ -496,6 +503,8 @@ class AutoscaledPool {
      *
      * @param {Object} systemStatus for logging
      * @ignore
+     * @protected
+     * @internal
      */
     _scaleUp(systemStatus) {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
@@ -513,6 +522,8 @@ class AutoscaledPool {
      *
      * @param {Object} systemStatus for logging
      * @ignore
+     * @protected
+     * @internal
      */
     _scaleDown(systemStatus) {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
@@ -531,6 +542,8 @@ class AutoscaledPool {
      * It doesn't allow multiple concurrent runs of this method.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _maybeFinish() {
         if (this.queryingIsFinished) return;
@@ -555,6 +568,8 @@ class AutoscaledPool {
      * Cleans up resources.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _destroy() {
         this.resolve = null;

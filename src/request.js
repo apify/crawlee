@@ -1,6 +1,6 @@
-import { normalizeUrl } from 'apify-shared/utilities';
+import { normalizeUrl } from '@apify/utilities';
 import * as crypto from 'crypto';
-import ow from 'ow';
+import ow, { ArgumentError } from 'ow';
 import * as util from 'util';
 import defaultLog from './utils_log';
 
@@ -16,6 +16,22 @@ export function hashPayload(payload) {
         .substr(0, 8);
 }
 
+const requestOptionalPredicates = {
+    id: ow.optional.string,
+    loadedUrl: ow.optional.string.url,
+    uniqueKey: ow.optional.string,
+    method: ow.optional.string,
+    payload: ow.optional.any(ow.string, ow.buffer),
+    noRetry: ow.optional.boolean,
+    retryCount: ow.optional.number,
+    errorMessages: ow.optional.array.ofType(ow.string),
+    headers: ow.optional.object,
+    userData: ow.optional.object,
+    handledAt: ow.optional.any(ow.string.date, ow.date),
+    keepUrlFragment: ow.optional.boolean,
+    useExtendedUniqueKey: ow.optional.boolean,
+};
+
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
  * The `Request` object also stores information about errors that occurred during processing of the request.
@@ -23,7 +39,7 @@ export function hashPayload(payload) {
  * Each `Request` instance has the `uniqueKey` property, which can be either specified
  * manually in the constructor or generated automatically from the URL. Two requests with the same `uniqueKey`
  * are considered as pointing to the same web resource. This behavior applies to all Apify SDK classes,
- * such as {@link RequestList}, {@link RequestQueue} or {@link PuppeteerCrawler}.
+ * such as {@link RequestList}, {@link RequestQueue}, {@link PuppeteerCrawler} or {@link PlaywrightCrawler}.
  *
  * Example use:
  *
@@ -51,7 +67,7 @@ export function hashPayload(payload) {
  *   An actually loaded URL after redirects, if present. HTTP redirects are guaranteed
  *   to be included.
  *
- *   When using {@link PuppeteerCrawler}, meta tag and JavaScript redirects may,
+ *   When using {@link PuppeteerCrawler} or {@link PlaywrightCrawler}, meta tag and JavaScript redirects may,
  *   or may not be included, depending on their nature. This generally means that redirects,
  *   which happen immediately will most likely be included, but delayed redirects will not.
  * @property {string} uniqueKey
@@ -67,9 +83,9 @@ export function hashPayload(payload) {
  *   Indicates the number of times the crawling of the request has been retried on error.
  * @property {string[]} errorMessages
  *   An array of error messages from request processing.
- * @property {object} headers
+ * @property {Object<string, string>} headers
  *   Object with HTTP headers. Key is header name, value is the value.
- * @property {object} userData
+ * @property {Object<string, *>} userData
  *   Custom user data assigned to the request.
  * @property {Date} handledAt
  *   Indicates the time when the request has been processed.
@@ -81,22 +97,24 @@ class Request {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            url: ow.string.url,
-            id: ow.optional.string,
-            loadedUrl: ow.optional.string.url,
-            uniqueKey: ow.optional.string,
-            method: ow.optional.string,
-            payload: ow.optional.any(ow.string, ow.buffer),
-            noRetry: ow.optional.boolean,
-            retryCount: ow.optional.number,
-            errorMessages: ow.optional.array.ofType(ow.string),
-            headers: ow.optional.object,
-            userData: ow.optional.object,
-            handledAt: ow.optional.any(ow.string.date, ow.date),
-            keepUrlFragment: ow.optional.boolean,
-            useExtendedUniqueKey: ow.optional.boolean,
-        }));
+        ow(options, 'RequestOptions', ow.object);
+        ow(options.url, 'RequestOptions.url', ow.string.url);
+        // 'ow' validation is slow, because it checks all predicates
+        // even if the validated object has only 1 property.
+        // This custom validation loop iterates only over existing
+        // properties and speeds up the validation cca 3-fold.
+        // See https://github.com/sindresorhus/ow/issues/193
+        Object.keys(options).forEach((prop) => {
+            const predicate = requestOptionalPredicates[prop];
+            const value = options[prop];
+            if (predicate) {
+                ow(value, `RequestOptions.${prop}`, predicate);
+                // 'url' is checked above because it's not optional
+            } else if (prop !== 'url') {
+                const msg = `Did not expect property \`${prop}\` to exist, got \`${value}\` in object \`RequestOptions\``;
+                throw new ArgumentError(msg, this.constructor);
+            }
+        });
 
         const {
             id,
@@ -125,9 +143,13 @@ class Request {
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
-        this.errorMessages = JSON.parse(JSON.stringify(errorMessages));
-        this.headers = JSON.parse(JSON.stringify(headers));
-        this.userData = JSON.parse(JSON.stringify(userData));
+        this.errorMessages = [...errorMessages];
+        // @property are ignored when reassigning, needs to enforced set again,
+        // otherwise the type will be {}
+        /** @type {Object<string, string>} */
+        this.headers = { ...headers };
+        /** @type {Object<string, any>} */
+        this.userData = { ...userData };
         // Requests received from API will have ISOString dates,
         // but we want to have a Date instance.
         this.handledAt = typeof handledAt === 'string'
@@ -146,7 +168,7 @@ class Request {
      * as possible, since just throwing a bad type error makes any debugging rather difficult.
      *
      * @param {(Error|string)} errorOrMessage Error object or error message to be stored in the request.
-     * @param {Object} [options]
+     * @param {object} [options]
      * @param {boolean} [options.omitStack=false] Only push the error message without stack trace when true.
      */
     pushErrorMessage(errorOrMessage, options = {}) {
@@ -183,7 +205,8 @@ class Request {
 
     /**
      * @ignore
-     * @private
+     * @protected
+     * @internal
      */
     _computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }) {
         const normalizedMethod = method.toUpperCase();
@@ -227,7 +250,7 @@ export default Request;
  * @property {string} [method='GET']
  * @property {(string|Buffer)} [payload]
  *   HTTP request payload, e.g. for POST requests.
- * @property {Object} [headers={}]
+ * @property {Object<string,string>} [headers]
  *   HTTP headers in the following format:
  *   ```
  *   {
@@ -235,7 +258,7 @@ export default Request;
  *       'Content-Type': 'application/json'
  *   }
  *   ```
- * @property {object} [userData={}]
+ * @property {Object<string,*>} [userData]
  *   Custom user data assigned to the request. Use this to save any request related data to the
  *   request's scope, keeping them accessible on retries, failures etc.
  * @property {boolean} [keepUrlFragment=false]

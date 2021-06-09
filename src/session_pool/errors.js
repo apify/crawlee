@@ -1,3 +1,6 @@
+/**
+ * @ignore
+ */
 export class CookieParseError extends Error {
     /**
      * @param {string} cookieHeaderString

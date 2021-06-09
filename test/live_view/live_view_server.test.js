@@ -2,7 +2,7 @@ import path from 'path';
 import { promisify } from 'util';
 import fs from 'fs-extra';
 import io from 'socket.io-client';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import Apify from '../../build/index';
 import LiveViewServer from '../../build/live_view/live_view_server';
 import { requestAsBrowser } from '../../build/utils_request';

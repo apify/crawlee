@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import sinon from 'sinon';
-import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES } from '@apify/consts';
 import log from '../../build/utils_log';
 import * as Apify from '../../build';
 import * as keyValueStore from '../../build/storages/key_value_store';
@@ -21,7 +21,7 @@ describe('BasicCrawler', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {
@@ -683,22 +683,48 @@ describe('BasicCrawler', () => {
             expect(events.listenerCount(ACTOR_EVENT_NAMES.PERSIST_STATE)).toEqual(0);
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
+    });
 
-        it('should not use SessionPool by default', async () => {
-            const url = 'https://example.com';
-            const requestList = new Apify.RequestList({ sources: [{ url }] });
-            await requestList.initialize();
-
+    describe('CrawlingContext', () => {
+        test('should be kept and later deleted', async () => {
+            const urls = [
+                'https://example.com/0',
+                'https://example.com/1',
+                'https://example.com/2',
+                'https://example.com/3',
+            ];
+            const requestList = await Apify.openRequestList(null, urls);
+            let counter = 0;
+            let finish;
+            const allFinishedPromise = new Promise((resolve) => {
+                finish = resolve;
+            });
+            const mainContexts = [];
+            const otherContexts = [];
             const crawler = new Apify.BasicCrawler({
                 requestList,
-                handleRequestTimeoutSecs: 0.01,
-                maxRequestRetries: 1,
-                handleRequestFunction: async () => {},
-                handleFailedRequestFunction: () => {},
+                minConcurrency: 4,
+                async handleRequestFunction(crawlingContext) {
+                    mainContexts[counter] = crawler.crawlingContexts.get(crawlingContext.id);
+                    otherContexts[counter] = Array.from(crawler.crawlingContexts).map(([, v]) => v);
+                    counter++;
+                    if (counter === 4) finish();
+                    await allFinishedPromise;
+                },
             });
             await crawler.run();
 
-            expect(crawler.sessionPool).toBeUndefined();
+            expect(counter).toBe(4);
+            expect(mainContexts).toHaveLength(4);
+            expect(otherContexts).toHaveLength(4);
+            expect(crawler.crawlingContexts.size).toBe(0);
+            mainContexts.forEach((ctx, idx) => {
+                expect(typeof ctx.id).toBe('string');
+                expect(otherContexts[idx]).toContain(ctx);
+            });
+            otherContexts.forEach((list, idx) => {
+                expect(list).toHaveLength(idx + 1);
+            });
         });
     });
 });

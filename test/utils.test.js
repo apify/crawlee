@@ -6,7 +6,7 @@ import path from 'path';
 import os from 'os';
 import cheerio from 'cheerio';
 import semver from 'semver';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';
@@ -715,7 +715,6 @@ describe('utils.printOutdatedSdkWarning()', () => {
 
     test('should correctly work when outdated', () => {
         process.env[ENV_VARS.SDK_LATEST_VERSION] = semver.inc(currentVersion, 'minor');
-        console.log(process.env[ENV_VARS.SDK_LATEST_VERSION]);
         logMock.expects('warning').once();
         utils.printOutdatedSdkWarning();
         delete process.env[ENV_VARS.SDK_LATEST_VERSION];

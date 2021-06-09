@@ -1,6 +1,8 @@
+/* eslint-disable no-prototype-builtins */
+
 import fs from 'fs';
 import path from 'path';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';
@@ -15,7 +17,6 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';
 import CrawlerExtension from '../../build/crawlers/crawler_extension';
 import Request from '../../build/request';
-import * as utils from '../../build/utils';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 
 const HOST = '127.0.0.1';
@@ -100,7 +101,7 @@ describe('CheerioCrawler', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
     });
 
     afterAll(async () => {
@@ -282,7 +283,7 @@ describe('CheerioCrawler', () => {
             });
 
             // Override low value to prevent seeing timeouts from BasicCrawler
-            cheerioCrawler.basicCrawler.handleRequestTimeoutMillis = 10000;
+            cheerioCrawler.handleRequestTimeoutMillis = 10000;
 
             await cheerioCrawler.run();
 
@@ -340,7 +341,11 @@ describe('CheerioCrawler', () => {
 
             await crawler.run();
             expect(headers).toHaveLength(4);
-            headers.forEach((h) => expect(h.Accept).toBe('text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'));
+            headers.forEach((h) => {
+                const acceptHeader = h.accept || h.Accept;
+                expect(acceptHeader.includes('text/html')).toBe(true);
+                expect(acceptHeader.includes('application/xhtml+xml')).toBe(true);
+            });
         });
 
         describe('by throwing', () => {
@@ -658,6 +663,24 @@ describe('CheerioCrawler', () => {
                 },
             });
             await crawler.run();
+            expect.assertions(1);
+        });
+
+        test('should correctly set session pool options', async () => {
+            const crawler = new Apify.CheerioCrawler({
+                requestList,
+                useSessionPool: true,
+                persistCookiesPerSession: false,
+                sessionPoolOptions: {
+                    sessionOptions: {
+                        maxUsageCount: 1,
+                    },
+                    persistStateKeyValueStoreId: 'abc',
+                },
+                handlePageFunction: async () => {},
+            });
+            expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
+            expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
         });
 
         test('should markBad sessions after request timeout', async () => {
@@ -665,7 +688,8 @@ describe('CheerioCrawler', () => {
             const sessions = [];
             const failed = [];
             const cheerioCrawler = new Apify.CheerioCrawler({
-                requestList: await Apify.openRequestList('timeoutTest', [`http://${HOST}:${port}/timeout?a=12`,
+                requestList: await Apify.openRequestList(`timeoutTest-${Math.random()}`, [
+                    `http://${HOST}:${port}/timeout?a=12`,
                     `http://${HOST}:${port}/timeout?a=23`,
                 ]),
                 maxRequestRetries: 1,
@@ -738,7 +762,7 @@ describe('CheerioCrawler', () => {
                     },
                 });
             } catch (e) {
-                expect(e.message).toEqual('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+                expect(e.message).toEqual('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
             }
         });
 
@@ -848,14 +872,14 @@ describe('CheerioCrawler', () => {
             const prepareRequestFunction = async (crawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
             };
 
             const handlePageFunction = async (crawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.$).toBe('function');
                 expect(typeof crawlingContext.response).toBe('object');
@@ -867,7 +891,7 @@ describe('CheerioCrawler', () => {
             const handleFailedRequestFunction = async (crawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
-                expect(crawlingContext.autoscaledPool).toBeInstanceOf(AutoscaledPool);
+                expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.$).toBe('function');
                 expect(typeof crawlingContext.response).toBe('object');
@@ -987,6 +1011,7 @@ describe('CheerioCrawler', () => {
             expect(cheerioCrawler.useSessionPool).toEqual(true);
             expect(cheerioCrawler.prepareRequestFunction).toEqual(prepareRequestFunction);
             expect(cheerioCrawler.handlePageFunction).toBeUndefined();
+            expect(cheerioCrawler.userProvidedHandler).toBeUndefined();
         });
     });
 });

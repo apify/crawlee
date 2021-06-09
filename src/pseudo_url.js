@@ -139,7 +139,7 @@ class PseudoUrl {
      * be merged together, with the `userData` property having preference over the template.
      * This enables dynamic overriding of the template.
      *
-     * @param {(string|Object)} urlOrProps
+     * @param {(string|Object<string, *>)} urlOrProps
      * @return {Request}
      */
     createRequest(urlOrProps) {

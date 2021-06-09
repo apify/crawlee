@@ -1,4 +1,5 @@
-import { ACTOR_EVENT_NAMES } from 'apify-shared/consts';
+import { ACTOR_EVENT_NAMES } from '@apify/consts';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import * as _ from 'underscore';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
@@ -12,6 +13,7 @@ import { validators } from '../validators';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
+import { ProxyInfo } from '../proxy_configuration';
 import Request from '../request';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';
@@ -19,6 +21,15 @@ import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @typedef {object} CrawlingContext
+ * @property {string} id
+ * @property {Request} request
+ * @property {Session} session
+ * @property {ProxyInfo} proxyInfo
+ * @property {*} response
+ */
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -42,8 +53,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * ```
  * {
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
+ *   crawler: BasicCrawler,
  * }
  * ```
  *   where the {@link Request} instance represents the URL to crawl.
@@ -74,6 +85,8 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * {
  *   request: Request,
  *   error: Error,
+ *   session: Session,
+ *   crawler: BasicCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -100,10 +113,10 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {boolean} [useSessionPool=false]
- *   If set to true. Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
+ * @property {boolean} [useSessionPool=true]
+ *   Basic crawler will initialize the  {@link SessionPool} with the corresponding `sessionPoolOptions`.
  *   The session instance will be than available in the `handleRequestFunction`.
- * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {SessionPool} to use.
+ * @property {SessionPoolOptions} [sessionPoolOptions] The configuration options for {@link SessionPool} to use.
  */
 
 /**
@@ -114,7 +127,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * `BasicCrawler` is a low-level tool that requires the user to implement the page
  * download and data extraction functionality themselves.
  * If you want a crawler that already facilitates this functionality,
- * please consider using {@link PuppeteerCrawler} or {@link CheerioCrawler}.
+ * please consider using {@link CheerioCrawler}, {@link PuppeteerCrawler} or {@link PlaywrightCrawler}.
  *
  * `BasicCrawler` invokes the user-provided {@link BasicCrawlerOptions.handleRequestFunction}
  * for each {@link Request} object, which represents a single URL to crawl.
@@ -163,8 +176,16 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  * await crawler.run();
  * ```
  * @property {Statistics} stats
- *  Contains statistics about the current run
- *
+ *  Contains statistics about the current run.
+ * @property {RequestList} [requestList]
+ *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {RequestQueue} [requestQueue]
+ *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {SessionPool} [sessionPool]
+ *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
+ *  Only available if used by the crawler.
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
@@ -172,53 +193,55 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
-class BasicCrawler {
+export class BasicCrawler {
+    static optionsShape = {
+        requestList: ow.optional.object.validate(validators.requestList),
+        requestQueue: ow.optional.object.validate(validators.requestQueue),
+        // Subclasses override this function instead of passing it
+        // in constructor, so this validation needs to apply only
+        // if the user creates an instance of BasicCrawler directly.
+        handleRequestFunction: ow.function,
+        handleRequestTimeoutSecs: ow.optional.number,
+        handleFailedRequestFunction: ow.optional.function,
+        maxRequestRetries: ow.optional.number,
+        maxRequestsPerCrawl: ow.optional.number,
+        autoscaledPoolOptions: ow.optional.object,
+        sessionPoolOptions: ow.optional.object,
+        useSessionPool: ow.optional.boolean,
+
+        // AutoscaledPool shorthands
+        minConcurrency: ow.optional.number,
+        maxConcurrency: ow.optional.number,
+
+        // internal
+        log: ow.optional.object,
+    };
+
     /**
      * @param {BasicCrawlerOptions} options
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            requestList: ow.optional.object.validate(validators.requestList),
-            requestQueue: ow.optional.object.validate(validators.requestQueue),
-            handleRequestFunction: ow.function,
-            handleRequestTimeoutSecs: ow.optional.number,
-            handleFailedRequestFunction: ow.optional.function,
-            maxRequestRetries: ow.optional.number,
-            maxRequestsPerCrawl: ow.optional.number,
-            autoscaledPoolOptions: ow.optional.object,
-            sessionPoolOptions: ow.optional.object,
-            useSessionPool: ow.optional.boolean,
-
-            // AutoscaledPool shorthands
-            minConcurrency: ow.optional.number,
-            maxConcurrency: ow.optional.number,
-
-            // internal
-            log: ow.optional.object,
-        }));
+        ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
 
         const {
             requestList,
             requestQueue,
             handleRequestFunction,
             handleRequestTimeoutSecs = 60,
-            handleFailedRequestFunction = ({ request }) => {
-                const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-                log.error('Request failed and reached maximum retries', details);
-            },
+            handleFailedRequestFunction,
             maxRequestRetries = 3,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
             sessionPoolOptions = {},
-            useSessionPool = false,
+            useSessionPool = true,
 
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
 
             // internal
-            log = defaultLog.child({ prefix: 'BasicCrawler' }),
+            log = defaultLog.child({ prefix: this.constructor.name }),
         } = options;
 
         if (!requestList && !requestQueue) {
@@ -226,20 +249,25 @@ class BasicCrawler {
             throw new ArgumentError(msg, this.constructor);
         }
 
+        // assigning {} to the options as default break proper typing
+        /** @type {defaultLog.Log} */
         this.log = log;
         this.requestList = requestList;
         this.requestQueue = requestQueue;
-        this.handleRequestFunction = handleRequestFunction;
+        this.userProvidedHandler = handleRequestFunction;
+        this.failedContextHandler = handleFailedRequestFunction;
         this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:` });
+        /** @type {SessionPoolOptions} */
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,
         };
         this.useSessionPool = useSessionPool;
+        this.crawlingContexts = new Map();
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
@@ -302,27 +330,14 @@ class BasicCrawler {
     async run() {
         if (this.isRunningPromise) return this.isRunningPromise;
 
-        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
-        // so that the caller can get a reference to it before awaiting the promise returned from run()
-        // (otherwise there would be no way)
-        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
-
-        if (this.useSessionPool) {
-            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
-        }
-
-        await this._loadHandledRequestCount();
-
+        await this._init();
         this.isRunningPromise = this.autoscaledPool.run();
         await this.stats.startCapturing();
 
         try {
             await this.isRunningPromise;
         } finally {
-            if (this.useSessionPool) {
-                await this.sessionPool.teardown();
-            }
-
+            await this.teardown();
             await this.stats.stopCapturing();
             const finalStats = this.stats.calculate();
             const { requestsFailed, requestsFinished } = this.stats.state;
@@ -335,6 +350,43 @@ class BasicCrawler {
         }
     }
 
+    /**
+     * @return {Promise<void>}
+     * @ignore
+     * @protected
+     * @internal
+     */
+    async _init() {
+        // Initialize AutoscaledPool before awaiting _loadHandledRequestCount(),
+        // so that the caller can get a reference to it before awaiting the promise returned from run()
+        // (otherwise there would be no way)
+        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+
+        if (this.useSessionPool) {
+            this.sessionPool = await openSessionPool(this.sessionPoolOptions);
+            // Assuming there are not more than 20 browsers running at once;
+            this.sessionPool.setMaxListeners(20);
+        }
+
+        await this._loadHandledRequestCount();
+    }
+
+    /**
+     * @param {CrawlingContext} crawlingContext
+     * @return {Promise<void>}
+     * @ignore
+     * @protected
+     * @internal
+     */
+    async _handleRequestFunction(crawlingContext) { // eslint-disable-line no-unused-vars
+        await this.userProvidedHandler(crawlingContext);
+    }
+
+    /**
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _pauseOnMigration() {
         if (this.autoscaledPool) {
             // if run wasn't called, this is going to crash
@@ -377,6 +429,8 @@ class BasicCrawler {
      * and RequestQueue is present then enqueues it to the queue first.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _fetchNextRequest() {
         if (!this.requestList) return this.requestQueue.fetchNextRequest();
@@ -389,7 +443,7 @@ class BasicCrawler {
         } catch (err) {
             // If requestQueue.addRequest() fails here then we must reclaim it back to
             // the RequestList because probably it's not yet in the queue!
-            this.log.exception(err, 'RequestQueue.addRequest() failed, reclaiming request back to the list', { request });
+            this.log.error('Adding of request from the RequestList to the RequestQueue failed, reclaiming request back to the list.', { request });
             await this.requestList.reclaimRequest(request);
             return null;
         }
@@ -405,6 +459,8 @@ class BasicCrawler {
      * then retries them in a case of an error, etc.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _runTaskFunction() {
         const source = this.requestQueue || this.requestList;
@@ -427,11 +483,17 @@ class BasicCrawler {
         this.stats.startJob(statisticsId);
 
         // Shared crawling context
-        const crawlingContext = { request, autoscaledPool: this.autoscaledPool, session };
+        const crawlingContext = {
+            id: cryptoRandomObjectId(10),
+            crawler: this,
+            request,
+            session,
+        };
+        this.crawlingContexts.set(crawlingContext.id, crawlingContext);
 
         try {
             await addTimeoutToPromise(
-                this.handleRequestFunction(crawlingContext),
+                this._handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
@@ -452,6 +514,8 @@ class BasicCrawler {
                     + 'will make sure that the run continues where it left off, if programmed to handle restarts correctly.');
                 throw secondaryError;
             }
+        } finally {
+            this.crawlingContexts.delete(crawlingContext.id);
         }
     }
 
@@ -459,6 +523,8 @@ class BasicCrawler {
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _isTaskReadyFunction() {
         // First check RequestList, since it's only in memory.
@@ -473,6 +539,8 @@ class BasicCrawler {
      * Returns true if both RequestList and RequestQueue have all requests finished.
      *
      * @ignore
+     * @protected
+     * @internal
      */
     async _defaultIsFinishedFunction() {
         const [
@@ -490,33 +558,58 @@ class BasicCrawler {
      * Handles errors thrown by user provided handleRequestFunction()
      * @param {Error} error
      * @param {object} crawlingContext
+     * @param {Request} crawlingContext.request
      * @param {(RequestList|RequestQueue)} source
-     * @return {Promise<boolean|void|QueueOperationInfo>} willBeRetried
+     * @return {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _requestFunctionErrorHandler(error, crawlingContext, source) {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
-        // Reclaim and retry request if flagged as retriable and retryCount is not exceeded.
-        if (!request.noRetry && request.retryCount < this.maxRequestRetries) {
+        const shouldRetryRequest = !request.noRetry && request.retryCount < this.maxRequestRetries;
+        if (shouldRetryRequest) {
             request.retryCount++;
             this.log.exception(
                 error,
                 'handleRequestFunction failed, reclaiming failed request back to the list or queue',
                 _.pick(request, 'url', 'retryCount', 'id'),
             );
-            return source.reclaimRequest(request);
+            await source.reclaimRequest(request);
+        } else {
+            // If we get here, the request is either not retryable
+            // or failed more than retryCount times and will not be retried anymore.
+            // Mark the request as failed and do not retry.
+            this.handledRequestsCount++;
+            await source.markRequestHandled(request);
+            this.stats.failJob(request.id || request.url);
+            crawlingContext.error = error;
+            await this._handleFailedRequestFunction(crawlingContext); // This function prints an error message.
         }
+    }
 
-        // If we get here, the request is either not retriable
-        // or failed more than retryCount times and will not be retried anymore.
-        // Mark the request as failed and do not retry.
-        this.handledRequestsCount++;
-        await source.markRequestHandled(request);
-        this.stats.failJob(request.id || request.url);
-        crawlingContext.error = error;
-        return this.handleFailedRequestFunction(crawlingContext); // This function prints an error message.
+    /**
+     * @param {object} crawlingContext
+     * @param {Error} crawlingContext.error
+     * @param {Request} crawlingContext.request
+     * @return {Promise<void>}
+     * @ignore
+     * @protected
+     * @internal
+     */
+    async _handleFailedRequestFunction(crawlingContext) {
+        if (this.failedContextHandler) {
+            await this.failedContextHandler(crawlingContext);
+        } else {
+            const { id, url, method, uniqueKey } = crawlingContext.request;
+            this.log.exception(
+                crawlingContext.error,
+                'Request failed and reached maximum retries',
+                { id, url, method, uniqueKey },
+            );
+        }
     }
 
     /**
@@ -529,6 +622,8 @@ class BasicCrawler {
      *
      * @return {Promise<void>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _loadHandledRequestCount() {
         if (this.requestQueue) {
@@ -537,9 +632,17 @@ class BasicCrawler {
             this.handledRequestsCount = this.requestList.handledCount();
         }
     }
-}
 
-export default BasicCrawler;
+    /**
+     * Function for cleaning up after all request are processed.
+     * @ignore
+     */
+    async teardown() {
+        if (this.useSessionPool) {
+            await this.sessionPool.teardown();
+        }
+    }
+}
 
 /**
  * @callback HandleRequest
@@ -549,26 +652,25 @@ export default BasicCrawler;
 /**
  * @typedef HandleRequestInputs
  * @property {Request} request The original {Request} object.
- * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link BasicCrawler#run} function.
  *  You can use it to change the concurrency settings on the fly,
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  * @property {Session} [session]
+ * @property {BasicCrawler} [crawler]
  */
 
 /**
  * @callback HandleFailedRequest
  * @param {HandleFailedRequestInput} inputs Arguments passed to this callback.
- * @returns {(void|Promise<void>)}
+ * @returns {Promise<void>}
  */
 
 /**
  * @typedef HandleFailedRequestInput
  * @property {Error} error The Error thrown by `handleRequestFunction`.
  * @property {Request} request The original {Request} object.
- * @property {AutoscaledPool} autoscaledPool
- * @property {Session} [session]
- * @property {ProxyInfo} [proxyInfo]
+ * @property {Session} session
+ * @property {ProxyInfo} proxyInfo
  */

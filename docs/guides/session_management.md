@@ -2,7 +2,7 @@
 id: session-management
 title: Session Management
 ---
-[`SessionPool`](/docs/api/session-pool) is a class that allows you to handle the rotation of proxy IP addresses along with cookies and other custom settings in Apify SDK.
+[`SessionPool`](../api/session-pool) is a class that allows you to handle the rotation of proxy IP addresses along with cookies and other custom settings in Apify SDK.
 
 The main benefit of a Session pool is that you can filter out blocked or non-working proxies,
 so your actor does not retry requests over known blocked/non-working proxies.
@@ -13,7 +13,7 @@ which should prevent burning out a small pool of available IPs.
 
 Now let's take a look at how to use a Session pool.
 
-**Example usage in [`PuppeteerCrawler`](/docs/api/puppeteer-crawler)**
+**Example usage in [`PuppeteerCrawler`](../api/puppeteer-crawler)**
 
 ```javascript
 
@@ -47,7 +47,7 @@ const crawler = new Apify.PuppeteerCrawler({
 });
 ```
 
-**Example usage in [`CheerioCrawler`](/docs/api/cheerio-crawler)**
+**Example usage in [`CheerioCrawler`](../api/cheerio-crawler)**
 
 ```javascript
   const proxyConfiguration = await Apify.createProxyConfiguration();
@@ -80,7 +80,7 @@ const crawler = new Apify.PuppeteerCrawler({
     });
 ```
 
-**Example usage in [`BasicCrawler`](/docs/api/basic-crawler)**
+**Example usage in [`BasicCrawler`](../api/basic-crawler)**
 
 ```javascript
  const proxyConfiguration = await Apify.createProxyConfiguration();

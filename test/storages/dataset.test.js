@@ -1,7 +1,7 @@
 import {
     ENV_VARS,
     MAX_PAYLOAD_SIZE_BYTES,
-} from 'apify-shared/consts';
+} from '@apify/consts';
 import { apifyClient } from '../../build/utils';
 import {
     Dataset,
@@ -9,7 +9,7 @@ import {
     chunkBySize,
 } from '../../build/storages/dataset';
 import * as Apify from '../../build';
-import StorageManager from '../../build/storages/storage_manager';
+import { StorageManager } from '../../build/storages/storage_manager';
 
 jest.mock('../../build/storages/storage_manager');
 
@@ -447,8 +447,7 @@ describe('dataset', () => {
             await expect(dataset.pushData(123)).rejects.toThrow('Expected argument to be of type `object` but received type `number`');
             await expect(dataset.pushData(true)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
             await expect(dataset.pushData(false)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
-            await expect(dataset.pushData(() => {})).rejects.toThrow('Data item is not serializable to JSON.\n'
-                + 'Cause: Expected object `item` to be a plain object');
+            await expect(dataset.pushData(() => {})).rejects.toThrow('Data item is not an object. You can push only objects into a dataset.');
 
             const circularObj = {};
             circularObj.xxx = circularObj;

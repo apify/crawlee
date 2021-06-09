@@ -1,6 +1,6 @@
 import * as _ from 'underscore';
 import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import globalLog from '../utils_log';
 
 import hidingTricks from './hiding_tricks';
@@ -29,7 +29,6 @@ const DEFAULT_STEALTH_OPTIONS = {
     emulateWebGL: true,
     emulateConsoleDebug: true,
     addLanguage: true,
-    hideWebDriver: true,
     hackPermissions: true,
     mockChrome: true,
     mockChromeInIframe: true,
@@ -81,8 +80,8 @@ function generateEvaluationDebugMessage() {
 }
 /**
  * Logs the stealth errors in browser to the node stdout.
- * @param page {Page} - puppeteer page instance
- * @param evaluationDebugMessage {string} - debug message
+ * @param {Page} page - puppeteer page instance
+ * @param {string} evaluationDebugMessage - debug message
  */
 function addStealthDebugToPage(page, evaluationDebugMessage) {
     let warningLogged = false;
@@ -109,7 +108,7 @@ function addStealthDebugToPage(page, evaluationDebugMessage) {
 /**
  * Applies stealth tricks to the puppeteer page
  * @param {Page} page
- * @param evaluationDebugMessage {string} - debug message
+ * @param {string} evaluationDebugMessage - debug message
  * @param {StealthOptions} options
  * @returns {Promise<void>}
  * @private
@@ -124,12 +123,14 @@ function applyStealthTricks(page, evaluationDebugMessage, options) {
 
     /* istanbul ignore next */
     const addFunctions = (functionsArr, errorMessagePrefix, debugMessage) => {
+        // eslint-disable-next-line no-console
         console.log(debugMessage);
         // add functions
         for (const func of functionsArr) {
             try {
                 eval(func)(); // eslint-disable-line
             } catch (e) {
+                // eslint-disable-next-line no-console
                 console.error(`${errorMessagePrefix}: Failed to apply stealth trick reason: ${e.message}`);
             }
         }

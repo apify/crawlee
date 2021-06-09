@@ -4,8 +4,8 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as express from 'express';
 import * as socketio from 'socket.io';
-import { promisifyServerListen } from 'apify-shared/utilities';
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { promisifyServerListen } from '@apify/utilities';
+import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import { Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { addTimeoutToPromise } from '../utils';
 import Snapshot from './snapshot';
@@ -49,6 +49,7 @@ const DEFAULT_SCREENSHOT_DIR_PATH = path.resolve(LOCAL_STORAGE_DIR, 'live_view')
  *
  * When running locally, it is often best to use a headful browser for debugging, since it provides
  * a better view into the browser, including DevTools, but `LiveViewServer` works too.
+ * @deprecated no longer supported, will be removed in 2.0
  * @ignore
  */
 class LiveViewServer {
@@ -189,7 +190,9 @@ class LiveViewServer {
      * Returns an absolute path to the screenshot with the given index.
      * @param {number} screenshotIndex
      * @return {string}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _getScreenshotPath(screenshotIndex) {
         return path.join(this.screenshotDirectoryPath, `${screenshotIndex}.jpeg`);
@@ -198,7 +201,9 @@ class LiveViewServer {
     /**
      * @param {Page} page
      * @return {Promise<Snapshot>}
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     async _makeSnapshot(page) {
         const pageUrl = page.url();
@@ -225,7 +230,9 @@ class LiveViewServer {
 
     /**
      * @param {Snapshot} snapshot
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _pushSnapshot(snapshot) {
         // Send new snapshot to clients
@@ -236,13 +243,20 @@ class LiveViewServer {
     /**
      * Initiates an async delete and does not wait for it to complete.
      * @param {number} screenshotIndex
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _deleteScreenshot(screenshotIndex) {
         unlink(this._getScreenshotPath(screenshotIndex))
             .catch((err) => this.log.exception(err, 'Cannot delete live view screenshot.'));
     }
 
+    /**
+     * @ignore
+     * @protected
+     * @internal
+     */
     _setupHttpServer() {
         const containerPort = process.env[ENV_VARS.CONTAINER_PORT] || LOCAL_ENV_VARS[ENV_VARS.CONTAINER_PORT];
 
@@ -278,7 +292,9 @@ class LiveViewServer {
 
     /**
      * @param {socketio.Socket} socket
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _socketConnectionHandler(socket) {
         this.clientCount++;

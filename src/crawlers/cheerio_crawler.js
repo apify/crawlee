@@ -1,26 +1,25 @@
 /* eslint-disable class-methods-use-this */
-import { readStreamToString, concatStreamToBuffer } from 'apify-shared/streams_utilities';
+import { readStreamToString, concatStreamToBuffer } from '@apify/utilities';
 import * as cheerio from 'cheerio';
 import * as contentTypeParser from 'content-type';
 import * as htmlparser from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import * as iconv from 'iconv-lite';
 import ow from 'ow';
-import * as _ from 'underscore';
 import * as util from 'util';
-import { BASIC_CRAWLER_TIMEOUT_MULTIPLIER } from '../constants';
-import { TimeoutError } from '../errors';
+import { TimeoutError } from 'got-scraping';
+import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
-import BasicCrawler from './basic_crawler'; // eslint-disable-line import/no-duplicates
-import defaultLog from '../utils_log';
+import { BasicCrawler } from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import CrawlerExtension from './crawler_extension';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
+import { Readable } from 'stream';
 import AutoscaledPool, { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
-import { HandleFailedRequest } from './basic_crawler';
+import { HandleFailedRequest, CrawlingContext } from './basic_crawler';
 import Request from '../request';
 import { RequestList } from '../request_list';
 import { ProxyConfiguration, ProxyInfo } from '../proxy_configuration';
@@ -35,7 +34,7 @@ import { validators } from '../validators';
  */
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
-const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
+const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
         maxBlockedMillis: 100,
@@ -73,14 +72,14 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   // An instance of Node's http.IncomingMessage object,
  *   response: Object,
  *
- *   // Underlying AutoscaledPool instance used to manage the concurrency of crawler
- *   autoscaledPool: AutoscaledPool,
- *
  *   // Session object, useful to work around anti-scraping protections
  *   session: Session
  *
  *   // ProxyInfo object with information about currently used proxy
  *   proxyInfo: ProxyInfo
+ *
+ *   // The running cheerio crawler instance.
+ *   crawler: CheerioCrawler
  * }
  * ```
  *
@@ -120,9 +119,9 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * ```
  * {
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   proxyInfo: ProxyInfo,
+ *   crawler: CheerioCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the initialized request
@@ -154,9 +153,9 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * {
  *   response: Object,
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   proxyInfo: ProxyInfo,
+ *   crawler: CheerioCrawler,
  * }
  * ```
  * The response is an instance of Node's http.IncomingMessage object.
@@ -178,15 +177,14 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  * {
  *   error: Error,
  *   request: Request,
- *   autoscaledPool: AutoscaledPool,
  *   session: Session,
  *   $: Cheerio,
  *   body: String|Buffer,
  *   json: Object,
- *   request: Request,
  *   contentType: Object,
  *   response: Object,
- *   proxyInfo: ProxyInfo
+ *   proxyInfo: ProxyInfo,
+ *   crawler: CheerioCrawler,
  * }
  * ```
  *   where the {@link Request} instance corresponds to the failed request, and the `Error` instance
@@ -235,7 +233,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *   If you're not sure, just keep the default value and the concurrency will scale up automatically.
  * @property {number} [maxConcurrency=1000]
  *   Sets the maximum concurrency (parallelism) for the crawl. Shortcut to the corresponding {@link AutoscaledPool} option.
- * @property {boolean} [useSessionPool=false]
+ * @property {boolean} [useSessionPool=true]
  *   If set to true Crawler will automatically use Session Pool. It will automatically retire sessions on 403, 401 and 429 status codes.
  *   It also marks Session as bad after a request timeout.
  * @property {SessionPoolOptions} [sessionPoolOptions]
@@ -255,7 +253,7 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *
  * Since `CheerioCrawler` uses raw HTTP requests to download web pages,
  * it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
- * to display the content, you might need to use {@link PuppeteerCrawler} instead,
+ * to display the content, you might need to use {@link PuppeteerCrawler} or {@link PlaywrightCrawler} instead,
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
@@ -322,6 +320,20 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *
  * await crawler.run();
  * ```
+ * @property {Statistics} stats
+ *  Contains statistics about the current run.
+ * @property {?RequestList} requestList
+ *  A reference to the underlying {@link RequestList} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?RequestQueue} requestQueue
+ *  A reference to the underlying {@link RequestQueue} class that manages the crawler's {@link Request}s.
+ *  Only available if used by the crawler.
+ * @property {?SessionPool} sessionPool
+ *  A reference to the underlying {@link SessionPool} class that manages the crawler's {@link Session}s.
+ *  Only available if used by the crawler.
+ * @property {?ProxyConfiguration} proxyConfiguration
+ *  A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
+ *  Only available if used by the crawler.
  * @property {AutoscaledPool} autoscaledPool
  *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
  *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
@@ -329,42 +341,31 @@ const DEFAULT_AUTOSCALED_POOL_OPTIONS = {
  *  to pause the crawler by calling {@link AutoscaledPool#pause}
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
-class CheerioCrawler {
+class CheerioCrawler extends BasicCrawler {
+    static optionsShape = {
+        ...BasicCrawler.optionsShape,
+        // TODO temporary until the API is unified in V2
+        handleRequestFunction: ow.undefined,
+
+        handlePageFunction: ow.function,
+        requestTimeoutSecs: ow.optional.number,
+        handlePageTimeoutSecs: ow.optional.number,
+        ignoreSslErrors: ow.optional.boolean,
+        additionalMimeTypes: ow.optional.array.ofType(ow.string),
+        suggestResponseEncoding: ow.optional.string,
+        forceResponseEncoding: ow.optional.string,
+        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        prepareRequestFunction: ow.optional.function,
+        postResponseFunction: ow.optional.function,
+        persistCookiesPerSession: ow.optional.boolean,
+    }
+
     /**
      * @param {CheerioCrawlerOptions} options
      * All `CheerioCrawler` parameters are passed via an options object.
      */
     constructor(options) {
-        ow(options, ow.object.exactShape({
-            handlePageFunction: ow.function,
-            requestTimeoutSecs: ow.optional.number,
-            handlePageTimeoutSecs: ow.optional.number,
-            ignoreSslErrors: ow.optional.boolean,
-            additionalMimeTypes: ow.optional.array.ofType(ow.string),
-            suggestResponseEncoding: ow.optional.string,
-            forceResponseEncoding: ow.optional.string,
-            proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
-
-            // Autoscaled pool shorthands
-            minConcurrency: ow.optional.number,
-            maxConcurrency: ow.optional.number,
-
-            // Basic crawler options
-            requestList: ow.optional.object.validate(validators.requestList),
-            requestQueue: ow.optional.object.validate(validators.requestQueue),
-            maxRequestRetries: ow.optional.number,
-            maxRequestsPerCrawl: ow.optional.number,
-            handleFailedRequestFunction: ow.optional.function,
-            autoscaledPoolOptions: ow.optional.object,
-            prepareRequestFunction: ow.optional.function,
-            postResponseFunction: ow.optional.function,
-            useSessionPool: ow.optional.boolean,
-            sessionPoolOptions: ow.optional.object,
-            persistCookiesPerSession: ow.optional.boolean,
-
-            // Deprecated
-            requestOptions: ow.optional.object,
-        }));
+        ow(options, 'CheerioCrawlerOptions', ow.object.exactShape(CheerioCrawler.optionsShape));
 
         const {
             handlePageFunction,
@@ -375,48 +376,37 @@ class CheerioCrawler {
             suggestResponseEncoding,
             forceResponseEncoding,
             proxyConfiguration,
-
-            // Autoscaled pool shorthands
-            minConcurrency,
-            maxConcurrency,
-
-            // Basic crawler options
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleFailedRequestFunction = this._defaultHandleFailedRequestFunction.bind(this),
-            autoscaledPoolOptions = DEFAULT_AUTOSCALED_POOL_OPTIONS,
             prepareRequestFunction,
             postResponseFunction,
-            useSessionPool = false,
-            sessionPoolOptions = {},
-            persistCookiesPerSession = false,
+            persistCookiesPerSession,
 
-            // Deprecated
-            requestOptions,
+            // BasicCrawler
+            autoscaledPoolOptions = CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
+            ...basicCrawlerOptions
         } = options;
 
-        this.log = defaultLog.child({ prefix: 'CheerioCrawler' });
+        super({
+            ...basicCrawlerOptions,
+            // TODO temporary until the API is unified in V2
+            handleRequestFunction: handlePageFunction,
+            autoscaledPoolOptions,
+            // We need to add some time for internal functions to finish,
+            // but not too much so that we would stall the crawler.
+            handleRequestTimeoutSecs: requestTimeoutSecs + handlePageTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+        });
 
-        if (persistCookiesPerSession && !useSessionPool) {
-            throw new Error('Cannot use "options.persistCookiesPerSession" without "options.useSessionPool"');
+        // Cookies should be persisted per session only if session pool is used
+        if (!this.useSessionPool && persistCookiesPerSession) {
+            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
         }
 
         this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
         if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
 
-        if (requestOptions) {
-            // DEPRECATED 2020-03-22
-            this.requestOptions = requestOptions;
-            this.log.deprecated('options.requestOptions is deprecated. Use options.prepareRequestFunction instead.');
-        }
-
         if (suggestResponseEncoding && forceResponseEncoding) {
             this.log.warning('Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.');
         }
 
-        this.handlePageFunction = handlePageFunction;
         this.handlePageTimeoutMillis = handlePageTimeoutSecs * 1000;
         this.requestTimeoutMillis = requestTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
@@ -425,49 +415,12 @@ class CheerioCrawler {
         this.prepareRequestFunction = prepareRequestFunction;
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
-        this.persistCookiesPerSession = persistCookiesPerSession;
-        this.useSessionPool = useSessionPool;
-        this.sessionPoolOptions = sessionPoolOptions;
 
-        /** @ignore */
-        this.basicCrawler = new BasicCrawler({
-            // Basic crawler options.
-            requestList,
-            requestQueue,
-            maxRequestRetries,
-            maxRequestsPerCrawl,
-            handleRequestFunction: (...args) => this._handleRequestFunction(...args),
-            handleRequestTimeoutSecs: handlePageTimeoutSecs * BASIC_CRAWLER_TIMEOUT_MULTIPLIER,
-            handleFailedRequestFunction,
-
-            // Autoscaled pool options.
-            minConcurrency,
-            maxConcurrency,
-            autoscaledPoolOptions,
-
-            // Session pool options
-            sessionPoolOptions: this.sessionPoolOptions,
-            useSessionPool: this.useSessionPool,
-
-            // log
-            log: this.log,
-        });
-
-        this.isRunningPromise = null;
-    }
-
-    /**
-     * Runs the crawler. Returns promise that gets resolved once all the requests got processed.
-     *
-     * @return {Promise<void>}
-     */
-    async run() {
-        if (this.isRunningPromise) return this.isRunningPromise;
-
-        this.isRunningPromise = this.basicCrawler.run();
-        this.autoscaledPool = this.basicCrawler.autoscaledPool;
-
-        await this.isRunningPromise;
+        if (this.useSessionPool) {
+            this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
+        } else {
+            this.persistCookiesPerSession = false;
+        }
     }
 
     /**
@@ -479,6 +432,9 @@ class CheerioCrawler {
         ow(extension, ow.object.instanceOf(CrawlerExtension));
 
         const extensionOptions = extension.getCrawlerOptions();
+        // TODO temporary until the API is unified in V2
+        extensionOptions.userProvidedHandler = extensionOptions.handlePageFunction;
+        delete extensionOptions.handlePageFunction;
 
         for (const [key, value] of Object.entries(extensionOptions)) {
             const isConfigurable = this.hasOwnProperty(key); // eslint-disable-line
@@ -506,11 +462,10 @@ class CheerioCrawler {
     /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
-     * @param {Object} crawlingContext
-     * @param {Request} crawlingContext.request
-     * @param {AutoscaledPool} crawlingContext.autoscaledPool
-     * @param {Session} [crawlingContext.session]
+     * @param {CrawlingContext} crawlingContext
      * @ignore
+     * @protected
+     * @internal
      */
     async _handleRequestFunction(crawlingContext) {
         const { request, session } = crawlingContext;
@@ -569,7 +524,7 @@ class CheerioCrawler {
         });
 
         return addTimeoutToPromise(
-            this.handlePageFunction(crawlingContext),
+            this.userProvidedHandler(crawlingContext),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -580,27 +535,29 @@ class CheerioCrawler {
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      *
-     * @param {Object} options
+     * @param {object} options
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {string} options.proxyUrl
      * @returns {Promise<IncomingMessage|Readable>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _requestFunction({ request, session, proxyUrl }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers receieved.
 
-        if (this.persistCookiesPerSession) {
+        if (this.useSessionPool) {
             const { headers } = request;
             headers.Cookie = session.getCookieString(request.url);
         }
 
         const opts = this._getRequestOptions(request, session, proxyUrl);
-        let responseStream;
+        let responseWithStream;
 
         try {
-            responseStream = await utilsRequest.requestAsBrowser(opts);
+            responseWithStream = await utilsRequest.requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -609,7 +566,7 @@ class CheerioCrawler {
             }
         }
 
-        return responseStream;
+        return responseWithStream;
     }
 
     /**
@@ -618,6 +575,8 @@ class CheerioCrawler {
      * @param {IncomingMessage|Readable} responseStream
      * @returns {Promise<object>}
      * @ignore
+     * @protected
+     * @internal
      */
     async _parseResponse(request, responseStream) {
         const { statusCode } = responseStream;
@@ -654,6 +613,8 @@ class CheerioCrawler {
      * @param {Session} [session]
      * @param {string} [proxyUrl]
      * @ignore
+     * @protected
+     * @internal
      */
     _getRequestOptions(request, session, proxyUrl) {
         const mandatoryRequestOptions = {
@@ -689,6 +650,14 @@ class CheerioCrawler {
         return { ...this.requestOptions, ...mandatoryRequestOptions };
     }
 
+    /**
+     * @param {*} request
+     * @param {*} response
+     * @param {*} encoding
+     * @ignore
+     * @protected
+     * @internal
+     */
     _encodeResponse(request, response, encoding) {
         if (this.forceResponseEncoding) {
             encoding = this.forceResponseEncoding;
@@ -722,6 +691,12 @@ class CheerioCrawler {
         throw new Error(`Resource ${request.url} served with unsupported charset/encoding: ${encoding}`);
     }
 
+    /**
+     * @param {*} response
+     * @ignore
+     * @protected
+     * @internal
+     */
     async _parseHtmlToDom(response) {
         return new Promise((resolve, reject) => {
             const domHandler = new htmlparser.DomHandler((err, dom) => {
@@ -730,7 +705,9 @@ class CheerioCrawler {
             });
             const parser = new WritableStream(domHandler, { decodeEntities: true });
             parser.on('error', reject);
-            response.on('error', reject).pipe(parser);
+            response
+                .on('error', reject)
+                .pipe(parser);
         });
     }
 
@@ -738,6 +715,8 @@ class CheerioCrawler {
      * Checks and extends supported mime types
      * @param {Array<(string|Object)>} additionalMimeTypes
      * @ignore
+     * @protected
+     * @internal
      */
     _extendSupportedMimeTypes(additionalMimeTypes) {
         additionalMimeTypes.forEach((mimeType) => {
@@ -754,7 +733,9 @@ class CheerioCrawler {
      * Handles blocked request
      * @param {Session} session
      * @param {number} statusCode
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _throwOnBlockedRequest(session, statusCode) {
         const isBlocked = session.retireOnBlockedStatusCodes(statusCode);
@@ -767,23 +748,13 @@ class CheerioCrawler {
     /**
      * Handles timeout request
      * @param {Session} session
-     * @private
+     * @ignore
+     * @protected
+     * @internal
      */
     _handleRequestTimeout(session) {
         if (session) session.markBad();
         throw new Error(`request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
-    }
-
-    /**
-     * @param {Object} options
-     * @param {Error} options.error
-     * @param {Request} options.request
-     * @return {Promise<void>}
-     * @ignore
-     */
-    async _defaultHandleFailedRequestFunction({ error, request }) { // eslint-disable-line class-methods-use-this
-        const details = _.pick(request, 'id', 'url', 'method', 'uniqueKey');
-        this.log.exception(error, 'Request failed and reached maximum retries', details);
     }
 }
 
@@ -795,10 +766,10 @@ export default CheerioCrawler;
  *  Original instance fo the {Request} object. Must be modified in-place.
  * @property {Session} [session]
  *  The current session
- * @property {AutoscaledPool} autoscaledPool
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
+ * @property {CheerioCrawler} [crawler]
  */
 
 /**
@@ -809,15 +780,15 @@ export default CheerioCrawler;
 
 /**
  * @typedef PostResponseInputs
- * @property {IncomingMessage|Readable} response stream
+ * @property {(IncomingMessage|Readable)} response stream
  * @property {Request} request
  *  Original instance fo the {Request} object. Must be modified in-place.
- * @property {AutoscaledPool} autoscaledPool
  * @property {Session} [session]
  *  The current session
  * @property {ProxyInfo} [proxyInfo]
  *  An object with information about currently used proxy by the crawler
  *  and configured by the {@link ProxyConfiguration} class.
+ *  @property {CheerioCrawler} crawler
  */
 
 /**
@@ -828,28 +799,23 @@ export default CheerioCrawler;
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {cheerio.Selector} [$]
+ * @property {cheerio.Root} $
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
  * @property {(string|Buffer)} body
  *  The request body of the web page.
- * @property {*} [json]
+ * @property {*} json
  *  The parsed object from JSON string if the response contains the content type application/json.
  * @property {Request} request
  *   The original {@link Request} object.
  * @property {{ type: string, encoding: string }} contentType
  *  Parsed `Content-Type header: { type, encoding }`.
  * @property {IncomingMessage} response
- *   An instance of Node's http.IncomingMessage object,
- * @property {AutoscaledPool} autoscaledPool
- *  A reference to the underlying {@link AutoscaledPool} class that manages the concurrency of the crawler.
- *  Note that this property is only initialized after calling the {@link CheerioCrawler#run} function.
- *  You can use it to change the concurrency settings on the fly,
- *  to pause the crawler by calling {@link AutoscaledPool#pause}
- *  or to abort it by calling {@link AutoscaledPool#abort}.
- * @property {Session} [session]
- * @property {ProxyInfo} [proxyInfo]
+ *   An instance of Node's [http.IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage) object,
+ * @property {Session} session
+ * @property {ProxyInfo} proxyInfo
  *   An object with information about currently used proxy by the crawler
  *   and configured by the {@link ProxyConfiguration} class.
+ * @property {CheerioCrawler} crawler
  */
 
 /**

@@ -1,9 +1,9 @@
 import sinon from 'sinon';
 import Statistics from '../../build/crawlers/statistics';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+import Apify from '../../build';
 import events from '../../build/events';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
-import * as utils from '../../build/utils';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount, totalTickMillis) => {
@@ -23,7 +23,7 @@ describe('Statistics', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         clock = sinon.useFakeTimers();
         stats = new Statistics();
     });
@@ -61,7 +61,7 @@ describe('Statistics', () => {
             await stats.startCapturing();
             await stats.persistState();
 
-            console.dir(stats);
+            // console.dir(stats);
             // eslint-disable-next-line no-unused-vars
             const state = await stats.keyValueStore.getValue(stats.persistStateKey);
 

@@ -1,11 +1,10 @@
 import { SessionPool, openSessionPool } from '../../build/session_pool/session_pool';
 import Apify from '../../build';
 import events from '../../build/events';
-import * as utils from '../../build/utils';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
-import defaultLog from '../../build/utils_log';
+import { Log } from '../../build/utils_log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
@@ -17,7 +16,7 @@ describe('SessionPool - testing session pool', () => {
 
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
-        utils.apifyStorageLocal = utils.newStorageLocal({ storageDir });
+        Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
         sessionPool = await Apify.openSessionPool();
     });
 
@@ -29,7 +28,6 @@ describe('SessionPool - testing session pool', () => {
         await localStorageEmulator.destroy();
     });
 
-   // eslint-disable-line
     test('should initialize with default values for first time', async () => {
         expect(sessionPool.sessions.length).toBeDefined();
         expect(sessionPool.maxPoolSize).toBeDefined();
@@ -60,7 +58,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool[key]).toEqual(value);
         });
         // log is appended to sessionOptions after sessionPool instantiation
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
     });
 
     test('should work using openSessionPool', async () => {
@@ -85,7 +83,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool[key]).toEqual(value);
         });
         // log is appended to sessionOptions after sessionPool instantiation
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
     });
 
     describe('should retrieve session', () => {
@@ -93,7 +91,7 @@ describe('SessionPool - testing session pool', () => {
             sessionPool = await Apify.openSessionPool({ sessionOptions: { maxAgeSecs: 100, maxUsageCount: 10 } });
             const session = await sessionPool.getSession();
             expect(sessionPool.sessions.length).toBe(1);
-            expect(session.id).toBeDefined(); // eslint-disable-line
+            expect(session.id).toBeDefined();
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.maxAgeSecs).toEqual(sessionPool.sessionOptions.maxAgeSecs);
             expect(session.sessionPool).toEqual(sessionPool);
@@ -116,24 +114,17 @@ describe('SessionPool - testing session pool', () => {
             expect(isCalled).toBe(true); //eslint-disable-line
         });
 
-        test('should delete picked session when it is usable a create a new one', async () => {
+        test('should delete picked session when it is unusable and create a new one', async () => {
             sessionPool.maxPoolSize = 1;
-            await sessionPool.getSession();
-            const session = sessionPool.sessions[0];
+            await sessionPool.addSession();
+
+            const session = await sessionPool.getSession();
+            expect(sessionPool.sessions[0].id === session.id).toBe(true);
 
             session.errorScore += session.maxErrorScore;
-            let isCalled = false;
-            const oldRemove = sessionPool._removeSession; //eslint-disable-line
-
-            sessionPool._removeSession = (session) => { //eslint-disable-line
-                isCalled = true;
-                return oldRemove.bind(sessionPool)(session);
-            };
-
             await sessionPool.getSession();
 
-                expect(isCalled).toBe(true); //eslint-disable-line
-                expect(sessionPool.sessions[0].id === session.id).toBe(false); //eslint-disable-line
+            expect(sessionPool.sessions[0].id === session.id).toBe(false);
             expect(sessionPool.sessions).toHaveLength(1);
         });
     });
@@ -198,9 +189,9 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should create session', async () => {
-       await sessionPool._createSession(); // eslint-disable-line
+        await sessionPool._createSession(); // eslint-disable-line
         expect(sessionPool.sessions.length).toBe(1);
-        expect(sessionPool.sessions[0].id).toBeDefined(); // eslint-disable-line
+        expect(sessionPool.sessions[0].id).toBeDefined();
     });
 
     describe('should persist state', () => {
@@ -238,13 +229,17 @@ describe('SessionPool - testing session pool', () => {
         });
     });
 
-    test('should remove session', async () => {
-        for (let i = 0; i < 10; i++) {
-            await sessionPool.getSession();
-        }
-        const picked = sessionPool.getSession();
-        sessionPool._removeSession(picked); // eslint-disable-line
-        expect(sessionPool.sessions.find((s) => s.id === picked.id)).toEqual(undefined);
+    test('should remove retired sessions', async () => {
+        sessionPool.maxPoolSize = 1;
+        await sessionPool.getSession();
+
+        const session = sessionPool.sessions[0];
+        session.errorScore += session.maxErrorScore;
+        const { id: retiredSessionId } = session;
+
+        await sessionPool.getSession();
+
+        expect(sessionPool.sessions.find((s) => s.id === retiredSessionId)).toEqual(undefined);
     });
 
     test('should recreate only usable sessions', async () => {
@@ -266,6 +261,18 @@ describe('SessionPool - testing session pool', () => {
         expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
 
         await newSessionPool.teardown();
+    });
+
+    test('should restore persisted maxUsageCount of recreated sessions', async () => {
+        sessionPool = await Apify.openSessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 66 } });
+        await sessionPool.getSession();
+        await sessionPool.persistState();
+        const loadedSessionPool = new SessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 88 } });
+        await loadedSessionPool.initialize();
+
+        const recreatedSession = await loadedSessionPool.getSession();
+
+        expect(recreatedSession.maxUsageCount).toEqual(66);
     });
 
     test('should persist state on teardown', async () => {
@@ -296,18 +303,79 @@ describe('SessionPool - testing session pool', () => {
         let isCalled;
         const createSessionFunction = (sessionPool2) => {
             isCalled = true;
-            expect(sessionPool2 instanceof SessionPool).toBe(true); // eslint-disable-line
+            expect(sessionPool2 instanceof SessionPool).toBe(true);
             return new Session({ sessionPool: sessionPool2 });
         };
         const newSessionPool = await Apify.openSessionPool({ createSessionFunction });
         const session = await newSessionPool.getSession();
-        expect(isCalled).toBe(true); // eslint-disable-line
-        expect(session.constructor.name).toBe("Session") // eslint-disable-line
+        expect(isCalled).toBe(true);
+        expect(session.constructor.name).toBe('Session');
     });
 
     it('should remove persist state event listener', async () => {
         expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(1);
         await sessionPool.teardown();
         expect(events.listenerCount(ACTOR_EVENT_NAMES_EX.PERSIST_STATE)).toEqual(0);
+    });
+
+    test('should be able to create session with provided id', async () => {
+        await sessionPool.addSession({ id: 'test-session' });
+        const session = sessionPool.sessions[0];
+        expect(session.id).toBe('test-session');
+    });
+
+    test('should be able to add session instance and create new session with provided sessionOptions with addSession() ', async () => {
+        const session = new Apify.Session({ sessionPool, id: 'test-session-instance' });
+        await sessionPool.addSession(session);
+
+        await sessionPool.addSession({ id: 'test-session' });
+
+        expect(await sessionPool.getSession('test-session')).toBeDefined();
+        expect(await sessionPool.getSession('test-session-instance')).toBeDefined();
+    });
+
+    test('should not be able to add session to the pool with id already in the pool', async () => {
+        try {
+            await sessionPool.addSession({ id: 'test-session' });
+            await sessionPool.addSession({ id: 'test-session' });
+        } catch (e) {
+            expect(e.message).toBe("Cannot add session with id 'test-session' as it already exists in the pool");
+        }
+        expect.assertions(1);
+    });
+
+    test('should be able to retrieve session with provided id', async () => {
+        await sessionPool.addSession();
+        await sessionPool.addSession({ id: 'test-session' });
+        await sessionPool.addSession({ id: 'another-test-session' });
+
+        const session = await sessionPool.getSession('test-session');
+        expect(session.id).toBe('test-session');
+    });
+
+    test('should correctly populate session array and session map', async () => {
+        sessionPool.maxPoolSize = 10;
+
+        for (let i = 0; i < 20; i++) await sessionPool.getSession();
+
+        expect(sessionPool.sessions.length).toEqual(10);
+        expect(sessionPool.sessionMap.size).toEqual(10);
+        expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
+    });
+
+    test('should correctly remove retired sessions both from array and session map', async () => {
+        sessionPool.maxPoolSize = 10;
+
+        for (let i = 0; i < 10; i++) {
+            await sessionPool.addSession({ id: `session_${i}` });
+            const session = await sessionPool.getSession(`session_${i}`);
+            session.errorScore += session.maxErrorScore;
+        }
+
+        await sessionPool.getSession();
+
+        expect(sessionPool.sessions.length).toEqual(1);
+        expect(sessionPool.sessionMap.size).toEqual(1);
+        expect(sessionPool.sessions.length).toEqual(sessionPool.sessionMap.size);
     });
 });

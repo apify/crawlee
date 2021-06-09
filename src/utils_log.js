@@ -1,19 +1,19 @@
 // Changes to the JsDoc here need to be replicated to types-apify/apify-shared/log.d.ts
 // This file is mainly for building the docs, not to provide typings
 // For the output of "main" typings to be correct, this file should be references
-// instead of 'apify-shared/log'
+// instead of '@apify/log'
 
 /**
- * @typedef {Object} LoggerOptions
+ * @typedef {object} LoggerOptions
  * @property {number} [level=4] Sets the log level to the given value, preventing messages from less important log levels
  * from being printed to the console. Use in conjunction with the `log.LEVELS` constants.
  * @property {number} [maxDepth=4] Max depth of data object that will be logged. Anything deeper than the limit will be stripped off.
  * @property {number} [maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
  * @property {string} [prefix] Prefix to be prepended the each logged line.
  * @property {string} [suffix] Suffix that will be appended the each logged line.
- * @property {Object} [logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * @property {object} [logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
  * strings. Optionally you can use `log.LoggerJson` that formats each log line as a JSON.
- * @property {Object} [data] Additional data to be added to each log line.
+ * @property {object} [data] Additional data to be added to each log line.
  */
 
 /**
@@ -144,7 +144,7 @@
  * to the message.
  * @name debug
  * @param {string} message
- * @param {Object} [data]
+ * @param {object} [data]
  * @method
  * @memberOf log
  */
@@ -154,7 +154,7 @@
  * unless the log level is changed. Data are stringified and appended to the message.
  * @name info
  * @param {string} message
- * @param {Object} [data]
+ * @param {object} [data]
  * @method
  * @memberOf log
  */
@@ -163,7 +163,7 @@
  * Logs a `WARNING` level message. Data are stringified and appended to the message.
  * @name warning
  * @param {string} message
- * @param {Object} [data]
+ * @param {object} [data]
  * @method
  * @memberOf log
  */
@@ -173,7 +173,7 @@
  * to an exception. For logging exceptions, use the `log.exception` method.
  * @name error
  * @param {string} message
- * @param {Object} [data]
+ * @param {object} [data]
  * @method
  * @memberOf log
  */
@@ -184,12 +184,13 @@
  * @name exception
  * @param {Error} exception
  * @param {string} [message]
- * @param {Object} [data]
+ * @param {object} [data]
  * @method
  * @memberOf log
  */
 
 // variable can't be the same from the namespace above
-import * as Log from 'apify-shared/log';
+import log, { Log, LoggerOptions, LogLevel, Logger, LoggerJson, LoggerText } from '@apify/log';
 
-export default Log;
+export { Log, LoggerOptions, LogLevel, Logger, LoggerJson, LoggerText };
+export default log;

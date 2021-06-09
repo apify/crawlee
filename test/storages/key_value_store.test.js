@@ -1,12 +1,12 @@
 import {
     ENV_VARS,
-} from 'apify-shared/consts';
+} from '@apify/consts';
 import { apifyClient } from '../../build/utils';
 import {
     KeyValueStore,
     maybeStringify,
 } from '../../build/storages/key_value_store';
-import StorageManager from '../../build/storages/storage_manager';
+import { StorageManager } from '../../build/storages/storage_manager';
 import * as Apify from '../../build';
 
 jest.mock('../../build/storages/storage_manager');
@@ -201,7 +201,7 @@ describe('KeyValueStore remote', () => {
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
 
-            await store.setValue('key-1', 'xxxx', { contentType: 'text/plain' });
+            await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
             expect(mockSetRecord).toHaveBeenCalledTimes(1);
             expect(mockSetRecord).toHaveBeenCalledWith({

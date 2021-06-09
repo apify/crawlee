@@ -21,7 +21,7 @@
  *   Status of the run. For possible values, see
  *   [Run lifecycle](https://docs.apify.com/actor/run#lifecycle)
  *   in Apify actor documentation.
- * @property {object} meta
+ * @property {Object<string, string>} meta
  *   Actor run meta-data. For example:
  *   ```
  *   {
@@ -30,7 +30,7 @@
  *     "userAgent": "ApifyClient/0.2.13 (Linux; Node/v8.11.3)"
  *   }
  *   ```
- * @property {object} stats
+ * @property {Object<string, number>} stats
  *   An object containing various actor run statistics. For example:
  *   ```
  *   {
@@ -40,7 +40,7 @@
  *   }
  *   ```
  *   Beware that object fields might change in future releases.
- * @property {object} options
+ * @property {Object<string, *>} options
  *   Actor run options. For example:
  *   ```
  *   {
@@ -69,7 +69,7 @@
  *   For more details, see
  *   [Container web server](https://docs.apify.com/actor/run#container-web-server)
  *   in Apify actor documentation.
- * @property {(object|null|undefined)} output
+ * @property {(Object<string, *>|null|undefined)} output
  *   Contains output of the actor run. The value is `null` or `undefined` in case the actor is still running,
  *   or if you pass `false` to the `fetchOutput` option of {@link Apify#call}.
  *

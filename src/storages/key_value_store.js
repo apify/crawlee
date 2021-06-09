@@ -1,11 +1,20 @@
-import { KEY_VALUE_STORE_KEY_REGEX } from 'apify-shared/regexs';
-import { ENV_VARS, KEY_VALUE_STORE_KEYS } from 'apify-shared/consts';
-import { jsonStringifyExtended } from 'apify-shared/utilities';
+import { ENV_VARS, KEY_VALUE_STORE_KEYS, KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
+import { jsonStringifyExtended } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
-import { APIFY_API_BASE_URL } from '../constants';
-import StorageManager from './storage_manager';
-import { addCharsetToContentType } from '../utils';
+import { StorageManager } from './storage_manager';
 import log from '../utils_log';
+
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+// @ts-ignore
+import * as ApifyClient from 'apify-client';
+// @ts-ignore
+import { ApifyStorageLocal } from '@apify/storage-local';
+import { Configuration } from '../configuration';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+/**
+ * @typedef {(Object<string, *>|null|Buffer|string)} KeyValueStoreValueTypes
+ */
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -15,7 +24,7 @@ import log from '../utils_log';
 export const maybeStringify = (value, options) => {
     // If contentType is missing, value will be stringified to JSON
     if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json';
+        options.contentType = 'application/json; charset=utf-8';
 
         try {
             // Format JSON to simplify debugging, the overheads with compression is negligible
@@ -56,8 +65,8 @@ export const maybeStringify = (value, options) => {
  * To access the input, you can also use the {@link Apify#getInput} convenience function.
  *
  * `KeyValueStore` stores its data either on local disk or in the Apify cloud,
- * depending on whether the [`APIFY_LOCAL_STORAGE_DIR`](/docs/guides/environment-variables#apify_local_storage_dir)
- * or [`APIFY_TOKEN`](/docs/guides/environment-variables#apify_token) environment variables are set.
+ * depending on whether the [`APIFY_LOCAL_STORAGE_DIR`](../guides/environment-variables#apify_local_storage_dir)
+ * or [`APIFY_TOKEN`](../guides/environment-variables#apify_token) environment variables are set.
  *
  * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
  * the local directory in the following files:
@@ -68,19 +77,20 @@ export const maybeStringify = (value, options) => {
  * unless you override it by setting the `APIFY_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
  * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
- * If the [`APIFY_TOKEN`](/docs/guides/environment-variables#apify_token) environment variable is set but
- * [`APIFY_LOCAL_STORAGE_DIR`](/docs/guides/environment-variables#apify_local_storage_dir) not,
+ * If the [`APIFY_TOKEN`](../guides/environment-variables#apify_token) environment variable is set but
+ * [`APIFY_LOCAL_STORAGE_DIR`](../guides/environment-variables#apify_local_storage_dir) not,
  * the data is stored in the [Apify Key-value store](https://docs.apify.com/storage/key-value-store)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
  * option to {@link Apify#openKeyValueStore} function, even if the
- * [`APIFY_LOCAL_STORAGE_DIR`](/docs/guides/environment-variables#apify_local_storage_dir) variable is set.
+ * [`APIFY_LOCAL_STORAGE_DIR`](../guides/environment-variables#apify_local_storage_dir) variable is set.
  *
  * **Example usage:**
  *
  * ```javascript
- * // Get actor input from the default key-value store
+ * // Get actor input from the default key-value store.
  * const input = await Apify.getInput();
- * const otherValue = Apify.getValue('my-key');
+ * // Get some value from the default key-value store.
+ * const otherValue = await Apify.getValue('my-key');
  *
  * // Write actor output to the default key-value store.
  * await Apify.setValue('OUTPUT', { myResult: 123 });
@@ -108,13 +118,15 @@ export class KeyValueStore {
      * @param {string} [options.name]
      * @param {ApifyClient|ApifyStorageLocal} options.client
      * @param {boolean} options.isLocal
+     * @param {Configuration} [config]
      */
-    constructor(options) {
+    constructor(options, config = Configuration.getGlobalConfig()) {
         this.id = options.id;
         this.name = options.name;
         this.isLocal = options.isLocal;
         this.client = options.client.keyValueStore(this.id);
         this.log = log.child({ prefix: 'KeyValueStore' });
+        this.config = config;
     }
 
     /**
@@ -142,7 +154,7 @@ export class KeyValueStore {
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @returns {Promise<(object|Buffer|string|null)>}
+     * @returns {Promise<KeyValueStoreValueTypes>}
      *   Returns a promise that resolves to an object, string
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
@@ -151,7 +163,7 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
 
         // TODO: Perhaps we should add options.contentType or options.asBuffer/asString
-        // to enforce the representation of value
+        //   to enforce the representation of value
         const record = await this.client.getRecord(key);
 
         return record ? record.value : null;
@@ -192,13 +204,13 @@ export class KeyValueStore {
      * @param {string} key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
-     * @param {(Object|string|Buffer|null)} value
+     * @param {KeyValueStoreValueTypes} value
      *   Record data, which can be one of the following values:
      *    - If `null`, the record in the key-value store is deleted.
      *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
      *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
      *   For any other value an error will be thrown.
-     * @param {Object} [options]
+     * @param {object} [options]
      * @param {string} [options.contentType]
      *   Specifies a custom MIME content type of the record.
      * @returns {Promise<void>}
@@ -223,13 +235,14 @@ export class KeyValueStore {
         // In this case delete the record.
         if (value === null) return this.client.deleteRecord(key);
 
+        // TODO the function mutates optionsCopy, but is also used in actor.js
+        // Remove the mutation when actor.js usages are removed.
         value = maybeStringify(value, optionsCopy);
 
-        // Keep this code in main scope so that simple errors are thrown rather than rejected promise.
         return this.client.setRecord({
             key,
             value,
-            contentType: addCharsetToContentType(optionsCopy.contentType),
+            contentType: optionsCopy.contentType,
         });
     }
 
@@ -241,7 +254,7 @@ export class KeyValueStore {
      */
     async drop() {
         await this.client.delete();
-        const manager = new StorageManager(KeyValueStore);
+        const manager = new StorageManager(KeyValueStore, this.config);
         manager.closeStorage(this);
     }
 
@@ -253,7 +266,7 @@ export class KeyValueStore {
      * @return {string}
      */
     getPublicUrl(key) {
-        return `${APIFY_API_BASE_URL}/key-value-stores/${this.id}/records/${key}`;
+        return `${this.config.get('apiBaseUrl')}/key-value-stores/${this.id}/records/${key}`;
     }
 
     /**
@@ -275,12 +288,23 @@ export class KeyValueStore {
      * ```
      *
      * @param {KeyConsumer} iteratee A function that is called for every key in the key-value store.
-     * @param {Object} [options] All `forEachKey()` parameters are passed
+     * @param {object} [options] All `forEachKey()` parameters are passed
      *   via an options object with the following keys:
      * @param {string} [options.exclusiveStartKey] All keys up to this one (including) are skipped from the result.
      * @return {Promise<void>}
      */
-    async forEachKey(iteratee, options = {}, index = 0) {
+    async forEachKey(iteratee, options = {}) {
+        return this._forEachKey(iteratee, options);
+    }
+
+    /**
+     * @param {KeyConsumer} iteratee
+     * @param {Record<string, any>} [options]
+     * @param {number} [index=0]
+     * @return {Promise<Promise<void> | undefined>}
+     * @private
+     */
+    async _forEachKey(iteratee, options = {}, index = 0) {
         const { exclusiveStartKey } = options;
         ow(iteratee, ow.function);
         ow(options, ow.object.exactShape({
@@ -293,7 +317,7 @@ export class KeyValueStore {
             await iteratee(item.key, index++, { size: item.size });
         }
         return isTruncated
-            ? this.forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
+            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey }, index)
             : undefined; // [].forEach() returns undefined.
     }
 }
@@ -351,7 +375,7 @@ export const openKeyValueStore = async (storeIdOrName, options = {}) => {
  *
  * @param {string} key
  *   Unique record key.
- * @returns {Promise<object|string|Buffer|null>}
+ * @returns {Promise<Object<string, *>|string|Buffer|null>}
  *   Returns a promise that resolves to an object, string
  *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
  *   on the MIME content type of the record, or `null`
@@ -388,13 +412,13 @@ export const getValue = async (key) => {
  *
  * @param {string} key
  *   Unique record key.
- * @param {object} value
+ * @param {*} value
  *   Record data, which can be one of the following values:
  *    - If `null`, the record in the key-value store is deleted.
  *    - If no `options.contentType` is specified, `value` can be any JavaScript object and it will be stringified to JSON.
  *    - If `options.contentType` is set, `value` is taken as is and it must be a `String` or [`Buffer`](https://nodejs.org/api/buffer.html).
  *   For any other value an error will be thrown.
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {string} [options.contentType]
  *   Specifies a custom MIME content type of the record.
  * @return {Promise<void>}
@@ -423,10 +447,14 @@ export const setValue = async (key, value, options) => {
  * await store.getValue('INPUT');
  * ```
  *
+ * Note that the `getInput()` function does not cache the value read from the key-value store.
+ * If you need to use the input multiple times in your actor,
+ * it is far more efficient to read it once and store it locally.
+ *
  * For more information, see  {@link Apify#openKeyValueStore}
  * and {@link KeyValueStore#getValue}.
  *
- * @returns {Promise<object|string|Buffer|null>}
+ * @returns {Promise<Object<string, *>|string|Buffer|null>}
  *   Returns a promise that resolves to an object, string
  *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
  *   on the MIME content type of the record, or `null`
@@ -444,7 +472,7 @@ export const getInput = async () => getValue(process.env[ENV_VARS.INPUT_KEY] || 
  *   Current {KeyValue} key being processed.
  * @param {number} index
  *   Position of the current key in {@link KeyValueStore}.
- * @param {object} info
+ * @param {*} info
  *   Information about the current {@link KeyValueStore} entry.
  * @param {number} info.size
  *   Size of the value associated with the current key in bytes.

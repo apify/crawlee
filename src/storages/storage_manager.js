@@ -1,6 +1,15 @@
-import { ENV_VARS, LOCAL_ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
+
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+// @ts-ignore
+import * as ApifyClient from 'apify-client';
+// @ts-ignore
+import { ApifyStorageLocal } from '@apify/storage-local';
 import cacheContainer from '../cache_container';
-import * as utils from '../utils';
+import { Configuration } from '../configuration';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+const MAX_OPENED_STORAGES = 1000;
 
 const DEFAULT_ID_ENV_VAR_NAMES = {
     Dataset: ENV_VARS.DEFAULT_DATASET_ID,
@@ -8,51 +17,53 @@ const DEFAULT_ID_ENV_VAR_NAMES = {
     RequestQueue: ENV_VARS.DEFAULT_REQUEST_QUEUE_ID,
 };
 
-const MAX_OPENED_STORAGES = 1000;
+const DEFAULT_ID_CONFIG_KEYS = {
+    Dataset: 'defaultDatasetId',
+    KeyValueStore: 'defaultKeyValueStoreId',
+    RequestQueue: 'defaultRequestQueueId',
+};
 
 /**
  * StorageManager takes care of opening remote or local storages.
+ * @template T
  * @property {Function} StorageConstructor
  * @property {string} name
  * @property {LruCache} cache
- * @private
+ * @ignore
  */
-class StorageManager {
+export class StorageManager {
     /**
-     * @param {Function} StorageConstructor
+     * @param {T} StorageConstructor
+     * @param {Configuration} [config]
      */
-    constructor(StorageConstructor) {
+    constructor(StorageConstructor, config = Configuration.getGlobalConfig()) {
         this.StorageConstructor = StorageConstructor;
         this.name = StorageConstructor.name;
         this.cache = cacheContainer.openCache(this.name, MAX_OPENED_STORAGES);
+        this.config = config;
     }
 
     /**
-     * @param {string} idOrName
+     * @param {string} [idOrName]
      * @param {object} [options]
      * @param {boolean} [options.forceCloud]
-     * @return {Promise<object>}
+     * @return {Promise<T>}
      */
     async openStorage(idOrName, options = {}) {
-        if (!process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !process.env[ENV_VARS.TOKEN]) {
-            throw new Error(`Cannot use ${this.name} as neither ${ENV_VARS.LOCAL_STORAGE_DIR} nor ${ENV_VARS.TOKEN}`
-                + ' environment variable is set. You need to set one these variables in order to enable data storage.');
-        }
-
-        const isLocal = !!(process.env[ENV_VARS.LOCAL_STORAGE_DIR] && !options.forceCloud);
+        const isLocal = !!(this.config.get('localStorageDir') && !options.forceCloud);
 
         if (!idOrName) {
             const defaultIdEnvVarName = DEFAULT_ID_ENV_VAR_NAMES[this.name];
-            idOrName = process.env[defaultIdEnvVarName];
-            if (!idOrName && isLocal) idOrName = LOCAL_ENV_VARS[defaultIdEnvVarName];
+            const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
+            idOrName = this.config.get(defaultIdConfigKey);
             if (!idOrName) throw new Error(`The '${defaultIdEnvVarName}' environment variable is not defined.`);
         }
 
         const cacheKey = this._createCacheKey(idOrName, isLocal);
-
         let storage = this.cache.get(cacheKey);
+
         if (!storage) {
-            const client = isLocal ? utils.apifyStorageLocal : utils.apifyClient;
+            const client = isLocal ? this.config.getStorageLocal() : this.config.getClient();
             const storageObject = await this._getOrCreateStorage(idOrName, this.name, client);
             storage = new this.StorageConstructor({
                 id: storageObject.id,
@@ -85,6 +96,9 @@ class StorageManager {
      * @param {string} idOrName
      * @param {boolean} isLocal
      * @return {string}
+     * @ignore
+     * @protected
+     * @internal
      */
     _createCacheKey(idOrName, isLocal) {
         return isLocal
@@ -98,6 +112,8 @@ class StorageManager {
      * @param {string} storageConstructorName
      * @param {ApifyClient|ApifyStorageLocal} apiClient
      * @ignore
+     * @protected
+     * @internal
      */
     async _getOrCreateStorage(storageIdOrName, storageConstructorName, apiClient) {
         const {
@@ -116,7 +132,9 @@ class StorageManager {
     /**
      * @param {ApifyClient|ApifyStorageLocal} client
      * @param {string} storageConstructorName
-     * @return {{ createStorageClient: function, createStorageCollectionClient: function }}
+     * @ignore
+     * @protected
+     * @internal
      */
     _getStorageClientFactories(client, storageConstructorName) {
         // Dataset => dataset
@@ -134,6 +152,9 @@ class StorageManager {
      * @param {string} storage.id
      * @param {string} [storage.name]
      * @param {boolean} [storage.isLocal]
+     * @ignore
+     * @protected
+     * @internal
      */
     _addStorageToCache(storage) {
         const idKey = this._createCacheKey(storage.id, storage.isLocal);
@@ -144,5 +165,3 @@ class StorageManager {
         }
     }
 }
-
-export default StorageManager;
