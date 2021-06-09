@@ -263,7 +263,7 @@ describe('SessionPool - testing session pool', () => {
         await newSessionPool.teardown();
     });
 
-    test('should set maxUsageCount of recreated sessions according to current SessionPool options', async () => {
+    test('should restore persisted maxUsageCount of recreated sessions', async () => {
         sessionPool = await Apify.openSessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 66 } });
         await sessionPool.getSession();
         await sessionPool.persistState();
