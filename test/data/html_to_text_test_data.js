@@ -1,4 +1,31 @@
-<html>
+/* eslint-disable */
+
+// The whitespace in the text is important. Don't change it.
+// We're keeping this text as a JS string, because git and other
+// tools do magic with line endings and it can break tests.
+// E.g. LF -> CRLF on Win or auto-trimming of lines in editors.
+exports.text = 'Let\'s start with a simple text. \n' +
+    'The ships hung in the sky, much the way that bricks don\'t. \n' +
+    'These aren\'t the Droids you\'re looking for\n' +
+    'I\'m sorry, Dave. I\'m afraid I can\'t do that.\n' +
+    'I\'m sorry, Dave. I\'m afraid I can\'t do that.\n' +
+    'A1\tA2\tA3\t\n' +
+    'B1\tB2\tB3\tB 4\t\n' +
+    'This is some text with inline elements and HTML entities (>bla<) \n' +
+    'Test\n' +
+    'a\n' +
+    'few\n' +
+    'line\n' +
+    'breaks\n' +
+    'Spaces in an inline text should be completely ignored. \n' +
+    'But,\n' +
+    '    a pre-formatted\n' +
+    '                block  should  be  kept\n' +
+    '                                       pre-formatted.\n' +
+    'The Greatest Science Fiction Quotes Of All Time \n' +
+    'Don\'t know, I don\'t know such stuff. I just do eyes, ju-, ju-, just eyes... just genetic design, just eyes. You Nexus, huh? I design your eyes.'
+
+exports.html = `<html>
 <head>
     <title>Title SHOULD NOT be converted</title>
 
@@ -92,4 +119,4 @@ But,
     just eyes. You Nexus, huh? I design your <a class="click" href="http://cool.com/">eyes</a>.
 </p>
 </body>
-</html>
+</html>`
