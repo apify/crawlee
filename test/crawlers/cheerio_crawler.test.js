@@ -702,8 +702,15 @@ describe('CheerioCrawler', () => {
             const { sessions } = cheerioCrawler.sessionPool;
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
+                // TODO this test is flaky in CI and we need some more info to debug why.
+                if (session.errorScore !== 1) {
+                    console.log('SESSIONS:');
+                    console.dir(sessions);
+                }
+
                 expect(session.errorScore).toEqual(1);
             });
+
             log.setLevel(log.LEVELS.ERROR);
         });
 

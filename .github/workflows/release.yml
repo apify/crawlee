@@ -77,13 +77,8 @@ jobs:
           node-version: 14
           registry-url: https://registry.npmjs.org/
       -
-        name: Load Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            node_modules
-            build
-          key: cache-${{ github.run_id }}-v14
+        name: Install Dependencies
+        run: npm install
       -
         # Determine if this is a beta or latest release
         name: Set Release Tag
