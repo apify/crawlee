@@ -14,10 +14,11 @@ jobs:
   build_and_test:
     name: Build & Test
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node-version: [10, 12, 14, 15, 16]
 
     steps:
@@ -36,7 +37,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       -
         name: Cache Node Modules
-        if: ${{ matrix.node-version == 14 }}
+        if: ${{ matrix.node-version == 14  && matrix.os == 'ubuntu-latest' }}
         uses: actions/cache@v2
         with:
           path: |

@@ -10,11 +10,12 @@ jobs:
     test:
         name: Test
         if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-        runs-on: ubuntu-latest
+        runs-on: ${{ matrix.os }}
 
         strategy:
             fail-fast: false
             matrix:
+                os: [ubuntu-latest, windows-latest]
                 node-version: [ 10, 12, 14, 15, 16 ]
 
         steps:

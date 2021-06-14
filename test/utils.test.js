@@ -11,6 +11,7 @@ import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';
 import * as requestUtils from '../build/utils_request';
+import * as htmlToTextData from './data/html_to_text_test_data';
 
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {
@@ -550,11 +551,9 @@ describe('utils.htmlToText()', () => {
     });
 
     test('handles larger HTML documents', () => {
-        const html1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.html'), 'utf8');
-        const text1 = fs.readFileSync(path.join(__dirname, 'data', 'html_to_text_test.txt'), 'utf8');
-
+        const { html, text } = htmlToTextData;
         // Careful here - don't change any whitespace in the text below or the test will break, even trailing!
-        checkHtmlToText(html1, text1, true);
+        checkHtmlToText(html, text, true);
     });
 
     test('works with Cheerio object', () => {
