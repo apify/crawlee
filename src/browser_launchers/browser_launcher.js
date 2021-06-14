@@ -73,7 +73,7 @@ export default class BrowserLauncher {
             launchOptions = {},
         } = launchContext;
 
-        this._validateProxyUrl(proxyUrl);
+        this._validateProxyUrlProtocol(proxyUrl);
 
         // those need to be reassigned otherwise they are {} in types
         /** @type {*} */
@@ -154,17 +154,11 @@ export default class BrowserLauncher {
      * @param {string} proxyUrl
      * @private
      */
-    _validateProxyUrl(proxyUrl) {
-        if (!proxyUrl) {
-            return;
-        }
+    _validateProxyUrlProtocol(proxyUrl) {
+        if (!proxyUrl) return;
 
-        const parsedProxyUrl = new URL(proxyUrl);
-        if (!parsedProxyUrl.host || !parsedProxyUrl.port) {
-            throw new Error('Invalid "proxyUrl" option: both hostname and port must be provided.');
-        }
-        if (!/^(http|https|socks4|socks5)$/.test(parsedProxyUrl.protocol.replace(':', ''))) {
-            throw new Error(`Invalid "proxyUrl" option: Unsupported scheme (${parsedProxyUrl.protocol.replace(':', '')}).`);
+        if (!/^(http|https|socks4|socks5)/i.test(proxyUrl)) {
+            throw new Error(`Invalid "proxyUrl". Unsupported protocol: ${proxyUrl}.`);
         }
     }
 }
