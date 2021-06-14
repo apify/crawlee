@@ -41,6 +41,12 @@ const dataset = await Apify.openDataset('custom-name');
 await dataset.pushData({ myValue: 123 });
 ```
 
+## Full list of changes:
+- Add `Configuration` class and `Apify` named export, see above.
+- Fix `proxyUrl` without a port throwing an error when launching browsers.
+- Fix `maxUsageCount` of a `Session` not being persisted.
+- Update `puppeteer` and `playwright` to match stable Chrome (90).
+
 1.2.1 / 2021/05/14
 ====================
 - Fix `requestAsBrowser` behavior with various combinations of `json`, `payload` legacy options.
