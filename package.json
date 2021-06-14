@@ -60,7 +60,6 @@
         "@types/cheerio": "^0.22.28",
         "@types/domhandler": "^2.4.1",
         "@types/node": "^14",
-        "@types/puppeteer": "^5.4.3",
         "@types/socket.io": "^2.1.13",
         "@types/tough-cookie": "^4.0.0",
         "apify-client": "^1.2.4",
@@ -81,6 +80,18 @@
         "tough-cookie": "^4.0.0",
         "underscore": "^1.13.0",
         "ws": "^7.4.6"
+    },
+    "peerDependencies": {
+        "playwright": "^1.11.0",
+        "puppeteer": "^9.0.0"
+    },
+    "peerDependenciesMeta": {
+        "playwright": {
+            "optional": true
+        },
+        "puppeteer": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "@apify/eslint-config": "^0.1.3",
