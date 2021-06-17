@@ -115,7 +115,7 @@ jobs:
         with:
           token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
           repository: apify/apify-actor-docker
-          event-type: build-images
+          event-type: build-node-images
           client-payload: >
             {
               "release_tag": "${{ env.RELEASE_TAG }}",
