@@ -362,7 +362,10 @@ describe('BrowserCrawler', () => {
     });
 
     test('should persist cookies per session', async () => {
+        const name = `list-${Math.random()}`;
         const requestList = new Apify.RequestList({
+            persistStateKey: name,
+            persistRequestsKey: name,
             sources: [
                 { url: 'http://example.com/?q=1' },
                 { url: 'http://example.com/?q=2' },
