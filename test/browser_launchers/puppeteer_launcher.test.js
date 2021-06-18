@@ -6,6 +6,8 @@ import basicAuthParser from 'basic-auth-parser';
 import _ from 'underscore';
 import sinon from 'sinon';
 import { ENV_VARS } from '@apify/consts';
+import express from 'express';
+import { startExpressAppPromise } from '../_helper';
 import Apify from '../../build/index';
 import * as utils from '../../build/utils';
 
@@ -14,6 +16,32 @@ let proxyServer;
 let proxyPort; // eslint-disable-line no-unused-vars
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
 let wasProxyCalled = false; // eslint-disable-line no-unused-vars
+
+const HOSTNAME = '127.0.0.1';
+let port;
+let server;
+beforeAll(async () => {
+    const app = express();
+
+    app.get('/getRawHeaders', (req, res) => {
+        res.send(JSON.stringify(req.rawHeaders));
+    });
+
+    app.all('/foo', (req, res) => {
+        res.json({
+            headers: req.headers,
+            method: req.method,
+            bodyLength: +req.headers['content-length'] || 0,
+        });
+    });
+
+    server = await startExpressAppPromise(app, 0);
+    port = server.address().port; //eslint-disable-line
+});
+
+afterAll(() => {
+    server.close();
+});
 
 // Setup local proxy server for the tests
 beforeAll(() => {
@@ -161,13 +189,13 @@ describe('Apify.launchPuppeteer()', () => {
             })
             .then((result) => {
                 page = result;
-                return page.goto('https://api.apify.com/v2/browser-info');
+                return page.goto(`http://${HOSTNAME}:${port}/foo`);
             })
             .then(() => {
                 return page.content();
             })
             .then((html) => {
-                expect(html).toMatch(`"user-agent": "${opts.userAgent}"`);
+                expect(html).toMatch(`"user-agent":"${opts.userAgent}"`);
                 return browser.close();
             });
     });
