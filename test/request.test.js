@@ -6,10 +6,10 @@ import Apify from '../build/index';
 describe('Apify.Request', () => {
     test('should not accept invalid values', () => {
         expect(() => new Apify.Request({ url: 1 })).toThrowError();
-        expect(() => new Apify.Request({ url: 'https://apify.com' })).not.toThrowError();
-        expect(() => new Apify.Request({ url: 'https://apify.com', method: 1 })).toThrowError();
-        expect(() => new Apify.Request({ url: 'https://apify.com', headers: 'x' })).toThrowError();
-        expect(() => new Apify.Request({ url: 'https://apify.com', foo: 'invalid-property' })).toThrowError();
+        expect(() => new Apify.Request({ url: 'https://example.com' })).not.toThrowError();
+        expect(() => new Apify.Request({ url: 'https://example.com', method: 1 })).toThrowError();
+        expect(() => new Apify.Request({ url: 'https://example.com', headers: 'x' })).toThrowError();
+        expect(() => new Apify.Request({ url: 'https://example.com', foo: 'invalid-property' })).toThrowError();
     });
 
     test('should create unique key based on url for GET requests', () => {

@@ -153,10 +153,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
 
             // Check response that it's correct.
             const response = await page.goto(`http://${HOSTNAME}:${port}/foo`, { waitUntil: 'networkidle0' });
-            console.log(await response.text());
-            const { method, headers, bodyLength, ...rest } = JSON.parse(await response.text());
-            console.log(rest);
-            console.log(response);
+            const { method, headers, bodyLength } = JSON.parse(await response.text());
             expect(method).toBe('POST');
             expect(bodyLength).toBe(16);
             expect(headers['content-type']).toBe('application/json; charset=utf-8');

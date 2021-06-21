@@ -397,7 +397,16 @@ describe('BrowserCrawler', () => {
         await requestList.initialize();
         await browserCrawler.run();
         expect(loadedCookies).toHaveLength(4);
-        loadedCookies.forEach((cookie) => expect(cookie).toEqual('TEST=12321312312'));
+
+        loadedCookies.forEach((cookie) => {
+            // TODO this test is flaky in CI and we need some more info to debug why.
+            if (cookie !== 'TEST=12321312312') {
+                console.log('loadedCookies:');
+                console.dir(loadedCookies);
+            }
+
+            expect(cookie).toEqual('TEST=12321312312');
+        });
     });
 
     test('should throw on "blocked" status codes', async () => {
