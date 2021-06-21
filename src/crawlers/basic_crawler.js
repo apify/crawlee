@@ -212,7 +212,7 @@ export class BasicCrawler {
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
         maxConcurrency: ow.optional.number,
-
+		useHttp2: ow.optional.boolean,
         // internal
         log: ow.optional.object,
     };
@@ -239,7 +239,7 @@ export class BasicCrawler {
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
-
+			useHttp2,
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
         } = options;
@@ -268,6 +268,7 @@ export class BasicCrawler {
         };
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
+		this.useHttp2 = useHttp2;
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;

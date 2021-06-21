@@ -554,7 +554,8 @@ class CheerioCrawler extends BasicCrawler {
         }
 
         const opts = this._getRequestOptions(request, session, proxyUrl);
-        let responseWithStream;
+        opts.useHttp2 = this.useHttp2;
+		let responseWithStream;
 
         try {
             responseWithStream = await utilsRequest.requestAsBrowser(opts);
