@@ -11,9 +11,9 @@
  * @property {number} [maxStringLength=2000] Max length of the string to be logged. Longer strings will be truncated.
  * @property {string} [prefix] Prefix to be prepended the each logged line.
  * @property {string} [suffix] Suffix that will be appended the each logged line.
- * @property {object} [logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
+ * @property {Logger} [logger] Logger implementation to be used. Default one is log.LoggerText to log messages as easily readable
  * strings. Optionally you can use `log.LoggerJson` that formats each log line as a JSON.
- * @property {object} [data] Additional data to be added to each log line.
+ * @property {Record<string, unknown>} [data] Additional data to be added to each log line.
  */
 
 /**

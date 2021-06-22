@@ -21,14 +21,6 @@ import { requestAsBrowser } from './utils_request';
 import { ApifyCallError } from './errors';
 
 /**
- * @typedef AdhocWebhook
- * @property {EventTypes} eventTypes
- * @property {string} requestUrl
- * @property {string} [idempotencyKey]
- * @property {string} [payloadTemplate]
- */
-
-/**
  * `Apify` class serves as an alternative approach to the static helpers exported from the package. It allows to pass configuration
  * that will be used on the instance methods. Environment variables will have precedence over this configuration.
  * See {@link Configuration} for details about what can be configured and what are the default values.
@@ -452,22 +444,6 @@ export class Apify {
         await sleep(customAfterSleepMillis || this.config.get('metamorphAfterSleepMillis'));
     }
 
-    /**
-     * @typedef WebhookRun
-     * @property {string} id
-     * @property {string} createdAt
-     * @property {string} modifiedAt
-     * @property {string} userId
-     * @property {boolean} isAdHoc
-     * @property {EventTypes} eventTypes
-     * @property {*} condition
-     * @property {boolean} ignoreSslErrors
-     * @property {boolean} doNotRetry
-     * @property {string} requestUrl
-     * @property {string} payloadTemplate
-     * @property {*} lastDispatch
-     * @property {*} stats
-     */
     /**
      *
      * Creates an ad-hoc webhook for the current actor run, which lets you receive a notification when the actor run finished or failed.

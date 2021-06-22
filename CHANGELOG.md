@@ -46,6 +46,7 @@ await dataset.pushData({ myValue: 123 });
 - Fix `proxyUrl` without a port throwing an error when launching browsers.
 - Fix `maxUsageCount` of a `Session` not being persisted.
 - Update `puppeteer` and `playwright` to match stable Chrome (90).
+- Fix support for building TypeScript projects that depend on the SDK.
 
 1.2.1 / 2021/05/14
 ====================
