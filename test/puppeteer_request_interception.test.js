@@ -11,6 +11,32 @@ const HTML_PAGE = `<html><body>
     <script src="https://example.com/script.js" defer="defer">></script>
 </body></html>`;
 
+const HOSTNAME = '127.0.0.1';
+let port;
+let server;
+beforeAll(async () => {
+    const app = express();
+
+    app.get('/getRawHeaders', (req, res) => {
+        res.send(JSON.stringify(req.rawHeaders));
+    });
+
+    app.all('/foo', (req, res) => {
+        res.json({
+            headers: req.headers,
+            method: req.method,
+            bodyLength: +req.headers['content-length'] || 0,
+        });
+    });
+
+    server = await startExpressAppPromise(app, 0);
+    port = server.address().port; //eslint-disable-line
+});
+
+afterAll(() => {
+    server.close();
+});
+
 describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandler()', () => {
     test('should allow multiple handlers', async () => {
         const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
@@ -126,7 +152,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
             });
 
             // Check response that it's correct.
-            const response = await page.goto('https://api.apify.com/v2/browser-info', { waitUntil: 'networkidle0' });
+            const response = await page.goto(`http://${HOSTNAME}:${port}/foo`, { waitUntil: 'networkidle0' });
             const { method, headers, bodyLength } = JSON.parse(await response.text());
             expect(method).toBe('POST');
             expect(bodyLength).toBe(16);
@@ -150,7 +176,7 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
             });
 
             // Check response that it's correct.
-            const response = await page.goto('https://api.apify.com/v2/browser-info', { waitUntil: 'networkidle0' });
+            const response = await page.goto(`http://${HOSTNAME}:${port}/foo`, { waitUntil: 'networkidle0' });
             const { method } = JSON.parse(await response.text());
             expect(method).toBe('POST');
         } finally {
@@ -159,24 +185,6 @@ describe('Apify.utils.puppeteer.addInterceptRequestHandler|removeInterceptReques
     });
 
     describe('internal handleRequest function should return correctly formated headers', () => {
-        const HOSTNAME = '127.0.0.1';
-        let port;
-        let server;
-        beforeAll(async () => {
-            const app = express();
-
-            app.get('/getRawHeaders', (req, res) => {
-                res.send(JSON.stringify(req.rawHeaders));
-            });
-
-            server = await startExpressAppPromise(app, 0);
-            port = server.address().port; //eslint-disable-line
-        });
-
-        afterAll(() => {
-            server.close();
-        });
-
         test('should correctly capitalize headers', async () => {
             const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
 

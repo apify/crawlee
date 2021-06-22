@@ -83,7 +83,7 @@ describe('Apify.events', () => {
                     done();
                 });
             });
-    });
+    }, 60e3);
 
     test('should work without Apify.main()', async () => {
         let wsClosed = false;
