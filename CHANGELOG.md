@@ -1,7 +1,3 @@
-1.3.1 / TODO
-====================
-- Added new event `aborting` for handling gracefully aborted run from Apify platform.
-
 1.3.0 / BETA
 ====================
 Adds two new named exports:
@@ -50,6 +46,7 @@ await dataset.pushData({ myValue: 123 });
 - Fix `proxyUrl` without a port throwing an error when launching browsers.
 - Fix `maxUsageCount` of a `Session` not being persisted.
 - Update `puppeteer` and `playwright` to match stable Chrome (90).
+- Added new event `aborting` for handling gracefully aborted run from Apify platform.
 
 1.2.1 / 2021/05/14
 ====================
