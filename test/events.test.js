@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import sinon from 'sinon';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import { ACTOR_EVENT_NAMES_EX } from '../build/constants';
 import { sleep } from '../build/utils';
 

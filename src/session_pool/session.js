@@ -1,4 +1,4 @@
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import ow from 'ow';
 import { Cookie, CookieJar } from 'tough-cookie';
 import EVENTS from './events';
@@ -188,6 +188,7 @@ export class Session {
             expiresAt: this.expiresAt.toISOString(),
             createdAt: this.createdAt.toISOString(),
             usageCount: this.usageCount,
+            maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
         };
     }

@@ -1,4 +1,4 @@
-import { betterSetInterval, betterClearInterval } from 'apify-shared/utilities';
+import { betterSetInterval, betterClearInterval } from '@apify/utilities';
 import ow from 'ow';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars

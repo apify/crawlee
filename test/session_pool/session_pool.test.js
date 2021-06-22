@@ -4,7 +4,7 @@ import events from '../../build/events';
 import { ACTOR_EVENT_NAMES_EX } from '../../build/constants';
 import { Session } from '../../build/session_pool/session';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
-import defaultLog from '../../build/utils_log';
+import { Log } from '../../build/utils_log';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool;
@@ -58,7 +58,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool[key]).toEqual(value);
         });
         // log is appended to sessionOptions after sessionPool instantiation
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
     });
 
     test('should work using openSessionPool', async () => {
@@ -83,7 +83,7 @@ describe('SessionPool - testing session pool', () => {
             expect(sessionPool[key]).toEqual(value);
         });
         // log is appended to sessionOptions after sessionPool instantiation
-        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(defaultLog.Log) });
+        expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
     });
 
     describe('should retrieve session', () => {
@@ -261,6 +261,18 @@ describe('SessionPool - testing session pool', () => {
         expect(newSessionPool.sessions).toHaveLength(10 - invalidSessionsCount);
 
         await newSessionPool.teardown();
+    });
+
+    test('should restore persisted maxUsageCount of recreated sessions', async () => {
+        sessionPool = await Apify.openSessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 66 } });
+        await sessionPool.getSession();
+        await sessionPool.persistState();
+        const loadedSessionPool = new SessionPool({ maxPoolSize: 1, sessionOptions: { maxUsageCount: 88 } });
+        await loadedSessionPool.initialize();
+
+        const recreatedSession = await loadedSessionPool.getSession();
+
+        expect(recreatedSession.maxUsageCount).toEqual(66);
     });
 
     test('should persist state on teardown', async () => {

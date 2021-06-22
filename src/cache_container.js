@@ -1,4 +1,4 @@
-import * as LruCache from 'apify-shared/lru_cache';
+import { LruCache } from '@apify/datastructures';
 
 /**
  * Used to manage all globally created caches, such as request queue cache

@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = {
     testEnvironment: 'node',
     testRunner: 'jest-circus/runner',
-    verbose: true,
+    verbose: false,
     rootDir: path.join(__dirname, './'),
     testTimeout: 30e3,
     maxWorkers: 3,

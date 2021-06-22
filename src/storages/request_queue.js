@@ -1,8 +1,7 @@
 import * as crypto from 'crypto';
-import * as LruCache from 'apify-shared/lru_cache';
-import * as ListDictionary from 'apify-shared/list_dictionary';
-import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from 'apify-shared/consts';
-import { cryptoRandomObjectId } from 'apify-shared/utilities';
+import { ListDictionary, LruCache } from '@apify/datastructures';
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import ow from 'ow';
 import { StorageManager } from './storage_manager';
 import { sleep } from '../utils';

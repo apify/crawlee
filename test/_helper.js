@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 
 // Log unhandled rejections.
 // process.on('unhandledRejection', (err) => {

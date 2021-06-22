@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { ENV_VARS } from 'apify-shared/consts';
+import { ENV_VARS } from '@apify/consts';
 import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';
@@ -650,7 +650,7 @@ describe('CheerioCrawler', () => {
         let requestList;
 
         beforeEach(async () => {
-            requestList = await Apify.openRequestList('test', sources.slice());
+            requestList = await Apify.openRequestList(null, sources.slice());
         });
 
         test('should work', async () => {
@@ -685,10 +685,9 @@ describe('CheerioCrawler', () => {
 
         test('should markBad sessions after request timeout', async () => {
             log.setLevel(log.LEVELS.OFF);
-            const sessions = [];
-            const failed = [];
             const cheerioCrawler = new Apify.CheerioCrawler({
-                requestList: await Apify.openRequestList('timeoutTest', [`http://${HOST}:${port}/timeout?a=12`,
+                requestList: await Apify.openRequestList(null, [
+                    `http://${HOST}:${port}/timeout?a=12`,
                     `http://${HOST}:${port}/timeout?a=23`,
                 ]),
                 maxRequestRetries: 1,
@@ -696,19 +695,22 @@ describe('CheerioCrawler', () => {
                 maxConcurrency: 1,
                 useSessionPool: true,
                 handlePageFunction: async () => {},
-                handleFailedRequestFunction: ({ request }) => failed.push(request),
             });
-            const oldCall = cheerioCrawler._handleRequestTimeout.bind(cheerioCrawler);
-            cheerioCrawler._handleRequestTimeout = (session) => {
-                sessions.push(session);
-                return oldCall(session);
-            };
 
             await cheerioCrawler.run();
+
+            const { sessions } = cheerioCrawler.sessionPool;
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
+                // TODO this test is flaky in CI and we need some more info to debug why.
+                if (session.errorScore !== 1) {
+                    console.log('SESSIONS:');
+                    console.dir(sessions);
+                }
+
                 expect(session.errorScore).toEqual(1);
             });
+
             log.setLevel(log.LEVELS.ERROR);
         });
 
