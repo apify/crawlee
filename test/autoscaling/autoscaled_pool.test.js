@@ -451,6 +451,26 @@ describe('AutoscaledPool', () => {
         expect(results).toHaveLength(count);
         results.forEach((r, i) => expect(r).toEqual(i));
     });
+
+    test('should timeout after taskTimeoutSecs', async () => {
+        const runTaskFunction = async () => {
+            await new Promise((resolve) => setTimeout(resolve, 1e3));
+            return 1;
+        };
+
+        const pool = new AutoscaledPool({
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            runTaskFunction,
+            taskTimeoutSecs: 0.1,
+            isFinishedFunction: async () => false,
+            isTaskReadyFunction: async () => true,
+        });
+
+        const now = Date.now();
+        await expect(pool.run()).rejects.toThrow('runTaskFunction timed out after 0.1 seconds.');
+        expect(Date.now() - now).toBeGreaterThanOrEqual(100);
+    });
 });
 
 /* eslint-enable no-underscore-dangle */
