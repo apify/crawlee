@@ -53,7 +53,7 @@ import { addTimeoutToPromise } from '../utils';
  *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
- * @property {number} [taskTimeoutSecs=60]
+ * @property {number} [taskTimeoutSecs=0]
  *   Timeout in which the `runTaskFunction` needs to finish, given in seconds.
  * @property {SnapshotterOptions} [snapshotterOptions]
  *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
@@ -148,7 +148,7 @@ class AutoscaledPool {
             scaleDownStepRatio = 0.05,
             maybeRunIntervalSecs = 0.5,
             loggingIntervalSecs = 60,
-            taskTimeoutSecs = 60,
+            taskTimeoutSecs = 0,
             autoscaleIntervalSecs = 10,
             systemStatusOptions,
             snapshotterOptions,
@@ -438,11 +438,15 @@ class AutoscaledPool {
             // Execute the current task.
             this.log.perf('Running a task.');
 
-            await addTimeoutToPromise(
-                this.runTaskFunction(),
-                this.taskTimeoutMillis,
-                `runTaskFunction timed out after ${this.taskTimeoutMillis / 1000} seconds.`,
-            );
+            if (this.taskTimeoutMillis > 0) {
+                await addTimeoutToPromise(
+                    this.runTaskFunction(),
+                    this.taskTimeoutMillis,
+                    `runTaskFunction timed out after ${this.taskTimeoutMillis / 1000} seconds.`,
+                );
+            } else {
+                await this.runTaskFunction();
+            }
 
             this.log.perf('Task finished.');
             this._currentConcurrency--;
