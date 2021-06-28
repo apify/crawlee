@@ -3,6 +3,7 @@ import ow from 'ow';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
 import defaultLog from '../utils_log';
+import { addTimeoutToPromise } from '../utils';
 
 /**
  * @typedef AutoscaledPoolOptions
@@ -52,6 +53,8 @@ import defaultLog from '../utils_log';
  *   Defines in seconds how often the pool should attempt to adjust the desired concurrency
  *   based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
  *   We suggest using a value from 5 to 20.
+ * @property {number} [taskTimeoutSecs=60]
+ *   Timeout in which the `runTaskFunction` needs to finish, given in seconds.
  * @property {SnapshotterOptions} [snapshotterOptions]
  *   Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
  *   the snapshot intervals and history.
@@ -127,6 +130,7 @@ class AutoscaledPool {
             maybeRunIntervalSecs: ow.optional.number,
             loggingIntervalSecs: ow.any(ow.number, ow.nullOrUndefined),
             autoscaleIntervalSecs: ow.optional.number,
+            taskTimeoutSecs: ow.optional.number,
             systemStatusOptions: ow.optional.object,
             snapshotterOptions: ow.optional.object,
             log: ow.optional.object,
@@ -144,6 +148,7 @@ class AutoscaledPool {
             scaleDownStepRatio = 0.05,
             maybeRunIntervalSecs = 0.5,
             loggingIntervalSecs = 60,
+            taskTimeoutSecs = 60,
             autoscaleIntervalSecs = 10,
             systemStatusOptions,
             snapshotterOptions,
@@ -162,6 +167,7 @@ class AutoscaledPool {
         this.maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
         this.loggingIntervalMillis = loggingIntervalSecs * 1000;
         this.autoscaleIntervalMillis = autoscaleIntervalSecs * 1000;
+        this.taskTimeoutMillis = taskTimeoutSecs * 1000;
         this.runTaskFunction = runTaskFunction;
         this.isFinishedFunction = isFinishedFunction;
         this.isTaskReadyFunction = isTaskReadyFunction;
@@ -431,7 +437,13 @@ class AutoscaledPool {
 
             // Execute the current task.
             this.log.perf('Running a task.');
-            await this.runTaskFunction();
+
+            await addTimeoutToPromise(
+                this.runTaskFunction(),
+                this.taskTimeoutMillis,
+                `runTaskFunction timed out after ${this.taskTimeoutMillis / 1000} seconds.`,
+            );
+
             this.log.perf('Task finished.');
             this._currentConcurrency--;
             // Run task after the previous one finished.

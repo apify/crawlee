@@ -47,6 +47,7 @@ await dataset.pushData({ myValue: 123 });
 - Fix `maxUsageCount` of a `Session` not being persisted.
 - Update `puppeteer` and `playwright` to match stable Chrome (90).
 - Fix support for building TypeScript projects that depend on the SDK.
+- add `taskTimeoutSecs` to allow control over timeout of `AutoscaledPool` tasks
 
 1.2.1 / 2021/05/14
 ====================
