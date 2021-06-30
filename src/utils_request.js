@@ -119,6 +119,7 @@ export const requestAsBrowser = async (options = {}) => {
         headerGeneratorOptions: ow.optional.object,
         stream: ow.optional.boolean,
         decodeBody: ow.optional.boolean,
+        forceUrlEncoding: ow.optional.boolean,
     }));
 
     ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({
@@ -146,6 +147,7 @@ export const requestAsBrowser = async (options = {}) => {
         throwOnHttpErrors = false,
         stream = false,
         decodeBody = true,
+        forceUrlEncoding,
         ...gotParams
     } = options;
 
@@ -180,20 +182,12 @@ export const requestAsBrowser = async (options = {}) => {
         };
     }
 
+    if (forceUrlEncoding) {
+        gotScrapingOptions.url = encodeURI(gotScrapingOptions.url);
+    }
+
     if (!gotScrapingOptions.isStream) {
-        try {
-            return await gotScraping(gotScrapingOptions);
-        } catch (err) {
-            if (gotScrapingOptions.forceEncoded || gotScrapingOptions.url === encodeURI(gotScrapingOptions.url)) {
-                throw err; // already tried or wouldn't help, rethrow
-            }
-
-            // retry with encoded url
-            gotScrapingOptions.url = encodeURI(gotScrapingOptions.url);
-            gotScrapingOptions.forceEncoded = true;
-
-            return gotScraping(gotScrapingOptions);
-        }
+        return gotScraping(gotScrapingOptions);
     }
 
     // abortFunction must be handled separately for streams :(
@@ -201,17 +195,7 @@ export const requestAsBrowser = async (options = {}) => {
     ensureRequestIsDispatched(duplexStream, gotScrapingOptions);
     return new Promise((resolve, reject) => {
         duplexStream
-            .on('error', (err) => {
-                if (gotScrapingOptions.forceEncoded || gotScrapingOptions.url === encodeURI(gotScrapingOptions.url)) {
-                    return reject(err); // already tried or wouldn't help, rethrow
-                }
-
-                gotScrapingOptions.url = encodeURI(gotScrapingOptions.url);
-                gotScrapingOptions.forceEncoded = true;
-
-                // retry with encoded url
-                requestAsBrowser(gotScrapingOptions).then(resolve, reject);
-            })
+            .on('error', reject)
             .on('response', (res) => {
                 try {
                     const shouldAbort = abortFunction(res);

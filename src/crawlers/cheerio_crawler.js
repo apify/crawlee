@@ -243,6 +243,8 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  *   It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
  *   It passes the "Cookie" header to the request with the session cookies.
+ * @property {boolean} [forceUrlEncoding]
+ *   Automatically encode URLs via `encodeURI()` before resolving them.
  */
 
 /**
@@ -272,6 +274,13 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
  * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
+ * As opposed to the browser based crawlers that are automatically encoding the URLs, the
+ * {@link utils#requestAsBrowser} function will not do so. We either need to manually encode the URLs
+ * via `encodeURI()` function manually, or pass `forceUrlEncoding: true` in the crawler options, which
+ * will automatically encode all the URLs before accessing them.
+ *
+ * > We can either use `forceUrlEncoding` or encode manually, but not both - it would result in
+ * > double encoding and therefore lead to invalid URLs.
  *
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
@@ -358,6 +367,7 @@ class CheerioCrawler extends BasicCrawler {
         prepareRequestFunction: ow.optional.function,
         postResponseFunction: ow.optional.function,
         persistCookiesPerSession: ow.optional.boolean,
+        forceUrlEncoding: ow.optional.boolean,
     }
 
     /**
@@ -379,6 +389,7 @@ class CheerioCrawler extends BasicCrawler {
             prepareRequestFunction,
             postResponseFunction,
             persistCookiesPerSession,
+            forceUrlEncoding,
 
             // BasicCrawler
             autoscaledPoolOptions = CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -415,6 +426,7 @@ class CheerioCrawler extends BasicCrawler {
         this.prepareRequestFunction = prepareRequestFunction;
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
+        this.forceUrlEncoding = forceUrlEncoding;
 
         if (this.useSessionPool) {
             this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
@@ -546,7 +558,7 @@ class CheerioCrawler extends BasicCrawler {
      */
     async _requestFunction({ request, session, proxyUrl }) {
         // Using the streaming API of Request to be able to
-        // handle the response based on headers receieved.
+        // handle the response based on headers received.
 
         if (this.useSessionPool) {
             const { headers } = request;
@@ -625,6 +637,7 @@ class CheerioCrawler extends BasicCrawler {
             proxyUrl,
             stream: true,
             useCaseSensitiveHeaders: true,
+            forceUrlEncoding: this.forceUrlEncoding,
             abortFunction: (res) => {
                 const { statusCode } = res;
                 const { type } = parseContentTypeFromResponse(res);

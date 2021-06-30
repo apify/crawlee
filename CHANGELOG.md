@@ -48,7 +48,7 @@ await dataset.pushData({ myValue: 123 });
 - Update `puppeteer` and `playwright` to match stable Chrome (90).
 - Fix support for building TypeScript projects that depend on the SDK.
 - add `taskTimeoutSecs` to allow control over timeout of `AutoscaledPool` tasks
-- fallback to encoded URL in `requestAsBrowser`
+- add `forceUrlEncoding` to `CheerioCrawler` and `requestAsBrowser` options
 
 1.2.1 / 2021/05/14
 ====================

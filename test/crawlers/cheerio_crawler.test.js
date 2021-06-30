@@ -193,7 +193,7 @@ describe('CheerioCrawler', () => {
     test('should work with not encoded urls', async () => {
         const sources = [
             { url: `http://${HOST}:${port}/mirror?q=abc` },
-            { url: `http://${HOST}:${port}/mirror?q=%20` },
+            { url: `http://${HOST}:${port}/mirror?q=%` },
             { url: `http://${HOST}:${port}/mirror?q=%cf` },
         ];
         const requestList = new Apify.RequestList({ sources });
@@ -212,6 +212,7 @@ describe('CheerioCrawler', () => {
             maxConcurrency: 2,
             handlePageFunction,
             handleFailedRequestFunction: ({ request }) => failed.push(request),
+            forceUrlEncoding: true,
         });
 
         await cheerioCrawler.run();
@@ -220,7 +221,7 @@ describe('CheerioCrawler', () => {
         expect(failed).toHaveLength(0);
 
         expect(processed[0].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=abc`);
-        expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%20`);
+        expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25`);
         expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25cf`);
     });
 
