@@ -246,6 +246,8 @@ The following events are emitted:
     time to persist their state, in order to avoid repeating all work when the actor restarts. This event is automatically emitted together with the
     `migrating` event, in which case the `isMigrating` flag is set to `true`. Otherwise the flag is `false`. Note that the `persistState` event is
     provided merely for user convenience, you can achieve the same effect using `setInterval()` and listening for the `migrating` event.
+-   `aborting`: `void` Emitted when the actor running on the Apify platform was aborted by user with gracefully abort flag. You can use it to
+    persist the state of the actor graceful abort run.
 
 ---
 

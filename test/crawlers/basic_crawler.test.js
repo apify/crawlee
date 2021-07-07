@@ -56,55 +56,52 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
-    test(
-        'should pause on migration event and persist RequestList state',
-        async () => {
-            const sources = _.range(500).map((index) => ({ url: `https://example.com/${index + 1}` }));
+    test.each([ACTOR_EVENT_NAMES.MIGRATING, ACTOR_EVENT_NAMES.ABORTING])('should pause on %s event and persist RequestList state', async (event) => {
+        const sources = _.range(500).map((index) => ({ url: `https://example.com/${index + 1}` }));
 
-            let persistResolve;
-            const persistPromise = new Promise((res) => { persistResolve = res; });
+        let persistResolve;
+        const persistPromise = new Promise((res) => { persistResolve = res; });
 
-            // Mock the calls to persist sources.
-            const mock = sinon.mock(keyValueStore);
-            mock.expects('getValue').twice().resolves(null);
-            mock.expects('setValue').once().resolves();
+        // Mock the calls to persist sources.
+        const mock = sinon.mock(keyValueStore);
+        mock.expects('getValue').twice().resolves(null);
+        mock.expects('setValue').once().resolves();
 
-            const processed = [];
-            const requestList = await Apify.openRequestList('reqList', sources);
-            const handleRequestFunction = async ({ request }) => {
-                if (request.url.endsWith('200')) Apify.events.emit(ACTOR_EVENT_NAMES.MIGRATING);
-                processed.push(_.pick(request, 'url'));
-            };
+        const processed = [];
+        const requestList = await Apify.openRequestList('reqList', sources);
+        const handleRequestFunction = async ({ request }) => {
+            if (request.url.endsWith('200')) Apify.events.emit(event);
+            processed.push(_.pick(request, 'url'));
+        };
 
-            const basicCrawler = new Apify.BasicCrawler({
-                requestList,
-                minConcurrency: 25,
-                maxConcurrency: 25,
-                handleRequestFunction,
-            });
+        const basicCrawler = new Apify.BasicCrawler({
+            requestList,
+            minConcurrency: 25,
+            maxConcurrency: 25,
+            handleRequestFunction,
+        });
 
-            let finished = false;
-            // Mock the call to persist state.
-            mock.expects('setValue').once().callsFake(async () => { persistResolve(); });
-            // The crawler will pause after 200 requests
-            const runPromise = basicCrawler.run();
-            runPromise.then(() => { finished = true; });
+        let finished = false;
+        // Mock the call to persist state.
+        mock.expects('setValue').once().callsFake(async () => { persistResolve(); });
+        // The crawler will pause after 200 requests
+        const runPromise = basicCrawler.run();
+        runPromise.then(() => { finished = true; });
 
-            // need to monkeypatch the stats class, otherwise it will never finish
-            basicCrawler.stats.persistState = () => Promise.resolve();
-            await persistPromise;
+        // need to monkeypatch the stats class, otherwise it will never finish
+        basicCrawler.stats.persistState = () => Promise.resolve();
+        await persistPromise;
 
-            expect(finished).toBe(false);
-            expect(await requestList.isFinished()).toBe(false);
-            expect(await requestList.isEmpty()).toBe(false);
-            expect(processed.length).toBe(200);
+        expect(finished).toBe(false);
+        expect(await requestList.isFinished()).toBe(false);
+        expect(await requestList.isEmpty()).toBe(false);
+        expect(processed.length).toBe(200);
 
-            mock.verify();
+        mock.verify();
 
-            // clean up
-            await basicCrawler.autoscaledPool._destroy(); // eslint-disable-line no-underscore-dangle
-        },
-    );
+        // clean up
+        await basicCrawler.autoscaledPool._destroy(); // eslint-disable-line no-underscore-dangle
+    });
 
     test('should retry failed requests', async () => {
         const sources = [
