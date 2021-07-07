@@ -451,6 +451,70 @@ describe('AutoscaledPool', () => {
         expect(results).toHaveLength(count);
         results.forEach((r, i) => expect(r).toEqual(i));
     });
+
+    test('should timeout after taskTimeoutSecs', async () => {
+        const runTaskFunction = async () => {
+            await sleep(1e3);
+            return 1;
+        };
+
+        const pool = new AutoscaledPool({
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            runTaskFunction,
+            taskTimeoutSecs: 0.1,
+            isFinishedFunction: async () => false,
+            isTaskReadyFunction: async () => true,
+        });
+
+        const now = Date.now();
+        await expect(pool.run()).rejects.toThrow('runTaskFunction timed out after 0.1 seconds.');
+        expect(Date.now() - now).toBeGreaterThanOrEqual(100);
+    });
+
+    test('should not timeout if taskTimeoutSecs === 0', async () => {
+        let finished = false;
+
+        const runTaskFunction = async () => {
+            await sleep(1e3);
+            finished = true;
+            return 1;
+        };
+        const pool = new AutoscaledPool({
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            runTaskFunction,
+            taskTimeoutSecs: 0,
+            isFinishedFunction: async () => finished,
+            isTaskReadyFunction: async () => !finished,
+        });
+
+        const now = Date.now();
+        await expect(pool.run()).resolves.toBeUndefined();
+        expect(Date.now() - now).toBeGreaterThanOrEqual(1e3);
+    }, 3e3);
+
+    test('should not timeout if taskTimeoutSecs not explicitly set', async () => {
+        let finished = false;
+
+        const runTaskFunction = async () => {
+            await sleep(1e3);
+            finished = true;
+            return 1;
+        };
+
+        const pool = new AutoscaledPool({
+            minConcurrency: 1,
+            maxConcurrency: 1,
+            runTaskFunction,
+            isFinishedFunction: async () => finished,
+            isTaskReadyFunction: async () => !finished,
+        });
+
+        const now = Date.now();
+        await expect(pool.run()).resolves.toBeUndefined();
+        expect(Date.now() - now).toBeGreaterThanOrEqual(1e3);
+    });
 });
 
 /* eslint-enable no-underscore-dangle */

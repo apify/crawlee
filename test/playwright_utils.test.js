@@ -1,8 +1,36 @@
 import playwright from 'playwright';
+import express from 'express';
 import Apify from '../build/index';
 import LocalStorageDirEmulator from './local_storage_dir_emulator';
+import { startExpressAppPromise } from './_helper';
 
 const { utils: { log } } = Apify;
+
+const HOSTNAME = '127.0.0.1';
+let port;
+let server;
+beforeAll(async () => {
+    const app = express();
+
+    app.get('/getRawHeaders', (req, res) => {
+        res.send(JSON.stringify(req.rawHeaders));
+    });
+
+    app.all('/foo', (req, res) => {
+        res.json({
+            headers: req.headers,
+            method: req.method,
+            bodyLength: +req.headers['content-length'] || 0,
+        });
+    });
+
+    server = await startExpressAppPromise(app, 0);
+    port = server.address().port; //eslint-disable-line
+});
+
+afterAll(() => {
+    server.close();
+});
 
 describe('Apify.utils.playwright', () => {
     let ll;
@@ -30,7 +58,7 @@ describe('Apify.utils.playwright', () => {
         try {
             const page = await browser.newPage();
             const request = new Apify.Request({
-                url: 'https://api.apify.com/v2/browser-info',
+                url: `http://${HOSTNAME}:${port}/foo`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
