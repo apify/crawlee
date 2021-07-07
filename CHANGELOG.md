@@ -75,6 +75,7 @@ await dataset.pushData({ myValue: 123 });
 - add `forceUrlEncoding` to `requestAsBrowser` options
 - add `preNavigationHooks` and `postNavigationHooks` to `CheerioCrawler`
 - deprecated `prepareRequestFunction` and `postResponseFunction` methods of `CheerioCrawler`
+- Added new event `aborting` for handling gracefully aborted run from Apify platform.
 
 1.2.1 / 2021/05/14
 ====================

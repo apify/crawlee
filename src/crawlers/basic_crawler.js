@@ -318,8 +318,9 @@ export class BasicCrawler {
 
         this.isRunningPromise = null;
 
-        // Attach a listener to handle migration events gracefully.
+        // Attach a listener to handle migration and aborting events gracefully.
         events.on(ACTOR_EVENT_NAMES.MIGRATING, this._pauseOnMigration.bind(this));
+        events.on(ACTOR_EVENT_NAMES.ABORTING, this._pauseOnMigration.bind(this));
     }
 
     /**
