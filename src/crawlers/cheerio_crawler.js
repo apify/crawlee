@@ -298,11 +298,16 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  * The crawler finishes when there are no more {@link Request} objects to crawl.
  *
- * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
+ * `CheerioCrawler` downloads the web pages using the `{@link utils#requestAsBrowser}` utility function.
  * As opposed to the browser based crawlers that are automatically encoding the URLs, the
- * {@link utils#requestAsBrowser} function will not do so. We either need to manually encode the URLs
- * via `encodeURI()` function manually, or pass `forceUrlEncoding: true` in the `requestAsBrowserOptions`, which
- * will automatically encode all the URLs before accessing them.
+ * `{@link utils#requestAsBrowser}` function will not do so. We either need to manually encode the URLs
+ * via `encodeURI()` function, or set `forceUrlEncoding: true` in the `requestAsBrowserOptions`,
+ * which will automatically encode all the URLs before accessing them.
+ *
+ * > We can either use `forceUrlEncoding` or encode manually, but not both - it would
+ * > result in double encoding and therefore lead to invalid URLs.
+ *
+ * We can use the `preNavigationHooks` to adjust `requestAsBrowserOptions`:
  *
  * ```
  * preNavigationHooks: [
@@ -311,9 +316,6 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *     }
  * ]
  * ```
- *
- * > We can either use `forceUrlEncoding` or encode manually, but not both - it would result in
- * > double encoding and therefore lead to invalid URLs.
  *
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),

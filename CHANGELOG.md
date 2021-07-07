@@ -1,5 +1,29 @@
 1.3.0 / BETA
 ====================
+
+## Navigation hooks in `CheerioCrawler`
+
+`CheerioCrawler` downloads the web pages using the `requestAsBrowser` utility function.
+As opposed to the browser based crawlers that are automatically encoding the URLs, the
+`requestAsBrowser` function will not do so. We either need to manually encode the URLs
+via `encodeURI()` function, or set `forceUrlEncoding: true` in the `requestAsBrowserOptions`,
+which will automatically encode all the URLs before accessing them.
+
+> We can either use `forceUrlEncoding` or encode manually, but not both - it would
+> result in double encoding and therefore lead to invalid URLs.
+
+We can use the `preNavigationHooks` to adjust `requestAsBrowserOptions`:
+
+```
+preNavigationHooks: [
+    (crawlingContext, requestAsBrowserOptions) => {
+        requestAsBrowserOptions.forceUrlEncoding = true;
+    }
+]
+```
+
+## `Apify` class and `Configuration`
+
 Adds two new named exports:
 
 - `Configuration` class that serves as the main configuration holder, replacing explicit usage of
