@@ -171,7 +171,29 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
- *
+ * @property {Array<Hook>} [preNavigationHooks]
+ *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
+ *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
+ *   which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
+ *   Example:
+ * ```
+ * preNavigationHooks: [
+ *     async (crawlingContext, gotoOptions) => {
+ *         gotoOptions.forceUrlEncoding = true;
+ *     }
+ * ]
+ * ```
+ * @property {Array<Hook>} [postNavigationHooks]
+ *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
+ *   The function accepts `crawlingContext` as an only parameter.
+ *   Example:
+ * ```
+ * postNavigationHooks: [
+ *     async (crawlingContext) => {
+ *         // ...
+ *     };
+ * ]
+ * ```
  *   The function receives the following object as an argument:
  * ```
  * {
@@ -243,8 +265,6 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  *   It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
  *   It passes the "Cookie" header to the request with the session cookies.
- * @property {boolean} [forceUrlEncoding]
- *   Automatically encode URLs via `encodeURI()` before resolving them.
  */
 
 /**
@@ -276,8 +296,16 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
  * As opposed to the browser based crawlers that are automatically encoding the URLs, the
  * {@link utils#requestAsBrowser} function will not do so. We either need to manually encode the URLs
- * via `encodeURI()` function manually, or pass `forceUrlEncoding: true` in the crawler options, which
+ * via `encodeURI()` function manually, or pass `forceUrlEncoding: true` in the `gotoOptions`, which
  * will automatically encode all the URLs before accessing them.
+ *
+ * ```
+ * preNavigationHooks: [
+ *     (crawlingContext, gotoOptions) => {
+ *         gotoOptions.forceUrlEncoding = true;
+ *     }
+ * ]
+ * ```
  *
  * > We can either use `forceUrlEncoding` or encode manually, but not both - it would result in
  * > double encoding and therefore lead to invalid URLs.
@@ -367,7 +395,9 @@ class CheerioCrawler extends BasicCrawler {
         prepareRequestFunction: ow.optional.function,
         postResponseFunction: ow.optional.function,
         persistCookiesPerSession: ow.optional.boolean,
-        forceUrlEncoding: ow.optional.boolean,
+
+        preNavigationHooks: ow.optional.array,
+        postNavigationHooks: ow.optional.array,
     }
 
     /**
@@ -389,7 +419,8 @@ class CheerioCrawler extends BasicCrawler {
             prepareRequestFunction,
             postResponseFunction,
             persistCookiesPerSession,
-            forceUrlEncoding,
+            preNavigationHooks = [],
+            postNavigationHooks = [],
 
             // BasicCrawler
             autoscaledPoolOptions = CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
@@ -426,7 +457,14 @@ class CheerioCrawler extends BasicCrawler {
         this.prepareRequestFunction = prepareRequestFunction;
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
-        this.forceUrlEncoding = forceUrlEncoding;
+        /** @type {Array<Hook>} */
+        this.preNavigationHooks = preNavigationHooks;
+        /** @type {Array<Hook>} */
+        this.postNavigationHooks = postNavigationHooks;
+        /** @type {RequestAsBrowserOptions} */
+        this.defaultGotoOptions = {
+            forceUrlEncoding: false,
+        };
 
         if (this.useSessionPool) {
             this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
@@ -487,17 +525,7 @@ class CheerioCrawler extends BasicCrawler {
             crawlingContext.proxyInfo = this.proxyConfiguration.newProxyInfo(sessionId);
         }
 
-        if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
-
-        const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
-
-        crawlingContext.response = await addTimeoutToPromise(
-            this._requestFunction({ request, session, proxyUrl }),
-            this.requestTimeoutMillis,
-            `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
-        );
-
-        if (this.postResponseFunction) await this.postResponseFunction(crawlingContext);
+        await this._handleNavigation(crawlingContext);
 
         const { dom, isXml, body, contentType, response } = await this._parseResponse(request, crawlingContext.response);
 
@@ -543,6 +571,29 @@ class CheerioCrawler extends BasicCrawler {
     }
 
     /**
+     * @param {CrawlingContext} crawlingContext
+     * @ignore
+     * @protected
+     * @internal
+     */
+    async _handleNavigation(crawlingContext) {
+        const gotoOptions = { ...this.defaultGotoOptions };
+        if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+        const { request, session } = crawlingContext;
+        const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
+
+        crawlingContext.response = await addTimeoutToPromise(
+            this._requestFunction({ request, session, proxyUrl, gotoOptions }),
+            this.requestTimeoutMillis,
+            `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
+        );
+
+        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
+        if (this.postResponseFunction) await this.postResponseFunction(crawlingContext);
+    }
+
+    /**
      * Function to make the HTTP request. It performs optimizations
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
@@ -551,12 +602,13 @@ class CheerioCrawler extends BasicCrawler {
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {string} options.proxyUrl
+     * @param {RequestAsBrowserOptions} options.gotoOptions
      * @returns {Promise<IncomingMessage|Readable>}
      * @ignore
      * @protected
      * @internal
      */
-    async _requestFunction({ request, session, proxyUrl }) {
+    async _requestFunction({ request, session, proxyUrl, gotoOptions }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers received.
 
@@ -565,7 +617,7 @@ class CheerioCrawler extends BasicCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const opts = this._getRequestOptions(request, session, proxyUrl);
+        const opts = this._getRequestOptions(request, session, proxyUrl, gotoOptions);
         let responseWithStream;
 
         try {
@@ -624,11 +676,12 @@ class CheerioCrawler extends BasicCrawler {
      * @param {Request} request
      * @param {Session} [session]
      * @param {string} [proxyUrl]
+     * @param {RequestAsBrowserOptions} [gotoOptions]
      * @ignore
      * @protected
      * @internal
      */
-    _getRequestOptions(request, session, proxyUrl) {
+    _getRequestOptions(request, session, proxyUrl, gotoOptions) {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
@@ -637,7 +690,8 @@ class CheerioCrawler extends BasicCrawler {
             proxyUrl,
             stream: true,
             useCaseSensitiveHeaders: true,
-            forceUrlEncoding: this.forceUrlEncoding,
+            timeoutSecs: this.requestTimeoutMillis / 1000,
+            ...gotoOptions,
             abortFunction: (res) => {
                 const { statusCode } = res;
                 const { type } = parseContentTypeFromResponse(res);
@@ -655,7 +709,6 @@ class CheerioCrawler extends BasicCrawler {
 
                 return false;
             },
-            timeoutSecs: this.requestTimeoutMillis / 1000,
         };
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;

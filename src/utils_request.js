@@ -49,6 +49,8 @@ import { IncomingMessage } from 'http';
  *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
  *  to HTTP/1.1 for websites that do not support HTTP2. For Node 10 this option is always set to `false`
  *  because Node 10 does not support HTTP2 very well. Upgrade to Node 12 for better performance.
+ * @property {boolean} [forceUrlEncoding]
+ *   Automatically encode URLs via `encodeURI()` before resolving them.
  */
 
 /**

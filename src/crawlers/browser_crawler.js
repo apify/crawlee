@@ -536,21 +536,6 @@ export default class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-     * @param {Array<Hook>} hooks
-     * @param  {*} args
-     * @ignore
-     * @protected
-     * @internal
-     */
-    async _executeHooks(hooks, ...args) {
-        if (Array.isArray(hooks) && hooks.length) {
-            for (const hook of hooks) {
-                await hook(...args);
-            }
-        }
-    }
-
-    /**
      * Function for cleaning up after all request are processed.
      * @ignore
      */

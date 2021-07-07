@@ -212,7 +212,11 @@ describe('CheerioCrawler', () => {
             maxConcurrency: 2,
             handlePageFunction,
             handleFailedRequestFunction: ({ request }) => failed.push(request),
-            forceUrlEncoding: true,
+            preNavigationHooks: [
+                (_, gotoOptions) => {
+                    gotoOptions.forceUrlEncoding = true;
+                },
+            ],
         });
 
         await cheerioCrawler.run();
