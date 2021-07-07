@@ -684,7 +684,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('should markBad sessions after request timeout', async () => {
-            log.setLevel(log.LEVELS.OFF);
+            // log.setLevel(log.LEVELS.OFF);
             const cheerioCrawler = new Apify.CheerioCrawler({
                 requestList: await Apify.openRequestList(null, [
                     `http://${HOST}:${port}/timeout?a=12`,
@@ -694,7 +694,9 @@ describe('CheerioCrawler', () => {
                 requestTimeoutSecs: 1,
                 maxConcurrency: 1,
                 useSessionPool: true,
-                handlePageFunction: async () => {},
+                handlePageFunction: async () => {
+                    await Apify.utils.sleep(1);
+                },
             });
 
             await cheerioCrawler.run();
@@ -711,7 +713,7 @@ describe('CheerioCrawler', () => {
                 expect(session.errorScore).toEqual(1);
             });
 
-            log.setLevel(log.LEVELS.ERROR);
+            // log.setLevel(log.LEVELS.ERROR);
         });
 
         test('should retire session on "blocked" status codes', async () => {
