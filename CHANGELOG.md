@@ -50,6 +50,7 @@ await dataset.pushData({ myValue: 123 });
 - add `taskTimeoutSecs` to allow control over timeout of `AutoscaledPool` tasks
 - add `forceUrlEncoding` to `requestAsBrowser` options
 - add `preNavigationHooks` and `postNavigationHooks` to `CheerioCrawler`
+- deprecated `prepareRequestFunction` and `postResponseFunction` methods of `CheerioCrawler`
 
 1.2.1 / 2021/05/14
 ====================

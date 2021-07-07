@@ -112,6 +112,8 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *   Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
  *   Either `requestList` or `requestQueue` option must be provided (or both).
  * @property {PrepareRequest} [prepareRequestFunction]
+ * > This option is deprecated, use `preNavigationHooks` instead.
+ *
  *   A function that executes before the HTTP request is made to the target resource.
  *   This function is suitable for setting dynamic properties such as cookies to the {@link Request}.
  *
@@ -133,6 +135,8 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *   different parts of SDK would have access to a different {@link Request} instance.
  *
  * @property {PostResponse} [postResponseFunction]
+ * > This option is deprecated, use `postNavigationHooks` instead.
+ *
  * A function that executes right after the HTTP request is made to the target resource and response is returned.
  * This function is suitable for overriding custom properties of response e.g. setting headers because of response parsing.
  *
@@ -159,6 +163,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * }
  * ```
  * The response is an instance of Node's http.IncomingMessage object.
+ *
  * @property {number} [handlePageTimeoutSecs=60]
  *   Timeout in which the function passed as `handlePageFunction` needs to finish, given in seconds.
  * @property {number} [requestTimeoutSecs=30]
@@ -171,29 +176,6 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {HandleFailedRequest} [handleFailedRequestFunction]
  *   A function to handle requests that failed more than `option.maxRequestRetries` times.
- * @property {Array<Hook>} [preNavigationHooks]
- *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
- *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
- *   which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
- *   Example:
- * ```
- * preNavigationHooks: [
- *     async (crawlingContext, gotoOptions) => {
- *         gotoOptions.forceUrlEncoding = true;
- *     }
- * ]
- * ```
- * @property {Array<Hook>} [postNavigationHooks]
- *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
- *   The function accepts `crawlingContext` as an only parameter.
- *   Example:
- * ```
- * postNavigationHooks: [
- *     async (crawlingContext) => {
- *         // ...
- *     };
- * ]
- * ```
  *   The function receives the following object as an argument:
  * ```
  * {
@@ -214,6 +196,29 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  *   See [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
+ * @property {Array<Hook>} [preNavigationHooks]
+ *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
+ *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `requestAsBrowserOptions`,
+ *   which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
+ *   Example:
+ * ```
+ * preNavigationHooks: [
+ *     async (crawlingContext, requestAsBrowserOptions) => {
+ *         requestAsBrowserOptions.forceUrlEncoding = true;
+ *     }
+ * ]
+ * ```
+ * @property {Array<Hook>} [postNavigationHooks]
+ *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
+ *   The function accepts `crawlingContext` as the only parameter.
+ *   Example:
+ * ```
+ * postNavigationHooks: [
+ *     async (crawlingContext) => {
+ *         // ...
+ *     };
+ * ]
+ * ```
  * @property {string[]} [additionalMimeTypes]
  *   An array of <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types"
  *   target="_blank">MIME types</a> you want the crawler to load and process.
@@ -296,13 +301,13 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * `CheerioCrawler` downloads the web pages using the {@link utils#requestAsBrowser} utility function.
  * As opposed to the browser based crawlers that are automatically encoding the URLs, the
  * {@link utils#requestAsBrowser} function will not do so. We either need to manually encode the URLs
- * via `encodeURI()` function manually, or pass `forceUrlEncoding: true` in the `gotoOptions`, which
+ * via `encodeURI()` function manually, or pass `forceUrlEncoding: true` in the `requestAsBrowserOptions`, which
  * will automatically encode all the URLs before accessing them.
  *
  * ```
  * preNavigationHooks: [
- *     (crawlingContext, gotoOptions) => {
- *         gotoOptions.forceUrlEncoding = true;
+ *     (crawlingContext, requestAsBrowserOptions) => {
+ *         requestAsBrowserOptions.forceUrlEncoding = true;
  *     }
  * ]
  * ```
@@ -462,9 +467,7 @@ class CheerioCrawler extends BasicCrawler {
         /** @type {Array<Hook>} */
         this.postNavigationHooks = postNavigationHooks;
         /** @type {RequestAsBrowserOptions} */
-        this.defaultGotoOptions = {
-            forceUrlEncoding: false,
-        };
+        this.defaultRequestAsBrowserOptions = {};
 
         if (this.useSessionPool) {
             this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
@@ -577,20 +580,28 @@ class CheerioCrawler extends BasicCrawler {
      * @internal
      */
     async _handleNavigation(crawlingContext) {
-        const gotoOptions = { ...this.defaultGotoOptions };
-        if (this.prepareRequestFunction) await this.prepareRequestFunction(crawlingContext);
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+        if (this.prepareRequestFunction) {
+            this.log.deprecated('Option "prepareRequestFunction" is deprecated. Use "preNavigationHooks" instead.');
+            await this.prepareRequestFunction(crawlingContext);
+        }
+
+        const requestAsBrowserOptions = { ...this.defaultRequestAsBrowserOptions };
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, requestAsBrowserOptions);
         const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
 
         crawlingContext.response = await addTimeoutToPromise(
-            this._requestFunction({ request, session, proxyUrl, gotoOptions }),
+            this._requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
 
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
-        if (this.postResponseFunction) await this.postResponseFunction(crawlingContext);
+        await this._executeHooks(this.postNavigationHooks, crawlingContext, requestAsBrowserOptions);
+
+        if (this.postResponseFunction) {
+            this.log.deprecated('Option "postResponseFunction" is deprecated. Use "postNavigationHooks" instead.');
+            await this.postResponseFunction(crawlingContext);
+        }
     }
 
     /**
@@ -602,13 +613,13 @@ class CheerioCrawler extends BasicCrawler {
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {string} options.proxyUrl
-     * @param {RequestAsBrowserOptions} options.gotoOptions
+     * @param {RequestAsBrowserOptions} options.requestAsBrowserOptions
      * @returns {Promise<IncomingMessage|Readable>}
      * @ignore
      * @protected
      * @internal
      */
-    async _requestFunction({ request, session, proxyUrl, gotoOptions }) {
+    async _requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }) {
         // Using the streaming API of Request to be able to
         // handle the response based on headers received.
 
@@ -617,7 +628,7 @@ class CheerioCrawler extends BasicCrawler {
             headers.Cookie = session.getCookieString(request.url);
         }
 
-        const opts = this._getRequestOptions(request, session, proxyUrl, gotoOptions);
+        const opts = this._getRequestOptions(request, session, proxyUrl, requestAsBrowserOptions);
         let responseWithStream;
 
         try {
@@ -676,22 +687,22 @@ class CheerioCrawler extends BasicCrawler {
      * @param {Request} request
      * @param {Session} [session]
      * @param {string} [proxyUrl]
-     * @param {RequestAsBrowserOptions} [gotoOptions]
+     * @param {RequestAsBrowserOptions} [requestAsBrowserOptions]
      * @ignore
      * @protected
      * @internal
      */
-    _getRequestOptions(request, session, proxyUrl, gotoOptions) {
+    _getRequestOptions(request, session, proxyUrl, requestAsBrowserOptions) {
         const mandatoryRequestOptions = {
             url: request.url,
             method: request.method,
-            headers: { ...request.headers },
+            headers: { ...request.headers, ...requestAsBrowserOptions.headers },
             ignoreSslErrors: this.ignoreSslErrors,
             proxyUrl,
-            stream: true,
             useCaseSensitiveHeaders: true,
             timeoutSecs: this.requestTimeoutMillis / 1000,
-            ...gotoOptions,
+            ...requestAsBrowserOptions,
+            stream: true,
             abortFunction: (res) => {
                 const { statusCode } = res;
                 const { type } = parseContentTypeFromResponse(res);
