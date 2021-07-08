@@ -1,7 +1,5 @@
 import express from 'express';
-import {
-    requestAsBrowser,
-} from '../build/utils_request';
+import { requestAsBrowser } from '../build/utils_request';
 import { startExpressAppPromise } from './_helper';
 
 const CONTENT = 'CONTENT';
@@ -41,6 +39,10 @@ describe('Apify.utils_request', () => {
         app.get('/invalidContentHeader', (req, res) => {
             res.setHeader('Content-Type', 'non-existent-content-type');
             res.send(CONTENT);
+        });
+
+        app.get('/test-encoding', (req, res) => {
+            res.json(req.query);
         });
 
         app.get('/invalidBody', async (req, res) => {
@@ -91,18 +93,50 @@ describe('Apify.utils_request', () => {
     });
 
     describe('Apify.requestAsBrowser', () => {
-        test(
-            'it uses mobile user-agent when mobile property is set to true ',
-            async () => {
-                const data = {
-                    url: `http://${HOSTNAME}:${port}/echo`,
-                    useMobileVersion: true,
-                };
-                const response = await requestAsBrowser(data);
-                expect(response.statusCode).toBe(200);
-                expect(response.request.options.context.headerGeneratorOptions.devices).toEqual(['mobile']);
-            },
-        );
+        test('it uses mobile user-agent when mobile property is set to true', async () => {
+            const data = {
+                url: `http://${HOSTNAME}:${port}/echo`,
+                useMobileVersion: true,
+            };
+            const response = await requestAsBrowser(data);
+            expect(response.statusCode).toBe(200);
+            expect(response.request.options.context.headerGeneratorOptions.devices).toEqual(['mobile']);
+        });
+
+        const testQueries = [
+            ['abc', 'abc', true],
+            ['abc', 'abc', false],
+            ['%20', ' ', false],
+            ['%cf', '%cf', true],
+            ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun', true],
+            ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun', false],
+        ];
+
+        test.each(testQueries)(`it works with not encoded urls: '%s' (regular)`, async (query, decoded, forceEncode) => {
+            const response = await requestAsBrowser({
+                url: `http://${HOSTNAME}:${port}/test-encoding/?q=${query}`,
+                forceUrlEncoding: forceEncode,
+            });
+            expect(response.statusCode).toBe(200);
+            expect(JSON.parse(response.body).q).toBe(decoded);
+        });
+
+        test.each(testQueries)(`it works with not encoded urls: '%s' (stream)`, async (query, decoded, forceEncode) => {
+            const response = await requestAsBrowser({
+                url: `http://${HOSTNAME}:${port}/test-encoding/?q=${query}`,
+                stream: true,
+                forceUrlEncoding: forceEncode,
+            });
+
+            const chunks = [];
+            for await (const chunk of response) {
+                chunks.push(chunk);
+            }
+            const body = JSON.parse(chunks.join());
+
+            expect(response.statusCode).toBe(200);
+            expect(body.q).toBe(decoded);
+        });
 
         test('uses desktop user-agent by default ', async () => {
             const data = {

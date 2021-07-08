@@ -5,7 +5,7 @@ module.exports = {
     testRunner: 'jest-circus/runner',
     verbose: false,
     rootDir: path.join(__dirname, './'),
-    testTimeout: 30e3,
+    testTimeout: 60e3,
     maxWorkers: 3,
     testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
     transform: {

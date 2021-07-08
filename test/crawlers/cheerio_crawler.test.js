@@ -190,6 +190,45 @@ describe('CheerioCrawler', () => {
         expect(success.url).toEqual(MODIFIED_URL);
     });
 
+    test('should work with not encoded urls', async () => {
+        const sources = [
+            { url: `http://${HOST}:${port}/mirror?q=abc` },
+            { url: `http://${HOST}:${port}/mirror?q=%` },
+            { url: `http://${HOST}:${port}/mirror?q=%cf` },
+        ];
+        const requestList = new Apify.RequestList({ sources });
+        await requestList.initialize();
+        const processed = [];
+        const failed = [];
+        const handlePageFunction = async ({ $, body, request }) => {
+            request.userData.title = $('title').text();
+            request.userData.body = body;
+            processed.push(request);
+        };
+
+        const cheerioCrawler = new Apify.CheerioCrawler({
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            handlePageFunction,
+            handleFailedRequestFunction: ({ request }) => failed.push(request),
+            preNavigationHooks: [
+                (_, gotoOptions) => {
+                    gotoOptions.forceUrlEncoding = true;
+                },
+            ],
+        });
+
+        await cheerioCrawler.run();
+
+        expect(processed).toHaveLength(3);
+        expect(failed).toHaveLength(0);
+
+        expect(processed[0].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=abc`);
+        expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25`);
+        expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25cf`);
+    });
+
     test('postResponseFunction should work', async () => {
         const sources = ['http://example.com/'];
         const requestList = await Apify.openRequestList(null, sources.slice());

@@ -117,7 +117,7 @@ import { gotoExtended } from '../playwright_utils';
  * ```
  * @property {Array<PlaywrightHook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
- *   The function accepts `crawlingContext` as an only parameter.
+ *   The function accepts `crawlingContext` as the only parameter.
  *   Example:
  * ```
  * postNavigationHooks: [

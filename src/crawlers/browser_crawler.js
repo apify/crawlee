@@ -130,7 +130,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  * ```
  * @property {Array<Hook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
- *   The function accepts `crawlingContext` as an only parameter.
+ *   The function accepts `crawlingContext` as the only parameter.
  *   Example:
  * ```
  * postNavigationHooks: [
@@ -532,21 +532,6 @@ export default class BrowserCrawler extends BasicCrawler {
 
             this.sessionPool.on(EVENTS.SESSION_RETIRED, listener);
             browserController.on('browserClosed', () => this.sessionPool.removeListener(EVENTS.SESSION_RETIRED, listener));
-        }
-    }
-
-    /**
-     * @param {Array<Hook>} hooks
-     * @param  {*} args
-     * @ignore
-     * @protected
-     * @internal
-     */
-    async _executeHooks(hooks, ...args) {
-        if (Array.isArray(hooks) && hooks.length) {
-            for (const hook of hooks) {
-                await hook(...args);
-            }
         }
     }
 
