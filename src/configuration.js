@@ -107,7 +107,7 @@ export class Configuration {
         defaultDatasetId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_DATASET_ID],
         defaultRequestQueueId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID],
         inputKey: 'INPUT',
-        apiBaseUrl: 'https://api.apify.com/v2',
+        apiBaseUrl: 'https://api.apify.com/',
         proxyStatusUrl: 'http://proxy.apify.com',
         proxyHostname: LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
         proxyPort: +LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT],
