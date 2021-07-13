@@ -39,7 +39,7 @@ import log from './utils_log';
  * `actorId` | `APIFY_ACTOR_ID` | -
  * `actorRunId` | `APIFY_ACTOR_RUN_ID` | -
  * `actorTaskId` | `APIFY_ACTOR_TASK_ID` | -
- * `apiBaseUrl` | `APIFY_API_BASE_URL` | `'https://api.apify.com/v2'`
+ * `apiBaseUrl` | `APIFY_API_BASE_URL` | `'https://api.apify.com'`
  * `containerPort` | `APIFY_CONTAINER_PORT` | `4321`
  * `containerUrl` | `APIFY_CONTAINER_URL` | `'http://localhost:4321'`
  * `inputKey` | `APIFY_INPUT_KEY` | `'INPUT'`
@@ -107,7 +107,7 @@ export class Configuration {
         defaultDatasetId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_DATASET_ID],
         defaultRequestQueueId: LOCAL_ENV_VARS[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID],
         inputKey: 'INPUT',
-        apiBaseUrl: 'https://api.apify.com/v2',
+        apiBaseUrl: 'https://api.apify.com',
         proxyStatusUrl: 'http://proxy.apify.com',
         proxyHostname: LOCAL_ENV_VARS[ENV_VARS.PROXY_HOSTNAME],
         proxyPort: +LOCAL_ENV_VARS[ENV_VARS.PROXY_PORT],

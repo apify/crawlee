@@ -266,7 +266,7 @@ export class KeyValueStore {
      * @return {string}
      */
     getPublicUrl(key) {
-        return `${this.config.get('apiBaseUrl')}/key-value-stores/${this.id}/records/${key}`;
+        return `${this.config.get('apiBaseUrl')}/v2/key-value-stores/${this.id}/records/${key}`;
     }
 
     /**
