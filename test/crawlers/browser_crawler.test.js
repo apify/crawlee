@@ -401,6 +401,7 @@ describe('BrowserCrawler', () => {
         loadedCookies.forEach((cookie) => {
             // TODO this test is flaky in CI and we need some more info to debug why.
             if (cookie !== 'TEST=12321312312') {
+                // for some reason, the CI failures report the first cookie to be just empty string
                 console.log('loadedCookies:');
                 console.dir(loadedCookies);
             }

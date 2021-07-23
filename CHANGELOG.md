@@ -1,8 +1,12 @@
+2.0.0 / BETA
+====================
+- **BREAKING**: Require Node.js >=15.10.0 because HTTP2 support on lower Node.js versions is very buggy.
+
 1.3.1 / 2021/07/13
 ====================
 - Fix client `/v2` duplication in `apiBaseUrl`.
-  
-1.3.0 / BETA
+
+1.3.0 / 2021/07/11
 ====================
 
 ## Navigation hooks in `CheerioCrawler`
