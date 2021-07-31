@@ -173,6 +173,21 @@ describe('Apify.utils_request', () => {
             expect(response.request.options.context.headerGeneratorOptions.locales).toEqual([`${languageCode}-${countryCode}`]);
         });
 
+        test('uses custom headerGeneratorOptions', async () => {
+            const host = `${HOSTNAME}:${port}`;
+            const options = {
+                url: `http://${host}/echo`,
+                headerGeneratorOptions: {
+                    locales: ['test'],
+                },
+            };
+
+            const response = await requestAsBrowser(options);
+
+            expect(response.statusCode).toBe(200);
+            expect(response.request.options.context.headerGeneratorOptions.locales).toEqual(['test']);
+        });
+
         test('does not throw for empty response body', async () => {
             const options = {
                 url: `http://${HOSTNAME}:${port}/empty`,
