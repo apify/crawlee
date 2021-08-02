@@ -182,6 +182,8 @@ export const requestAsBrowser = async (options = {}) => {
             devices: useMobileVersion ? ['mobile'] : ['desktop'],
             locales: [`${languageCode}-${countryCode}`],
         };
+    } else {
+        gotScrapingOptions.headerGeneratorOptions = headerGeneratorOptions;
     }
 
     if (forceUrlEncoding) {

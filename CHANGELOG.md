@@ -1,7 +1,11 @@
+1.3.2 / 2021/07/31
+====================
+- Fix `headerGeneratorOptions` not being passed to `got-scraping` in `requestAsBrowser`.
+
 1.3.1 / 2021/07/13
 ====================
 - Fix client `/v2` duplication in `apiBaseUrl`.
-  
+
 1.3.0 / BETA
 ====================
 
