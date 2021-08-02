@@ -1,0 +1,186 @@
+{
+  "version-1.3.1-docs": {
+    "Guide": [
+      "version-1.3.1-guides/motivation",
+      "version-1.3.1-guides/quick-start",
+      "version-1.3.1-guides/apify-platform",
+      "version-1.3.1-guides/getting-started",
+      "version-1.3.1-guides/request-storage",
+      "version-1.3.1-guides/result-storage",
+      "version-1.3.1-guides/environment-variables",
+      "version-1.3.1-guides/proxy-management",
+      "version-1.3.1-guides/session-management",
+      "version-1.3.1-guides/type-script-actor",
+      "version-1.3.1-guides/docker-images",
+      "version-1.3.1-guides/migration-to-v1"
+    ],
+    "Examples": [
+      "version-1.3.1-examples/accept-user-input",
+      "version-1.3.1-examples/add-data-to-dataset",
+      "version-1.3.1-examples/basic-crawler",
+      "version-1.3.1-examples/call-actor",
+      "version-1.3.1-examples/capture-screenshot",
+      "version-1.3.1-examples/cheerio-crawler",
+      "version-1.3.1-examples/crawl-all-links",
+      "version-1.3.1-examples/crawl-multiple-urls",
+      "version-1.3.1-examples/crawl-relative-links",
+      "version-1.3.1-examples/crawl-single-url",
+      "version-1.3.1-examples/crawl-sitemap",
+      "version-1.3.1-examples/crawl-some-links",
+      "version-1.3.1-examples/forms",
+      "version-1.3.1-examples/map-and-reduce",
+      "version-1.3.1-examples/playwright-crawler",
+      "version-1.3.1-examples/puppeteer-crawler",
+      "version-1.3.1-examples/puppeteer-recursive-crawl",
+      "version-1.3.1-examples/puppeteer-with-proxy",
+      "version-1.3.1-examples/synchronous-run",
+      "version-1.3.1-examples/use-stealth-mode"
+    ],
+    "API Reference": [
+      "version-1.3.1-api/apify",
+      "version-1.3.1-api/configuration",
+      {
+        "type": "subcategory",
+        "label": "Crawlers",
+        "ids": [
+          "version-1.3.1-api/basic-crawler",
+          "version-1.3.1-api/cheerio-crawler",
+          "version-1.3.1-api/playwright-crawler",
+          "version-1.3.1-api/puppeteer-crawler",
+          "version-1.3.1-api/statistics"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Result Stores",
+        "ids": [
+          "version-1.3.1-api/dataset",
+          "version-1.3.1-api/key-value-store"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Scaling",
+        "ids": [
+          "version-1.3.1-api/autoscaled-pool",
+          "version-1.3.1-api/session",
+          "version-1.3.1-api/session-pool",
+          "version-1.3.1-api/proxy-configuration",
+          "version-1.3.1-api/snapshotter",
+          "version-1.3.1-api/system-status"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Sources",
+        "ids": [
+          "version-1.3.1-api/request",
+          "version-1.3.1-api/request-list",
+          "version-1.3.1-api/request-queue",
+          "version-1.3.1-api/pseudo-url"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Utilities",
+        "ids": [
+          "version-1.3.1-api/utils",
+          "version-1.3.1-api/log",
+          "version-1.3.1-api/playwright",
+          "version-1.3.1-api/puppeteer",
+          "version-1.3.1-api/social"
+        ]
+      }
+    ],
+    "Type Definitions": [
+      {
+        "type": "subcategory",
+        "label": "Constructor Options",
+        "ids": [
+          "version-1.3.1-typedefs/autoscaled-pool-options",
+          "version-1.3.1-typedefs/basic-crawler-options",
+          "version-1.3.1-typedefs/cheerio-crawler-options",
+          "version-1.3.1-typedefs/playwright-crawler-options",
+          "version-1.3.1-typedefs/playwright-launch-context",
+          "version-1.3.1-typedefs/puppeteer-crawler-options",
+          "version-1.3.1-typedefs/puppeteer-launch-context",
+          "version-1.3.1-typedefs/proxy-configuration-options",
+          "version-1.3.1-typedefs/proxy-info",
+          "version-1.3.1-typedefs/logger-options",
+          "version-1.3.1-typedefs/request-options",
+          "version-1.3.1-typedefs/request-list-options",
+          "version-1.3.1-typedefs/request-as-browser-options",
+          "version-1.3.1-typedefs/session-options",
+          "version-1.3.1-typedefs/session-pool-options",
+          "version-1.3.1-typedefs/snapshotter-options",
+          "version-1.3.1-typedefs/stealth-options",
+          "version-1.3.1-typedefs/system-status-options"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Crawlers",
+        "ids": [
+          "version-1.3.1-typedefs/cheerio-handle-page",
+          "version-1.3.1-typedefs/cheerio-handle-page-inputs",
+          "version-1.3.1-typedefs/handle-failed-request",
+          "version-1.3.1-typedefs/handle-failed-request-input",
+          "version-1.3.1-typedefs/handle-request",
+          "version-1.3.1-typedefs/handle-request-inputs",
+          "version-1.3.1-typedefs/prepare-request",
+          "version-1.3.1-typedefs/prepare-request-inputs",
+          "version-1.3.1-typedefs/playwright-handle-page",
+          "version-1.3.1-typedefs/playwright-handle-page-inputs",
+          "version-1.3.1-typedefs/puppeteer-handle-page",
+          "version-1.3.1-typedefs/puppeteer-handle-page-inputs"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Dataset",
+        "ids": [
+          "version-1.3.1-typedefs/dataset-consumer",
+          "version-1.3.1-typedefs/dataset-mapper",
+          "version-1.3.1-typedefs/dataset-reducer"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - KeyValueStore",
+        "ids": [
+          "version-1.3.1-typedefs/key-consumer"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Sessions",
+        "ids": [
+          "version-1.3.1-typedefs/create-session"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Utilities",
+        "ids": [
+          "version-1.3.1-typedefs/request-transform"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Return Types",
+        "ids": [
+          "version-1.3.1-typedefs/actor-run",
+          "version-1.3.1-api/apify-call-error",
+          "version-1.3.1-typedefs/apify-env",
+          "version-1.3.1-typedefs/dataset-content",
+          "version-1.3.1-typedefs/memory-info",
+          "version-1.3.1-typedefs/queue-operation-info",
+          "version-1.3.1-typedefs/request-list-state",
+          "version-1.3.1-typedefs/session-state",
+          "version-1.3.1-typedefs/social-handles",
+          "version-1.3.1-typedefs/system-info"
+        ]
+      }
+    ]
+  }
+}
