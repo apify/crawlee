@@ -511,7 +511,7 @@ Apify.main(async () => {
 
         const {origin} = new URL(request.loadedUrl);
         const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
-        
+
         const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
 
         console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
