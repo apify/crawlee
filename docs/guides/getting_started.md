@@ -380,6 +380,8 @@ const links = $('a[href]')
 Our new function finds all the `<a>` elements that contain the `href` attribute and extracts the attributes into an array of strings. But there's a problem. There could be relative links in the list and those can't be used on their own. We need to resolve them using our domain as base URL and
 we will use one of Node.js' standard libraries to do this.
 
+Apify exposes two URL properties: [`request.url`](../api/request#url) and [`request.loadedUrl`](../api/request#loadedurl). What's the difference? Well, `request.url` is the URL of the first request. In case of redirects, the URL changes. The final one is stored as `request.loadedUrl`.
+
 ```js
 // At the top of the file:
 const { URL } = require('url');
@@ -408,32 +410,19 @@ const links = $('a[href]')
     .map((i, el) => $(el).attr('href'))
     .get();
 
-const {protocol, hostname} = new URL(request.loadedUrl);
+const { hostname } = new URL(request.loadedUrl);
 const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
-const sameDomainLinks = absoluteUrls.filter(url => url.protocol === protocol && url.hostname.endsWith(hostname));
+const sameDomainLinks = absoluteUrls.filter(url => url.hostname.endsWith(hostname));
 
 // ...
 ```
 
-This includes subdomains. In order to pin the entire origin, simply compare the `url.origin` property instead:
+This includes subdomains. In order to filter the same origin, simply compare the `url.origin` property instead:
 
 ```js
-// At the top of the file:
-const { URL } = require('url');
-
-// ...
-
-const links = $('a[href]')
-    .map((i, el) => $(el).attr('href'))
-    .get();
-
-const {origin} = new URL(request.loadedUrl);
+const { origin } = new URL(request.loadedUrl);
 const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
-
-const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
-
-// ...
 ```
 
 #### Enqueueing links to `RequestQueue`
@@ -451,7 +440,7 @@ const links = $('a[href]')
     .map((i, el) => $(el).attr('href'))
     .get();
 
-const {origin} = new URL(request.loadedUrl);
+const { origin } = new URL(request.loadedUrl);
 const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
 const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
@@ -509,7 +498,7 @@ Apify.main(async () => {
             .map((i, el) => $(el).attr('href'))
             .get();
 
-        const {origin} = new URL(request.loadedUrl);
+        const { origin } = new URL(request.loadedUrl);
         const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
         const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
