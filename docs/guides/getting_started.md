@@ -359,7 +359,7 @@ Apify.main(async () => {
 Earlier we said that we would let the crawler:
 
 1. Find new links on the page
-2. Filter only those pointing to `apify.com`
+2. Filter only those pointing to the same hostname, in this case `apify.com`
 3. Enqueue them to the `RequestQueue`
 4. Scrape the newly enqueued links
 
@@ -386,8 +386,8 @@ const { URL } = require('url');
 
 // ...
 
-const ourDomain = 'https://apify.com';
-const absoluteUrls = links.map(link => new URL(link, ourDomain));
+const {hostname} = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 ```
 
 #### Filtering links to same domain
@@ -408,10 +408,30 @@ const links = $('a[href]')
     .map((i, el) => $(el).attr('href'))
     .get();
 
-const ourDomain = 'apify.com';
-const absoluteUrls = links.map(link => new URL(link, ourDomain));
+const {protocol, hostname} = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
-const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+const sameDomainLinks = absoluteUrls.filter(url => url.protocol === protocol && url.hostname.endsWith(hostname));
+
+// ...
+```
+
+This includes subdomains. In order to pin the entire origin, simply compare the `url.origin` property instead:
+
+```js
+// At the top of the file:
+const { URL } = require('url');
+
+// ...
+
+const links = $('a[href]')
+    .map((i, el) => $(el).attr('href'))
+    .get();
+
+const {origin} = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
+
+const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
 
 // ...
 ```
@@ -431,10 +451,10 @@ const links = $('a[href]')
     .map((i, el) => $(el).attr('href'))
     .get();
 
-const ourDomain = 'https://apify.com';
-const absoluteUrls = links.map(link => new URL(link, ourDomain));
+const {origin} = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
-const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
 
 // Add the requests in series. There's of course room for speed
 // improvement by parallelization. Try to implement it, if you wish.
@@ -489,10 +509,10 @@ Apify.main(async () => {
             .map((i, el) => $(el).attr('href'))
             .get();
 
-        const ourDomain = 'https://apify.com';
-        const absoluteUrls = links.map(link => new URL(link, ourDomain));
-
-        const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+        const {origin} = new URL(request.loadedUrl);
+        const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
+        
+        const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
 
         console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
         for (const url of sameDomainLinks) {
