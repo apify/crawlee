@@ -368,7 +368,7 @@ So let's get to it!
 #### Finding new links
 
 There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain
-the `href` attribute. For example `<a href="https://apify.com/store>This is a link to Apify Store</a>`. To do this, we need to update our Cheerio
+the `href` attribute. For example `<a href="https://apify.com/store">This is a link to Apify Store</a>`. To do this, we need to update our Cheerio
 function.
 
 ```js
