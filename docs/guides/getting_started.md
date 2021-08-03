@@ -388,7 +388,7 @@ const { URL } = require('url');
 
 // ...
 
-const {hostname} = new URL(request.loadedUrl);
+const { hostname } = new URL(request.loadedUrl);
 const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 ```
 
@@ -424,6 +424,8 @@ This includes subdomains. In order to filter the same origin, simply compare the
 const { origin } = new URL(request.loadedUrl);
 const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 ```
+
+> The `URL` class contains many other useful properties. You can read more about `url.origin` [here](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin).
 
 #### Enqueueing links to `RequestQueue`
 
