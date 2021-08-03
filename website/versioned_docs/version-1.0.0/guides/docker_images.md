@@ -24,7 +24,7 @@ of our Docker images.
 
 ## Example Dockerfile
 To use our images, you need a [`Dockerfile`](https://docs.docker.com/engine/reference/builder/).
-You can either use this example, or bootstrap your projects with the [Apify CLI](../guides/getting_started.md#creating-a-new-project)
+You can either use this example, or bootstrap your projects with the [Apify CLI](../guides/getting-started.md#creating-a-new-project)
 which automatically copies the correct Dockerfile into your project folder.
 
 ```dockerfile
