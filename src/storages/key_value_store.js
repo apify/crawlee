@@ -10,6 +10,7 @@ import * as ApifyClient from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
 import { Configuration } from '../configuration';
+import { APIFY_API_BASE_URL } from '../constants';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -266,7 +267,7 @@ export class KeyValueStore {
      * @return {string}
      */
     getPublicUrl(key) {
-        return `${this.config.get('apiBaseUrl')}/v2/key-value-stores/${this.id}/records/${key}`;
+        return `${APIFY_API_BASE_URL}/key-value-stores/${this.id}/records/${key}`;
     }
 
     /**

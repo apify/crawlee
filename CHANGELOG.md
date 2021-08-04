@@ -1,4 +1,8 @@
-1.3.2 / 2021/07/31
+1.3.3 / 2021/08/04
+====================
+- Fix public URL getter of key-value stores
+
+1.3.2 / 2021/08/02
 ====================
 - Fix `headerGeneratorOptions` not being passed to `got-scraping` in `requestAsBrowser`.
 
