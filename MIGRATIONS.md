@@ -1,3 +1,6 @@
+# Migration from 1.x.x to 2.0.0
+There should be no changes needed apart from upgrading your Node.js version to >= 15.10. If you encounter issues with `cheerio`, [read their CHANGELOG](https://github.com/cheeriojs/cheerio/releases). We bumped it from `rc.3` to `rc.10`.
+
 # Migration from 0.2x.x to 1.0.0
 There are a lot of breaking changes in the v1.0.0 release, but we're confident that
 updating your code will be a matter of minutes. Below, you'll find examples how to do it

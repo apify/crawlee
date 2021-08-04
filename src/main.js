@@ -24,7 +24,6 @@ import { playwrightUtils } from './playwright_utils';
 import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import PseudoUrl from './pseudo_url';
-import LiveViewServer from './live_view/live_view_server';
 import { requestAsBrowser } from './utils_request';
 import { openSessionPool } from './session_pool/session_pool';
 import { Session } from './session_pool/session';
@@ -139,7 +138,6 @@ export {
 
     createProxyConfiguration,
 
-    LiveViewServer,
     Session,
 
     exportedUtils as utils,
