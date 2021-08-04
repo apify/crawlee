@@ -1,3 +1,7 @@
+1.3.4 / 2021/08/04
+====================
+- Fix issues with TS builds caused by incomplete `browser-pool` rewrite
+
 1.3.3 / 2021/08/04
 ====================
 - Fix public URL getter of key-value stores
