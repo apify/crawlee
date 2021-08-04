@@ -2,6 +2,10 @@
 ====================
 - **BREAKING**: Require Node.js >=15.10.0 because HTTP2 support on lower Node.js versions is very buggy.
 
+1.3.2 / 2021/08/02
+====================
+- Fix `headerGeneratorOptions` not being passed to `got-scraping` in `requestAsBrowser`.
+
 1.3.1 / 2021/07/13
 ====================
 - Fix client `/v2` duplication in `apiBaseUrl`.
