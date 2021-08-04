@@ -113,7 +113,7 @@ import { BrowserPoolOptions } from 'browser-pool';
  *     async (crawlingContext, gotoOptions) => {
  *         const { page } = crawlingContext;
  *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
- *     }
+ *     },
  * ]
  * ```
  * @property {Array<PuppeteerHook>} [postNavigationHooks]
@@ -127,7 +127,7 @@ import { BrowserPoolOptions } from 'browser-pool';
  *         if (hasCaptcha(page)) {
  *             await solveCaptcha (page);
  *         }
- *     };
+ *     },
  * ]
  * ```
  * @property {RequestList} [requestList]

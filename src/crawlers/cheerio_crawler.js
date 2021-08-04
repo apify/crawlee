@@ -205,7 +205,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * preNavigationHooks: [
  *     async (crawlingContext, requestAsBrowserOptions) => {
  *         requestAsBrowserOptions.forceUrlEncoding = true;
- *     }
+ *     },
  * ]
  * ```
  * @property {Array<Hook>} [postNavigationHooks]
@@ -216,7 +216,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * postNavigationHooks: [
  *     async (crawlingContext) => {
  *         // ...
- *     };
+ *     },
  * ]
  * ```
  * @property {string[]} [additionalMimeTypes]
@@ -313,7 +313,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  * preNavigationHooks: [
  *     (crawlingContext, requestAsBrowserOptions) => {
  *         requestAsBrowserOptions.forceUrlEncoding = true;
- *     }
+ *     },
  * ]
  * ```
  *

@@ -125,7 +125,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  *     async (crawlingContext, gotoOptions) => {
  *         const { page } = crawlingContext;
  *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
- *     }
+ *     },
  * ]
  * ```
  * @property {Array<Hook>} [postNavigationHooks]
@@ -139,7 +139,7 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  *         if (hasCaptcha(page)) {
  *             await solveCaptcha (page);
  *         }
- *     };
+ *     },
  * ]
  * ```
  * @property {RequestList} [requestList]

@@ -112,7 +112,7 @@ import { gotoExtended } from '../playwright_utils';
  * preNavigationHooks: [
  *     async (crawlingContext, gotoOptions) => {
  *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
- *     }
+ *     },
  * ]
  * ```
  * @property {Array<PlaywrightHook>} [postNavigationHooks]
@@ -126,7 +126,7 @@ import { gotoExtended } from '../playwright_utils';
  *         if (hasCaptcha(page)) {
  *             await solveCaptcha (page);
  *         }
- *     };
+ *     },
  * ]
  * ```
  * @property {PlaywrightLaunchContext} [launchContext]
