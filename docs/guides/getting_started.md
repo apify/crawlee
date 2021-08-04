@@ -359,7 +359,7 @@ Apify.main(async () => {
 Earlier we said that we would let the crawler:
 
 1. Find new links on the page
-2. Filter only those pointing to `apify.com`
+2. Filter only those pointing to the same hostname, in this case `apify.com`
 3. Enqueue them to the `RequestQueue`
 4. Scrape the newly enqueued links
 
@@ -368,7 +368,7 @@ So let's get to it!
 #### Finding new links
 
 There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain
-the `href` attribute. For example `<a href="https://apify.com/store>This is a link to Apify Store</a>`. To do this, we need to update our Cheerio
+the `href` attribute. For example `<a href="https://apify.com/store">This is a link to Apify Store</a>`. To do this, we need to update our Cheerio
 function.
 
 ```js
@@ -380,14 +380,16 @@ const links = $('a[href]')
 Our new function finds all the `<a>` elements that contain the `href` attribute and extracts the attributes into an array of strings. But there's a problem. There could be relative links in the list and those can't be used on their own. We need to resolve them using our domain as base URL and
 we will use one of Node.js' standard libraries to do this.
 
+Apify exposes two URL properties: [`request.url`](../api/request#url) and [`request.loadedUrl`](../api/request#loadedurl). What's the difference? Well, `request.url` is the URL of the first request. In case of redirects, the URL changes. The final one is stored as `request.loadedUrl`.
+
 ```js
 // At the top of the file:
 const { URL } = require('url');
 
 // ...
 
-const ourDomain = 'https://apify.com';
-const absoluteUrls = links.map(link => new URL(link, ourDomain));
+const { hostname } = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 ```
 
 #### Filtering links to same domain
@@ -408,13 +410,24 @@ const links = $('a[href]')
     .map((i, el) => $(el).attr('href'))
     .get();
 
-const ourDomain = 'apify.com';
-const absoluteUrls = links.map(link => new URL(link, ourDomain));
+const { hostname } = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
-const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+const sameDomainLinks = absoluteUrls.filter(url => url.hostname.endsWith(hostname));
 
 // ...
 ```
+
+This includes subdomains. In order to filter the same origin, simply compare the `url.origin` property instead:
+
+```js
+const { origin } = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
+
+const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
+```
+
+> The `URL` class contains many other useful properties. You can read more about `url.origin` [here](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin).
 
 #### Enqueueing links to `RequestQueue`
 
@@ -431,10 +444,10 @@ const links = $('a[href]')
     .map((i, el) => $(el).attr('href'))
     .get();
 
-const ourDomain = 'https://apify.com';
-const absoluteUrls = links.map(link => new URL(link, ourDomain));
+const { origin } = new URL(request.loadedUrl);
+const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
-const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
 
 // Add the requests in series. There's of course room for speed
 // improvement by parallelization. Try to implement it, if you wish.
@@ -489,10 +502,10 @@ Apify.main(async () => {
             .map((i, el) => $(el).attr('href'))
             .get();
 
-        const ourDomain = 'https://apify.com';
-        const absoluteUrls = links.map(link => new URL(link, ourDomain));
+        const { origin } = new URL(request.loadedUrl);
+        const absoluteUrls = links.map(link => new URL(link, request.loadedUrl));
 
-        const sameDomainLinks = absoluteUrls.filter(url => url.href.startsWith(ourDomain));
+        const sameDomainLinks = absoluteUrls.filter(url => url.origin === origin);
 
         console.log(`Enqueueing ${sameDomainLinks.length} URLs.`);
         for (const url of sameDomainLinks) {
