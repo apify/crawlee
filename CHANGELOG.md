@@ -1,3 +1,7 @@
+2.0.1 / 2021/08/06
+====================
+- Use `got-scraping` 2.0.1 until fully compatible.
+
 2.0.0 / 2021/08/05
 ====================
 - **BREAKING**: Require Node.js >=15.10.0 because HTTP2 support on lower Node.js versions is very buggy.
