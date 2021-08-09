@@ -1,5 +1,5 @@
 ---
-id: version-2.0.0-playwright-crawler-options
+id: version-2.0.1-playwright-crawler-options
 title: PlaywrightCrawlerOptions
 original_id: playwright-crawler-options
 ---

@@ -1135,6 +1135,24 @@
       },
       "version-1.3.1/typedefs/version-1.3.1-request-as-browser-options": {
         "title": "RequestAsBrowserOptions"
+      },
+      "version-2.0.1/api/version-2.0.1-cheerio-crawler": {
+        "title": "CheerioCrawler"
+      },
+      "version-2.0.1/guides/version-2.0.1-getting-started": {
+        "title": "Getting Started"
+      },
+      "version-2.0.1/guides/version-2.0.1-quick-start": {
+        "title": "Quick Start"
+      },
+      "version-2.0.1/typedefs/version-2.0.1-cheerio-crawler-options": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "version-2.0.1/typedefs/version-2.0.1-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-2.0.1/typedefs/version-2.0.1-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
       }
     },
     "links": {

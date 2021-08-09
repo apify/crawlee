@@ -464,11 +464,20 @@ class CheerioCrawler extends BasicCrawler {
         this.prepareRequestFunction = prepareRequestFunction;
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
-        /** @type {Array<Hook>} */
+        /**
+         * @type {Array<Hook>}
+         * @ignore
+         * */
         this.preNavigationHooks = preNavigationHooks;
-        /** @type {Array<Hook>} */
+        /**
+         * @type {Array<Hook>}
+         * @ignore
+         * */
         this.postNavigationHooks = postNavigationHooks;
-        /** @type {RequestAsBrowserOptions} */
+        /**
+         * @type {RequestAsBrowserOptions}
+         * @ignore
+         * */
         this.defaultRequestAsBrowserOptions = {};
 
         if (this.useSessionPool) {

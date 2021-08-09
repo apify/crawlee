@@ -1,5 +1,5 @@
 ---
-id: version-2.0.0-cheerio-crawler
+id: version-2.0.1-cheerio-crawler
 title: CheerioCrawler
 original_id: cheerio-crawler
 ---
@@ -157,24 +157,6 @@ the fly, to pause the crawler by calling [`AutoscaledPool.pause()`](../api/autos
 **Parameters**:
 
 -   **`options`**: [`CheerioCrawlerOptions`](../typedefs/cheerio-crawler-options) - All `CheerioCrawler` parameters are passed via an options object.
-
----
-
-<a name="prenavigationhooks"></a>
-
-## `cheerioCrawler.preNavigationHooks`
-
----
-
-<a name="postnavigationhooks"></a>
-
-## `cheerioCrawler.postNavigationHooks`
-
----
-
-<a name="defaultrequestasbrowseroptions"></a>
-
-## `cheerioCrawler.defaultRequestAsBrowserOptions`
 
 ---
 

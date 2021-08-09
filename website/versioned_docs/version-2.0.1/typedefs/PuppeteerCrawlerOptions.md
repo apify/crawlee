@@ -1,5 +1,5 @@
 ---
-id: version-2.0.0-puppeteer-crawler-options
+id: version-2.0.1-puppeteer-crawler-options
 title: PuppeteerCrawlerOptions
 original_id: puppeteer-crawler-options
 ---

@@ -1,5 +1,5 @@
 ---
-id: version-2.0.0-cheerio-crawler-options
+id: version-2.0.1-cheerio-crawler-options
 title: CheerioCrawlerOptions
 original_id: cheerio-crawler-options
 ---
