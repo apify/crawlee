@@ -142,8 +142,12 @@ describe('utils.getMemoryInfo()', () => {
             .returns(Promise.resolve(true));
 
         sinon
+            .stub(fs, 'access')
+            .callsFake((file, mode, callback) => callback(null));
+
+        sinon
             .stub(fs, 'readFile')
-            .callsFake((filePath, callback) => {
+            .callsFake((filePath, encoding, callback) => {
                 if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
                 else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
                 else throw new Error('Invalid path');
@@ -160,6 +164,7 @@ describe('utils.getMemoryInfo()', () => {
         } finally {
             utilsMock.verify();
             fs.readFile.restore();
+            fs.access.restore();
         }
     });
 
@@ -212,8 +217,12 @@ describe('utils.getMemoryInfo()', () => {
             .returns(Promise.resolve(true));
 
         sinon
+            .stub(fs, 'access')
+            .callsFake((file, mode, callback) => callback(null));
+
+        sinon
             .stub(fs, 'readFile')
-            .callsFake((filePath, callback) => {
+            .callsFake((filePath, encoding, callback) => {
                 if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
                 else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
                 else throw new Error('Invalid path');
@@ -233,8 +242,159 @@ describe('utils.getMemoryInfo()', () => {
         } finally {
             utilsMock.verify();
             fs.readFile.restore();
+            fs.access.restore();
             delete process.env[ENV_VARS.HEADLESS];
             if (browser) browser.close();
+        }
+    });
+
+    test('works with cgroup V1 with LIMITED memory', async () => {
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'access')
+            .callsFake((file, mode, callback) => callback(null));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((filePath, encoding, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '333');
+                else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        try {
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+            });
+        } finally {
+            utilsMock.verify();
+            fs.readFile.restore();
+            fs.access.restore();
+        }
+    });
+
+    test('works with cgroup V1 with UNLIMITED memory', async () => {
+        const utilsMock = sinon.mock(utils);
+        const osMock = sinon.mock(os);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'access')
+            .callsFake((file, mode, callback) => callback(null));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((filePath, encoding, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory/memory.limit_in_bytes') callback(null, '9223372036854771712');
+                else if (filePath === '/sys/fs/cgroup/memory/memory.usage_in_bytes') callback(null, '111');
+                else throw new Error('Invalid path');
+            });
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        try {
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+            });
+        } finally {
+            utilsMock.verify();
+            osMock.verify();
+            fs.readFile.restore();
+            fs.access.restore();
+        }
+    });
+
+    test('works with cgroup V2 with LIMITED memory', async () => {
+        const utilsMock = sinon.mock(utils);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'access')
+            .callsFake((file, mode, callback) => callback('error'));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((filePath, encoding, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory.max') callback(null, '333\n');
+                else if (filePath === '/sys/fs/cgroup/memory.current') callback(null, '111\n');
+                else throw new Error('Invalid path');
+            });
+
+        try {
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+            });
+        } finally {
+            utilsMock.verify();
+            fs.readFile.restore();
+            fs.access.restore();
+        }
+    });
+
+    test('works with cgroup V2 with UNLIMITED memory', async () => {
+        const utilsMock = sinon.mock(utils);
+        const osMock = sinon.mock(os);
+
+        utilsMock
+            .expects('isDocker')
+            .once()
+            .returns(Promise.resolve(true));
+
+        sinon
+            .stub(fs, 'access')
+            .callsFake((file, mode, callback) => callback('error'));
+
+        sinon
+            .stub(fs, 'readFile')
+            .callsFake((filePath, encoding, callback) => {
+                if (filePath === '/sys/fs/cgroup/memory.max') callback(null, 'max\n');
+                else if (filePath === '/sys/fs/cgroup/memory.current') callback(null, '111\n');
+                else throw new Error('Invalid path');
+            });
+
+        osMock
+            .expects('totalmem')
+            .once()
+            .returns(333);
+
+        try {
+            const data = await Apify.getMemoryInfo();
+            expect(data).toMatchObject({
+                totalBytes: 333,
+                freeBytes: 222,
+                usedBytes: 111,
+            });
+        } finally {
+            utilsMock.verify();
+            osMock.verify();
+            fs.readFile.restore();
+            fs.access.restore();
         }
     });
 });
