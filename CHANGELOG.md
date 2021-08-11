@@ -1,3 +1,7 @@
+2.0.2 / BETA
+====================
+- Fix serialization issues in `CheerioCrawler` caused by parser conflicts in recent versions of `cheerio`.
+
 2.0.1 / 2021/08/06
 ====================
 - Use `got-scraping` 2.0.1 until fully compatible.
