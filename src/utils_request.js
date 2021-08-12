@@ -49,8 +49,6 @@ import { IncomingMessage } from 'http';
  *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
  *  to HTTP/1.1 for websites that do not support HTTP2. For Node 10 this option is always set to `false`
  *  because Node 10 does not support HTTP2 very well. Upgrade to Node 12 for better performance.
- * @property {boolean} [forceUrlEncoding]
- *   Automatically encode URLs via `encodeURI()` before resolving them.
  */
 
 /**
@@ -121,7 +119,6 @@ export const requestAsBrowser = async (options = {}) => {
         headerGeneratorOptions: ow.optional.object,
         stream: ow.optional.boolean,
         decodeBody: ow.optional.boolean,
-        forceUrlEncoding: ow.optional.boolean,
     }));
 
     ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({
@@ -135,7 +132,6 @@ export const requestAsBrowser = async (options = {}) => {
     // TODO Update this with SDK v3 and use `got-scraping` API directly.
     const {
         payload, // alias for body to allow direct passing of our Request objects
-        proxyUrl,
         json,
         headerGeneratorOptions,
         languageCode = 'en',
@@ -149,12 +145,10 @@ export const requestAsBrowser = async (options = {}) => {
         throwOnHttpErrors = false,
         stream = false,
         decodeBody = true,
-        forceUrlEncoding, // TODO maybe this should be moved to got-scraping because it's what browsers do
         ...gotParams
     } = options;
 
     const gotScrapingOptions = {
-        proxyUrl,
         insecureHTTPParser: useInsecureHttpParser,
         http2: useHttp2,
         timeout: { request: timeoutSecs * 1000 },
@@ -165,11 +159,17 @@ export const requestAsBrowser = async (options = {}) => {
         // got interface a priority over our requestAsBrowser one.
         // E.g. { isStream: false, stream: true } should produce { isStream: false }.
         ...gotParams,
+        https: {
+            ...gotParams.https,
+            rejectUnauthorized: !ignoreSslErrors,
+        },
     };
+
+    // Encode the URL if necessary
+    gotScrapingOptions.url = fixUrl(gotScrapingOptions.url);
 
     // Order is important
     normalizePayloadOption(payload, gotScrapingOptions);
-    normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions);
     normalizeJsonOption(json, gotScrapingOptions);
     ensureCorrectHttp2Headers(gotScrapingOptions);
     maybeAddAbortHook(abortFunction, gotScrapingOptions);
@@ -183,17 +183,16 @@ export const requestAsBrowser = async (options = {}) => {
         gotScrapingOptions.headerGeneratorOptions = headerGeneratorOptions;
     }
 
-    if (forceUrlEncoding) {
-        gotScrapingOptions.url = encodeURI(gotScrapingOptions.url);
-    }
-
+    // Return the promise directly
     if (!gotScrapingOptions.isStream) {
         return gotScraping(gotScrapingOptions);
     }
 
     // abortFunction must be handled separately for streams :(
-    const duplexStream = await gotScraping(gotScrapingOptions);
+    const duplexStream = gotScraping(gotScrapingOptions);
+
     ensureRequestIsDispatched(duplexStream, gotScrapingOptions);
+
     return new Promise((resolve, reject) => {
         duplexStream
             .on('error', reject)
@@ -216,6 +215,52 @@ export const requestAsBrowser = async (options = {}) => {
             });
     });
 };
+
+/**
+ * Fixes malformed URIs. Takes ~13s per 1M executions.
+ * @example fixUrl('https://example.com/%cf') => 'https://example.com/%EF%BF%BD'
+ * @example fixUrl('https://example.com/%xx') => 'https://example.com/%25xx'
+ * @example fixUrl('https://example.com/%0fexample%cc%0f') => 'https://example.com/%0Fexample%EF%BF%BD%0F'
+ * @see https://tc39.es/ecma262/multipage/global-object.html#sec-decodeuri-encodeduri
+ * @param {string} url
+ * @private
+ */
+function fixUrl(url) {
+    const hexChars = '0123456789abcdefABCDEF';
+    let chunks = '';
+
+    let index = url.indexOf('%');
+    while (index !== -1 && index < url.length) {
+        const start = index;
+
+        do {
+            const buffer = url.slice(index + 1, index + 3);
+
+            if (hexChars.indexOf(buffer[0]) !== -1 && hexChars.indexOf(buffer[1]) !== -1) {
+                chunks += buffer;
+
+                index += 3;
+            } else {
+                chunks += '25'; // %
+
+                index += 1;
+                break;
+            }
+        } while (url[index] === '%');
+
+        if (chunks.length) {
+            const encoded = encodeURI(Buffer.from(chunks, 'hex').toString());
+            url = `${url.slice(0, start)}${encoded}${url.slice(index)}`;
+
+            index += encoded.length;
+            chunks = '';
+        }
+
+        index = url.indexOf('%', index);
+    }
+
+    return url;
+}
 
 /**
  * `got` has a `body` option and 2 helpers, `json` and `form`, to provide specific bodies.
@@ -279,20 +324,6 @@ function normalizeJsonOption(json, gotScrapingOptions) {
 }
 
 /**
- * @param {boolean} ignoreSslErrors
- * @param {GotScrapingOptions} gotScrapingOptions
- * @ignore
- * @private
- */
-function normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions) {
-    if (gotScrapingOptions.https) {
-        gotScrapingOptions.https.rejectUnauthorized = !ignoreSslErrors;
-    } else {
-        gotScrapingOptions.https = { rejectUnauthorized: !ignoreSslErrors };
-    }
-}
-
-/**
  * 'connection' and 'host' headers are forbidden when using HTTP2. We delete
  * them from user-provided headers because we switched the default from HTTP1 to 2.
  * @param {GotScrapingOptions} gotScrapingOptions
@@ -300,11 +331,17 @@ function normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions) {
  * @private
  */
 function ensureCorrectHttp2Headers(gotScrapingOptions) {
-    if (gotScrapingOptions.http2) {
-        delete gotScrapingOptions.headers?.connection;
-        delete gotScrapingOptions.headers?.Connection;
-        delete gotScrapingOptions.headers?.host;
-        delete gotScrapingOptions.headers?.Host;
+    if (gotScrapingOptions.http2 && gotScrapingOptions.headers) {
+        gotScrapingOptions.headers = { ...gotScrapingOptions.headers };
+
+        // eslint-disable-next-line no-restricted-syntax, guard-for-in
+        for (const key in gotScrapingOptions.headers) {
+            const lkey = key.toLowerCase();
+
+            if (lkey === 'connection' || lkey === 'host') {
+                delete gotScrapingOptions.headers[key];
+            }
+        }
     }
 }
 
@@ -329,12 +366,16 @@ function maybeAddAbortHook(abortFunction, gotScrapingOptions) {
         return response;
     };
 
-    const abortRequestOptions = {
-        hooks: {
-            afterResponse: [abortHook],
-        },
+    const { hooks } = gotScrapingOptions;
+    const fixedHooks = {
+        ...hooks,
+        afterResponse: [
+            ...((hooks && hooks.afterResponse) || []),
+            abortHook,
+        ],
     };
-    gotScrapingOptions = gotScraping.mergeOptions(gotScraping.defaults.options, gotScrapingOptions, abortRequestOptions);
+
+    gotScrapingOptions.hooks = fixedHooks;
 }
 
 /**
@@ -361,9 +402,9 @@ function ensureRequestIsDispatched(duplexStream, gotScrapingOptions) {
 function logDeprecatedOptions(options) {
     const deprecatedOptions = [
         // 'json' is handled in the JSON handler, because it has a conflict of types
-        ['languageCode', 'headerGeneratorOptions'],
-        ['countryCode', 'headerGeneratorOptions'],
-        ['useMobileVersion', 'headerGeneratorOptions'],
+        ['languageCode', 'headerGeneratorOptions.locales'],
+        ['countryCode', 'headerGeneratorOptions.locales'],
+        ['useMobileVersion', 'headerGeneratorOptions.devices'],
         ['payload', 'body'],
         ['useHttp2', 'http2'],
         ['stream', 'isStream'],
@@ -413,11 +454,18 @@ function addResponsePropertiesToStream(stream, response) {
         'request',
     ];
 
-    properties.forEach((prop) => {
-        if (stream[prop] === undefined) {
+    response.on('end', () => {
+        Object.assign(stream.rawTrailers, response.rawTrailers);
+        Object.assign(stream.trailers, response.trailers);
+
+        stream.complete = response.complete;
+    });
+
+    for (const prop of properties) {
+        if (!(prop in stream)) {
             stream[prop] = response[prop];
         }
-    });
+    }
 
     return stream;
 }

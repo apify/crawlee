@@ -104,28 +104,25 @@ describe('Apify.utils_request', () => {
         });
 
         const testQueries = [
-            ['abc', 'abc', true],
-            ['abc', 'abc', false],
-            ['%20', ' ', false],
-            ['%cf', '%cf', true],
-            ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun', true],
-            ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun', false],
+            ['abc', 'abc'],
+            ['%20', ' '],
+            ['%cf', '�'],
+            ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun'],
+            ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun'],
         ];
 
-        test.each(testQueries)(`it works with not encoded urls: '%s' (regular)`, async (query, decoded, forceEncode) => {
+        test.each(testQueries)(`it works with not encoded urls: '%s' (regular)`, async (query, decoded) => {
             const response = await requestAsBrowser({
                 url: `http://${HOSTNAME}:${port}/test-encoding/?q=${query}`,
-                forceUrlEncoding: forceEncode,
             });
             expect(response.statusCode).toBe(200);
             expect(JSON.parse(response.body).q).toBe(decoded);
         });
 
-        test.each(testQueries)(`it works with not encoded urls: '%s' (stream)`, async (query, decoded, forceEncode) => {
+        test.each(testQueries)(`it works with not encoded urls: '%s' (stream)`, async (query, decoded) => {
             const response = await requestAsBrowser({
                 url: `http://${HOSTNAME}:${port}/test-encoding/?q=${query}`,
                 stream: true,
-                forceUrlEncoding: forceEncode,
             });
 
             const chunks = [];
@@ -226,11 +223,23 @@ describe('Apify.utils_request', () => {
                     bar: 'BAZ',
                 },
                 useHttp2: false,
+                responseType: 'json',
             };
 
             const response = await requestAsBrowser(options);
             expect(response.statusCode).toBe(200);
-            expect(response.request.options.headers).toMatchObject(options.headers);
+
+            // Split an array into chunks of two
+            const entries = response.body.reduce((all, one, i) => {
+                const ch = Math.floor(i / 2);
+                all[ch] = [].concat((all[ch] || []), one);
+                return all;
+            }, []);
+
+            expect(Object.fromEntries(entries)).toMatchObject({
+                Accept: 'foo',
+                Bar: 'BAZ',
+            });
         });
 
         test('correctly handles invalid header characters', async () => {
