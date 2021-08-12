@@ -1,4 +1,4 @@
-2.0.2 / BETA
+2.0.2 / 2021/08/12
 ====================
 - Fix serialization issues in `CheerioCrawler` caused by parser conflicts in recent versions of `cheerio`.
 
