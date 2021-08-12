@@ -50,7 +50,7 @@ describe('CheerioCrawler TS', () => {
         test('Can pass around and call `handler({ var }: { var: Type})`', async () => {
             // This form can also be easily reused as above.
             // Auto-completion works on defined input variables in parameter list.
-            const y = async ({$}: { $?: cheerio.Selector }) => {
+            const y = async ({$}: { $?: cheerio.CheerioAPI }) => {
                 expect($!('a').attr('href')).toEqual('#');
             };
 
