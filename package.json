@@ -57,7 +57,6 @@
         "@apify/ps-tree": "^1.1.4",
         "@apify/storage-local": "^2.0.1",
         "@apify/utilities": "^1.1.2",
-        "@types/cheerio": "^0.22.30",
         "@types/domhandler": "^2.4.2",
         "@types/node": "^15.14.2",
         "@types/socket.io": "^2.1.13",
