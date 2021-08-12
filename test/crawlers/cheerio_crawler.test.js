@@ -81,10 +81,6 @@ app.get('/timeout', async (req, res) => {
     res.type('html').send('<div>TEST</div>');
 });
 
-app.get('/proxy', (req, res) => {
-    res.type('html').send('<title>from proxy</title>');
-});
-
 /* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
     let logLevel;
@@ -97,6 +93,18 @@ describe('CheerioCrawler', () => {
         server = await startExpressAppPromise(app, 0);
         port = server.address().port; //eslint-disable-line
         localStorageEmulator = new LocalStorageDirEmulator();
+
+        server.on('connect', (_request, socket) => {
+            socket.write(`HTTP/1.1 200 Connection Established\r\n\r\n`);
+
+            socket.resume();
+
+            setTimeout(() => {
+                const body = 'from proxy';
+
+                socket.end(`HTTP/1.1 200 OK\r\ncontent-type: text/html\r\ncontent-length: ${body.length}\r\n\r\n${body}`);
+            }, 100);
+        });
     });
 
     beforeEach(async () => {
@@ -212,11 +220,6 @@ describe('CheerioCrawler', () => {
             maxConcurrency: 2,
             handlePageFunction,
             handleFailedRequestFunction: ({ request }) => failed.push(request),
-            preNavigationHooks: [
-                (_, gotoOptions) => {
-                    gotoOptions.forceUrlEncoding = true;
-                },
-            ],
         });
 
         await cheerioCrawler.run();
@@ -226,7 +229,7 @@ describe('CheerioCrawler', () => {
 
         expect(processed[0].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=abc`);
         expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25`);
-        expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25cf`);
+        expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%EF%BF%BD`);
     });
 
     test('postResponseFunction should work', async () => {
@@ -621,11 +624,12 @@ describe('CheerioCrawler', () => {
 
     describe('proxy', () => {
         beforeEach(async () => {
-            jest.clearAllMocks();
+            // Do not use clearAllMocks: https://github.com/facebook/jest/issues/7136
+            jest.restoreAllMocks();
         });
 
         test('should work with Apify Proxy configuration', async () => {
-            const proxyUrl = `http://${HOST}:${port}/proxy`;
+            const proxyUrl = `http://${HOST}:${port}/`;
             const proxyConfiguration = await Apify.createProxyConfiguration({
                 proxyUrls: [proxyUrl],
             });

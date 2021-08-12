@@ -710,7 +710,6 @@ class CheerioCrawler extends BasicCrawler {
             headers: { ...request.headers, ...requestAsBrowserOptions.headers },
             ignoreSslErrors: this.ignoreSslErrors,
             proxyUrl,
-            useCaseSensitiveHeaders: true,
             timeoutSecs: this.requestTimeoutMillis / 1000,
             ...requestAsBrowserOptions,
             stream: true,
