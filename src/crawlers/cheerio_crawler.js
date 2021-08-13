@@ -553,7 +553,15 @@ class CheerioCrawler extends BasicCrawler {
 
         request.loadedUrl = response.url;
 
-        const $ = dom ? cheerio.load(dom, { xmlMode: isXml }) : null;
+        const $ = dom
+            ? cheerio.load(dom, {
+                xmlMode: isXml,
+                // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
+                // and not good for scraping. It also does not have a great streaming interface.
+                // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
+                _useHtmlParser2: true,
+            })
+            : null;
 
         crawlingContext.$ = $;
         crawlingContext.contentType = contentType;
