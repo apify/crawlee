@@ -1,3 +1,7 @@
+2.0.2 / BETA
+====================
+- **BREAKING IN EDGE CASES** - We disabled `forceUrlEncoding` in `requestAsBrowser` because we found out that recent versions of the underlying HTTP client `got` already encode URLs and `forceUrlEncoding` could lead to weird behavior. We think of this as fixing a bug, so we're not bumping the major version.
+
 2.0.2 / 2021/08/12
 ====================
 - Fix serialization issues in `CheerioCrawler` caused by parser conflicts in recent versions of `cheerio`.

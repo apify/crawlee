@@ -145,6 +145,7 @@ export const requestAsBrowser = async (options = {}) => {
         throwOnHttpErrors = false,
         stream = false,
         decodeBody = true,
+        forceUrlEncoding, // TODO remove in v3. It's not used, but we keep it here to prevent validation errors in got.
         ...gotParams
     } = options;
 
