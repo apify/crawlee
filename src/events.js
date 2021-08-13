@@ -50,6 +50,10 @@ let persistStateInterval = null;
  *   Emitted when the actor running on the Apify platform is going to be migrated to another worker server soon.
  *   You can use it to persist the state of the actor and abort the run, to speed up migration.
  *   For example, this is used by the {@link RequestList} class.
+ * - `aborting`: `void`
+ *   When a user aborts an actor run on the Apify platform, they can choose to abort gracefully to allow
+ *   the actor some time before getting killed. This graceful abort emits the `aborting` event which the SDK
+ *   uses to gracefully stop running crawls and you can use it to do your own cleanup as well.
  * - `persistState`: `{ "isMigrating": Boolean }`
  *   Emitted in regular intervals (by default 60 seconds) to notify all components of Apify SDK that it is time to persist
  *   their state, in order to avoid repeating all work when the actor restarts.
