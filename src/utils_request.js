@@ -49,8 +49,6 @@ import { IncomingMessage } from 'http';
  *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
  *  to HTTP/1.1 for websites that do not support HTTP2. For Node 10 this option is always set to `false`
  *  because Node 10 does not support HTTP2 very well. Upgrade to Node 12 for better performance.
- * @property {boolean} [forceUrlEncoding]
- *   Automatically encode URLs via `encodeURI()` before resolving them.
  */
 
 /**
@@ -121,7 +119,6 @@ export const requestAsBrowser = async (options = {}) => {
         headerGeneratorOptions: ow.optional.object,
         stream: ow.optional.boolean,
         decodeBody: ow.optional.boolean,
-        forceUrlEncoding: ow.optional.boolean,
     }));
 
     ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({
@@ -132,10 +129,9 @@ export const requestAsBrowser = async (options = {}) => {
     // We created the `got-scraping` package which replaced underlying @apify/http-request.
     // At the same time, we want users to be able to use requestAsBrowser without breaking changes.
     // So we do a lot of property mapping here, to make sure that everything works as expected.
-    // TODO Update this with SDK v2 and use `got-scraping` API directly.
+    // TODO Update this with SDK v3 and use `got-scraping` API directly.
     const {
         payload, // alias for body to allow direct passing of our Request objects
-        proxyUrl,
         json,
         headerGeneratorOptions,
         languageCode = 'en',
@@ -149,15 +145,14 @@ export const requestAsBrowser = async (options = {}) => {
         throwOnHttpErrors = false,
         stream = false,
         decodeBody = true,
-        forceUrlEncoding,
+        forceUrlEncoding, // TODO remove in v3. It's not used, but we keep it here to prevent validation errors in got.
         ...gotParams
     } = options;
 
     const gotScrapingOptions = {
-        proxyUrl,
         insecureHTTPParser: useInsecureHttpParser,
         http2: useHttp2,
-        timeout: timeoutSecs * 1000,
+        timeout: { request: timeoutSecs * 1000 },
         throwHttpErrors: throwOnHttpErrors,
         isStream: stream,
         decompress: decodeBody,
@@ -165,15 +160,18 @@ export const requestAsBrowser = async (options = {}) => {
         // got interface a priority over our requestAsBrowser one.
         // E.g. { isStream: false, stream: true } should produce { isStream: false }.
         ...gotParams,
+        https: {
+            ...gotParams.https,
+            rejectUnauthorized: !ignoreSslErrors,
+        },
     };
 
-    // TODO remove when we drop support for Node 10
-    ensureValidConfigForNode10(gotScrapingOptions);
+    // Encode the URL if necessary
+    gotScrapingOptions.url = fixUrl(gotScrapingOptions.url);
 
-    // Order is important for payload and json.
+    // Order is important
     normalizePayloadOption(payload, gotScrapingOptions);
     normalizeJsonOption(json, gotScrapingOptions);
-    normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions);
     ensureCorrectHttp2Headers(gotScrapingOptions);
     maybeAddAbortHook(abortFunction, gotScrapingOptions);
     if (!headerGeneratorOptions) {
@@ -186,17 +184,16 @@ export const requestAsBrowser = async (options = {}) => {
         gotScrapingOptions.headerGeneratorOptions = headerGeneratorOptions;
     }
 
-    if (forceUrlEncoding) {
-        gotScrapingOptions.url = encodeURI(gotScrapingOptions.url);
-    }
-
+    // Return the promise directly
     if (!gotScrapingOptions.isStream) {
         return gotScraping(gotScrapingOptions);
     }
 
     // abortFunction must be handled separately for streams :(
-    const duplexStream = await gotScraping(gotScrapingOptions);
+    const duplexStream = gotScraping(gotScrapingOptions);
+
     ensureRequestIsDispatched(duplexStream, gotScrapingOptions);
+
     return new Promise((resolve, reject) => {
         duplexStream
             .on('error', reject)
@@ -220,15 +217,50 @@ export const requestAsBrowser = async (options = {}) => {
     });
 };
 
-function ensureValidConfigForNode10(gotScrapingOptions) {
-    if (process.version.startsWith('v10')) {
-        if (gotScrapingOptions.http2 === true) {
-            // Using log.deprecated to log only once.
-            log.deprecated('utils.requestAsBrowser does not support HTTP2 on Node 10. Please upgrade to Node 12+ or set useHttp2 to false.');
+/**
+ * Fixes malformed URIs. Takes ~13s per 1M executions.
+ * @example fixUrl('https://example.com/%cf') => 'https://example.com/%EF%BF%BD'
+ * @example fixUrl('https://example.com/%xx') => 'https://example.com/%25xx'
+ * @example fixUrl('https://example.com/%0fexample%cc%0f') => 'https://example.com/%0Fexample%EF%BF%BD%0F'
+ * @see https://tc39.es/ecma262/multipage/global-object.html#sec-decodeuri-encodeduri
+ * @param {string} url
+ * @private
+ */
+function fixUrl(url) {
+    const hexChars = '0123456789abcdefABCDEF';
+    let chunks = '';
+
+    let index = url.indexOf('%');
+    while (index !== -1 && index < url.length) {
+        const start = index;
+
+        do {
+            const buffer = url.slice(index + 1, index + 3);
+
+            if (hexChars.indexOf(buffer[0]) !== -1 && hexChars.indexOf(buffer[1]) !== -1) {
+                chunks += buffer;
+
+                index += 3;
+            } else {
+                chunks += '25'; // %
+
+                index += 1;
+                break;
+            }
+        } while (url[index] === '%');
+
+        if (chunks.length) {
+            const encoded = encodeURI(Buffer.from(chunks, 'hex').toString());
+            url = `${url.slice(0, start)}${encoded}${url.slice(index)}`;
+
+            index += encoded.length;
+            chunks = '';
         }
-        gotScrapingOptions.http2 = false;
-        gotScrapingOptions.ciphers = undefined;
+
+        index = url.indexOf('%', index);
     }
+
+    return url;
 }
 
 /**
@@ -276,28 +308,19 @@ function normalizePayloadOption(payload, gotScrapingOptions) {
 function normalizeJsonOption(json, gotScrapingOptions) {
     // If it's a boolean, then it's the old requestAsBrowser API.
     // If it's true, it means the user expects a JSON response.
+    const deprecationMessage = `"options.json" of type: Boolean is deprecated.`
+        + 'If you expect a JSON response, use "options.responseType = \'json\'"'
+        + 'Use "options.json" with a plain object to provide a JSON body.';
     if (json === true) {
+        log.deprecated(deprecationMessage);
         gotScrapingOptions.responseType = 'json';
-        gotScrapingOptions.ciphers = undefined;
+        gotScrapingOptions.https.ciphers = undefined;
     } else if (json === false) {
+        log.deprecated(deprecationMessage);
         // Do nothing, it means the user expects something else than JSON.
     } else {
         // If it's something else, we let `got` handle it as a request body.
         gotScrapingOptions.json = json;
-    }
-}
-
-/**
- * @param {boolean} ignoreSslErrors
- * @param {GotScrapingOptions} gotScrapingOptions
- * @ignore
- * @private
- */
-function normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions) {
-    if (gotScrapingOptions.https) {
-        gotScrapingOptions.https.rejectUnauthorized = !ignoreSslErrors;
-    } else {
-        gotScrapingOptions.https = { rejectUnauthorized: !ignoreSslErrors };
     }
 }
 
@@ -309,11 +332,17 @@ function normalizeSslErrorHandling(ignoreSslErrors, gotScrapingOptions) {
  * @private
  */
 function ensureCorrectHttp2Headers(gotScrapingOptions) {
-    if (gotScrapingOptions.http2) {
-        delete gotScrapingOptions.headers?.connection;
-        delete gotScrapingOptions.headers?.Connection;
-        delete gotScrapingOptions.headers?.host;
-        delete gotScrapingOptions.headers?.Host;
+    if (gotScrapingOptions.http2 && gotScrapingOptions.headers) {
+        gotScrapingOptions.headers = { ...gotScrapingOptions.headers };
+
+        // eslint-disable-next-line no-restricted-syntax, guard-for-in
+        for (const key in gotScrapingOptions.headers) {
+            const lkey = key.toLowerCase();
+
+            if (lkey === 'connection' || lkey === 'host') {
+                delete gotScrapingOptions.headers[key];
+            }
+        }
     }
 }
 
@@ -338,12 +367,16 @@ function maybeAddAbortHook(abortFunction, gotScrapingOptions) {
         return response;
     };
 
-    const abortRequestOptions = {
-        hooks: {
-            afterResponse: [abortHook],
-        },
+    const { hooks } = gotScrapingOptions;
+    const fixedHooks = {
+        ...hooks,
+        afterResponse: [
+            ...((hooks && hooks.afterResponse) || []),
+            abortHook,
+        ],
     };
-    gotScrapingOptions = gotScraping.mergeOptions(gotScraping.defaults.options, gotScrapingOptions, abortRequestOptions);
+
+    gotScrapingOptions.hooks = fixedHooks;
 }
 
 /**
@@ -368,11 +401,36 @@ function ensureRequestIsDispatched(duplexStream, gotScrapingOptions) {
  * @private
  */
 function logDeprecatedOptions(options) {
-    const deprecatedOptions = ['languageCode', 'countryCode', 'useMobileVersion'];
+    const deprecatedOptions = [
+        // 'json' is handled in the JSON handler, because it has a conflict of types
+        ['languageCode', 'headerGeneratorOptions.locales'],
+        ['countryCode', 'headerGeneratorOptions.locales'],
+        ['useMobileVersion', 'headerGeneratorOptions.devices'],
+        ['payload', 'body'],
+        ['useHttp2', 'http2'],
+        ['stream', 'isStream'],
+        ['decodeBody', 'decompress'],
+        ['throwOnHttpErrors', 'throwHttpErrors'],
+        ['timeoutSecs', 'timeout.request'],
+        ['ignoreSslErrors', 'https.rejectUnauthorized'],
+        ['abortFunction'], // custom message below
+    ];
 
-    for (const deprecatedOption of deprecatedOptions) {
-        if (options.hasOwnProperty(deprecatedOption)) {
-            log.deprecated(`"options.${deprecatedOption}" is deprecated. Use "options.headerGeneratorOptions" instead.`);
+    for (const [deprecatedOption, newOption] of deprecatedOptions) {
+        if (options[deprecatedOption] !== undefined) {
+            // This will log only for the first property thanks to log.deprecated logging only once.
+            const initialMessage = 'requestAsBrowser internal implementation has been replaced with the got-scraping module. '
+                + 'To make the switch without breaking changes, we mapped all existing options to the got-scraping options. '
+                + 'This mapping will be removed in SDK v3 and we advise you to update your code using the hints below: ';
+            log.deprecated(initialMessage);
+
+            if (deprecatedOption === 'abortFunction') {
+                log.deprecated(`"options.${deprecatedOption}" is deprecated.`
+                    + 'Use a request cancellation process appropriate for your request type.'
+                    + 'Either a Stream or a Promise. See Got documentation for more info: https://github.com/sindresorhus/got');
+            } else {
+                log.deprecated(`"options.${deprecatedOption}" is deprecated. Use "options.${newOption}" instead.`);
+            }
         }
     }
 }
@@ -397,11 +455,18 @@ function addResponsePropertiesToStream(stream, response) {
         'request',
     ];
 
-    properties.forEach((prop) => {
-        if (stream[prop] === undefined) {
+    response.on('end', () => {
+        Object.assign(stream.rawTrailers, response.rawTrailers);
+        Object.assign(stream.trailers, response.trailers);
+
+        stream.complete = response.complete;
+    });
+
+    for (const prop of properties) {
+        if (!(prop in stream)) {
             stream[prop] = response[prop];
         }
-    });
+    }
 
     return stream;
 }
