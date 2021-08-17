@@ -603,6 +603,24 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('handleRequestFunction timed out'));
     });
 
+    test('limits handleRequestTimeoutSecs to a valid value', async () => {
+        const url = 'https://example.com';
+        const requestList = new Apify.RequestList({ sources: [{ url }] });
+        await requestList.initialize();
+
+        const results = [];
+        const crawler = new Apify.BasicCrawler({
+            requestList,
+            handleRequestTimeoutSecs: Infinity,
+            maxRequestRetries: 1,
+            handleRequestFunction: () => utils.sleep(1000),
+            handleFailedRequestFunction: ({ request }) => results.push(request),
+        });
+
+        const maxSignedInteger = 2 ** 31 - 1;
+        expect(crawler.handleRequestTimeoutMillis).toBe(maxSignedInteger);
+    });
+
     describe('Uses SessionPool', () => {
         it('should use SessionPool when useSessionPool is true ', async () => {
             const url = 'https://example.com';
