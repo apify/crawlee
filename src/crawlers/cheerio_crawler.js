@@ -740,6 +740,7 @@ class CheerioCrawler extends BasicCrawler {
             },
         };
 
+        // Disable SSL verification for MITM proxies
         if (this.proxyConfiguration && this.proxyConfiguration.hasRestrictedResidentialProxy) {
             mandatoryRequestOptions.https = {
                 ...mandatoryRequestOptions.https,

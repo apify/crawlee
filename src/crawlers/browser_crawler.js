@@ -509,6 +509,7 @@ export default class BrowserCrawler extends BasicCrawler {
             launchContext.proxyUrl = proxyInfo.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
+            // Disable SSL verification for MITM proxies
             if (this.proxyConfiguration.hasRestrictedResidentialProxy) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
