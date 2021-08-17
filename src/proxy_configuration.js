@@ -195,6 +195,7 @@ export class ProxyConfiguration {
         this.usesApifyProxy = !this.proxyUrls && !this.newUrlFunction;
         this.log = defaultLog.child({ prefix: 'ProxyConfiguration' });
         this.config = config;
+        this.hasRestrictedResidentialProxy = false;
     }
 
     /**
@@ -348,7 +349,9 @@ export class ProxyConfiguration {
     async _checkAccess() {
         const status = await this._fetchStatus();
         if (status) {
-            const { connected, connectionError } = status;
+            const { connected, connectionError, hasRestrictedResidentialProxy } = status;
+            this.hasRestrictedResidentialProxy = hasRestrictedResidentialProxy;
+
             if (!connected) this._throwApifyProxyConnectionError(connectionError);
         } else {
             this.log.warning('Apify Proxy access check timed out. Watch out for errors with status code 407. '

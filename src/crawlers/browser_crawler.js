@@ -508,6 +508,11 @@ export default class BrowserCrawler extends BasicCrawler {
             const proxyInfo = this.proxyConfiguration.newProxyInfo(launchContextExtends.session && launchContextExtends.session.id);
             launchContext.proxyUrl = proxyInfo.url;
             launchContextExtends.proxyInfo = proxyInfo;
+
+            if (this.proxyConfiguration.hasRestrictedResidentialProxy) {
+                // @szmarczak: What's the difference with launchContextExtends?
+                launchContext.ignoreHTTPSErrors = true; // Playwright
+            }
         }
 
         launchContext.extend(launchContextExtends);
