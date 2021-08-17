@@ -269,6 +269,14 @@ export class BasicCrawler {
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
 
+        const maxSignedInteger = 2 ** 31 - 1;
+        if (this.handleRequestTimeoutMillis > maxSignedInteger) {
+            log.warning(`handleRequestTimeoutMillis ${this.handleRequestTimeoutMillis}`
+                + `does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`);
+
+            this.handleRequestTimeoutMillis = maxSignedInteger;
+        }
+
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
