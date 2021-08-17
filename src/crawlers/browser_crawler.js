@@ -510,6 +510,10 @@ export default class BrowserCrawler extends BasicCrawler {
             launchContextExtends.proxyInfo = proxyInfo;
 
             if (this.proxyConfiguration.hasRestrictedResidentialProxy) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
                 launchContext.launchOptions.ignoreHTTPSErrors = true;
             }
         }
