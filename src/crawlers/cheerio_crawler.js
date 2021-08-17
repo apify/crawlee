@@ -740,7 +740,7 @@ class CheerioCrawler extends BasicCrawler {
             },
         };
 
-        if (this.proxyConfiguration.hasRestrictedResidentialProxy) {
+        if (this.proxyConfiguration && this.proxyConfiguration.hasRestrictedResidentialProxy) {
             mandatoryRequestOptions.rejectUnauthorized = false;
         }
 
