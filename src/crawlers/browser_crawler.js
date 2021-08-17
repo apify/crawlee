@@ -510,8 +510,7 @@ export default class BrowserCrawler extends BasicCrawler {
             launchContextExtends.proxyInfo = proxyInfo;
 
             if (this.proxyConfiguration.hasRestrictedResidentialProxy) {
-                // @szmarczak: What's the difference with launchContextExtends?
-                launchContext.ignoreHTTPSErrors = true; // Playwright
+                launchContext.ignoreHTTPSErrors = true;
             }
         }
 
