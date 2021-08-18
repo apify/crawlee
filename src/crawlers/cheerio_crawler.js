@@ -741,7 +741,10 @@ class CheerioCrawler extends BasicCrawler {
         };
 
         if (this.proxyConfiguration && this.proxyConfiguration.hasRestrictedResidentialProxy) {
-            mandatoryRequestOptions.rejectUnauthorized = false;
+            mandatoryRequestOptions.https = {
+                ...mandatoryRequestOptions.https,
+                rejectUnauthorized: false,
+            };
         }
 
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
