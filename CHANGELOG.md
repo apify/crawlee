@@ -2,6 +2,7 @@
 ====================
 - **BREAKING IN EDGE CASES** - We removed `forceUrlEncoding` in `requestAsBrowser` because we found out that recent versions of the underlying HTTP client `got` already encode URLs and `forceUrlEncoding` could lead to weird behavior. We think of this as fixing a bug, so we're not bumping the major version.
 - Limit `handleRequestTimeoutMillis` to max valid value to prevent Node.js fallback to `1`.
+- Use `got-scraping@^3.0.0`
 
 2.0.2 / 2021/08/12
 ====================

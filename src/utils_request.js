@@ -1,4 +1,4 @@
-import * as gotScraping from 'got-scraping';
+import { gotScraping } from 'got-scraping';
 import ow from 'ow';
 import log from './utils_log';
 
