@@ -740,6 +740,14 @@ class CheerioCrawler extends BasicCrawler {
             },
         };
 
+        // Disable SSL verification for MITM proxies
+        if (this.proxyConfiguration && this.proxyConfiguration.isManInTheMiddle) {
+            mandatoryRequestOptions.https = {
+                ...mandatoryRequestOptions.https,
+                rejectUnauthorized: false,
+            };
+        }
+
         if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
 
         return { ...this.requestOptions, ...mandatoryRequestOptions };
