@@ -195,7 +195,7 @@ export class ProxyConfiguration {
         this.usesApifyProxy = !this.proxyUrls && !this.newUrlFunction;
         this.log = defaultLog.child({ prefix: 'ProxyConfiguration' });
         this.config = config;
-        this.hasRestrictedResidentialProxy = false;
+        this.isManInTheMiddle = false;
     }
 
     /**
@@ -349,8 +349,8 @@ export class ProxyConfiguration {
     async _checkAccess() {
         const status = await this._fetchStatus();
         if (status) {
-            const { connected, connectionError, hasRestrictedResidentialProxy } = status;
-            this.hasRestrictedResidentialProxy = hasRestrictedResidentialProxy;
+            const { connected, connectionError, isManInTheMiddle } = status;
+            this.isManInTheMiddle = isManInTheMiddle;
 
             if (!connected) this._throwApifyProxyConnectionError(connectionError);
         } else {

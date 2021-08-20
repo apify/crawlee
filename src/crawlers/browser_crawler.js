@@ -510,7 +510,7 @@ export default class BrowserCrawler extends BasicCrawler {
             launchContextExtends.proxyInfo = proxyInfo;
 
             // Disable SSL verification for MITM proxies
-            if (this.proxyConfiguration.hasRestrictedResidentialProxy) {
+            if (this.proxyConfiguration.isManInTheMiddle) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
