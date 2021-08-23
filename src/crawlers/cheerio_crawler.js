@@ -719,6 +719,7 @@ class CheerioCrawler extends BasicCrawler {
             ignoreSslErrors: this.ignoreSslErrors,
             proxyUrl,
             timeoutSecs: this.requestTimeoutMillis / 1000,
+            sessionToken: session,
             ...requestAsBrowserOptions,
             stream: true,
             abortFunction: (res) => {

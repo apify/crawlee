@@ -49,6 +49,9 @@ import { IncomingMessage } from 'http';
  *  expect HTTP2 connections, because browsers use HTTP2 by default. It will automatically downgrade
  *  to HTTP/1.1 for websites that do not support HTTP2. For Node 10 this option is always set to `false`
  *  because Node 10 does not support HTTP2 very well. Upgrade to Node 12 for better performance.
+ * @property {object} [sessionToken]
+ *  A unique object used to generate browser headers. By default, new headers are generated on every call.
+ *  Set this option to make these headers persistent.
  */
 
 /**
@@ -119,6 +122,7 @@ export const requestAsBrowser = async (options = {}) => {
         headerGeneratorOptions: ow.optional.object,
         stream: ow.optional.boolean,
         decodeBody: ow.optional.boolean,
+        sessionToken: ow.optional.object,
     }));
 
     ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({
