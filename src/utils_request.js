@@ -119,6 +119,7 @@ export const requestAsBrowser = async (options = {}) => {
         headerGeneratorOptions: ow.optional.object,
         stream: ow.optional.boolean,
         decodeBody: ow.optional.boolean,
+        sessionToken: ow.option.object,
     }));
 
     ow(options, 'RequestAsBrowserOptions', ow.object.validate((opts) => ({

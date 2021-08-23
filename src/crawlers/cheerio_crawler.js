@@ -721,6 +721,7 @@ class CheerioCrawler extends BasicCrawler {
             timeoutSecs: this.requestTimeoutMillis / 1000,
             ...requestAsBrowserOptions,
             stream: true,
+            sessionToken: session,
             abortFunction: (res) => {
                 const { statusCode } = res;
                 const { type } = parseContentTypeFromResponse(res);
