@@ -1,3 +1,7 @@
+2.0.5 / 2021/08/23
+====================
+- Fix error handling in puppeteer crawler
+
 2.0.4 / 2021/08/23
 ====================
 - Use `sessionToken` with `got-scraping`
