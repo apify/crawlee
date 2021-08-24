@@ -1,4 +1,4 @@
-2.0.5 / 2021/08/23
+2.0.5 / 2021/08/24
 ====================
 - Fix error handling in puppeteer crawler
 
