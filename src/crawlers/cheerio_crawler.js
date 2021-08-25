@@ -639,9 +639,6 @@ class CheerioCrawler extends BasicCrawler {
      * @internal
      */
     async _requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }) {
-        // Using the streaming API of Request to be able to
-        // handle the response based on headers received.
-
         if (this.useSessionPool) {
             const { headers } = request;
             headers.Cookie = session.getCookieString(request.url);
@@ -712,16 +709,19 @@ class CheerioCrawler extends BasicCrawler {
      * @internal
      */
     _getRequestOptions(request, session, proxyUrl, requestAsBrowserOptions) {
-        const mandatoryRequestOptions = {
+        const requestOptions = {
             url: request.url,
             method: request.method,
-            headers: { ...request.headers, ...requestAsBrowserOptions.headers },
-            ignoreSslErrors: this.ignoreSslErrors,
             proxyUrl,
-            timeoutSecs: this.requestTimeoutMillis / 1000,
+            timeout: { request: this.requestTimeoutMillis },
             sessionToken: session,
             ...requestAsBrowserOptions,
-            stream: true,
+            headers: { ...request.headers, ...requestAsBrowserOptions.headers },
+            https: {
+                ...requestAsBrowserOptions.https,
+                rejectUnauthorized: !this.ignoreSslErrors,
+            },
+            isStream: true,
             abortFunction: (res) => {
                 const { statusCode } = res;
                 const { type } = parseContentTypeFromResponse(res);
@@ -741,17 +741,20 @@ class CheerioCrawler extends BasicCrawler {
             },
         };
 
+        // TODO this is incorrect, the check for man in the middle needs to be done
+        // on individual proxy level, not on the `proxyConfiguration` level,
+        // because users can use normal + MITM proxies in a single configuration.
         // Disable SSL verification for MITM proxies
         if (this.proxyConfiguration && this.proxyConfiguration.isManInTheMiddle) {
-            mandatoryRequestOptions.https = {
-                ...mandatoryRequestOptions.https,
+            requestOptions.https = {
+                ...requestOptions.https,
                 rejectUnauthorized: false,
             };
         }
 
-        if (/PATCH|POST|PUT/.test(request.method)) mandatoryRequestOptions.payload = request.payload;
+        if (/PATCH|POST|PUT/.test(request.method)) requestOptions.body = request.payload;
 
-        return { ...this.requestOptions, ...mandatoryRequestOptions };
+        return requestOptions;
     }
 
     /**
