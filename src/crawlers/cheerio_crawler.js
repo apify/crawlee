@@ -473,7 +473,10 @@ class CheerioCrawler extends BasicCrawler {
          * @type {Array<Hook>}
          * @ignore
          * */
-        this.postNavigationHooks = postNavigationHooks;
+        this.postNavigationHooks = [
+            ({ request, response }) => this._abortDownloadOfBody(request, response),
+            ...postNavigationHooks,
+        ];
         /**
          * @type {RequestAsBrowserOptions}
          * @ignore
@@ -722,23 +725,6 @@ class CheerioCrawler extends BasicCrawler {
                 rejectUnauthorized: !this.ignoreSslErrors,
             },
             isStream: true,
-            abortFunction: (res) => {
-                const { statusCode } = res;
-                const { type } = parseContentTypeFromResponse(res);
-
-                if (statusCode === 406) {
-                    request.noRetry = true;
-                    throw new Error(`Resource ${request.url} is not available in HTML format. Skipping resource.`);
-                }
-
-                if (!this.supportedMimeTypes.has(type) && statusCode < 500) {
-                    request.noRetry = true;
-                    throw new Error(`Resource ${request.url} served Content-Type ${type}, `
-                        + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
-                }
-
-                return false;
-            },
         };
 
         // TODO this is incorrect, the check for man in the middle needs to be done
@@ -862,6 +848,27 @@ class CheerioCrawler extends BasicCrawler {
     _handleRequestTimeout(session) {
         if (session) session.markBad();
         throw new Error(`request timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`);
+    }
+
+    /**
+     * @param {Request} request
+     * @param {IncomingMessage|Readable} response
+     * @private
+     */
+    _abortDownloadOfBody(request, response) {
+        const { statusCode } = response;
+        const { type } = parseContentTypeFromResponse(response);
+
+        if (statusCode === 406) {
+            request.noRetry = true;
+            throw new Error(`Resource ${request.url} is not available in the format requested by the Accept header. Skipping resource.`);
+        }
+
+        if (!this.supportedMimeTypes.has(type) && statusCode < 500) {
+            request.noRetry = true;
+            throw new Error(`Resource ${request.url} served Content-Type ${type}, `
+                    + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
+        }
     }
 }
 

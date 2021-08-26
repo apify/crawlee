@@ -372,10 +372,12 @@ export class ProxyConfiguration {
             url: `${this.config.get('proxyStatusUrl')}/?format=json`,
             proxyUrl: this.newUrl(),
             timeout: { request: CHECK_ACCESS_REQUEST_TIMEOUT_MILLIS },
+            responseType: 'json',
         };
         for (let attempt = 1; attempt <= CHECK_ACCESS_MAX_ATTEMPTS; attempt++) {
             try {
-                return await requestAsBrowser(requestOpts).json();
+                const response = await requestAsBrowser(requestOpts);
+                return response.body;
             } catch (err) {
                 // retry connection errors
             }
