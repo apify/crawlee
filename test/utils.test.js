@@ -705,11 +705,11 @@ describe('utils.printOutdatedSdkWarning()', () => {
         utils.printOutdatedSdkWarning();
     });
 
-    test('should do nothing when APIFY_DISABLE_OUTDATED_WARNING is set', () => {
-        process.env.APIFY_DISABLE_OUTDATED_WARNING = '1';
+    test('should do nothing when ENV_VARS.DISABLE_OUTDATED_WARNING is set', () => {
+        process.env[ENV_VARS.DISABLE_OUTDATED_WARNING] = '1';
         logMock.expects('warning').never();
         utils.printOutdatedSdkWarning();
-        delete process.env.APIFY_DISABLE_OUTDATED_WARNING;
+        delete process.env[ENV_VARS.DISABLE_OUTDATED_WARNING];
     });
 
     test('should correctly work when outdated', () => {
