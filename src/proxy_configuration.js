@@ -10,7 +10,7 @@ import { Configuration } from './configuration';
 const PROTOCOL = 'http';
 // https://docs.apify.com/proxy/datacenter-proxy#username-parameters
 const MAX_SESSION_ID_LENGTH = 50;
-const CHECK_ACCESS_REQUEST_TIMEOUT_SECS = 4;
+const CHECK_ACCESS_REQUEST_TIMEOUT_MILLIS = 4_000;
 const CHECK_ACCESS_MAX_ATTEMPTS = 2;
 
 /**
@@ -371,8 +371,8 @@ export class ProxyConfiguration {
         const requestOpts = {
             url: `${this.config.get('proxyStatusUrl')}/?format=json`,
             proxyUrl: this.newUrl(),
-            json: true,
-            timeoutSecs: CHECK_ACCESS_REQUEST_TIMEOUT_SECS,
+            timeout: { request: CHECK_ACCESS_REQUEST_TIMEOUT_MILLIS },
+            responseType: 'json',
         };
         for (let attempt = 1; attempt <= CHECK_ACCESS_MAX_ATTEMPTS; attempt++) {
             try {

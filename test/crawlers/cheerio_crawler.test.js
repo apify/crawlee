@@ -566,7 +566,9 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach((msg) => expect(msg).toMatch('is not available in HTML format. Skipping resource.'));
+                errorMessages.forEach((msg) => {
+                    expect(msg).toMatch('is not available in the format requested by the Accept header. Skipping resource.');
+                });
             });
         });
     });
