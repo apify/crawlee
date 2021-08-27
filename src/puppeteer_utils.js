@@ -395,7 +395,7 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
  * @param {string} [options.buttonSelector]
  *   Optionally checks and clicks a button if it appears while scrolling. This is required on some websites for the scroll to work.
  * @param {function} [options.stopScrollCallback]
- *   Expected to be an async function. If this function returns `true`, quit scrolling loop.
+ *   This function is called after every scroll and stops the scrolling process if it returns `true`. The function can be `async`.
  * @returns {Promise<void>}
  * @memberOf puppeteer
  * @name infiniteScroll
@@ -477,6 +477,7 @@ export const infiniteScroll = async (page, options = {}) => {
         }
         if (stopScrollCallback) {
             if (await stopScrollCallback()) {
+                clearInterval(checkFinished);
                 break;
             }
         }

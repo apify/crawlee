@@ -347,20 +347,34 @@ describe('Apify.utils.puppeteer', () => {
             }
         });
 
-        test('infiniteScroll() works', async () => {
+        describe('infiniteScroll()', () => {
             function isAtBottom() {
                 return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
             }
-            const browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
-            try {
-                const page = await browser.newPage();
+
+            let browser;
+            beforeAll(async () => {
+                browser = await Apify.launchPuppeteer({ launchOptions: { headless: true } });
+            });
+            afterAll(async () => {
+                await browser.close();
+            });
+
+            let page;
+            beforeEach(async () => {
+                page = await browser.newPage();
                 let count = 0;
                 const content = Array(1000).fill(null).map(() => {
                     return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
                 });
                 const contentHTML = `<html><body>${content}</body></html>`;
                 await page.setContent(contentHTML);
+            });
+            afterEach(async () => {
+                await page.close();
+            });
 
+            test('works', async () => {
                 const before = await page.evaluate(isAtBottom);
                 expect(before).toBe(false);
 
@@ -368,9 +382,23 @@ describe('Apify.utils.puppeteer', () => {
 
                 const after = await page.evaluate(isAtBottom);
                 expect(after).toBe(true);
-            } finally {
-                await browser.close();
-            }
+            });
+
+            test('stopScrollCallback works', async () => {
+                const before = await page.evaluate(isAtBottom);
+                expect(before).toBe(false);
+
+                await Apify.utils.puppeteer.infiniteScroll(page, {
+                    waitForSecs: Infinity,
+                    stopScrollCallback: async () => true,
+                });
+
+                const after = await page.evaluate(isAtBottom);
+                // It scrolls to the bottom in the first scroll so this is correct.
+                // The test passes because the Infinite waitForSecs is broken by the callback.
+                // If it didn't, the test would time out.
+                expect(after).toBe(true);
+            });
         });
 
         it('saveSnapshot() works', async () => {
