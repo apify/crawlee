@@ -1153,6 +1153,12 @@
       },
       "version-2.0.1/typedefs/version-2.0.1-puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"
+      },
+      "version-2.0.6/api/version-2.0.6-apify": {
+        "title": "Apify"
+      },
+      "version-2.0.6/typedefs/version-2.0.6-request-as-browser-options": {
+        "title": "RequestAsBrowserOptions"
       }
     },
     "links": {
