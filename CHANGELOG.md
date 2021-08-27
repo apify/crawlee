@@ -1,3 +1,8 @@
+2.0.6 / 2021/08/27
+====================
+- Fix deprecation messages logged from `ProxyConfiguration` and `CheerioCrawler`.
+- Update `got-scraping` to receive multiple improvements.
+
 2.0.5 / 2021/08/24
 ====================
 - Fix error handling in puppeteer crawler
