@@ -200,7 +200,7 @@ describe('Apify.launchPuppeteer()', () => {
             });
     });
 
-    test('supports useChrome option', async () => {
+    test.skip('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
 
         let browser;
@@ -237,7 +237,12 @@ describe('Apify.launchPuppeteer()', () => {
         try {
             browser = await Apify.launchPuppeteer({
                 launcher: {
-                    launch: async () => {},
+                    launch: async () => {
+                        return {
+                            on() {},
+                            close() {},
+                        };
+                    },
                     someProps,
                 },
                 launchOptions: { headless: true },

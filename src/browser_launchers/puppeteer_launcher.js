@@ -1,6 +1,6 @@
 import ow from 'ow';
 import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
-import { PuppeteerPlugin } from 'browser-pool';
+import { PuppeteerPlugin } from '../../../browser-pool';
 import BrowserLauncher from './browser_launcher';
 import { isAtHome } from '../utils';
 import { DEFAULT_USER_AGENT } from '../constants';
