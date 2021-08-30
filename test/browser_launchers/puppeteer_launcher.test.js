@@ -202,7 +202,7 @@ describe('Apify.launchPuppeteer()', () => {
             });
     });
 
-    test.skip('supports useChrome option', async () => {
+    test('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
 
         let browser;
