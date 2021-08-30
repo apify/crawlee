@@ -265,9 +265,7 @@ describe('Apify.launchPlaywright()', () => {
         try {
             browser = await Apify.launchPuppeteer({
                 useIncognitoPages: false,
-                launchOptions: {
-                    userDataDir,
-                },
+                userDataDir,
             });
         } finally {
             if (browser) await browser.close();
