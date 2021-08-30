@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import proxy from 'proxy';
 import http from 'http';
 import util from 'util';
@@ -162,10 +164,10 @@ describe('Apify.launchPlaywright()', () => {
     });
 
     describe('Default browser path', () => {
-        const path = 'test';
+        const target = 'test';
 
         beforeAll(() => {
-            process.env.APIFY_DEFAULT_BROWSER_PATH = path;
+            process.env.APIFY_DEFAULT_BROWSER_PATH = target;
         });
 
         afterAll(() => {
@@ -178,7 +180,7 @@ describe('Apify.launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin.launchOptions.executablePath).toEqual(path);
+            expect(plugin.launchOptions.executablePath).toEqual(target);
         });
 
         test('does not use default when using chrome', () => {
@@ -254,5 +256,28 @@ describe('Apify.launchPlaywright()', () => {
         } finally {
             if (browser) await browser.close();
         }
+    });
+
+    test('supports userDataDir', async () => {
+        const userDataDir = path.join(__dirname, 'userDataPlaywright');
+
+        let browser;
+        try {
+            browser = await Apify.launchPuppeteer({
+                useIncognitoPages: false,
+                launchOptions: {
+                    userDataDir,
+                },
+            });
+        } finally {
+            if (browser) await browser.close();
+        }
+
+        fs.accessSync(path.join(userDataDir, 'Default'));
+
+        fs.rmSync(userDataDir, {
+            force: true,
+            recursive: true,
+        });
     });
 });
