@@ -297,6 +297,7 @@ describe('Apify.launchPuppeteer()', () => {
                 useIncognitoPages: false,
                 launchOptions: {
                     userDataDir,
+                    headless: true,
                 },
             });
         } finally {
