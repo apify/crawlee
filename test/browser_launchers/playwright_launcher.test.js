@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import proxy from 'proxy';
 import http from 'http';
 import util from 'util';
@@ -162,10 +164,10 @@ describe('Apify.launchPlaywright()', () => {
     });
 
     describe('Default browser path', () => {
-        const path = 'test';
+        const target = 'test';
 
         beforeAll(() => {
-            process.env.APIFY_DEFAULT_BROWSER_PATH = path;
+            process.env.APIFY_DEFAULT_BROWSER_PATH = target;
         });
 
         afterAll(() => {
@@ -178,7 +180,7 @@ describe('Apify.launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin.launchOptions.executablePath).toEqual(path);
+            expect(plugin.launchOptions.executablePath).toEqual(target);
         });
 
         test('does not use default when using chrome', () => {
@@ -191,7 +193,7 @@ describe('Apify.launchPlaywright()', () => {
             expect(plugin.launchOptions.executablePath).toBe(utils.getTypicalChromeExecutablePath());
         });
 
-        test('allows to be overriden', () => {
+        test('allows to be overridden', () => {
             const newPath = 'newPath';
 
             const launcher = new PlaywrightLauncher({
@@ -219,6 +221,61 @@ describe('Apify.launchPlaywright()', () => {
             } finally {
                 if (browser) await browser.close();
             }
+        });
+    });
+
+    test('supports useIncognitoPages: true', async () => {
+        let browser;
+        try {
+            browser = await Apify.launchPlaywright({
+                useIncognitoPages: true,
+                launchOptions: { headless: true },
+            });
+            const page1 = await browser.newPage();
+            const context1 = page1.context();
+            const page2 = await browser.newPage();
+            const context2 = page2.context();
+            expect(context1).not.toBe(context2);
+        } finally {
+            if (browser) await browser.close();
+        }
+    });
+
+    test('supports useIncognitoPages: false', async () => {
+        let browser;
+        try {
+            browser = await Apify.launchPlaywright({
+                useIncognitoPages: false,
+                launchOptions: { headless: true },
+            });
+            const page1 = await browser.newPage();
+            const context1 = page1.context();
+            const page2 = await browser.newPage();
+            const context2 = page2.context();
+            expect(context1).toBe(context2);
+        } finally {
+            if (browser) await browser.close();
+        }
+    });
+
+    test('supports userDataDir', async () => {
+        const userDataDir = path.join(__dirname, 'userDataPlaywright');
+
+        let browser;
+        try {
+            browser = await Apify.launchPlaywright({
+                useIncognitoPages: false,
+                userDataDir,
+            });
+        } finally {
+            if (browser) await browser.close();
+        }
+
+        fs.accessSync(path.join(userDataDir, 'Default'));
+
+        fs.rmSync(userDataDir, {
+            force: true,
+            recursive: true,
         });
     });
 });
