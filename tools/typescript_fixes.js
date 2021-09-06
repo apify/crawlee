@@ -269,6 +269,11 @@ const fixTypesReferences = async () => {
                 debug('fixTypesReferences', 'fixing "node/" from file', filepath);
                 output.push(`${match[1]} "${match[2]}`);
                 changed = true;
+            } else if (match = line.match(/^([^"]+)"puppeteer"/)) {
+                debug('fixTypesReferences', 'fixing "puppeteer" from file', filepath);
+                output.push('// @ts-ignore optional peer dependency');
+                output.push(line);
+                changed = true;
             } else {
                 output.push(line);
             }
