@@ -244,6 +244,10 @@ import { BrowserPoolOptions } from 'browser-pool';
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 class PuppeteerCrawler extends BrowserCrawler {
+    /**
+     * @internal
+     * @type any
+     */
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,

@@ -194,6 +194,10 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 export class BasicCrawler {
+    /**
+     * @internal
+     * @type any
+     */
     static optionsShape = {
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
