@@ -12,7 +12,7 @@ import { ProxyConfiguration } from '../build/proxy_configuration';
 import { SessionPool } from '../build/session_pool/session_pool';
 
 // NOTE: test use of require() here because this is how its done in acts
-const { Apify, RequestList, utils: { log, sleep } } = require('../build/index');
+const { Apify, Configuration, RequestList, utils: { log, sleep } } = require('../build/index');
 
 /**
  * Helper function that enables testing of Apify.main()
@@ -665,6 +665,13 @@ describe('new Apify({ ... })', () => {
             await sdk.openRequestQueue(queueId, options);
             expect(openStorageSpy).toBeCalledWith(queueId, options);
             expect(openStorageSpy).toBeCalledTimes(1);
+        });
+
+        test('openRequestQueue works with APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE=false', async () => {
+            process.env.APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE = 'false';
+            const config = new Configuration();
+            const enableWalMode = config.get('localStorageEnableWalMode');
+            expect(enableWalMode).toBe(false);
         });
     });
 });

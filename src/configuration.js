@@ -169,11 +169,11 @@ export class Configuration {
      * @private
      */
     _castEnvValue(key, value) {
-        if (key in Configuration.INTEGER_VARS) {
+        if (Configuration.INTEGER_VARS.includes(key)) {
             return +value;
         }
 
-        if (key in Configuration.BOOLEAN_VARS) {
+        if (Configuration.BOOLEAN_VARS.includes(key)) {
             // 0, false and empty string are considered falsy values
             return !['0', 'false', ''].includes(value.toLowerCase());
         }

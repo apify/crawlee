@@ -1,3 +1,7 @@
+2.0.7 / 2021/08/31
+====================
+- Fix casting of int/bool environment variables (e.g. `APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE`), closes #956
+
 2.0.6 / 2021/08/27
 ====================
 - Fix deprecation messages logged from `ProxyConfiguration` and `CheerioCrawler`.
