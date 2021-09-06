@@ -136,6 +136,28 @@ const inlinePlaywrightTypes = async () => {
     writeFileSync(paths.playwright_utils, output, { encoding: 'utf8' });
 };
 
+const convertPuppeteerIndex = (input) => {
+    const output = makePathsAbsolute(input, 'puppeteer');
+    return addTypeReference(`declare module 'puppeteer' {\n${output}\n}`, ['./types/types.d.ts']);
+};
+
+const inlinePuppeteerTypes = async () => {
+    // copy files to `types/puppeteer`
+    const files = [
+        { from: 'types.d.ts', path: 'index.d.ts', convertor: convertPuppeteerIndex },
+    ];
+    mkdirSync(path.join('types', 'puppeteer'));
+
+    for (const file of files) {
+        const fromPath = path.join('node_modules', 'puppeteer', 'lib', file.from || file.path);
+        const toPath = path.join('types', 'puppeteer', file.path);
+        const input = readFileSync(fromPath, { encoding: 'utf8' });
+        const output = file.convertor(input);
+        console.log('Writing file', toPath);
+        writeFileSync(toPath, output, { encoding: 'utf8' });
+    }
+};
+
 /**
  * @callback FilenameFilter
  * @param {String} path Relative path to file considered.
@@ -288,4 +310,5 @@ const fixTypesReferences = async () => {
     await fixSessionPool();
     await fixUtilsLog();
     await inlinePlaywrightTypes();
+    await inlinePuppeteerTypes();
 })();
