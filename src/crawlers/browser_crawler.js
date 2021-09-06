@@ -254,6 +254,10 @@ import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
  * @ignore
  */
 export default class BrowserCrawler extends BasicCrawler {
+    /**
+     * @internal
+     * @type any
+     */
     static optionsShape = {
         ...BasicCrawler.optionsShape,
         // TODO temporary until the API is unified in V2

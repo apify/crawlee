@@ -257,6 +257,10 @@ import { gotoExtended } from '../playwright_utils';
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 class PlaywrightCrawler extends BrowserCrawler {
+    /**
+     * @internal
+     * @type any
+     */
     static optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,

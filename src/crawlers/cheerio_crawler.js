@@ -386,6 +386,10 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *  or to abort it by calling {@link AutoscaledPool#abort}.
  */
 class CheerioCrawler extends BasicCrawler {
+    /**
+     * @internal
+     * @type any
+     */
     static optionsShape = {
         ...BasicCrawler.optionsShape,
         // TODO temporary until the API is unified in V2
