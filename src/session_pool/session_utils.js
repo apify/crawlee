@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { IncomingMessage } from 'http';
+// @ts-ignore optional dependency
 import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars */
 

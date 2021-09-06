@@ -4,6 +4,7 @@ import log from '../utils_log';
 import { RequestQueue, RequestQueueLocal, QueueOperationInfo } from '../storages/request_queue'; // eslint-disable-line import/named,no-unused-vars
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../puppeteer_request_interception';
 /* eslint-disable import/named,no-unused-vars,import/order */
+// @ts-ignore optional dependency
 import { Page, Request as PuppeteerRequest, Target } from 'puppeteer';
 import {
     constructPseudoUrlInstances,

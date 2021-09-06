@@ -20,6 +20,7 @@ import * as util from 'util';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
+// @ts-ignore optional dependency
 import { Response as PuppeteerResponse } from 'puppeteer';
 import { version as apifyVersion } from '../package.json';
 import log from './utils_log';

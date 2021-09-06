@@ -1,4 +1,5 @@
 import ow from 'ow';
+// @ts-ignore optional dependency
 import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';

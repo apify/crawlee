@@ -10,6 +10,7 @@ import BrowserCrawler, { BrowserCrawlingContext } from './browser_crawler';
 import { ProxyConfiguration } from '../proxy_configuration';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { CrawlingContext } from './basic_crawler';
+// @ts-ignore optional dependency
 import { Page, DirectNavigationOptions } from 'puppeteer';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';

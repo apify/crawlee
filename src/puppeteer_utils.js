@@ -4,6 +4,7 @@ import * as vm from 'vm';
 import * as util from 'util';
 import * as _ from 'underscore';
 import { LruCache } from '@apify/datastructures';
+// @ts-ignore optional dependency
 import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import log from './utils_log';
 import { validators } from './validators';

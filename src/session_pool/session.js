@@ -9,8 +9,10 @@ import defaultLog from '../utils_log';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 import { SessionPool } from './session_pool';
+// @ts-ignore optional dependency
 import { Cookie as PuppeteerCookie } from 'puppeteer';
 import { IncomingMessage } from 'http';
+// @ts-ignore optional dependency
 import { Response as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 

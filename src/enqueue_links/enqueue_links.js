@@ -7,6 +7,7 @@ import { constructPseudoUrlInstances, createRequests, addRequestsToQueueInBatche
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+// @ts-ignore optional dependency
 import { Page as PuppeteerPage } from 'puppeteer';
 import { Page as PlaywrightPage } from 'playwright';
 import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';

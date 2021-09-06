@@ -1,4 +1,5 @@
 import * as _ from 'underscore';
+// @ts-ignore optional dependency
 import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { cryptoRandomObjectId } from '@apify/utilities';
 import globalLog from '../utils_log';
