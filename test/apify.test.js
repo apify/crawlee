@@ -153,6 +153,25 @@ describe('new Apify({ ... })', () => {
             delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
         });
 
+        test('respects `localStorageEnableWalMode` option (gh issue #956)', async () => {
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+            delete process.env[ENV_VARS.TOKEN];
+
+            const sdk1 = new Apify();
+            const sessionPool1 = await sdk1.openSessionPool();
+            expect(sessionPool1).toBeInstanceOf(SessionPool);
+            const storage1 = sdk1.config.getStorageLocal();
+            expect(storage1.enableWalMode).toBe(true);
+
+            const sdk2 = new Apify({ localStorageEnableWalMode: false });
+            const sessionPool2 = await sdk2.openSessionPool();
+            expect(sessionPool2).toBeInstanceOf(SessionPool);
+            const storage2 = sdk2.config.getStorageLocal();
+            expect(storage2.enableWalMode).toBe(false);
+
+            delete process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+        });
+
         test('works with promised user function', async () => {
             let called = false;
             await testMain({
