@@ -5,6 +5,7 @@ import { Session, SessionOptions } from './session'; // eslint-disable-line no-u
 import events from '../events';
 import defaultLog from '../utils_log';
 import { ACTOR_EVENT_NAMES_EX } from '../constants';
+import { Configuration } from '../configuration';
 
 /**
  * Factory user-function which creates customized {@link Session} instances.
@@ -87,8 +88,9 @@ export class SessionPool extends EventEmitter {
     /**
      * Session pool configuration.
      * @param {SessionPoolOptions} [options] All `SessionPool` configuration options.
+     * @param {Configuration} [config]
      */
-    constructor(options = {}) {
+    constructor(options = {}, config = Configuration.getGlobalConfig()) {
         ow(options, ow.object.exactShape({
             maxPoolSize: ow.optional.number,
             persistStateKeyValueStoreId: ow.optional.string,
@@ -112,6 +114,7 @@ export class SessionPool extends EventEmitter {
 
         super();
 
+        this.config = config;
         this.log = log.child({ prefix: 'SessionPool' });
 
         // Pool Configuration
@@ -160,7 +163,7 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<void>}
      */
     async initialize() {
-        this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId);
+        this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId, { config: this.config });
 
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
         await this._maybeLoadSessionPool();

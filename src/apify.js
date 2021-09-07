@@ -800,7 +800,7 @@ export class Apify {
      * @return {Promise<SessionPool>}
      */
     async openSessionPool(sessionPoolOptions) {
-        const sessionPool = new SessionPool(sessionPoolOptions);
+        const sessionPool = new SessionPool(sessionPoolOptions, this.config);
         await sessionPool.initialize();
 
         return sessionPool;

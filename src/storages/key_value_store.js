@@ -339,6 +339,7 @@ export class KeyValueStore {
  * @param {boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
+ * @param {Configuration} [options.config] SDK configuration instance, defaults to the static register
  * @returns {Promise<KeyValueStore>}
  * @memberof module:Apify
  * @name openKeyValueStore
@@ -348,9 +349,10 @@ export const openKeyValueStore = async (storeIdOrName, options = {}) => {
     ow(storeIdOrName, ow.optional.string);
     ow(options, ow.object.exactShape({
         forceCloud: ow.optional.boolean,
+        config: ow.optional.object.instanceOf(Configuration),
     }));
 
-    const manager = new StorageManager(KeyValueStore);
+    const manager = new StorageManager(KeyValueStore, options.config);
     return manager.openStorage(storeIdOrName, options);
 };
 

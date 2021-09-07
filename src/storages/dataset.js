@@ -9,6 +9,7 @@ import log from '../utils_log';
 import * as ApifyClient from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
+import { Configuration } from '../configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -412,6 +413,7 @@ export class Dataset {
  * @param {boolean} [options.forceCloud=false]
  *   If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  *   environment variable is set. This way it is possible to combine local and cloud storage.
+ * @param {Configuration} [options.config] SDK configuration instance, defaults to the static register
  * @returns {Promise<Dataset>}
  * @memberof module:Apify
  * @name openDataset
@@ -421,9 +423,10 @@ export const openDataset = (datasetIdOrName, options = {}) => {
     ow(datasetIdOrName, ow.optional.string);
     ow(options, ow.object.exactShape({
         forceCloud: ow.optional.boolean,
+        config: ow.optional.object.instanceOf(Configuration),
     }));
 
-    const manager = new StorageManager(Dataset);
+    const manager = new StorageManager(Dataset, options.config);
     return manager.openStorage(datasetIdOrName, options);
 };
 
