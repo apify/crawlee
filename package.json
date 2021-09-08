@@ -59,7 +59,7 @@
         "@apify/utilities": "^1.1.2",
         "@types/domhandler": "^2.4.2",
         "@types/node": "^15.14.2",
-        "@types/socket.io": "^2.1.13",
+        "@types/socket.io": "^3.0.0",
         "@types/tough-cookie": "^4.0.1",
         "apify-client": "^1.4.2",
         "browser-pool": "^2.0.2",
