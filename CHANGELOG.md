@@ -1,3 +1,7 @@
+2.0.8 / TBD
+====================
+
+
 2.0.7 / 2021/09/08
 ====================
 - Fix casting of int/bool environment variables (e.g. `APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE`), closes #956
