@@ -120,7 +120,6 @@
         "jest-circus": "^26.6.3",
         "playwright": "1.14.1",
         "portastic": "^1.0.1",
-        "prettier": "^2.3.2",
         "proxy": "^1.0.2",
         "puppeteer": "10.2.0",
         "rimraf": "^3.0.2",
