@@ -3,8 +3,7 @@ name: Check & Release
 on:
   # Push to master will deploy a beta version
   push:
-    branches:
-      - master
+      branches: [ master, renovate/** ]
   # A release via GitHub releases will deploy a latest version
   release:
     types: [ published ]
