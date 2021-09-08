@@ -88,7 +88,7 @@ describe('Snapshotter', () => {
         };
         const snapshotter = new Snapshotter(options);
         await snapshotter.start();
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 510));
         await snapshotter.stop();
         // const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
