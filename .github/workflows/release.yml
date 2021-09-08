@@ -65,6 +65,7 @@ jobs:
   # and triggering of docker image builds in the apify-actor-docker repo.
   deploy:
     name: Publish to NPM and release images
+    if: github.ref == 'refs/heads/master'
     needs: [lint, build_and_test]
     runs-on: ubuntu-latest
     steps:
