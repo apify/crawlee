@@ -78,7 +78,7 @@
         "stream-json": "^1.7.2",
         "tough-cookie": "^4.0.0",
         "underscore": "^1.13.0",
-        "ws": "^7.5.3"
+        "ws": "^8.2.1"
     },
     "peerDependencies": {
         "playwright": "^1.11.0",
