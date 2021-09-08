@@ -1,6 +1,10 @@
-2.0.7 / 2021/08/31
+2.0.7 / 2021/09/08
 ====================
 - Fix casting of int/bool environment variables (e.g. `APIFY_LOCAL_STORAGE_ENABLE_WAL_MODE`), closes #956
+- Fix incognito pages and user data dir (#1145)
+- Add `@ts-ignore` comments to imports of optional peer dependencies (#1152)
+- Use config instance in `sdk.openSessionPool()` (#1154)
+- Add a breaking callback to `infiniteScroll` (#1140)
 
 2.0.6 / 2021/08/27
 ====================
