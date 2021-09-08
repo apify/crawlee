@@ -81,7 +81,6 @@ describe('Snapshotter', () => {
     });
 
     test('should override default timers', async () => {
-        jest.useFakeTimers();
         const options = {
             eventLoopSnapshotIntervalSecs: 0.05,
             memorySnapshotIntervalSecs: 0.1,
@@ -89,7 +88,7 @@ describe('Snapshotter', () => {
         };
         const snapshotter = new Snapshotter(options);
         await snapshotter.start();
-        jest.advanceTimersByTime(500);
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await snapshotter.stop();
         // const memorySnapshots = snapshotter.getMemorySample();
         const eventLoopSnapshots = snapshotter.getEventLoopSample();
