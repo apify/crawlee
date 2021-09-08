@@ -123,7 +123,7 @@
         "proxy": "^1.0.2",
         "puppeteer": "10.2.0",
         "rimraf": "^3.0.2",
-        "sinon": "^9.2.0",
+        "sinon": "^11.0.0",
         "sinon-stub-promise": "^4.0.0",
         "socket.io-client": "^3.0.3",
         "ts-jest": "^26.5.6",
