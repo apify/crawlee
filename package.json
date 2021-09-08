@@ -103,7 +103,7 @@
         "@types/content-type": "^1.1.5",
         "@types/fs-extra": "^9.0.12",
         "@types/htmlparser2": "^3.10.3",
-        "@types/jest": "^26.0.24",
+        "@types/jest": "^27.0.0",
         "@types/request-promise-native": "^1.0.18",
         "@types/rimraf": "^3.0.1",
         "@types/semver": "^7.3.7",
