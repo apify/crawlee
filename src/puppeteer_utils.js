@@ -450,10 +450,11 @@ export const infiniteScroll = async (page, options = {}) => {
 
     const doScroll = async () => {
         /* istanbul ignore next */
-        await page.evaluate(async (scrollHeightIfZero) => {
-            const delta = document.body.scrollHeight === 0 ? scrollHeightIfZero : document.body.scrollHeight;
-            window.scrollBy(0, delta);
-        }, SCROLL_HEIGHT_IF_ZERO);
+        const bodyScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+
+        const delta = bodyScrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : bodyScrollHeight;
+
+        await page.mouse.wheel({ deltaY: delta });
     };
 
     const maybeClickButton = async () => {
@@ -468,9 +469,7 @@ export const infiniteScroll = async (page, options = {}) => {
         await doScroll();
         await page.waitForTimeout(50);
         if (scrollDownAndUp) {
-            await page.evaluate(() => {
-                window.scrollBy(0, -1000);
-            });
+            await page.mouse.wheel({ deltaY: -1000 });
         }
         if (buttonSelector) {
             await maybeClickButton();
