@@ -429,6 +429,14 @@ export const infiniteScroll = async (page, options = {}) => {
         }
     });
 
+    // Move mouse to the center of the page, so we can scroll up-down
+    const body = await page.$('body');
+    const boundingBox = await body.boundingBox();
+    await page.mouse.move(
+        boundingBox.x + boundingBox.width / 2, // x
+        boundingBox.y + boundingBox.height / 2, // y
+    );
+
     const checkFinished = setInterval(() => {
         if (resourcesStats.oldRequested === resourcesStats.newRequested) {
             resourcesStats.matchNumber++;
