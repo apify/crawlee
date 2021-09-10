@@ -198,7 +198,10 @@ export class ProxyConfiguration {
         this.isManInTheMiddle = false;
 
         if (proxyUrls && proxyUrls.some((url) => url.includes('apify.com'))) {
-            this.log.warning('Some Apify proxy features may work incorrectly. Please consider setting up Apify properties instead of `proxyUrls`.');
+            this.log.warning(
+                'Some Apify proxy features may work incorrectly. Please consider setting up Apify properties instead of `proxyUrls`.\n'
+                + 'See https://sdk.apify.com/docs/guides/proxy-management#apify-proxy-configuration',
+            );
         }
     }
 
