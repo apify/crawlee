@@ -191,6 +191,35 @@ describe('Apify.RequestList', () => {
         mock.restore();
     });
 
+    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
+        const mock = sinon.mock(requestUtils);
+        const list = [
+            'https://example.com',
+            'https://google.com',
+            'https://wired.com',
+        ];
+        const wrongUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing';
+        const correctUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
+
+        mock.expects('requestAsBrowser')
+            .once()
+            .withArgs({ url: correctUrl, encoding: 'utf8' })
+            .resolves({ body: JSON.stringify(list) });
+
+        const requestList = new Apify.RequestList({
+            sources: [{ requestsFromUrl: wrongUrl }],
+        });
+
+        await requestList.initialize();
+
+        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
+        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
+        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
+
+        mock.verify();
+        mock.restore();
+    });
+
     test('should handle requestsFromUrl with no URLs', async () => {
         const mock = sinon.mock(utils.publicUtils);
         mock.expects('downloadListOfUrls')
