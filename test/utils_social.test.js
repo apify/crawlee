@@ -328,6 +328,14 @@ describe('utils.social', () => {
         test('works', () => {
             expect(social.parseHandlesFromHtml('')).toEqual(EMPTY_RESULT);
             expect(social.parseHandlesFromHtml('         ')).toEqual(EMPTY_RESULT);
+            const html = 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKdYWQ).\\n\\n## Sample result\\n'
+                + 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKd123).\\\\n\\\\n## Sample result\\\\n';
+            expect(social.parseHandlesFromHtml(html)).toMatchObject({
+                youtubes: [
+                    'https://www.youtube.com/watch?v=BsidLZKd123',
+                    'https://www.youtube.com/watch?v=BsidLZKdYWQ',
+                ],
+            });
 
             expect(social.parseHandlesFromHtml(`
                 <html>
