@@ -429,6 +429,14 @@ export const infiniteScroll = async (page, options = {}) => {
         }
     });
 
+    // Move mouse to the center of the page, so we can scroll up-down
+    const body = await page.$('body');
+    const boundingBox = await body.boundingBox();
+    await page.mouse.move(
+        boundingBox.x + boundingBox.width / 2, // x
+        boundingBox.y + boundingBox.height / 2, // y
+    );
+
     const checkFinished = setInterval(() => {
         if (resourcesStats.oldRequested === resourcesStats.newRequested) {
             resourcesStats.matchNumber++;
@@ -450,10 +458,11 @@ export const infiniteScroll = async (page, options = {}) => {
 
     const doScroll = async () => {
         /* istanbul ignore next */
-        await page.evaluate(async (scrollHeightIfZero) => {
-            const delta = document.body.scrollHeight === 0 ? scrollHeightIfZero : document.body.scrollHeight;
-            window.scrollBy(0, delta);
-        }, SCROLL_HEIGHT_IF_ZERO);
+        const bodyScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+
+        const delta = bodyScrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : bodyScrollHeight;
+
+        await page.mouse.wheel({ deltaY: delta });
     };
 
     const maybeClickButton = async () => {
@@ -466,11 +475,9 @@ export const infiniteScroll = async (page, options = {}) => {
 
     while (!finished) {
         await doScroll();
-        await page.waitForTimeout(50);
+        await page.waitForTimeout(100);
         if (scrollDownAndUp) {
-            await page.evaluate(() => {
-                window.scrollBy(0, -1000);
-            });
+            await page.mouse.wheel({ deltaY: -1000 });
         }
         if (buttonSelector) {
             await maybeClickButton();
