@@ -1,6 +1,9 @@
 2.0.8 / TBD
 ====================
-
+- automatically convert google docs share urls to csv download ones in request list (#1174)
+- use puppeteer emulating scrolls instead of `window.scrollBy` (#1170)
+- warn if apify proxy is used in proxyUrls (#1173)
+- fix `YOUTUBE_REGEX_STRING` being too greedy (#1171)
 
 2.0.7 / 2021/09/08
 ====================
