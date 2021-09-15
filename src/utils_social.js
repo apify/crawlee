@@ -194,7 +194,7 @@ const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|i
 // eslint-disable-next-line max-len, quotes
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 // eslint-disable-next-line max-len, quotes
-const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com\\/(?:watch|v|embed)(?:\\.php)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]+)';
+const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]+)';
 
 /** @type RegExp */
 let LINKEDIN_REGEX;
@@ -438,12 +438,17 @@ try {
     FACEBOOK_REGEX_GLOBAL = new RegExp(FACEBOOK_REGEX_STRING, 'ig');
 
     /**
-     * Regular expression to exactly match a single Youtube video URL.
+     * Regular expression to exactly match a single Youtube channel, user or video URL.
      * It has the following form: `/^...$/i` and matches URLs such as:
      * ```
      * https://www.youtube.com/watch?v=kM7YfhfkiEE
      * https://youtu.be/kM7YfhfkiEE
+     * https://www.youtube.com/c/TrapNation
+     * https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
+     * https://www.youtube.com/user/pewdiepie
      * ```
+     *
+     * Please note that this won't match URLs like https://www.youtube.com/pewdiepie that redirect to /user or /channel.
      *
      * Example usage:
      * ```
@@ -457,12 +462,17 @@ try {
     YOUTUBE_REGEX = new RegExp(`^${YOUTUBE_REGEX_STRING}$`, 'i');
 
     /**
-     * Regular expression to find multiple Youtube video URLs in a text or HTML.
+     * Regular expression to find multiple Youtube channel, user or video URLs in a text or HTML.
      * It has the following form: `/.../ig` and matches URLs such as:
      * ```
      * https://www.youtube.com/watch?v=kM7YfhfkiEE
      * https://youtu.be/kM7YfhfkiEE
+     * https://www.youtube.com/c/TrapNation
+     * https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
+     * https://www.youtube.com/user/pewdiepie
      * ```
+     *
+     * Please note that this won't match URLs like https://www.youtube.com/pewdiepie that redirect to /user or /channel.
      *
      * Example usage:
      * ```

@@ -767,6 +767,9 @@ describe('utils.social', () => {
 
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')).toBe(true);
             expect(social.YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE')).toBe(true);
+            expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/c/TrapNation')).toBe(true);
+            expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA')).toBe(true);
+            expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/user/pewdiepie')).toBe(true);
             expect(`
                     -https://www.youtube.com/someusername/
                     youtube.com/jack4567
@@ -774,9 +777,15 @@ describe('utils.social', () => {
                     byoutube.com/bob
                     ayoutube.com/bob
                     _youtube.com/bob
+                    www.youtube.com/c/TrapNation
+                    https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
+                    youtube.com/user/pewdiepie
                     `.match(social.YOUTUBE_REGEX_GLOBAL))
                 .toEqual([
                     'https://www.youtube.com/watch?v=kM7YfhfkiEE',
+                    'www.youtube.com/c/TrapNation',
+                    'https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA',
+                    'youtube.com/user/pewdiepie',
                 ]);
         });
     });
