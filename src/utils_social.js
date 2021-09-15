@@ -448,6 +448,8 @@ try {
      * https://www.youtube.com/user/pewdiepie
      * ```
      *
+     * Please note that this won't match URLs like https://www.youtube.com/pewdiepie that redirect to /user or /channel.
+     *
      * Example usage:
      * ```
      * if (Apify.utils.social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')) {
@@ -469,6 +471,8 @@ try {
      * https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
      * https://www.youtube.com/user/pewdiepie
      * ```
+     *
+     * Please note that this won't match URLs like https://www.youtube.com/pewdiepie that redirect to /user or /channel.
      *
      * Example usage:
      * ```
