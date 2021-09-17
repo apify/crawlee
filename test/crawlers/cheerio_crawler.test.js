@@ -7,7 +7,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import sinon from 'sinon';
 import { Readable } from 'stream';
-import * as iconv from 'iconv-lite';
+import iconv from 'iconv-lite';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';

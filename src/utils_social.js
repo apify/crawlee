@@ -1,6 +1,6 @@
 /* eslint-disable no-continue */
-import * as _ from 'underscore';
-import * as cheerio from 'cheerio';
+import _ from 'underscore';
+import cheerio from 'cheerio';
 import log from './utils_log';
 import { publicUtils } from './utils';
 

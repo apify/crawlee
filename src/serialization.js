@@ -1,8 +1,8 @@
 import ow from 'ow';
-import * as stream from 'stream'; // eslint-disable-line import/no-duplicates
-import * as StreamArray from 'stream-json/streamers/StreamArray';
-import * as util from 'util';
-import * as zlib from 'zlib';
+import stream from 'stream'; // eslint-disable-line import/no-duplicates
+import StreamArray from 'stream-json/streamers/StreamArray';
+import util from 'util';
+import zlib from 'zlib';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */

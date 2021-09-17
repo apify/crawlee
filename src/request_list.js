@@ -1,5 +1,5 @@
 import ow, { ArgumentError } from 'ow';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { ACTOR_EVENT_NAMES_EX } from './constants';
 import Request from './request'; // eslint-disable-line import/no-duplicates
 import events from './events';

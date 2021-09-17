@@ -1,5 +1,5 @@
 import ow from 'ow';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { Page, Response } from 'playwright'; // eslint-disable-line no-unused-vars
 import log from './utils_log';
 import { validators } from './validators';

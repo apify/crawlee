@@ -1,21 +1,21 @@
-import * as psTree from '@apify/ps-tree';
+import psTree from '@apify/ps-tree';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { execSync } from 'child_process';
-import * as ApifyClient from 'apify-client';
+import ApifyClient from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
-import * as cheerio from 'cheerio';
-import * as contentTypeParser from 'content-type';
-import * as fs from 'fs';
-import * as mime from 'mime-types';
-import * as os from 'os';
+import cheerio from 'cheerio';
+import contentTypeParser from 'content-type';
+import fs from 'fs';
+import mime from 'mime-types';
+import os from 'os';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import ow from 'ow';
-import * as path from 'path';
-import * as semver from 'semver';
-import * as _ from 'underscore';
+import path from 'path';
+import semver from 'semver';
+import _ from 'underscore';
 import { URL } from 'url';
-import * as util from 'util';
+import util from 'util';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -23,7 +23,7 @@ import { IncomingMessage } from 'http';
 import { Response as PuppeteerResponse } from 'puppeteer';
 import { version as apifyVersion } from '../package.json';
 import log from './utils_log';
-import * as requestUtils from './utils_request';
+import { requestAsBrowser } from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
 
@@ -400,9 +400,6 @@ const downloadListOfUrls = async (options) => {
         urlRegExp: ow.optional.regExp,
     }));
     const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX } = options;
-
-    const { requestAsBrowser } = requestUtils;
-
     const { body: string } = await requestAsBrowser({ url, encoding });
     return extractUrls({ string, urlRegExp });
 };

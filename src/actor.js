@@ -1,6 +1,6 @@
 import ow from 'ow';
-import * as path from 'path';
-import * as _ from 'underscore';
+import path from 'path';
+import _ from 'underscore';
 import { ENV_VARS, INTEGER_ENV_VARS, ACT_JOB_STATUSES } from '@apify/consts';
 import log from './utils_log';
 import { EXIT_CODES } from './constants';
@@ -13,8 +13,8 @@ import {
     isAtHome,
     logSystemInfo,
     printOutdatedSdkWarning,
+    newClient,
 } from './utils';
-import * as utils from './utils';
 import { maybeStringify } from './storages/key_value_store';
 
 // eslint-disable-next-line import/named,no-unused-vars,import/first
@@ -334,7 +334,7 @@ export const call = async (actId, input, options = {}) => {
         input = maybeStringify(input, callActorOpts);
     }
 
-    const client = token ? utils.newClient({ token }) : apifyClient;
+    const client = token ? newClient({ token }) : apifyClient;
 
     let run;
     try {
@@ -458,7 +458,7 @@ export const callTask = async (taskId, input, options = {}) => {
     callTaskOpts.memory = memoryMbytes;
     callTaskOpts.timeout = timeoutSecs;
 
-    const client = token ? utils.newClient({ token }) : apifyClient;
+    const client = token ? newClient({ token }) : apifyClient;
     // Start task and wait for run to finish if waitSecs is provided
     let run;
     try {
@@ -551,7 +551,7 @@ export const metamorph = async (targetActorId, input, options = {}) => {
         input = maybeStringify(input, metamorphOpts);
     }
 
-    await utils.apifyClient.run(runId, actorId).metamorph(targetActorId, input, metamorphOpts);
+    await apifyClient.run(runId, actorId).metamorph(targetActorId, input, metamorphOpts);
 
     // Wait some time for container to be stopped.
     // NOTE: option.customAfterSleepMillis is used in tests

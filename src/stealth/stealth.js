@@ -1,4 +1,4 @@
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { Page, Browser } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { cryptoRandomObjectId } from '@apify/utilities';
 import globalLog from '../utils_log';

@@ -1,7 +1,7 @@
 import { normalizeUrl } from '@apify/utilities';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import ow, { ArgumentError } from 'ow';
-import * as util from 'util';
+import util from 'util';
 import defaultLog from './utils_log';
 
 // new properties on the Request object breaks serialization

@@ -1,4 +1,4 @@
-const { readdirSync, readFileSync, writeFileSync, mkdirSync, realpathSync, statSync } = require('fs');
+const { readdirSync, readFileSync, writeFileSync, realpathSync, statSync } = require('fs');
 const path = require('path');
 
 const debug = (namespace, ...args) => {
@@ -10,12 +10,11 @@ const debug = (namespace, ...args) => {
 };
 
 console.log('Currect directory:', realpathSync('./'));
-const typesPath = './types';
+const typesPath = './build';
 const paths = {
     main: path.join(typesPath, 'main.d.ts'),
     session_pool: path.join(typesPath, 'session_pool', 'session_pool.d.ts'),
     utils_log: path.join(typesPath, 'utils_log.d.ts'),
-    playwright_utils: path.join(typesPath, 'playwright_utils.d.ts'),
 };
 
 console.log('Processing', paths.main);
@@ -70,70 +69,6 @@ const fixUtilsLog = async () => {
         console.log('Writing file', paths.utils_log);
         writeFileSync(paths.utils_log, output.join('\n'), { encoding: 'utf8' });
     }
-};
-
-const addTypeReference = (input, types) => {
-    return `${types.map((type) => `/// <reference path="${type}" />`).join('\n')}\n\n${input}`;
-};
-
-const padLeft = (input, length = 4) => {
-    return input.split('\n').map((line) => `${' '.repeat(length)}${line}`).join('\n');
-};
-
-const makePathsAbsolute = (input, root) => {
-    return input.split('\n').map((line) => {
-        return line.replace(/\.\//, `${root}/`);
-    }).join('\n');
-};
-
-const convertPlaywrightIndex = (input) => {
-    const output = makePathsAbsolute(input, 'playwright');
-    return addTypeReference(`declare module 'playwright' {\n${output}\n}`, ['./types/types.d.ts']);
-};
-
-const convertPlaywrightProtocol = (input) => {
-    const output = padLeft(makePathsAbsolute(input, 'playwright/types'));
-    return `declare module 'playwright/types/protocol' {\n${output}\n}`;
-};
-
-const convertPlaywrightStructs = (input) => {
-    const output = padLeft(makePathsAbsolute(input, 'playwright/types'));
-    return addTypeReference(`declare module 'playwright/types/structs' {\n${output}\n}`, ['./types.d.ts']);
-};
-
-const convertPlaywrightTypes = (input) => {
-    const output = padLeft(makePathsAbsolute(input, 'playwright/types'));
-    return addTypeReference(`declare module 'playwright/types/types' {\n${output}\n}`, ['./protocol.d.ts', './structs.d.ts']);
-};
-
-const inlinePlaywrightTypes = async () => {
-    // copy files to `types/playwright`
-    const files = [
-        { path: 'index.d.ts', convertor: convertPlaywrightIndex },
-        { path: 'types/protocol.d.ts', convertor: convertPlaywrightProtocol },
-        { path: 'types/structs.d.ts', convertor: convertPlaywrightStructs },
-        { path: 'types/types.d.ts', convertor: convertPlaywrightTypes },
-    ];
-    mkdirSync(path.join('types', 'playwright'));
-    mkdirSync(path.join('types', 'playwright', 'types'));
-
-    for (const file of files) {
-        const fromPath = path.join('node_modules', 'playwright', file.path);
-        const toPath = path.join('types', 'playwright', file.path);
-        const input = readFileSync(fromPath, { encoding: 'utf8' });
-        const output = file.convertor(input);
-        console.log('Writing file', toPath);
-        writeFileSync(toPath, output, { encoding: 'utf8' });
-    }
-
-    // add type references to playwright_utils.d.ts
-    const input = readFileSync(paths.playwright_utils, { encoding: 'utf8' });
-    const output = addTypeReference(input, [
-        '../types/playwright/index.d.ts',
-        '../types/playwright/types/types.d.ts',
-    ]);
-    console.log('Writing file', paths.playwright_utils);
-    writeFileSync(paths.playwright_utils, output, { encoding: 'utf8' });
 };
 
 /**
@@ -261,16 +196,17 @@ const fixTypesReferences = async () => {
         let match;
         for (const line of input) {
             /* eslint-disable no-cond-assign */
-            if (match = line.match(/\/\/\/\s*<reference\s*types="types-apify\/([^"]+)"\s*\/>/)) {
-                debug('fixTypesReferences', 'fixing types-apify from file', filepath);
-                output.push(`/// <reference path="../types-apify/${match[1]}.d.ts" />`);
-                changed = true;
-            } else if (match = line.match(/^([^"]+)"node\/([^$]+)/)) {
+            if (match = line.match(/^([^"]+)"node\/([^$]+)/)) {
                 debug('fixTypesReferences', 'fixing "node/" from file', filepath);
                 output.push(`${match[1]} "${match[2]}`);
                 changed = true;
             } else if (match = line.match(/^([^"]+)"puppeteer"/)) {
                 debug('fixTypesReferences', 'fixing "puppeteer" from file', filepath);
+                output.push('// @ts-ignore optional peer dependency');
+                output.push(line);
+                changed = true;
+            } else if (match = line.match(/^([^"]+)"playwright[/"]/)) {
+                debug('fixTypesReferences', 'fixing "playwright" from file', filepath);
                 output.push('// @ts-ignore optional peer dependency');
                 output.push(line);
                 changed = true;
@@ -292,5 +228,4 @@ const fixTypesReferences = async () => {
     await fixTypesReferences();
     await fixSessionPool();
     await fixUtilsLog();
-    await inlinePlaywrightTypes();
 })();

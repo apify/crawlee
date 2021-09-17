@@ -1,7 +1,7 @@
 import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
 import log from '../../build/utils_log';
-import * as Apify from '../../build';
+import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utils from '../../build/utils';
 
