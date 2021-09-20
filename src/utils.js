@@ -42,6 +42,20 @@ const URL_NO_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%.
  */
 const URL_WITH_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'giu'); // eslint-disable-line
 
+const MEMORY_FILE_PATHS = {
+    TOTAL: {
+        V1: '/sys/fs/cgroup/memory/memory.limit_in_bytes',
+        V2: '/sys/fs/cgroup/memory.max',
+    },
+    USED: {
+        V1: '/sys/fs/cgroup/memory/memory.usage_in_bytes',
+        V2: '/sys/fs/cgroup/memory.current',
+    },
+};
+
+// Set encoding to utf-8 so fs.readFile returns string instead of buffer
+const MEMORY_FILE_ENCODING = 'utf-8';
+
 const psTreePromised = util.promisify(psTree);
 
 /**
@@ -261,16 +275,38 @@ export const getMemoryInfo = async () => {
         // When running inside Docker container, use container memory limits
         // This must be promisified here so that we can mock it.
         const readPromised = util.promisify(fs.readFile);
+        const accessPromised = util.promisify(fs.access);
+
+        // Check wheter cgroups V1 or V2 is used
+        let cgroupsVersion = 'V1';
+        try {
+            // If this directory does not exists, assume docker is using cgroups V2
+            await accessPromised('/sys/fs/cgroup/memory/', fs.constants.R_OK);
+        } catch (err) {
+            cgroupsVersion = 'V2';
+        }
 
         try {
-            const [totalBytesStr, usedBytesStr] = await Promise.all([
-                readPromised('/sys/fs/cgroup/memory/memory.limit_in_bytes'),
-                readPromised('/sys/fs/cgroup/memory/memory.usage_in_bytes'),
+            let [totalBytesStr, usedBytesStr] = await Promise.all([
+                readPromised(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], MEMORY_FILE_ENCODING),
+                readPromised(MEMORY_FILE_PATHS.USED[cgroupsVersion], MEMORY_FILE_ENCODING),
             ]);
-            totalBytes = parseInt(totalBytesStr, 10);
-            // https://unix.stackexchange.com/q/420906
-            const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
-            if (containerRunsWithUnlimitedMemory) totalBytes = os.totalmem();
+
+            // Cgroups V2 files contains newline character. Getting rid of it for better handling in later part of the code.
+            totalBytesStr = totalBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
+            usedBytesStr = usedBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
+
+            // Cgroups V2 contains 'max' string if memory is not limited
+            // See https://git.kernel.org/pub/scm/linux/kernel/git/tj/cgroup.git/tree/Documentation/admin-guide/cgroup-v2.rst (see "memory.max")
+            if (totalBytesStr === 'max') {
+                totalBytes = os.totalmem();
+            // Cgroups V1 is set to number related to platform and page size if memory is not limited
+            // See https://unix.stackexchange.com/q/420906
+            } else {
+                totalBytes = parseInt(totalBytesStr, 10);
+                const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
+                if (containerRunsWithUnlimitedMemory) totalBytes = os.totalmem();
+            }
             usedBytes = parseInt(usedBytesStr, 10);
             freeBytes = totalBytes - usedBytes;
         } catch (err) {
