@@ -475,7 +475,7 @@ export const infiniteScroll = async (page, options = {}) => {
 
     while (!finished) {
         await doScroll();
-        await page.waitForTimeout(100);
+        await page.waitForTimeout(250);
         if (scrollDownAndUp) {
             await page.mouse.wheel({ deltaY: -1000 });
         }
