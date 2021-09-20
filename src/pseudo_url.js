@@ -1,5 +1,5 @@
 import ow from 'ow';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import log from './utils_log';
 import Request, { RequestOptions } from './request'; // eslint-disable-line import/named,no-unused-vars
 

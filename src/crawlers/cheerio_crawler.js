@@ -1,16 +1,16 @@
 /* eslint-disable class-methods-use-this */
 import { readStreamToString, concatStreamToBuffer } from '@apify/utilities';
-import * as cheerio from 'cheerio';
-import * as contentTypeParser from 'content-type';
-import * as htmlparser from 'htmlparser2';
+import cheerio from 'cheerio';
+import contentTypeParser from 'content-type';
+import { DomHandler } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
-import * as iconv from 'iconv-lite';
+import iconv from 'iconv-lite';
 import ow from 'ow';
-import * as util from 'util';
+import util from 'util';
 import { TimeoutError } from 'got-scraping';
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
-import * as utilsRequest from '../utils_request'; // eslint-disable-line import/no-duplicates
+import { requestAsBrowser } from '../utils_request';
 import { BasicCrawler } from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import CrawlerExtension from './crawler_extension';
 
@@ -655,7 +655,7 @@ class CheerioCrawler extends BasicCrawler {
         let responseWithStream;
 
         try {
-            responseWithStream = await utilsRequest.requestAsBrowser(opts);
+            responseWithStream = await requestAsBrowser(opts);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -796,7 +796,7 @@ class CheerioCrawler extends BasicCrawler {
      */
     async _parseHtmlToDom(response) {
         return new Promise((resolve, reject) => {
-            const domHandler = new htmlparser.DomHandler((err, dom) => {
+            const domHandler = new DomHandler((err, dom) => {
                 if (err) reject(err);
                 else resolve(dom);
             });

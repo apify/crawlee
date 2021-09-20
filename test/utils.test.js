@@ -11,7 +11,7 @@ import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';
 import * as requestUtils from '../build/utils_request';
-import * as htmlToTextData from './data/html_to_text_test_data';
+import htmlToTextData from './data/html_to_text_test_data';
 
 describe('utils.newClient()', () => {
     test('reads environment variables correctly', () => {

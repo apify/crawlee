@@ -8,7 +8,7 @@ import {
     checkAndSerialize,
     chunkBySize,
 } from '../../build/storages/dataset';
-import * as Apify from '../../build';
+import Apify from '../../build';
 import { StorageManager } from '../../build/storages/storage_manager';
 
 jest.mock('../../build/storages/storage_manager');

@@ -2,7 +2,7 @@ import _ from 'underscore';
 import sinon from 'sinon';
 import { ACTOR_EVENT_NAMES } from '@apify/consts';
 import log from '../../build/utils_log';
-import * as Apify from '../../build';
+import Apify from '../../build';
 import * as keyValueStore from '../../build/storages/key_value_store';
 import { RequestQueue } from '../../build/storages/request_queue';
 import events from '../../build/events';

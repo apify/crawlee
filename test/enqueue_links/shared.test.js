@@ -1,5 +1,5 @@
 import PseudoUrl from '../../build/pseudo_url';
-import * as shared from '../../build/enqueue_links/shared';
+import { constructPseudoUrlInstances, createRequestOptions, createRequests, addRequestsToQueueInBatches } from '../../build/enqueue_links/shared';
 
 describe('Enqueue links shared functions', () => {
     describe('constructPseudoUrlInstances()', () => {
@@ -10,7 +10,7 @@ describe('Enqueue links shared functions', () => {
                 'http[s?]://example.com/[.*]',
                 { purl: 'http[s?]://example.com[.*]', userData: { foo: 'bar' } },
             ];
-            const pseudoUrls = shared.constructPseudoUrlInstances(pseudoUrlSources);
+            const pseudoUrls = constructPseudoUrlInstances(pseudoUrlSources);
             expect(pseudoUrls).toHaveLength(4);
             pseudoUrls.forEach((purl) => {
                 expect(purl.matches('https://example.com/foo')).toBe(true);
@@ -22,8 +22,8 @@ describe('Enqueue links shared functions', () => {
         });
 
         test('should cache items', () => {
-            const pseudoUrls = shared.constructPseudoUrlInstances(['http[s?]://example.com/[.*]']);
-            const pseudoUrls2 = shared.constructPseudoUrlInstances(['http[s?]://example.com/[.*]']);
+            const pseudoUrls = constructPseudoUrlInstances(['http[s?]://example.com/[.*]']);
+            const pseudoUrls2 = constructPseudoUrlInstances(['http[s?]://example.com/[.*]']);
             expect(pseudoUrls[0] === pseudoUrls2[0]).toBe(true);
         });
     });
@@ -44,8 +44,8 @@ describe('Enqueue links shared functions', () => {
                 return request;
             };
 
-            const requestOptions = shared.createRequestOptions(sources);
-            const requests = shared.createRequests(requestOptions, pseudoUrls).map(transformRequestFunction).filter((r) => !!r);
+            const requestOptions = createRequestOptions(sources);
+            const requests = createRequests(requestOptions, pseudoUrls).map(transformRequestFunction).filter((r) => !!r);
 
             expect(requests).toHaveLength(2);
             requests.forEach((r) => {
@@ -67,7 +67,7 @@ describe('Enqueue links shared functions', () => {
 
             const requests = Array(5).fill(null).map((_, i) => i);
 
-            const finished = shared.addRequestsToQueueInBatches(requests, fakeRequestQueue, 2);
+            const finished = addRequestsToQueueInBatches(requests, fakeRequestQueue, 2);
 
             // With batch size 2, two requests will be dispatched synchronously before the async function
             // returns and thus the following push should place 1000 on the third place in the array.

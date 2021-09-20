@@ -6,7 +6,7 @@ import sinon from 'sinon';
 import { BrowserPool, PuppeteerPlugin } from 'browser-pool';
 import puppeteer from 'puppeteer';
 import log from '../../build/utils_log';
-import * as Apify from '../../build';
+import Apify from '../../build';
 import { STATUS_CODES_BLOCKED } from '../../build/constants';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utilsRequest from '../../build/utils_request';

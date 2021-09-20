@@ -1,4 +1,4 @@
-import * as os from 'os';
+import os from 'os';
 import ow from 'ow';
 import { betterSetInterval, betterClearInterval } from '@apify/utilities';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from '@apify/consts';

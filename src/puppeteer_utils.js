@@ -1,8 +1,8 @@
-import * as fs from 'fs';
+import fs from 'fs';
 import ow from 'ow';
-import * as vm from 'vm';
-import * as util from 'util';
-import * as _ from 'underscore';
+import vm from 'vm';
+import util from 'util';
+import _ from 'underscore';
 import { LruCache } from '@apify/datastructures';
 import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import log from './utils_log';

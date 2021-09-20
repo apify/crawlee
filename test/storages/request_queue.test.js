@@ -1,4 +1,4 @@
-import * as Apify from '../../build';
+import Apify from '../../build';
 import { apifyClient } from '../../build/utils';
 import {
     RequestQueue,

@@ -6,7 +6,7 @@
         "node": ">=15.10.0"
     },
     "main": "build/index.js",
-    "types": "types/index.d.ts",
+    "types": "build/index.d.ts",
     "keywords": [
         "apify",
         "headless",
@@ -28,16 +28,14 @@
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/apifytech/apify-js"
+        "url": "git+https://github.com/apify/apify-js"
     },
     "bugs": {
-        "url": "https://github.com/apifytech/apify-js/issues"
+        "url": "https://github.com/apify/apify-js/issues"
     },
     "homepage": "https://sdk.apify.com/",
     "files": [
-        "build",
-        "types",
-        "types-apify"
+        "build"
     ],
     "scripts": {
         "build": "npm run clean && tsc -p tsconfig.json && node ./tools/typescript_fixes.js",
@@ -46,7 +44,7 @@
         "test": "npm run build && jest",
         "prepare": "npm run build",
         "prepublishOnly": "(test $CI || (echo \"Publishing is reserved to CI!\"; exit 1))",
-        "clean": "rimraf ./build ./types",
+        "clean": "rimraf ./build",
         "lint": "eslint ./src ./test",
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
@@ -87,6 +85,7 @@
     },
     "devDependencies": {
         "@apify/eslint-config": "^0.1.4",
+        "@apify/tsconfig": "^0.1.0",
         "@babel/cli": "^7.14.8",
         "@babel/core": "^7.14.8",
         "@babel/eslint-parser": "^7.14.7",
@@ -99,6 +98,7 @@
         "@types/htmlparser2": "^3.10.3",
         "@types/jest": "^27.0.1",
         "@types/node": "^15.14.2",
+        "@types/ps-tree": "^1.1.1",
         "@types/request-promise-native": "^1.0.18",
         "@types/rimraf": "^3.0.1",
         "@types/semver": "^7.3.7",

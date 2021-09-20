@@ -1,12 +1,12 @@
 import ow from 'ow';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import { StorageManager } from './storage_manager';
 import log from '../utils_log';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 // @ts-ignore
-import * as ApifyClient from 'apify-client';
+import ApifyClient from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
 import { Configuration } from '../configuration';

@@ -1,5 +1,5 @@
 import { URL } from 'url';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import PseudoUrl from '../pseudo_url';
 import Request from '../request'; // eslint-disable-line import/no-duplicates
 

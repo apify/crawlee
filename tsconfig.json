@@ -1,41 +1,18 @@
 {
+    "extends": "@apify/tsconfig",
     "compilerOptions": {
-        "target": "es2018",
-        "module": "commonjs",
-        "moduleResolution": "node",
+        "target": "ES2020",
         "lib": [
             "DOM",
-            "DOM.Iterable",
-            "ES2015",
-            "ES2016",
-            "ES2018",
-            "ES2019.Object",
-            "ES2018.AsyncIterable",
-            "ES2020.String",
-            "ES2019.Array"
+            "ES2020",
         ],
-        "baseUrl": "./",
+        "baseUrl": ".",
         "allowJs": true,
-        "checkJs": false,
-        "noEmit": false,
-        "newLine": "lf",
-        "declaration": true,
-        "emitDeclarationOnly": false,
-        "strict": true,
-        "noImplicitAny": true,
-        "stripInternal": true,
-        "noImplicitReturns": true,
-        "noImplicitThis": true,
-        "alwaysStrict": true,
-        "noStrictGenericChecks": true,
-        "strictNullChecks": true,
-        "allowSyntheticDefaultImports": true,
-        "esModuleInterop": false,
-        "declarationDir": "types/",
-        "outDir": "build/"
+        "resolveJsonModule": false,
+        "noUnusedLocals": false,
+        "outDir": "build"
     },
     "include": [
-        "./types-apify/**/*.d.ts",
-        "./src/**/*.js"
+        "./src/**/*"
     ]
 }
