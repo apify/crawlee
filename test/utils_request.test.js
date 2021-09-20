@@ -109,6 +109,7 @@ describe('Apify.utils_request', () => {
             ['%cf', '�'],
             ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun'],
             ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun'],
+            ['%C3%A8----%C3%A9', 'è----é'],
         ];
 
         test.each(testQueries)(`it works with not encoded urls: '%s' (regular)`, async (query, decoded) => {

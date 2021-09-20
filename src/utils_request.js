@@ -257,7 +257,7 @@ function fixUrl(url) {
             const encoded = encodeURI(Buffer.from(chunks, 'hex').toString());
             url = `${url.slice(0, start)}${encoded}${url.slice(index)}`;
 
-            index += encoded.length;
+            index = start + encoded.length;
             chunks = '';
         }
 
