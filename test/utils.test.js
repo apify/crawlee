@@ -934,7 +934,12 @@ describe('utils.purgeLocalStorage()', () => {
     });
 
     test('should purge local storage when passing custom name', async () => {
-        expect(() => utils.purgeLocalStorage(folder)).not.toThrowError();
+        try {
+            await utils.purgeLocalStorage(folder);
+        } catch (err) {
+            // This should never happen
+            expect(err).toBeFalsy();
+        }
 
         expect(fs.existsSync(folder)).toBe(false);
     });
