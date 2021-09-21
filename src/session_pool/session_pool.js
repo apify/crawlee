@@ -24,7 +24,7 @@ import { Configuration } from '../configuration';
  * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
  * Any error thrown from this function will terminate the process.
  * Function receives `SessionPool` instance as a parameter
- * @property {boolean} [forceCloud] If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
+ * @property {boolean} [forceCloud=false] If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
  * environment variable is set. This way it is possible to combine local and cloud storage.
  */
 
