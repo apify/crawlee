@@ -24,6 +24,8 @@ import { Configuration } from '../configuration';
  * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
  * Any error thrown from this function will terminate the process.
  * Function receives `SessionPool` instance as a parameter
+ * @property {boolean} [forceCloud] If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
+ * environment variable is set. This way it is possible to combine local and cloud storage.
  */
 
 /**
@@ -98,6 +100,7 @@ export class SessionPool extends EventEmitter {
             createSessionFunction: ow.optional.function,
             sessionOptions: ow.optional.object,
             log: ow.optional.object,
+            forceCloud: ow.optional.boolean,
         }));
 
         const {
@@ -110,6 +113,8 @@ export class SessionPool extends EventEmitter {
             sessionOptions = {},
 
             log = defaultLog,
+
+            forceCloud = false,
         } = options;
 
         super();
@@ -138,6 +143,8 @@ export class SessionPool extends EventEmitter {
         /** @type {Session[]} */
         this.sessions = [];
         this.sessionMap = new Map();
+        /** @type {boolean} */
+        this.forceCloud = forceCloud;
     }
 
     /**
@@ -163,7 +170,7 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<void>}
      */
     async initialize() {
-        this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId, { config: this.config });
+        this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId, { config: this.config, forceCloud: this.forceCloud });
 
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
         await this._maybeLoadSessionPool();
