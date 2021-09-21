@@ -100,7 +100,7 @@
         "@types/node": "^15.14.2",
         "@types/ps-tree": "^1.1.1",
         "@types/request-promise-native": "^1.0.18",
-        "@types/rimraf": "^3.0.1",
+        "@types/rimraf": "^3.0.2",
         "@types/semver": "^7.3.7",
         "@types/sinon": "^10.0.0",
         "@types/tough-cookie": "^4.0.1",

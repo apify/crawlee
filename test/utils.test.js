@@ -921,3 +921,21 @@ describe('utils.parseContentTypeFromResponse', () => {
         expect(parsedReallyBad.charset).toBe('utf-8');
     });
 });
+
+describe('utils.purgeLocalStorage()', () => {
+    // Create test folder
+    const folder = Date.now().toString(16);
+    fs.mkdirSync(folder);
+
+    test('should purge local storage by default', () => {
+        expect(() => utils.purgeLocalStorage()).not.toThrowError();
+
+        expect(fs.existsSync('apify_storage')).toBe(false);
+    });
+
+    test('should purge local storage when passing custom name', async () => {
+        expect(() => utils.purgeLocalStorage(folder)).not.toThrowError();
+
+        expect(fs.existsSync(folder)).toBe(false);
+    });
+});

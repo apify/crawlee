@@ -16,6 +16,7 @@ import semver from 'semver';
 import _ from 'underscore';
 import { URL } from 'url';
 import util from 'util';
+import rimraf from 'rimraf';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -28,6 +29,8 @@ import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
 
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
+
+const rimrafp = util.promisify(rimraf);
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -714,6 +717,28 @@ export const waitForRunToFinish = async (options) => {
 };
 
 /**
+ * Cleans up the local storage folder created when testing locally.
+ * This is useful in the event you are debugging your code locally.
+ *
+ * Be careful as this will remove the folder you provide and everything in it!
+ *
+ * @param {string} [folder] The folder to clean up
+ * @returns {Promise<void>}
+ * @memberOf utils
+ * @name purgeLocalStorage
+ * @function
+ */
+export const purgeLocalStorage = async (folder) => {
+    // If the user did not provide a folder, try to get it from the env variables, or the default one
+    if (!folder) {
+        folder = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || 'apify_storage';
+    }
+
+    // Clear the folder
+    await rimrafp(folder);
+};
+
+/**
  * A namespace that contains various utilities.
  *
  * **Example usage:**
@@ -738,4 +763,5 @@ export const publicUtils = {
     URL_WITH_COMMAS_REGEX,
     createRequestDebugInfo,
     waitForRunToFinish,
+    purgeLocalStorage,
 };
