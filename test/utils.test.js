@@ -928,7 +928,7 @@ describe('utils.purgeLocalStorage()', () => {
     fs.mkdirSync(folder);
 
     test('should purge local storage by default', () => {
-        expect(() => utils.purgeLocalStorage()).not.toThrowError();
+        await expect(utils.purgeLocalStorage()).resolves.toBeUndefined();
 
         expect(fs.existsSync('apify_storage')).toBe(false);
     });
