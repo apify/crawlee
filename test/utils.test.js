@@ -927,19 +927,14 @@ describe('utils.purgeLocalStorage()', () => {
     const folder = Date.now().toString(16);
     fs.mkdirSync(folder);
 
-    test('should purge local storage by default', () => {
+    test('should purge local storage by default', async () => {
         await expect(utils.purgeLocalStorage()).resolves.toBeUndefined();
 
         expect(fs.existsSync('apify_storage')).toBe(false);
     });
 
     test('should purge local storage when passing custom name', async () => {
-        try {
-            await utils.purgeLocalStorage(folder);
-        } catch (err) {
-            // This should never happen
-            expect(err).toBeFalsy();
-        }
+        await expect(() => utils.purgeLocalStorage(folder)).resolves.toBeUndefined();
 
         expect(fs.existsSync(folder)).toBe(false);
     });
