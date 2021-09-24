@@ -20,7 +20,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
 /**
  * @typedef RequestListOptions
- * @property {Array<RequestOptions|Request|string>} [sources]
+ * @property {Array<RequestOptions | Request | { requestsFromUrl: string } | string>} [sources]
  *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
  *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
  *
