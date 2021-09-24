@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import ow from 'ow';
 import _ from 'underscore';
 import { Request as PuppeteerRequest, Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import log from './utils_log';
 
 // We use weak maps here so that the content gets discarted after page gets closed.
 const pageInterceptRequestHandlersMap = new WeakMap(); // Maps page to an array of request interception handlers.
@@ -232,10 +233,14 @@ export const removeInterceptRequestHandler = async (page, handler) => {
         if (interceptedRequestsInProgress.size === 0) {
             await disableRequestInterception(page);
         } else {
-            const onDelete = () => {
+            const onDelete = async () => {
                 if (interceptedRequestsInProgress.size === 0) {
-                    disableRequestInterception(page);
-                    interceptedRequestsInProgress.removeListener('delete', onDelete);
+                    try {
+                        await disableRequestInterception(page);
+                        interceptedRequestsInProgress.removeListener('delete', onDelete);
+                    } catch (error) {
+                        log.debug('Error while disabling request interception', { error });
+                    }
                 }
             };
             interceptedRequestsInProgress.on('delete', onDelete);
