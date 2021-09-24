@@ -1,9 +1,15 @@
-2.0.8 / TBD
+2.1.0 / TBD
 ====================
 - automatically convert google docs share urls to csv download ones in request list (#1174)
 - use puppeteer emulating scrolls instead of `window.scrollBy` (#1170)
 - warn if apify proxy is used in proxyUrls (#1173)
 - fix `YOUTUBE_REGEX_STRING` being too greedy (#1171)
+- add `purgeLocalStorage` utility method (#1187)
+- catch errors inside request interceptors (#1188, #1190)
+- add support for cgroups v2 (#1177)
+- fix incorrect offset in `fixUrl` function (#1184)
+- support channel and user links in YouTube regex (#1178)
+- fix: allow passing `requestsFromUrl` to `RequestListOptions` in TS (#1191)
 
 2.0.7 / 2021/09/08
 ====================
