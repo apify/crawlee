@@ -56,20 +56,24 @@ export const gotoExtended = async (page, request, gotoOptions = {}) => {
         log.deprecated('Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance '
             + 'in recent versions of Playwright. Use only when necessary.');
         let wasCalled = false;
-        const interceptRequestHandler = (route) => {
-            // We want to ensure that this won't get executed again in a case that there is a subsequent request
-            // for example for some asset file link from main HTML.
-            if (wasCalled) {
-                return route.continue();
+        const interceptRequestHandler = async (route) => {
+            try {
+                // We want to ensure that this won't get executed again in a case that there is a subsequent request
+                // for example for some asset file link from main HTML.
+                if (wasCalled) {
+                    return route.continue();
+                }
+
+                wasCalled = true;
+                const overrides = {};
+
+                if (method !== 'GET') overrides.method = method;
+                if (payload) overrides.postData = payload;
+                if (!_.isEmpty(headers)) overrides.headers = headers;
+                await route.continue(overrides);
+            } catch (error) {
+                log.debug('Error inside request interceptor', { error });
             }
-
-            wasCalled = true;
-            const overrides = {};
-
-            if (method !== 'GET') overrides.method = method;
-            if (payload) overrides.postData = payload;
-            if (!_.isEmpty(headers)) overrides.headers = headers;
-            route.continue(overrides);
         };
 
         await page.route('**/*', interceptRequestHandler);
