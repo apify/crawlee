@@ -361,7 +361,7 @@ describe('BrowserCrawler', () => {
         expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
     });
 
-    test('should persist cookies per session', async () => {
+    test.skip('should persist cookies per session', async () => {
         const name = `list-${Math.random()}`;
         const requestList = new Apify.RequestList({
             persistStateKey: name,
