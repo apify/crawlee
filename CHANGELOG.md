@@ -10,6 +10,7 @@
 - fix incorrect offset in `fixUrl` function (#1184)
 - support channel and user links in YouTube regex (#1178)
 - fix: allow passing `requestsFromUrl` to `RequestListOptions` in TS (#1191)
+- allow passing `forceCloud` down to the KV store (#1186), closes #752
 
 2.0.7 / 2021/09/08
 ====================
