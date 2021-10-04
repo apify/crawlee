@@ -24,6 +24,11 @@ import { Configuration } from '../configuration';
  * @property {CreateSession} [createSessionFunction] - Custom function that should return `Session` instance.
  * Any error thrown from this function will terminate the process.
  * Function receives `SessionPool` instance as a parameter
+ * @property {boolean} [forceCloud=false] If set to `true` then the function uses cloud storage usage even if the `APIFY_LOCAL_STORAGE_DIR`
+ * environment variable is set. This way it is possible to combine local and cloud storage.
+ *
+ * **Note:** If you use `forceCloud`, it is recommended to also set the `persistStateKeyValueStoreId` option, as otherwise the
+ * `KeyValueStore` will be unnamed!
  */
 
 /**
@@ -98,6 +103,7 @@ export class SessionPool extends EventEmitter {
             createSessionFunction: ow.optional.function,
             sessionOptions: ow.optional.object,
             log: ow.optional.object,
+            forceCloud: ow.optional.boolean,
         }));
 
         const {
@@ -110,6 +116,8 @@ export class SessionPool extends EventEmitter {
             sessionOptions = {},
 
             log = defaultLog,
+
+            forceCloud = false,
         } = options;
 
         super();
@@ -138,6 +146,8 @@ export class SessionPool extends EventEmitter {
         /** @type {Session[]} */
         this.sessions = [];
         this.sessionMap = new Map();
+        /** @type {boolean} */
+        this.forceCloud = forceCloud;
     }
 
     /**
@@ -163,7 +173,12 @@ export class SessionPool extends EventEmitter {
      * @return {Promise<void>}
      */
     async initialize() {
-        this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId, { config: this.config });
+        this.keyValueStore = await openKeyValueStore(this.persistStateKeyValueStoreId, { config: this.config, forceCloud: this.forceCloud });
+
+        if (this.forceCloud && !this.persistStateKeyValueStoreId) {
+            this.log.warning(`You enabled 'forceCloud' in the session pool options but you haven't specified a 'persistStateKeyValueStoreId'!`);
+            this.log.warning(`This session pool's data has been saved in the KeyValueStore with the id: ${this.keyValueStore.id}`);
+        }
 
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
         await this._maybeLoadSessionPool();
