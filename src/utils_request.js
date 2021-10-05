@@ -227,6 +227,7 @@ export const requestAsBrowser = async (options = {}) => {
  * @example fixUrl('https://example.com/%xx') => 'https://example.com/%25xx'
  * @example fixUrl('https://example.com/%0fexample%cc%0f') => 'https://example.com/%0Fexample%EF%BF%BD%0F'
  * @see https://tc39.es/ecma262/multipage/global-object.html#sec-decodeuri-encodeduri
+ * @see https://en.wikipedia.org/wiki/Percent-encoding
  * @param {string} url
  * @private
  */
@@ -254,7 +255,7 @@ function fixUrl(url) {
         } while (url[index] === '%');
 
         if (chunks.length) {
-            const encoded = encodeURI(Buffer.from(chunks, 'hex').toString());
+            const encoded = encodeURIComponent(Buffer.from(chunks, 'hex').toString());
             url = `${url.slice(0, start)}${encoded}${url.slice(index)}`;
 
             index = start + encoded.length;
