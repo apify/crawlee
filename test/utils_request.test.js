@@ -42,7 +42,10 @@ describe('Apify.utils_request', () => {
         });
 
         app.get('/test-encoding', (req, res) => {
-            res.json(req.query);
+            res.json({
+                parsed: req.query,
+                url: req.url,
+            });
         });
 
         app.get('/invalidBody', async (req, res) => {
@@ -104,20 +107,25 @@ describe('Apify.utils_request', () => {
         });
 
         const testQueries = [
-            ['abc', 'abc'],
-            ['%20', ' '],
-            ['%cf', '�'],
-            ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun'],
-            ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun'],
-            ['%C3%A8----%C3%A9', 'è----é'],
+            // [query, decoded, raw]
+            ['abc', 'abc', 'abc'],
+            ['%20', ' ', '%20'],
+            ['%cf', '�', '%EF%BF%BD'],
+            ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun', 'helios-%E2%80%93-the-primordial-sun'],
+            ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun', 'helios-%E2%80%93-the-primordial-sun'],
+            ['%C3%A8----%C3%A9', 'è----é', '%C3%A8----%C3%A9'],
         ];
 
-        test.each(testQueries)(`it works with not encoded urls: '%s' (regular)`, async (query, decoded) => {
+        test.each(testQueries)(`it works with not encoded urls: '%s' (regular)`, async (query, decoded, raw) => {
             const response = await requestAsBrowser({
                 url: `http://${HOSTNAME}:${port}/test-encoding/?q=${query}`,
             });
             expect(response.statusCode).toBe(200);
-            expect(JSON.parse(response.body).q).toBe(decoded);
+
+            const result = JSON.parse(response.body);
+
+            expect(result.parsed.q).toBe(decoded);
+            expect(result.url).toBe(`/test-encoding/?q=${raw}`);
         });
 
         test.each(testQueries)(`it works with not encoded urls: '%s' (stream)`, async (query, decoded) => {
@@ -133,7 +141,7 @@ describe('Apify.utils_request', () => {
             const body = JSON.parse(chunks.join());
 
             expect(response.statusCode).toBe(200);
-            expect(body.q).toBe(decoded);
+            expect(body.parsed.q).toBe(decoded);
         });
 
         test('uses desktop user-agent by default ', async () => {
