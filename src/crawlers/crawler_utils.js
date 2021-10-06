@@ -1,3 +1,4 @@
+import { CookieJar } from 'tough-cookie';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Session } from '../session_pool/session';
@@ -28,4 +29,27 @@ export function throwOnBlockedRequest(session, statusCode) {
     if (isBlocked) {
         throw new Error(`Request blocked - received ${statusCode} status code.`);
     }
+}
+
+/**
+ * Merges multiple cookie strings.
+ *
+ * @param {string} url
+ * @param {string[]} sourceCookies
+ * @return {string}
+ * @private
+ */
+export function mergeCookies(url, sourceCookies) {
+    const jar = new CookieJar();
+
+    // ignore empty cookies
+    for (const cookieString of sourceCookies.filter((c) => c)) {
+        const cookies = cookieString.split(/ *; */); // ignore extra spaces
+
+        for (const cookie of cookies) {
+            jar.setCookieSync(cookie, url);
+        }
+    }
+
+    return jar.getCookieStringSync(url);
 }

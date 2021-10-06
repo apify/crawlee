@@ -11,6 +11,7 @@ import { TimeoutError } from 'got-scraping';
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import { requestAsBrowser } from '../utils_request';
+import { mergeCookies } from './crawler_utils';
 import { BasicCrawler } from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import CrawlerExtension from './crawler_extension';
 
@@ -647,8 +648,7 @@ class CheerioCrawler extends BasicCrawler {
      */
     async _requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }) {
         if (this.useSessionPool) {
-            const { headers } = request;
-            headers.Cookie = session.getCookieString(request.url);
+            this._applySessionCookie(request, session, requestAsBrowserOptions);
         }
 
         const opts = this._getRequestOptions(request, session, proxyUrl, requestAsBrowserOptions);
@@ -665,6 +665,31 @@ class CheerioCrawler extends BasicCrawler {
         }
 
         return responseWithStream;
+    }
+
+    /**
+     * Sets the request cookie to `requestAsBrowserOptions` based on provided session and request. If some cookies were already set,
+     * the session cookie will be merged with them. User provided cookies have precedence, cookies set on `requestAsBrowserOptions`
+     * have precedence over those on `request`.
+     *
+     * @param {Request} request
+     * @param {Session} session
+     * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+     * @return {void}
+     * @ignore
+     * @private
+     * @internal
+     */
+    _applySessionCookie(request, session, requestAsBrowserOptions) {
+        requestAsBrowserOptions.headers = requestAsBrowserOptions.headers ?? {}; // ensure there is headers object
+        const { headers } = requestAsBrowserOptions;
+        const userCookie = request.headers.Cookie ?? request.headers.cookie;
+        const sessionCookie = session.getCookieString(request.url);
+        const customCookie = headers.Cookie ?? headers.cookie;
+
+        // merge cookies from all possible sources
+        headers.Cookie = mergeCookies(request.url, [sessionCookie, userCookie, customCookie]);
+        delete headers.cookie;
     }
 
     /**
