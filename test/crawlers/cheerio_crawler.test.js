@@ -910,13 +910,14 @@ describe('CheerioCrawler', () => {
 
             });
 
+            const spy = jest.spyOn(utilsRequest, 'requestAsBrowser');
             await crawler.run();
             requests.forEach((req, i) => {
                 if (i >= 1) {
-                    // FIXME
-                    // expect(req.headers.Cookie).toEqual(cookie);
+                    expect(spy.mock.calls[i][0].headers.Cookie).toBe(cookie);
                 }
             });
+            spy.mockRestore();
         });
 
         test('should merge cookies set in pre-nav hook with the session ones', async () => {
