@@ -482,11 +482,6 @@ class CheerioCrawler extends BasicCrawler {
             ({ request, response }) => this._abortDownloadOfBody(request, response),
             ...postNavigationHooks,
         ];
-        /**
-         * @type {RequestAsBrowserOptions}
-         * @ignore
-         * */
-        this.defaultRequestAsBrowserOptions = {};
 
         if (this.useSessionPool) {
             this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
@@ -612,7 +607,7 @@ class CheerioCrawler extends BasicCrawler {
             await this.prepareRequestFunction(crawlingContext);
         }
 
-        const requestAsBrowserOptions = { ...this.defaultRequestAsBrowserOptions };
+        const requestAsBrowserOptions = {};
         await this._executeHooks(this.preNavigationHooks, crawlingContext, requestAsBrowserOptions);
         const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
