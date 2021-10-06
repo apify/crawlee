@@ -1,4 +1,4 @@
-import { CookieJar } from 'tough-cookie';
+import { Cookie, CookieJar } from 'tough-cookie';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Session } from '../session_pool/session';
@@ -32,7 +32,8 @@ export function throwOnBlockedRequest(session, statusCode) {
 }
 
 /**
- * Merges multiple cookie strings.
+ * Merges multiple cookie strings. Keys are compared case-insensitively, the casing used
+ * on first appearance will be used.
  *
  * @param {string} url
  * @param {string[]} sourceCookies
@@ -43,10 +44,17 @@ export function mergeCookies(url, sourceCookies) {
     const jar = new CookieJar();
 
     // ignore empty cookies
-    for (const cookieString of sourceCookies.filter((c) => c)) {
-        const cookies = cookieString.split(/ *; */); // ignore extra spaces
+    for (const sourceCookieString of sourceCookies.filter((c) => c)) {
+        const cookies = sourceCookieString.split(/ *; */); // ignore extra spaces
 
-        for (const cookie of cookies) {
+        for (const cookieString of cookies) {
+            const cookie = Cookie.parse(cookieString);
+            const sameKeyCookie = jar.getCookiesSync(url).find((c) => cookie.key.toLowerCase() === c.key.toLowerCase());
+
+            if (sameKeyCookie) {
+                cookie.key = sameKeyCookie.key;
+            }
+
             jar.setCookieSync(cookie, url);
         }
     }

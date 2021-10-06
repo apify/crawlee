@@ -8,7 +8,6 @@ import bodyParser from 'body-parser';
 import sinon from 'sinon';
 import { Readable } from 'stream';
 import iconv from 'iconv-lite';
-import { Cookie } from 'tough-cookie';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
@@ -959,12 +958,26 @@ describe('CheerioCrawler', () => {
         });
 
         test('mergeCookies()', async () => {
-            const cookie = mergeCookies('https://example.com', [
+            const cookie1 = mergeCookies('https://example.com', [
                 'foo=bar1; other=cookie1 ; coo=kie',
                 'foo=bar2; baz=123',
                 'other=cookie2;foo=bar3',
             ]);
-            expect(cookie).toBe('foo=bar3; other=cookie2; coo=kie; baz=123');
+            expect(cookie1).toBe('foo=bar3; other=cookie2; coo=kie; baz=123');
+
+            const cookie2 = mergeCookies('https://example.com', [
+                'Foo=bar1; other=cookie1 ; coo=kie',
+                'foo=bar2; baz=123',
+                'Other=cookie2;foo=bar3',
+            ]);
+            expect(cookie2).toBe('Foo=bar3; other=cookie2; coo=kie; baz=123');
+
+            const cookie3 = mergeCookies('https://example.com', [
+                'foo=bar1; Other=cookie1 ; Coo=kie',
+                'foo=bar2; baz=123',
+                'Other=cookie2;Foo=bar3;coo=kee',
+            ]);
+            expect(cookie3).toBe('foo=bar3; Other=cookie2; Coo=kee; baz=123');
         });
 
         test('should pass session to prepareRequestFunction when Session pool is used', async () => {
