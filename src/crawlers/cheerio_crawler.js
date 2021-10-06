@@ -608,6 +608,11 @@ class CheerioCrawler extends BasicCrawler {
         }
 
         const requestAsBrowserOptions = {};
+
+        if (this.useSessionPool) {
+            this._applySessionCookie(crawlingContext, requestAsBrowserOptions);
+        }
+
         await this._executeHooks(this.preNavigationHooks, crawlingContext, requestAsBrowserOptions);
         const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
@@ -642,10 +647,6 @@ class CheerioCrawler extends BasicCrawler {
      * @internal
      */
     async _requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }) {
-        if (this.useSessionPool) {
-            this._applySessionCookie(request, session, requestAsBrowserOptions);
-        }
-
         const opts = this._getRequestOptions(request, session, proxyUrl, requestAsBrowserOptions);
         let responseWithStream;
 
@@ -663,28 +664,24 @@ class CheerioCrawler extends BasicCrawler {
     }
 
     /**
-     * Sets the request cookie to `requestAsBrowserOptions` based on provided session and request. If some cookies were already set,
-     * the session cookie will be merged with them. User provided cookies have precedence, cookies set on `requestAsBrowserOptions`
-     * have precedence over those on `request`.
+     * Sets the cookie header to `requestAsBrowserOptions` based on provided session and request. If some cookies were already set,
+     * the session cookie will be merged with them. User provided cookies on `request` object have precedence.
      *
-     * @param {Request} request
-     * @param {Session} session
+     * @param {CrawlingContext} crawlingContext
      * @param {RequestAsBrowserOptions} requestAsBrowserOptions
      * @return {void}
      * @ignore
      * @private
      * @internal
      */
-    _applySessionCookie(request, session, requestAsBrowserOptions) {
-        requestAsBrowserOptions.headers = requestAsBrowserOptions.headers ?? {}; // ensure there is headers object
-        const { headers } = requestAsBrowserOptions;
+    _applySessionCookie({ request, session }, requestAsBrowserOptions) {
         const userCookie = request.headers.Cookie ?? request.headers.cookie;
         const sessionCookie = session.getCookieString(request.url);
-        const customCookie = headers.Cookie ?? headers.cookie;
 
         // merge cookies from all possible sources
-        headers.Cookie = mergeCookies(request.url, [sessionCookie, userCookie, customCookie]);
-        delete headers.cookie;
+        requestAsBrowserOptions.headers = {
+            Cookie: mergeCookies(request.url, [sessionCookie, userCookie]),
+        };
     }
 
     /**

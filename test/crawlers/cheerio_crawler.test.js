@@ -922,8 +922,12 @@ describe('CheerioCrawler', () => {
 
         test('should merge cookies set in pre-nav hook with the session ones', async () => {
             const responses = [];
+            const requestAsBrowserOptions = [];
             const crawler = new Apify.CheerioCrawler({
-                requestList: await Apify.openRequestList(null, [`http://${HOST}:${port}/headers`]),
+                requestList: await Apify.openRequestList(null, [{
+                    url: `http://${HOST}:${port}/headers`,
+                    headers: { cookie: 'foo=bar2; baz=123' },
+                }]),
                 useSessionPool: true,
                 persistCookiesPerSession: false,
                 sessionPoolOptions: {
@@ -933,21 +937,23 @@ describe('CheerioCrawler', () => {
                     responses.push(json);
                 },
                 preNavigationHooks: [(context, options) => {
-                    context.session._setCookies([
-                        Cookie.parse('foo=bar1'),
-                        Cookie.parse('other=cookie1'),
-                        Cookie.parse('coo=kie'),
-                    ], context.request.url);
-                    context.request.headers.Cookie = 'foo=bar2; baz=123';
-                    options.headers = { cookie: 'other=cookie2;foo=bar3' };
+                    requestAsBrowserOptions.push(options);
                 }],
             });
 
+            const sessSpy = jest.spyOn(Session.prototype, 'getCookieString');
+            sessSpy.mockReturnValueOnce('foo=bar1; other=cookie1; coo=kie');
             await crawler.run();
             expect(responses).toHaveLength(1);
             expect(responses[0]).toMatchObject({
                 headers: {
-                    cookie: 'foo=bar3; other=cookie2; coo=kie; baz=123',
+                    cookie: 'foo=bar2; other=cookie1; coo=kie; baz=123',
+                },
+            });
+            expect(requestAsBrowserOptions).toHaveLength(1);
+            expect(requestAsBrowserOptions[0]).toMatchObject({
+                headers: {
+                    Cookie: 'foo=bar2; other=cookie1; coo=kie; baz=123', // header name normalized to `Cookie`
                 },
             });
         });
