@@ -957,6 +957,35 @@ describe('CheerioCrawler', () => {
             });
         });
 
+        test('should work with cookies adjusted on `context.request` in pre-nav hook', async () => {
+            const responses = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList: await Apify.openRequestList(null, [{
+                    url: `http://${HOST}:${port}/headers`,
+                    headers: { cookie: 'foo=bar2; baz=123' },
+                }]),
+                useSessionPool: true,
+                persistCookiesPerSession: false,
+                sessionPoolOptions: {
+                    maxPoolSize: 1,
+                },
+                handlePageFunction: async ({ json }) => {
+                    responses.push(json);
+                },
+                preNavigationHooks: [({ request }) => {
+                    request.headers.Cookie = 'foo=override; coo=kie';
+                }],
+            });
+
+            await crawler.run();
+            expect(responses).toHaveLength(1);
+            expect(responses[0]).toMatchObject({
+                headers: {
+                    cookie: 'foo=override; baz=123; coo=kie',
+                },
+            });
+        });
+
         test('mergeCookies()', async () => {
             const cookie1 = mergeCookies('https://example.com', [
                 'foo=bar1; other=cookie1 ; coo=kie',

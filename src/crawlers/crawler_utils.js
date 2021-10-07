@@ -61,3 +61,27 @@ export function mergeCookies(url, sourceCookies) {
 
     return jar.getCookieStringSync(url);
 }
+
+/**
+ * @param {string} url
+ * @param {string} cookieString1
+ * @param {string} cookieString2
+ * @return {string}
+ * @private
+ */
+export function diffCookies(url, cookieString1, cookieString2) {
+    if (cookieString1 === cookieString2) {
+        return '';
+    }
+
+    const cookies1 = cookieString1.split(/ *; */).map((cookie) => Cookie.parse(cookie));
+    const cookies2 = cookieString2.split(/ *; */).map((cookie) => Cookie.parse(cookie));
+
+    const added = cookies2.filter((newCookie) => {
+        return !cookies1.find((oldCookie) => newCookie.toString() === oldCookie.toString());
+    });
+    const jar = new CookieJar();
+    added.forEach((cookie) => jar.setCookieSync(cookie, url));
+
+    return jar.getCookieStringSync(url);
+}
