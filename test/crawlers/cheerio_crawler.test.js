@@ -8,6 +8,7 @@ import bodyParser from 'body-parser';
 import sinon from 'sinon';
 import { Readable } from 'stream';
 import iconv from 'iconv-lite';
+import { Log } from '@apify/log';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import { sleep } from '../../build/utils';
@@ -19,7 +20,6 @@ import CrawlerExtension from '../../build/crawlers/crawler_extension';
 import Request from '../../build/request';
 import AutoscaledPool from '../../build/autoscaling/autoscaled_pool';
 import { mergeCookies } from '../../build/crawlers/crawler_utils';
-import { Log } from '@apify/log';
 
 const HOST = '127.0.0.1';
 
