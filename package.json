@@ -55,7 +55,7 @@
         "@apify/ps-tree": "^1.1.4",
         "@apify/storage-local": "^2.0.1",
         "@apify/utilities": "^1.1.2",
-        "apify-client": "^2.0.1",
+        "apify-client": "^2.0.2",
         "browser-pool": "^2.0.2",
         "cheerio": "1.0.0-rc.10",
         "content-type": "^1.0.4",
