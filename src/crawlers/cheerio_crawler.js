@@ -11,6 +11,7 @@ import { TimeoutError } from 'got-scraping';
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
 import { requestAsBrowser } from '../utils_request';
+import { diffCookies, mergeCookies } from './crawler_utils';
 import { BasicCrawler } from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import CrawlerExtension from './crawler_extension';
 
@@ -481,11 +482,6 @@ class CheerioCrawler extends BasicCrawler {
             ({ request, response }) => this._abortDownloadOfBody(request, response),
             ...postNavigationHooks,
         ];
-        /**
-         * @type {RequestAsBrowserOptions}
-         * @ignore
-         * */
-        this.defaultRequestAsBrowserOptions = {};
 
         if (this.useSessionPool) {
             this.persistCookiesPerSession = persistCookiesPerSession !== undefined ? persistCookiesPerSession : true;
@@ -611,10 +607,17 @@ class CheerioCrawler extends BasicCrawler {
             await this.prepareRequestFunction(crawlingContext);
         }
 
-        const requestAsBrowserOptions = { ...this.defaultRequestAsBrowserOptions };
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, requestAsBrowserOptions);
+        const requestAsBrowserOptions = {};
+
+        if (this.useSessionPool) {
+            this._applySessionCookie(crawlingContext, requestAsBrowserOptions);
+        }
+
         const { request, session } = crawlingContext;
+        const cookieSnapshot = request.headers.Cookie ?? request.headers.cookie;
+        await this._executeHooks(this.preNavigationHooks, crawlingContext, requestAsBrowserOptions);
         const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
+        this._mergeRequestCookieDiff(request, cookieSnapshot, requestAsBrowserOptions);
 
         crawlingContext.response = await addTimeoutToPromise(
             this._requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }),
@@ -627,6 +630,32 @@ class CheerioCrawler extends BasicCrawler {
         if (this.postResponseFunction) {
             this.log.deprecated('Option "postResponseFunction" is deprecated. Use "postNavigationHooks" instead.');
             await this.postResponseFunction(crawlingContext);
+        }
+    }
+
+    /**
+     * When users change `request.headers.cookie` inside preNavigationHook, the change would be ignored,
+     * as `request.headers` are already merged into the `requestAsBrowserOptions`. This method is using
+     * old `request.headers` snapshot (before hooks are executed), makes a diff with the cookie value
+     * after hooks are executed, and merges any new cookies back to `requestAsBrowserOptions`.
+     *
+     * This way we can still use both `requestAsBrowserOptions` and `context.request` in the hooks (not both).
+     *
+     * @param {Request} request
+     * @param {string} cookieSnapshot
+     * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+     * @private
+     * @ignore
+     * @internal
+     */
+    _mergeRequestCookieDiff(request, cookieSnapshot, requestAsBrowserOptions) {
+        const cookieDiff = diffCookies(request.url, cookieSnapshot, request.headers.Cookie ?? request.headers.cookie);
+
+        if (cookieDiff.length > 0) {
+            requestAsBrowserOptions.headers.Cookie = mergeCookies(request.url, [
+                requestAsBrowserOptions.headers.Cookie,
+                cookieDiff,
+            ]);
         }
     }
 
@@ -646,11 +675,6 @@ class CheerioCrawler extends BasicCrawler {
      * @internal
      */
     async _requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }) {
-        if (this.useSessionPool) {
-            const { headers } = request;
-            headers.Cookie = session.getCookieString(request.url);
-        }
-
         const opts = this._getRequestOptions(request, session, proxyUrl, requestAsBrowserOptions);
         let responseWithStream;
 
@@ -665,6 +689,27 @@ class CheerioCrawler extends BasicCrawler {
         }
 
         return responseWithStream;
+    }
+
+    /**
+     * Sets the cookie header to `requestAsBrowserOptions` based on provided session and request. If some cookies were already set,
+     * the session cookie will be merged with them. User provided cookies on `request` object have precedence.
+     *
+     * @param {CrawlingContext} crawlingContext
+     * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+     * @return {void}
+     * @ignore
+     * @private
+     * @internal
+     */
+    _applySessionCookie({ request, session }, requestAsBrowserOptions) {
+        const userCookie = request.headers.Cookie ?? request.headers.cookie;
+        const sessionCookie = session.getCookieString(request.url);
+
+        // merge cookies from all possible sources
+        requestAsBrowserOptions.headers = {
+            Cookie: mergeCookies(request.url, [sessionCookie, userCookie]),
+        };
     }
 
     /**
