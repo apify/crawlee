@@ -2,6 +2,7 @@ import { Cookie, CookieJar } from 'tough-cookie';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { Session } from '../session_pool/session';
+import log from '../utils_log';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -32,8 +33,8 @@ export function throwOnBlockedRequest(session, statusCode) {
 }
 
 /**
- * Merges multiple cookie strings. Keys are compared case-insensitively, the casing used
- * on first appearance will be used.
+ * Merges multiple cookie strings. Keys are compared case-sensitively, warning will be logged
+ * if we see two cookies with same keys but different casing.
  *
  * @param {string} url
  * @param {string[]} sourceCookies
@@ -49,10 +50,12 @@ export function mergeCookies(url, sourceCookies) {
 
         for (const cookieString of cookies) {
             const cookie = Cookie.parse(cookieString);
-            const sameKeyCookie = jar.getCookiesSync(url).find((c) => cookie.key.toLowerCase() === c.key.toLowerCase());
+            const similarKeyCookie = jar.getCookiesSync(url).find((c) => {
+                return cookie.key !== c.key && cookie.key.toLowerCase() === c.key.toLowerCase();
+            });
 
-            if (sameKeyCookie) {
-                cookie.key = sameKeyCookie.key;
+            if (similarKeyCookie) {
+                log.deprecated(`Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`);
             }
 
             jar.setCookieSync(cookie, url);
