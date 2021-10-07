@@ -1,7 +1,7 @@
 import path from 'path';
 import _ from 'underscore';
 import { ACT_JOB_STATUSES, ENV_VARS, KEY_VALUE_STORE_KEYS } from '@apify/consts';
-import ApifyClient from 'apify-client';
+import { ApifyClient } from 'apify-client';
 import { ApifyCallError } from '../build/errors';
 import * as utils from '../build/utils';
 import { Dataset } from '../build/storages/dataset';

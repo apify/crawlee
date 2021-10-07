@@ -10,7 +10,7 @@ import log from '../utils_log';
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import Request, { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
 // @ts-ignore
-import ApifyClient from 'apify-client';
+import { ApifyClient } from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */

@@ -1,7 +1,7 @@
 import psTree from '@apify/ps-tree';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { execSync } from 'child_process';
-import ApifyClient from 'apify-client';
+import { ApifyClient } from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
 import cheerio from 'cheerio';

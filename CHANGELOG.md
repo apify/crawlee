@@ -1,4 +1,4 @@
-2.1.0 / TBD
+2.1.0 / 2021/10/07
 ====================
 - automatically convert google docs share urls to csv download ones in request list (#1174)
 - use puppeteer emulating scrolls instead of `window.scrollBy` (#1170)
@@ -12,6 +12,7 @@
 - fix: allow passing `requestsFromUrl` to `RequestListOptions` in TS (#1191)
 - allow passing `forceCloud` down to the KV store (#1186), closes #752
 - merge cookies from session with user provided ones (#1201), closes #1197
+- use `ApifyClient` v2 (full rewrite to TS)
 
 2.0.7 / 2021/09/08
 ====================

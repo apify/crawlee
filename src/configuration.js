@@ -1,7 +1,7 @@
 import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import { join } from 'path';
 import { ApifyStorageLocal } from '@apify/storage-local';
-import ApifyClient from 'apify-client';
+import { ApifyClient } from 'apify-client';
 import log from './utils_log';
 
 /**

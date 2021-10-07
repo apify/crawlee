@@ -2,7 +2,7 @@ import { ENV_VARS } from '@apify/consts';
 
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 // @ts-ignore
-import ApifyClient from 'apify-client';
+import { ApifyClient } from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
 import cacheContainer from '../cache_container';
