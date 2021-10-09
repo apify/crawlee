@@ -6,6 +6,10 @@ import log from './utils_log';
 import { IncomingMessage } from 'http';
 /* eslint-enable no-unused-vars,import/named,import/order */
 
+/**
+ * Mock the `decodeURI` global for the time when Got is normalizing the URL.
+ * @see https://github.com/apify/apify-js/issues/1205
+ */
 const setupDecodeURI = () => {
     const { set } = Object.getOwnPropertyDescriptor(Options.prototype, 'url');
 
