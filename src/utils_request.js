@@ -1,33 +1,10 @@
-import { gotScraping, Options } from 'got-scraping';
+import { gotScraping } from 'got-scraping';
 import ow from 'ow';
 import log from './utils_log';
 
 /* eslint-disable no-unused-vars,import/named,import/order */
 import { IncomingMessage } from 'http';
 /* eslint-enable no-unused-vars,import/named,import/order */
-
-/**
- * Mock the `decodeURI` global for the time when Got is normalizing the URL.
- * @see https://github.com/apify/apify-js/issues/1205
- */
-const setupDecodeURI = () => {
-    const { set } = Object.getOwnPropertyDescriptor(Options.prototype, 'url');
-
-    Object.defineProperty(Options.prototype, 'url', {
-        set(value) {
-            const originalDecodeURI = global.decodeURI;
-            global.decodeURI = (str) => str;
-
-            try {
-                return set.call(this, value);
-            } finally {
-                global.decodeURI = originalDecodeURI;
-            }
-        },
-    });
-};
-
-setupDecodeURI();
 
 /**
  * @typedef {(IncomingMessage & Readable & { body: string })} RequestAsBrowserResult

@@ -59,7 +59,7 @@
         "browser-pool": "^2.0.2",
         "cheerio": "1.0.0-rc.10",
         "content-type": "^1.0.4",
-        "got-scraping": "^3.2.3",
+        "got-scraping": "^3.2.5-beta.0",
         "htmlparser2": "^7.0.0",
         "iconv-lite": "^0.6.3",
         "jquery": "^3.6.0",
