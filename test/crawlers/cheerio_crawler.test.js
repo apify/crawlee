@@ -284,8 +284,8 @@ describe('CheerioCrawler', () => {
         expect(failed).toHaveLength(0);
 
         expect(processed[0].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=abc`);
-        expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%25`);
-        expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%EF%BF%BD`);
+        expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%`);
+        expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%cf`);
     });
 
     test('postResponseFunction should work', async () => {

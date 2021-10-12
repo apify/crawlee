@@ -170,9 +170,6 @@ export const requestAsBrowser = async (options = {}) => {
         },
     };
 
-    // Encode the URL if necessary
-    gotScrapingOptions.url = fixUrl(gotScrapingOptions.url);
-
     // Order is important
     normalizePayloadOption(payload, gotScrapingOptions);
     normalizeJsonOption(json, gotScrapingOptions);
@@ -220,53 +217,6 @@ export const requestAsBrowser = async (options = {}) => {
             });
     });
 };
-
-/**
- * Fixes malformed URIs. Takes ~13s per 1M executions.
- * @example fixUrl('https://example.com/%cf') => 'https://example.com/%EF%BF%BD'
- * @example fixUrl('https://example.com/%xx') => 'https://example.com/%25xx'
- * @example fixUrl('https://example.com/%0fexample%cc%0f') => 'https://example.com/%0Fexample%EF%BF%BD%0F'
- * @see https://tc39.es/ecma262/multipage/global-object.html#sec-decodeuri-encodeduri
- * @see https://en.wikipedia.org/wiki/Percent-encoding
- * @param {string} url
- * @private
- */
-function fixUrl(url) {
-    const hexChars = '0123456789abcdefABCDEF';
-    let chunks = '';
-
-    let index = url.indexOf('%');
-    while (index !== -1 && index < url.length) {
-        const start = index;
-
-        do {
-            const buffer = url.slice(index + 1, index + 3);
-
-            if (hexChars.indexOf(buffer[0]) !== -1 && hexChars.indexOf(buffer[1]) !== -1) {
-                chunks += buffer;
-
-                index += 3;
-            } else {
-                chunks += '25'; // %
-
-                index += 1;
-                break;
-            }
-        } while (url[index] === '%');
-
-        if (chunks.length) {
-            const encoded = encodeURIComponent(Buffer.from(chunks, 'hex').toString());
-            url = `${url.slice(0, start)}${encoded}${url.slice(index)}`;
-
-            index = start + encoded.length;
-            chunks = '';
-        }
-
-        index = url.indexOf('%', index);
-    }
-
-    return url;
-}
 
 /**
  * `got` has a `body` option and 2 helpers, `json` and `form`, to provide specific bodies.

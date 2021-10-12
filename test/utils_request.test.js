@@ -110,7 +110,7 @@ describe('Apify.utils_request', () => {
             // [query, decoded, raw]
             ['abc', 'abc', 'abc'],
             ['%20', ' ', '%20'],
-            ['%cf', '�', '%EF%BF%BD'],
+            ['%cf', '%cf', '%cf'],
             ['helios-–-the-primordial-sun', 'helios-–-the-primordial-sun', 'helios-%E2%80%93-the-primordial-sun'],
             ['helios-%E2%80%93-the-primordial-sun', 'helios-–-the-primordial-sun', 'helios-%E2%80%93-the-primordial-sun'],
             ['%C3%A8----%C3%A9', 'è----é', '%C3%A8----%C3%A9'],
