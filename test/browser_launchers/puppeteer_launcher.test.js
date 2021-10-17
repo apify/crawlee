@@ -243,6 +243,7 @@ describe('Apify.launchPuppeteer()', () => {
                         return {
                             on() {},
                             close() {},
+                            newPage() {},
                         };
                     },
                     someProps,
