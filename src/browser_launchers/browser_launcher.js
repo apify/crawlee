@@ -159,5 +159,13 @@ export default class BrowserLauncher {
         if (!/^(http|https|socks4|socks5)/i.test(proxyUrl)) {
             throw new Error(`Invalid "proxyUrl". Unsupported protocol: ${proxyUrl}.`);
         }
+
+        const url = new URL(proxyUrl);
+
+        if (url.username || url.password) {
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                throw new Error('Invalid "proxyUrl" option: authentication is only supported for HTTP proxy type.');
+            }
+        }
     }
 }
