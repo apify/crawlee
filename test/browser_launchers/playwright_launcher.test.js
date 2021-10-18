@@ -72,7 +72,6 @@ describe('Apify.launchPlaywright()', () => {
         await expect(Apify.launchPlaywright({ proxyUrl: {} })).rejects.toThrow(Error);
         await expect(Apify.launchPlaywright({ proxyUrl: 'invalidurl' })).rejects.toThrow(Error);
         await expect(Apify.launchPlaywright({ proxyUrl: 'invalid://somehost:1234' })).rejects.toThrow(Error);
-        await expect(Apify.launchPlaywright({ proxyUrl: 'https://user:pass@example.com:1234' })).rejects.toThrow(Error);
         await expect(Apify.launchPlaywright({ proxyUrl: 'socks4://user:pass@example.com:1234' })).rejects.toThrow(Error);
         await expect(Apify.launchPlaywright({ proxyUrl: 'socks5://user:pass@example.com:1234' })).rejects.toThrow(Error);
         await expect(Apify.launchPlaywright({ proxyUrl: ' something really bad' })).rejects.toThrow(Error);
