@@ -73,12 +73,16 @@ export function mergeCookies(url, sourceCookies) {
  * @private
  */
 export function diffCookies(url, cookieString1, cookieString2) {
-    if (cookieString1 === cookieString2) {
+    if (cookieString1 === cookieString2 || !cookieString2) {
         return '';
     }
 
-    const cookies1 = cookieString1.split(/ *; */).map((cookie) => Cookie.parse(cookie));
-    const cookies2 = cookieString2.split(/ *; */).map((cookie) => Cookie.parse(cookie));
+    if (!cookieString1) {
+        return cookieString2;
+    }
+
+    const cookies1 = cookieString1.split(/ *; */).filter((item) => Boolean(item)).map((cookie) => Cookie.parse(cookie));
+    const cookies2 = cookieString2.split(/ *; */).filter((item) => Boolean(item)).map((cookie) => Cookie.parse(cookie));
 
     const added = cookies2.filter((newCookie) => {
         return !cookies1.find((oldCookie) => newCookie.toString() === oldCookie.toString());
