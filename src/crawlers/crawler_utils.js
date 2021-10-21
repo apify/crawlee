@@ -67,12 +67,12 @@ export function mergeCookies(url, sourceCookies) {
 
 /**
  * @param {string} url
- * @param {string} cookieString1
- * @param {string} cookieString2
+ * @param {string} [cookieString1='']
+ * @param {string} [cookieString2='']
  * @return {string}
  * @private
  */
-export function diffCookies(url, cookieString1, cookieString2) {
+export function diffCookies(url, cookieString1 = '', cookieString2 = '') {
     if (cookieString1 === cookieString2 || !cookieString2) {
         return '';
     }
