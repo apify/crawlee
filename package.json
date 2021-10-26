@@ -98,7 +98,7 @@
         "@types/fs-extra": "^9.0.12",
         "@types/htmlparser2": "^3.10.3",
         "@types/jest": "^27.0.1",
-        "@types/node": "^15.14.2",
+        "@types/node": "^16.0.0",
         "@types/ps-tree": "^1.1.1",
         "@types/request-promise-native": "^1.0.18",
         "@types/rimraf": "^3.0.2",
