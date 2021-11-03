@@ -140,7 +140,7 @@ import { gotoExtended } from '../playwright_utils';
  *   Automatically saves cookies to Session. Works only if Session Pool is used.
  * @property {ProxyConfiguration} [proxyConfiguration]
  *   If set, `PlaywrightCrawler` will be configured for all connections to use
- *   [Apify Proxy](https://my.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
+ *   [Apify Proxy](https://console.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
  *   For more information, see the [documentation](https://docs.apify.com/proxy).
  * @property {RequestList} [requestList]
  *   Static list of URLs to be processed.

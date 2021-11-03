@@ -11,7 +11,7 @@ Typically, you will be developing the code on your local computer and thus set t
 **Related links**
 
 -   [Apify platform storage documentation](https://docs.apify.com/storage)
--   [View storage in Apify app](https://my.apify.com/storage)
+-   [View storage in Apify app](https://console.apify.com/storage)
 -   [Request queues API reference](https://docs.apify.com/api/v2#/reference/request-queues)
 
 ## Request queue

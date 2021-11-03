@@ -21,7 +21,7 @@ environment variable instead.
 ### `APIFY_TOKEN`
 The API token for your Apify account. It is used to access the Apify API, e.g. to access cloud storage
 or to run an actor on the Apify platform. You can find your API token on the
-[Account - Integrations](https://my.apify.com/account#/integrations) page. If omitted,
+[Account - Integrations](https://console.apify.com/account#/integrations) page. If omitted,
 you should define the `APIFY_LOCAL_STORAGE_DIR` environment variable instead.
 
 ### Combinations of `APIFY_LOCAL_STORAGE_DIR` and `APIFY_TOKEN`
@@ -68,7 +68,7 @@ the autoscaling feature will only use up to 2048 MB of memory.
 
 ### `APIFY_PROXY_PASSWORD`
 Optional password to [Apify Proxy](https://docs.apify.com/proxy) for IP address rotation.
-If you have an Apify Account, you can find the password on the [Proxy page](https://my.apify.com/proxy)
+If you have an Apify Account, you can find the password on the [Proxy page](https://console.apify.com/proxy)
 in the Apify app. The password is automatically inferred using the `APIFY_TOKEN` env var,
 so in most cases, you don't need to touch it. You should use it when, for some reason,
 you need access to Apify Proxy, but no access to Apify API, or when you need access to

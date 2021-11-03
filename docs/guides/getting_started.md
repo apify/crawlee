@@ -99,7 +99,7 @@ The [Apify platform](../guides/apify-platform) is the foundational product of
 [Apify](https://apify.com). It's a serverless cloud computing platform, specifically designed for any web automation jobs,
 that may include crawling and scraping, but really works amazingly for any batch jobs and long-running tasks.
 
-It comes with a free account, so let's go to our [sign-up page](https://my.apify.com/sign-up) and create one, if you
+It comes with a free account, so let's go to our [sign-up page](https://console.apify.com/sign-up) and create one, if you
 haven't already. Don't forget to verify your email. Without it, you won't be able to run any projects.
 
 Once you're in, you might be prompted by our in-app help to walk through a step-by-step guide to some of our new features. Feel free to finish that,
