@@ -121,7 +121,7 @@
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "puppeteer": "10.4.0",
-        "sinon": "^11.0.0",
+        "sinon": "^12.0.0",
         "sinon-stub-promise": "^4.0.0",
         "ts-jest": "^27.0.5",
         "typescript": "4.4.4",
