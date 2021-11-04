@@ -472,6 +472,7 @@ export const callTask = async (taskId, input, options = {}) => {
 
     if (isRunUnsuccessful(run.status)) {
         // TODO It should be callTask in the message, but I'm keeping it this way not to introduce a breaking change.
+        // eslint-disable-next-line max-len
         const message = `The actor task ${taskId} invoked by Apify.call() did not succeed. For details, see https://console.apify.com/view/runs/${run.id}`;
         throw new ApifyCallError(run, message);
     }
