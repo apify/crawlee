@@ -341,7 +341,8 @@ describe('new Apify({ ... })', () => {
             const actorSpy = jest.spyOn(ApifyClient.prototype, 'actor');
             actorSpy.mockReturnValueOnce({ call: callMock });
 
-            const err = 'The actor some-act-id invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/some-run-id';
+            // eslint-disable-next-line max-len
+            const err = 'The actor some-act-id invoked by Apify.call() did not succeed. For details, see https://console.apify.com/view/runs/some-run-id';
             await expect(new Apify().call(actId, null)).rejects.toThrowError(new ApifyCallError(failedRun, err));
 
             expect(actorSpy).toBeCalledWith('some-act-id');
@@ -471,7 +472,7 @@ describe('new Apify({ ... })', () => {
             taskSpy.mockReturnValueOnce({ call: callMock });
 
             // eslint-disable-next-line max-len
-            const err = 'The actor task some-task-id invoked by Apify.callTask() did not succeed. For details, see https://my.apify.com/view/runs/some-run-id';
+            const err = 'The actor task some-task-id invoked by Apify.callTask() did not succeed. For details, see https://console.apify.com/view/runs/some-run-id';
             await expect(new Apify().callTask(taskId)).rejects.toThrowError(new ApifyCallError(failedRun, err));
 
             expect(taskSpy).toBeCalledWith('some-task-id');

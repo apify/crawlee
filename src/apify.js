@@ -259,7 +259,8 @@ export class Apify {
         }
 
         if (this._isRunUnsuccessful(run.status)) {
-            const message = `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
+            // eslint-disable-next-line max-len
+            const message = `The actor ${actId} invoked by Apify.call() did not succeed. For details, see https://console.apify.com/view/runs/${run.id}`;
             throw new ApifyCallError(run, message);
         }
 
@@ -374,7 +375,7 @@ export class Apify {
 
         if (this._isRunUnsuccessful(run.status)) {
             // eslint-disable-next-line max-len
-            const message = `The actor task ${taskId} invoked by Apify.callTask() did not succeed. For details, see https://my.apify.com/view/runs/${run.id}`;
+            const message = `The actor task ${taskId} invoked by Apify.callTask() did not succeed. For details, see https://console.apify.com/view/runs/${run.id}`;
             throw new ApifyCallError(run, message);
         }
 

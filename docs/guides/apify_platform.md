@@ -7,19 +7,19 @@ Apify is a [platform](https://apify.com) built to serve large-scale and high-per
 and automation needs. It provides easy access to [compute instances (Actors)](#what-is-an-actor),
 convenient [request](../guides/request-storage) and [result](../guides/result-storage) storages, [proxies](../guides/proxy-management),
 [scheduling](https://docs.apify.com/scheduler), [webhooks](https://docs.apify.com/webhooks)
-and [more](https://docs.apify.com/), accessible through a [web interface](https://my.apify.com)
+and [more](https://docs.apify.com/), accessible through a [web interface](https://console.apify.com)
 or an [API](https://docs.apify.com/api).
 
 While we think that the Apify platform is super cool, and you should definitely sign up for a
-[free account](https://my.apify.com/sign-up), **Apify SDK is and will always be open source**,
+[free account](https://console.apify.com/sign-up), **Apify SDK is and will always be open source**,
 runnable locally or on any cloud infrastructure.
 
 > Note that we do not test Apify SDK in other cloud environments such as Lambda or on specific
 > architectures such as Raspberry PI. We strive to make it work, but there are no guarantees.
 
 ## Logging into Apify platform from Apify SDK
-To access your [Apify account](https://my.apify.com/sign-up) from the SDK, you must provide
-credentials - [your API token](https://my.apify.com/account#/integrations). You can do that
+To access your [Apify account](https://console.apify.com/sign-up) from the SDK, you must provide
+credentials - [your API token](https://console.apify.com/account#/integrations). You can do that
 either by utilizing [Apify CLI](https://github.com/apify/apify-cli) or with environment
 variables.
 
@@ -66,5 +66,5 @@ not yours.
 
 -   [Store of existing actors](https://apify.com/store)
 -   [Documentation](https://docs.apify.com/actor)
--   [View actors in Apify app](https://my.apify.com/actors)
+-   [View actors in Apify Console](https://console.apify.com/actors)
 -   [API reference](https://apify.com/docs/api/v2#/reference/actors)
