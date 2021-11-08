@@ -300,6 +300,42 @@ class PlaywrightCrawler extends BrowserCrawler {
     }
 
     /**
+     * Returns context options that will be used when a page needs to be created.
+     * Required for proxy per page.
+     *
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @ignore
+     * @protected
+     * @internal
+     */
+    _getNewPageOptions(crawlingContext) {
+        if (this.proxyConfiguration && this.launchContext.useIncognitoPages) {
+            const pageOptions = {};
+
+            const { session } = crawlingContext;
+            const { url } = this.proxyConfiguration.newProxyInfo(session && session.id);
+
+            const parsed = new URL(url);
+
+            pageOptions.proxy = {
+                server: parsed.origin,
+                username: parsed.username,
+                password: parsed.password,
+            };
+
+            // Disable SSL verification for MITM proxies
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 */
+                pageOptions.ignoreHTTPSErrors = true;
+            }
+
+            return pageOptions;
+        }
+    }
+
+    /**
      * @param {*} crawlingContext
      * @param {*} gotoOptions
      * @ignore

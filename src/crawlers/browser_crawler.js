@@ -352,6 +352,19 @@ export default class BrowserCrawler extends BasicCrawler {
     }
 
     /**
+     * Returns context options that will be used when a page needs to be created.
+     * Required for proxy per page.
+     *
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @ignore
+     * @protected
+     * @internal
+     */
+    _getNewPageOptions() {
+        throw new Error('Not implemented');
+    }
+
+    /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
@@ -362,39 +375,8 @@ export default class BrowserCrawler extends BasicCrawler {
     async _handleRequestFunction(crawlingContext) {
         const newPageOptions = {
             id: crawlingContext.id,
+            pageOptions: this._getNewPageOptions(crawlingContext),
         };
-
-        if (this.proxyConfiguration && this.launchContext.useIncognitoPages) {
-            const pageOptions = {};
-
-            const { session } = crawlingContext;
-            const { url } = this.proxyConfiguration.newProxyInfo(session && session.id);
-
-            const parsed = new URL(url);
-
-            // Playwright
-            pageOptions.proxy = {
-                server: parsed.origin,
-                username: parsed.username,
-                password: parsed.password,
-            };
-
-            // Puppeteer
-            pageOptions.proxyServer = parsed.origin;
-            pageOptions.proxyUsername = parsed.username;
-            pageOptions.proxyPassword = parsed.password;
-
-            // Disable SSL verification for MITM proxies
-            if (this.proxyConfiguration.isManInTheMiddle) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                pageOptions.ignoreHTTPSErrors = true;
-            }
-
-            newPageOptions.pageOptions = pageOptions;
-        }
 
         const page = await this.browserPool.newPage(newPageOptions);
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);

@@ -301,6 +301,40 @@ class PuppeteerCrawler extends BrowserCrawler {
     }
 
     /**
+     * Returns context options that will be used when a page needs to be created.
+     * Required for proxy per page.
+     *
+     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
+     * @ignore
+     * @protected
+     * @internal
+     */
+    _getNewPageOptions(crawlingContext) {
+        if (this.proxyConfiguration && this.launchContext.useIncognitoPages) {
+            const pageOptions = {};
+
+            const { session } = crawlingContext;
+            const { url } = this.proxyConfiguration.newProxyInfo(session && session.id);
+
+            const parsed = new URL(url);
+
+            pageOptions.proxyServer = parsed.origin;
+            pageOptions.proxyUsername = parsed.username;
+            pageOptions.proxyPassword = parsed.password;
+
+            // Disable SSL verification for MITM proxies
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
+                pageOptions.ignoreHTTPSErrors = true;
+            }
+
+            return pageOptions;
+        }
+    }
+
+    /**
      * @param {*} crawlingContext
      * @param {*} gotoOptions
      * @ignore
