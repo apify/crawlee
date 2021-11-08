@@ -361,7 +361,7 @@ export default class BrowserCrawler extends BasicCrawler {
      * @internal
      */
     _getNewPageOptions() {
-        throw new Error('Not implemented');
+        return undefined;
     }
 
     /**
