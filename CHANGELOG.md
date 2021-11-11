@@ -484,7 +484,7 @@ We fixed some bugs, improved a few things and bumped Puppeteer to match latest C
 0.21.0 / 2020/06/06
 ====================
 This release comes with **breaking changes** that will affect most,
-if not all of your projects. See the [migration guide](https://github.com/apifytech/apify-js/blob/master/MIGRATIONS.md)
+if not all of your projects. See the [migration guide](https://github.com/apify/apify-js/blob/master/MIGRATIONS.md)
 for more information and examples.
 
 First large change is a redesigned proxy configuration. `Cheerio` and `Puppeteer` crawlers
@@ -675,7 +675,7 @@ There are new options `body` and `contentType` in `handlePageFunction` for this 
 ====================
 - `Apify.launchPuppeteer()` now accepts `proxyUrl` with the `https`, `socks4`
   and `socks5` schemes, as long as it doesn't contain username or password.
-  This is to fix [Issue #420](https://github.com/apifytech/apify-js/issues/420).
+  This is to fix [Issue #420](https://github.com/apify/apify-js/issues/420).
 - Added `desiredConcurrency` option to `AutoscaledPool` constructor, removed
   unnecessary bound check from the setter property
 
