@@ -367,8 +367,10 @@ export default class BrowserCrawler extends BasicCrawler {
         };
 
         if (this.proxyConfiguration && this.launchContext && this.launchContext.useIncognitoPages) {
-            const { url: proxyUrl } = this.proxyConfiguration.newProxyInfo(session && session.id);
-            newPageOptions.proxyUrl = proxyUrl;
+            const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
+            crawlingContext.proxyInfo = proxyInfo;
+
+            newPageOptions.proxyUrl = proxyInfo.url;
 
             // Disable SSL verification for MITM proxies
             if (this.proxyConfiguration.isManInTheMiddle) {
