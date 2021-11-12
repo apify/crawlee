@@ -352,19 +352,6 @@ export default class BrowserCrawler extends BasicCrawler {
     }
 
     /**
-     * Returns context options that will be used when a page needs to be created.
-     * Required for proxy per page.
-     *
-     * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
-     * @ignore
-     * @protected
-     * @internal
-     */
-    _getNewPageOptions() {
-        return undefined;
-    }
-
-    /**
      * Wrapper around handlePageFunction that opens and closes pages etc.
      *
      * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
@@ -373,15 +360,30 @@ export default class BrowserCrawler extends BasicCrawler {
      * @internal
      */
     async _handleRequestFunction(crawlingContext) {
+        const { request, session } = crawlingContext;
+        const { url: proxyUrl } = this.proxyConfiguration.newProxyInfo(session && session.id);
+
         const newPageOptions = {
             id: crawlingContext.id,
-            pageOptions: this._getNewPageOptions(crawlingContext),
         };
+
+        if (this.proxyConfiguration && this.launchContext.useIncognitoPages) {
+            newPageOptions.proxyUrl = proxyUrl;
+
+            // Disable SSL verification for MITM proxies
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
+                newPageOptions.pageOptions = {
+                    ignoreHTTPSErrors: true,
+                };
+            }
+        }
 
         const page = await this.browserPool.newPage(newPageOptions);
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);
-
-        const { request, session } = crawlingContext;
 
         if (this.useSessionPool) {
             const sessionCookies = session.getPuppeteerCookies(request.url);
