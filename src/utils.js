@@ -342,7 +342,7 @@ export const getMemoryInfo = async () => {
  * @ignore
  */
 export const getFirstKey = (dict) => {
-    for (const key in dict) { // eslint-disable-line guard-for-in, no-restricted-syntax
+    for (const key in dict) { // eslint-disable-line
         return key;
     }
 };
