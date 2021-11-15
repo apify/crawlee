@@ -410,7 +410,7 @@ class CheerioCrawler extends BasicCrawler {
 
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
-    }
+    };
 
     /**
      * @param {CheerioCrawlerOptions} options

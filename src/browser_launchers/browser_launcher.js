@@ -35,7 +35,7 @@ export default class BrowserLauncher {
         useIncognitoPages: ow.optional.boolean,
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,
-    }
+    };
 
     /**
      *
