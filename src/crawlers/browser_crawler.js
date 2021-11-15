@@ -367,7 +367,8 @@ export default class BrowserCrawler extends BasicCrawler {
         };
 
         if (this.proxyConfiguration && this.launchContext && this.launchContext.useIncognitoPages) {
-            const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
+            const proxyInfo = this.proxyConfiguration.newProxyInfo(session.id);
+            crawlingContext.session = session;
             crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo.url;
@@ -435,8 +436,13 @@ export default class BrowserCrawler extends BasicCrawler {
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
-        crawlingContext.session = browserControllerInstance.launchContext.session;
-        crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        if (!crawlingContext.session) {
+            crawlingContext.session = browserControllerInstance.launchContext.session;
+        }
+
+        if (!crawlingContext.proxyInfo) {
+            crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        }
     }
 
     /**
