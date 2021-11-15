@@ -367,7 +367,7 @@ export default class BrowserCrawler extends BasicCrawler {
         };
 
         if (this.proxyConfiguration && this.launchContext && this.launchContext.useIncognitoPages) {
-            const proxyInfo = this.proxyConfiguration.newProxyInfo(session.id);
+            const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
             crawlingContext.session = session;
             crawlingContext.proxyInfo = proxyInfo;
 
