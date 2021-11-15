@@ -366,7 +366,8 @@ export default class BrowserCrawler extends BasicCrawler {
             id: crawlingContext.id,
         };
 
-        if (this.proxyConfiguration && this.launchContext && this.launchContext.useIncognitoPages) {
+        const useIncognitoPages = this.launchContext && this.launchContext.useIncognitoPages;
+        if (this.proxyConfiguration && useIncognitoPages) {
             const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
             crawlingContext.session = session;
             crawlingContext.proxyInfo = proxyInfo;
@@ -386,7 +387,7 @@ export default class BrowserCrawler extends BasicCrawler {
         }
 
         const page = await this.browserPool.newPage(newPageOptions);
-        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);
+        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
 
         if (this.useSessionPool) {
             const sessionCookies = session.getPuppeteerCookies(request.url);
@@ -422,11 +423,12 @@ export default class BrowserCrawler extends BasicCrawler {
     /**
      * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
      * @param {*} page
+     * @param {boolean} useIncognitoPages
      * @ignore
      * @protected
      * @internal
      */
-    _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
+    _enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages) {
         crawlingContext.page = page;
 
         // This switch is because the crawlingContexts are created on per request basis.
@@ -436,7 +438,7 @@ export default class BrowserCrawler extends BasicCrawler {
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
-        if (!crawlingContext.session) {
+        if (!useIncognitoPages) {
             crawlingContext.session = browserControllerInstance.launchContext.session;
         }
 
