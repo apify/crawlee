@@ -289,7 +289,7 @@ export class BasicCrawler {
         const basicCrawlerAutoscaledPoolConfiguration = {
             minConcurrency,
             maxConcurrency,
-            runTaskFunction: this._runTaskFunction.bind(this),
+            runTaskFunction: this.timeoutForRunTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
                     if (shouldLogMaxPagesExceeded) {
@@ -465,6 +465,21 @@ export class BasicCrawler {
             this.requestList.markRequestHandled(request),
         ]);
         return nextRequest;
+    }
+
+    /**
+     * Wrapper around _runTaskFunction to set a timeout on the entire function.
+     * Temporary solution to see whether this causes the 0 concurrency bug.
+     * @ignore
+     * @protected
+     * @interface
+     */
+    async timeoutForRunTaskFunction() {
+        await addTimeoutToPromise(
+            this._runTaskFunction(),
+            this.handleRequestTimeoutMillis * 2,
+            `_runTaskFunction timed out after ${(this.handleRequestTimeoutMillis * 2) / 1000} seconds.`,
+        );
     }
 
     /**
