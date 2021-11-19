@@ -266,8 +266,8 @@ export default class BrowserCrawler extends BasicCrawler {
         handlePageFunction: ow.function,
         gotoFunction: ow.optional.function,
 
-        gotoTimeoutSecs: ow.optional.number.greaterThan(0),
-        navigationTimeoutSecs: ow.optional.number.greaterThan(0),
+        gotoTimeoutSecs: ow.optional.number,
+        navigationTimeoutSecs: ow.optional.number,
         handlePageTimeoutSecs: ow.optional.number.greaterThan(0),
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
