@@ -360,11 +360,34 @@ export default class BrowserCrawler extends BasicCrawler {
      * @internal
      */
     async _handleRequestFunction(crawlingContext) {
-        const { id } = crawlingContext;
-        const page = await this.browserPool.newPage({ id });
-        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);
-
         const { request, session } = crawlingContext;
+
+        const newPageOptions = {
+            id: crawlingContext.id,
+        };
+
+        const useIncognitoPages = this.launchContext && this.launchContext.useIncognitoPages;
+        if (this.proxyConfiguration && useIncognitoPages) {
+            const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
+            crawlingContext.session = session;
+            crawlingContext.proxyInfo = proxyInfo;
+
+            newPageOptions.proxyUrl = proxyInfo.url;
+
+            // Disable SSL verification for MITM proxies
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
+                newPageOptions.pageOptions = {
+                    ignoreHTTPSErrors: true,
+                };
+            }
+        }
+
+        const page = await this.browserPool.newPage(newPageOptions);
+        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
 
         if (this.useSessionPool) {
             const sessionCookies = session.getPuppeteerCookies(request.url);
@@ -400,11 +423,12 @@ export default class BrowserCrawler extends BasicCrawler {
     /**
      * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
      * @param {*} page
+     * @param {boolean} useIncognitoPages
      * @ignore
      * @protected
      * @internal
      */
-    _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
+    _enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages) {
         crawlingContext.page = page;
 
         // This switch is because the crawlingContexts are created on per request basis.
@@ -414,8 +438,13 @@ export default class BrowserCrawler extends BasicCrawler {
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
-        crawlingContext.session = browserControllerInstance.launchContext.session;
-        crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        if (!useIncognitoPages) {
+            crawlingContext.session = browserControllerInstance.launchContext.session;
+        }
+
+        if (!crawlingContext.proxyInfo) {
+            crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        }
     }
 
     /**

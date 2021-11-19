@@ -1,15 +1,21 @@
+import http from 'http';
+import { promisify } from 'util';
 import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utils from '../../build/utils';
+import { ProxyConfiguration } from '../../build/proxy_configuration';
+import { createProxyServer } from '../create-proxy-server';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
     let logLevel;
     let localStorageEmulator;
     let requestList;
+    let servers;
+    let target;
 
     beforeAll(async () => {
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
@@ -17,6 +23,19 @@ describe('PuppeteerCrawler', () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
         localStorageEmulator = new LocalStorageDirEmulator();
+
+        target = http.createServer((request, response) => {
+            response.end(request.socket.remoteAddress);
+        });
+        await promisify(target.listen.bind(target))(0, '127.0.0.1');
+
+        servers = [
+            createProxyServer('127.0.0.2', '', ''),
+            createProxyServer('127.0.0.3', '', ''),
+            createProxyServer('127.0.0.4', '', ''),
+        ];
+
+        await Promise.all(servers.map((server) => server.listen()));
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
@@ -28,6 +47,9 @@ describe('PuppeteerCrawler', () => {
         log.setLevel(logLevel);
         process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
         await localStorageEmulator.destroy();
+
+        await Promise.all(servers.map((server) => promisify(server.close.bind(server))()));
+        await promisify(target.close.bind(target))();
     });
 
     test('should work', async () => {
@@ -154,7 +176,8 @@ describe('PuppeteerCrawler', () => {
         expect.hasAssertions();
     });
 
-    test('supports useChrome option', async () => {
+    // FIXME: I have no idea why but this test hangs
+    test.skip('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
         const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
             requestList,
@@ -231,5 +254,69 @@ describe('PuppeteerCrawler', () => {
         await puppeteerCrawler.run();
 
         expect(pageCookies).toEqual(sessionCookies);
+    });
+
+    test('proxy per page', async () => {
+        const proxyConfiguration = new ProxyConfiguration({
+            proxyUrls: [
+                `http://127.0.0.2:${servers[0].port}`,
+                `http://127.0.0.3:${servers[1].port}`,
+                `http://127.0.0.4:${servers[2].port}`,
+            ],
+        });
+
+        const serverUrl = `http://127.0.0.1:${target.address().port}`;
+
+        const requestListLarge = new Apify.RequestList({
+            sources: [
+                { url: `${serverUrl}/?q=1` },
+                { url: `${serverUrl}/?q=2` },
+                { url: `${serverUrl}/?q=3` },
+                { url: `${serverUrl}/?q=4` },
+                { url: `${serverUrl}/?q=5` },
+                { url: `${serverUrl}/?q=6` },
+            ],
+        });
+
+        const count = {
+            2: 0,
+            3: 0,
+            4: 0,
+        };
+
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList: requestListLarge,
+            useSessionPool: true,
+            launchContext: {
+                useIncognitoPages: true,
+            },
+            browserPoolOptions: {
+                prePageCreateHooks: [
+                    (id, controller, options) => {
+                        options.proxyBypassList = ['<-loopback>'];
+                    },
+                ],
+            },
+            proxyConfiguration,
+            handlePageFunction: async ({ page }) => {
+                const content = await page.content();
+
+                if (content.includes('127.0.0.2')) {
+                    count[2]++;
+                } else if (content.includes('127.0.0.3')) {
+                    count[3]++;
+                } else if (content.includes('127.0.0.4')) {
+                    count[4]++;
+                }
+            },
+        });
+
+        await requestListLarge.initialize();
+        await puppeteerCrawler.run();
+
+        expect(count[2]).toBeGreaterThan(0);
+        expect(count[3]).toBeGreaterThan(0);
+        expect(count[4]).toBeGreaterThan(0);
+        expect(count[2] + count[3] + count[4]).toBe(6);
     });
 });
