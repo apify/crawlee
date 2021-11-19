@@ -52,7 +52,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
     static optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
-    }
+    };
 
     /**
     * @param {PlaywrightLaunchContext} launchContext

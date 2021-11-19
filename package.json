@@ -74,7 +74,7 @@
     },
     "peerDependencies": {
         "playwright": "^1.11.0",
-        "puppeteer": "^9.0.0||^10.0.0"
+        "puppeteer": "^9.0.0||^10.0.0||^11.0.0"
     },
     "peerDependenciesMeta": {
         "playwright": {
@@ -85,7 +85,7 @@
         }
     },
     "devDependencies": {
-        "@apify/eslint-config": "^0.1.4",
+        "@apify/eslint-config": "^0.2.2",
         "@apify/tsconfig": "^0.1.0",
         "@babel/cli": "^7.14.8",
         "@babel/core": "^7.14.8",
@@ -98,7 +98,7 @@
         "@types/fs-extra": "^9.0.12",
         "@types/htmlparser2": "^3.10.3",
         "@types/jest": "^27.0.1",
-        "@types/node": "^15.14.2",
+        "@types/node": "^16.0.0",
         "@types/ps-tree": "^1.1.1",
         "@types/request-promise-native": "^1.0.18",
         "@types/rimraf": "^3.0.2",
@@ -110,7 +110,7 @@
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^1.19.0",
         "csv-parse": "^4.16.0",
-        "eslint": "^7.31.0",
+        "eslint": "^8.2.0",
         "express": "^4.17.1",
         "fpcollect": "^1.0.4",
         "fpscanner": "^0.1.5",
@@ -121,11 +121,11 @@
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "proxy-chain": "^2.0.1-beta.0",
-        "puppeteer": "10.4.0",
-        "sinon": "^11.0.0",
+        "puppeteer": "11.0.0",
+        "sinon": "^12.0.0",
         "sinon-stub-promise": "^4.0.0",
         "ts-jest": "^27.0.5",
-        "typescript": "4.4.4",
+        "typescript": "4.5.2",
         "ua-parser-js": "^1.0.0",
         "why-is-node-running": "^2.2.0"
     }

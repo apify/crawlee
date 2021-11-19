@@ -266,7 +266,7 @@ class PlaywrightCrawler extends BrowserCrawler {
         browserPoolOptions: ow.optional.object,
         launcher: ow.optional.object,
         launchContext: ow.optional.object,
-    }
+    };
 
     /**
      * @param {PlaywrightCrawlerOptions} options

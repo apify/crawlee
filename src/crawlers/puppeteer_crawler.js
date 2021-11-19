@@ -252,7 +252,7 @@ class PuppeteerCrawler extends BrowserCrawler {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
         launchContext: ow.optional.object,
-    }
+    };
 
     /**
     * @param {PuppeteerCrawlerOptions} options
