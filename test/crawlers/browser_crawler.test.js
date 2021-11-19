@@ -589,7 +589,7 @@ describe('BrowserCrawler', () => {
             requestList,
             useSessionPool: false,
             gotoFunction: async ({ page, request }) => {
-                return page.goto(request.url)
+                return page.goto(request.url);
             },
             handlePageFunction: async ({ browserController }) => {
                 expect(browserController.launchContext.fingerprint).toBeDefined();
