@@ -10,7 +10,8 @@
         "allowJs": true,
         "resolveJsonModule": false,
         "noUnusedLocals": false,
-        "outDir": "build"
+        "outDir": "build",
+        "skipLibCheck": true
     },
     "include": [
         "./src/**/*"

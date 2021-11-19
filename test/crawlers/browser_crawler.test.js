@@ -226,7 +226,7 @@ describe('BrowserCrawler', () => {
             },
             requestList,
             useSessionPool: true,
-            handlePageFunction: async () => {},
+            handlePageFunction: async () => { },
             maxRequestRetries: 0,
             gotoFunction: ({ page, request }, gotoOptions) => {
                 optionsGoto = gotoOptions;
@@ -328,7 +328,7 @@ describe('BrowserCrawler', () => {
             },
             requestList,
             useSessionPool: false,
-            handlePageFunction: async () => {},
+            handlePageFunction: async () => { },
 
         });
 
@@ -355,7 +355,7 @@ describe('BrowserCrawler', () => {
                 },
                 persistStateKeyValueStoreId: 'abc',
             },
-            handlePageFunction: async () => {},
+            handlePageFunction: async () => { },
         });
         expect(crawler.sessionPoolOptions.sessionOptions.maxUsageCount).toBe(1);
         expect(crawler.sessionPoolOptions.persistStateKeyValueStoreId).toBe('abc');
@@ -568,6 +568,38 @@ describe('BrowserCrawler', () => {
         await Apify.utils.sleep(5000);
         expect(browserCrawler.sessionPool.listeners(EVENTS.SESSION_RETIRED)).toHaveLength(0);
         await browserCrawler.browserPool.destroy();
+    });
+
+    test('should allow using fingerprints from browser pool', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+                useFingerprints: true,
+                fingerprintsOptions: {
+                    fingerprintGeneratorOptions: {
+                        operatingSystems: ['windows'],
+                    },
+                },
+            },
+            requestList,
+            useSessionPool: false,
+            gotoFunction: async ({ page, request }) => {
+                return page.goto(request.url)
+            },
+            handlePageFunction: async ({ browserController }) => {
+                expect(browserController.launchContext.fingerprint).toBeDefined();
+            },
+
+        });
+        await requestList.initialize();
+
+        await browserCrawler.run();
+        expect.hasAssertions();
     });
 
     describe('proxy', () => {
