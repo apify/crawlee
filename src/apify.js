@@ -21,11 +21,6 @@ import { requestAsBrowser } from './utils_request';
 import { ApifyCallError } from './errors';
 
 /**
- * @typedef {() => void | Promise<void>} UserFunc
- * @typedef {Array<string>} EventTypes
- */
-
-/**
  * `Apify` class serves as an alternative approach to the static helpers exported from the package. It allows to pass configuration
  * that will be used on the instance methods. Environment variables will have precedence over this configuration.
  * See {@link Configuration} for details about what can be configured and what are the default values.
@@ -99,7 +94,7 @@ export class Apify {
      * });
      * ```
      *
-     * @param {UserFunc} userFunc User function to be executed. If it returns a promise,
+     * @param {import('./actor').UserFunc} userFunc User function to be executed. If it returns a promise,
      * the promise will be awaited. The user function is called with no arguments.
      * @return {Promise<unknown>}
      */
@@ -459,7 +454,7 @@ export class Apify {
      * In local environment, the function will print a warning and have no effect.
      *
      * @param {object} options
-     * @param {EventTypes} options.eventTypes
+     * @param {import('./actor').EventTypes} options.eventTypes
      *   Array of event types, which you can set for actor run, see
      *   the [actor run events](https://docs.apify.com/webhooks/events#actor-run) in the Apify doc.
      * @param {string}  options.requestUrl

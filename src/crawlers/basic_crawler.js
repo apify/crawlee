@@ -23,10 +23,6 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
- * @typedef {(...args: unknown[]) => void | Promise<void>} Hook
- */
-
-/**
  * @typedef {object} CrawlingContext
  * @property {string} id
  * @property {Request} request
@@ -666,7 +662,7 @@ export class BasicCrawler {
     }
 
     /**
-     * @param {Array<Hook>} hooks
+     * @param {Array<any>} hooks
      * @param  {*} args
      * @ignore
      * @protected
