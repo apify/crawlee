@@ -226,7 +226,7 @@ describe('BrowserCrawler', () => {
             },
             requestList,
             useSessionPool: true,
-            handlePageFunction: async () => { },
+            handlePageFunction: async () => {},
             maxRequestRetries: 0,
             gotoFunction: ({ page, request }, gotoOptions) => {
                 optionsGoto = gotoOptions;
