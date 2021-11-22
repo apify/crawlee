@@ -9,10 +9,13 @@ import defaultLog from '../utils_log';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
 import { SessionPool } from './session_pool';
-import { Cookie as PuppeteerCookie } from 'puppeteer';
 import { IncomingMessage } from 'http';
-import { Response as PuppeteerResponse } from 'puppeteer';
+import { HTTPResponse as PuppeteerResponse } from 'puppeteer';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
+
+/**
+ * @typedef {object} PuppeteerCookie
+ */
 
 // CONSTANTS
 const DEFAULT_SESSION_MAX_AGE_SECS = 3000;

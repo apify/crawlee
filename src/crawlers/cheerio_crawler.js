@@ -197,7 +197,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  *   See [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
- * @property {Array<Hook>} [preNavigationHooks]
+ * @property {Array<import('./basic_crawler').Hook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `requestAsBrowserOptions`,
  *   which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
@@ -209,7 +209,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *     },
  * ]
  * ```
- * @property {Array<Hook>} [postNavigationHooks]
+ * @property {Array<import('./basic_crawler').Hook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as the only parameter.
  *   Example:
@@ -470,12 +470,12 @@ class CheerioCrawler extends BasicCrawler {
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
         /**
-         * @type {Array<Hook>}
+         * @type {Array<import('./basic_crawler').Hook>}
          * @ignore
          * */
         this.preNavigationHooks = preNavigationHooks;
         /**
-         * @type {Array<Hook>}
+         * @type {Array<import('./basic_crawler').Hook>}
          * @ignore
          * */
         this.postNavigationHooks = [
@@ -643,7 +643,7 @@ class CheerioCrawler extends BasicCrawler {
      *
      * @param {Request} request
      * @param {string} cookieSnapshot
-     * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+     * @param {import('../utils_request').RequestAsBrowserOptions} requestAsBrowserOptions
      * @private
      * @ignore
      * @internal
@@ -668,7 +668,7 @@ class CheerioCrawler extends BasicCrawler {
      * @param {Request} options.request
      * @param {Session} options.session
      * @param {string} options.proxyUrl
-     * @param {RequestAsBrowserOptions} options.requestAsBrowserOptions
+     * @param {import('../utils_request').RequestAsBrowserOptions} options.requestAsBrowserOptions
      * @returns {Promise<IncomingMessage|Readable>}
      * @ignore
      * @protected
@@ -696,7 +696,7 @@ class CheerioCrawler extends BasicCrawler {
      * the session cookie will be merged with them. User provided cookies on `request` object have precedence.
      *
      * @param {CrawlingContext} crawlingContext
-     * @param {RequestAsBrowserOptions} requestAsBrowserOptions
+     * @param {import('../utils_request').RequestAsBrowserOptions} requestAsBrowserOptions
      * @return {void}
      * @ignore
      * @private
@@ -964,7 +964,7 @@ export default CheerioCrawler;
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {cheerio.Root} $
+ * @property {import('cheerio').CheerioAPI} $
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
  * @property {(string|Buffer)} body
  *  The request body of the web page.

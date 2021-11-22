@@ -23,6 +23,10 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
+ * @typedef {(...args: unknown[]) => void | Promise<void>} Hook
+ */
+
+/**
  * @typedef {object} CrawlingContext
  * @property {string} id
  * @property {Request} request
@@ -254,7 +258,7 @@ export class BasicCrawler {
         }
 
         // assigning {} to the options as default break proper typing
-        /** @type {defaultLog.Log} */
+        /** @type {import('../utils_log').Log} */
         this.log = log;
         this.requestList = requestList;
         this.requestQueue = requestQueue;

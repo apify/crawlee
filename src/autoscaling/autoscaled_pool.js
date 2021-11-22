@@ -156,7 +156,7 @@ class AutoscaledPool {
         } = options;
 
         /**
-         * @type {defaultLog.Log}
+         * @type {import('../utils_log').Log}
          */
         this.log = log.child({ prefix: 'AutoscaledPool' });
 

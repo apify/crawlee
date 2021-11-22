@@ -99,7 +99,7 @@ class Snapshotter {
             log = defaultLog,
         } = options;
 
-        /** @type {defaultLog.Log} */
+        /** @type {import('../utils_log').Log} */
         this.log = log.child({ prefix: 'Snapshotter' });
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;

@@ -48,7 +48,7 @@ import { validators } from '../validators';
  *   Either `page` or `$` option must be provided.
  * @param {Number} [options.limit]
  *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
- * @param {(cheerio.Root|cheerio.Selector)} [options.$]
+ * @param {(import('cheerio').CheerioAPI)} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
@@ -159,7 +159,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {(cheerio.Root|cheerio.Selector)} $
+ * @param {import('cheerio').CheerioAPI} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

@@ -10,7 +10,7 @@ import BrowserCrawler, { BrowserCrawlingContext } from './browser_crawler';
 import { ProxyConfiguration } from '../proxy_configuration';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { CrawlingContext } from './basic_crawler';
-import { Page, DirectNavigationOptions } from 'puppeteer';
+import { Page } from 'puppeteer';
 import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
@@ -20,7 +20,7 @@ import { BrowserPoolOptions } from 'browser-pool';
 /**
  * @callback PuppeteerHook
  * @param {{ page: Page, crawler: PuppeteerCrawler } & BrowserCrawlingContext & CrawlingContext} crawlingContext
- * @param {DirectNavigationOptions} gotoOptions
+ * @param {any} gotoOptions
  * @returns {Promise<void>}
  */
 /**
