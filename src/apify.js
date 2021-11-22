@@ -21,6 +21,11 @@ import { requestAsBrowser } from './utils_request';
 import { ApifyCallError } from './errors';
 
 /**
+ * @typedef {() => void | Promise<void>} UserFunc
+ * @typedef {Array<string>} EventTypes
+ */
+
+/**
  * `Apify` class serves as an alternative approach to the static helpers exported from the package. It allows to pass configuration
  * that will be used on the instance methods. Environment variables will have precedence over this configuration.
  * See {@link Configuration} for details about what can be configured and what are the default values.
@@ -207,10 +212,10 @@ export class Apify {
      * @param {boolean} [options.disableBodyParser=false]
      *  If `true` then the function will not attempt to parse the
      *  actor's output and will return it in a raw `Buffer`.
-     * @param {Array<AdhocWebhook>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+     * @param {Array<import('./actor').AdhocWebhook>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
      *  to receive a notification e.g. when the actor finished or failed, see
      *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
-     * @returns {Promise<ActorRun>}
+     * @returns {Promise<import('./typedefs').ActorRun>}
      * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
      */
     async call(actId, input, options = {}) {
@@ -328,10 +333,10 @@ export class Apify {
      *  If the limit is reached, the returned promise is resolved to a run object that will have
      *  status `READY` or `RUNNING` and it will not contain the actor run output.
      *  If `waitSecs` is null or undefined, the function waits for the actor task to finish (default behavior).
-     * @param {Array<AdhocWebhook>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
+     * @param {Array<import('./actor').AdhocWebhook>} [options.webhooks] Specifies optional webhooks associated with the actor run, which can be used
      *  to receive a notification e.g. when the actor finished or failed, see
      *  [ad hook webhooks documentation](https://docs.apify.com/webhooks/ad-hoc-webhooks) for detailed description.
-     * @returns {Promise<ActorRun>}
+     * @returns {Promise<import('./typedefs').ActorRun>}
      * @throws {ApifyCallError} If the run did not succeed, e.g. if it failed or timed out.
      */
     async callTask(taskId, input, options = {}) {
@@ -471,7 +476,7 @@ export class Apify {
      *   an actor restart or other situation that would cause the `addWebhook()` function to be called again.
      *   We suggest using the actor run ID as the idempotency key. You can get the run ID by calling
      *   {@link Apify#getEnv} function.
-     * @return {Promise<WebhookRun|undefined>} The return value is the Webhook object.
+     * @return {Promise<import('./actor').WebhookRun|undefined>} The return value is the Webhook object.
      * For more information, see the [Get webhook](https://apify.com/docs/api/v2#/reference/webhooks/webhook-object/get-webhook) API endpoint.
      */
     async addWebhook(options) {
@@ -726,7 +731,7 @@ export class Apify {
      *
      *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
      *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
-     * @param {Array<RequestOptions|Request|string>} sources
+     * @param {Array<import('./request').RequestOptions|Request|string>} sources
      *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
      *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
      *
@@ -797,7 +802,7 @@ export class Apify {
      *
      * For more details and code examples, see the {@link SessionPool} class.
      *
-     * @param {SessionPoolOptions} sessionPoolOptions
+     * @param {import('./session_pool/session_pool').SessionPoolOptions} sessionPoolOptions
      * @return {Promise<SessionPool>}
      */
     async openSessionPool(sessionPoolOptions) {
@@ -867,7 +872,7 @@ export class Apify {
      * For the list of the `APIFY_XXX` environment variables, see
      * [Actor documentation](https://docs.apify.com/actor/run#environment-variables).
      * If some of the variables are not defined or are invalid, the corresponding value in the resulting object will be null.
-     * @returns {ApifyEnv}
+     * @returns {import('./actor').ApifyEnv}
      */
     getEnv() {
         return getEnv();
@@ -884,7 +889,7 @@ export class Apify {
      * @param {string} [options.token]
      * @param {string} [options.maxRetries]
      * @param {string} [options.minDelayBetweenRetriesMillis]
-     * @return {ApifyClient}
+     * @return {import('apify-client').ApifyClient}
      */
     newClient(options = {}) {
         return this.config.createClient(options);
