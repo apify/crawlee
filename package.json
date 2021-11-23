@@ -56,7 +56,7 @@
         "@apify/storage-local": "^2.0.1",
         "@apify/utilities": "^1.1.2",
         "apify-client": "^2.0.2",
-        "browser-pool": "^3.0.4",
+        "browser-pool": "^3.1.0-beta.0",
         "cheerio": "1.0.0-rc.10",
         "content-type": "^1.0.4",
         "got-scraping": "^3.2.5",
