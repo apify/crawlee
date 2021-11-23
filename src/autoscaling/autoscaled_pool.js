@@ -1,9 +1,9 @@
+import { addTimeoutToPromise } from '@apify/timeout';
 import { betterSetInterval, betterClearInterval } from '@apify/utilities';
 import ow from 'ow';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
 import defaultLog from '../utils_log';
-import { addTimeoutToPromise } from '../utils';
 
 /**
  * @typedef AutoscaledPoolOptions
@@ -440,7 +440,7 @@ class AutoscaledPool {
 
             if (this.taskTimeoutMillis > 0) {
                 await addTimeoutToPromise(
-                    this.runTaskFunction(),
+                    () => this.runTaskFunction(),
                     this.taskTimeoutMillis,
                     `runTaskFunction timed out after ${this.taskTimeoutMillis / 1000} seconds.`,
                 );

@@ -2,11 +2,11 @@ import { ACTOR_EVENT_NAMES } from '@apify/consts';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import _ from 'underscore';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
-import { addTimeoutToPromise } from '../utils';
 import defaultLog from '../utils_log';
 import { validators } from '../validators';
 
@@ -471,12 +471,12 @@ export class BasicCrawler {
      * Wrapper around _runTaskFunction to set a timeout on the entire function.
      * Temporary solution to see whether this causes the 0 concurrency bug.
      * @ignore
-     * @protected
-     * @interface
+     * @internal
+     * @private
      */
     async timeoutForRunTaskFunction() {
         await addTimeoutToPromise(
-            this._runTaskFunction(),
+            () => this._runTaskFunction(),
             this.handleRequestTimeoutMillis * 2,
             `_runTaskFunction timed out after ${(this.handleRequestTimeoutMillis * 2) / 1000} seconds.`,
         );
@@ -502,6 +502,8 @@ export class BasicCrawler {
             request = await this._fetchNextRequest();
         }
 
+        tryCancel();
+
         if (!request) return;
 
         // Reset loadedUrl so an old one is not carried over to retries.
@@ -521,11 +523,13 @@ export class BasicCrawler {
 
         try {
             await addTimeoutToPromise(
-                this._handleRequestFunction(crawlingContext),
+                () => this._handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
+            tryCancel();
             await source.markRequestHandled(request);
+            tryCancel();
             this.stats.finishJob(statisticsId);
             this.handledRequestsCount++;
 
@@ -545,6 +549,8 @@ export class BasicCrawler {
         } finally {
             this.crawlingContexts.delete(crawlingContext.id);
         }
+
+        tryCancel();
     }
 
     /**

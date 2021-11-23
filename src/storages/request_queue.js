@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import { cryptoRandomObjectId } from '@apify/utilities';
+import { setTimeout } from 'timers/promises';
 import ow from 'ow';
 import { StorageManager } from './storage_manager';
 import { sleep } from '../utils';
@@ -312,9 +313,9 @@ export class RequestQueue {
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
             this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
-            setTimeout(() => {
-                this.inProgress.delete(nextRequestId);
-            }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+            await setTimeout(STORAGE_CONSISTENCY_DELAY_MILLIS);
+            this.inProgress.delete(nextRequestId);
+
             return null;
         }
 
@@ -406,17 +407,17 @@ export class RequestQueue {
 
         // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
-        setTimeout(() => {
-            if (!this.inProgress.has(request.id)) {
-                this.log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
-                return;
-            }
+        await setTimeout(STORAGE_CONSISTENCY_DELAY_MILLIS);
 
-            this.inProgress.delete(request.id);
+        if (!this.inProgress.has(request.id)) {
+            this.log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+            return;
+        }
 
-            // Performance optimization: add request straight to head if possible
-            this._maybeAddRequestToQueueHead(request.id, forefront);
-        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+        this.inProgress.delete(request.id);
+
+        // Performance optimization: add request straight to head if possible
+        this._maybeAddRequestToQueueHead(request.id, forefront);
 
         return queueOperationInfo;
     }

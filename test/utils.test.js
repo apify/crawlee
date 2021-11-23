@@ -7,6 +7,7 @@ import os from 'os';
 import cheerio from 'cheerio';
 import semver from 'semver';
 import { ENV_VARS } from '@apify/consts';
+import { addTimeoutToPromise } from '@apify/timeout';
 import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';
@@ -812,8 +813,8 @@ describe('utils.addTimeoutToPromise()', () => {
     test('should timeout', async () => {
         const clock = sinon.useFakeTimers();
         try {
-            const p = utils.addTimeoutToPromise(
-                new Promise((r) => setTimeout(r, 500)),
+            const p = addTimeoutToPromise(
+                () => new Promise((r) => setTimeout(r, 500)),
                 100,
                 'Timed out.',
             );
@@ -830,8 +831,8 @@ describe('utils.addTimeoutToPromise()', () => {
     test('should not timeout too soon', async () => {
         const clock = sinon.useFakeTimers();
         try {
-            const p = utils.addTimeoutToPromise(
-                new Promise((r) => setTimeout(() => r('Done'), 100)),
+            const p = addTimeoutToPromise(
+                () => new Promise((r) => setTimeout(() => r('Done'), 100)),
                 500,
                 'Timed out.',
             );
