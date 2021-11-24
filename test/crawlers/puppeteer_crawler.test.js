@@ -221,6 +221,113 @@ describe('PuppeteerCrawler', () => {
         expect(loadedUserAgent).toEqual(opts.userAgent);
     });
 
+    // This way it was also possible to reproduce the zero concurrency bug, the issue was
+    // that `RequestQueue.reclaimRequest()` lost the async context by calling `setTimeout()`
+    // with async callback. To fix that we now use promised `setTimeout()` and await it.
+    test('timeout via preNavigationHooks will abort the page function as early as possible (gh #1216)', async () => {
+        const requestQueue = await Apify.openRequestQueue();
+        await requestQueue.addRequest({ url: 'http://www.example.com' });
+        const handlePageFunction = jest.fn();
+
+        const crawler = new Apify.PuppeteerCrawler({
+            requestQueue,
+            handlePageTimeoutSecs: 0.005,
+            navigationTimeoutSecs: 0.005,
+            preNavigationHooks: [
+                async () => {
+                    await Apify.utils.sleep(20);
+                },
+            ],
+            handlePageFunction,
+        });
+
+        const logSpy = jest.spyOn(crawler.log, 'exception');
+        logSpy.mockImplementation(() => {});
+
+        await crawler.run();
+        await crawler.teardown();
+        await requestQueue.drop();
+
+        expect(handlePageFunction).not.toBeCalled();
+        const exceptions = logSpy.mock.calls.map((call) => [call[0].message, call[1], call[2].retryCount]);
+        expect(exceptions).toEqual([
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                1,
+            ],
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                2,
+            ],
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                3,
+            ],
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'Request failed and reached maximum retries',
+                undefined,
+            ],
+        ]);
+        logSpy.mockRestore();
+    });
+
+    test('timeout in preLaunchHooks will abort the page function as early as possible (gh #1216)', async () => {
+        const requestQueue = await Apify.openRequestQueue();
+        await requestQueue.addRequest({ url: 'http://www.example.com' });
+        const handlePageFunction = jest.fn();
+
+        const crawler = new Apify.PuppeteerCrawler({
+            requestQueue,
+            navigationTimeoutSecs: 0.005,
+            browserPoolOptions: {
+                preLaunchHooks: [
+                    async () => {
+                        // Do some async work that's longer than navigationTimeoutSecs
+                        await Apify.utils.sleep(20);
+                    },
+                ],
+            },
+            handlePageFunction,
+        });
+
+        const logSpy = jest.spyOn(crawler.log, 'exception');
+        logSpy.mockImplementation(() => {});
+
+        await crawler.run();
+        await crawler.teardown();
+        await requestQueue.drop();
+
+        expect(handlePageFunction).not.toBeCalled();
+        const exceptions = logSpy.mock.calls.map((call) => [call[0].message, call[1], call[2].retryCount]);
+        expect(exceptions).toEqual([
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                1,
+            ],
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                2,
+            ],
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'handleRequestFunction failed, reclaiming failed request back to the list or queue',
+                3,
+            ],
+            [
+                'Navigation timed out after 0.005 seconds.',
+                'Request failed and reached maximum retries',
+                undefined,
+            ],
+        ]);
+        logSpy.mockRestore();
+    });
+
     test('should set cookies assigned to session to page', async () => {
         const cookies = [
             {

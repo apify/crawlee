@@ -405,6 +405,11 @@ export class RequestQueue {
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
         queueOperationInfo.request = request;
 
+        // Previously we were loosing the async context here by calling `setTimeout()` with
+        // async callback and returning early, before the actual reclaim happened. To fix that
+        // we now use promised `setTimeout()` and await it, so once `reclaimRequest` resolves,
+        // we now the request was actually reclaimed.
+
         // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         await setTimeout(STORAGE_CONSISTENCY_DELAY_MILLIS);
