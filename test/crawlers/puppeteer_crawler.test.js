@@ -221,9 +221,6 @@ describe('PuppeteerCrawler', () => {
         expect(loadedUserAgent).toEqual(opts.userAgent);
     });
 
-    // This way it was also possible to reproduce the zero concurrency bug, the issue was
-    // that `RequestQueue.reclaimRequest()` lost the async context by calling `setTimeout()`
-    // with async callback. To fix that we now use promised `setTimeout()` and await it.
     test('timeout via preNavigationHooks will abort the page function as early as possible (gh #1216)', async () => {
         const requestQueue = await Apify.openRequestQueue();
         await requestQueue.addRequest({ url: 'http://www.example.com' });

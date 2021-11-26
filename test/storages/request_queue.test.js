@@ -129,12 +129,9 @@ describe('RequestQueue remote', () => {
         await queue.reclaimRequest(requestBFromQueue, { forefront: true });
         expect(mockUpdateRequest).toHaveBeenCalledTimes(1);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
-        // This was not really correct, `reclaimRequest` now waits instead of running in new async context
-        // due to the ignorance of the async context flow, we were running into zero concurrency bugs
-        // as the request was not yet reclaimed when `reclaimRequest` resolved.
-        // expect(queue.queueHeadDict.length()).toBe(1);
-        // expect(queue.inProgressCount()).toBe(1);
-        // await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
+        expect(queue.queueHeadDict.length()).toBe(1);
+        expect(queue.inProgressCount()).toBe(1);
+        await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
         expect(queue.queueHeadDict.length()).toBe(2);
         expect(queue.inProgressCount()).toBe(0);
 
@@ -505,14 +502,11 @@ describe('RequestQueue remote', () => {
         await queue.reclaimRequest(requestAWithId, { forefront: true });
         expect(updateRequestMock).toHaveBeenCalledTimes(2);
         expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId, { forefront: true });
-        // This was not really correct, `reclaimRequest` now waits instead of running in new async context
-        // due to the ignorance of the async context flow, we were running into zero concurrency bugs
-        // as the request was not yet reclaimed when `reclaimRequest` resolved.
-        // expect(queue.queueHeadDict.length()).toBe(0);
-        // expect(queue.inProgressCount()).toBe(1);
-        // expect(queue.assumedTotalCount).toBe(2);
-        // expect(queue.assumedHandledCount).toBe(1);
-        // await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
+        expect(queue.queueHeadDict.length()).toBe(0);
+        expect(queue.inProgressCount()).toBe(1);
+        expect(queue.assumedTotalCount).toBe(2);
+        expect(queue.assumedHandledCount).toBe(1);
+        await Apify.utils.sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
         expect(queue.queueHeadDict.length()).toBe(1);
         expect(queue.inProgressCount()).toBe(0);
         expect(queue.assumedTotalCount).toBe(2);
