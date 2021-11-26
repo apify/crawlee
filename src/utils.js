@@ -1,5 +1,4 @@
 import psTree from '@apify/ps-tree';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { execSync } from 'child_process';
 import { ApifyClient } from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
@@ -9,7 +8,6 @@ import contentTypeParser from 'content-type';
 import fs from 'fs';
 import mime from 'mime-types';
 import os from 'os';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import ow from 'ow';
 import path from 'path';
 import semver from 'semver';
@@ -359,29 +357,6 @@ export const getTypicalChromeExecutablePath = () => {
         case 'win32': return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
         default: return '/usr/bin/google-chrome';
     }
-};
-
-/**
- * Wraps the provided Promise with another one that rejects with the given errorMessage
- * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
- *
- * @param {Promise<*>} promise
- * @param {number} timeoutMillis
- * @param {string} errorMessage
- * @return {Promise<*>}
- * @ignore
- */
-export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
-    return new Promise((resolve, reject) => {
-        ow(promise, ow.promise);
-        ow(timeoutMillis, ow.number);
-        ow(errorMessage, ow.string);
-        const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
-        promise
-            .then(resolve)
-            .catch(reject)
-            .finally(() => clearTimeout(timeout));
-    });
 };
 
 /**
