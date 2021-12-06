@@ -486,8 +486,8 @@ export class BasicCrawler {
                     request = await this._fetchNextRequest();
                 }
             },
-            30e3,
-            `Fetching next request timed out after 30 seconds.`,
+            this.handleRequestTimeoutMillis,
+            `Fetching next request timed out after ${this.handleRequestTimeoutMillis * 1e3} seconds.`,
         );
 
         tryCancel();
@@ -519,8 +519,8 @@ export class BasicCrawler {
 
             await this._timeoutAndRetry(
                 () => source.markRequestHandled(request),
-                30e3,
-                `Marking request ${request.url} as handled timed out after 30 seconds.`,
+                this.handleRequestTimeoutMillis,
+                `Marking request ${request.url} as handled timed out after ${this.handleRequestTimeoutMillis * 1e3} seconds.`,
             );
             tryCancel();
             this.stats.finishJob(statisticsId);
@@ -532,8 +532,8 @@ export class BasicCrawler {
             try {
                 await this._timeoutAndRetry(
                     () => this._requestFunctionErrorHandler(err, crawlingContext, source),
-                    30e3,
-                    `Handling request failure of ${request.url} timed out after 30 seconds.`,
+                    this.handleRequestTimeoutMillis,
+                    `Handling request failure of ${request.url} timed out after ${this.handleRequestTimeoutMillis * 1e3} seconds.`,
                 );
             } catch (secondaryError) {
                 this.log.exception(secondaryError, 'runTaskFunction error handler threw an exception. '
