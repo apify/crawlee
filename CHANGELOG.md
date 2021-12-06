@@ -1,3 +1,14 @@
+2.2.0 / 2021/12/06
+====================
+- fix `RequestError: URI malformed` in cheerio crawler (#1205)
+- only provide Cookie header if cookies are present (#1218)
+- handle extra cases for `diffCookie` (#1217)
+- add timeout for task function (#1234)
+- implement proxy per page in browser crawlers (#1228)
+- add fingerprinting support (#1243)
+- implement abortable timeouts (#1245)
+- add timeouts with retries to `runTaskFunction()` (#1250)
+
 2.1.0 / 2021/10/07
 ====================
 - automatically convert google docs share urls to csv download ones in request list (#1174)
