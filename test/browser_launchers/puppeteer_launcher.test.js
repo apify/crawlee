@@ -207,7 +207,7 @@ describe('Apify.launchPuppeteer()', () => {
         let browser;
         const opts = {
             useChrome: true,
-            launchOptions: { headless: true },
+            launchOptions: { headless: true, timeout: 60e3 },
         };
 
         try {
