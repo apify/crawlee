@@ -15,7 +15,7 @@
     "decamelize": "^4.0.0",
     "docusaurus": "^1.13.0",
     "fs-extra": "^10.0.0",
-    "got": "^11.8.2",
+    "got": "^12.0.0",
     "jsdoc-plugin-intersection": "^1.0.4",
     "jsdoc-to-markdown": "^7.0.0",
     "prettier": "^1.18.2"
