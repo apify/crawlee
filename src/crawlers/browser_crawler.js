@@ -1,8 +1,8 @@
 import ow from 'ow';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { BrowserPool, BrowserController } from 'browser-pool'; // eslint-disable-line import/no-duplicates,no-unused-vars
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
-import { addTimeoutToPromise } from '../utils';
 import { validators } from '../validators';
 import {
     throwOnBlockedRequest,
@@ -387,32 +387,38 @@ export default class BrowserCrawler extends BasicCrawler {
         }
 
         const page = await this.browserPool.newPage(newPageOptions);
+        tryCancel();
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
 
         if (this.useSessionPool) {
             const sessionCookies = session.getPuppeteerCookies(request.url);
             if (sessionCookies.length) {
                 await crawlingContext.browserController.setCookies(page, sessionCookies);
+                tryCancel();
             }
         }
 
         try {
             await this._handleNavigation(crawlingContext);
+            tryCancel();
 
             await this._responseHandler(crawlingContext);
+            tryCancel();
 
             // save cookies
             // @TODO: Should we save the cookies also after/only the handle page?
             if (this.persistCookiesPerSession) {
                 const cookies = await crawlingContext.browserController.getCookies(page);
+                tryCancel();
                 session.setPuppeteerCookies(cookies, request.loadedUrl);
             }
 
             await addTimeoutToPromise(
-                this.handlePageFunction(crawlingContext),
+                () => this.handlePageFunction(crawlingContext),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
+            tryCancel();
 
             if (session) session.markGood();
         } finally {
@@ -457,6 +463,8 @@ export default class BrowserCrawler extends BasicCrawler {
         /** @type {*} */
         const gotoOptions = { ...this.defaultGotoOptions };
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+        tryCancel();
+
         try {
             crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
         } catch (error) {
@@ -465,6 +473,7 @@ export default class BrowserCrawler extends BasicCrawler {
             throw error;
         }
 
+        tryCancel();
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
     }
 

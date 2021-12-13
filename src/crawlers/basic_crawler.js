@@ -2,11 +2,11 @@ import { ACTOR_EVENT_NAMES } from '@apify/consts';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import _ from 'underscore';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
-import { addTimeoutToPromise } from '../utils';
 import defaultLog from '../utils_log'; // eslint-disable-line import/no-duplicates
 import { validators } from '../validators';
 
@@ -262,6 +262,7 @@ export class BasicCrawler {
         this.userProvidedHandler = handleRequestFunction;
         this.failedContextHandler = handleFailedRequestFunction;
         this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
+        this.internalTimeoutMillis = Math.max(this.handleRequestTimeoutMillis, 300e3); // allow at least 5min for internal timeouts
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
@@ -290,7 +291,7 @@ export class BasicCrawler {
         const basicCrawlerAutoscaledPoolConfiguration = {
             minConcurrency,
             maxConcurrency,
-            runTaskFunction: this.timeoutForRunTaskFunction.bind(this),
+            runTaskFunction: this._runTaskFunction.bind(this),
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
                     if (shouldLogMaxPagesExceeded) {
@@ -461,26 +462,8 @@ export class BasicCrawler {
             await this.requestList.reclaimRequest(request);
             return null;
         }
-        const [nextRequest] = await Promise.all([
-            this.requestQueue.fetchNextRequest(),
-            this.requestList.markRequestHandled(request),
-        ]);
-        return nextRequest;
-    }
-
-    /**
-     * Wrapper around _runTaskFunction to set a timeout on the entire function.
-     * Temporary solution to see whether this causes the 0 concurrency bug.
-     * @ignore
-     * @protected
-     * @interface
-     */
-    async timeoutForRunTaskFunction() {
-        await addTimeoutToPromise(
-            this._runTaskFunction(),
-            this.handleRequestTimeoutMillis * 2,
-            `_runTaskFunction timed out after ${(this.handleRequestTimeoutMillis * 2) / 1000} seconds.`,
-        );
+        await this.requestList.markRequestHandled(request);
+        return this.requestQueue.fetchNextRequest();
     }
 
     /**
@@ -497,11 +480,19 @@ export class BasicCrawler {
         let request;
         let session;
 
-        if (this.useSessionPool) {
-            [request, session] = await Promise.all([this._fetchNextRequest(), this.sessionPool.getSession()]);
-        } else {
-            request = await this._fetchNextRequest();
-        }
+        await this._timeoutAndRetry(
+            async () => {
+                if (this.useSessionPool) {
+                    [request, session] = await Promise.all([this._fetchNextRequest(), this.sessionPool.getSession()]);
+                } else {
+                    request = await this._fetchNextRequest();
+                }
+            },
+            this.internalTimeoutMillis,
+            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
+
+        tryCancel();
 
         if (!request) return;
 
@@ -522,11 +513,17 @@ export class BasicCrawler {
 
         try {
             await addTimeoutToPromise(
-                this._handleRequestFunction(crawlingContext),
+                () => this._handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
                 `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
             );
-            await source.markRequestHandled(request);
+
+            await this._timeoutAndRetry(
+                () => source.markRequestHandled(request),
+                this.internalTimeoutMillis,
+                `Marking request ${request.url} as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+            );
+
             this.stats.finishJob(statisticsId);
             this.handledRequestsCount++;
 
@@ -534,7 +531,11 @@ export class BasicCrawler {
             if (session) session.markGood();
         } catch (err) {
             try {
-                await this._requestFunctionErrorHandler(err, crawlingContext, source);
+                await this._timeoutAndRetry(
+                    () => this._requestFunctionErrorHandler(err, crawlingContext, source),
+                    this.internalTimeoutMillis,
+                    `Handling request failure of ${request.url} timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                );
             } catch (secondaryError) {
                 this.log.exception(secondaryError, 'runTaskFunction error handler threw an exception. '
                     + 'This places the crawler and its underlying storages into an unknown state and crawling will be terminated. '
@@ -545,6 +546,27 @@ export class BasicCrawler {
             }
         } finally {
             this.crawlingContexts.delete(crawlingContext.id);
+        }
+    }
+
+    /**
+     * Run async callback with given timeout and retry.
+     * @ignore
+     */
+    async _timeoutAndRetry(handler, timeout, error, maxRetries = 3, retried = 1) {
+        try {
+            await addTimeoutToPromise(
+                handler,
+                timeout,
+                error,
+            );
+        } catch (e) {
+            if (e instanceof TimeoutError && retried <= maxRetries) {
+                this.log.warning(`${e.message} (retrying ${retried}/${maxRetries})`);
+                return this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
+            }
+
+            throw e;
         }
     }
 

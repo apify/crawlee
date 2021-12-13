@@ -570,6 +570,38 @@ describe('BrowserCrawler', () => {
         await browserCrawler.browserPool.destroy();
     });
 
+    test('should allow using fingerprints from browser pool', async () => {
+        const requestList = new Apify.RequestList({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+        const browserCrawler = new Apify.BrowserCrawler({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+                useFingerprints: true,
+                fingerprintsOptions: {
+                    fingerprintGeneratorOptions: {
+                        operatingSystems: ['windows'],
+                    },
+                },
+            },
+            requestList,
+            useSessionPool: false,
+            gotoFunction: async ({ page, request }) => {
+                return page.goto(request.url);
+            },
+            handlePageFunction: async ({ browserController }) => {
+                expect(browserController.launchContext.fingerprint).toBeDefined();
+            },
+
+        });
+        await requestList.initialize();
+
+        await browserCrawler.run();
+        expect.hasAssertions();
+    });
+
     describe('proxy', () => {
         let requestList;
         beforeEach(async () => {

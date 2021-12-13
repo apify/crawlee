@@ -1,5 +1,6 @@
 /* eslint-disable class-methods-use-this */
 import { readStreamToString, concatStreamToBuffer } from '@apify/utilities';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import cheerio from 'cheerio'; // eslint-disable-line import/no-duplicates
 import contentTypeParser from 'content-type';
 import { DomHandler } from 'htmlparser2';
@@ -9,7 +10,7 @@ import ow from 'ow';
 import util from 'util';
 import { TimeoutError } from 'got-scraping';
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
-import { addTimeoutToPromise, parseContentTypeFromResponse } from '../utils';
+import { parseContentTypeFromResponse } from '../utils';
 import { requestAsBrowser } from '../utils_request'; // eslint-disable-line import/no-duplicates
 import { diffCookies, mergeCookies } from './crawler_utils';
 import { BasicCrawler } from './basic_crawler'; // eslint-disable-line import/no-duplicates
@@ -545,8 +546,10 @@ class CheerioCrawler extends BasicCrawler {
         }
 
         await this._handleNavigation(crawlingContext);
+        tryCancel();
 
         const { dom, isXml, body, contentType, response } = await this._parseResponse(request, crawlingContext.response);
+        tryCancel();
 
         if (this.useSessionPool) {
             this._throwOnBlockedRequest(session, response.statusCode);
@@ -591,7 +594,7 @@ class CheerioCrawler extends BasicCrawler {
         });
 
         return addTimeoutToPromise(
-            this.userProvidedHandler(crawlingContext),
+            () => this.userProvidedHandler(crawlingContext),
             this.handlePageTimeoutMillis,
             `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
         );
@@ -607,6 +610,7 @@ class CheerioCrawler extends BasicCrawler {
         if (this.prepareRequestFunction) {
             this.log.deprecated('Option "prepareRequestFunction" is deprecated. Use "preNavigationHooks" instead.');
             await this.prepareRequestFunction(crawlingContext);
+            tryCancel();
         }
 
         const requestAsBrowserOptions = {};
@@ -618,20 +622,24 @@ class CheerioCrawler extends BasicCrawler {
         const { request, session } = crawlingContext;
         const cookieSnapshot = request.headers.Cookie ?? request.headers.cookie;
         await this._executeHooks(this.preNavigationHooks, crawlingContext, requestAsBrowserOptions);
+        tryCancel();
         const proxyUrl = crawlingContext.proxyInfo && crawlingContext.proxyInfo.url;
         this._mergeRequestCookieDiff(request, cookieSnapshot, requestAsBrowserOptions);
 
         crawlingContext.response = await addTimeoutToPromise(
-            this._requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }),
+            () => this._requestFunction({ request, session, proxyUrl, requestAsBrowserOptions }),
             this.requestTimeoutMillis,
             `request timed out after ${this.requestTimeoutMillis / 1000} seconds.`,
         );
+        tryCancel();
 
         await this._executeHooks(this.postNavigationHooks, crawlingContext, requestAsBrowserOptions);
+        tryCancel();
 
         if (this.postResponseFunction) {
             this.log.deprecated('Option "postResponseFunction" is deprecated. Use "postNavigationHooks" instead.');
             await this.postResponseFunction(crawlingContext);
+            tryCancel();
         }
     }
 
