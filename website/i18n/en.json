@@ -197,9 +197,6 @@
       "typedefs/adhoc-webhook": {
         "title": "AdhocWebhook"
       },
-      "typedefs/apify-class": {
-        "title": "ApifyClass"
-      },
       "typedefs/apify-env": {
         "title": "ApifyEnv"
       },
@@ -328,6 +325,9 @@
       },
       "typedefs/proxy-info": {
         "title": "ProxyInfo"
+      },
+      "typedefs/puppeteer-cookie": {
+        "title": "PuppeteerCookie"
       },
       "typedefs/puppeteer-crawler-options": {
         "title": "PuppeteerCrawlerOptions"

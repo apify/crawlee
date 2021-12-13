@@ -31,6 +31,7 @@ import { SessionPoolOptions } from '../session_pool/session_pool';
 import { validators } from '../validators';
 import { RequestAsBrowserOptions } from '../utils_request';
 import { CheerioAPI } from 'cheerio';
+import { Hook } from './browser_crawler';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -200,7 +201,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *
  *   See [source code](https://github.com/apify/apify-js/blob/master/src/crawlers/cheerio_crawler.js#L13)
  *   for the default implementation of this function.
- * @property {Array<any>} [preNavigationHooks]
+ * @property {Array<Hook>} [preNavigationHooks]
  *   Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
  *   or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `requestAsBrowserOptions`,
  *   which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
@@ -212,7 +213,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
  *     },
  * ]
  * ```
- * @property {Array<any>} [postNavigationHooks]
+ * @property {Array<Hook>} [postNavigationHooks]
  *   Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
  *   The function accepts `crawlingContext` as the only parameter.
  *   Example:
