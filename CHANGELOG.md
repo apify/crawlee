@@ -1,4 +1,4 @@
-2.2.0 / 2021/12/06
+2.2.0 / 2021/12/15
 ====================
 - fix `RequestError: URI malformed` in cheerio crawler (#1205)
 - only provide Cookie header if cookies are present (#1218)
@@ -8,6 +8,7 @@
 - add fingerprinting support (#1243)
 - implement abortable timeouts (#1245)
 - add timeouts with retries to `runTaskFunction()` (#1250)
+- automatically convert google spreadsheet URLs to CSV exports (#1255)
 
 2.1.0 / 2021/10/07
 ====================
