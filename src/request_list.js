@@ -652,45 +652,22 @@ export class RequestList {
     async _fetchRequestsFromUrl(source) {
         const { requestsFromUrl, regex, ...sharedOpts } = source;
         const { downloadListOfUrls } = publicUtils;
-        const fixedRequestsFromUrl = this._ensureCorrectRemoteRequestListUrl(requestsFromUrl);
-
-        if (requestsFromUrl !== fixedRequestsFromUrl) {
-            this.log.warning('Detected wrong request list url format, fixing automatically.', { old: requestsFromUrl, new: fixedRequestsFromUrl });
-        }
 
         // Download remote resource and parse URLs.
         let urlsArr;
         try {
-            urlsArr = await downloadListOfUrls({ url: fixedRequestsFromUrl, urlRegExp: regex });
+            urlsArr = await downloadListOfUrls({ url: requestsFromUrl, urlRegExp: regex });
         } catch (err) {
-            throw new Error(`Cannot fetch a request list from ${fixedRequestsFromUrl}: ${err}`);
+            throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
         }
 
         // Skip if resource contained no URLs.
         if (!urlsArr.length) {
-            this.log.warning('list fetched, but it is empty.', { requestsFromUrl: fixedRequestsFromUrl, regex });
+            this.log.warning('list fetched, but it is empty.', { requestsFromUrl, regex });
             return [];
         }
 
         return urlsArr.map((url) => ({ url, ...sharedOpts }));
-    }
-
-    /**
-     * Tries to detect wrong urls and fix them. Currently detects only sharing url instead of csv download one.
-     * @param {string} url
-     * @return {string}
-     * @ignore
-     * @internal
-     * @private
-     */
-    _ensureCorrectRemoteRequestListUrl(url) {
-        const match = url.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/edit/);
-
-        if (match) {
-            return `${match[1]}/gviz/tq?tqx=out:csv`;
-        }
-
-        return url;
     }
 
     /**

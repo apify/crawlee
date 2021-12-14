@@ -198,16 +198,23 @@ describe('Apify.RequestList', () => {
             'https://google.com',
             'https://wired.com',
         ];
-        const wrongUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing';
+        const wrongUrls = [
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
+        ];
         const correctUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
 
         mock.expects('requestAsBrowser')
-            .once()
+            .exactly(wrongUrls.length)
             .withArgs({ url: correctUrl, encoding: 'utf8' })
             .resolves({ body: JSON.stringify(list) });
 
         const requestList = new Apify.RequestList({
-            sources: [{ requestsFromUrl: wrongUrl }],
+            sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),
         });
 
         await requestList.initialize();

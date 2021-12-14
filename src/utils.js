@@ -414,7 +414,16 @@ const downloadListOfUrls = async (options) => {
         urlRegExp: ow.optional.regExp,
     }));
     const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX } = options;
-    const { body: string } = await requestAsBrowser({ url, encoding });
+
+    // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
+    const match = url.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/);
+    let fixedUrl = url;
+
+    if (match) {
+        fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
+    }
+
+    const { body: string } = await requestAsBrowser({ url: fixedUrl, encoding });
     return extractUrls({ string, urlRegExp });
 };
 
