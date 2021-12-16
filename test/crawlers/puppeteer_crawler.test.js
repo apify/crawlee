@@ -423,4 +423,48 @@ describe('PuppeteerCrawler', () => {
         expect(count[4]).toBeGreaterThan(0);
         expect(count[2] + count[3] + count[4]).toBe(6);
     });
+
+    test('proxy rotation', async () => {
+        const used = new Map();
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
+            requestList: await Apify.openRequestList(null, [
+                { url: 'https://api.apify.com/v2/browser-info', uniqueKey: '1' },
+                { url: 'https://api.apify.com/v2/browser-info', uniqueKey: '2' },
+                { url: 'https://api.apify.com/v2/browser-info', uniqueKey: '3' },
+                { url: 'https://api.apify.com/v2/browser-info', uniqueKey: '4' },
+                { url: 'https://api.apify.com/v2/browser-info', uniqueKey: '5' },
+            ]),
+            launchContext: {
+                launchOptions: {
+                    headless: true,
+                },
+                // useIncognitoPages: true,
+            },
+            maxConcurrency: 1,
+            sessionPoolOptions: {
+                sessionOptions: {
+                    maxUsageCount: 1,
+                },
+            },
+            proxyConfiguration: await Apify.createProxyConfiguration(),
+            async handlePageFunction(context) {
+                const { request, page } = context;
+
+                // eslint-disable-next-line no-undef
+                const pageContent = await page.$eval('body', (el) => JSON.parse(el.textContent));
+                const { clientIp } = pageContent;
+
+                if (used.has(clientIp)) throw new Error(`The ip address ${clientIp} was already used. Proxy rotation does not work properly.`)
+                used.set(clientIp, request.url);
+
+                return {
+                    url: request.url,
+                    clientIp,
+                };
+            },
+        });
+
+        await puppeteerCrawler.run();
+        expect(used.size).toBe(5);
+    });
 });
