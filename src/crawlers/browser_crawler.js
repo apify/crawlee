@@ -360,14 +360,14 @@ export default class BrowserCrawler extends BasicCrawler {
      * @internal
      */
     async _handleRequestFunction(crawlingContext) {
-        const { request, session } = crawlingContext;
-
         const newPageOptions = {
             id: crawlingContext.id,
         };
 
         const useIncognitoPages = this.launchContext && this.launchContext.useIncognitoPages;
         if (this.proxyConfiguration && useIncognitoPages) {
+            const { session } = crawlingContext;
+
             const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
             crawlingContext.session = session;
             crawlingContext.proxyInfo = proxyInfo;
@@ -389,6 +389,10 @@ export default class BrowserCrawler extends BasicCrawler {
         const page = await this.browserPool.newPage(newPageOptions);
         tryCancel();
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
+
+        // DO NOT MOVE THIS LINE ABOVE!
+        // `enhanceCrawlingContextWithPageInfo` can (and will!) override those properties.
+        const { request, session } = crawlingContext;
 
         if (this.useSessionPool) {
             const sessionCookies = session.getPuppeteerCookies(request.url);
