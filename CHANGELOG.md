@@ -1,4 +1,4 @@
-2.2.0 / 2021/12/15
+2.2.0 / 2021/12/16
 ====================
 - fix `RequestError: URI malformed` in cheerio crawler (#1205)
 - only provide Cookie header if cookies are present (#1218)
