@@ -1,9 +1,43 @@
-2.2.0 / 2021/12/16
+2.2.0 / 2021/12/17
 ====================
+
+### Proxy per page
+
+Up until now, browser crawlers used the same session (and therefore the same proxy) for
+all request from a single browser - now get a new proxy for each session. This means
+that with incognito pages, each page will get a new proxy, aligning the behaviour with
+`CheerioCrawler`.
+
+This feature is not enabled by default. To use it, we need to enable `useIncognitoPages`
+flag under `launchContext`:
+
+```ts
+new Apify.Playwright({
+    launchContext: {
+        useIncognitoPages: true,
+    },
+    // ...
+})
+```
+
+> Note that currently there is a performance overhead for using `useIncognitoPages`.
+> Use this flag at your own will.
+
+We are planning to enable this feature by default in SDK v3.0.
+
+### Abortable timeouts
+
+Previously when a page function timed out, the task still kept running. This could lead to requests being processed multiple times. In v2.2 we now have abortable timeouts that will cancel the task as early as possible.
+
+### Mitigation of zero concurrency issue
+
+Several new timeouts were added to the task function, which should help mitigate the zero concurrency bug. Namely fetching of next request information and reclaiming failed requests back to the queue are now executed with a timeout with 3 additional retries before the task fails. The timeout is always at least 300s (5 minutes), or `handleRequestTimeoutSecs` if that value is higher.
+
+## Full list of changes
+
 - fix `RequestError: URI malformed` in cheerio crawler (#1205)
 - only provide Cookie header if cookies are present (#1218)
 - handle extra cases for `diffCookie` (#1217)
-- add timeout for task function (#1234)
 - implement proxy per page in browser crawlers (#1228)
 - add fingerprinting support (#1243)
 - implement abortable timeouts (#1245)
