@@ -197,9 +197,6 @@
       "typedefs/adhoc-webhook": {
         "title": "AdhocWebhook"
       },
-      "typedefs/apify-class": {
-        "title": "ApifyClass"
-      },
       "typedefs/apify-env": {
         "title": "ApifyEnv"
       },
@@ -1162,6 +1159,27 @@
       },
       "version-2.0.6/typedefs/version-2.0.6-request-as-browser-options": {
         "title": "RequestAsBrowserOptions"
+      },
+      "version-2.2.0/guides/version-2.2.0-apify-platform": {
+        "title": "Apify Platform"
+      },
+      "version-2.2.0/guides/version-2.2.0-environment-variables": {
+        "title": "Environment Variables"
+      },
+      "version-2.2.0/guides/version-2.2.0-getting-started": {
+        "title": "Getting Started"
+      },
+      "version-2.2.0/guides/version-2.2.0-proxy-management": {
+        "title": "Proxy Management"
+      },
+      "version-2.2.0/guides/version-2.2.0-quick-start": {
+        "title": "Quick Start"
+      },
+      "version-2.2.0/guides/version-2.2.0-request-storage": {
+        "title": "Request Storage"
+      },
+      "version-2.2.0/guides/version-2.2.0-result-storage": {
+        "title": "Result Storage"
       }
     },
     "links": {

@@ -18,7 +18,7 @@ Browsers are pretty big, so we try to provide a wide variety of images to suit y
 - [`apify/actor-node-playwright-webkit`](#actor-node-playwright-webkit)
 
 ## Example Dockerfile
-To use our images, you need a [`Dockerfile`](https://docs.docker.com/engine/reference/builder/). You can either use this example, or bootstrap your projects with the [Apify CLI](../guides/getting-started.md#creating-a-new-project) which automatically copies the correct Dockerfile into your project folder.
+To use our images, you need a [`Dockerfile`](https://docs.docker.com/engine/reference/builder/). You can either use this example, or bootstrap your projects with the [Apify CLI](../guides/getting_started.md#creating-a-new-project) which automatically copies the correct Dockerfile into your project folder.
 
 ```dockerfile
 # First, specify the base Docker image. You can read more about
