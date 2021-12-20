@@ -391,7 +391,9 @@ export default class BrowserCrawler extends BasicCrawler {
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
 
         // DO NOT MOVE THIS LINE ABOVE!
-        // `enhanceCrawlingContextWithPageInfo` can (and will!) override those properties.
+        // `enhanceCrawlingContextWithPageInfo` gives us a valid session.
+        // For example, `sessionPoolOptions.sessionOptions.maxUsageCount` can be `1`.
+        // So we must not save the session prior to making sure it was used only once, otherwise we would use it twice.
         const { request, session } = crawlingContext;
 
         if (this.useSessionPool) {
