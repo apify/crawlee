@@ -1,3 +1,7 @@
+2.2.1 / 2021/12/20
+====================
+- fix: ignore requests that are no longer in progress
+
 2.2.0 / 2021/12/17
 ====================
 
