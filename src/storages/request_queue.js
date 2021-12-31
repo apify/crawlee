@@ -13,7 +13,7 @@ import Request, { RequestOptions } from '../request'; // eslint-disable-line imp
 import { ApifyClient } from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
-import { tryCancel } from '@apify/timeout';
+import { storage } from '@apify/timeout';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const MAX_CACHED_REQUESTS = 1000 * 1000;
@@ -410,7 +410,11 @@ export class RequestQueue {
         // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
-            tryCancel();
+            const signal = storage.getStore()?.cancelTask?.signal;
+
+            if (signal?.aborted) {
+                return;
+            }
 
             if (!this.inProgress.has(request.id)) {
                 this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
