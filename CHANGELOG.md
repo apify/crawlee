@@ -3,6 +3,7 @@
 - fix: ignore requests that are no longer in progress (#1258)
 - fix: do not use `tryCancel()` from inside sync callback (#1265)
 - fix: revert to puppeteer 10.x
+- fix: wait when `body` is not available in `infiniteScroll()` from Puppeteer utils
 
 2.2.0 / 2021/12/17
 ====================
