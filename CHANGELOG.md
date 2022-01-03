@@ -4,6 +4,7 @@
 - fix: do not use `tryCancel()` from inside sync callback (#1265)
 - fix: revert to puppeteer 10.x
 - fix: wait when `body` is not available in `infiniteScroll()` from Puppeteer utils
+- fix: expose logger classes on the `utils.log` instance
 
 2.2.0 / 2021/12/17
 ====================
