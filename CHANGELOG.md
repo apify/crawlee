@@ -1,6 +1,8 @@
-2.2.1 / 2021/12/20
+2.2.1 / 2022/01/xx
 ====================
-- fix: ignore requests that are no longer in progress
+- fix: ignore requests that are no longer in progress (#1258)
+- fix: do not use `tryCancel()` from inside sync callback (#1265)
+- fix: revert to puppeteer 10.x
 
 2.2.0 / 2021/12/17
 ====================
