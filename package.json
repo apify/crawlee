@@ -75,7 +75,7 @@
     },
     "peerDependencies": {
         "playwright": "^1.11.0",
-        "puppeteer": "^9.0.0||^10.0.0||^11.0.0"
+        "puppeteer": "^9.0.0||^10.0.0"
     },
     "peerDependenciesMeta": {
         "playwright": {
@@ -122,7 +122,7 @@
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "proxy-chain": "^2.0.1-beta.0",
-        "puppeteer": "11.0.0",
+        "puppeteer": "10.4.0",
         "sinon": "^12.0.0",
         "sinon-stub-promise": "^4.0.0",
         "ts-jest": "^27.0.5",
