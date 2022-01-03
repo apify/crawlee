@@ -192,5 +192,8 @@
 // variable can't be the same from the namespace above
 import log, { Log, LoggerOptions, LogLevel, Logger, LoggerJson, LoggerText } from '@apify/log';
 
+// workaround for 2.x, this should ideally not be backported to 3.0 (the test should be there tho)
+Object.assign(log, { Log, LogLevel, Logger, LoggerJson, LoggerText });
+
 export { Log, LoggerOptions, LogLevel, Logger, LoggerJson, LoggerText };
 export default log;

@@ -8,6 +8,7 @@ import cheerio from 'cheerio';
 import semver from 'semver';
 import { ENV_VARS } from '@apify/consts';
 import { addTimeoutToPromise } from '@apify/timeout';
+import { Log, LoggerText } from '@apify/log';
 import Apify from '../build/index';
 import * as utils from '../build/utils';
 import log from '../build/utils_log';
@@ -32,6 +33,13 @@ describe('utils.newClient()', () => {
 
         expect(client.token).toBe('token');
         expect(client.baseUrl).toBe('https://api.apify.com/v2');
+    });
+});
+
+describe('log export exposes custom loggers', () => {
+    test('works with log.LoggerText (#1238)', () => {
+        expect(Apify.utils.log).toBeInstanceOf(Log);
+        expect(Apify.utils.log.LoggerText).toBe(LoggerText);
     });
 });
 
