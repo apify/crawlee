@@ -1,10 +1,10 @@
-2.2.1 / 2022/01/xx
+2.2.1 / 2022/01/03
 ====================
 - fix: ignore requests that are no longer in progress (#1258)
 - fix: do not use `tryCancel()` from inside sync callback (#1265)
-- fix: revert to puppeteer 10.x
-- fix: wait when `body` is not available in `infiniteScroll()` from Puppeteer utils
-- fix: expose logger classes on the `utils.log` instance
+- fix: revert to puppeteer 10.x (#1276)
+- fix: wait when `body` is not available in `infiniteScroll()` from Puppeteer utils (#1238)
+- fix: expose logger classes on the `utils.log` instance (#1278)
 
 2.2.0 / 2021/12/17
 ====================
