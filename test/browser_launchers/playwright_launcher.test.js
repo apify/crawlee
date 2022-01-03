@@ -112,7 +112,7 @@ describe('Apify.launchPlaywright()', () => {
 
         beforeEach(async () => {
             browser = await Apify.launchPlaywright({
-                launchOptions: { headless: true },
+                launchOptions: { headless: true, timeout: 60e3 },
                 proxyUrl: `http://username:password@127.0.0.1:${proxyPort}`,
             });
         });
