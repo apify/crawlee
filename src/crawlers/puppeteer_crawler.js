@@ -15,12 +15,13 @@ import { RequestList } from '../request_list';
 import { RequestQueue } from '../storages/request_queue';
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import { BrowserPoolOptions } from 'browser-pool';
+import { DirectNavigationOptions } from '../typedefs';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * @callback PuppeteerHook
  * @param {{ page: Page, crawler: PuppeteerCrawler } & BrowserCrawlingContext & CrawlingContext} crawlingContext
- * @param {any} gotoOptions
+ * @param {DirectNavigationOptions} gotoOptions
  * @returns {Promise<void>}
  */
 /**
