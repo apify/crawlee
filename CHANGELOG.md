@@ -1,3 +1,7 @@
+2.2.2 / 2022/xx/xx
+====================
+- upgrade puppeteer to v13 (chrome 97) (#1280)
+
 2.2.1 / 2022/01/03
 ====================
 - fix: ignore requests that are no longer in progress (#1258)

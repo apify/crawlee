@@ -1,4 +1,5 @@
 import ow from 'ow';
+import { mkdir } from 'fs/promises';
 import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
@@ -109,6 +110,7 @@ export class PuppeteerLauncher extends BrowserLauncher {
     }
 
     async launch() {
+        await mkdir(this.launchOptions.userDataDir, { recursive: true });
         const browser = await super.launch();
 
         if (this.stealth) {
