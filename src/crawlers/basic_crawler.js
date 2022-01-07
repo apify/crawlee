@@ -7,7 +7,7 @@ import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-l
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
 import Statistics from './statistics';
-import defaultLog from '../utils_log';
+import defaultLog from '../utils_log'; // eslint-disable-line import/no-duplicates
 import { validators } from '../validators';
 
 // TYPE IMPORTS
@@ -20,6 +20,7 @@ import { RequestQueue } from '../storages/request_queue';
 import { QueueOperationInfo } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
+import { Log } from '../utils_log';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -254,7 +255,7 @@ export class BasicCrawler {
         }
 
         // assigning {} to the options as default break proper typing
-        /** @type {defaultLog.Log} */
+        /** @type {Log} */
         this.log = log;
         this.requestList = requestList;
         this.requestQueue = requestQueue;
@@ -684,7 +685,7 @@ export class BasicCrawler {
     }
 
     /**
-     * @param {Array<Hook>} hooks
+     * @param {Array<any>} hooks
      * @param  {*} args
      * @ignore
      * @protected

@@ -1,7 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import { readStreamToString, concatStreamToBuffer } from '@apify/utilities';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import cheerio from 'cheerio';
+import cheerio from 'cheerio'; // eslint-disable-line import/no-duplicates
 import contentTypeParser from 'content-type';
 import { DomHandler } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
@@ -11,7 +11,7 @@ import util from 'util';
 import { TimeoutError } from 'got-scraping';
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import { parseContentTypeFromResponse } from '../utils';
-import { requestAsBrowser } from '../utils_request';
+import { requestAsBrowser } from '../utils_request'; // eslint-disable-line import/no-duplicates
 import { diffCookies, mergeCookies } from './crawler_utils';
 import { BasicCrawler } from './basic_crawler'; // eslint-disable-line import/no-duplicates
 import CrawlerExtension from './crawler_extension';
@@ -29,6 +29,9 @@ import { RequestQueue } from '../storages/request_queue';
 import { Session } from '../session_pool/session';
 import { SessionPoolOptions } from '../session_pool/session_pool';
 import { validators } from '../validators';
+import { RequestAsBrowserOptions } from '../utils_request';
+import { CheerioAPI } from 'cheerio';
+import { Hook } from './browser_crawler';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -471,12 +474,12 @@ class CheerioCrawler extends BasicCrawler {
         this.postResponseFunction = postResponseFunction;
         this.proxyConfiguration = proxyConfiguration;
         /**
-         * @type {Array<Hook>}
+         * @type {Array<any>}
          * @ignore
          * */
         this.preNavigationHooks = preNavigationHooks;
         /**
-         * @type {Array<Hook>}
+         * @type {Array<any>}
          * @ignore
          * */
         this.postNavigationHooks = [
@@ -972,7 +975,7 @@ export default CheerioCrawler;
 
 /**
  * @typedef CheerioHandlePageInputs
- * @property {cheerio.Root} $
+ * @property {CheerioAPI} $
  *  The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
  * @property {(string|Buffer)} body
  *  The request body of the web page.

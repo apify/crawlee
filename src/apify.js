@@ -1,5 +1,6 @@
 import ow from 'ow';
 import { ACT_JOB_STATUSES, ENV_VARS } from '@apify/consts';
+// eslint-disable-next-line import/no-duplicates
 import { getEnv } from './actor';
 import { initializeEvents, stopEvents } from './events';
 import { StorageManager } from './storages/storage_manager';
@@ -7,6 +8,7 @@ import { Dataset } from './storages/dataset';
 import { KeyValueStore, maybeStringify } from './storages/key_value_store';
 import { RequestList, REQUESTS_PERSISTENCE_KEY, STATE_PERSISTENCE_KEY } from './request_list';
 import { RequestQueue } from './storages/request_queue';
+// eslint-disable-next-line import/no-duplicates
 import { SessionPool } from './session_pool/session_pool';
 import { ProxyConfiguration } from './proxy_configuration';
 import { addCharsetToContentType, logSystemInfo, printOutdatedSdkWarning, publicUtils, sleep } from './utils';
@@ -19,6 +21,15 @@ import { socialUtils } from './utils_social';
 import { enqueueLinks } from './enqueue_links/enqueue_links';
 import { requestAsBrowser } from './utils_request';
 import { ApifyCallError } from './errors';
+
+// TYPE IMPORTS
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+import { ApifyClient } from 'apify-client';
+import { UserFunc, AdhocWebhook, EventTypes, WebhookRun, ApifyEnv } from './actor';
+import { ActorRun } from './typedefs';
+import { RequestOptions } from './request';
+import { SessionPoolOptions } from './session_pool/session_pool';
+/* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
  * `Apify` class serves as an alternative approach to the static helpers exported from the package. It allows to pass configuration

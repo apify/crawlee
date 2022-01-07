@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import { ApifyClient } from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
+// eslint-disable-next-line import/no-duplicates
 import cheerio from 'cheerio';
 import contentTypeParser from 'content-type';
 import fs from 'fs';
@@ -19,13 +20,13 @@ import rimraf from 'rimraf';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
-import { Response as PuppeteerResponse } from 'puppeteer';
+import { HTTPResponse as PuppeteerResponse } from 'puppeteer';
 import { version as apifyVersion } from '../package.json';
 import log from './utils_log';
 import { requestAsBrowser } from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
-
+import { CheerioAPI } from 'cheerio';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const rimrafp = util.promisify(rimraf);
@@ -473,7 +474,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {(string|cheerio.Root)} html HTML text or parsed HTML represented using a
+ * @param {(string|CheerioAPI)} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {string} Plain text
  * @memberOf utils
@@ -488,7 +489,7 @@ const htmlToText = (html) => {
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
     /**
-     * @type {cheerio.Root}
+     * @type {CheerioAPI}
      * @ignore
      */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });

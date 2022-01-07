@@ -3,7 +3,7 @@ import { betterSetInterval, betterClearInterval } from '@apify/utilities';
 import ow from 'ow';
 import Snapshotter, { SnapshotterOptions } from './snapshotter'; // eslint-disable-line import/named,no-unused-vars
 import SystemStatus, { SystemStatusOptions } from './system_status'; // eslint-disable-line import/named,no-unused-vars
-import defaultLog from '../utils_log';
+import defaultLog, { Log } from '../utils_log'; // eslint-disable-line no-unused-vars
 
 /**
  * @typedef AutoscaledPoolOptions
@@ -156,7 +156,7 @@ class AutoscaledPool {
         } = options;
 
         /**
-         * @type {defaultLog.Log}
+         * @type {Log}
          */
         this.log = log.child({ prefix: 'AutoscaledPool' });
 

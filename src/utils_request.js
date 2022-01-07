@@ -7,7 +7,7 @@ import { IncomingMessage } from 'http';
 /* eslint-enable no-unused-vars,import/named,import/order */
 
 /**
- * @typedef {(IncomingMessage & Readable & { body: string })} RequestAsBrowserResult
+ * @typedef {(IncomingMessage & { body: string })} RequestAsBrowserResult
  */
 
 /**
