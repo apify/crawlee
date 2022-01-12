@@ -1,4 +1,8 @@
-2.2.1 / 2022/01/03
+2.2.2 / 2022/01/xx
+====================
+- fix: ensure `request.headers` is set
+
+- 2.2.1 / 2022/01/03
 ====================
 - fix: ignore requests that are no longer in progress (#1258)
 - fix: do not use `tryCancel()` from inside sync callback (#1265)

@@ -987,6 +987,34 @@ describe('CheerioCrawler', () => {
             });
         });
 
+        test('should work with `context.request.headers` being undefined', async () => {
+            const requests = [];
+            const responses = [];
+            const crawler = new Apify.CheerioCrawler({
+                requestList: await Apify.openRequestList(null, [{
+                    url: `http://${HOST}:${port}/headers`,
+                }]),
+                useSessionPool: true,
+                handlePageFunction: async ({ json, request }) => {
+                    responses.push(json);
+                    requests.push(request);
+                },
+                preNavigationHooks: [({ request }) => {
+                    request.headers.Cookie = 'foo=override; coo=kie';
+                }],
+            });
+
+            await crawler.run();
+            expect(requests).toHaveLength(1);
+            expect(requests[0].retryCount).toBe(0);
+            expect(responses).toHaveLength(1);
+            expect(responses[0]).toMatchObject({
+                headers: {
+                    cookie: 'foo=override; coo=kie',
+                },
+            });
+        });
+
         test('mergeCookies()', async () => {
             const deprecatedSpy = jest.spyOn(Log.prototype, 'deprecated');
             const cookie1 = mergeCookies('https://example.com', [
