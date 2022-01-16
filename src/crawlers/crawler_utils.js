@@ -46,7 +46,7 @@ export function mergeCookies(url, sourceCookies) {
 
     // ignore empty cookies
     for (const sourceCookieString of sourceCookies.filter((c) => c)) {
-        const cookies = sourceCookieString.split(/ *; */); // ignore extra spaces
+        const cookies = sourceCookieString.split(/ *; */).filter((c) => c); // ignore extra spaces
 
         for (const cookieString of cookies) {
             const cookie = Cookie.parse(cookieString);
