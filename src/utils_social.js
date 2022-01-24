@@ -182,9 +182,8 @@ const phonesFromUrls = (urls) => {
 // eslint-disable-next-line max-len
 const LINKEDIN_REGEX_STRING = '(?<!\\w)((?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-zA-Z0-9\\-_%=?]{2,100})(?![a-zA-Z0-9\\-_%])(?:\\/)?)|([a-zA-Z0-9\\-_\\.]+(?:@linkedin.com))';
 
-// TODO: Skip https://www.instagram.com/explore/ !!! and "https://www.instagram.com/_n/", "https://www.instagram.com/_u/"
 // eslint-disable-next-line max-len
-const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
+const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
 const TWITTER_RESERVED_PATHS = 'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct';
 // eslint-disable-next-line max-len, quotes
