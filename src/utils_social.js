@@ -193,8 +193,12 @@ const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.
 const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
 // eslint-disable-next-line max-len, quotes
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
+
 // eslint-disable-next-line max-len, quotes
 const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]+)';
+
+// eslint-disable-next-line max-len, quotes
+const DISCORD_REGEX_STRING = '(https?:\\/\\/)?(www\\.)?(((discord|discordapp)\\.com\\/channels(\\/[a-zA-Z0-9\\-_]+)+)|((discord\\.(com|me|li|gg|io)|discordapp\\.com)(\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]+)';
 
 /** @type RegExp */
 let LINKEDIN_REGEX;
@@ -216,7 +220,10 @@ let FACEBOOK_REGEX_GLOBAL;
 let YOUTUBE_REGEX;
 /** @type RegExp */
 let YOUTUBE_REGEX_GLOBAL;
-
+/** @type RegExp */
+let DISCORD_REGEX;
+/** @type RegExp */
+let DISCORD_REGEX_GLOBAL;
 try {
     /**
      * Regular expression to exactly match a single LinkedIn profile URL.
@@ -243,7 +250,7 @@ try {
      * @memberOf social
      */
     LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
-
+    
     /**
      * Regular expression to find multiple LinkedIn profile URLs in a text or HTML.
      * It has the following form: `/.../ig` and matches URLs such as:
@@ -447,7 +454,9 @@ try {
      * https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
      * https://www.youtube.com/user/pewdiepie
      * ```
-     * 
+     *
+     * Please note that this won't match URLs like https://www.youtube.com/pewdiepie that redirect to /user or /channel.
+     *
      * Example usage:
      * ```
      * if (Apify.utils.social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')) {
@@ -481,7 +490,50 @@ try {
      * @memberOf social
      */
     YOUTUBE_REGEX_GLOBAL = new RegExp(YOUTUBE_REGEX_STRING, 'ig');
-} catch (e) {
+
+    /**
+     * Regular expression to exactly match a Discord invite or channel.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://discord.gg/discord-developers
+     * https://discord.com/invite/jyEM2PRvMU
+     * https://discordapp.com/channels/1234
+     * https://discord.com/channels/1234/1234
+     * discord.gg/discord-developers
+     * ```
+     * 
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.DISCORD_REGEX.test('https://discord.gg/discord-developers')) {
+     *     console.log('Match!');
+     * }
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+     DISCORD_REGEX = new RegExp(`^${DISCORD_REGEX_STRING}$`, 'i');
+
+     /**
+      * Regular expression to find multiple Discord channels or invites in a text or HTML.
+      * It has the following form: `/.../ig` and matches URLs such as:
+      * ```
+      * https://discord.gg/discord-developers
+      * https://discord.com/invite/jyEM2PRvMU
+      * https://discordapp.com/channels/@me
+      * discord.gg/discord-developers
+      * ```
+      *
+      * Example usage:
+      * ```
+      * const matches = text.match(Apify.utils.social.DISCORD_REGEX_GLOBAL);
+      * if (matches) console.log(`${matches.length} Discord channels found!`);
+      * ```
+      * @type {RegExp}
+      * @memberOf social
+      */
+     DISCORD_REGEX_GLOBAL = new RegExp(DISCORD_REGEX_STRING, 'ig');
+}
+catch (e) {
     // Older versions of Node don't support negative lookbehind and lookahead expressions.
     // Show warning instead of failing.
     if (e && e.message && e.message.includes('Invalid group')) {
@@ -552,7 +604,7 @@ try {
  *
  * @memberOf social
  */
-const parseHandlesFromHtml = (html, data = null) => {
+ const parseHandlesFromHtml = (html, data = null) => {
     const result = {
         emails: [],
         phones: [],
@@ -562,6 +614,7 @@ const parseHandlesFromHtml = (html, data = null) => {
         instagrams: [],
         facebooks: [],
         youtubes: [],
+        discords: [],
     };
 
     // TODO: maybe extract phone numbers from JSON+LD
@@ -593,6 +646,7 @@ const parseHandlesFromHtml = (html, data = null) => {
     result.instagrams = html.match(INSTAGRAM_REGEX_GLOBAL) || [];
     result.facebooks = html.match(FACEBOOK_REGEX_GLOBAL) || [];
     result.youtubes = html.match(YOUTUBE_REGEX_GLOBAL) || [];
+    result.discords = html.match(DISCORD_REGEX_GLOBAL) || [];
 
     // Sort and deduplicate handles
     // eslint-disable-next-line guard-for-in, no-restricted-syntax
@@ -641,4 +695,7 @@ export const socialUtils = {
 
     YOUTUBE_REGEX,
     YOUTUBE_REGEX_GLOBAL,
+
+    DISCORD_REGEX,
+    DISCORD_REGEX_GLOBAL,
 };
