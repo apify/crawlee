@@ -4,8 +4,6 @@ import cheerio from 'cheerio';
 import log from './utils_log';
 import { publicUtils } from './utils';
 
-// TODO: We could support URLs like https://www.linkedin.com/company/some-company-inc
-
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 // eslint-disable-next-line max-len
 const EMAIL_REGEX_STRING = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
@@ -182,7 +180,7 @@ const phonesFromUrls = (urls) => {
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
 // eslint-disable-next-line max-len
-const LINKEDIN_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/in\\/)([a-z0-9\\-_%]{2,60})(?![a-z0-9\\-_%])(?:/)?';
+const LINKEDIN_REGEX_STRING = '(?<!\\w)((?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-zA-Z0-9\\-_%=?]{2,100})(?![a-zA-Z0-9\\-_%])(?:\\/)?)|([a-zA-Z0-9\\-_\\.]+(?:@linkedin.com))';
 
 // TODO: Skip https://www.instagram.com/explore/ !!! and "https://www.instagram.com/_n/", "https://www.instagram.com/_u/"
 // eslint-disable-next-line max-len
@@ -201,7 +199,7 @@ const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:faceboo
 const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]+)';
 
 // eslint-disable-next-line max-len, quotes
-const DISCORD_REGEX_STRING = '(https?:\\/\\/)?(www\\.)?(((discord|discordapp)\\.com\\/channels(\\/[a-zA-Z0-9\\-_]+)+)|((discord\\.(com|me|li|gg|io)|discordapp\\.com)(\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]+)';
+const DISCORD_REGEX_STRING = '(?:https?:\\/\\/)?(?:www\\.)?(((?:discord|discordapp)\\.com\\/channels(\\/[a-zA-Z0-9\\-_]+)+)|((?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]+)';
 
 /** @type RegExp */
 let LINKEDIN_REGEX;
