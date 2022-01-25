@@ -198,7 +198,10 @@ const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:faceboo
 const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
 
 // eslint-disable-next-line max-len, quotes
-const TIKTOK_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m).)?(?:tiktok.com)\\/(((?:v|embed|trending)(?:\\/)?(?:\\?shareId=)?[0-9]{2,100})|((?:@)[a-zA-Z0-9\\-_.]+)(?:\\/video\\/[0-9]{2,100})?)';
+const TIKTOK_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m)\\.)?(?:tiktok\\.com)\\/(((?:v|embed|trending)(?:\\/)?(?:\\?shareId=)?[0-9]+)|((?:@)[a-zA-Z0-9\\-_\\.]+)(?:\\/video\\/[0-9]+)?)';
+
+// eslint-disable-next-line max-len, quotes
+const PINTEREST_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?((?:(?:www\\.)?pinterest(?:\\.com|(?:\\.[a-z]{2}){1,2}))|(?:[a-z]{2})\\.pinterest\\.com)(((?:\\/pin\\/)[0-9]{2,50})|(\\/[a-zA-Z0-9\\-_\\.]+)+)';
 
 // eslint-disable-next-line max-len, quotes
 const DISCORD_REGEX_STRING = '(?:https?:\\/\\/)?(?:www\\.)?(((?:discord|discordapp)\\.com\\/channels(\\/[0-9]{2,100})+)|((?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]{2,100})';
@@ -227,6 +230,10 @@ let YOUTUBE_REGEX_GLOBAL;
 let TIKTOK_REGEX;
 /** @type RegExp */
 let TIKTOK_REGEX_GLOBAL;
+/** @type RegExp */
+let PINTEREST_REGEX;
+/** @type RegExp */
+let PINTEREST_REGEX_GLOBAL;
 let DISCORD_REGEX;
 /** @type RegExp */
 let DISCORD_REGEX_GLOBAL;
@@ -561,6 +568,52 @@ try {
     TIKTOK_REGEX_GLOBAL = new RegExp(TIKTOK_REGEX_STRING, 'ig');
 
     /**
+     * Regular expression to exactly match a Pinterest pin, user or user's board.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://pinterest.com/pin/123456789
+     * https://www.pinterest.cz/pin/123456789
+     * https://www.pinterest.com/user
+     * https://uk.pinterest.com/user
+     * https://www.pinterest.co.uk/user
+     * pinterest.com/user_name.gold
+     * https://cz.pinterest.com/user/board
+     * ```
+     * 
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.PINTEREST_REGEX.test('https://www.pinterest.com/user')) {
+     *     console.log('Match!');
+     * }
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+     PINTEREST_REGEX = new RegExp(`^${PINTEREST_REGEX_STRING}$`, 'i');
+     /**
+      * Regular expression to find multiple Pinterest pins, users or boards in a text or HTML.
+      * It has the following form: `/.../ig` and matches URLs such as:
+      * ```
+      * https://pinterest.com/pin/123456789
+      * https://www.pinterest.cz/pin/123456789
+      * https://www.pinterest.com/user
+      * https://uk.pinterest.com/user
+      * https://www.pinterest.co.uk/user
+      * pinterest.com/user_name.gold
+      * https://cz.pinterest.com/user/board
+      * ```
+      *
+      * Example usage:
+      * ```
+      * const matches = text.match(Apify.utils.social.PINTEREST_REGEX_GLOBAL);
+      * if (matches) console.log(`${matches.length} Pinterest pins, users and boards found!`);
+      * ```
+      * @type {RegExp}
+      * @memberOf social
+      */
+     PINTEREST_REGEX_GLOBAL = new RegExp(PINTEREST_REGEX_STRING, 'ig');
+
+    /**
      * Regular expression to exactly match a Discord invite or channel.
      * It has the following form: `/^...$/i` and matches URLs such as:
      * ```
@@ -630,6 +683,7 @@ catch (e) {
  *   facebooks: String[],
  *   youtubes: String[],
  *   tiktoks: String[],
+ *   pinterests: String[],
  *   discords: String[],
  * }
  * ```
@@ -643,6 +697,7 @@ catch (e) {
  * @property {string[]} facebooks
  * @property {string[]} youtubes
  * @property {string[]} tiktoks
+ * @property {string[]} pinterests
  * @property {string[]} discords
  */
 
@@ -689,6 +744,7 @@ catch (e) {
         facebooks: [],
         youtubes: [],
         tiktoks: [],
+        pinterests: [],
         discords: [],
     };
 
@@ -722,6 +778,7 @@ catch (e) {
     result.facebooks = html.match(FACEBOOK_REGEX_GLOBAL) || [];
     result.youtubes = html.match(YOUTUBE_REGEX_GLOBAL) || [];
     result.tiktoks = html.match(TIKTOK_REGEX_GLOBAL) || [];
+    result.pinterests = html.match(PINTEREST_REGEX_GLOBAL) || [];
     result.discords = html.match(DISCORD_REGEX_GLOBAL) || [];
 
     // Sort and deduplicate handles
@@ -774,6 +831,9 @@ export const socialUtils = {
 
     TIKTOK_REGEX,
     TIKTOK_REGEX_GLOBAL,
+
+    PINTEREST_REGEX,
+    PINTEREST_REGEX_GLOBAL,
 
     DISCORD_REGEX,
     DISCORD_REGEX_GLOBAL,
