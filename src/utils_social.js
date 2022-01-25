@@ -195,10 +195,13 @@ const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|i
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 
 // eslint-disable-next-line max-len, quotes
-const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]+)';
+const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
 
 // eslint-disable-next-line max-len, quotes
-const DISCORD_REGEX_STRING = '(?:https?:\\/\\/)?(?:www\\.)?(((?:discord|discordapp)\\.com\\/channels(\\/[a-zA-Z0-9\\-_]+)+)|((?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]+)';
+const TIKTOK_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m).)?(?:tiktok.com)\\/(((?:v|embed|trending)(?:\\/)?(?:\\?shareId=)?[0-9]{2,100})|((?:@)[a-zA-Z0-9\\-_.]+)(?:\\/video\\/[0-9]{2,100})?)';
+
+// eslint-disable-next-line max-len, quotes
+const DISCORD_REGEX_STRING = '(?:https?:\\/\\/)?(?:www\\.)?(((?:discord|discordapp)\\.com\\/channels(\\/[0-9]{2,100})+)|((?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]{2,100})';
 
 /** @type RegExp */
 let LINKEDIN_REGEX;
@@ -221,6 +224,9 @@ let YOUTUBE_REGEX;
 /** @type RegExp */
 let YOUTUBE_REGEX_GLOBAL;
 /** @type RegExp */
+let TIKTOK_REGEX;
+/** @type RegExp */
+let TIKTOK_REGEX_GLOBAL;
 let DISCORD_REGEX;
 /** @type RegExp */
 let DISCORD_REGEX_GLOBAL;
@@ -232,6 +238,8 @@ try {
      * https://www.linkedin.com/in/alan-turing
      * en.linkedin.com/in/alan-turing
      * linkedin.com/in/alan-turing
+     * https://www.linkedin.com/company/linkedin/
+     * journalisttraining@linkedin.com
      * ```
      *
      * The regular expression does NOT match URLs with additional
@@ -258,6 +266,8 @@ try {
      * https://www.linkedin.com/in/alan-turing
      * en.linkedin.com/in/alan-turing
      * linkedin.com/in/alan-turing
+     * https://www.linkedin.com/company/linkedin/
+     * journalisttraining@linkedin.com
      * ```
      *
      * If the profile URL contains subdirectories or query parameters, the regular expression
@@ -294,6 +304,13 @@ try {
      * ```
      * https://www.instagram.com/cristiano/followers
      * ```
+     * 
+     * It also does NOT match the following URLs:
+     * ```
+     * https://www.instagram.com/explore/
+     * https://www.instagram.com/_n/
+     * https://www.instagram.com/_u/
+     * ```
      *
      * Example usage:
      * ```
@@ -323,6 +340,13 @@ try {
      * the expression extracts just the following base URL:
      * ```
      * https://www.instagram.com/cristiano
+     * ```
+     * 
+     * The regular expression does NOT match the following URLs:
+     * ```
+     * https://www.instagram.com/explore/
+     * https://www.instagram.com/_n/
+     * https://www.instagram.com/_u/
      * ```
      *
      * Example usage:
@@ -492,6 +516,51 @@ try {
     YOUTUBE_REGEX_GLOBAL = new RegExp(YOUTUBE_REGEX_STRING, 'ig');
 
     /**
+     * Regular expression to exactly match a Tiktok video or user account.
+     * It has the following form: `/^...$/i` and matches URLs such as:
+     * ```
+     * https://www.tiktok.com/trending?shareId=123456789
+     * https://www.tiktok.com/embed/123456789
+     * https://m.tiktok.com/v/123456789
+     * https://www.tiktok.com/@user
+     * https://www.tiktok.com/@user-account.pro
+     * https://www.tiktok.com/@user/video/123456789
+     * ```
+     * 
+     * Example usage:
+     * ```
+     * if (Apify.utils.social.DISCORD_REGEX.test('https://www.tiktok.com/@user')) {
+     *     console.log('Match!');
+     * }
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    TIKTOK_REGEX = new RegExp(`^${TIKTOK_REGEX_STRING}$`, 'i');
+  
+    /**
+     * Regular expression to find multiple Tiktok videos or user accounts in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://www.tiktok.com/trending?shareId=123456789
+     * https://www.tiktok.com/embed/123456789
+     * https://m.tiktok.com/v/123456789
+     * https://www.tiktok.com/@user
+     * https://www.tiktok.com/@user-account.pro
+     * https://www.tiktok.com/@user/video/123456789
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.TIKTOK_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} TikTok videos and users found!`);
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    TIKTOK_REGEX_GLOBAL = new RegExp(TIKTOK_REGEX_STRING, 'ig');
+
+    /**
      * Regular expression to exactly match a Discord invite or channel.
      * It has the following form: `/^...$/i` and matches URLs such as:
      * ```
@@ -519,7 +588,8 @@ try {
       * ```
       * https://discord.gg/discord-developers
       * https://discord.com/invite/jyEM2PRvMU
-      * https://discordapp.com/channels/@me
+      * https://discordapp.com/channels/1234
+      * https://discord.com/channels/1234/1234
       * discord.gg/discord-developers
       * ```
       *
@@ -559,6 +629,8 @@ catch (e) {
  *   instagrams: String[],
  *   facebooks: String[],
  *   youtubes: String[],
+ *   tiktoks: String[],
+ *   discords: String[],
  * }
  * ```
  * @typedef SocialHandles
@@ -570,6 +642,8 @@ catch (e) {
  * @property {string[]} instagrams
  * @property {string[]} facebooks
  * @property {string[]} youtubes
+ * @property {string[]} tiktoks
+ * @property {string[]} discords
  */
 
 /**
@@ -614,6 +688,7 @@ catch (e) {
         instagrams: [],
         facebooks: [],
         youtubes: [],
+        tiktoks: [],
         discords: [],
     };
 
@@ -646,6 +721,7 @@ catch (e) {
     result.instagrams = html.match(INSTAGRAM_REGEX_GLOBAL) || [];
     result.facebooks = html.match(FACEBOOK_REGEX_GLOBAL) || [];
     result.youtubes = html.match(YOUTUBE_REGEX_GLOBAL) || [];
+    result.tiktoks = html.match(TIKTOK_REGEX_GLOBAL) || [];
     result.discords = html.match(DISCORD_REGEX_GLOBAL) || [];
 
     // Sort and deduplicate handles
@@ -695,6 +771,9 @@ export const socialUtils = {
 
     YOUTUBE_REGEX,
     YOUTUBE_REGEX_GLOBAL,
+
+    TIKTOK_REGEX,
+    TIKTOK_REGEX_GLOBAL,
 
     DISCORD_REGEX,
     DISCORD_REGEX_GLOBAL,
