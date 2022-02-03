@@ -180,7 +180,7 @@ const phonesFromUrls = (urls) => {
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
 // eslint-disable-next-line max-len
-const LINKEDIN_REGEX_STRING = '(?<!\\w)((?:http(?:s)?:\\/\\/)?(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-zA-Z0-9\\-_%=?]{2,100})(?![a-zA-Z0-9\\-_%])(?:\\/)?)|([a-zA-Z0-9\\-_\\.]+(?:@linkedin.com))';
+const LINKEDIN_REGEX_STRING = '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=]))|([a-z0-9\\-_\\.]+(?:@linkedin\\.com)))(?:\\/)?';
 
 // eslint-disable-next-line max-len
 const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
@@ -195,16 +195,16 @@ const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|i
 const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 
 // eslint-disable-next-line max-len, quotes
-const YOUTUBE_REGEX_STRING = '(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
+const YOUTUBE_REGEX_STRING = '(?<!\\w)(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
 
 // eslint-disable-next-line max-len, quotes
-const TIKTOK_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m)\\.)?(?:tiktok\\.com)\\/(((?:v|embed|trending)(?:\\/)?(?:\\?shareId=)?[0-9]+)|((?:@)[a-zA-Z0-9\\-_\\.]+)(?:\\/video\\/[0-9]+)?)';
+const TIKTOK_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m)\\.)?(?:tiktok\\.com)\\/(((?:v|embed|trending)(?:\\/)?(?:\\?shareId=)?[0-9]+)|((?:@)[a-z0-9\\-_\\.]+)(?:\\/video\\/[0-9]+)?)';
 
 // eslint-disable-next-line max-len, quotes
-const PINTEREST_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?((?:(?:www\\.)?pinterest(?:\\.com|(?:\\.[a-z]{2}){1,2}))|(?:[a-z]{2})\\.pinterest\\.com)(((?:\\/pin\\/)[0-9]{2,50})|(\\/[a-zA-Z0-9\\-_\\.]+)+)';
+const PINTEREST_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?((?:(?:www\\.)?pinterest(?:\\.com|(?:\\.[a-z]{2}){1,2}))|(?:[a-z]{2})\\.pinterest\\.com)(((?:\\/pin\\/)[0-9]{2,50})|(\\/[a-z0-9\\-_\\.]+)+)';
 
 // eslint-disable-next-line max-len, quotes
-const DISCORD_REGEX_STRING = '(?:https?:\\/\\/)?(?:www\\.)?(((?:discord|discordapp)\\.com\\/channels(\\/[0-9]{2,100})+)|((?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-zA-Z0-9\\-_]{2,100})';
+const DISCORD_REGEX_STRING = '(?<!\\w)(?:https?:\\/\\/)?(?:www\\.)?(((?:discord|discordapp)\\.com\\/channels(\\/[0-9]{2,100})+)|((?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-z0-9\\-_]{2,100})';
 
 /** @type RegExp */
 let LINKEDIN_REGEX;
@@ -265,7 +265,7 @@ try {
      * @memberOf social
      */
     LINKEDIN_REGEX = new RegExp(`^${LINKEDIN_REGEX_STRING}$`, 'i');
-    
+
     /**
      * Regular expression to find multiple LinkedIn profile URLs in a text or HTML.
      * It has the following form: `/.../ig` and matches URLs such as:
@@ -311,7 +311,7 @@ try {
      * ```
      * https://www.instagram.com/cristiano/followers
      * ```
-     * 
+     *
      * It also does NOT match the following URLs:
      * ```
      * https://www.instagram.com/explore/
@@ -348,7 +348,7 @@ try {
      * ```
      * https://www.instagram.com/cristiano
      * ```
-     * 
+     *
      * The regular expression does NOT match the following URLs:
      * ```
      * https://www.instagram.com/explore/
@@ -533,7 +533,7 @@ try {
      * https://www.tiktok.com/@user-account.pro
      * https://www.tiktok.com/@user/video/123456789
      * ```
-     * 
+     *
      * Example usage:
      * ```
      * if (Apify.utils.social.DISCORD_REGEX.test('https://www.tiktok.com/@user')) {
@@ -544,7 +544,7 @@ try {
      * @memberOf social
      */
     TIKTOK_REGEX = new RegExp(`^${TIKTOK_REGEX_STRING}$`, 'i');
-  
+
     /**
      * Regular expression to find multiple Tiktok videos or user accounts in a text or HTML.
      * It has the following form: `/.../ig` and matches URLs such as:
@@ -579,7 +579,7 @@ try {
      * pinterest.com/user_name.gold
      * https://cz.pinterest.com/user/board
      * ```
-     * 
+     *
      * Example usage:
      * ```
      * if (Apify.utils.social.PINTEREST_REGEX.test('https://www.pinterest.com/user')) {
@@ -589,29 +589,30 @@ try {
      * @type {RegExp}
      * @memberOf social
      */
-     PINTEREST_REGEX = new RegExp(`^${PINTEREST_REGEX_STRING}$`, 'i');
-     /**
-      * Regular expression to find multiple Pinterest pins, users or boards in a text or HTML.
-      * It has the following form: `/.../ig` and matches URLs such as:
-      * ```
-      * https://pinterest.com/pin/123456789
-      * https://www.pinterest.cz/pin/123456789
-      * https://www.pinterest.com/user
-      * https://uk.pinterest.com/user
-      * https://www.pinterest.co.uk/user
-      * pinterest.com/user_name.gold
-      * https://cz.pinterest.com/user/board
-      * ```
-      *
-      * Example usage:
-      * ```
-      * const matches = text.match(Apify.utils.social.PINTEREST_REGEX_GLOBAL);
-      * if (matches) console.log(`${matches.length} Pinterest pins, users and boards found!`);
-      * ```
-      * @type {RegExp}
-      * @memberOf social
-      */
-     PINTEREST_REGEX_GLOBAL = new RegExp(PINTEREST_REGEX_STRING, 'ig');
+    PINTEREST_REGEX = new RegExp(`^${PINTEREST_REGEX_STRING}$`, 'i');
+
+    /**
+     * Regular expression to find multiple Pinterest pins, users or boards in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://pinterest.com/pin/123456789
+     * https://www.pinterest.cz/pin/123456789
+     * https://www.pinterest.com/user
+     * https://uk.pinterest.com/user
+     * https://www.pinterest.co.uk/user
+     * pinterest.com/user_name.gold
+     * https://cz.pinterest.com/user/board
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.PINTEREST_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} Pinterest pins, users and boards found!`);
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    PINTEREST_REGEX_GLOBAL = new RegExp(PINTEREST_REGEX_STRING, 'ig');
 
     /**
      * Regular expression to exactly match a Discord invite or channel.
@@ -623,7 +624,7 @@ try {
      * https://discord.com/channels/1234/1234
      * discord.gg/discord-developers
      * ```
-     * 
+     *
      * Example usage:
      * ```
      * if (Apify.utils.social.DISCORD_REGEX.test('https://discord.gg/discord-developers')) {
@@ -633,30 +634,29 @@ try {
      * @type {RegExp}
      * @memberOf social
      */
-     DISCORD_REGEX = new RegExp(`^${DISCORD_REGEX_STRING}$`, 'i');
+    DISCORD_REGEX = new RegExp(`^${DISCORD_REGEX_STRING}$`, 'i');
 
-     /**
-      * Regular expression to find multiple Discord channels or invites in a text or HTML.
-      * It has the following form: `/.../ig` and matches URLs such as:
-      * ```
-      * https://discord.gg/discord-developers
-      * https://discord.com/invite/jyEM2PRvMU
-      * https://discordapp.com/channels/1234
-      * https://discord.com/channels/1234/1234
-      * discord.gg/discord-developers
-      * ```
-      *
-      * Example usage:
-      * ```
-      * const matches = text.match(Apify.utils.social.DISCORD_REGEX_GLOBAL);
-      * if (matches) console.log(`${matches.length} Discord channels found!`);
-      * ```
-      * @type {RegExp}
-      * @memberOf social
-      */
-     DISCORD_REGEX_GLOBAL = new RegExp(DISCORD_REGEX_STRING, 'ig');
-}
-catch (e) {
+    /**
+     * Regular expression to find multiple Discord channels or invites in a text or HTML.
+     * It has the following form: `/.../ig` and matches URLs such as:
+     * ```
+     * https://discord.gg/discord-developers
+     * https://discord.com/invite/jyEM2PRvMU
+     * https://discordapp.com/channels/1234
+     * https://discord.com/channels/1234/1234
+     * discord.gg/discord-developers
+     * ```
+     *
+     * Example usage:
+     * ```
+     * const matches = text.match(Apify.utils.social.DISCORD_REGEX_GLOBAL);
+     * if (matches) console.log(`${matches.length} Discord channels found!`);
+     * ```
+     * @type {RegExp}
+     * @memberOf social
+     */
+    DISCORD_REGEX_GLOBAL = new RegExp(DISCORD_REGEX_STRING, 'ig');
+} catch (e) {
     // Older versions of Node don't support negative lookbehind and lookahead expressions.
     // Show warning instead of failing.
     if (e && e.message && e.message.includes('Invalid group')) {
@@ -733,7 +733,7 @@ catch (e) {
  *
  * @memberOf social
  */
- const parseHandlesFromHtml = (html, data = null) => {
+const parseHandlesFromHtml = (html, data = null) => {
     const result = {
         emails: [],
         phones: [],

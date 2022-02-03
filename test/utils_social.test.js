@@ -315,6 +315,9 @@ describe('utils.social', () => {
             instagrams: [],
             facebooks: [],
             youtubes: [],
+            tiktoks: [],
+            pinterests: [],
+            discords: [],
         };
 
         test('handles invalid arg', () => {
@@ -393,6 +396,9 @@ describe('utils.social', () => {
                     </body>
                 </html>
             `)).toEqual({
+                discords: [
+
+                ],
                 emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
                 phones: ['+42077533333'],
                 phonesUncertain: ['+4207751111111', '+420775222222'],
@@ -412,6 +418,12 @@ describe('utils.social', () => {
                     'https://www.instagram.com/york',
                     'https://www.instagram.com/york2/',
                     'instagram.com/old_prague',
+                ],
+                pinterests: [
+
+                ],
+                tiktoks: [
+
                 ],
                 twitters: [
                     'https://www.twitter.com/apify',
@@ -771,6 +783,7 @@ describe('utils.social', () => {
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA')).toBe(true);
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/user/pewdiepie')).toBe(true);
             expect(`
+                    https://www.youtube.com/apify/
                     -https://www.youtube.com/someusername/
                     youtube.com/jack4567
                     https://www.youtube.com/watch?v=kM7YfhfkiEE
@@ -782,6 +795,9 @@ describe('utils.social', () => {
                     youtube.com/user/pewdiepie
                     `.match(social.YOUTUBE_REGEX_GLOBAL))
                 .toEqual([
+                    'https://www.youtube.com/apify',
+                    'https://www.youtube.com/someusername',
+                    'youtube.com/jack4567',
                     'https://www.youtube.com/watch?v=kM7YfhfkiEE',
                     'www.youtube.com/c/TrapNation',
                     'https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA',
