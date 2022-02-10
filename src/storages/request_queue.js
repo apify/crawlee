@@ -127,9 +127,11 @@ export class RequestQueue {
         this.id = options.id;
         this.name = options.name;
         this.isLocal = options.isLocal;
+        this.timeoutSecs = 30;
         this.clientKey = cryptoRandomObjectId();
         this.client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
+            timeoutSecs: this.timeoutSecs,
         });
         this.log = log.child({ prefix: 'RequestQueue' });
 
