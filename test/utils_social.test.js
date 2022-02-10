@@ -978,6 +978,9 @@ describe('utils.social', () => {
             expect(social.DISCORD_REGEX.test('https://discord.com/invite/jyEM2PRvMU')).toBe(true);
             expect(social.DISCORD_REGEX.test('https://discordapp.com/channels/231496023303957476')).toBe(true);
             expect(social.DISCORD_REGEX.test('https://discord.com/channels/231496023303957476/2332823543826404586')).toBe(true);
+            expect(social.DISCORD_REGEX.test('https://ptb.discord.com/channels/231496023303957476/2332823543826404586')).toBe(true);
+            expect(social.DISCORD_REGEX.test('ptb.discord.com/invite/jyEM2PRvMU')).toBe(true);
+            expect(social.DISCORD_REGEX.test('canary.discord.com/invite/jyEM2PRvMU')).toBe(true);
 
             expect(social.DISCORD_REGEX.test('https://discord.com/channels/nonNumbericChannelId')).toBe(false);
             expect(social.DISCORD_REGEX.test('9discord.gg/discord-developers')).toBe(false);
