@@ -19,7 +19,7 @@
  *   Time when the actor run finished. Contains `null` for running actors.
  * @property {string} status
  *   Status of the run. For possible values, see
- *   [Run lifecycle](https://docs.apify.com/actor/run#lifecycle)
+ *   [Run lifecycle](https://docs.apify.com/actors/running#lifecycle)
  *   in Apify actor documentation.
  * @property {Object<string, string>} meta
  *   Actor run meta-data. For example:

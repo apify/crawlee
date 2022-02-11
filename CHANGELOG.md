@@ -1,5 +1,7 @@
-2.2.2 / 2022/xx/xx
+2.2.2 / 2022/01/xx
 ====================
+- fix: ensure `request.headers` is set
+- Lower RequestQueue timeout to 30 seconds
 - upgrade puppeteer to v13 (chrome 97) (#1280)
 
 2.2.1 / 2022/01/03
