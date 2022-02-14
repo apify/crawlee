@@ -118,7 +118,7 @@
         "fs-extra": "^10.0.0",
         "jest": "^27.1.1",
         "jest-circus": "^27.1.1",
-        "playwright": "1.19.0",
+        "playwright": "1.18.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "proxy-chain": "^2.0.1-beta.0",
