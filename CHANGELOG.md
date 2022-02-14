@@ -1,9 +1,11 @@
-2.2.2 / 2022/01/xx
+2.2.2 / 2022/02/xx
 ====================
 - fix: ensure `request.headers` is set
-- Lower RequestQueue timeout to 30 seconds
+- fix: lower `RequestQueue` API timeout to 30 seconds
+- improve logging for fetching next request and timeouts
 
-- 2.2.1 / 2022/01/03
+
+2.2.1 / 2022/01/03
 ====================
 - fix: ignore requests that are no longer in progress (#1258)
 - fix: do not use `tryCancel()` from inside sync callback (#1265)

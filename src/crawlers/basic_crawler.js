@@ -2,7 +2,7 @@ import { ACTOR_EVENT_NAMES } from '@apify/consts';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import _ from 'underscore';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import AutoscaledPool from '../autoscaling/autoscaled_pool'; // eslint-disable-line import/no-duplicates
 import events from '../events';
 import { openSessionPool } from '../session_pool/session_pool'; // eslint-disable-line import/no-duplicates
@@ -482,15 +482,23 @@ export class BasicCrawler {
 
         await this._timeoutAndRetry(
             async () => {
-                if (this.useSessionPool) {
-                    [request, session] = await Promise.all([this._fetchNextRequest(), this.sessionPool.getSession()]);
-                } else {
-                    request = await this._fetchNextRequest();
-                }
+                request = await this._fetchNextRequest();
             },
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
+
+        tryCancel();
+
+        if (this.useSessionPool) {
+            await this._timeoutAndRetry(
+                async () => {
+                    session = await this.sessionPool.getSession();
+                },
+                this.internalTimeoutMillis,
+                `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+            );
+        }
 
         tryCancel();
 
@@ -515,13 +523,13 @@ export class BasicCrawler {
             await addTimeoutToPromise(
                 () => this._handleRequestFunction(crawlingContext),
                 this.handleRequestTimeoutMillis,
-                `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds.`,
+                `handleRequestFunction timed out after ${this.handleRequestTimeoutMillis / 1000} seconds (${request.id}).`,
             );
 
             await this._timeoutAndRetry(
                 () => source.markRequestHandled(request),
                 this.internalTimeoutMillis,
-                `Marking request ${request.url} as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
             );
 
             this.stats.finishJob(statisticsId);
@@ -534,7 +542,7 @@ export class BasicCrawler {
                 await this._timeoutAndRetry(
                     () => this._requestFunctionErrorHandler(err, crawlingContext, source),
                     this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                    `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
                 );
             } catch (secondaryError) {
                 this.log.exception(secondaryError, 'runTaskFunction error handler threw an exception. '
@@ -555,13 +563,9 @@ export class BasicCrawler {
      */
     async _timeoutAndRetry(handler, timeout, error, maxRetries = 3, retried = 1) {
         try {
-            await addTimeoutToPromise(
-                handler,
-                timeout,
-                error,
-            );
+            await addTimeoutToPromise(handler, timeout, error);
         } catch (e) {
-            if (e instanceof TimeoutError && retried <= maxRetries) {
+            if (retried <= maxRetries) { // we retry on any error, not just timeout
                 this.log.warning(`${e.message} (retrying ${retried}/${maxRetries})`);
                 return this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
             }
