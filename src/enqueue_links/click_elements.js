@@ -143,7 +143,7 @@ export async function enqueueLinksByClickingElements(options) {
         transformRequestFunction,
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
-        clickOptions
+        clickOptions,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
@@ -155,7 +155,7 @@ export async function enqueueLinksByClickingElements(options) {
         selector,
         waitForPageIdleMillis,
         maxWaitForPageIdleMillis,
-        clickOptions
+        clickOptions,
     });
     let requestOptions = createRequestOptions(interceptedRequests);
     if (transformRequestFunction) {
@@ -187,7 +187,7 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
         selector,
         waitForPageIdleMillis,
         maxWaitForPageIdleMillis,
-        clickOptions
+        clickOptions,
     } = options;
 
     const uniqueRequests = new Set();
@@ -336,7 +336,7 @@ async function preventHistoryNavigation(page) {
  * for large element sets, this will take considerable amount of time.
  *
  * @param {Page} page
- * @param {string} selector * 
+ * @param {string} selector
  * @param {object} [clickOptions]
  * @param {number} [clickOptions.clickCount]
  * @param {number} [clickOptions.delay]
