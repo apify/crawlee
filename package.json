@@ -45,7 +45,7 @@
         "prepare": "npm run build",
         "prepublishOnly": "(test $CI || (echo \"Publishing is reserved to CI!\"; exit 1))",
         "clean": "rimraf ./build",
-        "lint": "eslint ./src ./test",
+        "lint": "npm run build && eslint ./src ./test",
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
