@@ -361,7 +361,7 @@ export const getTypicalChromeExecutablePath = () => {
      * @ignore
      */
     const getWin32Path = () => {
-        let chromeExecutablePath = 'C:\\%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe';
+        let chromeExecutablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
         const path00 = `${process.env.ProgramFiles}\\Google\\Chrome\\Application\\chrome.exe`;
         const path86 = `${process.env['ProgramFiles(x86)']}\\Google\\Chrome\\Application\\chrome.exe`;
 
