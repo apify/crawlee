@@ -46,7 +46,7 @@
         "prepublishOnly": "(test $CI || (echo \"Publishing is reserved to CI!\"; exit 1))",
         "clean": "rimraf ./build",
         "lint": "npm run build && eslint ./src ./test",
-        "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
+        "lint:fix": "npm run build && eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
         "@apify/consts": "^1.3.0",
