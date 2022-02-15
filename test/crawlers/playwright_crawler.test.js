@@ -48,7 +48,8 @@ describe('PlaywrightCrawler', () => {
     });
 
     describe('should work', () => {
-        test.each(['chromium', 'firefox', 'webkit'])('with %s', async (browser) => {
+        // @TODO: add webkit
+        test.each(['chromium', 'firefox'])('with %s', async (browser) => {
             const sourcesLarge = [
                 { url: `http://${HOSTNAME}:${port}/?q=1` },
                 { url: `http://${HOSTNAME}:${port}/?q=2` },
