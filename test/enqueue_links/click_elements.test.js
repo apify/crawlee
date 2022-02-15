@@ -222,6 +222,32 @@ describe('enqueueLinksByClickingElements()', () => {
         });
     });
 
+    describe('select line with triple clickElements()', () => {
+        test('should select the text by triple clicking', async () => {
+            const html = `
+<html>
+    <body>
+        <textarea></textarea>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await page.focus('textarea');
+            const text = "This is the text that we are going to try to select. Let's see how it goes.";
+            await page.keyboard.type(text);
+            await clickElements(page, 'textarea', { clickCount: 3, delay: 100 });
+            expect(
+                await page.evaluate(() => {
+                    const textarea = document.querySelector('textarea');
+                    return textarea.value.substring(
+                        textarea.selectionStart,
+                        textarea.selectionEnd,
+                    );
+                }),
+            ).toBe(text);
+        });
+    });
+
     describe('clickElementsAndInterceptNavigationRequests()', () => {
         function getOpts(overrides = {}) {
             return {
