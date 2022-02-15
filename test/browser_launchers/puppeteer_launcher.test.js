@@ -29,6 +29,11 @@ beforeAll(async () => {
         res.send(JSON.stringify(req.rawHeaders));
     });
 
+    app.get('/example', (req, res) => {
+        res.send(`<html><head><title>Example Domain</title></head></html>`);
+        res.status(200);
+    });
+
     app.all('/foo', (req, res) => {
         res.json({
             headers: req.headers,
@@ -216,7 +221,7 @@ describe('Apify.launchPuppeteer()', () => {
 
             // Add a test to go to an actual domain because we've seen issues
             // where pages would not load at all with Chrome.
-            await page.goto('https://example.com');
+            await page.goto(`http://${HOSTNAME}:${port}/example`);
             const title = await page.title();
             const version = await browser.version();
 

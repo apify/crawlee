@@ -1,4 +1,5 @@
 import http from 'http';
+import os from 'os';
 import { promisify } from 'util';
 import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
@@ -8,6 +9,8 @@ import LocalStorageDirEmulator from '../local_storage_dir_emulator';
 import * as utils from '../../build/utils';
 import { ProxyConfiguration } from '../../build/proxy_configuration';
 import { createProxyServer } from '../create-proxy-server';
+
+if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;

@@ -1,3 +1,4 @@
+import os from 'os';
 import { ENV_VARS } from '@apify/consts';
 import playwright from 'playwright';
 import express from 'express';
@@ -5,6 +6,8 @@ import { startExpressAppPromise } from '../_helper';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+
+if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless;
@@ -47,6 +50,7 @@ describe('PlaywrightCrawler', () => {
         server.close();
     });
 
+    jest.setTimeout(2 * 60 * 1e3);
     describe('should work', () => {
         // @TODO: add webkit
         test.each(['chromium', 'firefox'])('with %s', async (browser) => {
