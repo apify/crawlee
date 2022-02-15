@@ -355,9 +355,7 @@ export const getFirstKey = (dict) => {
 export const getTypicalChromeExecutablePath = () => {
     switch (os.platform()) {
         case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-        case 'win32': return '%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe'.replace(
-            /%([^%]+)%/g, (__, n) => process.env[n]
-        );
+        case 'win32': return `${process.env.ProgramFiles}\\Google\\Chrome\\Application\\chrome.exe`;
         default: return '/usr/bin/google-chrome';
     }
 };
