@@ -8,7 +8,7 @@ If you want to learn more, proceed to the [Getting Started](../guides/getting-st
 tutorial that will take you step by step through creating your first scraper.
 
 ## Local stand-alone usage
-Apify SDK requires [Node.js](https://nodejs.org/en/) 10.17 or later, with the exception of Node.js 11.
+Apify SDK requires [Node.js](https://nodejs.org/en/) 15.10 or later.
 Add Apify SDK to any Node.js project by running:
 
 ```bash
