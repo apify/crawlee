@@ -23,5 +23,6 @@
             "automergeType": "branch"
         }
     ],
+    "ignoreDeps": ["typescript"],
     "schedule": ["every weekday"]
 }
