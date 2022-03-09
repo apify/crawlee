@@ -27,6 +27,7 @@ import { requestAsBrowser } from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
 import { CheerioAPI } from 'cheerio';
+import { Configuration } from './configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const rimrafp = util.promisify(rimraf);
@@ -114,7 +115,7 @@ export const logSystemInfo = () => {
  * @type {*}
  * @ignore
  */
-export const apifyClient = newClient();
+export const apifyClient = Configuration.getGlobalConfig().getClient();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
