@@ -3,6 +3,8 @@ import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 import { isAtHome } from '../utils';
+import log from '../utils_log';
+
 import { DEFAULT_USER_AGENT } from '../constants';
 
 import applyStealthToBrowser, { StealthOptions } from '../stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
@@ -113,7 +115,11 @@ export class PuppeteerLauncher extends BrowserLauncher {
 
         if (this.stealth) {
             const { hideWebDriver, ...newStealthOptions } = this.stealthOptions;
-
+            log.deprecated(
+                'Puppeteer "stealth" and "stealthOptions" is deprecated'
+                + 'You should use fingerprints instead.'
+                + 'Checkout the fingerprints guide: https://sdk.apify.com/docs/guides/avoid-blocking-fingerprints',
+            );
             applyStealthToBrowser(browser, newStealthOptions);
         }
 

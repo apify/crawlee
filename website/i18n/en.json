@@ -17,8 +17,14 @@
       "api/basic-crawler": {
         "title": "BasicCrawler"
       },
+      "api/browser-crawler": {
+        "title": "BrowserCrawler"
+      },
       "api/browser-plugin": {
         "title": "BrowserPlugin"
+      },
+      "api/cache-container": {
+        "title": "CacheContainer"
       },
       "api/cheerio-crawler": {
         "title": "CheerioCrawler"
@@ -26,8 +32,17 @@
       "api/configuration": {
         "title": "Configuration"
       },
+      "api/cookie-parse-error": {
+        "title": "CookieParseError"
+      },
       "api/dataset": {
         "title": "Dataset"
+      },
+      "api/exports": {
+        "title": "exports"
+      },
+      "api/job": {
+        "title": "Job"
       },
       "api/key-value-store": {
         "title": "KeyValueStore"
@@ -76,6 +91,9 @@
       },
       "api/statistics": {
         "title": "Statistics"
+      },
+      "api/storage-manager": {
+        "title": "StorageManager"
       },
       "api/system-status": {
         "title": "SystemStatus"
@@ -146,6 +164,9 @@
       "guides/apify-platform": {
         "title": "Apify Platform"
       },
+      "guides/avoid-blocking": {
+        "title": "Avoid getting blocked"
+      },
       "guides/docker-images": {
         "title": "Running in Docker"
       },
@@ -205,6 +226,9 @@
       },
       "typedefs/basic-crawler-options": {
         "title": "BasicCrawlerOptions"
+      },
+      "typedefs/browser-crawler-options": {
+        "title": "BrowserCrawlerOptions"
       },
       "typedefs/browser-crawling-context": {
         "title": "BrowserCrawlingContext"
@@ -280,6 +304,9 @@
       },
       "typedefs/key-value-store-value-types": {
         "title": "KeyValueStoreValueTypes"
+      },
+      "typedefs/launch-puppeteer-options": {
+        "title": "LaunchPuppeteerOptions"
       },
       "typedefs/logger-options": {
         "title": "LoggerOptions"
