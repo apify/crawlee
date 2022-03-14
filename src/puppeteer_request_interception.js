@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import ow from 'ow';
 import _ from 'underscore';
-import { Request as PuppeteerRequest, Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
+import { HTTPRequest as PuppeteerRequest, Page } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import log from './utils_log';
 
 // We use weak maps here so that the content gets discarted after page gets closed.

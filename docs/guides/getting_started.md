@@ -25,9 +25,9 @@ environment and let's get into it.
 
 To run Apify SDK on your own computer, you need to meet the following pre-requisites first:
 
-1. Have Node.js version 10.17 or higher, with the exception of Node.js 11, installed.
+1. Have Node.js version 15.10 or higher installed.
     - Visit [Node.js website](https://nodejs.org/en/download/) to download or use
-      [nvm](https://github.com/creationix/nvm)
+      [fnm](https://github.com/Schniz/fnm)
 2. Have NPM installed.
     - NPM comes bundled with Node.js so you should already have it. If not, reinstall Node.js.
 
@@ -128,8 +128,7 @@ introduce all the Apify SDK classes necessary to make it happen.
 
 ### The general idea
 
-There are 3 crawler classes available for use in the Apify SDK. [`BasicCrawler`](../api/basic-crawler), [`CheerioCrawler`](../api/cheerio-crawler)
-and [`PuppeteerCrawler`](../api/puppeteer-crawler). We'll talk about their differences later. Now, let's talk about what they have in common.
+There are 4 crawler classes available for use in the Apify SDK. [`BasicCrawler`](../api/basic-crawler), [`CheerioCrawler`](../api/cheerio-crawler), [`PuppeteerCrawler`](../api/puppeteer-crawler) and [`PlaywrightCrawler`](../api/playwright-crawler). We'll talk about their differences later. Now, let's talk about what they have in common.
 
 The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results and continue to the next page, until it's done
 its job. So the crawler always needs to find answers to two questions: **Where should I go?** and **What should I do there?** Answering those two

@@ -1,8 +1,13 @@
+import os from 'os';
 import { ENV_VARS } from '@apify/consts';
 import playwright from 'playwright';
+import express from 'express';
+import { startExpressAppPromise } from '../_helper';
 import log from '../../build/utils_log';
 import Apify from '../../build';
 import LocalStorageDirEmulator from '../local_storage_dir_emulator';
+
+if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless;
@@ -10,6 +15,19 @@ describe('PlaywrightCrawler', () => {
     let localStorageEmulator;
     let requestList;
 
+    const HOSTNAME = '127.0.0.1';
+    let port;
+    let server;
+
+    beforeAll(async () => {
+        const app = express();
+        server = await startExpressAppPromise(app, 0);
+        port = server.address().port;
+        app.get('/', (req, res) => {
+            res.send(`<html><head><title>Example Domain</title></head></html>`);
+            res.status(200);
+        });
+    });
     beforeAll(async () => {
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
         process.env[ENV_VARS.HEADLESS] = '1';
@@ -20,7 +38,7 @@ describe('PlaywrightCrawler', () => {
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
         Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
-        const sources = ['http://example.com/'];
+        const sources = [`http://${HOSTNAME}:${port}/`];
         requestList = await Apify.openRequestList(`sources-${Math.random * 10000}`, sources);
     });
     afterAll(async () => {
@@ -28,17 +46,21 @@ describe('PlaywrightCrawler', () => {
         process.env[ENV_VARS.HEADLESS] = prevEnvHeadless;
         await localStorageEmulator.destroy();
     });
+    afterAll(() => {
+        server.close();
+    });
 
+    jest.setTimeout(2 * 60 * 1e3);
     describe('should work', () => {
-        // @TODO: add webkit and solve te timeout issue on github actions.
+        // @TODO: add webkit
         test.each(['chromium', 'firefox'])('with %s', async (browser) => {
             const sourcesLarge = [
-                { url: 'http://example.com/?q=1' },
-                { url: 'http://example.com/?q=2' },
-                { url: 'http://example.com/?q=3' },
-                { url: 'http://example.com/?q=4' },
-                { url: 'http://example.com/?q=5' },
-                { url: 'http://example.com/?q=6' },
+                { url: `http://${HOSTNAME}:${port}/?q=1` },
+                { url: `http://${HOSTNAME}:${port}/?q=2` },
+                { url: `http://${HOSTNAME}:${port}/?q=3` },
+                { url: `http://${HOSTNAME}:${port}/?q=4` },
+                { url: `http://${HOSTNAME}:${port}/?q=5` },
+                { url: `http://${HOSTNAME}:${port}/?q=6` },
             ];
             const sourcesCopy = JSON.parse(JSON.stringify(sourcesLarge));
             const processed = [];

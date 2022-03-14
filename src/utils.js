@@ -1,15 +1,14 @@
 import psTree from '@apify/ps-tree';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { execSync } from 'child_process';
 import { ApifyClient } from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
 import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
+// eslint-disable-next-line import/no-duplicates
 import cheerio from 'cheerio';
 import contentTypeParser from 'content-type';
 import fs from 'fs';
 import mime from 'mime-types';
 import os from 'os';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import ow from 'ow';
 import path from 'path';
 import semver from 'semver';
@@ -21,13 +20,14 @@ import rimraf from 'rimraf';
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
 import { IncomingMessage } from 'http';
-import { Response as PuppeteerResponse } from 'puppeteer';
+import { HTTPResponse as PuppeteerResponse } from 'puppeteer';
 import { version as apifyVersion } from '../package.json';
 import log from './utils_log';
 import { requestAsBrowser } from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
-
+import { CheerioAPI } from 'cheerio';
+import { Configuration } from './configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const rimrafp = util.promisify(rimraf);
@@ -115,7 +115,7 @@ export const logSystemInfo = () => {
  * @type {*}
  * @ignore
  */
-export const apifyClient = newClient();
+export const apifyClient = Configuration.getGlobalConfig().getClient();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
@@ -354,34 +354,31 @@ export const getFirstKey = (dict) => {
  * @ignore
  */
 export const getTypicalChromeExecutablePath = () => {
+    /**
+     * Return path of Chrome executable by its OS environment variable to deal with non-english language OS.
+     * Taking also in account the old [chrome 380177 issue](https://bugs.chromium.org/p/chromium/issues/detail?id=380177).
+     *
+     * @returns {string}
+     * @ignore
+     */
+    const getWin32Path = () => {
+        let chromeExecutablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        const path00 = `${process.env.ProgramFiles}\\Google\\Chrome\\Application\\chrome.exe`;
+        const path86 = `${process.env['ProgramFiles(x86)']}\\Google\\Chrome\\Application\\chrome.exe`;
+
+        if (fs.existsSync(path00)) {
+            chromeExecutablePath = path00;
+        } else if (fs.existsSync(path86)) {
+            chromeExecutablePath = path86;
+        }
+        return chromeExecutablePath;
+    };
+
     switch (os.platform()) {
         case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-        case 'win32': return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        case 'win32': return getWin32Path();
         default: return '/usr/bin/google-chrome';
     }
-};
-
-/**
- * Wraps the provided Promise with another one that rejects with the given errorMessage
- * after the given timeoutMillis, unless the original promise resolves or rejects earlier.
- *
- * @param {Promise<*>} promise
- * @param {number} timeoutMillis
- * @param {string} errorMessage
- * @return {Promise<*>}
- * @ignore
- */
-export const addTimeoutToPromise = (promise, timeoutMillis, errorMessage) => {
-    return new Promise((resolve, reject) => {
-        ow(promise, ow.promise);
-        ow(timeoutMillis, ow.number);
-        ow(errorMessage, ow.string);
-        const timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMillis);
-        promise
-            .then(resolve)
-            .catch(reject)
-            .finally(() => clearTimeout(timeout));
-    });
 };
 
 /**
@@ -439,7 +436,16 @@ const downloadListOfUrls = async (options) => {
         urlRegExp: ow.optional.regExp,
     }));
     const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX } = options;
-    const { body: string } = await requestAsBrowser({ url, encoding });
+
+    // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
+    const match = url.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/);
+    let fixedUrl = url;
+
+    if (match) {
+        fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
+    }
+
+    const { body: string } = await requestAsBrowser({ url: fixedUrl, encoding });
     return extractUrls({ string, urlRegExp });
 };
 
@@ -489,7 +495,7 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```
- * @param {(string|cheerio.Root)} html HTML text or parsed HTML represented using a
+ * @param {(string|CheerioAPI)} html HTML text or parsed HTML represented using a
  * [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return {string} Plain text
  * @memberOf utils
@@ -504,7 +510,7 @@ const htmlToText = (html) => {
     //  produces really text with a lot of HTML elements in it. Let's just deprecate this sort of usage,
     //  and make the parameter "htmlOrCheerioElement"
     /**
-     * @type {cheerio.Root}
+     * @type {CheerioAPI}
      * @ignore
      */
     const $ = typeof html === 'function' ? html : cheerio.load(html, { decodeEntities: true });

@@ -4,7 +4,7 @@ import { betterSetInterval, betterClearInterval } from '@apify/utilities';
 import { ACTOR_EVENT_NAMES, ENV_VARS } from '@apify/consts';
 import { getMemoryInfo, isAtHome, apifyClient } from '../utils';
 import events from '../events';
-import defaultLog from '../utils_log';
+import defaultLog, { Log } from '../utils_log'; // eslint-disable-line no-unused-vars
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
@@ -99,7 +99,7 @@ class Snapshotter {
             log = defaultLog,
         } = options;
 
-        /** @type {defaultLog.Log} */
+        /** @type {Log} */
         this.log = log.child({ prefix: 'Snapshotter' });
 
         this.eventLoopSnapshotIntervalMillis = eventLoopSnapshotIntervalSecs * 1000;

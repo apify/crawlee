@@ -1,3 +1,64 @@
+2.2.2 / 2022/02/xx
+====================
+- fix: ensure `request.headers` is set
+- fix: lower `RequestQueue` API timeout to 30 seconds
+- improve logging for fetching next request and timeouts
+
+
+2.2.1 / 2022/01/03
+====================
+- fix: ignore requests that are no longer in progress (#1258)
+- fix: do not use `tryCancel()` from inside sync callback (#1265)
+- fix: revert to puppeteer 10.x (#1276)
+- fix: wait when `body` is not available in `infiniteScroll()` from Puppeteer utils (#1238)
+- fix: expose logger classes on the `utils.log` instance (#1278)
+
+2.2.0 / 2021/12/17
+====================
+
+### Proxy per page
+
+Up until now, browser crawlers used the same session (and therefore the same proxy) for
+all request from a single browser - now get a new proxy for each session. This means
+that with incognito pages, each page will get a new proxy, aligning the behaviour with
+`CheerioCrawler`.
+
+This feature is not enabled by default. To use it, we need to enable `useIncognitoPages`
+flag under `launchContext`:
+
+```ts
+new Apify.Playwright({
+    launchContext: {
+        useIncognitoPages: true,
+    },
+    // ...
+})
+```
+
+> Note that currently there is a performance overhead for using `useIncognitoPages`.
+> Use this flag at your own will.
+
+We are planning to enable this feature by default in SDK v3.0.
+
+### Abortable timeouts
+
+Previously when a page function timed out, the task still kept running. This could lead to requests being processed multiple times. In v2.2 we now have abortable timeouts that will cancel the task as early as possible.
+
+### Mitigation of zero concurrency issue
+
+Several new timeouts were added to the task function, which should help mitigate the zero concurrency bug. Namely fetching of next request information and reclaiming failed requests back to the queue are now executed with a timeout with 3 additional retries before the task fails. The timeout is always at least 300s (5 minutes), or `handleRequestTimeoutSecs` if that value is higher.
+
+## Full list of changes
+
+- fix `RequestError: URI malformed` in cheerio crawler (#1205)
+- only provide Cookie header if cookies are present (#1218)
+- handle extra cases for `diffCookie` (#1217)
+- implement proxy per page in browser crawlers (#1228)
+- add fingerprinting support (#1243)
+- implement abortable timeouts (#1245)
+- add timeouts with retries to `runTaskFunction()` (#1250)
+- automatically convert google spreadsheet URLs to CSV exports (#1255)
+
 2.1.0 / 2021/10/07
 ====================
 - automatically convert google docs share urls to csv download ones in request list (#1174)

@@ -13,6 +13,7 @@ import Request, { RequestOptions } from '../request'; // eslint-disable-line imp
 import { ApifyClient } from 'apify-client';
 // @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
+import { storage } from '@apify/timeout';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const MAX_CACHED_REQUESTS = 1000 * 1000;
@@ -126,9 +127,11 @@ export class RequestQueue {
         this.id = options.id;
         this.name = options.name;
         this.isLocal = options.isLocal;
+        this.timeoutSecs = 30;
         this.clientKey = cryptoRandomObjectId();
         this.client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
+            timeoutSecs: this.timeoutSecs,
         });
         this.log = log.child({ prefix: 'RequestQueue' });
 
@@ -338,7 +341,7 @@ export class RequestQueue {
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      *
      * @param {Request} request
-     * @return {Promise<QueueOperationInfo>}
+     * @return {Promise<QueueOperationInfo | null>}
      */
     async markRequestHandled(request) {
         ow(request, ow.object.partialShape({
@@ -348,12 +351,13 @@ export class RequestQueue {
         }));
 
         if (!this.inProgress.has(request.id)) {
-            throw new Error(`Cannot mark request ${request.id} as handled, because it is not in progress!`);
+            this.log.debug(`Cannot mark request ${request.id} as handled, because it is not in progress!`, { requestId: request.id });
+            return null;
         }
 
-        if (!request.handledAt) request.handledAt = new Date();
-
-        const queueOperationInfo = await this.client.updateRequest(request);
+        const handledAt = request.handledAt ?? new Date();
+        const queueOperationInfo = await this.client.updateRequest({ ...request, handledAt });
+        request.handledAt = handledAt;
 
         this.inProgress.delete(request.id);
         this.recentlyHandled.add(request.id, true);
@@ -381,7 +385,7 @@ export class RequestQueue {
      * If `true` then the request it placed to the beginning of the queue, so that it's returned
      * in the next call to {@link RequestQueue#fetchNextRequest}.
      * By default, it's put to the end of the queue.
-     * @return {Promise<QueueOperationInfo>}
+     * @return {Promise<QueueOperationInfo | null>}
      */
     async reclaimRequest(request, options = {}) {
         ow(request, ow.object.partialShape({
@@ -395,7 +399,8 @@ export class RequestQueue {
         const { forefront = false } = options;
 
         if (!this.inProgress.has(request.id)) {
-            throw new Error(`Cannot reclaim request ${request.id}, because it is not in progress!`);
+            this.log.debug(`Cannot reclaim request ${request.id}, because it is not in progress!`, { requestId: request.id });
+            return null;
         }
 
         // TODO: If request hasn't been changed since the last getRequest(),
@@ -408,7 +413,7 @@ export class RequestQueue {
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id)) {
-                this.log.warning('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
                 return;
             }
 

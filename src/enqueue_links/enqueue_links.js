@@ -13,6 +13,7 @@ import { RequestQueue, QueueOperationInfo } from '../storages/request_queue';
 import { RequestTransform } from './shared';
 import PseudoUrl from '../pseudo_url';
 import { validators } from '../validators';
+import { CheerioAPI } from 'cheerio';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -48,7 +49,7 @@ import { validators } from '../validators';
  *   Either `page` or `$` option must be provided.
  * @param {Number} [options.limit]
  *   Limit the count of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
- * @param {(cheerio.Root|cheerio.Selector)} [options.$]
+ * @param {CheerioAPI} [options.$]
  *   [`Cheerio`](https://github.com/cheeriojs/cheerio) function with loaded HTML.
  *   Either `page` or `$` option must be provided.
  * @param {RequestQueue} options.requestQueue
@@ -159,7 +160,7 @@ export async function extractUrlsFromPage(page, selector) {
 /**
  * Extracts URLs from a given Cheerio object.
  *
- * @param {(cheerio.Root|cheerio.Selector)} $
+ * @param {CheerioAPI} $
  * @param {string} selector
  * @param {string} baseUrl
  * @return {string[]}

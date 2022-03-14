@@ -1,8 +1,8 @@
 import ow from 'ow';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { BrowserPool, BrowserController } from 'browser-pool'; // eslint-disable-line import/no-duplicates,no-unused-vars
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
 import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
-import { addTimeoutToPromise } from '../utils';
 import { validators } from '../validators';
 import {
     throwOnBlockedRequest,
@@ -360,36 +360,71 @@ export default class BrowserCrawler extends BasicCrawler {
      * @internal
      */
     async _handleRequestFunction(crawlingContext) {
-        const { id } = crawlingContext;
-        const page = await this.browserPool.newPage({ id });
-        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page);
+        const newPageOptions = {
+            id: crawlingContext.id,
+        };
 
+        const useIncognitoPages = this.launchContext && this.launchContext.useIncognitoPages;
+        if (this.proxyConfiguration && useIncognitoPages) {
+            const { session } = crawlingContext;
+
+            const proxyInfo = this.proxyConfiguration.newProxyInfo(session && session.id);
+            crawlingContext.session = session;
+            crawlingContext.proxyInfo = proxyInfo;
+
+            newPageOptions.proxyUrl = proxyInfo.url;
+
+            // Disable SSL verification for MITM proxies
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
+                newPageOptions.pageOptions = {
+                    ignoreHTTPSErrors: true,
+                };
+            }
+        }
+
+        const page = await this.browserPool.newPage(newPageOptions);
+        tryCancel();
+        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
+
+        // DO NOT MOVE THIS LINE ABOVE!
+        // `enhanceCrawlingContextWithPageInfo` gives us a valid session.
+        // For example, `sessionPoolOptions.sessionOptions.maxUsageCount` can be `1`.
+        // So we must not save the session prior to making sure it was used only once, otherwise we would use it twice.
         const { request, session } = crawlingContext;
 
         if (this.useSessionPool) {
             const sessionCookies = session.getPuppeteerCookies(request.url);
             if (sessionCookies.length) {
                 await crawlingContext.browserController.setCookies(page, sessionCookies);
+                tryCancel();
             }
         }
 
         try {
             await this._handleNavigation(crawlingContext);
+            tryCancel();
 
             await this._responseHandler(crawlingContext);
+            tryCancel();
 
             // save cookies
             // @TODO: Should we save the cookies also after/only the handle page?
             if (this.persistCookiesPerSession) {
                 const cookies = await crawlingContext.browserController.getCookies(page);
+                tryCancel();
                 session.setPuppeteerCookies(cookies, request.loadedUrl);
             }
 
             await addTimeoutToPromise(
-                this.handlePageFunction(crawlingContext),
+                () => this.handlePageFunction(crawlingContext),
                 this.handlePageTimeoutMillis,
                 `handlePageFunction timed out after ${this.handlePageTimeoutMillis / 1000} seconds.`,
             );
+            tryCancel();
 
             if (session) session.markGood();
         } finally {
@@ -400,11 +435,12 @@ export default class BrowserCrawler extends BasicCrawler {
     /**
      * @param {BrowserCrawlingContext & CrawlingContext} crawlingContext
      * @param {*} page
+     * @param {boolean} useIncognitoPages
      * @ignore
      * @protected
      * @internal
      */
-    _enhanceCrawlingContextWithPageInfo(crawlingContext, page) {
+    _enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages) {
         crawlingContext.page = page;
 
         // This switch is because the crawlingContexts are created on per request basis.
@@ -414,8 +450,13 @@ export default class BrowserCrawler extends BasicCrawler {
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page);
         crawlingContext.browserController = browserControllerInstance;
 
-        crawlingContext.session = browserControllerInstance.launchContext.session;
-        crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        if (!useIncognitoPages) {
+            crawlingContext.session = browserControllerInstance.launchContext.session;
+        }
+
+        if (!crawlingContext.proxyInfo) {
+            crawlingContext.proxyInfo = browserControllerInstance.launchContext.proxyInfo;
+        }
     }
 
     /**
@@ -428,6 +469,8 @@ export default class BrowserCrawler extends BasicCrawler {
         /** @type {*} */
         const gotoOptions = { ...this.defaultGotoOptions };
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
+        tryCancel();
+
         try {
             crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions);
         } catch (error) {
@@ -436,6 +479,7 @@ export default class BrowserCrawler extends BasicCrawler {
             throw error;
         }
 
+        tryCancel();
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
     }
 

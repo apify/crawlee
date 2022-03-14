@@ -1,6 +1,7 @@
 ---
-id: quick-start
+id: version-2.2.0-quick-start
 title: Quick Start
+original_id: quick-start
 ---
 
 This short tutorial will set you up to start using Apify SDK in a minute or two.
