@@ -367,7 +367,7 @@ class Snapshotter {
      */
     _snapshotCpuOnLocal(intervalCallback) {
         const now = new Date();
-        this._pruneSnapshots(this.eventLoopSnapshots, now);
+        this._pruneSnapshots(this.cpuSnapshots, now);
 
         const ticks = this._getCurrentCpuTicks();
         const snapshot = {
