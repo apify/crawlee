@@ -409,6 +409,7 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
     return new Promise((resolve) => {
         let timeout;
         let maxTimeout;
+        const context = page.browserContext();
 
         function newTabTracker(target) {
             if (isTargetRelevant(page, target)) activityHandler();
@@ -431,7 +432,7 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
         function finish() {
             page.removeListener('request', activityHandler);
             page.removeListener('framenavigated', activityHandler);
-            page.removeListener('targetcreated', newTabTracker);
+            context.removeListener('targetcreated', newTabTracker);
             resolve();
         }
 
@@ -439,7 +440,7 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
         timeout = activityHandler(); // We call this once manually in case there would be no requests at all.
         page.on('request', activityHandler);
         page.on('framenavigated', activityHandler);
-        page.on('targetcreated', newTabTracker);
+        context.on('targetcreated', newTabTracker);
     });
 }
 
