@@ -315,6 +315,9 @@ describe('utils.social', () => {
             instagrams: [],
             facebooks: [],
             youtubes: [],
+            tiktoks: [],
+            pinterests: [],
+            discords: [],
         };
 
         test('handles invalid arg', () => {
@@ -390,12 +393,37 @@ describe('utils.social', () => {
                         <a href="https://youtu.be/kM7YfhfkiEE">Youtube</a>
                         <a href="fb.com/dada5678?query=1">link</a>
 
+                        https://www.tiktok.com/trending?shareId=1234567890123456789/
+                        m.tiktok.com/v/1234567890123456789
+                        <a href="https://tiktok.com/@jack1234">Profile</a>
+                        <a href="https://www.tiktok.com/@username/video/1234567890123456789">Most popular video</a>
+                        <a href="https://www.tiktok.com/embed/1234567890123456789/"Embed video</a>
+                        m.tiktok.com/v/1234567890123456789 duplicate
+
+                        <a href="https://www.pinterest.com/jack">Profile</a>
+                        <a href="https://pinterest.com/pin/10084556789">Top pin</a>
+                        <a href="https://uk.pinterest.com/user/board/">My board</a>
+                        pinterest.com/my_username
+                        <a href="https://pinterest.com/pin/10084556789">My favourite pin</a> duplicate
+
+                        <a href="https://discord.com/invite/jyEM2PRvMU/">Join us on Discord</a>
+                        <a href="discord.gg/discord-developers">Join our Discord community</a>
                     </body>
                 </html>
             `)).toEqual({
+                discords: [
+                    'discord.gg/discord-developers',
+                    'https://discord.com/invite/jyEM2PRvMU/',
+                ],
                 emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
                 phones: ['+42077533333'],
-                phonesUncertain: ['+4207751111111', '+420775222222'],
+                phonesUncertain: [
+                    '+4207751111111',
+                    '+420775222222',
+
+                    // tiktok videos have purely numeric ids so this can't be avoided
+                    '123456789012345',
+                ],
                 linkedIns: [
                     'http://www.linkedin.com/in/nohttps/',
                     'https://cz.linkedin.com/in/somecountry',
@@ -412,6 +440,19 @@ describe('utils.social', () => {
                     'https://www.instagram.com/york',
                     'https://www.instagram.com/york2/',
                     'instagram.com/old_prague',
+                ],
+                pinterests: [
+                    'https://pinterest.com/pin/10084556789',
+                    'https://uk.pinterest.com/user/board/',
+                    'https://www.pinterest.com/jack',
+                    'pinterest.com/my_username',
+                ],
+                tiktoks: [
+                    'https://tiktok.com/@jack1234',
+                    'https://www.tiktok.com/@username/video/1234567890123456789',
+                    'https://www.tiktok.com/embed/1234567890123456789/',
+                    'https://www.tiktok.com/trending?shareId=1234567890123456789/',
+                    'm.tiktok.com/v/1234567890123456789',
                 ],
                 twitters: [
                     'https://www.twitter.com/apify',
@@ -584,6 +625,9 @@ describe('utils.social', () => {
             expect(social.INSTAGRAM_REGEX.test('xinstagram.com/old_prague')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('_instagram.com/old_prague')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('0instagram.com/old_prague')).toBe(false);
+            expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/explore/')).toBe(false);
+            expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/_n/')).toBe(false);
+            expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/_u/')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/old_prague/?param=bla')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('://www.instagram.com/old_prague')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('http://www.instagram.com/old_prague http://www.instagram.com/old_brno')).toBe(false);
@@ -757,6 +801,7 @@ describe('utils.social', () => {
             expect(''.match(social.FACEBOOK_REGEX_GLOBAL)).toBe(null);
         });
     });
+
     describe('YOUTUBE_REGEX', () => {
         it('works', () => {
             expect(_.isRegExp(social.YOUTUBE_REGEX)).toBe(true);
@@ -765,12 +810,29 @@ describe('utils.social', () => {
             expect(social.YOUTUBE_REGEX.flags).toBe('i');
             expect(social.YOUTUBE_REGEX_GLOBAL.flags).toBe('gi');
 
+            expect(''.match(social.YOUTUBE_REGEX_GLOBAL)).toBe(null);
+            expect(' dummy '.match(social.YOUTUBE_REGEX_GLOBAL)).toBe(null);
+
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/watch?v=kM7YfhfkiEE')).toBe(true);
             expect(social.YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE')).toBe(true);
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/c/TrapNation')).toBe(true);
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA')).toBe(true);
             expect(social.YOUTUBE_REGEX.test('https://www.youtube.com/user/pewdiepie')).toBe(true);
+
+            expect(social.YOUTUBE_REGEX.test('://www.youtube.com/c/TrapNation')).toBe(false);
+            expect(social.YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE https://www.youtube.com/user/pewdiepie')).toBe(false);
+            expect(social.YOUTUBE_REGEX.test('xyoutu.be/kM7YfhfkiEE')).toBe(false);
+            expect(social.YOUTUBE_REGEX.test('-https://www.youtube.com/user/pewdiepie')).toBe(false);
+
+            // Test there is just on matching group for the channel, video or username
+            expect('https://www.youtube.com/watch?v=kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)[1]).toBe('kM7YfhfkiEE');
+            expect('https://youtu.be/kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)[1]).toBe('kM7YfhfkiEE');
+            expect('https://www.youtube.com/c/TrapNation'.match(social.YOUTUBE_REGEX)[1]).toBe('TrapNation');
+            expect('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA'.match(social.YOUTUBE_REGEX)[1]).toBe('UCklie6BM0fhFvzWYqQVoCTA');
+            expect('https://www.youtube.com/user/pewdiepie'.match(social.YOUTUBE_REGEX)[1]).toBe('pewdiepie');
+
             expect(`
+                    https://www.youtube.com/apify/
                     -https://www.youtube.com/someusername/
                     youtube.com/jack4567
                     https://www.youtube.com/watch?v=kM7YfhfkiEE
@@ -782,10 +844,168 @@ describe('utils.social', () => {
                     youtube.com/user/pewdiepie
                     `.match(social.YOUTUBE_REGEX_GLOBAL))
                 .toEqual([
+                    'https://www.youtube.com/apify',
+                    'https://www.youtube.com/someusername',
+                    'youtube.com/jack4567',
                     'https://www.youtube.com/watch?v=kM7YfhfkiEE',
                     'www.youtube.com/c/TrapNation',
                     'https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA',
                     'youtube.com/user/pewdiepie',
+                ]);
+        });
+    });
+
+    describe('TIKTOK_REGEX', () => {
+        it('works', () => {
+            expect(_.isRegExp(social.TIKTOK_REGEX)).toBe(true);
+            expect(_.isRegExp(social.TIKTOK_REGEX_GLOBAL)).toBe(true);
+
+            expect(social.TIKTOK_REGEX.flags).toBe('i');
+            expect(social.TIKTOK_REGEX_GLOBAL.flags).toBe('gi');
+
+            expect(''.match(social.TIKTOK_REGEX_GLOBAL)).toBe(null);
+            expect(' dummy '.match(social.TIKTOK_REGEX_GLOBAL)).toBe(null);
+
+            expect(social.TIKTOK_REGEX.test('https://www.tiktok.com/trending?shareId=123456789')).toBe(true);
+            expect(social.TIKTOK_REGEX.test('https://www.tiktok.com/embed/123456789')).toBe(true);
+            expect(social.TIKTOK_REGEX.test('https://m.tiktok.com/v/123456789')).toBe(true);
+            expect(social.TIKTOK_REGEX.test('https://www.tiktok.com/@user')).toBe(true);
+            expect(social.TIKTOK_REGEX.test('https://www.tiktok.com/@user/video/123456789')).toBe(true);
+
+            expect(social.TIKTOK_REGEX.test('_https://www.tiktok.com/trending?shareId=123456789')).toBe(false);
+            expect(social.TIKTOK_REGEX.test('xtiktok.com/embed/123456789/')).toBe(false);
+            expect(social.TIKTOK_REGEX.test('_pinterest.com/someusername')).toBe(false);
+            expect(social.TIKTOK_REGEX.test('0https://www.tiktok.com/trending?shareId=123456789')).toBe(false);
+
+            // Test there is just one matching group for video id or username
+            expect('https://www.tiktok.com/trending?shareId=123456789'.match(social.TIKTOK_REGEX)[1]).toBe('trending?shareId=123456789');
+            expect('www.tiktok.com/embed/123456789/'.match(social.TIKTOK_REGEX)[1]).toBe('embed/123456789');
+            expect('tiktok.com/@jack'.match(social.TIKTOK_REGEX)[1]).toBe('@jack');
+            expect('https://www.tiktok.com/@username/video/123456789'.match(social.TIKTOK_REGEX)[1]).toBe('@username/video/123456789');
+
+            expect(`
+                    https://www.tiktok.com/trending?shareId=123456789
+                    www.tiktok.com/embed/123456789/
+                    m.tiktok.com/v/123456789
+                    tiktok.com/@user
+                    https://www.tiktok.com/@username/video/123456789
+                    -https://www.tiktok.com/@username/video/82347868
+                    atiktok.com/embed/123456789/
+                    _tiktok.com/embed/123456789/
+                    www.tiktok.com/embed/nonNumericVideoId
+                    https://www.tiktok.com/@jack1234/invalidSubpath/
+                    https://www.tiktok.com/trending?shareId=1234567898904582904537057328079034789063454432789054378
+                    https://www.tiktok.com/@userWithLongVideoName/video/123456789890458290453705732807903478904327890543654645365478
+                    `.match(social.TIKTOK_REGEX_GLOBAL))
+                .toEqual([
+                    'https://www.tiktok.com/trending?shareId=123456789',
+                    'www.tiktok.com/embed/123456789/',
+                    'm.tiktok.com/v/123456789',
+                    'tiktok.com/@user',
+                    'https://www.tiktok.com/@username/video/123456789',
+                    'https://www.tiktok.com/@username/video/82347868',
+                    'https://www.tiktok.com/@jack1234/',
+                    'https://www.tiktok.com/@userWithLongVideoName/',
+                ]);
+        });
+    });
+
+    describe('PINTEREST_REGEX', () => {
+        it('works', () => {
+            expect(_.isRegExp(social.PINTEREST_REGEX)).toBe(true);
+            expect(_.isRegExp(social.PINTEREST_REGEX_GLOBAL)).toBe(true);
+
+            expect(social.PINTEREST_REGEX.flags).toBe('i');
+            expect(social.PINTEREST_REGEX_GLOBAL.flags).toBe('gi');
+
+            expect(''.match(social.PINTEREST_REGEX_GLOBAL)).toBe(null);
+            expect(' dummy '.match(social.PINTEREST_REGEX_GLOBAL)).toBe(null);
+
+            expect(social.PINTEREST_REGEX.test('https://pinterest.com/pin/123456789')).toBe(true);
+            expect(social.PINTEREST_REGEX.test('https://www.pinterest.cz/pin/123456789')).toBe(true);
+            expect(social.PINTEREST_REGEX.test('https://www.pinterest.com/user')).toBe(true);
+            expect(social.PINTEREST_REGEX.test('https://www.pinterest.co.uk/user')).toBe(true);
+            expect(social.PINTEREST_REGEX.test('pinterest.com/user_name.gold')).toBe(true);
+            expect(social.PINTEREST_REGEX.test('https://cz.pinterest.com/user/board')).toBe(true);
+
+            expect(social.PINTEREST_REGEX.test('_https://pinterest.com/pin/123456789')).toBe(false);
+            expect(social.PINTEREST_REGEX.test('xpinterest.com/user_name.gold')).toBe(false);
+            expect(social.PINTEREST_REGEX.test('_pinterest.com/someusername')).toBe(false);
+            expect(social.PINTEREST_REGEX.test('0pinterest.com/someusername')).toBe(false);
+
+            // Test there is just on matching group for the pin, board or username
+            expect('https://pinterest.com/pin/123456789'.match(social.PINTEREST_REGEX)[1]).toBe('pin/123456789');
+            expect('https://www.pinterest.com/username'.match(social.PINTEREST_REGEX)[1]).toBe('username');
+            expect('pinterest.com/user_name.gold'.match(social.PINTEREST_REGEX)[1]).toBe('user_name.gold');
+            expect('https://cz.pinterest.com/username/board'.match(social.PINTEREST_REGEX)[1]).toBe('username/board');
+
+            expect(`
+                    https://pinterest.com/pin/123456789
+                    -https://pinterest.com/pin/10084556789/
+                    https://www.pinterest.cz/pin/123456789
+                    https://www.pinterest.com/user
+                    https://uk.pinterest.com/user
+                    https://www.pinterest.co.uk/user
+                    pinterest.com/user_name.gold
+                    https://cz.pinterest.com/user/board
+                    https://www.pinterest.cz/pin/nonNumericPinId
+                    `.match(social.PINTEREST_REGEX_GLOBAL))
+                .toEqual([
+                    'https://pinterest.com/pin/123456789',
+                    'https://pinterest.com/pin/10084556789/',
+                    'https://www.pinterest.cz/pin/123456789',
+                    'https://www.pinterest.com/user',
+                    'https://uk.pinterest.com/user',
+                    'https://www.pinterest.co.uk/user',
+                    'pinterest.com/user_name.gold',
+                    'https://cz.pinterest.com/user/board',
+                ]);
+        });
+    });
+
+    describe('DISCORD_REGEX', () => {
+        it('works', () => {
+            expect(_.isRegExp(social.DISCORD_REGEX)).toBe(true);
+            expect(_.isRegExp(social.DISCORD_REGEX_GLOBAL)).toBe(true);
+
+            expect(social.DISCORD_REGEX.flags).toBe('i');
+            expect(social.DISCORD_REGEX_GLOBAL.flags).toBe('gi');
+
+            expect(''.match(social.DISCORD_REGEX_GLOBAL)).toBe(null);
+            expect(' dummy '.match(social.DISCORD_REGEX_GLOBAL)).toBe(null);
+
+            expect(social.DISCORD_REGEX.test('https://discord.gg/discord-developers')).toBe(true);
+            expect(social.DISCORD_REGEX.test('https://discord.com/invite/jyEM2PRvMU')).toBe(true);
+            expect(social.DISCORD_REGEX.test('https://discordapp.com/channels/231496023303957476')).toBe(true);
+            expect(social.DISCORD_REGEX.test('https://discord.com/channels/231496023303957476/2332823543826404586')).toBe(true);
+            expect(social.DISCORD_REGEX.test('https://ptb.discord.com/channels/231496023303957476/2332823543826404586')).toBe(true);
+            expect(social.DISCORD_REGEX.test('ptb.discord.com/invite/jyEM2PRvMU')).toBe(true);
+            expect(social.DISCORD_REGEX.test('canary.discord.com/invite/jyEM2PRvMU')).toBe(true);
+
+            expect(social.DISCORD_REGEX.test('https://discord.com/channels/nonNumbericChannelId')).toBe(false);
+            expect(social.DISCORD_REGEX.test('9discord.gg/discord-developers')).toBe(false);
+            expect(social.DISCORD_REGEX.test('-discordapp.com/channels/231496023303957476/')).toBe(false);
+
+            // Test there is just on matching group for the channel or invite (matches discord.* / discordapp.* prefix as well as they differ)
+            expect('https://discord.gg/discord-developers'.match(social.DISCORD_REGEX)[1]).toBe('discord.gg/discord-developers');
+            expect('https://discord.com/invite/jyEM2PRvMU'.match(social.DISCORD_REGEX)[1]).toBe('discord.com/invite/jyEM2PRvMU');
+            expect('https://discordapp.com/channels/231496023303957476'.match(social.DISCORD_REGEX)[1]).toBe('discordapp.com/channels/231496023303957476');
+            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(social.DISCORD_REGEX)[1]).toBe('discord.com/channels/231496023303957476/2332823543826404586');
+
+            expect(`
+                    https://discord.gg/discord-developers/
+                    https://discord.com/invite/jyEM2PRvMU
+                    -https://discordapp.com/channels/231496023303957476/
+                    https://discord.com/channels/231496023303957476/2332823543826404586
+                    discord.gg/discord-developers
+                    https://discordapp.com/channels/nonNumbericChannelId
+                    `.match(social.DISCORD_REGEX_GLOBAL))
+                .toEqual([
+                    'https://discord.gg/discord-developers/',
+                    'https://discord.com/invite/jyEM2PRvMU',
+                    'https://discordapp.com/channels/231496023303957476/',
+                    'https://discord.com/channels/231496023303957476/2332823543826404586',
+                    'discord.gg/discord-developers',
                 ]);
         });
     });

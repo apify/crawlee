@@ -1,4 +1,5 @@
 import http from 'http';
+import os from 'os';
 import { promisify } from 'util';
 import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
@@ -9,6 +10,8 @@ import * as utils from '../../build/utils';
 import { ProxyConfiguration } from '../../build/proxy_configuration';
 import { createProxyServer } from '../create-proxy-server';
 
+if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);
+
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless;
     let logLevel;
@@ -16,6 +19,8 @@ describe('PuppeteerCrawler', () => {
     let requestList;
     let servers;
     let target;
+    let serverUrl;
+    let proxyConfiguration;
 
     beforeAll(async () => {
         prevEnvHeadless = process.env[ENV_VARS.HEADLESS];
@@ -25,9 +30,12 @@ describe('PuppeteerCrawler', () => {
         localStorageEmulator = new LocalStorageDirEmulator();
 
         target = http.createServer((request, response) => {
+            response.write(`<html><head><title>Example Domain</title></head></html>`);
             response.end(request.socket.remoteAddress);
         });
         await promisify(target.listen.bind(target))(0, '127.0.0.1');
+
+        serverUrl = `http://127.0.0.1:${target.address().port}`;
 
         servers = [
             createProxyServer('127.0.0.2', '', ''),
@@ -36,11 +44,19 @@ describe('PuppeteerCrawler', () => {
         ];
 
         await Promise.all(servers.map((server) => server.listen()));
+
+        proxyConfiguration = new ProxyConfiguration({
+            proxyUrls: [
+                `http://127.0.0.2:${servers[0].port}`,
+                `http://127.0.0.3:${servers[1].port}`,
+                `http://127.0.0.4:${servers[2].port}`,
+            ],
+        });
     });
     beforeEach(async () => {
         const storageDir = await localStorageEmulator.init();
         Apify.Configuration.getGlobalConfig().set('localStorageDir', storageDir);
-        const sources = ['http://example.com/'];
+        const sources = [serverUrl];
         requestList = await Apify.openRequestList(`sources-${Math.random * 10000}`, sources);
     });
     afterAll(async () => {
@@ -54,12 +70,12 @@ describe('PuppeteerCrawler', () => {
 
     test('should work', async () => {
         const sourcesLarge = [
-            { url: 'http://example.com/?q=1' },
-            { url: 'http://example.com/?q=2' },
-            { url: 'http://example.com/?q=3' },
-            { url: 'http://example.com/?q=4' },
-            { url: 'http://example.com/?q=5' },
-            { url: 'http://example.com/?q=6' },
+            { url: `${serverUrl}/?q=1` },
+            { url: `${serverUrl}/?q=2` },
+            { url: `${serverUrl}/?q=3` },
+            { url: `${serverUrl}/?q=4` },
+            { url: `${serverUrl}/?q=5` },
+            { url: `${serverUrl}/?q=6` },
         ];
         const sourcesCopy = JSON.parse(JSON.stringify(sourcesLarge));
         const processed = [];
@@ -176,10 +192,9 @@ describe('PuppeteerCrawler', () => {
         expect.hasAssertions();
     });
 
-    // FIXME: I have no idea why but this test hangs
-    test.skip('supports useChrome option', async () => {
+    test('supports useChrome option', async () => {
         const spy = sinon.spy(utils, 'getTypicalChromeExecutablePath');
-        const puppeteerCrawler = new Apify.PuppeteerCrawler({ //eslint-disable-line
+        const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
@@ -191,6 +206,7 @@ describe('PuppeteerCrawler', () => {
             },
             handlePageFunction: async () => {},
         });
+        await puppeteerCrawler.run();
 
         expect(spy.calledOnce).toBe(true);
         spy.restore();
@@ -223,7 +239,7 @@ describe('PuppeteerCrawler', () => {
 
     test('timeout via preNavigationHooks will abort the page function as early as possible (gh #1216)', async () => {
         const requestQueue = await Apify.openRequestQueue();
-        await requestQueue.addRequest({ url: 'http://www.example.com' });
+        await requestQueue.addRequest({ url: serverUrl });
         const handlePageFunction = jest.fn();
 
         const crawler = new Apify.PuppeteerCrawler({
@@ -274,7 +290,7 @@ describe('PuppeteerCrawler', () => {
 
     test('timeout in preLaunchHooks will abort the page function as early as possible (gh #1216)', async () => {
         const requestQueue = await Apify.openRequestQueue();
-        await requestQueue.addRequest({ url: 'http://www.example.com' });
+        await requestQueue.addRequest({ url: serverUrl });
         const handlePageFunction = jest.fn();
 
         const crawler = new Apify.PuppeteerCrawler({
@@ -329,7 +345,7 @@ describe('PuppeteerCrawler', () => {
         const cookies = [
             {
                 name: 'example_cookie_name',
-                domain: '.example.com',
+                domain: '127.0.0.1',
                 value: 'example_cookie_value',
                 expires: -1,
             },
@@ -345,13 +361,13 @@ describe('PuppeteerCrawler', () => {
             sessionPoolOptions: {
                 createSessionFunction: (sessionPool) => {
                     const session = new Apify.Session({ sessionPool });
-                    session.setPuppeteerCookies(cookies, 'http://www.example.com');
+                    session.setPuppeteerCookies(cookies, serverUrl);
                     return session;
                 },
             },
             handlePageFunction: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
-                sessionCookies = session.getCookieString('http://www.example.com');
+                sessionCookies = session.getCookieString(serverUrl);
             },
         });
 
@@ -363,14 +379,6 @@ describe('PuppeteerCrawler', () => {
     test('proxy rotation', async () => {
         const proxies = new Set();
         const sessions = new Set();
-        const serverUrl = `http://127.0.0.1:${target.address().port}`;
-        const proxyConfiguration = new ProxyConfiguration({
-            proxyUrls: [
-                `http://127.0.0.2:${servers[0].port}`,
-                `http://127.0.0.3:${servers[1].port}`,
-                `http://127.0.0.4:${servers[2].port}`,
-            ],
-        });
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
             requestList: await Apify.openRequestList(null, [
                 { url: `${serverUrl}/?q=1` },
@@ -401,16 +409,6 @@ describe('PuppeteerCrawler', () => {
     });
 
     test('proxy per page', async () => {
-        const proxyConfiguration = new ProxyConfiguration({
-            proxyUrls: [
-                `http://127.0.0.2:${servers[0].port}`,
-                `http://127.0.0.3:${servers[1].port}`,
-                `http://127.0.0.4:${servers[2].port}`,
-            ],
-        });
-
-        const serverUrl = `http://127.0.0.1:${target.address().port}`;
-
         const requestListLarge = new Apify.RequestList({
             sources: [
                 { url: `${serverUrl}/?q=1` },

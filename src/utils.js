@@ -27,6 +27,7 @@ import { requestAsBrowser } from './utils_request';
 import Request, { RequestOptions } from './request';
 import { ActorRun } from './typedefs';
 import { CheerioAPI } from 'cheerio';
+import { Configuration } from './configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const rimrafp = util.promisify(rimraf);
@@ -114,7 +115,7 @@ export const logSystemInfo = () => {
  * @type {*}
  * @ignore
  */
-export const apifyClient = newClient();
+export const apifyClient = Configuration.getGlobalConfig().getClient();
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
@@ -353,9 +354,29 @@ export const getFirstKey = (dict) => {
  * @ignore
  */
 export const getTypicalChromeExecutablePath = () => {
+    /**
+     * Return path of Chrome executable by its OS environment variable to deal with non-english language OS.
+     * Taking also in account the old [chrome 380177 issue](https://bugs.chromium.org/p/chromium/issues/detail?id=380177).
+     *
+     * @returns {string}
+     * @ignore
+     */
+    const getWin32Path = () => {
+        let chromeExecutablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        const path00 = `${process.env.ProgramFiles}\\Google\\Chrome\\Application\\chrome.exe`;
+        const path86 = `${process.env['ProgramFiles(x86)']}\\Google\\Chrome\\Application\\chrome.exe`;
+
+        if (fs.existsSync(path00)) {
+            chromeExecutablePath = path00;
+        } else if (fs.existsSync(path86)) {
+            chromeExecutablePath = path86;
+        }
+        return chromeExecutablePath;
+    };
+
     switch (os.platform()) {
         case 'darwin': return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-        case 'win32': return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        case 'win32': return getWin32Path();
         default: return '/usr/bin/google-chrome';
     }
 };
