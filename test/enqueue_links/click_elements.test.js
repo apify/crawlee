@@ -137,6 +137,117 @@ describe('enqueueLinksByClickingElements()', () => {
         });
     });
 
+    describe('double clickElements()', () => {
+        test('should double click an element', async () => {
+            const html = `
+<html>
+    <body>
+        <div ondblclick="window.clicked = true;">div</div>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await clickElements(page, 'div', { clickCount: 2, delay: 100 });
+            const wasClicked = await page.evaluate(() => window.clicked);
+            expect(wasClicked).toBe(true);
+        });
+
+        test('should double click an empty element', async () => {
+            const html = `
+<html>
+    <body>
+        <div ondblclick="window.clicked = true;"></div>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await clickElements(page, 'div', { clickCount: 2, delay: 100 });
+            const wasClicked = await page.evaluate(() => window.clicked);
+            expect(wasClicked).toBe(true);
+        });
+        test('should double click multiple elements', async () => {
+            const html = `
+<html>
+    <script>
+        window.clickedElements = [];
+        window.handleClick = (evt) => window.clickedElements.push(evt.target.nodeName);
+    </script>
+    <body>
+        <header ondblclick="return window.handleClick(event)"></header>
+        <div ondblclick="return window.handleClick(event)"></div>
+        <p ondblclick="return window.handleClick(event)"></p>
+        <footer ondblclick="return window.handleClick(event)"></footer>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await clickElements(page, 'header, div, p, footer', { clickCount: 2, delay: 100 });
+            const clickedElements = await page.evaluate(() => window.clickedElements);
+            expect(clickedElements).toEqual(['HEADER', 'DIV', 'P', 'FOOTER']);
+        });
+
+        test('should double click hidden elements', async () => {
+            const html = `
+<html>
+    <body>
+        <div ondblclick="window.clicked = true;" style="visibility: hidden; display: none"></div>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await clickElements(page, 'div', { clickCount: 2, delay: 100 });
+            const wasClicked = await page.evaluate(() => window.clicked);
+            expect(wasClicked).toBe(true);
+        });
+
+        test('should click elements stacked on top of each other', async () => {
+            const html = `
+<html>
+    <script>
+        window.clickedElements = [];
+        window.handleClick = (evt) => window.clickedElements.push(evt.target.nodeName);
+    </script>
+    <body>
+        <header ondblclick="return window.handleClick(event)" style="position: absolute; z-index: auto">header</header>
+        <div ondblclick="return window.handleClick(event)" style="position: absolute; z-index: 1">div</div>
+        <main ondblclick="return window.handleClick(event)" style="position: absolute; z-index: 2">main</main>
+        <footer ondblclick="return window.handleClick(event)" style="position: absolute; z-index: 3">footer</footer>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await clickElements(page, 'header, div, main, footer', { clickCount: 2, delay: 100 });
+            const clickedElements = await page.evaluate(() => window.clickedElements);
+            expect(clickedElements).toEqual(['HEADER', 'DIV', 'MAIN', 'FOOTER']);
+        });
+    });
+
+    describe('select line with triple clickElements()', () => {
+        test('should select the text by triple clicking', async () => {
+            const html = `
+<html>
+    <body>
+        <textarea></textarea>
+    </body>
+</html>
+        `;
+            await page.setContent(html);
+            await page.focus('textarea');
+            const text = "This is the text that we are going to try to select. Let's see how it goes.";
+            await page.keyboard.type(text);
+            await clickElements(page, 'textarea', { clickCount: 3, delay: 100 });
+            expect(
+                await page.evaluate(() => {
+                    const textarea = document.querySelector('textarea');
+                    return textarea.value.substring(
+                        textarea.selectionStart,
+                        textarea.selectionEnd,
+                    );
+                }),
+            ).toBe(text);
+        });
+    });
+
     describe('clickElementsAndInterceptNavigationRequests()', () => {
         function getOpts(overrides = {}) {
             return {

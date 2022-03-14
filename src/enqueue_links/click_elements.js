@@ -74,6 +74,12 @@ const STARTING_Z_INDEX = 2147400000;
  *
  *   If `pseudoUrls` is an empty array, `null` or `undefined`, then the function
  *   enqueues all links found on the page.
+ * @param {object} [options.clickOptions]
+ *   click options for use in Puppeteer's click handler
+ * @param {number} [options.clickOptions.clickCount]
+ *   Number of clicks to be executed. Defaults to 1
+ * @param {number} [options.clickOptions.delay]
+ *   Time to wait between mousedown and mouseup in milliseconds. Defaults to 0
  * @param {RequestTransform} [options.transformRequestFunction]
  *   Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
  *   to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
@@ -121,6 +127,7 @@ export async function enqueueLinksByClickingElements(options) {
     ow(options, ow.object.exactShape({
         page: ow.object.hasKeys('goto', 'evaluate'),
         requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+        clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
         selector: ow.string,
         pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.regExp, ow.object.hasKeys('purl'))),
         transformRequestFunction: ow.optional.function,
@@ -136,6 +143,7 @@ export async function enqueueLinksByClickingElements(options) {
         transformRequestFunction,
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
+        clickOptions,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
@@ -147,6 +155,7 @@ export async function enqueueLinksByClickingElements(options) {
         selector,
         waitForPageIdleMillis,
         maxWaitForPageIdleMillis,
+        clickOptions,
     });
     let requestOptions = createRequestOptions(interceptedRequests);
     if (transformRequestFunction) {
@@ -166,6 +175,9 @@ export async function enqueueLinksByClickingElements(options) {
  * @param {string} options.selector
  * @param {number} [options.waitForPageIdleMillis]
  * @param {number} [options.maxWaitForPageIdleMillis]
+ * @param {object} [clickOptions]
+ * @param {number} [clickOptions.clickCount]
+ * @param {number} [clickOptions.delay]
  * @return {Promise<Array<*>>}
  * @ignore
  */
@@ -175,6 +187,7 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
         selector,
         waitForPageIdleMillis,
         maxWaitForPageIdleMillis,
+        clickOptions,
     } = options;
 
     const uniqueRequests = new Set();
@@ -190,7 +203,7 @@ export async function clickElementsAndInterceptNavigationRequests(options) {
 
     await preventHistoryNavigation(page);
 
-    await clickElements(page, selector);
+    await clickElements(page, selector, clickOptions);
     await waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis });
 
     await restoreHistoryNavigationAndSaveCapturedUrls(page, uniqueRequests);
@@ -324,10 +337,13 @@ async function preventHistoryNavigation(page) {
  *
  * @param {Page} page
  * @param {string} selector
+ * @param {object} [clickOptions]
+ * @param {number} [clickOptions.clickCount]
+ * @param {number} [clickOptions.delay]
  * @return {Promise<void>}
  * @ignore
  */
-export async function clickElements(page, selector) {
+export async function clickElements(page, selector, clickOptions) {
     const elementHandles = await page.$$(selector);
     log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;
@@ -336,7 +352,7 @@ export async function clickElements(page, selector) {
     for (const handle of elementHandles) {
         try {
             await page.evaluate(updateElementCssToEnableMouseClick, handle, zIndex++);
-            await handle.click();
+            await handle.click(clickOptions);
             clickedElementsCount++;
         } catch (err) {
             if (shouldLogWarning && err.stack.includes('is detached from document')) {
