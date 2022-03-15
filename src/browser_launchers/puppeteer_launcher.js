@@ -116,9 +116,9 @@ export class PuppeteerLauncher extends BrowserLauncher {
         if (this.stealth) {
             const { hideWebDriver, ...newStealthOptions } = this.stealthOptions;
             log.deprecated(
-                'Puppeteer "stealth" and "stealthOptions" is deprecated'
-                + 'You should use fingerprints instead.'
-                + 'Checkout the fingerprints guide: https://sdk.apify.com/docs/guides/avoid-blocking-fingerprints',
+                'Puppeteer "stealth" and "stealthOptions" are deprecated.'
+                + ' You should use fingerprints instead.'
+                + ' Checkout the fingerprints guide: https://sdk.apify.com/docs/guides/avoid-blocking-fingerprints',
             );
             applyStealthToBrowser(browser, newStealthOptions);
         }
