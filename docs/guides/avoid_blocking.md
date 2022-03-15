@@ -1,12 +1,10 @@
 ---
-id: avoid-blocking-fingerprints
+id: avoid-blocking
 title: Avoid getting blocked
 ---
-TODO: this is only for browser-based scraping. We should reflect in the name somehow... IMHO, browser fingerprinting does not remember that it reduces blocking.
 
-
-A Scraper might get blocked for numerous reasons. Let's narrow it down to two main reasons. The first one is a bad or blocked IP address. This topic is covered in the [proxy management guide](proxy_management.md). The second reason we will explore more is browser fingerprints or signatures.
-Browser fingerprint is a collection of browser attributes and significant features that can show if your browser is a bot or a real user TODO: We could link the academy here in the future. Moreover, even most browsers have these unique features that allow the website to track the browser even within different IP addresses. This is the main reason why scrapers should change browser fingerprints while doing browser-based scraping. In addition, it should reduce blocking significantly.
+A Scraper might get blocked for numerous reasons. Let's narrow it down to two main reasons. The first one is a bad or blocked IP address. This topic is covered in the [proxy management guide](proxy_management.md). The second reason we will explore more is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) or signatures.
+Browser fingerprint is a collection of browser attributes and significant features that can show if your browser is a bot or a real user. Moreover, even most browsers have these unique features that allow the website to track the browser even within different IP addresses. This is the main reason why scrapers should change browser fingerprints while doing browser-based scraping. In addition, it should reduce blocking significantly.
 
 Changing browser fingerprints can be a tedious job. Luckily, Apify SDK provides this feature out of the box with zero configuration necessary. Let's take a look at how it is done.
 

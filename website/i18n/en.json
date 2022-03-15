@@ -164,7 +164,7 @@
       "guides/apify-platform": {
         "title": "Apify Platform"
       },
-      "guides/avoid-blocking": {
+      "guides/avoid-blocking-fingerprints": {
         "title": "Avoid getting blocked"
       },
       "guides/docker-images": {

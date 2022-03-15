@@ -12,7 +12,8 @@
             "guides/session-management",
             "guides/type-script-actor",
             "guides/docker-images",
-            "guides/migration-to-v1"
+            "guides/migration-to-v1",
+            "guides/avoid-blocking"
         ],
         "Examples": [
             "examples/accept-user-input",
