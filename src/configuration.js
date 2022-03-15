@@ -2,6 +2,7 @@ import { ENV_VARS, LOCAL_ENV_VARS } from '@apify/consts';
 import { join } from 'path';
 import { ApifyStorageLocal } from '@apify/storage-local';
 import { ApifyClient } from 'apify-client';
+import { AsyncLocalStorage } from 'async_hooks';
 import log from './utils_log';
 
 /**
@@ -117,6 +118,12 @@ export class Configuration {
         persistStateIntervalMillis: 60e3, // This value is mentioned in jsdoc in `events.js`, if you update it here, update it there too.
         localStorageEnableWalMode: true,
     };
+
+    /**
+     * Provides access to the current-instance-scoped Configuration without passing it around in parameters.
+     * @internal
+     */
+    static storage = new AsyncLocalStorage();
 
     /**
      * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
@@ -297,15 +304,14 @@ export class Configuration {
 
     /**
      * Returns the global configuration instance. It will respect the environment variables.
-     * As opposed to this method, we can also get the SDK instance configuration via `sdk.config` property.
+     * When used inside SDK instance (`sdk.main()`), the return value is equal to `sdk.config`.
      *
      * @return {Configuration}
      */
     static getGlobalConfig() {
-        if (!Configuration.globalConfig) {
-            Configuration.globalConfig = new Configuration();
-        }
-
-        return Configuration.globalConfig;
+        return Configuration.storage.getStore() ?? (() => {
+            Configuration.globalConfig ??= new Configuration();
+            return Configuration.globalConfig;
+        })();
     }
 }
