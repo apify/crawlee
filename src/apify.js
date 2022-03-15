@@ -140,7 +140,7 @@ export class Apify {
             initializeEvents(this.config);
             return (async () => {
                 try {
-                    await userFunc();
+                    await Configuration.storage.run(this.config, userFunc);
                     process.exit(EXIT_CODES.SUCCESS);
                 } catch (err) {
                     if (!exited) {
