@@ -121,6 +121,7 @@ export class Configuration {
 
     /**
      * Provides access to the current-instance-scoped Configuration without passing it around in parameters.
+     * @internal
      */
     static storage = new AsyncLocalStorage();
 
