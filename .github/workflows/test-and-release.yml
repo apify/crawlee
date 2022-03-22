@@ -88,7 +88,7 @@ jobs:
             -   name: Publish to NPM
                 run: NODE_AUTH_TOKEN=${{secrets.NPM_TOKEN}} npm publish --tag ${{ env.RELEASE_TAG }}
             -   name: Trigger Docker Image Build
-                uses: peter-evans/repository-dispatch@v1
+                uses: peter-evans/repository-dispatch@v2
                 with:
                     token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
                     repository: apify/apify-actor-docker
