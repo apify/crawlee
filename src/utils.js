@@ -423,6 +423,7 @@ export const sleep = (millis) => {
  * @param {object} options
  * @param {string} options.url URL to the file
  * @param {string} [options.encoding='utf8'] The encoding of the file.
+ * @param {string} [options.proxyUrl] The proxy url to be used for the request.
  * @param {RegExp} [options.urlRegExp=URL_NO_COMMAS_REGEX]
  *   Custom regular expression to identify the URLs in the file to extract.
  *   The regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
@@ -434,8 +435,9 @@ const downloadListOfUrls = async (options) => {
         url: ow.string.url,
         encoding: ow.optional.string,
         urlRegExp: ow.optional.regExp,
+        proxyUrl: ow.optional.string,
     }));
-    const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX } = options;
+    const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX, proxyUrl } = options;
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
     const match = url.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/);
@@ -445,7 +447,7 @@ const downloadListOfUrls = async (options) => {
         fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
     }
 
-    const { body: string } = await requestAsBrowser({ url: fixedUrl, encoding });
+    const { body: string } = await requestAsBrowser({ url: fixedUrl, encoding, proxyUrl });
     return extractUrls({ string, urlRegExp });
 };
 

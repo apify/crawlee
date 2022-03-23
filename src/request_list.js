@@ -20,7 +20,7 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
 /**
  * @typedef RequestListOptions
- * @property {Array<RequestOptions | Request | { requestsFromUrl: string } | string>} [sources]
+ * @property {Array<RequestOptions | Request | { requestsFromUrl: string, regex?: RegExp } | string>} [sources]
  *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
  *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
  *
@@ -91,6 +91,10 @@ const CONTENT_TYPE_BINARY = 'application/octet-stream';
  *   // call the sourcesFunction again, saving time and resources.
  *   await requestList.initialize();
  *   ```
+ * @property {ProxyConfiguration} [proxyConfiguration]
+ *   Used to pass the the proxy configuration for the `requestsFromUrls` objects.
+ *   Takes advantage of the internal address rotation and authentication process.
+ *   If undefined, the `requestsFromUrls` requests will be made without proxy.
  * @property {string} [persistStateKey]
  *   Identifies the key in the default key-value store under which `RequestList` periodically stores its
  *   state (i.e. which URLs were crawled and which not).
@@ -219,6 +223,7 @@ export class RequestList {
             persistStateKey,
             persistRequestsKey,
             state,
+            proxyConfiguration,
             keepDuplicateUrls = false,
         } = options;
 
@@ -236,6 +241,7 @@ export class RequestList {
                 inProgress: ow.object,
             }),
             keepDuplicateUrls: ow.optional.boolean,
+            proxyConfiguration: ow.optional.object,
         }));
 
         this.log = log.child({ prefix: 'RequestList' });
@@ -278,6 +284,9 @@ export class RequestList {
         // Will be empty after initialization to save memory.
         this.sources = sources || [];
         this.sourcesFunction = sourcesFunction;
+
+        // The proxy configuration used for `requestsFromUrls` requests.
+        this.proxyConfiguration = proxyConfiguration;
     }
 
     /**
@@ -656,7 +665,7 @@ export class RequestList {
         // Download remote resource and parse URLs.
         let urlsArr;
         try {
-            urlsArr = await downloadListOfUrls({ url: requestsFromUrl, urlRegExp: regex });
+            urlsArr = await downloadListOfUrls({ url: requestsFromUrl, urlRegExp: regex, proxyUrl: this.proxyConfiguration?.newUrl() });
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
         }
@@ -812,7 +821,7 @@ export class RequestList {
  *
  *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
  *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
- * @param {Array<RequestOptions|Request|string>} sources
+ * @param {RequestListOptions['sources']} sources
  *  An array of sources of URLs for the {@link RequestList}. It can be either an array of strings,
  *  plain objects that define at least the `url` property, or an array of {@link Request} instances.
  *
