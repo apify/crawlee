@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { LaunchOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
+import { PuppeteerNode } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 import { isAtHome } from '../utils';
@@ -33,8 +33,8 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  * ```
  *
  * @typedef PuppeteerLaunchContext
- * @property {LaunchOptions} [launchOptions]
- *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v5.5.0&show=api-puppeteerlaunchoptions)
+ * @property {Parameters<PuppeteerNode['launch']>[0]} [launchOptions]
+ *  `puppeteer.launch` [options](https://pptr.dev/#?product=Puppeteer&version=v13.5.1&show=api-puppeteerlaunchoptions)
  * @property {string} [proxyUrl]
  *   URL to a HTTP proxy server. It must define the port number,
  *   and it may also contain proxy username and password.
@@ -57,6 +57,9 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *
  *   Take caution, because it can cause all kinds of unexpected errors and weird behavior.
  *   Apify SDK is not tested with any other library besides `puppeteer` itself.
+ * @property {boolean} [useIncognitoPages=false]
+ *   With this option selected, all pages will be opened in a new incognito browser context.
+ *   This means they will not share cookies nor cache and their resources will not be throttled by one another.
  * @property {boolean} [stealth]
  *   This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
  *   It is recommended to use it together with the `useChrome` set to `true`.
