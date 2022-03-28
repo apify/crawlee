@@ -27,15 +27,15 @@ const crawler = new Apify.PlaywrightCrawler({
         fingerprintOptions: {
             fingerprintGeneratorOptions: {
                 browsers: [
-                    { name: "firefox", minVersion: 80 },
-                    { name: "chrome", minVersion: 87 },
-                    "safari"
+                    { name: 'firefox', minVersion: 80 },
+                    { name: 'chrome', minVersion: 87 },
+                    'safari',
                 ],
                 devices: [
-                    "desktop"
+                    'desktop',
                 ],
                 operatingSystems: [
-                    "windows"
+                    'windows',
                 ],
             },
         },
