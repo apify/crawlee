@@ -3,6 +3,8 @@ import { PuppeteerNode } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 import { isAtHome } from '../utils';
+import log from '../utils_log';
+
 import { DEFAULT_USER_AGENT } from '../constants';
 
 import applyStealthToBrowser, { StealthOptions } from '../stealth/stealth'; // eslint-disable-line no-unused-vars,import/named
@@ -61,9 +63,11 @@ const LAUNCH_PUPPETEER_DEFAULT_VIEWPORT = {
  *   With this option selected, all pages will be opened in a new incognito browser context.
  *   This means they will not share cookies nor cache and their resources will not be throttled by one another.
  * @property {boolean} [stealth]
+ * @deprecated
  *   This setting hides most of the known properties that identify headless Chrome and makes it nearly undetectable.
  *   It is recommended to use it together with the `useChrome` set to `true`.
  * @property {StealthOptions} [stealthOptions]
+ * @deprecated
  *   Using this configuration, you can disable some of the hiding tricks.
  *   For these settings to take effect `stealth` must be set to true
  */
@@ -116,7 +120,11 @@ export class PuppeteerLauncher extends BrowserLauncher {
 
         if (this.stealth) {
             const { hideWebDriver, ...newStealthOptions } = this.stealthOptions;
-
+            log.deprecated(
+                'Puppeteer "stealth" and "stealthOptions" are deprecated.'
+                + ' You should use fingerprints instead.'
+                + ' Checkout the fingerprints guide: https://sdk.apify.com/docs/guides/avoid-blocking-fingerprints',
+            );
             applyStealthToBrowser(browser, newStealthOptions);
         }
 
