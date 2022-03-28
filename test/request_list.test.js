@@ -133,12 +133,12 @@ describe('Apify.RequestList', () => {
 
             mock.expects('downloadListOfUrls')
                 .once()
-                .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })
+                .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined, proxyUrl: undefined })
                 .returns(new Promise((resolve) => setTimeout(resolve(list1), 100)));
 
             mock.expects('downloadListOfUrls')
                 .once()
-                .withArgs({ url: 'http://example.com/list-2', urlRegExp: undefined })
+                .withArgs({ url: 'http://example.com/list-2', urlRegExp: undefined, proxyUrl: undefined })
                 .returns(Promise.resolve(list2), 0);
 
             const requestList = new Apify.RequestList({
@@ -168,7 +168,7 @@ describe('Apify.RequestList', () => {
 
         mock.expects('requestAsBrowser')
             .once()
-            .withArgs({ url: 'http://example.com/list-1', encoding: 'utf8' })
+            .withArgs({ url: 'http://example.com/list-1', encoding: 'utf8', proxyUrl: undefined })
             .resolves({ body: listStr });
 
         const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
@@ -210,7 +210,7 @@ describe('Apify.RequestList', () => {
 
         mock.expects('requestAsBrowser')
             .exactly(wrongUrls.length)
-            .withArgs({ url: correctUrl, encoding: 'utf8' })
+            .withArgs({ url: correctUrl, encoding: 'utf8', proxyUrl: undefined })
             .resolves({ body: JSON.stringify(list) });
 
         const requestList = new Apify.RequestList({
@@ -231,7 +231,7 @@ describe('Apify.RequestList', () => {
         const mock = sinon.mock(utils.publicUtils);
         mock.expects('downloadListOfUrls')
             .once()
-            .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined })
+            .withArgs({ url: 'http://example.com/list-1', urlRegExp: undefined, proxyUrl: undefined })
             .returns(Promise.resolve([]));
 
         const requestList = new Apify.RequestList({
@@ -246,6 +246,37 @@ describe('Apify.RequestList', () => {
         await requestList.initialize();
 
         expect(await requestList.fetchNextRequest()).toBe(null);
+
+        mock.verify();
+        mock.restore();
+    });
+
+    test('should use the defined proxy server when using `requestsFromUrl`', async () => {
+        const proxyUrls = [
+            'http://proxyurl.usedforthe.download',
+            'http://another.proxy.url',
+        ];
+
+        const mock = sinon.mock(utils.publicUtils);
+        mock.expects('downloadListOfUrls')
+            .thrice()
+            .withArgs({ url: sinon.match(/https?:\/\/example\.com\/list-\d/), urlRegExp: undefined, proxyUrl: sinon.match.in(proxyUrls) })
+            .resolves(['https://example.com/result']);
+
+        const proxyConfiguration = await Apify.createProxyConfiguration({
+            proxyUrls,
+        });
+
+        const requestList = new Apify.RequestList({
+            sources: [
+                { requestsFromUrl: 'http://example.com/list-1' },
+                { requestsFromUrl: 'http://example.com/list-2' },
+                { requestsFromUrl: 'http://example.com/list-3' },
+            ],
+            proxyConfiguration,
+        });
+
+        await requestList.initialize();
 
         mock.verify();
         mock.restore();
@@ -618,7 +649,7 @@ describe('Apify.RequestList', () => {
             // Expect downloadListOfUrls returns list of URLs
             publicUtilsMock.expects('downloadListOfUrls')
                 .once()
-                .withArgs({ url: 'http://example.com/list-urls.txt', urlRegExp: undefined })
+                .withArgs({ url: 'http://example.com/list-urls.txt', urlRegExp: undefined, proxyUrl: undefined })
                 .returns(Promise.resolve(urlsFromTxt));
 
             await requestList.initialize();
