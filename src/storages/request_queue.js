@@ -149,6 +149,12 @@ export class RequestQueue {
         // i.e. which were returned by fetchNextRequest() but not markRequestHandled()
         this.inProgress = new Set();
 
+        // To track whether the queue gets stuck, and we need to reset it
+        // `lastActivity` tracks the time when we either added, processed or reclaimed a request,
+        // or when we add new request to in-progress cache
+        this.lastActivity = new Date();
+        this.internalTimeoutMillis = 5 * 60e3; // defaults to 5 minutes, will be overridden by BasicCrawler
+
         // Contains a list of recently handled requests. It is used to avoid inconsistencies
         // caused by delays in the underlying DynamoDB storage.
         // Keys are request IDs, values are true.
@@ -198,6 +204,7 @@ export class RequestQueue {
             forefront: ow.optional.boolean,
         }));
 
+        this.lastActivity = new Date();
         const { forefront = false } = options;
 
         const request = requestLike instanceof Request
@@ -296,6 +303,7 @@ export class RequestQueue {
         }
 
         this.inProgress.add(nextRequestId);
+        this.lastActivity = new Date();
 
         let request;
         try {
@@ -344,6 +352,7 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo | null>}
      */
     async markRequestHandled(request) {
+        this.lastActivity = new Date();
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -388,6 +397,7 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo | null>}
      */
     async reclaimRequest(request, options = {}) {
+        this.lastActivity = new Date();
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -448,10 +458,30 @@ export class RequestQueue {
      * @returns {Promise<boolean>}
      */
     async isFinished() {
+        if (this.inProgressCount() > 0 && (Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
+            const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
+            this.log.warning(message, { inProgress: [...this.inProgress] });
+            this._reset();
+        }
+
         if (this.queueHeadDict.length() > 0 || this.inProgressCount() > 0) return false;
 
         const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
         return isHeadConsistent && this.queueHeadDict.length() === 0 && this.inProgressCount() === 0;
+    }
+
+    /**
+     * @internal
+     */
+    _reset() {
+        this.queueHeadDict.clear();
+        this.queryQueueHeadPromise = null;
+        this.inProgress.clear();
+        this.recentlyHandled.clear();
+        this.assumedTotalCount = 0;
+        this.assumedHandledCount = 0;
+        this.requestsCache.clear();
+        this.lastActivity = new Date();
     }
 
     /**

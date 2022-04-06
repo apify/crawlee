@@ -262,7 +262,13 @@ export class BasicCrawler {
         this.userProvidedHandler = handleRequestFunction;
         this.failedContextHandler = handleFailedRequestFunction;
         this.handleRequestTimeoutMillis = handleRequestTimeoutSecs * 1000;
-        this.internalTimeoutMillis = Math.max(this.handleRequestTimeoutMillis, 300e3); // allow at least 5min for internal timeouts
+        const tryEnv = (val) => (val == null ? val : +val);
+        // allow at least 5min for internal timeouts
+        this.internalTimeoutMillis = tryEnv(process.env.APIFY_INTERNAL_TIMEOUT) ?? Math.max(this.handleRequestTimeoutMillis, 300e3);
+        // override the default internal timeout of request queue to respect `handleRequestTimeoutMillis`
+        if (this.requestQueue) {
+            this.requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
+        }
         this.handleFailedRequestFunction = handleFailedRequestFunction;
         this.maxRequestRetries = maxRequestRetries;
         this.handledRequestsCount = 0;
