@@ -63,7 +63,6 @@
         "got-scraping": "^3.2.7",
         "htmlparser2": "^7.0.0",
         "iconv-lite": "^0.6.3",
-        "is-stream": "^2.0.1",
         "jquery": "^3.6.0",
         "mime-types": "^2.1.31",
         "ow": "^0.28.0",

@@ -1,6 +1,7 @@
 import {
     ENV_VARS,
 } from '@apify/consts';
+import { PassThrough } from 'stream';
 import { apifyClient } from '../../build/utils';
 import {
     KeyValueStore,
@@ -8,7 +9,6 @@ import {
 } from '../../build/storages/key_value_store';
 import { StorageManager } from '../../build/storages/storage_manager';
 import Apify from '../../build';
-import { PassThrough } from 'stream';
 
 jest.mock('../../build/storages/storage_manager');
 

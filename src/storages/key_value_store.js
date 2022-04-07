@@ -11,7 +11,6 @@ import { ApifyClient } from 'apify-client';
 import { ApifyStorageLocal } from '@apify/storage-local';
 import { Configuration } from '../configuration';
 import { APIFY_API_BASE_URL } from '../constants';
-import isStream from 'is-stream';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -224,7 +223,7 @@ export class KeyValueStore {
             validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
             message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
         })));
-        if (options.contentType && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || isStream(value))) {
+        if (options.contentType && !ow.isValid(value, ow.any(ow.string, ow.buffer, ow.object))) {
             throw new ArgumentError('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.', this.setValue);
         }
         ow(options, ow.object.exactShape({
