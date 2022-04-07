@@ -7,6 +7,7 @@
 - feat: update `playwright` to v1.20.2
 - feat: update `puppeteer` to v13.5.2
 - feat: stealth deprecation (#1314)
+- feat: allow passing a stream to KeyValueStore.setRecord (#1325)
 - fix: use correct apify-client instance for snapshotting (#1308)
 - fix: automatically reset `RequestQueue` state after 5 minutes of inactivity, closes #997
 - fix: improve guessing of chrome executable path on windows (#1294)
