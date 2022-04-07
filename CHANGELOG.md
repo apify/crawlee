@@ -1,3 +1,36 @@
+2.3.0 / 2022/04/07
+====================
+- feat: accept more social media patterns (#1286)
+- feat: add multiple click support to `enqueueLinksByClickingElements` (#1295)
+- feat: instance-scoped "global" configuration (#1315)
+- feat: requestList accepts proxyConfiguration for requestsFromUrls (#1317)
+- feat: update `playwright` to v1.20.2
+- feat: update `puppeteer` to v13.5.2
+- feat: stealth deprecation (#1314)
+- fix: use correct apify-client instance for snapshotting (#1308)
+- fix: automatically reset `RequestQueue` state after 5 minutes of inactivity, closes #997
+- fix: improve guessing of chrome executable path on windows (#1294)
+- fix: prune CPU snapshots locally (#1313)
+- fix: improve browser launcher types (#1318)
+
+### 0 concurrency mitigation
+
+This release should resolve the 0 concurrency bug by automatically resetting the
+internal `RequestQueue` state after 5 minutes of inactivity.
+
+We now track last activity done on a `RequestQueue` instance:
+- added new request
+- started processing a request (added to `inProgress` cache)
+- marked request as handled
+- reclaimed request
+
+If we don't detect one of those actions in last 5 minutes, and we have some
+requests in the `inProgress` cache, we try to reset the state. We can override
+this limit via `APIFY_INTERNAL_TIMEOUT` env var.
+
+This should finally resolve the 0 concurrency bug, as it was always about
+stuck requests in the `inProgress` cache.
+
 2.2.2 / 2022/02/xx
 ====================
 - fix: ensure `request.headers` is set
