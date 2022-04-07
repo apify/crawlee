@@ -1,6 +1,7 @@
 import {
     ENV_VARS,
 } from '@apify/consts';
+import { PassThrough } from 'stream';
 import { apifyClient } from '../../build/utils';
 import {
     KeyValueStore,
@@ -125,10 +126,10 @@ describe('KeyValueStore remote', () => {
             await expect(async () => store.setValue(123, 'some value'))
                 .rejects.toThrow('Expected argument to be of type `string` but received type `number`');
 
-            const valueErrMsg = 'The "value" parameter must be a String or Buffer when "options.contentType" is specified';
+            const valueErrMsg = 'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified';
             await expect(async () => store.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(async () => store.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
-            await expect(async () => store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
+            await expect(async () => store.setValue('key', () => { }, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
 
             await expect(async () => store.setValue('key', {}, 123))
                 .rejects.toThrow('Expected argument to be of type `object` but received type `number`');
@@ -148,10 +149,10 @@ describe('KeyValueStore remote', () => {
 
             const contTypeRedundantErrMsg = 'Expected property string `contentType` to not be empty in object';
             await expect(async () => store.setValue('key', null, { contentType: 'image/png' }))
-                .rejects.toThrow('The "value" parameter must be a String or Buffer when "options.contentType" is specified.');
+                .rejects.toThrow('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.');
             await expect(async () => store.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
             await expect(async () => store.setValue('key', null, { contentType: {} }))
-                .rejects.toThrow('The "value" parameter must be a String or Buffer when "options.contentType" is specified.');
+                .rejects.toThrow('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.');
 
             await expect(async () => store.setValue('key', 'value', { contentType: 123 }))
                 .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `number` in object');
@@ -271,6 +272,30 @@ describe('KeyValueStore remote', () => {
                 key: 'key-1',
                 value,
                 contentType: 'image/jpeg; charset=something',
+            });
+        });
+
+        test('correctly passes a stream', async () => {
+            const store = new KeyValueStore({
+                id: 'my-store-id-1',
+                client: apifyClient,
+            });
+
+            const mockSetRecord = jest
+                .spyOn(store.client, 'setRecord')
+                .mockResolvedValueOnce(null);
+
+            const value = new PassThrough();
+            await store.setValue('key-1', value, { contentType: 'plain/text' });
+            value.emit('data', 'hello world');
+            value.end();
+            value.destroy();
+
+            expect(mockSetRecord).toHaveBeenCalledTimes(1);
+            expect(mockSetRecord).toHaveBeenCalledWith({
+                key: 'key-1',
+                value,
+                contentType: 'plain/text',
             });
         });
     });

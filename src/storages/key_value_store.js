@@ -223,8 +223,8 @@ export class KeyValueStore {
             validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
             message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
         })));
-        if (options.contentType && !ow.isValid(value, ow.any(ow.string, ow.buffer))) {
-            throw new ArgumentError('The "value" parameter must be a String or Buffer when "options.contentType" is specified.', this.setValue);
+        if (options.contentType && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || (ow.isValid(value, ow.object) && typeof value?.pipe === 'function'))) {
+            throw new ArgumentError('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.', this.setValue);
         }
         ow(options, ow.object.exactShape({
             contentType: ow.optional.string.nonEmpty,
