@@ -1186,6 +1186,72 @@
       },
       "version-2.2.0/guides/version-2.2.0-result-storage": {
         "title": "Result Storage"
+      },
+      "version-2.3.0/api/version-2.3.0-apify": {
+        "title": "Apify"
+      },
+      "version-2.3.0/api/version-2.3.0-basic-crawler": {
+        "title": "BasicCrawler"
+      },
+      "version-2.3.0/api/version-2.3.0-cheerio-crawler": {
+        "title": "CheerioCrawler"
+      },
+      "version-2.3.0/api/version-2.3.0-playwright-crawler": {
+        "title": "PlaywrightCrawler"
+      },
+      "version-2.3.0/api/version-2.3.0-puppeteer": {
+        "title": "utils.puppeteer"
+      },
+      "version-2.3.0/api/version-2.3.0-puppeteer-crawler": {
+        "title": "PuppeteerCrawler"
+      },
+      "version-2.3.0/api/version-2.3.0-session": {
+        "title": "Session"
+      },
+      "version-2.3.0/api/version-2.3.0-session-pool": {
+        "title": "SessionPool"
+      },
+      "version-2.3.0/api/version-2.3.0-social": {
+        "title": "utils.social"
+      },
+      "version-2.3.0/api/version-2.3.0-utils": {
+        "title": "utils"
+      },
+      "version-2.3.0/examples/version-2.3.0-basic-crawler": {
+        "title": "Basic crawler"
+      },
+      "version-2.3.0/guides/version-2.3.0-avoid-blocking": {
+        "title": "Avoid getting blocked"
+      },
+      "version-2.3.0/guides/version-2.3.0-docker-images": {
+        "title": "Running in Docker"
+      },
+      "version-2.3.0/guides/version-2.3.0-getting-started": {
+        "title": "Getting Started"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-cheerio-crawler-options": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-cheerio-handle-page-inputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-puppeteer-cookie": {
+        "title": "PuppeteerCookie"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-puppeteer-hook": {
+        "title": "PuppeteerHook"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-request-list-options": {
+        "title": "RequestListOptions"
+      },
+      "version-2.3.0/typedefs/version-2.3.0-session-pool-options": {
+        "title": "SessionPoolOptions"
       }
     },
     "links": {
