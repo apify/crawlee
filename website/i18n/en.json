@@ -5,6 +5,144 @@
     "previous": "Previous",
     "tagline": "The scalable web crawling, scraping and automation library for JavaScript/Node.js.",
     "docs": {
+      "api/apify": {
+        "title": "Apify"
+      },
+      "api/apify-call-error": {
+        "title": "ApifyCallError"
+      },
+      "api/autoscaled-pool": {
+        "title": "AutoscaledPool"
+      },
+      "api/basic-crawler": {
+        "title": "BasicCrawler"
+      },
+      "api/browser-plugin": {
+        "title": "BrowserPlugin"
+      },
+      "api/cheerio-crawler": {
+        "title": "CheerioCrawler"
+      },
+      "api/configuration": {
+        "title": "Configuration"
+      },
+      "api/dataset": {
+        "title": "Dataset"
+      },
+      "api/key-value-store": {
+        "title": "KeyValueStore"
+      },
+      "api/log": {
+        "title": "utils.log"
+      },
+      "api/playwright": {
+        "title": "utils.playwright"
+      },
+      "api/playwright-crawler": {
+        "title": "PlaywrightCrawler"
+      },
+      "api/proxy-configuration": {
+        "title": "ProxyConfiguration"
+      },
+      "api/pseudo-url": {
+        "title": "PseudoUrl"
+      },
+      "api/puppeteer": {
+        "title": "utils.puppeteer"
+      },
+      "api/puppeteer-crawler": {
+        "title": "PuppeteerCrawler"
+      },
+      "api/request": {
+        "title": "Request"
+      },
+      "api/request-list": {
+        "title": "RequestList"
+      },
+      "api/request-queue": {
+        "title": "RequestQueue"
+      },
+      "api/session": {
+        "title": "Session"
+      },
+      "api/session-pool": {
+        "title": "SessionPool"
+      },
+      "api/snapshotter": {
+        "title": "Snapshotter"
+      },
+      "api/social": {
+        "title": "utils.social"
+      },
+      "api/statistics": {
+        "title": "Statistics"
+      },
+      "api/system-status": {
+        "title": "SystemStatus"
+      },
+      "api/utils": {
+        "title": "utils"
+      },
+      "examples/accept-user-input": {
+        "title": "Accept user input"
+      },
+      "examples/add-data-to-dataset": {
+        "title": "Add data to dataset"
+      },
+      "examples/basic-crawler": {
+        "title": "Basic crawler"
+      },
+      "examples/call-actor": {
+        "title": "Call actor"
+      },
+      "examples/capture-screenshot": {
+        "title": "Capture a screenshot"
+      },
+      "examples/cheerio-crawler": {
+        "title": "Cheerio crawler"
+      },
+      "examples/crawl-all-links": {
+        "title": "Crawl all links on a website"
+      },
+      "examples/crawl-multiple-urls": {
+        "title": "Crawl multiple URLs"
+      },
+      "examples/crawl-relative-links": {
+        "title": "Crawl a website with relative links"
+      },
+      "examples/crawl-single-url": {
+        "title": "Crawl a single URL"
+      },
+      "examples/crawl-sitemap": {
+        "title": "Crawl a sitemap"
+      },
+      "examples/crawl-some-links": {
+        "title": "Crawl some links on a website"
+      },
+      "examples/forms": {
+        "title": "Forms"
+      },
+      "examples/map-and-reduce": {
+        "title": "Dataset Map and Reduce methods"
+      },
+      "examples/playwright-crawler": {
+        "title": "Playwright crawler"
+      },
+      "examples/puppeteer-crawler": {
+        "title": "Puppeteer crawler"
+      },
+      "examples/puppeteer-recursive-crawl": {
+        "title": "Puppeteer recursive crawl"
+      },
+      "examples/puppeteer-with-proxy": {
+        "title": "Puppeteer with proxy"
+      },
+      "examples/synchronous-run": {
+        "title": "Synchronous run"
+      },
+      "examples/use-stealth-mode": {
+        "title": "Use stealth mode"
+      },
       "guides/apify-platform": {
         "title": "Apify Platform"
       },
@@ -52,6 +190,225 @@
       },
       "readme/support": {
         "title": "readme/support"
+      },
+      "typedefs/abort-function": {
+        "title": "AbortFunction"
+      },
+      "typedefs/actor-run": {
+        "title": "ActorRun"
+      },
+      "typedefs/adhoc-webhook": {
+        "title": "AdhocWebhook"
+      },
+      "typedefs/apify-env": {
+        "title": "ApifyEnv"
+      },
+      "typedefs/autoscaled-pool-options": {
+        "title": "AutoscaledPoolOptions"
+      },
+      "typedefs/basic-crawler-options": {
+        "title": "BasicCrawlerOptions"
+      },
+      "typedefs/browser-crawling-context": {
+        "title": "BrowserCrawlingContext"
+      },
+      "typedefs/browser-handle-page-function": {
+        "title": "BrowserHandlePageFunction"
+      },
+      "typedefs/browser-launch-context": {
+        "title": "BrowserLaunchContext"
+      },
+      "typedefs/cheerio-crawler-options": {
+        "title": "CheerioCrawlerOptions"
+      },
+      "typedefs/cheerio-handle-page": {
+        "title": "CheerioHandlePage"
+      },
+      "typedefs/cheerio-handle-page-inputs": {
+        "title": "CheerioHandlePageInputs"
+      },
+      "typedefs/compiled-script-function": {
+        "title": "CompiledScriptFunction"
+      },
+      "typedefs/compiled-script-params": {
+        "title": "CompiledScriptParams"
+      },
+      "typedefs/crawling-context": {
+        "title": "CrawlingContext"
+      },
+      "typedefs/create-session": {
+        "title": "CreateSession"
+      },
+      "typedefs/dataset-consumer": {
+        "title": "DatasetConsumer"
+      },
+      "typedefs/dataset-content": {
+        "title": "DatasetContent"
+      },
+      "typedefs/dataset-mapper": {
+        "title": "DatasetMapper"
+      },
+      "typedefs/dataset-reducer": {
+        "title": "DatasetReducer"
+      },
+      "typedefs/direct-navigation-options": {
+        "title": "DirectNavigationOptions"
+      },
+      "typedefs/event-types": {
+        "title": "EventTypes"
+      },
+      "typedefs/goto-function": {
+        "title": "GotoFunction"
+      },
+      "typedefs/handle-failed-request": {
+        "title": "HandleFailedRequest"
+      },
+      "typedefs/handle-failed-request-input": {
+        "title": "HandleFailedRequestInput"
+      },
+      "typedefs/handle-request": {
+        "title": "HandleRequest"
+      },
+      "typedefs/handle-request-inputs": {
+        "title": "HandleRequestInputs"
+      },
+      "typedefs/hook": {
+        "title": "Hook"
+      },
+      "typedefs/intercept-handler": {
+        "title": "InterceptHandler"
+      },
+      "typedefs/key-consumer": {
+        "title": "KeyConsumer"
+      },
+      "typedefs/key-value-store-value-types": {
+        "title": "KeyValueStoreValueTypes"
+      },
+      "typedefs/logger-options": {
+        "title": "LoggerOptions"
+      },
+      "typedefs/memory-info": {
+        "title": "MemoryInfo"
+      },
+      "typedefs/playwright-crawler-options": {
+        "title": "PlaywrightCrawlerOptions"
+      },
+      "typedefs/playwright-goto-options": {
+        "title": "PlaywrightGotoOptions"
+      },
+      "typedefs/playwright-handle-page-function": {
+        "title": "PlaywrightHandlePageFunction"
+      },
+      "typedefs/playwright-handle-page-function-param": {
+        "title": "PlaywrightHandlePageFunctionParam"
+      },
+      "typedefs/playwright-hook": {
+        "title": "PlaywrightHook"
+      },
+      "typedefs/playwright-launch-context": {
+        "title": "PlaywrightLaunchContext"
+      },
+      "typedefs/post-response": {
+        "title": "PostResponse"
+      },
+      "typedefs/post-response-inputs": {
+        "title": "PostResponseInputs"
+      },
+      "typedefs/prepare-request": {
+        "title": "PrepareRequest"
+      },
+      "typedefs/prepare-request-inputs": {
+        "title": "PrepareRequestInputs"
+      },
+      "typedefs/proxy-configuration-function": {
+        "title": "ProxyConfigurationFunction"
+      },
+      "typedefs/proxy-configuration-options": {
+        "title": "ProxyConfigurationOptions"
+      },
+      "typedefs/proxy-info": {
+        "title": "ProxyInfo"
+      },
+      "typedefs/puppeteer-cookie": {
+        "title": "PuppeteerCookie"
+      },
+      "typedefs/puppeteer-crawler-options": {
+        "title": "PuppeteerCrawlerOptions"
+      },
+      "typedefs/puppeteer-handle-page": {
+        "title": "PuppeteerHandlePage"
+      },
+      "typedefs/puppeteer-handle-page-function-param": {
+        "title": "PuppeteerHandlePageFunctionParam"
+      },
+      "typedefs/puppeteer-hook": {
+        "title": "PuppeteerHook"
+      },
+      "typedefs/puppeteer-launch-context": {
+        "title": "PuppeteerLaunchContext"
+      },
+      "typedefs/queue-operation-info": {
+        "title": "QueueOperationInfo"
+      },
+      "typedefs/request-as-browser-options": {
+        "title": "RequestAsBrowserOptions"
+      },
+      "typedefs/request-as-browser-result": {
+        "title": "RequestAsBrowserResult"
+      },
+      "typedefs/request-list-options": {
+        "title": "RequestListOptions"
+      },
+      "typedefs/request-list-sources-function": {
+        "title": "RequestListSourcesFunction"
+      },
+      "typedefs/request-list-state": {
+        "title": "RequestListState"
+      },
+      "typedefs/request-options": {
+        "title": "RequestOptions"
+      },
+      "typedefs/request-queue-info": {
+        "title": "RequestQueueInfo"
+      },
+      "typedefs/request-transform": {
+        "title": "RequestTransform"
+      },
+      "typedefs/session-options": {
+        "title": "SessionOptions"
+      },
+      "typedefs/session-pool-options": {
+        "title": "SessionPoolOptions"
+      },
+      "typedefs/session-state": {
+        "title": "SessionState"
+      },
+      "typedefs/snapshotter-options": {
+        "title": "SnapshotterOptions"
+      },
+      "typedefs/social-handles": {
+        "title": "SocialHandles"
+      },
+      "typedefs/statistic-persisted-state": {
+        "title": "StatisticPersistedState"
+      },
+      "typedefs/statistic-state": {
+        "title": "StatisticState"
+      },
+      "typedefs/stealth-options": {
+        "title": "StealthOptions"
+      },
+      "typedefs/system-info": {
+        "title": "SystemInfo"
+      },
+      "typedefs/system-status-options": {
+        "title": "SystemStatusOptions"
+      },
+      "typedefs/user-func": {
+        "title": "UserFunc"
+      },
+      "typedefs/webhook-run": {
+        "title": "WebhookRun"
       },
       "version-0.22.4/api/version-0.22.4-apify": {
         "title": "Apify"

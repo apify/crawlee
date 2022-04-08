@@ -1,0 +1,187 @@
+{
+  "version-2.3.0-docs": {
+    "Guide": [
+      "version-2.3.0-guides/motivation",
+      "version-2.3.0-guides/quick-start",
+      "version-2.3.0-guides/apify-platform",
+      "version-2.3.0-guides/getting-started",
+      "version-2.3.0-guides/request-storage",
+      "version-2.3.0-guides/result-storage",
+      "version-2.3.0-guides/environment-variables",
+      "version-2.3.0-guides/proxy-management",
+      "version-2.3.0-guides/session-management",
+      "version-2.3.0-guides/type-script-actor",
+      "version-2.3.0-guides/docker-images",
+      "version-2.3.0-guides/migration-to-v1",
+      "version-2.3.0-guides/avoid-blocking"
+    ],
+    "Examples": [
+      "version-2.3.0-examples/accept-user-input",
+      "version-2.3.0-examples/add-data-to-dataset",
+      "version-2.3.0-examples/basic-crawler",
+      "version-2.3.0-examples/call-actor",
+      "version-2.3.0-examples/capture-screenshot",
+      "version-2.3.0-examples/cheerio-crawler",
+      "version-2.3.0-examples/crawl-all-links",
+      "version-2.3.0-examples/crawl-multiple-urls",
+      "version-2.3.0-examples/crawl-relative-links",
+      "version-2.3.0-examples/crawl-single-url",
+      "version-2.3.0-examples/crawl-sitemap",
+      "version-2.3.0-examples/crawl-some-links",
+      "version-2.3.0-examples/forms",
+      "version-2.3.0-examples/map-and-reduce",
+      "version-2.3.0-examples/playwright-crawler",
+      "version-2.3.0-examples/puppeteer-crawler",
+      "version-2.3.0-examples/puppeteer-recursive-crawl",
+      "version-2.3.0-examples/puppeteer-with-proxy",
+      "version-2.3.0-examples/synchronous-run",
+      "version-2.3.0-examples/use-stealth-mode"
+    ],
+    "API Reference": [
+      "version-2.3.0-api/apify",
+      "version-2.3.0-api/configuration",
+      {
+        "type": "subcategory",
+        "label": "Crawlers",
+        "ids": [
+          "version-2.3.0-api/basic-crawler",
+          "version-2.3.0-api/cheerio-crawler",
+          "version-2.3.0-api/playwright-crawler",
+          "version-2.3.0-api/puppeteer-crawler",
+          "version-2.3.0-api/statistics"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Result Stores",
+        "ids": [
+          "version-2.3.0-api/dataset",
+          "version-2.3.0-api/key-value-store"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Scaling",
+        "ids": [
+          "version-2.3.0-api/autoscaled-pool",
+          "version-2.3.0-api/session",
+          "version-2.3.0-api/session-pool",
+          "version-2.3.0-api/proxy-configuration",
+          "version-2.3.0-api/snapshotter",
+          "version-2.3.0-api/system-status"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Sources",
+        "ids": [
+          "version-2.3.0-api/request",
+          "version-2.3.0-api/request-list",
+          "version-2.3.0-api/request-queue",
+          "version-2.3.0-api/pseudo-url"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Utilities",
+        "ids": [
+          "version-2.3.0-api/utils",
+          "version-2.3.0-api/log",
+          "version-2.3.0-api/playwright",
+          "version-2.3.0-api/puppeteer",
+          "version-2.3.0-api/social"
+        ]
+      }
+    ],
+    "Type Definitions": [
+      {
+        "type": "subcategory",
+        "label": "Constructor Options",
+        "ids": [
+          "version-2.3.0-typedefs/autoscaled-pool-options",
+          "version-2.3.0-typedefs/basic-crawler-options",
+          "version-2.3.0-typedefs/cheerio-crawler-options",
+          "version-2.3.0-typedefs/playwright-crawler-options",
+          "version-2.3.0-typedefs/playwright-launch-context",
+          "version-2.3.0-typedefs/puppeteer-crawler-options",
+          "version-2.3.0-typedefs/puppeteer-launch-context",
+          "version-2.3.0-typedefs/proxy-configuration-options",
+          "version-2.3.0-typedefs/proxy-info",
+          "version-2.3.0-typedefs/logger-options",
+          "version-2.3.0-typedefs/request-options",
+          "version-2.3.0-typedefs/request-list-options",
+          "version-2.3.0-typedefs/request-as-browser-options",
+          "version-2.3.0-typedefs/session-options",
+          "version-2.3.0-typedefs/session-pool-options",
+          "version-2.3.0-typedefs/snapshotter-options",
+          "version-2.3.0-typedefs/stealth-options",
+          "version-2.3.0-typedefs/system-status-options"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Crawlers",
+        "ids": [
+          "version-2.3.0-typedefs/cheerio-handle-page",
+          "version-2.3.0-typedefs/cheerio-handle-page-inputs",
+          "version-2.3.0-typedefs/handle-failed-request",
+          "version-2.3.0-typedefs/handle-failed-request-input",
+          "version-2.3.0-typedefs/handle-request",
+          "version-2.3.0-typedefs/handle-request-inputs",
+          "version-2.3.0-typedefs/prepare-request",
+          "version-2.3.0-typedefs/prepare-request-inputs",
+          "version-2.3.0-typedefs/playwright-handle-page",
+          "version-2.3.0-typedefs/playwright-handle-page-inputs",
+          "version-2.3.0-typedefs/puppeteer-handle-page",
+          "version-2.3.0-typedefs/puppeteer-handle-page-inputs"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Dataset",
+        "ids": [
+          "version-2.3.0-typedefs/dataset-consumer",
+          "version-2.3.0-typedefs/dataset-mapper",
+          "version-2.3.0-typedefs/dataset-reducer"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - KeyValueStore",
+        "ids": [
+          "version-2.3.0-typedefs/key-consumer"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Sessions",
+        "ids": [
+          "version-2.3.0-typedefs/create-session"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Functions - Utilities",
+        "ids": [
+          "version-2.3.0-typedefs/request-transform"
+        ]
+      },
+      {
+        "type": "subcategory",
+        "label": "Return Types",
+        "ids": [
+          "version-2.3.0-typedefs/actor-run",
+          "version-2.3.0-api/apify-call-error",
+          "version-2.3.0-typedefs/apify-env",
+          "version-2.3.0-typedefs/dataset-content",
+          "version-2.3.0-typedefs/memory-info",
+          "version-2.3.0-typedefs/queue-operation-info",
+          "version-2.3.0-typedefs/request-list-state",
+          "version-2.3.0-typedefs/session-state",
+          "version-2.3.0-typedefs/social-handles",
+          "version-2.3.0-typedefs/system-info"
+        ]
+      }
+    ]
+  }
+}
