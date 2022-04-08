@@ -50,7 +50,8 @@ const siteConfig = {
 
     algolia: {
         // The key is search-only and safe to publish.
-        apiKey: '64ce2544769e34add0e6402688c86e92',
+        appId: 'N8EOCSBQGH',
+        apiKey: 'b43e67a96ed18c7f63f5fd965906a96d',
         indexName: 'apify_sdk',
         // Optional, if provided by Algolia
         algoliaOptions: {
