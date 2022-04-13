@@ -115,7 +115,31 @@ export const logSystemInfo = () => {
  * @type {*}
  * @ignore
  */
-export const apifyClient = Configuration.getGlobalConfig().getClient();
+export const apifyClient = new Proxy(
+    /**
+     * Getting the client directly from the global Configuration invokes storage
+     * creation right away during the module import. Using the proxy object delays this
+     * until the first time the client is accessed.
+     * This allows the user to set the envVars and other options before the client is
+     * actually used.
+     */
+    {},
+    {
+        get(target, prop) {
+            return target[prop] ?? Reflect.get(Configuration.getGlobalConfig().getClient(), prop);
+        },
+        // for mocking purpose in tests
+        set(target, prop, value) {
+            target[prop] = value;
+            return true;
+        },
+        getOwnPropertyDescriptor(target, prop) {
+            return Reflect.getOwnPropertyDescriptor(Configuration.getGlobalConfig().getClient(), prop);
+        },
+        getPrototypeOf() {
+            return Object.getPrototypeOf(Configuration.getGlobalConfig().getClient());
+        },
+    });
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.

@@ -1,3 +1,7 @@
+2.3.1 / TBA
+====================
+- fix: `utils.apifyClient` early instantiation (#1330)
+
 2.3.0 / 2022/04/07
 ====================
 - feat: accept more social media patterns (#1286)
