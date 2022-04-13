@@ -6,6 +6,12 @@
 - feat: requestList accepts proxyConfiguration for requestsFromUrls (#1317)
 - feat: update `playwright` to v1.20.2
 - feat: update `puppeteer` to v13.5.2
+  > We noticed that with this version of puppeteer actor run could crash with
+  > `We either navigate top level or have old version of the navigated frame` error
+  > (puppeteer issue [here](https://github.com/puppeteer/puppeteer/issues/7050)).
+  > It should not happen while running the browser in headless mode.
+  > In case you need to run the browser in headful mode (`headless: false`),
+  > we recommend pinning puppeteer version to `10.4.0` in actor `package.json` file.
 - feat: stealth deprecation (#1314)
 - feat: allow passing a stream to KeyValueStore.setRecord (#1325)
 - fix: use correct apify-client instance for snapshotting (#1308)
