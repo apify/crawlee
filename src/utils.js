@@ -115,7 +115,24 @@ export const logSystemInfo = () => {
  * @type {*}
  * @ignore
  */
-export const apifyClient = Configuration.getGlobalConfig().getClient();
+export const apifyClient = new Proxy(
+    {},
+    {
+        get(target, prop) {
+            return target[prop] ?? Reflect.get(Configuration.getGlobalConfig().getClient(), prop);
+        },
+        // for mocking purpose in tests
+        set(target, prop, value) {
+            target[prop] = value;
+            return true;
+        },
+        getOwnPropertyDescriptor(target, prop) {
+            return Reflect.getOwnPropertyDescriptor(Configuration.getGlobalConfig().getClient(), prop);
+        },
+        getPrototypeOf() {
+            return Object.getPrototypeOf(Configuration.getGlobalConfig().getClient());
+        },
+    });
 
 /**
  * Adds charset=utf-8 to given content type if this parameter is missing.
