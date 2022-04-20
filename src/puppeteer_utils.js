@@ -49,6 +49,10 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
  *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
  *   re-injected on each navigation before any other scripts get the chance to execute.
+ * @param {boolean} [options.waitForDOMLoad]
+ *   With this option set, the script gets re-injected only after finished DOM load. This is necessary for some scripts
+ *   requiring the global `document` object.
+ *   This option is ignored when `surviveNavigations` is set to `false`.
  * @return {Promise<*>}
  * @memberOf puppeteer
  */
@@ -57,6 +61,7 @@ const injectFile = async (page, filePath, options = {}) => {
     ow(filePath, ow.string);
     ow(options, ow.object.exactShape({
         surviveNavigations: ow.optional.boolean,
+        waitForDOMLoad: ow.optional.boolean,
     }));
 
     let contents = injectedFilesCache.get(filePath);
@@ -65,9 +70,13 @@ const injectFile = async (page, filePath, options = {}) => {
         injectedFilesCache.add(filePath, contents);
     }
     const evalP = page.evaluate(contents);
-    return options.surviveNavigations
-        ? Promise.all([page.evaluateOnNewDocument(contents), evalP])
-        : evalP;
+
+    if (options.surviveNavigations) {
+        return options.waitForDOMLoad
+            ? Promise.all([page.on('domcontentloaded', async () => { await page.evaluate(contents); }), evalP])
+            : Promise.all([page.evaluateOnNewDocument(contents), evalP]);
+    }
+    return evalP;
 };
 
 /**
@@ -100,7 +109,7 @@ const injectFile = async (page, filePath, options = {}) => {
  */
 const injectJQuery = (page) => {
     ow(page, ow.object.validate(validators.browserPage));
-    return injectFile(page, jqueryPath, { surviveNavigations: true });
+    return injectFile(page, jqueryPath, { surviveNavigations: true, waitForDOMLoad: true });
 };
 
 /**
