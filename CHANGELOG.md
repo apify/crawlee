@@ -1,6 +1,7 @@
 2.3.1 / TBA
 ====================
 - fix: `utils.apifyClient` early instantiation (#1330)
+- feat: `playwright.injectJQuery()` (#1337)
 
 2.3.0 / 2022/04/07
 ====================

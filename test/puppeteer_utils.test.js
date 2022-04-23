@@ -97,7 +97,7 @@ describe('Apify.utils.puppeteer', () => {
             }
         });
 
-        test.only('injectJQuery()', async () => {
+        test('injectJQuery()', async () => {
             const browser = await Apify[launchName](launchContext);
 
             try {
