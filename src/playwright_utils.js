@@ -7,11 +7,11 @@ import util from 'util';
 import log from './utils_log';
 import { validators } from './validators';
 
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/named */
 import { DirectNavigationOptions } from './typedefs';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
-import Request from './request'; // eslint-disable-line import/named,no-unused-vars
+import Request from './request'; // eslint-disable-line no-unused-vars
 
 const jqueryPath = require.resolve('jquery');
 const readFilePromised = util.promisify(fs.readFile);
@@ -38,10 +38,6 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  *   Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
  *   This does not mean, however, that internal state will be preserved. Just that it will be automatically
  *   re-injected on each navigation before any other scripts get the chance to execute.
- * @param {boolean} [options.waitForDOMLoad]
- *   With this option set, the script gets re-injected only after finished DOM load. This is necessary for some scripts
- *   requiring the global `document` object.
- *   This option is ignored when `surviveNavigations` is set to `false`.
  * @return {Promise<*>}
  * @memberOf playwright
  */
@@ -50,7 +46,6 @@ const injectFile = async (page, filePath, options = {}) => {
     ow(filePath, ow.string);
     ow(options, ow.object.exactShape({
         surviveNavigations: ow.optional.boolean,
-        waitForDOMLoad: ow.optional.boolean,
     }));
 
     let contents = injectedFilesCache.get(filePath);
@@ -60,12 +55,11 @@ const injectFile = async (page, filePath, options = {}) => {
     }
     const evalP = page.evaluate(contents);
 
-    if (options.surviveNavigations) {
-        return options.waitForDOMLoad
-            ? Promise.all([page.on('domcontentloaded', async () => { await page.evaluate(contents); }), evalP])
-            : Promise.all([page.addInitScript(contents), evalP]);
-    }
-    return evalP;
+    return options.surviveNavigations
+        ? Promise.all([page.on('framenavigated', async () => {
+            await page.evaluate(contents);
+        }), evalP])
+        : evalP;
 };
 
 /**
@@ -98,7 +92,7 @@ const injectFile = async (page, filePath, options = {}) => {
  */
 const injectJQuery = (page) => {
     ow(page, ow.object.validate(validators.browserPage));
-    return injectFile(page, jqueryPath, { surviveNavigations: true, waitForDOMLoad: true });
+    return injectFile(page, jqueryPath, { surviveNavigations: true });
 };
 
 /**

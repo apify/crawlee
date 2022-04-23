@@ -93,7 +93,7 @@ describe('Apify.utils.playwright', () => {
             try {
                 await Promise.all([survive(browser), remove(browser)]);
             } finally {
-                browser.close();
+                await browser.close();
             }
         });
 
@@ -116,6 +116,7 @@ describe('Apify.utils.playwright', () => {
                 });
 
                 await Apify.utils.playwright.injectJQuery(page);
+
                 const result2 = await page.evaluate(() => {
                 /* global $ */
                     return {
@@ -127,8 +128,21 @@ describe('Apify.utils.playwright', () => {
                     isDefined: true,
                     text: '',
                 });
+
+                await page.reload();
+
+                const result3 = await page.evaluate(() => {
+                    return {
+                        isDefined: window.jQuery === window.$,
+                        text: $('h1').text(),
+                    };
+                });
+                expect(result3).toEqual({
+                    isDefined: true,
+                    text: '',
+                });
             } finally {
-                browser.close();
+                await browser.close();
             }
         });
 
