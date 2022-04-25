@@ -1,9 +1,8 @@
 import ow from 'ow';
 import _ from 'underscore';
-import fs from 'fs';
+import { readFile } from 'fs/promises';
 import { Page, Response } from 'playwright'; // eslint-disable-line no-unused-vars
 import { LruCache } from '@apify/datastructures';
-import util from 'util';
 import log from './utils_log';
 import { validators } from './validators';
 
@@ -14,7 +13,6 @@ import { DirectNavigationOptions } from './typedefs';
 import Request from './request'; // eslint-disable-line no-unused-vars
 
 const jqueryPath = require.resolve('jquery');
-const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 
@@ -50,20 +48,22 @@ const injectFile = async (page, filePath, options = {}) => {
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
-        contents = await readFilePromised(filePath, 'utf8');
+        contents = await readFile(filePath, 'utf8');
         injectedFilesCache.add(filePath, contents);
     }
     const evalP = page.evaluate(contents);
 
-    return options.surviveNavigations
-        ? Promise.all([page.on('framenavigated', async () => {
-            await page.evaluate(contents);
-        }), evalP])
-        : evalP;
+    if (options.surviveNavigations) {
+        page.on('framenavigated',
+            () => page.evaluate(contents)
+                .catch((error) => log.warning('An error occured during the script injection!', { error })));
+    }
+
+    return evalP;
 };
 
 /**
- * Injects the [jQuery](https://jquery.com/) library into a Puppeteer page.
+ * Injects the [jQuery](https://jquery.com/) library into a Playwright page.
  * jQuery is often useful for various web scraping and crawling tasks.
  * For example, it can help extract text from HTML elements using CSS selectors.
  *
@@ -75,7 +75,7 @@ const injectFile = async (page, filePath, options = {}) => {
  *
  * **Example usage:**
  * ```javascript
- * await Apify.utils.puppeteer.injectJQuery(page);
+ * await Apify.utils.playwright.injectJQuery(page);
  * const title = await page.evaluate(() => {
  *   return $('head title').text();
  * });
@@ -88,7 +88,7 @@ const injectFile = async (page, filePath, options = {}) => {
  * @param {Page} page
  *   Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
  * @return {Promise<*>}
- * @memberOf puppeteer
+ * @memberOf playwright
  */
 const injectJQuery = (page) => {
     ow(page, ow.object.validate(validators.browserPage));
