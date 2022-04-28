@@ -1,7 +1,6 @@
-import fs from 'fs';
+import { readFile } from 'fs/promises';
 import ow from 'ow';
 import vm from 'vm';
-import util from 'util';
 import _ from 'underscore';
 import { LruCache } from '@apify/datastructures';
 import { Page, Response, DirectNavigationOptions } from 'puppeteer'; // eslint-disable-line no-unused-vars
@@ -14,7 +13,6 @@ import { openKeyValueStore } from './storages/key_value_store';
 
 const jqueryPath = require.resolve('jquery');
 const underscorePath = require.resolve('underscore');
-const readFilePromised = util.promisify(fs.readFile);
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
@@ -61,13 +59,18 @@ const injectFile = async (page, filePath, options = {}) => {
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
-        contents = await readFilePromised(filePath, 'utf8');
+        contents = await readFile(filePath, 'utf8');
         injectedFilesCache.add(filePath, contents);
     }
     const evalP = page.evaluate(contents);
-    return options.surviveNavigations
-        ? Promise.all([page.evaluateOnNewDocument(contents), evalP])
-        : evalP;
+
+    if (options.surviveNavigations) {
+        page.on('framenavigated',
+            () => page.evaluate(contents)
+                .catch((error) => log.warning('An error occured during the script injection!', { error })));
+    }
+
+    return evalP;
 };
 
 /**

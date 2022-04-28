@@ -93,7 +93,7 @@ describe('Apify.utils.puppeteer', () => {
             try {
                 await Promise.all([survive(browser), remove(browser)]);
             } finally {
-                browser.close();
+                await browser.close();
             }
         });
 
@@ -127,8 +127,21 @@ describe('Apify.utils.puppeteer', () => {
                     isDefined: true,
                     text: '',
                 });
+
+                await page.reload();
+
+                const result3 = await page.evaluate(() => {
+                    return {
+                        isDefined: window.jQuery === window.$,
+                        text: $('h1').text(),
+                    };
+                });
+                expect(result3).toEqual({
+                    isDefined: true,
+                    text: '',
+                });
             } finally {
-                browser.close();
+                await browser.close();
             }
         });
 
@@ -151,7 +164,7 @@ describe('Apify.utils.puppeteer', () => {
                 });
                 expect(result2).toEqual({ isDefined: true });
             } finally {
-                browser.close();
+                await browser.close();
             }
         });
 
@@ -319,7 +332,7 @@ describe('Apify.utils.puppeteer', () => {
                 expect(typeof content).toBe('string');
                 expect(content).toBe('<html><head></head><body></body></html>');
             } finally {
-                browser.close();
+                await browser.close();
             }
         });
 
