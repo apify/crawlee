@@ -11,7 +11,7 @@ import defaultLog from '../utils_log'; // eslint-disable-line import/no-duplicat
 import { validators } from '../validators';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates */
 import { AutoscaledPoolOptions } from '../autoscaling/autoscaled_pool';
 import { ProxyInfo } from '../proxy_configuration';
 import Request from '../request';
@@ -399,7 +399,7 @@ export class BasicCrawler {
      * @protected
      * @internal
      */
-    async _handleRequestFunction(crawlingContext) { // eslint-disable-line no-unused-vars
+    async _handleRequestFunction(crawlingContext) {
         await this.userProvidedHandler(crawlingContext);
     }
 

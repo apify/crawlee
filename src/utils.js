@@ -207,7 +207,7 @@ export const isDocker = (forceReset) => {
 export const weightedAvg = (arrValues, arrWeights) => {
     const result = arrValues.map((value, i) => {
         const weight = arrWeights[i];
-        const sum = value * weight; // eslint-disable-line no-shadow
+        const sum = value * weight;
 
         return [sum, weight];
     }).reduce((p, c) => [p[0] + c[0], p[1] + c[1]], [0, 0]);
@@ -636,7 +636,6 @@ export const printOutdatedSdkWarning = () => {
     const latestApifyVersion = process.env[ENV_VARS.SDK_LATEST_VERSION];
     if (!latestApifyVersion || !semver.lt(apifyVersion, latestApifyVersion)) return;
 
-    // eslint-disable-next-line
     log.warning(`You are using an outdated version (${apifyVersion}) of Apify SDK. We recommend you to update to the latest version (${latestApifyVersion}).
          Read more about Apify SDK versioning at: https://help.apify.com/en/articles/3184510-updates-and-versioning-of-apify-sdk`);
 };

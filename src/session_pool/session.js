@@ -7,7 +7,7 @@ import { getCookiesFromResponse } from './session_utils';
 import defaultLog from '../utils_log';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order,import/no-cycle */
+/* eslint-disable no-unused-vars,import/order,import/no-cycle */
 import { SessionPool } from './session_pool';
 import { IncomingMessage } from 'http';
 import { HTTPResponse as PuppeteerResponse } from 'puppeteer';

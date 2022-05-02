@@ -1,5 +1,5 @@
 import ow from 'ow';
-import Snapshotter from './snapshotter'; // eslint-disable-line import/no-duplicates
+import Snapshotter from './snapshotter';
 import { weightedAvg } from '../utils';
 
 // TODO yin: Add `@property clientInfo` as in `SystemStatus._isSystemIdle()`
@@ -223,7 +223,7 @@ class SystemStatus {
      * @protected
      * @internal
      */
-    _isSampleOverloaded(sample, ratio) { // eslint-disable-line class-methods-use-this
+    _isSampleOverloaded(sample, ratio) {
         const weights = [];
         const values = [];
         for (let i = 1; i < sample.length; i++) {

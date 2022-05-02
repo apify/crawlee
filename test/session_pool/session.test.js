@@ -33,8 +33,8 @@ describe('Session - testing session behaviour ', () => {
         } catch (e) {
             err = e;
         }
-        expect(err).toBeDefined(); // eslint-disable-line
-        expect(err.message.includes('object `sessionPool` `{}` to be of type `SessionPool`')).toBe(true); // eslint-disable-line
+        expect(err).toBeDefined();
+        expect(err.message.includes('object `sessionPool` `{}` to be of type `SessionPool`')).toBe(true);
     });
 
     test('should mark session markBad', () => {
@@ -87,7 +87,7 @@ describe('Session - testing session behaviour ', () => {
             discarded = true;
         });
         session.retire();
-        expect(discarded).toBe(true); // eslint-disable-line
+        expect(discarded).toBe(true);
         expect(session.usageCount).toBe(1);
     });
 

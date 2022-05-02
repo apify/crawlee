@@ -2,7 +2,7 @@ import { gotScraping } from 'got-scraping';
 import ow from 'ow';
 import log from './utils_log';
 
-/* eslint-disable no-unused-vars,import/named,import/order */
+/* eslint-disable no-unused-vars,import/order */
 import { IncomingMessage } from 'http';
 /* eslint-enable no-unused-vars,import/named,import/order */
 

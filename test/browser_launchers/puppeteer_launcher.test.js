@@ -15,9 +15,9 @@ import * as utils from '../../build/utils';
 
 let prevEnvHeadless;
 let proxyServer;
-let proxyPort; // eslint-disable-line no-unused-vars
+let proxyPort;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
-let wasProxyCalled = false; // eslint-disable-line no-unused-vars
+let wasProxyCalled = false;
 
 const HOSTNAME = '127.0.0.1';
 let port;

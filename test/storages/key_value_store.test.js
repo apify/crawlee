@@ -172,7 +172,7 @@ describe('KeyValueStore remote', () => {
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
             let counter = 0;
 
-            for (const char of INVALID_CHARACTERS) { // eslint-disable-line
+            for (const char of INVALID_CHARACTERS) {
                 try {
                     await store.setValue(`my_id_${char}`, 'value');
                 } catch (err) {

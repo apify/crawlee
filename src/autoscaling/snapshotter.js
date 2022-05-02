@@ -213,7 +213,7 @@ class Snapshotter {
      * @protected
      * @internal
      */
-    _getSample(snapshots, sampleDurationMillis) { // eslint-disable-line class-methods-use-this
+    _getSample(snapshots, sampleDurationMillis) {
         if (!sampleDurationMillis) return snapshots;
 
         const sample = [];
@@ -397,7 +397,7 @@ class Snapshotter {
      * @protected
      * @internal
      */
-    _getCurrentCpuTicks() { // eslint-disable-line class-methods-use-this
+    _getCurrentCpuTicks() {
         const cpus = os.cpus();
         return cpus.reduce((acc, cpu) => {
             const cpuTimes = Object.values(cpu.times);

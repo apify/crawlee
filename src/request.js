@@ -184,7 +184,7 @@ class Request {
                     // .stack includes the message
                     : errorOrMessage.stack;
             } else if (errorOrMessage.message) {
-                message = errorOrMessage.message; // eslint-disable-line prefer-destructuring
+                message = errorOrMessage.message;
             } else if (errorOrMessage.toString() !== '[object Object]') {
                 message = errorOrMessage.toString();
             } else {

@@ -4,7 +4,7 @@ import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import { StorageManager } from './storage_manager';
 import log from '../utils_log';
 
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/order */
 // @ts-ignore
 import { ApifyClient } from 'apify-client';
 // @ts-ignore
@@ -69,7 +69,7 @@ export const chunkBySize = (items, limitBytes) => {
     let lastChunkBytes = 2; // Add 2 bytes for [] wrapper.
     const chunks = [];
     // Split payloads into buckets of valid size.
-    for (const payload of items) { // eslint-disable-line
+    for (const payload of items) {
         const bytes = Buffer.byteLength(payload);
 
         if (bytes <= limitBytes && (bytes + 2) > limitBytes) {
@@ -181,7 +181,6 @@ export class Dataset {
      */
     async pushData(data) {
         ow(data, ow.object);
-        // eslint-disable-next-line no-return-await
         const dispatch = async (payload) => await this.client.pushItems(payload);
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 

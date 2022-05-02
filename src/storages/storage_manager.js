@@ -1,6 +1,6 @@
 import { ENV_VARS } from '@apify/consts';
 
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars */
 // @ts-ignore
 import { ApifyClient } from 'apify-client';
 // @ts-ignore

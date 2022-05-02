@@ -5,7 +5,7 @@ import util from 'util';
 import zlib from 'zlib';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/no-duplicates */
 import { Readable } from 'stream';
 // eslint-enable-line import/no-duplicates
 
@@ -129,7 +129,7 @@ export const createDeserialize = (compressedData) => {
 function createChunkCollector(options = {}) {
     const { fromValuesStream = false } = options;
     const chunks = [];
-    const collector = new stream.Writable({ // eslint-disable-line no-shadow
+    const collector = new stream.Writable({
         decodeStrings: false,
         objectMode: fromValuesStream,
         write(chunk, nil, callback) {

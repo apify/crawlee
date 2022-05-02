@@ -371,7 +371,6 @@ describe('Apify.createProxyConfiguration()', () => {
             .once()
             .returns({ get: async () => fakeUserData });
 
-        // eslint-disable-next-line no-unused-vars
         const proxyConfiguration = new ProxyConfiguration(basicOpts);
         const logMock = sinon.mock(proxyConfiguration.log);
         logMock.expects('warning').once();

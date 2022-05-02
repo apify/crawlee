@@ -1,6 +1,6 @@
 import { Cookie, CookieJar } from 'tough-cookie';
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars */
 import { Session } from '../session_pool/session';
 import log from '../utils_log';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */

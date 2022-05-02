@@ -1,4 +1,3 @@
-/* eslint-disable class-methods-use-this */
 import { readStreamToString, concatStreamToBuffer } from '@apify/utilities';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import cheerio from 'cheerio'; // eslint-disable-line import/no-duplicates
@@ -508,7 +507,7 @@ class CheerioCrawler extends BasicCrawler {
         delete extensionOptions.handlePageFunction;
 
         for (const [key, value] of Object.entries(extensionOptions)) {
-            const isConfigurable = this.hasOwnProperty(key); // eslint-disable-line
+            const isConfigurable = this.hasOwnProperty(key);
             const originalType = typeof this[key];
             const extensionType = typeof value; // What if we want to null something? It is really needed?
             const isSameType = originalType === extensionType || value == null; // fast track for deleting keys

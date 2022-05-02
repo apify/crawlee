@@ -15,9 +15,9 @@ import { PlaywrightLauncher } from '../../build/browser_launchers/playwright_lau
 
 let prevEnvHeadless;
 let proxyServer;
-let proxyPort; // eslint-disable-line no-unused-vars
+let proxyPort;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
-let wasProxyCalled = false; // eslint-disable-line no-unused-vars
+let wasProxyCalled = false;
 
 // Setup local proxy server for the tests
 beforeAll(() => {

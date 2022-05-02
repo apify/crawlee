@@ -1,6 +1,6 @@
 import ow from 'ow';
 
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/named */
 import { Page } from 'playwright';
 import { BrowserPoolOptions, BrowserPool } from 'browser-pool';
 import { PlaywrightLauncher, PlaywrightLaunchContext } from '../browser_launchers/playwright_launcher';

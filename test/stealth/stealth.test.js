@@ -130,7 +130,7 @@ describe('Stealth - testing headless chrome hiding tricks', () => {
             const { hasChrome } = await getFingerPrint(page);
             const chrome = await page.evaluate(() => window.chrome); //eslint-disable-line
             expect(chrome).toBeInstanceOf(Object);
-            expect(chrome.runtime).toEqual({}); // eslint-disable-line
+            expect(chrome.runtime).toEqual({});
             expect(hasChrome).toBe(true);
         });
 

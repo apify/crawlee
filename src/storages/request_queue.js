@@ -7,8 +7,8 @@ import { StorageManager } from './storage_manager';
 import { sleep } from '../utils';
 import log from '../utils_log';
 
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
-import Request, { RequestOptions } from '../request'; // eslint-disable-line import/named,no-unused-vars
+/* eslint-disable no-unused-vars,import/named,import/order */
+import Request, { RequestOptions } from '../request';
 // @ts-ignore
 import { ApifyClient } from 'apify-client';
 // @ts-ignore

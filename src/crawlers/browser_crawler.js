@@ -2,7 +2,7 @@ import ow from 'ow';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { BrowserPool, BrowserController } from 'browser-pool'; // eslint-disable-line import/no-duplicates,no-unused-vars
 import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '../constants';
-import EVENTS from '../session_pool/events'; // eslint-disable-line import/no-duplicates
+import EVENTS from '../session_pool/events';
 import { validators } from '../validators';
 import {
     throwOnBlockedRequest,

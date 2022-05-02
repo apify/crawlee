@@ -341,7 +341,6 @@ describe('new Apify({ ... })', () => {
             const actorSpy = jest.spyOn(ApifyClient.prototype, 'actor');
             actorSpy.mockReturnValueOnce({ call: callMock });
 
-            // eslint-disable-next-line max-len
             const err = 'The actor some-act-id invoked by Apify.call() did not succeed. For details, see https://console.apify.com/view/runs/some-run-id';
             await expect(new Apify().call(actId, null)).rejects.toThrowError(new ApifyCallError(failedRun, err));
 
@@ -471,7 +470,6 @@ describe('new Apify({ ... })', () => {
             const taskSpy = jest.spyOn(ApifyClient.prototype, 'task');
             taskSpy.mockReturnValueOnce({ call: callMock });
 
-            // eslint-disable-next-line max-len
             const err = 'The actor task some-task-id invoked by Apify.callTask() did not succeed. For details, see https://console.apify.com/view/runs/some-run-id';
             await expect(new Apify().callTask(taskId)).rejects.toThrowError(new ApifyCallError(failedRun, err));
 
@@ -576,7 +574,7 @@ describe('new Apify({ ... })', () => {
             expect(warningMock).toBeCalledTimes(2);
             // eslint-disable-next-line max-len
             expect(warningMock).toBeCalledWith(`Neither APIFY_LOCAL_STORAGE_DIR nor APIFY_TOKEN environment variable is set, defaulting to APIFY_LOCAL_STORAGE_DIR="${sdk.config.get('localStorageDir')}"`);
-            // eslint-disable-next-line max-len
+
             expect(warningMock).toBeCalledWith('Apify.addWebhook() is only supported when running on the Apify platform. The webhook will not be invoked.');
         });
 

@@ -9,7 +9,7 @@ import { getValue, setValue } from './storages/key_value_store';
 import { serializeArray, createDeserialize } from './serialization';
 
 // TYPE IMPORTS
-/* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
+/* eslint-disable no-unused-vars,import/named,import/no-duplicates */
 import { RequestOptions } from './request';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
@@ -713,7 +713,7 @@ export class RequestList {
         this._ensureUniqueKeyValid(uniqueKey);
 
         // Skip requests with duplicate uniqueKey
-        if (!this.uniqueKeyToIndex.hasOwnProperty(uniqueKey)) { // eslint-disable-line no-prototype-builtins
+        if (!this.uniqueKeyToIndex.hasOwnProperty(uniqueKey)) {
             this.uniqueKeyToIndex[uniqueKey] = this.requests.length;
             this.requests.push(request);
         } else if (this.keepDuplicateUrls) {
@@ -729,7 +729,7 @@ export class RequestList {
      * @protected
      * @internal
      */
-    _ensureUniqueKeyValid(uniqueKey) { // eslint-disable-line class-methods-use-this
+    _ensureUniqueKeyValid(uniqueKey) {
         if (typeof uniqueKey !== 'string' || !uniqueKey) {
             throw new Error('Request object\'s uniqueKey must be a non-empty string');
         }

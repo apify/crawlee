@@ -2,7 +2,7 @@ import Apify from '../build/index';
 
 describe('Apify.PseudoUrl', () => {
     test('matches() should work', () => {
-        let purl = new Apify.PseudoUrl('http://www.example.com/PAGES/[(\\w|-)*]'); // eslint-disable-line
+        let purl = new Apify.PseudoUrl('http://www.example.com/PAGES/[(\\w|-)*]');
 
         expect(purl.matches('http://www.example.com/PAGES/')).toBe(true);
         expect(purl.matches('http://www.example.com/pages/my-awesome-page')).toBe(true);

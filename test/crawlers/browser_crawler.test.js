@@ -1,5 +1,3 @@
-/* eslint-disable no-prototype-builtins */
-
 import { URL } from 'url';
 import { ENV_VARS } from '@apify/consts';
 import sinon from 'sinon';
@@ -430,7 +428,7 @@ describe('BrowserCrawler', () => {
             useSessionPool: true,
             persistCookiesPerSession: false,
             maxRequestRetries: 0,
-            handlePageFunction: async () => { // eslint-disable-line no-loop-func
+            handlePageFunction: async () => {
                 called = true;
             },
             handleFailedRequestFunction: async ({ request }) => {
@@ -472,7 +470,7 @@ describe('BrowserCrawler', () => {
             useSessionPool: true,
             persistCookiesPerSession: false,
             maxRequestRetries: 0,
-            handlePageFunction: async () => { // eslint-disable-line no-loop-func
+            handlePageFunction: async () => {
                 called = true;
             },
             gotoFunction: ({ page, request }) => page.goto(request.url),

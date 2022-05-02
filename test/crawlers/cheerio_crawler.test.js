@@ -1,5 +1,3 @@
-/* eslint-disable no-prototype-builtins */
-
 import fs from 'fs';
 import path from 'path';
 import { ENV_VARS } from '@apify/consts';

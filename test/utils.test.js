@@ -1,4 +1,3 @@
-// eslint-disable-next-line max-classes-per-file
 import sinon from 'sinon';
 import _ from 'underscore';
 import fs from 'fs';

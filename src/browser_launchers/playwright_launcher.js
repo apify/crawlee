@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { LaunchOptions } from 'playwright'; // eslint-disable-line no-unused-vars,import/named
+import { LaunchOptions } from 'playwright'; // eslint-disable-line no-unused-vars
 import { PlaywrightPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 

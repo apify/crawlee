@@ -1,5 +1,5 @@
 import ow from 'ow';
-import { PuppeteerNode } from 'puppeteer'; // eslint-disable-line no-unused-vars,import/named
+import { PuppeteerNode } from 'puppeteer'; // eslint-disable-line no-unused-vars
 import { PuppeteerPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
 import { isAtHome } from '../utils';
