@@ -49,29 +49,29 @@
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
-        "@apify/consts": "^1.3.0",
+        "@apify/consts": "^1.7.0",
         "@apify/datastructures": "^1.0.1",
-        "@apify/log": "^1.1.1",
+        "@apify/log": "^1.2.0",
         "@apify/ps-tree": "^1.1.4",
         "@apify/storage-local": "^2.0.2",
         "@apify/timeout": "^0.2.1",
-        "@apify/utilities": "^1.1.2",
-        "apify-client": "^2.2.0",
-        "browser-pool": "^3.1.0",
+        "@apify/utilities": "^1.2.8",
+        "apify-client": "^2.3.1",
+        "browser-pool": "^3.1.2",
         "cheerio": "1.0.0-rc.10",
         "content-type": "^1.0.4",
-        "got-scraping": "^3.2.7",
+        "got-scraping": "^3.2.9",
         "htmlparser2": "^7.0.0",
         "iconv-lite": "^0.6.3",
         "jquery": "^3.6.0",
-        "mime-types": "^2.1.31",
-        "ow": "^0.28.0",
+        "mime-types": "^2.1.35",
+        "ow": "^0.28.1",
         "rimraf": "^3.0.2",
-        "semver": "^7.3.5",
-        "stream-json": "^1.7.2",
+        "semver": "^7.3.7",
+        "stream-json": "^1.7.4",
         "tough-cookie": "^4.0.0",
-        "underscore": "^1.13.0",
-        "ws": "^7.5.3"
+        "underscore": "^1.13.3",
+        "ws": "^7.5.7"
     },
     "peerDependencies": {
         "playwright": "^1.11.0",
@@ -86,7 +86,7 @@
         }
     },
     "devDependencies": {
-        "@apify/eslint-config": "^0.3.0",
+        "@apify/eslint-config": "^0.3.1",
         "@apify/tsconfig": "^0.1.0",
         "@babel/cli": "^7.14.8",
         "@babel/core": "^7.14.8",
@@ -110,7 +110,7 @@
         "@types/ws": "^7.4.7",
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^1.19.0",
-        "eslint": "^8.2.0",
+        "eslint": "^8.14.0",
         "express": "^4.17.1",
         "fpcollect": "^1.0.4",
         "fpscanner": "^0.1.5",
@@ -120,13 +120,12 @@
         "playwright": "1.21.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "proxy-chain": "^2.0.1-beta.0",
+        "proxy-chain": "^2.0.1",
         "puppeteer": "13.7.0",
         "sinon": "^12.0.0",
         "sinon-stub-promise": "^4.0.0",
         "ts-jest": "^27.0.5",
-        "typescript": "4.5.5",
-        "ua-parser-js": "^1.0.0",
-        "why-is-node-running": "^2.2.0"
+        "typescript": "4.6.4",
+        "ua-parser-js": "^1.0.2"
     }
 }
