@@ -55,17 +55,19 @@ class Statistics {
         ow(options, ow.object.exactShape({
             logIntervalSecs: ow.optional.number,
             logMessage: ow.optional.string,
+            keyValueStore: ow.optional.object,
         }));
 
         const {
             logIntervalSecs = 60,
             logMessage = 'Statistics',
+            keyValueStore,
         } = options;
 
         this.log = defaultLog.child({ prefix: 'Statistics' });
         this.logIntervalMillis = logIntervalSecs * 1000;
         this.logMessage = logMessage;
-        this.keyValueStore = null;
+        this.keyValueStore = keyValueStore;
         // assign an id while incrementing so it can be saved/restored from KV
         this.id = Statistics.id++;
         this.persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
@@ -184,7 +186,7 @@ class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
-        this.keyValueStore = await openKeyValueStore();
+        this.keyValueStore ??= await openKeyValueStore();
 
         await this._maybeLoadStatistics();
 
@@ -334,6 +336,7 @@ export default Statistics;
  * @typedef StatisticsOptions
  * @property {number} [logIntervalSecs]
  * @property {string} [logMessage]
+ * @property {KeyValueStore} [keyValueStore]
  */
 
 /**
