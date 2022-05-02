@@ -116,5 +116,5 @@ export async function addRequestsToQueueInBatches(requests, requestQueue, batchS
  * {@link utils#enqueueLinks} to modify requests before enqueuing them.
  * @callback RequestTransform
  * @param {RequestOptions} original Request options to be modified.
- * @return {RequestOptions} The modified request options to enqueue.
+ * @return {RequestOptions | null | undefined | false} The modified request options to enqueue.
  */
