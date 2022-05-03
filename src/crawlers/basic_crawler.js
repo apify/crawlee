@@ -645,7 +645,7 @@ export class BasicCrawler {
             // Mark the request as failed and do not retry.
             this.handledRequestsCount++;
             await source.markRequestHandled(request);
-            this.stats.failJob(request.id || request.url);
+            this.stats.failJob(request.id || request.uniqueKey);
             crawlingContext.error = error;
             await this._handleFailedRequestFunction(crawlingContext); // This function prints an error message.
         }
