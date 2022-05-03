@@ -135,6 +135,12 @@ export class PuppeteerLauncher extends BrowserLauncher {
         const launchOptions = super.createLaunchOptions();
         launchOptions.args = launchOptions.args || [];
 
+        // Adding the following flag should prevent actor run failure for puppeteer crawler running in headful mode.
+        // Related to https://github.com/puppeteer/puppeteer/issues/7050.
+        if (!launchOptions.headless) {
+            launchOptions.args.push('--disable-site-isolation-trials');
+        }
+
         if (isAtHome()) launchOptions.args.push('--no-sandbox');
 
         if (launchOptions.defaultViewport === undefined) {
