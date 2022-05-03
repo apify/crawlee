@@ -1,9 +1,12 @@
-2.3.1 / 2022/05/02
+2.3.1 / 2022/05/03
 ====================
 - fix: `utils.apifyClient` early instantiation (#1330)
 - feat: `utils.playwright.injectJQuery()` (#1337)
 - feat: add `keyValueStore` option to `Statistics` class (#1345)
+- fix: ensure failed req count is correct when using `RequestList` (#1347)
 - fix: random puppeteer crawler (running in headful mode) failure (#1348)
+  > This should help with the `We either navigate top level or have old version of the navigated frame` bug in puppeteer.
+- fix: allow returning falsy values in `RequestTransform`'s return type
 
 2.3.0 / 2022/04/07
 ====================
