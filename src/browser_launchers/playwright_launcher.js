@@ -2,6 +2,7 @@ import ow from 'ow';
 import { LaunchOptions } from 'playwright'; // eslint-disable-line no-unused-vars
 import { PlaywrightPlugin } from 'browser-pool';
 import BrowserLauncher from './browser_launcher';
+import { DEFAULT_USER_AGENT } from '../constants';
 
 /**
  * Apify extends the launch options of Playwright.
@@ -32,6 +33,10 @@ import BrowserLauncher from './browser_launcher';
  *   and it may also contain proxy username and password.
  *
  *   Example: `http://bob:pass123@proxy.example.com:1234`.
+ * @property {string} [userAgent]
+ *   The `User-Agent` HTTP header used by the browser.
+ *   If not provided, the function sets `User-Agent` to a reasonable default
+ *   to reduce the chance of detection of the crawler.
  * @property {boolean} [useChrome=false]
  *   If `true` and `executablePath` is not set,
  *   Playwright will launch full Google Chrome browser available on the machine
@@ -58,6 +63,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
     static optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
+        userAgent: ow.optional.string,
     };
 
     /**
@@ -69,6 +75,7 @@ export class PlaywrightLauncher extends BrowserLauncher {
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('playwright', 'apify/actor-node-playwright-*').chromium,
+            userAgent,
         } = launchContext;
 
         const { launchOptions = {}, ...rest } = launchContext;
@@ -82,7 +89,26 @@ export class PlaywrightLauncher extends BrowserLauncher {
             launcher,
         });
 
+        this.userAgent = userAgent;
         this.Plugin = PlaywrightPlugin;
+    }
+
+    createLaunchOptions() {
+        const launchOptions = super.createLaunchOptions();
+        launchOptions.args = launchOptions.args || [];
+
+        // When User-Agent is not set and we're using Chromium or headless mode,
+        // it is better to use DEFAULT_USER_AGENT to reduce chance of detection
+        let { userAgent } = this;
+        if (!userAgent && (!launchOptions.executablePath || launchOptions.headless)) {
+            userAgent = DEFAULT_USER_AGENT;
+        }
+
+        if (userAgent) {
+            launchOptions.args.push(`--user-agent=${userAgent}`);
+        }
+
+        return launchOptions;
     }
 }
 

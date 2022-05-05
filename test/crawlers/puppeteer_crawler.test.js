@@ -87,6 +87,8 @@ describe('PuppeteerCrawler', () => {
             expect(await response.status()).toBe(200);
             request.userData.title = await page.title();
             processed.push(request);
+            expect(response.request().headers()['user-agent']).not.toMatch(/headless/i);
+            await expect(page.evaluate(() => window.navigator.webdriver)).resolves.toBeFalsy();
         };
 
         const puppeteerCrawler = new Apify.PuppeteerCrawler({
