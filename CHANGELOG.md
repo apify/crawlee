@@ -1,6 +1,7 @@
 2.3.2 / 2022/05/05
 ====================
 - fix: use default user agent for playwright with chrome instead of the default "headless UA"
+- fix: always hide webdriver of chrome browsers
 
 
 2.3.1 / 2022/05/03
