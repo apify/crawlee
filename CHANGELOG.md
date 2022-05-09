@@ -1,3 +1,7 @@
+2.3.3 / TBA
+====================
+- fix: update `purgeLocalStorage` utility method to mimic `purge` param of `apify run`
+
 2.3.2 / 2022/05/05
 ====================
 - fix: use default user agent for playwright with chrome instead of the default "headless UA"
