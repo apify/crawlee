@@ -1,11 +1,11 @@
 import sinon from 'sinon';
 import _ from 'underscore';
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import cheerio from 'cheerio';
 import semver from 'semver';
-import { ENV_VARS } from '@apify/consts';
+import { ENV_VARS, LOCAL_STORAGE_SUBDIRS } from '@apify/consts';
 import { addTimeoutToPromise } from '@apify/timeout';
 import { Log, LoggerText } from '@apify/log';
 import Apify from '../build/index';
@@ -931,19 +931,64 @@ describe('utils.parseContentTypeFromResponse', () => {
 });
 
 describe('utils.purgeLocalStorage()', () => {
-    // Create test folder
-    const folder = Date.now().toString(16);
-    fs.mkdirSync(folder);
+    const folders = [];
+    let customFolder;
+
+    beforeAll(async () => {
+        process.env[ENV_VARS.LOCAL_STORAGE_DIR] = path.resolve('test/tmp', `./test_storage_${Date.now().toString(16)}`);
+        folders.push(process.env[ENV_VARS.LOCAL_STORAGE_DIR]);
+
+        customFolder = path.resolve('test/tmp', Date.now().toString(16));
+        folders.push(customFolder);
+
+        for (const folder of folders) {
+            for (const storage in LOCAL_STORAGE_SUBDIRS) { // eslint-disable-line
+                const subFolder = LOCAL_STORAGE_SUBDIRS[storage];
+
+                for (const storageName of ['default', 'non-default']) {
+                    const storagePath = path.resolve(folder, subFolder, storageName);
+                    await fs.ensureDir(storagePath);
+
+                    const fileData = JSON.stringify({ foo: 'bar' });
+                    await fs.writeFile(path.join(storagePath, '000000001.json'), fileData);
+
+                    if (storage === 'keyValueStores') {
+                        await fs.writeFile(path.join(storagePath, 'INPUT.json'), fileData);
+                    }
+                }
+            }
+        }
+    });
+
+    afterAll(async () => {
+        await fs.rm('test/tmp', { recursive: true, force: true });
+    });
 
     test('should purge local storage by default', async () => {
         await expect(utils.purgeLocalStorage()).resolves.toBeUndefined();
-
-        expect(fs.existsSync('apify_storage')).toBe(false);
+        const folder = process.env[ENV_VARS.LOCAL_STORAGE_DIR];
+        // default storages should be empty, except INPUT.json file
+        expect(fs.readdirSync(path.join(folder, 'datasets', 'default')).length).toBe(0);
+        expect(fs.readdirSync(path.join(folder, 'key_value_stores', 'default')).length).toBe(1);
+        expect(fs.readdirSync(path.join(folder, 'key_value_stores', 'default'))[0]).toBe('INPUT.json');
+        expect(fs.readdirSync(path.join(folder, 'request_queues', 'default')).length).toBe(0);
+        // non-default storages should keep their state and should not be cleared
+        expect(fs.readdirSync(path.join(folder, 'datasets', 'non-default')).length).toBe(1);
+        expect(fs.readdirSync(path.join(folder, 'key_value_stores', 'non-default')).length).toBe(2);
+        expect(fs.readdirSync(path.join(folder, 'request_queues', 'non-default')).length).toBe(1);
     });
 
     test('should purge local storage when passing custom name', async () => {
-        await expect(utils.purgeLocalStorage(folder)).resolves.toBeUndefined();
-
-        expect(fs.existsSync(folder)).toBe(false);
+        await expect(utils.purgeLocalStorage(customFolder)).resolves.toBeUndefined();
+        const folder = customFolder;
+        // default storages should be empty, except INPUT.json file
+        expect(fs.readdirSync(path.join(folder, 'datasets', 'default')).length).toBe(0);
+        expect(fs.readdirSync(path.join(folder, 'key_value_stores', 'default')).length).toBe(1);
+        expect(fs.readdirSync(path.join(folder, 'key_value_stores', 'default'))[0]).toBe('INPUT.json');
+        expect(fs.readdirSync(path.join(folder, 'request_queues', 'default')).length).toBe(0);
+        // non-default storages should keep their state and should not be cleared
+        expect(fs.readdirSync(path.join(folder, 'datasets', 'non-default')).length).toBe(1);
+        expect(fs.readdirSync(path.join(folder, 'key_value_stores', 'non-default')).length).toBe(2);
+        expect(fs.readdirSync(path.join(folder, 'request_queues', 'non-default')).length).toBe(1);
     });
 });

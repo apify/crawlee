@@ -2,11 +2,11 @@ import psTree from '@apify/ps-tree';
 import { execSync } from 'child_process';
 import { ApifyClient } from 'apify-client';
 import { version as apifyClientVersion } from 'apify-client/package.json';
-import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS } from '@apify/consts';
+import { ACT_JOB_TERMINAL_STATUSES, ENV_VARS, LOCAL_ENV_VARS, LOCAL_STORAGE_SUBDIRS, KEY_VALUE_STORE_KEYS } from '@apify/consts';
 // eslint-disable-next-line import/no-duplicates
 import cheerio from 'cheerio';
 import contentTypeParser from 'content-type';
-import fs from 'fs';
+import fs from 'fs-extra';
 import mime from 'mime-types';
 import os from 'os';
 import ow from 'ow';
@@ -15,7 +15,6 @@ import semver from 'semver';
 import _ from 'underscore';
 import { URL } from 'url';
 import util from 'util';
-import rimraf from 'rimraf';
 
 // TYPE IMPORTS
 /* eslint-disable no-unused-vars,import/named,import/no-duplicates,import/order */
@@ -29,8 +28,6 @@ import { ActorRun } from './typedefs';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from './configuration';
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
-
-const rimrafp = util.promisify(rimraf);
 
 /**
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
@@ -748,10 +745,10 @@ export const waitForRunToFinish = async (options) => {
 };
 
 /**
- * Cleans up the local storage folder created when testing locally.
- * This is useful in the event you are debugging your code locally.
- *
- * Be careful as this will remove the folder you provide and everything in it!
+ * Cleans up the default local storage directories before the run starts:
+ *  - local directory containing the default dataset;
+ *  - all records from the default key-value store in the local directory, except for the "INPUT" key;
+ *  - local directory containing the default request queue.
  *
  * @param {string} [folder] The folder to clean up
  * @returns {Promise<void>}
@@ -761,12 +758,37 @@ export const waitForRunToFinish = async (options) => {
  */
 export const purgeLocalStorage = async (folder) => {
     // If the user did not provide a folder, try to get it from the env variables, or the default one
-    if (!folder) {
-        folder = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || 'apify_storage';
-    }
+    if (!folder) folder = process.env[ENV_VARS.LOCAL_STORAGE_DIR] || 'apify_storage';
 
-    // Clear the folder
-    await rimrafp(folder);
+    const defaultDatasetPath = path.resolve(folder, LOCAL_STORAGE_SUBDIRS.datasets, LOCAL_ENV_VARS[ENV_VARS.DEFAULT_DATASET_ID]);
+    await removeFiles(defaultDatasetPath);
+
+    const defaultKeyValueStorePath = path.resolve(folder, LOCAL_STORAGE_SUBDIRS.keyValueStores, LOCAL_ENV_VARS[ENV_VARS.DEFAULT_KEY_VALUE_STORE_ID]);
+    await removeFiles(defaultKeyValueStorePath);
+
+    const defaultRequestQueuePath = path.resolve(folder, LOCAL_STORAGE_SUBDIRS.requestQueues, LOCAL_ENV_VARS[ENV_VARS.DEFAULT_REQUEST_QUEUE_ID]);
+    await removeFiles(defaultRequestQueuePath);
+};
+
+/**
+ * @ignore
+ */
+const removeFiles = async (folder) => {
+    const storagePathExists = await fs.pathExists(folder);
+
+    if (storagePathExists) {
+        const direntNames = await fs.readdir(folder);
+
+        const deletePromises = [];
+        for (const direntName of direntNames) {
+            const fileName = path.join(folder, direntName);
+            if (!RegExp(KEY_VALUE_STORE_KEYS.INPUT).test(fileName)) {
+                deletePromises.push(fs.rm(fileName, { recursive: true, force: true }));
+            }
+        }
+
+        await Promise.all(deletePromises);
+    }
 };
 
 /**
