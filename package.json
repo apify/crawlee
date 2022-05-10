@@ -74,7 +74,7 @@
     },
     "peerDependencies": {
         "playwright": "^1.11.0",
-        "puppeteer": "<= 14.0"
+        "puppeteer": "<= 14.x"
     },
     "peerDependenciesMeta": {
         "playwright": {
