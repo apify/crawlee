@@ -18,7 +18,7 @@ running on the [Apify Cloud](https://apify.com/).
 
 **View full documentation, guides and examples on the [Apify SDK project website](https://sdk.apify.com)**
 
-> Would you like to work with us on Apify SDK or similar projects? [We are hiring!](https://apify.com/jobs#senior-web-automation-developer-(node.js))
+> Would you like to work with us on Apify SDK or similar projects? [We are hiring!](https://apify.com/jobs#senior-node.js-engineer)
 
 ## Motivation
 
