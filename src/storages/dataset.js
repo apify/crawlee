@@ -246,7 +246,7 @@ export class Dataset {
      * Returns an object containing general information about the dataset.
      *
      * The function returns the same object as the Apify API Client's
-     * [getDataset](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-datasets-getDataset)
+     * [datasetClient.get](https://docs.apify.com/apify-client-js#datasetclient-get)
      * function, which in turn calls the
      * [Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)
      * API endpoint.
