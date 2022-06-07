@@ -731,7 +731,7 @@ describe('BrowserCrawler', () => {
 
             const proxiesToUse = proxyConfiguration.proxyUrls;
             for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(new URL(proxyUrl).href)).toBeTruthy();
+                expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
