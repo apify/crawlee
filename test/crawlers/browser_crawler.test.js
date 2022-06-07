@@ -627,7 +627,7 @@ describe('BrowserCrawler', () => {
 
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration();
-            const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href;
+            const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href.slice(0, -1);
             let browserProxy;
 
             const browserCrawler = new Apify.BrowserCrawler({
@@ -731,7 +731,7 @@ describe('BrowserCrawler', () => {
 
             const proxiesToUse = proxyConfiguration.proxyUrls;
             for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(new URL(proxyUrl).href)).toBeTruthy();
+                expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
