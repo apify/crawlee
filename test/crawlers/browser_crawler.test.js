@@ -627,7 +627,7 @@ describe('BrowserCrawler', () => {
 
             const stub = sinon.stub(utilsRequest, 'requestAsBrowser').callsFake(fakeCall);
             const proxyConfiguration = await Apify.createProxyConfiguration();
-            const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href;
+            const generatedProxyUrl = new URL(await proxyConfiguration.newUrl()).href.slice(0, -1);
             let browserProxy;
 
             const browserCrawler = new Apify.BrowserCrawler({
