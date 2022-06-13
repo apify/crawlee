@@ -31,6 +31,30 @@ const HTML = `
 </html>
 `;
 
+const HTML_WITH_INVALID_LINK = `
+<html>
+    <head>
+        <title>Example</title>
+    </head>
+    <body>
+        <a href="https://invalid url 1">Invalid!</a>
+        <a href="https://www.completelyvalid.com/">Valid!</a>
+    </body>
+</html>
+`;
+
+const HTML_WITH_INVALID_RELATIVE_LINKS = `
+<html>
+    <head>
+        <title>Example</title>
+    </head>
+    <body>
+        <a href="////"</a>
+        <a href="/validrelativeurl">Valid!</a>
+    </body>
+</html>
+`;
+
 describe('enqueueLinks()', () => {
     let ll;
     beforeAll(() => {
@@ -614,6 +638,48 @@ describe('enqueueLinks()', () => {
                 expect(err.message).toMatch('/x/absolutepath');
             }
             expect(enqueued).toHaveLength(0);
+        });
+
+        test('ignores invalid URLs', async () => {
+            $ = cheerio.load(HTML_WITH_INVALID_LINK);
+            const enqueued = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+
+            await enqueueLinks({ $, requestQueue });
+
+            expect(enqueued).toHaveLength(1);
+            expect(enqueued[0].url).toBe('https://www.completelyvalid.com/');
+        });
+
+        test('ignores invalid URLs if base URL set', async () => {
+            $ = cheerio.load(HTML_WITH_INVALID_LINK);
+            const enqueued = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+
+            await enqueueLinks({ $, requestQueue, baseUrl: 'https://www.example.com/' });
+
+            expect(enqueued).toHaveLength(1);
+            expect(enqueued[0].url).toBe('https://www.completelyvalid.com/');
+        });
+
+        test('ignores invalid relative URLs if base URL set', async () => {
+            $ = cheerio.load(HTML_WITH_INVALID_RELATIVE_LINKS);
+            const enqueued = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+            requestQueue.addRequest = async (request) => {
+                enqueued.push(request);
+            };
+
+            await enqueueLinks({ $, requestQueue, baseUrl: 'https://www.example.com/' });
+
+            expect(enqueued).toHaveLength(1);
+            expect(enqueued[0].url).toBe('https://www.example.com/validrelativeurl');
         });
     });
 });

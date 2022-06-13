@@ -171,15 +171,20 @@ export function extractUrlsFromCheerio($, selector, baseUrl) {
         .map((i, el) => $(el).attr('href'))
         .get()
         .filter((href) => !!href)
-        .map((href) => {
+        .reduce((urls, current) => {
             // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
-            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
+            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(current); // Grabbed this in 'is-absolute-url' package.
             if (!isHrefAbsolute && !baseUrl) {
-                throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
+                throw new Error(`An extracted URL: ${current} is relative and options.baseUrl is not set. `
                     + 'Use options.baseUrl in utils.enqueueLinks() to automatically resolve relative URLs.');
             }
-            return baseUrl
-                ? (new URL(href, baseUrl)).href
-                : href;
-        });
+
+            try {
+                urls.push(new URL(current, baseUrl).href);
+            } catch {
+                log.warning(`An extracted URL: ${current} is invalid, ignoring.`);
+            }
+
+            return urls;
+        }, []);
 }
