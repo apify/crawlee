@@ -1,6 +1,7 @@
 2.3.3 / TBA
 ====================
 - fix: update `purgeLocalStorage` utility method to mimic `purge` param of `apify run`
+- fix: update `utils.enqueueLinks` to ignore invalid URLs when using cheerio
 
 2.3.2 / 2022/05/05
 ====================
