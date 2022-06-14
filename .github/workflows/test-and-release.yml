@@ -35,7 +35,7 @@ jobs:
                 with:
                     node-version: ${{ matrix.node-version }}
             -   name: Install Dependencies
-                run: npm install
+                run: npm install --force
             -   name: Run Tests
                 run: npm test
 
@@ -50,7 +50,7 @@ jobs:
                 with:
                     node-version: 16
             -   name: Install Dependencies
-                run: npm install
+                run: npm install --force
             -   name: Run Linter
                 run: npm run lint
 
@@ -68,7 +68,7 @@ jobs:
                     node-version: 16
                     registry-url: https://registry.npmjs.org/
             -   name: Install Dependencies
-                run: npm install
+                run: npm install --force
             - # Determine if this is a beta or latest release
                 name: Set Release Tag
                 run: echo "RELEASE_TAG=$(if [ ${{ github.event_name }} = release ]; then echo latest; else echo beta; fi)" >> $GITHUB_ENV
