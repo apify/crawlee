@@ -50,7 +50,7 @@
     },
     "dependencies": {
         "@apify/consts": "^1.7.0",
-        "@apify/datastructures": "^1.0.1",
+        "@apify/datastructures": "^2.0.0",
         "@apify/log": "^1.2.0",
         "@apify/ps-tree": "^1.1.4",
         "@apify/storage-local": "^2.0.2",
