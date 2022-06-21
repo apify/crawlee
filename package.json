@@ -49,7 +49,7 @@
         "lint:fix": "eslint ./src ./test --ext .js,.jsx --fix"
     },
     "dependencies": {
-        "@apify/consts": "^1.7.0",
+        "@apify/consts": "^2.0.0",
         "@apify/datastructures": "^1.0.1",
         "@apify/log": "^1.2.0",
         "@apify/ps-tree": "^1.1.4",
