@@ -18,11 +18,13 @@ const parsePurl = (purl) => {
         for (let i = 0; i < trimmedPurl.length; i++) {
             const ch = trimmedPurl.charAt(i);
 
-            if (ch === '[' && ++openBrackets === 1) {
+            if (ch === '\\' && ['[', ']'].includes(trimmedPurl.charAt(i + 1))) {
+                regex += ch + trimmedPurl.charAt(++i);
+            } else if (ch === '[' && ++openBrackets === 1) {
                 // Beginning of '[regex]' section
                 // Enclose regex in () brackets to enforce operator priority
                 regex += '(';
-            } else if (ch === ']' && openBrackets > 0 && --openBrackets === 0) {
+            } else if (ch === ']' && --openBrackets === 0) {
                 // End of '[regex]' section
                 regex += ')';
             } else if (openBrackets > 0) {
@@ -40,6 +42,18 @@ const parsePurl = (purl) => {
                     regex += `\\x${hex}`;
                 }
             }
+            if (openBrackets < 0) {
+                throw new Error(
+                    `PseudoUrl '${trimmedPurl}' is invalid: stray ']' (end of regex directive) at position ${i + 1}.`
+                    + ` If you wanted to include a literal ']' You need to escape it as '\\]'`,
+                );
+            }
+        }
+        if (openBrackets > 0) {
+            throw new Error(
+                `PseudoUrl '${trimmedPurl}' is invalid: unclosed regex directive (starting with '[').`
+                + ` If you wanted to include a literal '[', you need to escape it as '\\['`,
+            );
         }
         regex += '$';
     } catch (err) {

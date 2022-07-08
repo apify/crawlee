@@ -39,4 +39,28 @@ describe('Apify.PseudoUrl', () => {
         expect(request.method).toBe('POST');
         expect(request.userData).toEqual({ foo: 'bar', bar: 'foo' });
     });
+
+    test('should not break on escaped square brackets in regex', () => {
+        // the string really is 'http://example.com/[\[]', but \ needs to be escaped
+        // i.e. the pseudourl contains a regex, which should simply match '['
+        let purl = new Apify.PseudoUrl('http://example.com/[\\[]');
+        expect(purl.matches('http://example.com/[')).toBe(true);
+
+        purl = new Apify.PseudoUrl('http://example.com/[\\]]');
+        expect(purl.matches('http://example.com/]')).toBe(true);
+    });
+
+    test('should not break on escaped square brackets outside regex', () => {
+        // the string really is 'http://example.com/\[', but \ needs to be escaped
+        let purl = new Apify.PseudoUrl('http://example.com/\\[');
+        expect(purl.matches('http://example.com/[')).toBe(true);
+
+        purl = new Apify.PseudoUrl('http://example.com/\\]');
+        expect(purl.matches('http://example.com/]')).toBe(true);
+    });
+
+    test('should throw on unclosed regex directive', () => {
+        expect(() => new Apify.PseudoUrl('http://example.com/[')).toThrow('unclosed regex directive');
+        expect(() => new Apify.PseudoUrl('http://example.com/]')).toThrow('stray \']\'');
+    });
 });
