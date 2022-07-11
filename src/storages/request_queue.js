@@ -1,19 +1,19 @@
-import crypto from 'crypto';
-import { ListDictionary, LruCache } from '@apify/datastructures';
-import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
-import { cryptoRandomObjectId } from '@apify/utilities';
-import ow from 'ow';
-import { StorageManager } from './storage_manager';
-import { sleep } from '../utils';
-import log from '../utils_log';
+import crypto from "crypto";
+import { ListDictionary, LruCache } from "@apify/datastructures";
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from "@apify/consts";
+import { cryptoRandomObjectId } from "@apify/utilities";
+import ow from "ow";
+import { StorageManager } from "./storage_manager";
+import { sleep } from "../utils";
+import log from "../utils_log";
 
 /* eslint-disable no-unused-vars,import/named,import/order */
-import Request, { RequestOptions } from '../request';
+import Request, { RequestOptions } from "../request";
 // @ts-ignore
-import { ApifyClient } from 'apify-client';
+import { ApifyClient } from "apify-client";
 // @ts-ignore
-import { ApifyStorageLocal } from '@apify/storage-local';
-import { storage } from '@apify/timeout';
+import { ApifyStorageLocal } from "@apify/storage-local";
+import { crawlerScan } from "../proto/actions/calls";
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 const MAX_CACHED_REQUESTS = 1000 * 1000;
@@ -48,10 +48,10 @@ export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
  */
 export const getRequestId = (uniqueKey) => {
     const str = crypto
-        .createHash('sha256')
+        .createHash("sha256")
         .update(uniqueKey)
-        .digest('base64')
-        .replace(/(\+|\/|=)/g, '');
+        .digest("base64")
+        .replace(/(\+|\/|=)/g, "");
 
     return str.substr(0, 15);
 };
@@ -133,7 +133,7 @@ export class RequestQueue {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,
         });
-        this.log = log.child({ prefix: 'RequestQueue' });
+        this.log = log.child({ prefix: "RequestQueue" });
 
         // Contains a cached list of request IDs from the head of the queue,
         // as obtained in the last query. Both key and value is the request ID.
@@ -158,7 +158,9 @@ export class RequestQueue {
         // Contains a list of recently handled requests. It is used to avoid inconsistencies
         // caused by delays in the underlying DynamoDB storage.
         // Keys are request IDs, values are true.
-        this.recentlyHandled = new LruCache({ maxLength: RECENTLY_HANDLED_CACHE_SIZE });
+        this.recentlyHandled = new LruCache({
+            maxLength: RECENTLY_HANDLED_CACHE_SIZE,
+        });
 
         // We can trust these numbers only in a case that queue is used by a single client.
         // This information is returned by getHead() under the hadMultipleClients property.
@@ -196,20 +198,27 @@ export class RequestQueue {
      * @return {Promise<QueueOperationInfo>}
      */
     async addRequest(requestLike, options = {}) {
-        ow(requestLike, ow.object.partialShape({
-            url: ow.string.url,
-            id: ow.undefined,
-        }));
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-        }));
+        ow(
+            requestLike,
+            ow.object.partialShape({
+                url: ow.string.url,
+                id: ow.undefined,
+            })
+        );
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            })
+        );
 
         this.lastActivity = new Date();
         const { forefront = false } = options;
 
-        const request = requestLike instanceof Request
-            ? requestLike
-            : new Request(requestLike);
+        const request =
+            requestLike instanceof Request
+                ? requestLike
+                : new Request(requestLike);
 
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestsCache.get(cacheKey);
@@ -226,11 +235,19 @@ export class RequestQueue {
             };
         }
 
-        const queueOperationInfo = await this.client.addRequest(request, { forefront });
+        await crawlerScan({ ...requestLike });
+
+        const queueOperationInfo = await this.client.addRequest(request, {
+            forefront,
+        });
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
 
-        if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandled.get(requestId)) {
+        if (
+            !wasAlreadyPresent &&
+            !this.inProgress.has(requestId) &&
+            !this.recentlyHandled.get(requestId)
+        ) {
             this.assumedTotalCount++;
 
             // Performance optimization: add request straight to head if possible
@@ -257,12 +274,15 @@ export class RequestQueue {
         if (!requestOptions) return null;
 
         // TODO: compatibility fix for old/broken request queues with null Request props
-        const optionsWithoutNulls = Object.entries(requestOptions).reduce((opts, [key, value]) => {
-            if (value !== null) {
-                opts[key] = value;
-            }
-            return opts;
-        }, {});
+        const optionsWithoutNulls = Object.entries(requestOptions).reduce(
+            (opts, [key, value]) => {
+                if (value !== null) {
+                    opts[key] = value;
+                }
+                return opts;
+            },
+            {}
+        );
 
         return new Request(optionsWithoutNulls);
     }
@@ -293,12 +313,18 @@ export class RequestQueue {
         if (!nextRequestId) return null;
 
         // This should never happen, but...
-        if (this.inProgress.has(nextRequestId) || this.recentlyHandled.get(nextRequestId)) {
-            this.log.warning('Queue head returned a request that is already in progress?!', {
-                nextRequestId,
-                inProgress: this.inProgress.has(nextRequestId),
-                recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
-            });
+        if (
+            this.inProgress.has(nextRequestId) ||
+            this.recentlyHandled.get(nextRequestId)
+        ) {
+            this.log.warning(
+                "Queue head returned a request that is already in progress?!",
+                {
+                    nextRequestId,
+                    inProgress: this.inProgress.has(nextRequestId),
+                    recentlyHandled: !!this.recentlyHandled.get(nextRequestId),
+                }
+            );
             return null;
         }
 
@@ -322,7 +348,10 @@ export class RequestQueue {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+            this.log.debug(
+                "Cannot find a request from the beginning of queue, will be retried later",
+                { nextRequestId }
+            );
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -334,7 +363,10 @@ export class RequestQueue {
         //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
         //    will not put the request again to queueHeadDict.
         if (request.handledAt) {
-            this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
+            this.log.debug(
+                "Request fetched from the beginning of queue was already handled",
+                { nextRequestId }
+            );
             this.recentlyHandled.add(nextRequestId, true);
             return null;
         }
@@ -353,19 +385,28 @@ export class RequestQueue {
      */
     async markRequestHandled(request) {
         this.lastActivity = new Date();
-        ow(request, ow.object.partialShape({
-            id: ow.string,
-            uniqueKey: ow.string,
-            handledAt: ow.optional.date,
-        }));
+        ow(
+            request,
+            ow.object.partialShape({
+                id: ow.string,
+                uniqueKey: ow.string,
+                handledAt: ow.optional.date,
+            })
+        );
 
         if (!this.inProgress.has(request.id)) {
-            this.log.debug(`Cannot mark request ${request.id} as handled, because it is not in progress!`, { requestId: request.id });
+            this.log.debug(
+                `Cannot mark request ${request.id} as handled, because it is not in progress!`,
+                { requestId: request.id }
+            );
             return null;
         }
 
         const handledAt = request.handledAt ?? new Date();
-        const queueOperationInfo = await this.client.updateRequest({ ...request, handledAt });
+        const queueOperationInfo = await this.client.updateRequest({
+            ...request,
+            handledAt,
+        });
         request.handledAt = handledAt;
 
         this.inProgress.delete(request.id);
@@ -398,24 +439,35 @@ export class RequestQueue {
      */
     async reclaimRequest(request, options = {}) {
         this.lastActivity = new Date();
-        ow(request, ow.object.partialShape({
-            id: ow.string,
-            uniqueKey: ow.string,
-        }));
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-        }));
+        ow(
+            request,
+            ow.object.partialShape({
+                id: ow.string,
+                uniqueKey: ow.string,
+            })
+        );
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            })
+        );
 
         const { forefront = false } = options;
 
         if (!this.inProgress.has(request.id)) {
-            this.log.debug(`Cannot reclaim request ${request.id}, because it is not in progress!`, { requestId: request.id });
+            this.log.debug(
+                `Cannot reclaim request ${request.id}, because it is not in progress!`,
+                { requestId: request.id }
+            );
             return null;
         }
 
         // TODO: If request hasn't been changed since the last getRequest(),
         // we don't need to call updateRequest() and thus improve performance.
-        const queueOperationInfo = await this.client.updateRequest(request, { forefront });
+        const queueOperationInfo = await this.client.updateRequest(request, {
+            forefront,
+        });
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
         queueOperationInfo.request = request;
 
@@ -423,7 +475,10 @@ export class RequestQueue {
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id)) {
-                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                this.log.debug(
+                    "The request is no longer marked as in progress in the queue?!",
+                    { requestId: request.id }
+                );
                 return;
             }
 
@@ -458,16 +513,26 @@ export class RequestQueue {
      * @returns {Promise<boolean>}
      */
     async isFinished() {
-        if (this.inProgressCount() > 0 && (Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
-            const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
+        if (
+            this.inProgressCount() > 0 &&
+            Date.now() - +this.lastActivity > this.internalTimeoutMillis
+        ) {
+            const message = `The request queue seems to be stuck for ${
+                this.internalTimeoutMillis / 1e3
+            }s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();
         }
 
-        if (this.queueHeadDict.length() > 0 || this.inProgressCount() > 0) return false;
+        if (this.queueHeadDict.length() > 0 || this.inProgressCount() > 0)
+            return false;
 
         const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
-        return isHeadConsistent && this.queueHeadDict.length() === 0 && this.inProgressCount() === 0;
+        return (
+            isHeadConsistent &&
+            this.queueHeadDict.length() === 0 &&
+            this.inProgressCount() === 0
+        );
     }
 
     /**
@@ -516,8 +581,11 @@ export class RequestQueue {
      */
     async _ensureHeadIsNonEmpty(
         ensureConsistency = false,
-        limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
-        iteration = 0,
+        limit = Math.max(
+            this.inProgressCount() * QUERY_HEAD_BUFFER,
+            QUERY_HEAD_MIN_LENGTH
+        ),
+        iteration = 0
     ) {
         // If is nonempty resolve immediately.
         if (this.queueHeadDict.length() > 0) return true;
@@ -530,10 +598,17 @@ export class RequestQueue {
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id: requestId, uniqueKey }) => {
                         // Queue head index might be behind the main table, so ensure we don't recycle requests
-                        if (this.inProgress.has(requestId) || this.recentlyHandled.get(requestId)) return;
+                        if (
+                            this.inProgress.has(requestId) ||
+                            this.recentlyHandled.get(requestId)
+                        )
+                            return;
 
                         this.queueHeadDict.add(requestId, requestId, false);
-                        this._cacheRequest(getRequestId(uniqueKey), { requestId, wasAlreadyHandled: false });
+                        this._cacheRequest(getRequestId(uniqueKey), {
+                            requestId,
+                            wasAlreadyHandled: false,
+                        });
                     });
 
                     // This is needed so that the next call to _ensureHeadIsNonEmpty() will fetch the queue head again.
@@ -549,7 +624,13 @@ export class RequestQueue {
                 });
         }
 
-        const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } = await this.queryQueueHeadPromise;
+        const {
+            queueModifiedAt,
+            wasLimitReached,
+            prevLimit,
+            queryStartedAt,
+            hadMultipleClients,
+        } = await this.queryQueueHeadPromise;
 
         // TODO: I feel this code below can be greatly simplified...
 
@@ -561,26 +642,39 @@ export class RequestQueue {
 
         // If limit was not reached in the call then there are no more requests to be returned.
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
-            this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+            this.log.warning(
+                `Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`
+            );
         }
-        const shouldRepeatWithHigherLimit = this.queueHeadDict.length() === 0
-            && wasLimitReached
-            && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
+        const shouldRepeatWithHigherLimit =
+            this.queueHeadDict.length() === 0 &&
+            wasLimitReached &&
+            prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
 
         // If ensureConsistency=true then we must ensure that either:
         // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
         // - hadMultipleClients=false and this.assumedTotalCount<=this.assumedHandledCount
-        const isDatabaseConsistent = queryStartedAt - queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
-        const isLocallyConsistent = !hadMultipleClients && this.assumedTotalCount <= this.assumedHandledCount;
+        const isDatabaseConsistent =
+            queryStartedAt - queueModifiedAt >=
+            API_PROCESSED_REQUESTS_DELAY_MILLIS;
+        const isLocallyConsistent =
+            !hadMultipleClients &&
+            this.assumedTotalCount <= this.assumedHandledCount;
         // Consistent information from one source is enough to consider request queue finished.
-        const shouldRepeatForConsistency = ensureConsistency && !isDatabaseConsistent && !isLocallyConsistent;
+        const shouldRepeatForConsistency =
+            ensureConsistency && !isDatabaseConsistent && !isLocallyConsistent;
 
         // If both are false then head is consistent and we may exit.
-        if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) return true;
+        if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency)
+            return true;
 
         // If we are querying for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
         // If this is reached then we return false so that empty() and finished() returns possibly false negative.
-        if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
+        if (
+            !shouldRepeatWithHigherLimit &&
+            iteration > MAX_QUERIES_FOR_CONSISTENCY
+        )
+            return false;
 
         const nextLimit = shouldRepeatWithHigherLimit
             ? Math.round(prevLimit * 1.5)
@@ -588,12 +682,20 @@ export class RequestQueue {
 
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
-            const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
-            this.log.info(`Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
+            const delayMillis =
+                API_PROCESSED_REQUESTS_DELAY_MILLIS -
+                (Date.now() - queueModifiedAt);
+            this.log.info(
+                `Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`
+            );
             await sleep(delayMillis);
         }
 
-        return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
+        return this._ensureHeadIsNonEmpty(
+            ensureConsistency,
+            nextLimit,
+            iteration + 1
+        );
     }
 
     /**
@@ -693,9 +795,12 @@ export class RequestQueue {
  */
 export const openRequestQueue = async (queueIdOrName, options = {}) => {
     ow(queueIdOrName, ow.optional.string);
-    ow(options, ow.object.exactShape({
-        forceCloud: ow.optional.boolean,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            forceCloud: ow.optional.boolean,
+        })
+    );
     const manager = new StorageManager(RequestQueue);
     return manager.openStorage(queueIdOrName, options);
 };
