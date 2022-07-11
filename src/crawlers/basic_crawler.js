@@ -20,7 +20,6 @@ import { RequestQueue } from "../storages/request_queue";
 import { Session } from "../session_pool/session";
 import { SessionPoolOptions } from "../session_pool/session_pool";
 import { Log } from "../utils_log";
-import { crawlerScan } from "../proto/actions/calls";
 /* eslint-enable no-unused-vars,import/named,import/no-duplicates,import/order */
 
 /**
@@ -496,8 +495,6 @@ export class BasicCrawler {
 
         try {
             await this.requestQueue.addRequest(request, { forefront: true });
-
-            await crawlerScan({ ...request });
         } catch (err) {
             // If requestQueue.addRequest() fails here then we must reclaim it back to
             // the RequestList because probably it's not yet in the queue!

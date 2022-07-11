@@ -26,7 +26,7 @@ export const createServer = async () => {
 
             callback(null, {});
         },
-        // scan website for issues that pushes task into queues.
+        // link found from crawl via streams.
         scanStream: async (call) => {
             call.write({});
             call.end();

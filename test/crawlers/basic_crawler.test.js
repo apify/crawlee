@@ -8,7 +8,6 @@ import { RequestQueue } from "../../build/storages/request_queue";
 import events from "../../build/events";
 import LocalStorageDirEmulator from "../local_storage_dir_emulator";
 import * as utils from "../../build/utils";
-import { killServer } from "../../src/proto/grpc-server";
 
 describe("BasicCrawler", () => {
     let logLevel;
@@ -30,8 +29,6 @@ describe("BasicCrawler", () => {
 
     afterAll(async () => {
         await localStorageEmulator.destroy();
-        await killServer();
-
         log.setLevel(logLevel);
     });
 
