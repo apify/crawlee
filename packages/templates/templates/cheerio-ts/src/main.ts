@@ -7,7 +7,7 @@ interface InputSchema {
     debug?: boolean;
 }
 
-const { startUrls = [], debug } = await KeyValueStore.getInput<InputSchema>() ?? {};
+const { startUrls = ['https://apify.com'], debug } = await KeyValueStore.getInput<InputSchema>() ?? {};
 
 log.setLevel(log.LEVELS.DEBUG);
 if (debug) {
