@@ -1,0 +1,61 @@
+{
+    "name": "@crawlee/cli",
+    "version": "3.0.0",
+    "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "bin": {
+        "crawlee": "./src/index.ts"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "headless",
+        "chrome",
+        "puppeteer",
+        "crawler",
+        "scraper"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/apify-ts"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/apify-ts/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "npm run clean && npm run compile && npm run copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json",
+        "copy": "ts-node -T ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@crawlee/templates": "^3.0.0",
+        "ansi-colors": "^4.1.3",
+        "fs-extra": "^10.1.0",
+        "inquirer": "^8.2.4",
+        "yargonaut": "^1.1.4",
+        "yargs": "^17.5.1"
+    }
+}

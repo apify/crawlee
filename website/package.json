@@ -1,26 +1,41 @@
 {
-  "scripts": {
-    "examples": "docusaurus-examples",
-    "start": "docusaurus-start",
-    "build": "docusaurus-build",
-    "publish-gh-pages": "docusaurus-publish",
-    "write-translations": "docusaurus-write-translations",
-    "version": "docusaurus-version",
-    "rename-version": "docusaurus-rename-version",
-    "generate": "node ./tools/build_docs.js",
-    "prettify": "prettier --write --config ./tools/prettier.config.js ../docs/guides/*.md"
-  },
-  "devDependencies": {
-    "camelcase": "^5.3.1",
-    "decamelize": "^4.0.0",
-    "docusaurus": "^1.13.0",
-    "fs-extra": "^10.0.0",
-    "got": "^11.8.2",
-    "jsdoc-plugin-intersection": "^1.0.4",
-    "jsdoc-to-markdown": "^7.0.0",
-    "prettier": "^1.18.2"
-  },
-  "dependencies": {
-    "remarkable-extlink": "^1.1.0"
-  }
+    "scripts": {
+        "examples": "docusaurus-examples",
+        "start": "rimraf .docusaurus && docusaurus start",
+        "build": "rimraf .docusaurus && docusaurus build",
+        "publish-gh-pages": "docusaurus-publish",
+        "write-translations": "docusaurus write-translations",
+        "version": "docusaurus version",
+        "rename-version": "docusaurus rename-version",
+        "prettify": "prettier --write --config ./tools/docs-prettier.config.js ../docs/guides/*.md",
+        "swizzle": "docusaurus swizzle",
+        "deploy": "rimraf .docusaurus && docusaurus deploy",
+        "docusaurus": "docusaurus"
+    },
+    "devDependencies": {
+        "@apify/eslint-config-ts": "^0.2.3",
+        "@apify/tsconfig": "^0.1.0",
+        "@types/react": "^17.0.45",
+        "@typescript-eslint/eslint-plugin": "^5.26.0",
+        "@typescript-eslint/parser": "^5.26.0",
+        "eslint": "^8.16.0",
+        "eslint-plugin-react": "^7.30.0",
+        "eslint-plugin-react-hooks": "^4.5.0",
+        "fs-extra": "^10.1.0",
+        "got": "^11.8.5",
+        "path-browserify": "^1.0.1",
+        "prettier": "^2.6.2",
+        "rimraf": "^3.0.2"
+    },
+    "dependencies": {
+        "@docusaurus/core": "2.0.0-beta.21",
+        "@docusaurus/preset-classic": "2.0.0-beta.21",
+        "clsx": "^1.1.1",
+        "docusaurus-plugin-typedoc-api": "^2.0.1",
+        "prop-types": "^15.8.1",
+        "raw-loader": "^4.0.2",
+        "react": "^17.0.2",
+        "react-dom": "^17.0.2",
+        "unist-util-visit": "^4.1.0"
+    }
 }

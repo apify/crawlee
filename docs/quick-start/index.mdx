@@ -1,0 +1,119 @@
+---
+id: quick-start
+title: Quick Start
+description: Quick and easy steps to get started using Crawlee today!
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import CheerioSource from '!!raw-loader!./quick_start_cheerio.ts';
+import PlaywrightSource from '!!raw-loader!./quick_start_playwright.ts';
+import PuppeteerSource from '!!raw-loader!./quick_start_puppeteer.ts';
+
+import CheerioLog from '!!raw-loader!./quick_start_cheerio.txt';
+
+With this short tutorial you can start scraping with Crawlee in a minute or two. To learn how Crawlee works, read the [Introduction](./introduction), which is a comprehensive step-by-step guide for creating your first scraper.
+
+## Local stand-alone usage
+
+Crawlee requires [Node.js](https://nodejs.org/en/) 16 or later.
+It can be added to any Node.js project by running:
+
+<Tabs groupId="quick_start">
+<TabItem value="cheerio" label="CheerioCrawler" default>
+<CodeBlock language="bash">npm install crawlee</CodeBlock>
+</TabItem>
+<TabItem value="playwright" label="PlaywrightCrawler">
+<CodeBlock language="bash">npm install crawlee playwright</CodeBlock>
+
+:::caution
+
+`playwright` is not bundled with Crawlee to reduce install size and allow greater flexibility - thus you need to explicitly install it with NPM.
+
+:::
+
+</TabItem>
+<TabItem value="puppeteer" label="PuppeteerCrawler">
+<CodeBlock language="bash">npm install crawlee puppeteer</CodeBlock>
+
+:::caution
+
+`puppeteer` is not bundled with Crawlee to reduce install size and allow greater flexibility - thus you need to explicitly install it with NPM.
+
+:::
+
+</TabItem>
+</Tabs>
+
+You could run the following example to perform a recursive crawl of a website using:
+
+<Tabs groupId="quick_start">
+    <TabItem value="cheerio" label="CheerioCrawler" default>
+        <CodeBlock language="js" title="src/main.mjs">{CheerioSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PlaywrightSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PuppeteerSource}</CodeBlock>
+    </TabItem>
+</Tabs>
+
+When you run the example, you should see Crawlee automating the data extraction process.
+
+<Tabs groupId="quick_start">
+<TabItem value="cheerio" label="CheerioCrawler" default>
+You should only see the logs in your terminal as no browser is used:
+<CodeBlock language="log">{CheerioLog}</CodeBlock>
+</TabItem>
+<TabItem value="playwright" label="PlaywrightCrawler">
+Besides the logs, you should also see Crawlee automating the browser:
+
+![Chrome Scrape](/img/chrome_scrape.gif)
+
+</TabItem>
+<TabItem value="puppeteer" label="PuppeteerCrawler">
+Besides the logs, you should also see Crawlee automating the browser:
+
+![Chrome Scrape](/img/chrome_scrape.gif)
+
+</TabItem>
+</Tabs>
+
+By default, Crawlee stores data to `./crawlee_storage` in the current working directory. You can override this behavior by setting the `CRAWLEE_STORAGE_DIR` environment variable.
+
+More examples showcasing various features of Crawlee could be found in [Examples](./examples) section of the documentation.
+
+**Related links**
+
+- [Environment variables](./guides/environment-variables)
+- [Request storage](./guides/request-storage)
+- [Result storage](./guides/result-storage)
+
+## Local usage with Crawlee command-line interface (CLI)
+
+To create a boilerplate of your project, you can use the [Crawlee CLI](https://www.npmjs.com/package/@crawlee/cli) tool by running:
+
+```bash
+npx crawlee create my-cheerio-crawler
+```
+
+The CLI will prompt you to select a project boilerplate template - let's pick the `Crawlee cheerio template [TypeScript]`. The tool will create a directory called `my-cheerio-crawler` with a Node.js project files. You can run the project as follows:
+
+```bash
+cd my-cheerio-crawler
+crawlee run
+```
+
+Or even:
+
+```bash
+cd my-cheerio-crawler
+npm start
+```
+
+By default, the crawling data will be stored in a local directory at `./crawlee_storage`. For example, the input JSON file for the actor is expected to be in the default key-value store in `./crawlee_storage/key_value_stores/default/INPUT.json`.

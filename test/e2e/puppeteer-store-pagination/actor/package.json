@@ -1,0 +1,21 @@
+{
+	"name": "test-puppeteer-store-pagination",
+	"version": "0.0.1",
+	"description": "Puppeteer Test - Store Pagination",
+	"dependencies": {
+        "apify": "^3.0.0-beta.75",
+        "@apify/storage-local": "^2.1.0",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/browser": "file:./packages/browser-crawler",
+        "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/puppeteer": "file:./packages/puppeteer-crawler",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils",
+        "puppeteer": "*"
+    },
+    "scripts": { "start": "node main.js" },
+	"type": "module",
+	"license": "ISC"
+}

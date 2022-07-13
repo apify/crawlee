@@ -1,0 +1,18 @@
+INFO  CheerioCrawler:AutoscaledPool: state {"currentConcurrency":0,"desiredConcurrency":2,"systemStatus":{"isSystemIdle":true,"memInfo":{"isOverloaded":false,"limitRatio":0.2,"actualRatio":null},"eventLoopInfo":{"isOverloaded":false,"limitRatio":0.7,"actualRatio":null},"cpuInfo":{"isOverloaded":false,"limitRatio":0.4,"actualRatio":null},"clientInfo":{"isOverloaded":false,"limitRatio":0.3,"actualRatio":null}}}
+INFO  CheerioCrawler: Title of https://www.iana.org/: Internet Assigned Numbers Authority
+INFO  CheerioCrawler: Title of https://www.iana.org/domains: Domain Name Services
+INFO  CheerioCrawler: Title of https://www.iana.org/numbers: Number Resources
+INFO  CheerioCrawler: Title of https://www.iana.org/about/: About us
+INFO  CheerioCrawler: Title of https://www.iana.org/abuse: Abuse Issues
+INFO  CheerioCrawler: Title of https://www.iana.org/protocols: Protocol Registries
+INFO  CheerioCrawler: Title of https://www.iana.org/time-zones: Time Zone Database
+INFO  CheerioCrawler: Title of https://www.iana.org/performance: Performance
+INFO  CheerioCrawler: Title of https://www.iana.org/reports: Reports
+INFO  CheerioCrawler: Title of https://www.iana.org/reviews: Reviews
+INFO  CheerioCrawler: Title of https://www.iana.org/contact: Contact Us
+INFO  CheerioCrawler: Title of https://www.iana.org/dnssec: DNSSEC Information
+INFO  CheerioCrawler: Title of https://www.iana.org/procedures: Procedures
+INFO  CheerioCrawler: Title of https://www.iana.org/glossary: Glossary
+INFO  CheerioCrawler: Title of https://www.iana.org/audits: Audit Programs
+INFO  CheerioCrawler: All the requests from request list and/or request queue have been processed, the crawler will shut down.
+INFO  CheerioCrawler: Final request statistics: {"requestsFinished":15,"requestsFailed":0,"retryHistogram":[15],"requestAvgFailedDurationMillis":null,"requestAvgFinishedDurationMillis":482,"requestsFinishedPerMinute":209,"requestsFailedPerMinute":0,"requestTotalDurationMillis":7233,"requestsTotal":15,"crawlerRuntimeMillis":4316}

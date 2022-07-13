@@ -1,0 +1,25 @@
+---
+id: puppeteer-crawler
+title: Puppeteer crawler
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import CrawlSource from '!!raw-loader!./puppeteer_crawler.ts';
+
+This example demonstrates how to use <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> in combination
+with <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>
+to recursively scrape the [Hacker News website](https://news.ycombinator.com) using headless Chrome / Puppeteer.
+
+The crawler starts with a single URL, finds links to next pages, enqueues them and continues until no more desired links are available. The results
+are stored to the default dataset. In local configuration, the results are stored as JSON files in `./crawlee_storage/datasets/default`
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<CodeBlock className="language-js">
+	{CrawlSource}
+</CodeBlock>

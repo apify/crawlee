@@ -1,0 +1,28 @@
+{
+    "templates": [
+        {
+            "name": "cheerio-ts",
+            "description": "Crawlee cheerio template [TypeScript]"
+        },
+        {
+            "name": "playwright-ts",
+            "description": "Crawlee playwright template [TypeScript]"
+        },
+        {
+            "name": "puppeteer-ts",
+            "description": "Crawlee puppeteer template [TypeScript]"
+        },
+        {
+            "name": "cheerio-js",
+            "description": "Crawlee cheerio template [JavaScript]"
+        },
+        {
+            "name": "playwright-js",
+            "description": "Crawlee playwright template [JavaScript]"
+        },
+        {
+            "name": "puppeteer-js",
+            "description": "Crawlee puppeteer template [JavaScript]"
+        }
+    ]
+}

@@ -1,0 +1,59 @@
+name: E2E tests
+
+on:
+    workflow_dispatch:
+    schedule:
+        # Runs at 2 am every day
+        - cron: '0 2 * * *'
+
+jobs:
+    # NPM install is done in a separate job and cached to speed up the following jobs.
+    build_and_test:
+        name: Build & Test
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                storage: [ LOCAL, MEMORY, PLATFORM ]
+
+        steps:
+            -   name: Cancel Workflow Action
+                uses: styfle/cancel-workflow-action@0.9.1
+                with:
+                    access_token: ${{ github.token }}
+
+            -   name: Checkout repository
+                uses: actions/checkout@v3
+
+            -   name: Use Node.js 18
+                uses: actions/setup-node@v3
+                with:
+                    node-version: 18
+                    cache: 'npm'
+                    cache-dependency-path: 'package-lock.json'
+
+            -   uses: microsoft/playwright-github-action@v1
+
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v2
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   name: Login to Apify
+                run: npx -y apify-cli login -t ${{ secrets.APIFY_TOKEN }}
+
+            -   name: Install Dependencies
+                run: npm ci
+
+            -   name: Build
+                run: npm run ci:build
+
+            -   name: Test with storage ${{ matrix.storage }}
+                run: npm run test:e2e
+                env:
+                    STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
