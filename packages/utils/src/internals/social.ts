@@ -115,7 +115,7 @@ const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
 /**
  * The function attempts to extract phone numbers from a text. Please note that
  * the results might not be accurate, since phone numbers appear in a large variety of formats and conventions.
- * If you encounter some problems, please [file an issue](https://github.com/apify/apify-ts/issues).
+ * If you encounter some problems, please [file an issue](https://github.com/apify/crawlee/issues).
  * @param text Text to search the phone numbers in.
  * @return Array of phone numbers found.
  * If no phone numbers are found, the function returns an empty array.

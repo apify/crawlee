@@ -384,7 +384,7 @@ export class BrowserPool<
             throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
         }
 
-        // Limiter is necessary - https://github.com/apify/apify-ts/issues/1126
+        // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(async () => {
             let browserController = this._pickBrowserWithFreeCapacity(browserPlugin);
             if (!browserController) browserController = await this._launchBrowser(id, { browserPlugin });

@@ -1,6 +1,6 @@
 import https from 'https';
 
-export const MANIFEST_URL = 'https://raw.githubusercontent.com/apify/apify-ts/master/packages/templates/manifest.json';
+export const MANIFEST_URL = 'https://raw.githubusercontent.com/apify/crawlee/master/packages/templates/manifest.json';
 
 export interface Manifest {
     templates: { name: string; description: string }[];

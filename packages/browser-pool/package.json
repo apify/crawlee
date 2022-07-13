@@ -24,10 +24,10 @@
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/apify/apify-ts"
+        "url": "https://github.com/apify/crawlee"
     },
     "bugs": {
-        "url": "https://github.com/apify/apify-ts/issues"
+        "url": "https://github.com/apify/crawlee/issues"
     },
     "scripts": {
         "build": "npm run clean && npm run compile && npm run copy && node copy-definitions.mjs",

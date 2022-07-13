@@ -24,7 +24,7 @@ function Hero() {
                             <Link to="#try" className={styles.getStarted}>Try it out</Link>
                             <Link to="docs/introduction" className={styles.seeExamples}>Get Started</Link>
                             <Link to="docs/examples/basic-crawler" className={styles.seeExamples}>See examples</Link>
-                            <iframe src="https://ghbtns.com/github-btn.html?user=apify&repo=apify-ts&type=star&count=true&size=large" frameBorder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+                            <iframe src="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large" frameBorder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
                         </div>
                     </div>
                     <div className="col col--5" style={{ textAlign: 'center' }}>

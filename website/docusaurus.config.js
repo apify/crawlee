@@ -10,7 +10,7 @@ module.exports = {
     baseUrl: '/',
     trailingSlash: false,
     organizationName: 'apify',
-    projectName: 'apify-ts',
+    projectName: 'crawlee',
     scripts: ['/js/custom.js'],
     favicon: 'img/favicon.ico',
     customFields: {
@@ -18,7 +18,7 @@ module.exports = {
             html: true,
         },
         gaGtag: true,
-        repoUrl: 'https://github.com/apify/apify-ts',
+        repoUrl: 'https://github.com/apify/crawlee',
     },
     onBrokenLinks:
     /** @type {import('@docusaurus/types').ReportingSeverity} */ ('error'),
@@ -149,7 +149,7 @@ module.exports = {
                     ],
                 },
                 {
-                    href: 'https://github.com/apify/apify-ts',
+                    href: 'https://github.com/apify/crawlee',
                     label: 'GitHub',
                     title: 'View on GitHub',
                     position: 'right',
@@ -234,7 +234,7 @@ module.exports = {
                         },
                         {
                             html: createHref(
-                                'https://github.com/apify/apify-ts',
+                                'https://github.com/apify/crawlee',
                                 'GitHub',
                             ),
                         },

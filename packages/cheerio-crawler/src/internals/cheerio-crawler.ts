@@ -164,7 +164,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      *
-     * See [source code](https://github.com/apify/apify-ts/blob/master/src/crawlers/cheerio_crawler.js#L13)
+     * See [source code](https://github.com/apify/crawlee/blob/master/src/crawlers/cheerio_crawler.js#L13)
      * for the default implementation of this function.
      */
     failedRequestHandler?: CheerioFailedRequestHandler<JSONData>;
@@ -177,7 +177,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      *
-     * See [source code](https://github.com/apify/apify-ts/blob/master/src/crawlers/cheerio_crawler.js#L13)
+     * See [source code](https://github.com/apify/crawlee/blob/master/src/crawlers/cheerio_crawler.js#L13)
      * for the default implementation of this function.
      *
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
