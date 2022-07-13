@@ -1,0 +1,65 @@
+{
+    "name": "@crawlee/cheerio",
+    "version": "3.0.0",
+    "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "headless",
+        "chrome",
+        "puppeteer",
+        "crawler",
+        "scraper"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Jan Curn <jan@apify.com>",
+        "Marek Trunkat <marek@apify.com>",
+        "Ondra Urban <ondra@apify.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/apify-ts"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/apify-ts/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "npm run clean && npm run compile && npm run copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+        "copy": "ts-node -T ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@apify/timeout": "^0.3.0",
+        "@apify/utilities": "^2.0.0",
+        "@crawlee/basic": "^3.0.0",
+        "@types/content-type": "^1.1.5",
+        "cheerio": "1.0.0-rc.12",
+        "content-type": "^1.0.4",
+        "htmlparser2": "^8.0.1",
+        "iconv-lite": "^0.6.3"
+    }
+}

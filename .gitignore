@@ -14,12 +14,13 @@ pids
 .idea
 .vscode
 yarn.lock
-package-lock.json
 tmp
 jsconfig.json
-types
 docs/api
 docs/typedefs
-docs/examples
 .history
+.docusaurus
+tsconfig.tsbuildinfo
 apify_storage
+crawlee_storage
+.turbo

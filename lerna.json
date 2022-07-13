@@ -1,0 +1,18 @@
+{
+    "packages": [
+        "packages/*"
+    ],
+    "version": "3.0.0",
+    "command": {
+        "version": {
+            "conventionalCommits": true,
+            "createRelease": "github",
+            "message": "chore(release): %s"
+        }
+    },
+    "useWorkspaces": true,
+    "ignoreChanges": [
+        "**/test/**",
+        "**/*.md"
+    ]
+}

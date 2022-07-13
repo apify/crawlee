@@ -1,0 +1,75 @@
+---
+id: capture-screenshot
+title: Capture a screenshot using Puppeteer
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+
+import PuppeteerPageScreenshotSource from '!!raw-loader!./puppeteer_page_screenshot.ts';
+import PuppeteerCrawlerUtilsSnapshotSource from '!!raw-loader!./puppeteer_crawler_utils_snapshot.ts';
+import PuppeteerCrawlerPageScreenshotSource from '!!raw-loader!./puppeteer_crawler_page_screenshot.ts';
+import PuppeteerCrawlerCrawlerUtilsSnapshotSource from '!!raw-loader!./puppeteer_crawler_crawler_utils_snapshot.ts';
+
+## Using Puppeteer directly
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+This example captures a screenshot of a web page using `Puppeteer`. It would look almost exactly the same with `Playwright`.
+
+<Tabs groupId="puppeteer-capture-screenshot">
+<TabItem value="pagescreenshot" label="Page Screenshot">
+
+Using `page.screenshot()`:
+
+<CodeBlock className="language-js">
+	{PuppeteerPageScreenshotSource}
+</CodeBlock>
+
+</TabItem>
+
+<TabItem value="crawlerutilsscreenshot" label="Crawler Utils Screenshot" default>
+
+Using `utils.puppeteer.saveSnapshot()`:
+
+<CodeBlock className="language-js">
+	{PuppeteerCrawlerUtilsSnapshotSource}
+</CodeBlock>
+
+</TabItem>
+</Tabs>
+
+## Using `PuppeteerCrawler`
+
+This example captures a screenshot of multiple web pages when using `PuppeteerCrawler`:
+
+<Tabs groupId="puppeteer-capture-screenshot">
+<TabItem value="pagescreenshot" label="Page Screenshot">
+
+Using `page.screenshot()`:
+
+<CodeBlock className="language-js">
+	{PuppeteerCrawlerPageScreenshotSource}
+</CodeBlock>
+
+</TabItem>
+
+<TabItem value="crawlerutilsscreenshot" label="Crawler Utils Screenshot" default>
+
+Using the context-aware <ApiLink to="puppeteer-crawler/namespace/puppeteerUtils#saveSnapshot">`saveSnapshot()`</ApiLink> utility:
+
+<CodeBlock className="language-js">
+	{PuppeteerCrawlerCrawlerUtilsSnapshotSource}
+</CodeBlock>
+
+</TabItem>
+</Tabs>
+
+In both examples using `page.screenshot()`, a `key` variable is created based on the URL of the web page. This variable is used as the key when saving
+each screenshot into a key-value store.

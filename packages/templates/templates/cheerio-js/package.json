@@ -1,0 +1,16 @@
+{
+    "name": "crawlee-cheerio-js",
+    "version": "0.0.1",
+    "type": "module",
+    "description": "This is an example of a Crawlee project.",
+    "dependencies": {
+        "crawlee": "next"
+    },
+    "scripts": {
+        "start": "node src/main.js",
+        "build": "tsc",
+        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
+    },
+    "author": "It's not you it's me",
+    "license": "ISC"
+}

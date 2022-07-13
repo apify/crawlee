@@ -1,0 +1,23 @@
+{
+    "extends": [
+        "@apify/eslint-config-ts",
+        "plugin:react/recommended",
+        "plugin:react-hooks/recommended"
+    ],
+    "parserOptions": {
+        "project": "./tsconfig.eslint.json",
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": 2020
+    },
+    "env": {
+        "browser": true
+    },
+    "settings": {
+        "react": {
+            "version": "detect"
+        }
+    },
+    "root": true
+}

@@ -1,0 +1,6 @@
+{
+	"name": "test-puppeteer-store-pagination",
+	"version": "0.0",
+	"buildTag": "latest",
+	"env": null
+}

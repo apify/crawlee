@@ -1,0 +1,14 @@
+---
+id: cheerio-crawler
+title: Cheerio crawler
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import CheerioCrawlerSource from '!!raw-loader!./cheerio_crawler.ts';
+
+This example demonstrates how to use <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> to crawl a list of URLs from an external file, load each URL using a plain HTTP request, parse the HTML using the [Cheerio library](https://www.npmjs.com/package/cheerio) and extract some data from it: the page title and all `h1` tags.
+
+<CodeBlock className="language-js">
+	{CheerioCrawlerSource}
+</CodeBlock>
