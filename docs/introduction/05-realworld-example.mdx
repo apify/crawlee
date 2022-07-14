@@ -1,39 +1,46 @@
 ---
 id: realworld-example
 title: "Getting some real-world data"
-sidebar_label: "Realworld example"
+sidebar_label: "Real-world example"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
 
-> Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real data and save it somewhere in a machine-readable format? Because that's why we started reading this tutorial in the first place!
+> *Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real data and save it somewhere in a machine-readable format? Because that's why we started reading this tutorial in the first place!*
 
 We hear you, young padawan! First, learn how to crawl, we must. Only then, walk through data, we can!
 
 ### Making a store crawler
 
-Fortunately, we don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The [Apify Store](https://apify.com/store) is a library of public actors that anyone can grab and use. We can find ready-made solutions for crawling [Google Places](https://apify.com/drobnikj/crawler-google-places), [Amazon](https://apify.com/vaclavrut/amazon-crawler), [Google Search](https://apify.com/apify/google-search-scraper), [Booking](https://apify.com/dtrungtin/booking-scraper), [Instagram](https://apify.com/jaroslavhejlek/instagram-scraper), [Tripadvisor](https://apify.com/maxcopell/tripadvisor) and many other websites. Feel free to check them out! It's also a great place to practice our Jedi scraping skills since it has categories, lists and details. That's almost like our imaginary `online-store.com` from the previous chapter.
+Fortunately, you don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The [Apify Store](https://apify.com/store) is a library of public actors that anyone can grab and use. You can find ready-made solutions for crawling [Google Places](https://apify.com/drobnikj/crawler-google-places), [Amazon](https://apify.com/vaclavrut/amazon-crawler), [Google Search](https://apify.com/apify/google-search-scraper), [Booking](https://apify.com/dtrungtin/booking-scraper), [Instagram](https://apify.com/jaroslavhejlek/instagram-scraper), [Tripadvisor](https://apify.com/maxcopell/tripadvisor) and many other websites. Feel free to check them out! It's also a great place to practice your Jedi scraping skills since it has categories, lists and details.
 
 ### The importance of having a plan
 
-Sometimes scraping is really straightforward, but most of the times, it really pays to do a little bit of research first. How is the website structured? Can I scrape it only with HTTP requests (read "with `CheerioCrawler`") or would I need a full browser solution? Are there any anti-scraping protections in place? Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API. Jakub, one of Apify's founders, wrote a [great article about all the different techniques](https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c) and tips and tricks, so make sure to check that out!
+Sometimes scraping is really straightforward, but most of the time, it really pays off to do a bit of research first and try to answer some of these questions:
+- How is the website structured?
+- Can I scrape it only with HTTP requests (read "with `CheerioCrawler`")?
+- Would I need a full browser solution?
+- Are there any anti-scraping protections in place?
+- Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API?
 
-For the purposes of this tutorial, let's just go ahead with HTTP requests and HTML parsing using `CheerioCrawler`. The number one reason being: We already know how to use it, and we want to build on that knowledge to learn specific crawling and scraping techniques.
+Jakub, one of Apify's founders, wrote a [great article](https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c) about all the different techniques, tips and tricks related to web scraping, so make sure to check that out!
 
-#### Choosing the data we need
+For the purposes of this tutorial, let's just go ahead with HTTP requests and HTML parsing using `CheerioCrawler`. The number one reason being: you already know how to use it, and we want to build on that knowledge to learn specific crawling and scraping techniques.
 
-A good first step is always to figure out what it is we want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors (see the `Show` dropdown) in all categories (which can be found on the left side of the page) and for each actor we want to get its
+#### Choosing the data you need
 
-1.  URL
-2.  Owner
-3.  Unique identifier (such as `apify/web-scraper`)
-4.  Title
-5.  Description
-6.  Last modification date
-7.  Number of runs
+A good first step is always to figure out what is it you want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors from [Apify Store](https://apify.com/store) in all categories (which can be found on the left side of the page) and for each actor we want to get its:
 
-We can see that some information is available directly on the list page, but for details such as "Last modification date" or "Number of runs" we'll also need to open the actor detail pages.
+- URL
+- Owner
+- Unique identifier (such as `apify/web-scraper`)
+- Title
+- Description
+- Last modification date
+- Number of runs
+
+You can notice that some information is available directly on the list page, but for details such as "Last modification date" or "Number of runs" we'll also need to open the actor detail pages.
 
 ![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
@@ -43,69 +50,64 @@ Knowing that we will use plain HTTP requests, we immediately know that we won't 
 
 #### The start URL(s)
 
-This is where we start our crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `apify.com` and look for a `store` link there, when we already know that everything we want to extract can be found at the `apify.com/store` page.
+This is where you start your crawl. It's convenient to start as close to our data as possible. For example, it wouldn't make much sense to start at `apify.com` and look for a `store` link there, when we already know that everything we want to extract can be found at the `apify.com/store` page.
 
 Once we look at the `apify.com/store` page more carefully, we see that the categories themselves produce URLs that we can use to access those individual categories.
 
 ```
-https://apify.com/store?category=ENTERTAINMENT
+https://apify.com/store?category=AUTOMATION
 ```
 
-Should we write down all the category URLs down and use all of them as start URLs? It's definitely possible, but what if a new category appears on the page later? We would not learn about it unless we manually visit the page and inspect it again. So scraping the category links off the store page certainly makes sense. This way we always get an up-to-date list of categories.
+Should we write down all the category URLs down and use all of them as start URLs? It's definitely possible, but what if a new category appears on the page later? You would not know about it unless you manually visit the page and inspect it again. So scraping the category links off the store page certainly makes sense. This way you always get an up-to-date list of categories.
 
-But is it really that straightforward? By digging further into the store page's HTML we find that it does not actually contain the category links. The menu on the left uses JavaScript to display the items from a given category and, as we've learned earlier, `CheerioCrawler` cannot execute JavaScript.
+But is it really that straightforward? By digging further into the store page's HTML we can eventually find out that it does not actually contain the category links. The menu on the left uses JavaScript to display the items from a given category and, as we've learned earlier, `CheerioCrawler` cannot execute JavaScript. Moreover - the page loads the actors when opened in the browser, but it does not "show" us any when processed with a plain HTTP request.
 
 > We've deliberately chosen this scenario to show an example of the number one weakness of `CheerioCrawler`. We will overcome this difficulty in our `PlaywrightCrawler` tutorial, but at the cost of compute resources and speed. Always remember that no tool is best for everything!
 
-So we're back to the pre-selected list of URLs. Since we cannot scrape the list dynamically, we have to manually collect the links and then use them in our crawler. We lose the ability to scrape new categories, but we keep the low resource consumption and speed advantages of `CheerioCrawler`.
+So firstly, let's agree that within the `CheerioCrawler` tutorial we would scrape all public actors made by Apify from the [Apify team account](https://apify.com/apify) page. Secondly, it means that we're back to the pre-selected list of URLs. Since we cannot scrape the list dynamically, we have to manually collect the links and then use them in our crawler. We lose the ability to scrape all the categories/actor details and instead scrape public actors of a specific user, but we keep the low resource consumption and speed advantages of `CheerioCrawler`.
 
-Therefore, after careful consideration, we've determined that we should use multiple start URLs and that they should look as follows:
+Therefore, we've determined that we should use Apify team account page as a start URL and that it should look as follows:
 
 ```
-https://apify.com/store?category=TRAVEL
-https://apify.com/store?category=ECOMMERCE
-https://apify.com/store?category=ENTERTAINMENT
+https://apify.com/apify
 ```
 
 ### The crawling strategy
 
-Now that we know where to start, we need to figure out where to go next. Since we've eliminated one level of crawling by selecting the categories manually, we now only need to crawl the actor detail pages. The algorithm therefore follows:
+Now that we know where to start, we need to figure out where to go next. Since we've eliminated one level of crawling by selecting a specific user page manually, we now only need to crawl the actor detail pages. The algorithm therefore follows:
 
-1. Visit the category list page (one of our start URLs).
+1. Visit the user page containing the list of their public actors (our start URL).
 2. Enqueue all links to actor details.
 3. Visit all actor details and extract data.
-4. Repeat 1 - 3 for all categories.
+4. Repeat 1 - 3 for all start URLs (we have only one in this tutorial, but feel free to try it for more user pages).
 
 > Technically, this is a depth first crawl and the crawler will perform a breadth first crawl by default, but that's an implementation detail. We've chosen this notation since a breadth first crawl would be less readable.
 
-`CheerioCrawler` will make sure to visit the pages for us, if we provide the correct `Request`s and we already know how to enqueue pages, so this should be fairly easy. Nevertheless, there are two more tricks that we'd like to showcase.
+`CheerioCrawler` will make sure to visit the pages for you, if you provide the correct requests, and you already know how to enqueue pages, so this should be fairly easy. Nevertheless, there are two more tricks that we'd like to showcase.
 
 #### Using a `RequestList`
 
-`RequestList` is a perfect tool for scraping a pre-existing list of URLs and if we think about our start URLs, this is exactly what we have! A list of links to the different categories of the store. Let's see how we'd get them into a `RequestList`.
+`RequestList` is a perfect tool for scraping a pre-existing list of URLs and if we think about our start URLs, this is exactly what we have! A list of links to the different user pages. Let's see how we'd get them into a `RequestList`.
 
-```ts
+```js
 const sources = [
-    'https://apify.com/store?category=TRAVEL',
-    'https://apify.com/store?category=ECOMMERCE',
-    'https://apify.com/store?category=ENTERTAINMENT',
+    'https://apify.com/apify',
 ];
 
-const requestList = await RequestList.open('categories', sources);
+const requestList = await RequestList.open('users', sources);
 ```
 
-As we can see, similarly to the `RequestQueue.open()` function, there is a `RequestList.open()` function that will create a `RequestList` instance for us. The first argument is the name of the `RequestList` (or an options object). It is used to persist the crawling state of the list. This is useful when we want to continue where we left off after an error or a process restart. The second argument is the `sources` array, which is nothing more than a list of URLs we wish to crawl.
+As you can see, similarly to the `RequestQueue.open()` function, there is a `RequestList.open()` function that will create a `RequestList` instance for you. The first argument is the name of the `RequestList` (or an options object). It is used to persist the crawling state of the list. This is useful when you want to continue where you left off after an error or a process restart. The second argument is the `sources` array, which is nothing more than a list of URLs you wish to crawl.
 
 > `RequestQueue` is a persistent store by default, so no name is needed, while the `RequestList` only lives in memory and giving it a name enables it to become persistent.
 
-We might now want to ask one of these questions:
+You might now want to ask one of these questions:
+- Can I enqueue into `RequestList` too?
+- How do I make `RequestList` work together with `RequestQueue` since I need the queue to enqueue new requests.
 
--   Can I enqueue into `RequestList` too?
--   How do I make `RequestList` work together with `RequestQueue` since I need the queue to enqueue new `Request`s.
+The answer to the first one is a definitive no. `RequestList` is immutable and once you create it, you cannot add or remove requests from it. The answer to the second one is simple. `RequestList` and `RequestQueue` are made to work together out-of-the-box in crawlers, so all you need to do is use them both and the crawlers will do the rest.
 
-The answer to the first one is a definitive no. `RequestList` is immutable and once we create it, we cannot add or remove `Request`s from it. The answer to the second one is simple. `RequestList` and `RequestQueue` are made to work together out-of-the-box in crawlers, so all we need to do is use them both and the crawlers will do the rest.
-
-```ts
+```js
 const crawler = new CheerioCrawler({
     requestList,
     requestQueue,
@@ -113,38 +115,36 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-> For those wondering how this works, the `RequestList` `Request`s are enqueued into the `RequestQueue` right before their execution and only processed by the `RequestQueue` afterwards.
+> For those wondering how this works, the `RequestList` requests are enqueued into the `RequestQueue` right before their execution and only processed by the `RequestQueue` afterwards.
 
-:::info Prefer `crawler.addRequests()`
+:::tip Prefer `crawler.addRequests()`
 
-While `RequestList` might be a good fit for some use cases like handling very large input lists, or when we don't need any dynamic enqueuing at all. Using `crawler.addRequests()` should be generally the preferred way to handle enqueuing of initial requests. It will enqueue the initial batch of 1000 requests and resolve right after that, so it won't block the start of crawling. Instead, it will continue adding more requests to the queue in batches in the background while the crawler runs.
-
-Following section is here mainly to show how to work with `RequestList`.
+While `RequestList` might be a good fit for some use cases like handling very large input lists, or when you don't need any dynamic enqueuing at all, using `crawler.addRequests()` should be generally the preferred way to handle enqueuing of initial requests. It will enqueue the initial batch of 1000 requests and resolve right after that, so it won't block the start of crawling. Instead, it will continue adding more requests to the queue in batches in the background while the crawler runs.
 
 :::
 
+Following section is here mainly to show how to work with `RequestList`.
+
 #### Sanity check
 
-It's always useful to create some simple boilerplate code to see that we've got everything set up correctly before we start to write the scraping logic itself. We might realize that something in our previous analysis doesn't quite add up, or the website might not behave exactly as we expected.
+It's always useful to create some simple boilerplate code to see that you've got everything set up correctly before you start to write the scraping logic itself. You might realize that something in your previous analysis doesn't quite add up, or the website might not behave exactly as you expected.
 
-Let's use our newly acquired `RequestList` knowledge and everything we know from the previous chapters to create a new crawler that'll just visit all the category URLs we selected and print the text content of all the actors in the category. Try running the code below in our selected environment. We should see, albeit very badly formatted, the text of the individual actor cards that are displayed in the selected categories.
+Let's use your newly acquired `RequestList` knowledge and everything you know from the previous chapters to create a new crawler that'll just visit all the user page URLs we selected and print the text content of all the public actors of the user. Try running the code below in your selected environment. You should see, albeit very badly formatted, the text of the individual public actor cards of the selected user.
 
 ```ts
 import { CheerioCrawler, RequestList } from 'crawlee';
 
 const sources = [
-    'https://apify.com/store?category=TRAVEL',
-    'https://apify.com/store?category=ECOMMERCE',
-    'https://apify.com/store?category=ENTERTAINMENT',
+    'https://apify.com/apify',
 ];
 
-const requestList = await RequestList.open('categories', sources);
+const requestList = await RequestList.open('users', sources);
 
 const crawler = new CheerioCrawler({
     requestList,
     requestHandler: async ({ $ }) => {
         // Select all the actor cards.
-        $('.item').each((i, el) => {
+        $('.ActorStoreItem').each((i, el) => {
             const text = $(el).text();
             console.log(`ITEM: ${text}\n`);
         });
@@ -154,37 +154,37 @@ const crawler = new CheerioCrawler({
 await crawler.run();
 ```
 
-We might be wondering how we got that `.item` selector. After analyzing the category pages using a browser's DevTools, we've determined that it's a good selector to select all the currently displayed actor cards. DevTools and CSS selectors are quite a large topic, so we can't go into too much detail now, but here are a few general pointers.
+You might be wondering how we got that `.ActorStoreItem` selector. After analyzing the user page using a browser's DevTools, we've determined that it's a good selector to select all the currently displayed actor cards. DevTools and CSS selectors are quite a large topic, so we can't go into too much detail now, but here are a few general pointers.
 
 #### DevTools crash course
 
 > We'll use Chrome DevTools here, since it's the most common browser, but feel free to use any other, it's all very similar.
 
-We could pick any category, but let's just go with Travel because it includes some interesting actors. Let's open `https://apify.com/store?category=TRAVEL` in Chrome and open DevTools either by right-clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to our system. Once we're there, we'll see a bunch of DevToolsy stuff and a view of the category page with the individual actor cards.
+You could pick any user page, but let's just go with Apify team account. Let's open `https://apify.com/apify` in Chrome and open DevTools either by right-clicking anywhere in the page and selecting `Inspect`, or by pressing `F12` or by any other means relevant to our system. Once we're there, we'll see a bunch of DevToolsy stuff and a view of the user's page with the individual public actor cards.
 
-Now, let's find the `Select an element` tool and use it to select one of the actor cards. We need to make sure to select the whole card, not just some of its contents, such as its title or description.
+Now, let's find the `Select an element` tool and use it to select one of the actor cards. You need to make sure to select the whole card, not just some of its contents, such as its title or description.
 
-In the resulting HTML display, it will put our cursor somewhere. Inspecting the HTML around it, we'll see that there are some CSS classes attached to the different HTML elements.
+In the resulting HTML display, it will put your cursor somewhere. Inspecting the HTML around it, you'll see that there are some CSS classes attached to the different HTML elements.
 
-By hovering over the individual elements, we will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a classname that starts with `ItemsGrid__StyledDiv`, which holds another `<div>` with some computer-generated class names and finally, inside this `<div>`, the individual cards are represented by other `<div>` elements with the class of `item`.
+By hovering over the individual elements, you will see their placement in the page's view. It's easy to see the page's structure around the actor cards now. All the cards are displayed in a `<div>` with a `data-test` attribute with `actorCard` value, which holds an `<a>` with some computer-generated class names and also with the class of `ActorStoreItem`.
 
-> Yes, there are other HTML elements and other classes too. We can safely ignore them.
+> Yes, there are other HTML elements and other classes too. You can safely ignore them.
 
-It should now make sense how we got that `.item` selector. It's just a selector that finds all elements that are annotated with the `item` class and those just happen to be the actor cards only.
+It should now make sense how we got that `.ActorStoreItem` selector. It's just a selector that finds all elements that are annotated with the `ActorStoreItem` class and those just happen to be the actor cards only.
 
 It's always a good idea to double-check that though, so go into the DevTools Console and run
 
 ```ts
-document.querySelectorAll('.item');
+document.querySelectorAll('.ActorStoreItem');
 ```
 
-We will see that only the actor cards will be returned, and nothing else.
+You will see that only the actor cards will be returned, and nothing else.
 
 #### Enqueueing the detail links using a custom selector
 
 In the previous chapter, we used the `enqueueLinks()` function like this:
 
-```ts
+```js
 await enqueueLinks();
 ```
 
@@ -196,27 +196,27 @@ import { CheerioCrawlingContext } from 'crawlee';
 export async function requestHandler({ request, enqueueLinks }: CheerioCrawlingContext) {
     console.log(`Processing ${request.url}`);
 
-    // Only enqueue new links from the category pages.
+    // Only enqueue new links from the user pages.
     if (!request.userData.detailPage) {
         await enqueueLinks({
-            selector: 'div.item > a',
+            selector: 'div[data-test=actorCard] > a.ActorStoreItem',
             userData: { detailPage: true },
         });
     }
 }
 ```
 
-The code should look pretty familiar to us. It's a very simple `requestHandler` where we log the currently processed URL to the console and enqueue more links. But there are also a few new, interesting additions. Let's break it down.
+The code should look pretty familiar to you. It's a very simple `requestHandler` where we log the currently processed URL to the console and enqueue more links. But there are also a few new, interesting additions. Let's break it down.
 
 ##### The `selector` parameter of `enqueueLinks()`
 
-When we previously used `enqueueLinks()`, we were not providing any `selector` parameter, and it was fine, because we wanted to use the default value, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given category page, and we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `div.item > a` selector, which selects all the `<a>` elements that have a `<div class="item ...">` parent. And those are exactly the ones we're interested in.
+When we previously used `enqueueLinks()`, we were not providing any `selector` parameter, and it was fine, because we wanted to use the default value, which is `a` - finds all `<a>` elements. But now, we need to be more specific. There are multiple `<a>` links on the given user page, and we're only interested in those that will take us to item (actor) details. Using the DevTools, we found out that we can select the links we wanted using the `div[data-test=actorCard] > a.ActorStoreItem` selector, which selects all the `<a class="ActorStoreItem ...">` elements. And those are exactly the ones we're interested in.
 
 ##### Finally, the `userData` of `enqueueLinks()`
 
-We will see `userData` used often throughout Crawlee, and it's nothing more than a place to store our own data on a `Request` instance. We can access it with `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive the full life-cycle of the `Request`. We can also use `Request.label` shortcut, that under the hood controls the `userData.label`.
+You will see `userData` used often throughout Crawlee, and it's nothing more than a place to store our own data on a `Request` instance. You can access it with `request.userData` and it's a plain `Object` that can be used to store anything that needs to survive the full life-cycle of the `Request`. You can also use `Request.label` shortcut, that under the hood controls the `userData.label`.
 
-To modify all the `Request` instances before enqueueing, we can use the `transformRequestFunction` option of `enqueueLinks()`. In our case, we use it to set a `userData.detailPage` property to the enqueued `Request`s to be able to easily differentiate between the category pages and the detail pages.
+To modify all the `Request` instances before enqueueing, you can use the `transformRequestFunction` option of `enqueueLinks()`. In our case, we use it to set a `userData.detailPage` property to the enqueued requests to be able to easily differentiate between the user pages and the detail pages.
 
 #### Another sanity check
 
@@ -226,25 +226,23 @@ It's always good to work step by step. We have this new enqueueing logic in plac
 import { CheerioCrawler, RequestList, RequestQueue } from 'crawlee';
 
 const sources = [
-    'https://apify.com/store?category=TRAVEL',
-    'https://apify.com/store?category=ECOMMERCE',
-    'https://apify.com/store?category=ENTERTAINMENT',
+    'https://apify.com/apify',
 ];
 
-const requestList = await RequestList.open('categories', sources);
-const requestQueue = await RequestQueue.open(); // <----------------
+const requestList = await RequestList.open('users', sources);
+const requestQueue = await RequestQueue.open(); // <---------------------
 
 const crawler = new CheerioCrawler({
-    maxRequestsPerCrawl: 50, // <----------------------------------------
+    maxRequestsPerCrawl: 20, // <----------------------------------------
     requestList,
     requestQueue, // <---------------------------------------------------
     async requestHandler({ request, enqueueLinks }) {
         console.log(`Processing ${request.url}`);
 
-        // Only enqueue new links from the category pages.
+        // Only enqueue new links from the user pages.
         if (!request.userData.detailPage) {
             await enqueueLinks({
-                selector: 'div.item > a',
+                selector: 'div[data-test=actorCard] > a.ActorStoreItem',
                 userData: { detailPage: true },
             });
         }
@@ -254,7 +252,7 @@ const crawler = new CheerioCrawler({
 await crawler.run();
 ```
 
-We've added the `requestHandler()` with the `enqueueLinks()` logic from the previous section to the code we wrote earlier. As always, try running it in the environment of our choice. We should see the crawler output a number of links to the console, as it crawls the category pages first and then all the links to the actor detail pages it found.
+We've added the `requestHandler()` with the `enqueueLinks()` logic from the previous section to the code we wrote earlier. As always, try running it in the environment of your choice. You should see the crawler logging a number of links to the console, as it crawls the user page first and then all the links to the actor detail pages it found.
 
 This concludes our Crawling strategy section, because we have taught the crawler to visit all the pages we need. Let's continue with scraping the tasty data.
 
@@ -262,13 +260,13 @@ This concludes our Crawling strategy section, because we have taught the crawler
 
 At the beginning of this chapter, we created a list of the information we wanted to collect about the actors in the store. Let's review that and figure out ways to access it.
 
-1. URL
-2. Owner
-3. Unique identifier (such as `apify/web-scraper`)
-4. Title
-5. Description
-6. Last modification date
-7. Number of runs
+- URL
+- Owner
+- Unique identifier (such as `apify/web-scraper`)
+- Title
+- Description
+- Last modification date
+- Number of runs
 
 ![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
@@ -276,9 +274,9 @@ At the beginning of this chapter, we created a list of the information we wanted
 
 Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
 
-> We could also use the `request.loadedUrl` instead. Remember the difference: `request.url` is what you enqueue, `request.loadedUrl` is what gets processed (after possible redirects).
+> You could also use the `request.loadedUrl` instead. Remember the difference: `request.url` is what you enqueue, `request.loadedUrl` is what gets processed (after possible redirects).
 
-```ts
+```js
 // request.url = https://apify.com/apify/web-scraper
 
 const urlArr = request.url.split('/').slice(-2); // ['apify', 'web-scraper']
@@ -286,23 +284,23 @@ const uniqueIdentifier = urlArr.join('/'); // 'apify/web-scraper'
 const owner = urlArr[0]; // 'apify'
 ```
 
-> It's always a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should we duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's always better to make the dataset as readable as possible. Someone might want to filter by `owner` for example and keeping only the `URL` in the dataset would make this complicated without using additional tools.
+> It's always a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should we duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's always better to make the dataset as readable as possible. Someone might want to filter for example by `owner` and keeping only the `URL` in the dataset would make this complicated without using additional tools.
 
 #### Scraping Title, Description, Last modification date and Number of runs
 
-Now it's time to add more data to the results. Let's open one of the actor detail pages in the Store, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
+Now it's time to add more data to the results. Let's open one of the public actor detail pages, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu to figure out how to get the title of the actor.
 
 ##### Title
 
-![actor title](/img/getting-started/title-01.jpg 'Finding actor title in DevTools.')
+![actor title](/img/getting-started/title.jpg 'Finding actor title in DevTools.')
 
-By using the element selector tool, we find out that the title is there under an `<h1>` tag, as titles should be. Maybe surprisingly, we find that there are actually two `<h1>` tags on the detail page. This should get us thinking. Is there any parent element that includes our `<h1>` tag, but not the other ones? Yes, there is! There is a `<header>` element that we can use to select only the heading we're interested in.
+By using the element selector tool, you can see that the title is there under an `<h1>` tag, as titles should be. However, in some cases there could actually be more `<h1>` tags on the same page. This should get you thinking. Is there any parent element that includes your `<h1>` tag, but not the other ones, i.e. narrows down the matching elements? Yes, there is! There is a `<header>` element that we can use to select only the heading we're interested in. And although in this case it's not really necessary, it's still a good idea to use more specific selectors to make sure the crawler would work as expected even if there will be some changes in the page HTML after some time.
 
-> Remember that we can press CTRL+F (or CMD+F on Mac) in the Elements tab of DevTools to open the search bar where we can quickly search for elements using their selectors. And always make sure to use the DevTools to verify our scraping process and assumptions. It's faster than changing the crawler code all the time.
+> Remember that you can press CTRL+F (or CMD+F on Mac) in the Elements tab of DevTools to open the search bar where you can quickly search for elements using their selectors. And always make sure to use the DevTools to verify your scraping process and assumptions. It's faster than changing the crawler code all the time.
 
 To get the title we just need to find it using `Cheerio` and a `header h1` selector, which selects all `<h1>` elements that have a `<header>` ancestor. And as we already know, there's only one.
 
-```ts
+```js
 return {
     title: $('header h1').text(),
 };
@@ -310,11 +308,11 @@ return {
 
 ##### Description
 
-Getting the actor's description is a little more involved, but still pretty straightforward. We can't just simply search for a `<p>` tag, because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description is nested within the `<header>` element too, same as the title. Moreover, the actual description is nested inside a `<span>` tag with a class `actor-description`.
+Getting the actor's description is a little more involved, but still pretty straightforward. You can't just simply search for a `<p>` tag, because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find out that the actor description is nested within the `<header>` element too, same as the title. Moreover, the actual description is nested inside a `<span>` tag with a class `actor-description`.
 
 ![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
 
-```ts
+```js
 return {
     title: $('header h1').text(),
     description: $('header span.actor-description').text(),
@@ -327,7 +325,7 @@ The DevTools tell us that the `modifiedDate` can be found in the `<time>` elemen
 
 ![actor last modification date selector](/img/getting-started/modified-date.jpg 'Finding actor last modification date in DevTools.')
 
-```ts
+```js
 return {
     title: $('header h1').text(),
     description: $('header span.actor-description').text(),
@@ -335,7 +333,7 @@ return {
         Number(
             $('ul.ActorHeader-stats time').attr('datetime'),
         ),
-        // or we can do just `+$('ul.ActorHeader-stats time').attr('datetime')`
+        // or you can do just: new Date(+$('ul.ActorHeader-stats time').attr('datetime'))
     ),
 };
 ```
@@ -348,7 +346,7 @@ But we would much rather see a readable date in our results, not a unix timestam
 
 And so we're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
-```ts
+```js
 return {
     title: $('header h1').text(),
     description: $('header span.actor-description').text(),
@@ -361,18 +359,18 @@ return {
         $('ul.ActorHeader-stats > li:nth-of-type(3)')
             .text()
             .match(/[\d,]+/)[0]
-            .replace(',', ''),
+            .replaceAll(',', ''),
     ),
 };
 ```
 
 The `ul.ActorHeader-stats > li:nth-of-type(3)` looks complicated, but it only reads that we're looking for a `<ul class="ActorHeader-stats ...">` element and within that element we're looking for the third `<li>` element. We grab its text, but we're only interested in the number of runs. So we parse the number out using a regular expression, but its type is still a `string`, so we finally convert the result to a `number` by wrapping it with a `Number()` call.
 
-> The numbers are formatted with commas as thousands separators (e.g. `'1,234,567'`), so to extract it, we first use regular expression `/[\d,]+/` - it will search for consecutive number or comma characters. Then we extract the match via `.match(/[\d,]+/)[0]` and finally remove the commas by calling `.replace(',', '')`. This will give us a string (e.g. `'1234567'`) that can be converted via `Number` function.
+> The numbers are formatted with commas as thousands separators (e.g. `'1,234,567'`), so to extract it, we first use regular expression `/[\d,]+/` - it will search for consecutive number or comma characters. Then we extract the match via `.match(/[\d,]+/)[0]` and finally remove the commas by calling `.replaceAll(',', '')`. This will give us a string (e.g. `'1234567'`) that can be converted via `Number` function.
 
 And there we have it! All the data we needed in a single object. For the sake of completeness, let's add the properties we parsed from the URL earlier, and we're good to go.
 
-```ts
+```js
 const urlArr = request.url.split('/').slice(-2);
 
 const results = {
@@ -390,7 +388,7 @@ const results = {
         $('ul.ActorHeader-stats > li:nth-of-type(3)')
             .text()
             .match(/[\d,]+/)[0]
-            .replace(',', ''),
+            .replaceAll(',', ''),
     ),
 };
 
@@ -401,20 +399,18 @@ console.log('RESULTS: ', results);
 
 We have everything we need so just grab our newly created scraping logic, dump it into our original `requestHandler()` and see the magic happen!
 
-```ts
+```js
 import { CheerioCrawler, RequestList, RequestQueue } from 'crawlee';
 
 const sources = [
-    'https://apify.com/store?category=TRAVEL',
-    'https://apify.com/store?category=ECOMMERCE',
-    'https://apify.com/store?category=ENTERTAINMENT',
+    'https://apify.com/apify',
 ];
 
-const requestList = await RequestList.open('categories', sources);
+const requestList = await RequestList.open('users', sources);
 const requestQueue = await RequestQueue.open();
 
 const crawler = new CheerioCrawler({
-    maxRequestsPerCrawl: 50,
+    maxRequestsPerCrawl: 20,
     requestList,
     requestQueue,
     async requestHandler({ $, request, enqueueLinks }) {
@@ -439,16 +435,16 @@ const crawler = new CheerioCrawler({
                     $('ul.ActorHeader-stats > li:nth-of-type(3)')
                         .text()
                         .match(/[\d,]+/)[0]
-                        .replace(',', ''),
+                        .replaceAll(',', ''),
                 ),
             };
             console.log('RESULTS', results);
         }
 
-        // Only enqueue new links from the category pages.
+        // Only enqueue new links from the user pages.
         if (!request.userData.detailPage) {
             await enqueueLinks({
-                selector: 'div.item > a',
+                selector: 'div[data-test=actorCard] > a.ActorStoreItem',
                 userData: { detailPage: true },
             });
         }
@@ -458,9 +454,9 @@ const crawler = new CheerioCrawler({
 await crawler.run();
 ```
 
-> Notice again that we're scraping on the detail pages `request.userData.detailPage === true`, but we're only enqueueing on the category pages `request.userData.detailPage === undefined`.
+> Notice again that we're scraping on the detail pages `request.userData.detailPage === true`, but we're only enqueueing on the user pages `request.userData.detailPage === undefined`.
 
-When running the actor in the environment of our choice, we should see the crawled URLs and their scraped data printed to the console.
+When running the actor in the environment of your choice, you should see the crawled URLs and their scraped data printed to the console.
 
 ### Saving the scraped data
 
@@ -468,7 +464,7 @@ A data extraction job would not be complete without saving the data for later us
 
 First, replace the `console.log('RESULTS', results)` call with
 
-```ts
+```js
 import { Dataset } from 'crawlee';
 
 await Dataset.pushData(results);
@@ -476,20 +472,18 @@ await Dataset.pushData(results);
 
 and that's it. Unlike in the previous paragraph, we are being serious now. That's it, we're done. The final code therefore looks exactly like this:
 
-```ts
+```js
 import { CheerioCrawler, RequestList, RequestQueue, Dataset } from 'crawlee';
 
 const sources = [
-    'https://apify.com/store?category=TRAVEL',
-    'https://apify.com/store?category=ECOMMERCE',
-    'https://apify.com/store?category=ENTERTAINMENT',
+    'https://apify.com/apify',
 ];
 
-const requestList = await RequestList.open('categories', sources);
+const requestList = await RequestList.open('users', sources);
 const requestQueue = await RequestQueue.open();
 
 const crawler = new CheerioCrawler({
-    maxRequestsPerCrawl: 50,
+    maxRequestsPerCrawl: 20,
     requestList,
     requestQueue,
     async requestHandler({ $, request, enqueueLinks }) {
@@ -514,16 +508,16 @@ const crawler = new CheerioCrawler({
                     $('ul.ActorHeader-stats > li:nth-of-type(3)')
                         .text()
                         .match(/[\d,]+/)[0]
-                        .replace(',', ''),
+                        .replaceAll(',', ''),
                 ),
             };
             await Dataset.pushData(results);
         }
 
-        // Only enqueue new links from the category pages.
+        // Only enqueue new links from the user pages.
         if (!request.userData.detailPage) {
             await enqueueLinks({
-                selector: 'div.item > a',
+                selector: 'div[data-test=actorCard] > a.ActorStoreItem',
                 userData: { detailPage: true },
             });
         }
@@ -535,98 +529,89 @@ await crawler.run();
 
 #### What's `Dataset.pushData()`
 
-&#8203;<ApiLink to="core/class/Dataset#pushData">`Dataset.pushData()`</ApiLink> is a helper function that saves data to the default <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>. `Dataset` is a storage designed to hold virtually unlimited amount of data in a format similar to a table. Each time we call `Dataset.pushData()` a new row in the table is created, with the property names serving as column titles.
+&#8203;<ApiLink to="core/class/Dataset#pushData">`Dataset.pushData()`</ApiLink> is a helper function that saves data to the default <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>. `Dataset` is a storage designed to hold virtually unlimited amount of data in a format similar to a table. Each time you call `Dataset.pushData()` a new row in the table is created, with the property names serving as column titles.
 
-> Each crawler run has one default `Dataset` so no need to initialize it or create an instance first. It just gets done automatically for us. We can also create named datasets at will.
+> Each crawler run has one default `Dataset` so no need to initialize it or create an instance first. It just gets done automatically for you. You can also create named datasets at will.
 
-#### Finding our saved data
+#### Finding your saved data
 
-It might not be perfectly obvious where the data we saved using the previous command went. Unless we changed the environment variables that Crawlee uses locally, which would suggest that we knew what we were doing, and we didn't need this tutorial anyway, we'll find our data in the `crawlee_storage` directory:
+It might not be perfectly obvious where the data you saved using the previous command went. Unless you changed the environment variables that Crawlee uses locally, which would suggest that you knew what you were doing, and you didn't need this tutorial anyway, you'll find your data in the `crawlee_storage` directory:
 
 ```
 {PROJECT_FOLDER}/crawlee_storage/datasets/default/
 ```
 
-The above folder will hold all our saved data in numbered files, as they were pushed into the dataset. Each file represents one invocation of `Dataset.pushData()` or one table row.
-
-> In case you were running the crawler on the Apify Platform, you can find the results in the Dataset tab on the Run page.
+The above folder will hold all your saved data in numbered files, as they were pushed into the dataset. Each file represents one invocation of `Dataset.pushData()` or one table row.
 
 ### Final touch
 
-It may seem that the data are extracted and the crawler is done, but honestly, this is just the beginning. For the sake of brevity, we've completely omitted error handling, proxies, debug logging, tests, documentation and other stuff that a reliable software should have. The good thing is, **error handling is mostly done by Crawlee itself**, so no worries on that front, unless we need some custom magic.
+It may seem that the data are extracted and the crawler is done, but honestly, this is just the beginning. For the sake of brevity, we've completely omitted error handling, proxies, debug logging, tests, documentation and other stuff that a reliable software should have. The good thing is, **error handling is mostly done by Crawlee itself**, so no worries on that front, unless you need some custom magic.
 
-Anyway, to spark some ideas, let's look at two more things. First, passing an input to the crawler, which will enable us to change the categories we want to scrape without changing the source code itself! And then some refactoring, to show how we reckon is preferable to structure and annotate crawler code.
+Anyway, to spark some ideas, let's look at two more things. First, passing an input to the crawler, which will enable you to change the user page you want to scrape without changing the source code itself! And then some refactoring, to show how we reckon is preferable to structure and annotate crawler code.
 
 #### Meet the `INPUT`
 
-`INPUT` is just a convention on how we call the crawler's input. Because there's no magic in crawlers, just features, the `INPUT` is actually nothing more
-than a key in the default <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink> that's, by convention, used as input on the Apify platform. Also by convention, the
-`INPUT` is mostly expected to be of `Content-Type: application/json`.
+`INPUT` is just a convention on how we call the crawler's input. Because there's no magic in crawlers, just features, the `INPUT` is actually nothing more than a key in the default <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink>. Also by convention, the `INPUT` is mostly expected to be of `Content-Type: application/json`.
 
-We will not go into `KeyValueStore` details here, but for the sake of `INPUT` we need to remember that there is a function that helps we get it.
+We will not go into `KeyValueStore` details here, but for the sake of `INPUT` you need to remember that there is a function that helps you get it.
 
-```ts
+```js
 const input = await KeyValueStore.getInput();
 ```
 
-> On the Apify Platform, the crawler's input that we can set in the Console is automatically saved to the default `KeyValueStore` under the key `INPUT` and by calling <ApiLink to="core/class/KeyValueStore#getInput">`KeyValueStore.getInput()`</ApiLink> we retrieve the value from the `KeyValueStore`.
-
-Running locally, we need to place an `INPUT.json` file in our default key value store for this to work.
+You need to place an `INPUT.json` file in your default key-value store for this to work.
 
 ```
 {PROJECT_FOLDER}/crawlee_storage/key_value_stores/default/INPUT.json
 ```
 
-#### Use `INPUT` to seed our crawler with categories
+#### Use `INPUT` to seed your crawler with users
 
-Currently, we're using the full URLs of categories as sources, but it's quite obvious that we only need the final parameters, the rest of the URL is always the same. Knowing that, we can pass an array of those parameters on `INPUT` and build the URLs dynamically, which would allow us to scrape different categories without changing the source code. Let's get to it!
+Currently, we're using the full URLs of user pages as sources, but it's quite obvious that we only need the final parameter, the rest of the URL is always the same. Knowing that, we can pass an array of those parameters on `INPUT` and build the URLs dynamically, which would allow us to scrape public actors created by different users without changing the source code. Let's get to it!
 
 For simplicity, let's set the default input in the code directly, as a fallback in case the input is not found in the default `KeyValueStore`:
 
 > We are using the [nullish coalescing operator (`??`)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing_operator), it will use the value on the right hand side only if the left hand side resolves to `null` or `undefined`.
 
-```ts
-const input = await KeyValueStore.getInput() ?? ['TRAVEL', 'ECOMMERCE', 'ENTERTAINMENT'];
+```js
+const input = await KeyValueStore.getInput() ?? ['apify'];
 ```
 
-Next, we will be using the categories in the input to construct the category URLs, and we'll also pass custom `userData` to the sources. This means that the `Request`s that get created will automatically contain this `userData`.
+Next, we will be using the usernames in the input to construct the user URLs, and we'll also pass custom `userData` to the sources. This means that the requests that get created will automatically contain this `userData`.
 
-```ts
+```js
 // ...
-const input = await KeyValueStore.getInput() ?? ['TRAVEL', 'ECOMMERCE', 'ENTERTAINMENT'];
+const input = await KeyValueStore.getInput() ?? ['apify'];
 
-const sources = input.map(category => ({
-    url: `https://apify.com/store?category=${category}`,
+const sources = input.map((username) => ({
+    url: `https://apify.com/${username}`,
     userData: {
-        label: 'CATEGORY',
+        label: 'USER_PAGE',
     },
 }));
 
-const requestList = await RequestList.open('categories', sources);
+const requestList = await RequestList.open('users', sources);
 // ...
 ```
 
-The `userData.label` is also a convention that we've been using for quite some time to label different `Request`s. We know that this is a category URL so we `label` it `CATEGORY`. This way, we can easily make decisions in the `requestHandler` without having to inspect the URL itself.
+The `userData.label` is also a convention that we've been using for quite some time to label different requests. We know that this is a user page URL so we `label` it `USER_PAGE`. This way, we can easily make decisions in the `requestHandler` without having to inspect the URL itself.
 
 We can then refactor the `if` clauses in the `requestHandler` to use the `label` for decision-making. This does not make much sense for a crawler with only two different pages, because a simple `boolean` would suffice, but for pages with multiple different views, it becomes very useful.
 
 #### Structuring the code better
 
-But perhaps we should not stop at refactoring the `if` clauses. There are several ways we can make the crawler look more elegant and - most importantly - easier to reason about and make changes to.
+But perhaps we should not stop at refactoring the `if` clauses. There are several ways you can make the crawler look more elegant and - most importantly - easier to reason about and make changes to.
 
-In the following code we've made several changes.
-
-[//]: # (TODO continue here, namely adjust the text based on new code sample)
-
--   Split the code into multiple files.
--   Replaced `console.log` with the crawlee logger.
--   Added a `getSources()` function to encapsulate `INPUT` consumption.
--   Added a `createRouter()` function to make our routing cleaner, without nested `if` clauses.
--   Removed the `maxRequestsPerCrawl` limit.
+In the following code we've made several changes:
+- Split the code into multiple files;
+- Replaced `console.log` with the Crawlee logger;
+- Added a `getSources()` function to encapsulate `INPUT` consumption;
+- Added a `createRouter()` function to make our routing cleaner, without nested `if` clauses;
+- Removed the `maxRequestsPerCrawl` limit.
 
 In our `main.js` file, we place the general structure of the crawler:
 
-```ts title="main.js"
+```js title="main.js"
 import { CheerioCrawler, log } from 'crawlee';
 import { router } from './routes.js';
 import { getSources } from './tools.js';
@@ -642,7 +627,7 @@ await crawler.addRequests(await getSources());
 
 log.info('Starting the crawl.');
 await crawler.run();
-log.info('Actor finished.');
+log.info('Crawl finished.');
 ```
 
 Then in a separate `tools.js`, we add our helper functions:
@@ -650,28 +635,28 @@ Then in a separate `tools.js`, we add our helper functions:
 ```ts title="tools.js"
 import { KeyValueStore, log } from 'crawlee';
 
-export const DEFAULT_CATEGORIES = ['TRAVEL', 'ECOMMERCE', 'ENTERTAINMENT'];
+export const DEFAULT_USERNAMES = ['apify'];
 
 export async function getSources() {
     log.debug('Getting sources.');
-    const input = await KeyValueStore.getInput() ?? DEFAULT_CATEGORIES;
-    return input.map(category => ({
-        url: `https://apify.com/store?category=${category}`,
-        label: 'CATEGORY',
+    const input = await KeyValueStore.getInput() ?? DEFAULT_USERNAMES;
+    return input.map((username) => ({
+        url: `https://apify.com/${username}`,
+        label: 'USER_PAGE',
     }));
 }
 ```
 
 And finally our routes in a separate `routes.js` file:
 
-```ts title="routes.js"
+```js title="routes.js"
 import { createCheerioRouter, Dataset } from 'crawlee';
 
 export const router = createCheerioRouter();
 
-router.addHandler('CATEGORY', async ({ enqueueLinks }) => {
+router.addHandler('USER_PAGE', async ({ enqueueLinks }) => {
     await enqueueLinks({
-        selector: 'div.item > a',
+        selector: 'div[data-test=actorCard] > a.ActorStoreItem',
         label: 'DETAIL',
     });
 });
@@ -695,7 +680,7 @@ router.addHandler('DETAIL', async ({ $, log, request }) => {
             $('ul.ActorHeader-stats > li:nth-of-type(3)')
                 .text()
                 .match(/[\d,]+/)[0]
-                .replace(',', ''),
+                .replaceAll(',', ''),
         ),
     };
 
@@ -704,34 +689,29 @@ router.addHandler('DETAIL', async ({ $, log, request }) => {
 });
 ```
 
-Let's describe the changes a bit more in detail. We hope that in the end, we can agree that this structure makes the actor more readable and manageable.
+Let's describe the changes a bit more in detail. We hope that in the end, you can agree that this structure makes the actor more readable and manageable.
 
-#### Splitting our code into multiple files
+#### Splitting your code into multiple files
 
-This was not always the case, but now that the Apify platform has a multifile editor, there's no reason not to split our code into multiple files and keep
-our logic separate. Less code in a single file means less code we need to think about at any time, and that's a great thing!
+There's no reason not to split your code into multiple files and keep your logic separate.
+Less code in a single file means less code you need to think about at any time, and that's a great thing!
 
 #### Using Crawlee `log` instead of `console.log`
 
-We won't go to great lengths here to talk about `log` object from Crawlee, because we can read <ApiLink to="core/class/Log">it all in the documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
+We won't go to great lengths here to talk about `log` object from Crawlee, because you can read it all in the <ApiLink to="core/class/Log">documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
 
-`utils.log` enables us to use different log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes our log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting an `APIFY_LOG_LEVEL` variable. This is huge! Because we can now add a lot of debug logs in our actor, which will help we when something goes wrong and turn them on or off with a simple `INPUT` change, or by setting an environment variable.
+`utils.log` enables the usage of different log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting the `CRAWLEE_LOG_LEVEL` environment variable. This is huge! Because you can now add a lot of debug logs in your actor, which will help you when something goes wrong and turn them on or off with a simple `INPUT` change, or by setting an environment variable.
 
 The punch line? Use `log` exported from `crawlee` instead of `console.log` now and thank us later when something goes wrong!
 
-#### Using a router to structure our crawling
+#### Using a router to structure your crawling
 
-At first, it might seem more readable using just a simple `if / else` statement to select different logic based on the crawled pages, but trust me, it
-becomes far less impressive when working with more than two different pages, and it definitely starts to fall apart when the logic to handle each page
-spans tens or hundreds of lines of code.
+At first, it might seem more readable using just a simple `if / else` statement to select different logic based on the crawled pages, but trust us, it becomes far less impressive when working with more than two different pages, and it definitely starts to fall apart when the logic to handle each page spans tens or hundreds of lines of code.
 
-It's good practice in any programming to split our logic into bite-sized chunks that are easy to read and reason about. Scrolling through a
-thousand line long `requestHandler()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to
-do and a pain to debug. That's why we prefer the separation of routes into a special file and with large routes, we would even suggest having one file
-per route.
+It's good practice in any programming language to split your logic into bite-sized chunks that are easy to read and reason about. Scrolling through a thousand line long `requestHandler()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to do and a pain to debug. That's why we prefer the separation of routes into a special file and with large routes, we would even suggest having one file per route.
 
-## Running the crawler in Cloud
+## Running your crawler in the Cloud
 
-Now that we have our crawler ready, it's the right time to think about where we want to run it. We should already have docker image ready for the crawler, as it was generated by the CLI. To read more about how to run this docker image in the cloud, check out the [Apify Platform guide](../guides/apify-platform).
+Now that you have your crawler ready, it's the right time to think about where you want to run it. You should already have docker image for the crawler ready, as it was generated by the CLI. To read more about how to run this docker image in the cloud, check out the [Apify Platform guide](../guides/apify-platform).
 
 [//]: # (> TO BE CONTINUED with details on `PlaywrightCrawler` and other features...)

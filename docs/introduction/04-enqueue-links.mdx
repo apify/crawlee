@@ -7,15 +7,15 @@ description: Your first steps into the world of scraping with Crawlee
 
 import ApiLink from '@site/src/components/ApiLink';
 
-If you were paying attention carefully in the previous chapter, we said there is much easier way to enqueue new `Request`s with a single function call. You might be wondering why you had to go through the whole process of getting the individual links, filtering the same domain ones and then manually enqueuing them into the `RequestQueue`, when there is a simpler way.
+If you were paying attention carefully in the previous chapter, we said there is much easier way to enqueue new <ApiLink to="core/class/Request">`Request`</ApiLink> objects with a single function call. You might be wondering why you had to go through the whole process of getting the individual links, filtering the same domain ones and then manually enqueuing them into the `RequestQueue`, when there is a simpler way.
 
 Well, the obvious reason is practice. This is a tutorial after all. The other reason is to make you think about all the bits and pieces that come together, so that in the end, a new page, not previously entered in by you, can be scraped. We think that by seeing the bigger picture, you will be able to get the most out of Crawlee.
 
 ### Introduction to `enqueueLinks()`
 
-Since enqueuing new links to crawl is such an integral part of web crawling, we created a function that attempts to simplify this process as much as possible. With a single function call, it allows you to find all the links on a page that match specified criteria and add them to a `RequestQueue`. It also allows you to modify the resulting `Request`s to match your crawling needs.
+Since enqueuing new links to crawl is such an integral part of web crawling, we created a function that attempts to simplify this process as much as possible. With a single function call, it allows you to find all the links on a page that match specified criteria and add them to a `RequestQueue`. It also allows you to modify the resulting requests to match your crawling needs.
 
-`enqueueLinks` is quite a powerful function so, like crawlers, it gets its arguments from an options object. This is useful, because you don't have to remember their order! But also because we can easily extend its API and add new features. You can <ApiLink to="core/function/enqueueLinks">find the full reference here</ApiLink>.
+`enqueueLinks` is quite a powerful function so, like crawlers, it gets its arguments from the `options` object. This is useful, because you don't have to remember their order! But also because we can easily extend its API and add new features. You can <ApiLink to="core/function/enqueueLinks">find the full reference here</ApiLink>.
 
 ```ts
 import { enqueueLinks } from 'crawlee';
@@ -26,11 +26,11 @@ await enqueueLinks({
 });
 ```
 
-### Basic use of `enqueueLinks()` with `CheerioCrawler`
+### Basic usage of `enqueueLinks()` with `CheerioCrawler`
 
 We already implemented logic that takes care of enqueueing new links to a `RequestQueue` in the previous chapter on `CheerioCrawler`. Let's look at that logic and implement the same functionality using `enqueueLinks()`.
 
-We found that the crawler needed to do these 4 things to crawl `apify.com`:
+We found that the crawler needed to do these 4 things to crawl `apify.com` website:
 
 1. Find new links on the page
 2. Filter only those pointing to `apify.com`
@@ -51,11 +51,11 @@ const crawler = new CheerioCrawler({
 await crawler.run(['https://apify.com']);
 ```
 
-Wait, what? Yes! That's all we need to find and enqueue all the links on currently handled page. We are using the context bound variant (the one from the `requestHandler`'s first context parameter), so it already knows what the current request body looks like, how to extract the links from it, how to handle relative links, it uses the crawler's `RequestQueue` (and creates a default one if you don't provide your own). By default, it will enqueue only links that target the same hostname (via the so called <ApiLink to="core/enum/EnqueueStrategy#SameHostname">`EnqueueStrategy.SameHostname`</ApiLink> strategy).
+Wait, what? Yes! That's all we need to find and enqueue all the links on currently handled page. We are using the context bound variant (the one from the `requestHandler`'s first context parameter), so it already knows what the current request body looks like, how to extract the links from it, how to handle relative links, it uses the crawler's `RequestQueue` (and creates a default one if you don't provide your own). By default, it will enqueue only links that target the same hostname (via the so-called <ApiLink to="core/enum/EnqueueStrategy#SameHostname">`SameHostname`</ApiLink> <ApiLink to="core/enum/EnqueueStrategy">EnqueueStrategy</ApiLink>).
 
 #### Using `enqueueLinks()` to filter links
 
-While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over _what_ links should be enqueued. One way you already mentioned above is by using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the `EnqueueStrategy.All` strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the `EnqueueStrategy.SameDomain` strategy.
+While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over _what_ links should be enqueued. One way we already mentioned above is by using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the <ApiLink to="core/enum/EnqueueStrategy#All">`All`</ApiLink> strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the <ApiLink to="core/enum/EnqueueStrategy#SameDomain">`SameDomain`</ApiLink> strategy.
 
 ```ts
 await enqueueLinks({
@@ -63,7 +63,7 @@ await enqueueLinks({
 });
 ```
 
-For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter the URLs. Those arguments are always `Array`s, but their contents can take on many forms. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
+For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter the URLs. Each of those arguments is always an `Array`, but the contents can take on many forms. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
 
 > If you provide one of those options, the default `SameHostname` strategy will **not** be applied unless explicitly set in the options.
 
@@ -73,7 +73,7 @@ await enqueueLinks({
 });
 ```
 
-To have absolute control, we have the <ApiLink to="core/interface/EnqueueLinksOptions/#transformRequestFunction">`transformRequestFunction`</ApiLink>. Just before a new <ApiLink to="core/class/Request">`Request`</ApiLink> is constructed and enqueued to the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, this function can be used to skip it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads, or to dynamically update or create `userData`.
+To have absolute control, we have the <ApiLink to="core/interface/EnqueueLinksOptions/#transformRequestFunction">`transformRequestFunction`</ApiLink>. Just before a new <ApiLink to="core/class/Request">`Request`</ApiLink> is constructed and enqueued to the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, this function can be used to skip it or modify its contents such as `userData`, `payload` or, most importantly, `uniqueKey`. This is useful when you need to enqueue multiple requests to the queue, and these requests share the same URL, but differ in methods or payloads. Another use case is to dynamically update or create the `userData`.
 
 ```ts
 await enqueueLinks({
@@ -140,6 +140,6 @@ const crawler = new CheerioCrawler({
 await crawler.run(['https://apify.com']);
 ```
 
-And that's it! No more parsing the links from HTML using Cheerio, filtering them and enqueueing them one by one It all gets done automatically! `enqueueLinks()` is just one example of Crawlee's powerful helper functions. They're all designed to make your life easier, so you can focus on getting your data, while leaving the mundane crawling management to the tools.
+And that's it! No more parsing the links from HTML using Cheerio, filtering them and enqueueing them one by one. It all gets done automatically! `enqueueLinks()` is just one example of Crawlee's powerful helper functions. They're all designed to make your life easier, so you can focus on getting your data, while leaving the mundane crawling management to the tools.
 
 `enqueueLinks()` has a lot more tricks up its sleeve. Make sure to check out the <ApiLink to="core/interface/EnqueueLinksOptions">options reference</ApiLink> to see what else it can do for you. Namely the feature to prepopulate the `Request` instances it creates with `userData` of your choice is extremely useful!
