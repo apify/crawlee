@@ -5,11 +5,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ## [3.0.0](https://github.com/apify/crawlee/compare/v2.3.2...v3.0.0) (2022-07-13)
 
-### Features
-
 This section summarizes most of the breaking changes between Crawlee (v3) and Apify SDK (v2). Crawlee is the spiritual successor to Apify SDK, so we decided to keep the versioning and release Crawlee as v3.
 
-#### Crawlee vs Apify SDK
+### Crawlee vs Apify SDK
 
 Up until version 3 of `apify`, the package contained both scraping related tools and Apify platform related helper methods. With v3 we are splitting the whole project into two main parts:
 
@@ -29,7 +27,7 @@ Moreover, the Crawlee library is published as several packages under `@crawlee` 
 - `@crawlee/utils`: utility methods
 - `@crawlee/types`: holds TS interfaces mainly about the `StorageClient`
 
-##### Installing Crawlee
+#### Installing Crawlee
 
 > As Crawlee is not yet released as `latest`, we need to install from the `next` distribution tag!
 
@@ -56,7 +54,7 @@ Alternatively we can also use the `crawlee` meta-package which contains (re-expo
 
 > Sometimes you might want to use some utility methods from `@crawlee/utils`, so you might want to install that as well. This package contains some utilities that were previously available under `Apify.utils`. Browser related utilities can be also found in the crawler packages (e.g. `@crawlee/playwright`).
 
-#### Full TypeScript support
+### Full TypeScript support
 
 Both Crawlee and Actor SDK are full TypeScript rewrite, so they include up-to-date types in the package. For your TypeScript crawlers we recommend using our predefined TypeScript configuration from `@apify/tsconfig` package. Don't forget to set the `module` and `target` to `ES2022` or above to be able to use top level await.
 
@@ -77,7 +75,7 @@ Both Crawlee and Actor SDK are full TypeScript rewrite, so they include up-to-da
 }
 ```
 
-##### Docker build
+#### Docker build
 
 For `Dockerfile` we recommend using multi-stage build so you don't install the dev dependencies like TypeScript in your final image:
 
@@ -113,7 +111,7 @@ RUN npm --quiet set progress=false \
 CMD npm run start:prod
 ```
 
-#### Browser fingerprints
+### Browser fingerprints
 
 Previously we had a magical `stealth` option in the puppeteer crawler that enabled several tricks aiming to mimic the real users as much as possible. While this worked to a certain degree, we decided to replace it with generated browser fingerprints.
 
@@ -127,11 +125,11 @@ const crawler = new PlaywrightCrawler({
 });
  ```
 
-#### Session cookie method renames
+### Session cookie method renames
 
 Previously, if we wanted to get or add cookies for the session that would be used for the request, we had to call `session.getPuppeteerCookies()` or `session.setPuppeteerCookies()`. Since this method could be used for any of our crawlers, not just `PuppeteerCrawler`, the methods have been renamed to `session.getCookies()` and `session.setCookies()` respectively. Otherwise, their usage is exactly the same!
 
-#### Memory storage
+### Memory storage
 
 When we store some data or intermediate state (like the one `RequestQueue` holds), we now use `@crawlee/memory-storage` by default. It is an alternative to the `@apify/storage-local`, that stores the state inside memory (as opposed to SQLite database used by `@apify/storage-local`). While the state is stored in memory, it also dumps it to the file system so we can observe it, as well as respects the existing data stored in KeyValueStore (e.g. the `INPUT.json` file).
 
@@ -149,11 +147,11 @@ const storage = new ApifyStorageLocal(/* options like `enableWalMode` belong her
 await Actor.init({ storage });
 ```
 
-#### Purging of the default storage
+### Purging of the default storage
 
 Previously the state was preserved between local runs, and we had to use `--purge` argument of the `apify-cli`. With Crawlee, this is now the default behaviour, we purge the storage automatically on `Actor.init/main` call. We can opt out of it via `purge: false` in the `Actor.init` options.
 
-#### Renamed crawler options and interfaces
+### Renamed crawler options and interfaces
 
 Some options were renamed to better reflect what they do. We still support all the old parameter names too, but not at the TS level.
 
@@ -170,11 +168,11 @@ We also renamed the crawling context interfaces, so they follow the same convent
 * `PlaywrightHandlePageFunction` -> `PlaywrightCrawlingContext`
 * `PuppeteerHandlePageFunction` -> `PuppeteerCrawlingContext`
 
-#### Context aware helpers
+### Context aware helpers
 
 Some utilities previously available under `Apify.utils` namespace are now moved to the crawling context and are _context aware_. This means they have some parameters automatically filled in from the context, like the current `Request` instance or current `Page` object, or the `RequestQueue` bound to the crawler.
 
-##### Enqueuing links
+#### Enqueuing links
 
 One common helper that received more attention is the `enqueueLinks`. As mentioned above, it is context aware - we no longer need pass in the `requestQueue` or `page` arguments (or the cheerio handle `$`). In addition to that, it now offers 3 enqueuing strategies:
 
@@ -197,13 +195,13 @@ const crawler = new PlaywrightCrawler({
 });
 ```
 
-#### Implicit `RequestQueue` instance
+### Implicit `RequestQueue` instance
 
 All crawlers now have the `RequestQueue` instance automatically available via `crawler.getRequestQueue()` method. It will create the instance for you if it does not exist yet. This mean we no longer need to create the `RequestQueue` instance manually, and we can just use `crawler.addRequests()` method described underneath.
 
 > We can still create the `RequestQueue` explicitly, the `crawler.getRequestQueue()` method will respect that and return the instance provided via crawler options.
 
-#### `crawler.addRequests()`
+### `crawler.addRequests()`
 
 We can now add multiple requests in batches. The newly added `addRequests` method will handle everything for us. It enqueues the first 1000 requests and resolves, while continuing with the rest in the background, again in a smaller 1000 items batches, so we don't fall into any API rate limits. This means the crawling will start almost immediately (within few seconds at most), something previously possible only with a combination of `RequestQueue` and `RequestList`.
 
@@ -215,11 +213,11 @@ const result = await crawler.addRequests([/* many requests, can be even millions
 await result.waitForAllRequestsToBeAdded;
 ```
 
-#### Less verbose error logging
+### Less verbose error logging
 
 Previously an error thrown from inside request handler resulted in full error object being logged. With Crawlee, we log only the error message as a warning as long as we know the request will be retried. If you want to enable verbose logging like in v2, use the `CRAWLEE_VERBOSE_LOG` env var.
 
-#### Removal of `requestAsBrowser`
+### Removal of `requestAsBrowser`
 
 In v1 we replaced the underlying implementation of `requestAsBrowser` to be just a proxy over calling [`got-scraping`](https://github.com/apify/got-scraping) - our custom extension to `got` that tries to mimic the real browsers as much as possible. With v3, we are removing the `requestAsBrowser`, encouraging the use of [`got-scraping`](https://github.com/apify/got-scraping) directly.
 
@@ -235,21 +233,21 @@ const crawler = new BasicCrawler({
 });
 ```
 
-##### How to use `sendRequest()`?
+#### How to use `sendRequest()`?
 
 See [the Got Scraping guide](../guides/got_scraping.mdx).
 
-##### Removed options
+#### Removed options
 
 The `useInsecureHttpParser` option has been removed. It's permanently set to `true` in order to better mimic browsers' behavior.
 
 Got Scraping automatically performs protocol negotiation, hence we removed the `useHttp2` option. It's set to `true` - 100% of browsers nowadays are capable of HTTP/2 requests. Oh, more and more of the web is using it too!
 
-##### Renamed options
+#### Renamed options
 
 In the `requestAsBrowser` approach, some of the options were named differently. Here's a list of renamed options:
 
-###### `payload`
+##### `payload`
 
 This options represents the body to send. It could be a `string` or a `Buffer`. However there is no `payload` option anymore. You need to use `body` instead. Or, if you wish to send JSON, `json`. Here's an example:
 
@@ -265,7 +263,7 @@ await gotScraping({ …, body: Buffer.from('c0ffe', 'hex') });
 await gotScraping({ …, json: { hello: 'world' } });
 ```
 
-###### `ignoreSslErrors`
+##### `ignoreSslErrors`
 
 It has been renamed to `https.rejectUnauthorized`. By default it's set to `false` for covenience. However, if you want to make sure the connection is secure, you can do the following:
 
@@ -279,7 +277,7 @@ await gotScraping({ …, https: { rejectUnauthorized: true } });
 
 Please note: the meanings are opposite! So we needed to invert the values as well.
 
-###### `header-generator` options
+##### `header-generator` options
 
 `useMobileVersion`, `languageCode` and `countryCode` no longer exist. Instead, you need to use `headerGeneratorOptions` directly:
 
@@ -302,7 +300,7 @@ await gotScraping({
 });
 ```
 
-###### `timeoutSecs`
+##### `timeoutSecs`
 
 In order to set a timeout, use `timeout.request` (which is **milliseconds** now).
 
@@ -322,15 +320,15 @@ await gotScraping({
 });
 ```
 
-###### `throwOnHttpErrors`
+##### `throwOnHttpErrors`
 
 `throwOnHttpErrors` → `throwHttpErrors`. This options throws on unsuccessful HTTP status codes, for example `404`. By default, it's set to `false`.
 
-###### `decodeBody`
+##### `decodeBody`
 
 `decodeBody` → `decompress`. This options decompresses the body. Defaults to `true` - please do not change this or websites will break (unless you know what you're doing!).
 
-###### `abortFunction`
+##### `abortFunction`
 
 This function used to make the promise throw on specific responses, if it returned `true`. However it wasn't that useful.
 
@@ -354,7 +352,7 @@ promise.on('request', request => {
 const response = await promise;
 ```
 
-#### Removal of browser pool plugin mixing
+### Removal of browser pool plugin mixing
 
 Previously, you were able to have a browser pool that would mix Puppeteer and Playwright plugins (or even your own custom plugins if you've built any). As of this version, that is no longer allowed, and creating such a browser pool will cause an error to be thrown (it's expected that all plugins that will be used are of the same type).
 
@@ -364,13 +362,13 @@ As an example, this change disallows a pool to mix Puppeteer with Playwright. Yo
 
 :::
 
-#### Handling requests outside of browser
+### Handling requests outside of browser
 
 One small feature worth mentioning is the ability to handle requests with browser crawlers outside the browser. To do that, we can use a combination of `Request.skipNavigation` and `context.sendRequest()`.
 
 Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](../examples/skip-navigation) example!
 
-#### Logging
+### Logging
 
 Crawlee exports the default `log` instance directly as a named export. We also have a scoped `log` instance provided in the crawling context - this one will log messages prefixed with the crawler name and should be preferred for logging inside the request handler.
 
@@ -382,7 +380,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-#### Auto-saved crawler state
+### Auto-saved crawler state
 
 Every crawler instance now has `useState()` method that will return a state object we can use. It will be automatically saved when `persistState` event occurs. The value is cached, so we can freely call this method multiple times and get the exact same reference. No need to worry about saving the value either, as it will happen automatically.
 
@@ -396,7 +394,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-#### Actor SDK
+### Actor SDK
 
 The Apify platform helpers can be now found in the Actor SDK (`apify` NPM package). It exports the `Actor` class that offers following static helpers:
 
@@ -426,7 +424,7 @@ await Actor.main(async () => {
 
 `Actor.init()` will conditionally set the storage implementation of Crawlee to the `ApifyClient` when running on the Apify platform, or keep the default (memory storage) implementation otherwise. It will also subscribe to the websocket events (or mimic them locally). `Actor.exit()` will handle the tear down and calls `process.exit()` to ensure our process won't hang indefinitely for some reason.
 
-##### Events
+#### Events
 
 Apify SDK exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by <ApiLink to="core/class/EventManager">`EventManager`</ApiLink> class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
 
@@ -439,7 +437,7 @@ Apify SDK exports `Apify.events`, which is an `EventEmitter` instance. With Craw
 
 In addition to the existing events, we now have an `exit` event fired when calling `Actor.exit()` (which is called at the end of `Actor.main()`). This event allows you to gracefully shut down any resources when `Actor.exit` is called.
 
-#### Smaller/internal breaking changes
+### Smaller/internal breaking changes
 
 * `Apify.call()` is now just a shortcut for running `ApifyClient.actor(actorId).call(input, options)`, while also taking the token inside env vars into account
 * `Apify.callTask()` is now just a shortcut for running `ApifyClient.task(taskId).call(input, options)`, while also taking the token inside env vars into account
