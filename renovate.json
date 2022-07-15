@@ -36,6 +36,7 @@
     ],
     "ignoreDeps": [
         "@docusaurus/core",
+        "@docusaurus/preset-classic",
         "docusaurus-plugin-typedoc-api",
         "crawlee"
     ]
