@@ -52,9 +52,9 @@ npx crawlee run --script=start:prod
 
 :::info Purging of storages
 
-Another option of the `crawlee run` command is the control over purging: `--purge` and more importantly `--no-purge`, as purging is enabled by default. To understand what those are about, you first need to talk about the concept of storages in Crawlee. There are 3 types of a storage you can use: <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink> and <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>. Crawlee is using the first two for storing the runtime data about current crawl, and the third one is for storing the results.
+Another option of the `crawlee run` command is the control over purging: `--purge` and more importantly `--no-purge`, as purging is enabled by default. To understand what those are about, you first need to know about the concept of storages in Crawlee. There are 3 storage types you can use: <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink> and <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>. Crawlee is using the first two for storing the runtime data about current crawl, and the third one is for storing the results.
 
-When Crawlee stores some state, it uses a storage - by default a <ApiLink to="memory-storage/class/MemoryStorage">`MemoryStorage`</ApiLink>, which - contrary to its name - will also store the state in JSON files, so you can observe it easily. This state is being purged automatically when you run the crawler, and with the `--no-purge` flag you can disable this behaviour and reuse the state you already have.
+When Crawlee stores some state, it uses a storage client - by default a <ApiLink to="memory-storage/class/MemoryStorage">`MemoryStorage`</ApiLink>, which - contrary to its name - will also store the state in JSON files, so you can observe it easily. This state is being purged automatically when you run the crawler, and with the `--no-purge` flag you can disable this behaviour and reuse the state you already have.
 
 More about storages and purging can be found in [Request Storage guide](../guides/request-storage).
 
