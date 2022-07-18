@@ -12,7 +12,7 @@ like <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLin
 
 The script simply downloads several web pages with plain HTTP requests using the <ApiLink to="basic-crawler/interface/BasicCrawlingContext#sendRequest">`sendRequest`</ApiLink> utility function (which uses the [`got-scraping`](https://github.com/apify/got-scraping)
 npm module internally) and stores their raw HTML and URL in the default dataset. In local configuration, the data will be stored as JSON files in
-`./crawlee_storage/datasets/default`.
+`./storage/datasets/default`.
 
 <CodeBlock className="language-js">
 	{BasicCrawlerSource}
