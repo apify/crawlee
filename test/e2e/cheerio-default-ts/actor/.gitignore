@@ -5,8 +5,7 @@ package-lock.json
 apify_storage
 crawlee_storage
 storage
-main.d.ts
-main.d.ts.map
-main.js
-main.js.map
-tsconfig.tsbuildinfo
+*.d.ts
+*.d.ts.map
+*.js
+*.js.map
