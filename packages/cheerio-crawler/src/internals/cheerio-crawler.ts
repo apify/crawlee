@@ -1,32 +1,14 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
-import {
-    BasicCrawler,
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-} from '@crawlee/basic';
-import type {
-    CrawlingContext,
-    EnqueueLinksOptions,
-    ProxyConfiguration,
-    ProxyInfo,
-    Request,
-    RequestQueue,
-    Session,
-} from '@crawlee/core';
-import {
-    CrawlerExtension,
-    enqueueLinks,
-    mergeCookies,
-    Router,
-    resolveBaseUrl,
-    validators,
-} from '@crawlee/core';
+import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
+import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue, Session } from '@crawlee/core';
+import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrl, validators } from '@crawlee/core';
 import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import { entries, parseContentTypeFromResponse } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit } from 'got-scraping';
@@ -254,56 +236,10 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
     persistCookiesPerSession?: boolean;
 }
 
-export interface PrepareRequestInputs<JSONData = Dictionary> {
-    /**
-     *  Original instance of the {@link Request} object. Must be modified in-place.
-     */
-    request: Request;
-
-    /**
-     * The current session
-     */
-    session?: Session;
-
-    /**
-     * An object with information about currently used proxy by the crawler
-     * and configured by the {@link ProxyConfiguration} class.
-     */
-    proxyInfo?: ProxyInfo;
-    crawler?: CheerioCrawler<JSONData>;
-}
-
-export type PrepareRequest<JSONData = Dictionary> = (inputs: PrepareRequestInputs<JSONData>) => Awaitable<void>;
 export type CheerioHook<JSONData = Dictionary> = (
     crawlingContext: CheerioCrawlingContext<JSONData>,
     gotOptions: OptionsInit,
 ) => Awaitable<void>;
-
-export interface PostResponseInputs<JSONData = Dictionary> {
-    /**
-     * stream
-     */
-    response?: IncomingMessage;
-
-    /**
-     * Original instance fo the {@link Request} object. Must be modified in-place.
-     */
-    request: Request;
-
-    /**
-     * The current session
-     */
-    session?: Session;
-
-    /**
-     * An object with information about currently used proxy by the crawler
-     * and configured by the {@link ProxyConfiguration} class.
-     */
-    proxyInfo?: ProxyInfo;
-    crawler: CheerioCrawler<JSONData>;
-}
-
-export type PostResponse<JSONData = Dictionary> = (inputs: PostResponseInputs<JSONData>) => Awaitable<void>;
 
 export interface CheerioCrawlingContext<JSONData extends Dictionary = Dictionary> extends CrawlingContext<JSONData> {
     /**
@@ -325,7 +261,7 @@ export interface CheerioCrawlingContext<JSONData extends Dictionary = Dictionary
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: string };
-    crawler: CheerioCrawler<JSONData>;
+    crawler: CheerioCrawler;
     response: IncomingMessage;
     enqueueLinks: (options?: CheerioCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
@@ -416,7 +352,7 @@ export type CheerioCrawlerEnqueueLinksOptions = Omit<EnqueueLinksOptions, 'urls'
  * ```
  * @category Crawlers
  */
-export class CheerioCrawler<JSONData = Dictionary> extends BasicCrawler<CheerioCrawlingContext<JSONData>> {
+export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
     /**
      * A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
@@ -424,8 +360,8 @@ export class CheerioCrawler<JSONData = Dictionary> extends BasicCrawler<CheerioC
     proxyConfiguration?: ProxyConfiguration;
 
     protected userRequestHandlerTimeoutMillis: number;
-    protected preNavigationHooks: CheerioHook<JSONData>[];
-    protected postNavigationHooks: CheerioHook<JSONData>[];
+    protected preNavigationHooks: CheerioHook[];
+    protected postNavigationHooks: CheerioHook[];
     protected persistCookiesPerSession: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
@@ -452,7 +388,7 @@ export class CheerioCrawler<JSONData = Dictionary> extends BasicCrawler<CheerioC
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options: CheerioCrawlerOptions<JSONData> = {}) {
+    constructor(options: CheerioCrawlerOptions = {}) {
         ow(options, 'CheerioCrawlerOptions', ow.object.exactShape(CheerioCrawler.optionsShape));
 
         const {
@@ -568,7 +504,7 @@ export class CheerioCrawler<JSONData = Dictionary> extends BasicCrawler<CheerioC
     /**
      * Wrapper around requestHandler that opens and closes pages etc.
      */
-    protected override async _runRequestHandler(crawlingContext: CheerioCrawlingContext<JSONData>) {
+    protected override async _runRequestHandler(crawlingContext: CheerioCrawlingContext) {
         const { request, session } = crawlingContext;
 
         if (this.proxyConfiguration) {
@@ -643,7 +579,7 @@ export class CheerioCrawler<JSONData = Dictionary> extends BasicCrawler<CheerioC
         );
     }
 
-    protected async _handleNavigation(crawlingContext: CheerioCrawlingContext<JSONData>) {
+    protected async _handleNavigation(crawlingContext: CheerioCrawlingContext) {
         const gotOptions = {} as OptionsInit;
         const { request, session } = crawlingContext;
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
