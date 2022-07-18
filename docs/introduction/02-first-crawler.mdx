@@ -43,7 +43,7 @@ await requestQueue.addRequest({ url: 'https://apify.com' });
 
 > If you're not familiar with the `async` and `await` keywords used in the example, you should know that these are native syntax in modern JavaScript. You can [learn more about them here](https://nikgrozev.com/2017/10/01/async-await/).
 
-The <ApiLink to="core/class/RequestQueue#addRequest">`requestQueue.addRequest()`</ApiLink> function automatically converts the plain object you passed to it to a `Request` instance, so now you have a `requestQueue` that holds one `request` which points to `https://apify.com`. In case you want to add more requests, you can also use the <ApiLink to="core/class/RequestQueue#addRequests">`requestQueue.addRequests()`</ApiLink> method, that accepts an array of request like objects (or directly an array of strings - the URLs). Even better, there is a `crawler.addRequests()` method you will describe later in the tutorial - for now just keep in mind that the `crawler.addRequests()` is the smartest method of those three, because it supports adding large numbers of requests without blocking.
+The <ApiLink to="core/class/RequestQueue#addRequest">`requestQueue.addRequest()`</ApiLink> function automatically converts the plain object you passed to it to a `Request` instance, so now you have a `requestQueue` that holds one `request` which points to `https://apify.com`. In case you want to add more requests, you can also use the <ApiLink to="core/class/RequestQueue#addRequests">`requestQueue.addRequests()`</ApiLink> method, that accepts an array of request-like objects (or directly an array of strings - the URLs). Even better, there is a `crawler.addRequests()` method we will describe later in the tutorial - for now just keep in mind that the `crawler.addRequests()` is the smartest method of those three, because it supports adding large numbers of requests without blocking.
 
 Now you need the `requestHandler`.
 
@@ -83,7 +83,7 @@ const crawler = new CheerioCrawler({
 await crawler.run();
 ```
 
-That starts to look almost good. Almost? Yes, you can do even better! Every crawler has an implicit `RequestQueue` instance, so you can save ourselves from all the `RequestQueue` related code and just use `crawler.addRequests()` method. In fact, you can just use the first parameter of `crawler.run()`! You can also move the `requestHandler` method definition directly to the crawler options, this way you get type inference for free:
+That starts to look almost good. Almost? Yes, you can do even better! Every crawler has an implicit `RequestQueue` instance, so you can save yourself from all the `RequestQueue` related code and just use `crawler.addRequests()` method. In fact, you can even go further and just use the first parameter of `crawler.run()`! You can also move the `requestHandler` method definition directly to the crawler options, this way you get type inference for free:
 
 ```ts
 import { CheerioCrawler } from 'crawlee';

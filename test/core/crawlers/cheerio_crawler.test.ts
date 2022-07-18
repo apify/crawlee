@@ -7,7 +7,6 @@ import bodyParser from 'body-parser';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
-    PrepareRequestInputs,
     ProxyInfo,
     Source,
 } from '@crawlee/cheerio';
@@ -1089,9 +1088,9 @@ describe('CheerioCrawler', () => {
         });
 
         test('uses correct crawling context', async () => {
-            let prepareCrawlingContext: PrepareRequestInputs;
+            let prepareCrawlingContext: CheerioCrawlingContext;
 
-            const prepareRequestFunction = (crawlingContext: PrepareRequestInputs) => {
+            const prepareRequestFunction = (crawlingContext: CheerioCrawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
                 expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);

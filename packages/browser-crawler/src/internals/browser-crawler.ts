@@ -146,6 +146,7 @@ export interface BrowserCrawlerOptions<
      * {@link Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      *
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
+     * @ignore
      */
     handlePageFunction?: BrowserCrawlerHandleRequest<Context>;
 
@@ -182,6 +183,7 @@ export interface BrowserCrawlerOptions<
      * represents the last error thrown during processing of the request.
      *
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
+     * @ignore
      */
     handleFailedRequestFunction?: BrowserCrawlerHandleFailedRequest<Context>;
 

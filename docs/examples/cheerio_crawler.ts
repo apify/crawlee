@@ -44,7 +44,7 @@ const crawler = new CheerioCrawler({
         });
 
         // Store the results to the dataset. In local configuration,
-        // the data will be stored as JSON files in ./crawlee_storage/datasets/default
+        // the data will be stored as JSON files in ./storage/datasets/default
         await dataset.pushData({
             url: request.url,
             title,

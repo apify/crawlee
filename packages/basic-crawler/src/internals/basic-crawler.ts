@@ -101,6 +101,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * {@link Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      *
      * @deprecated `handleRequestFunction` has been renamed to `requestHandler` and will be removed in a future version.
+     * @ignore
      */
     handleRequestFunction?: RequestHandler<Context>;
 
@@ -130,6 +131,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Timeout in which the function passed as {@link BasicCrawlerOptions.requestHandler|`requestHandler`} needs to finish, in seconds.
      * @default 60
      * @deprecated `handleRequestTimeoutSecs` has been renamed to `requestHandlerTimeoutSecs` and will be removed in a future version.
+     * @ignore
      */
     handleRequestTimeoutSecs?: number;
 
@@ -163,6 +165,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * represents the last error thrown during processing of the request.
      *
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
+     * @ignore
      */
     handleFailedRequestFunction?: FailedRequestHandler<Context>;
 

@@ -2,7 +2,7 @@
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { pathExists } from 'fs-extra';
+import { pathExistsSync } from 'fs-extra';
 import { readdir, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { DatasetClient } from './resource-clients/dataset';
@@ -16,9 +16,10 @@ import { initWorkerIfNeeded } from './workers/instance';
 export interface MemoryStorageOptions {
     /**
      * Path to directory where the data will also be saved.
-     * @default process.env.CRAWLEE_STORAGE_DIR ?? './crawlee_storage'
+     * @default process.env.CRAWLEE_STORAGE_DIR ?? './storage'
      */
     localDataDirectory?: string;
+
     /**
      * Whether to also write optional metadata files when storing to disk.
      * @default process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false
@@ -43,7 +44,18 @@ export class MemoryStorage implements storage.StorageClient {
             writeMetadata: s.boolean.optional,
         }).parse(options);
 
-        this.localDataDirectory = options.localDataDirectory ?? process.env.CRAWLEE_STORAGE_DIR ?? './crawlee_storage';
+        // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
+        // this function handles it without making BC breaks - it respects existing `crawlee_storage`
+        // directories, and uses the `storage` only if it's not there.
+        const defaultStorageDir = () => {
+            if (pathExistsSync(resolve('./crawlee_storage'))) {
+                return './crawlee_storage';
+            }
+
+            return './storage';
+        };
+
+        this.localDataDirectory = options.localDataDirectory ?? process.env.CRAWLEE_STORAGE_DIR ?? defaultStorageDir();
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
@@ -113,7 +125,7 @@ export class MemoryStorage implements storage.StorageClient {
     }
 
     private async removeFiles(folder: string): Promise<void> {
-        const storagePathExists = await pathExists(folder);
+        const storagePathExists = pathExistsSync(folder);
 
         if (storagePathExists) {
             const direntNames = await readdir(folder);

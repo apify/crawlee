@@ -100,7 +100,7 @@ When you run the example, you should see Crawlee automating a Chrome browser.
 
 ![Chrome Scrape](https://crawlee.dev/img/chrome_scrape.gif)
 
-By default, Crawlee stores data to `./crawlee_storage` in the current working directory. You can override this directory via `CRAWLEE_STORAGE_DIR` env var. For details, see [Environment variables](https://crawlee.dev/docs/guides/environment-variables), [Request storage](https://crawlee.dev/docs/guides/request-storage) and [Result storage](https://crawlee.dev/docs/guides/result-storage).
+By default, Crawlee stores data to `./storage` in the current working directory. You can override this directory via `CRAWLEE_STORAGE_DIR` env var. For details, see [Environment variables](https://crawlee.dev/docs/guides/environment-variables), [Request storage](https://crawlee.dev/docs/guides/request-storage) and [Result storage](https://crawlee.dev/docs/guides/result-storage).
 
 ### Local usage with Crawlee command-line interface (CLI)
 
@@ -119,7 +119,7 @@ cd my-hello-world
 npx crawlee run
 ```
 
-By default, the crawling data will be stored in a local directory at `./crawlee_storage`. For example, the input JSON file for the actor is expected to be in the default key-value store in `./crawlee_storage/key_value_stores/default/INPUT.json`.
+By default, the crawling data will be stored in a local directory at `./storage`. For example, the input JSON file for the actor is expected to be in the default key-value store in `./storage/key_value_stores/default/INPUT.json`.
 
 ### Usage on the Apify platform
 

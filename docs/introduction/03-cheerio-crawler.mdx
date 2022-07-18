@@ -37,7 +37,7 @@ $('[href]')
 
 Even though using `CheerioCrawler` is extremely easy, it probably will not be your first choice for most kinds of crawling or scraping in production environments. Since most websites nowadays use modern JavaScript to create rich, responsive and data-driven user experiences, the plain HTTP requests the crawler uses may just fall short of your needs.
 
-But <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> is far from useless! It really shines when you need to cope with extremely high workloads. With just 4 GBs of memory and a single CPU core, you can scrape 500 or more pages a minute! _(assuming each page contains approximately 400KB of HTML)_ To scrape this fast with a full browser scraper, such as the <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>, you'd need significantly more computing power.
+But <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> is far from useless! It really shines when you need to cope with extremely high workloads. With just 4 GBs of memory and a single CPU core, you can scrape 500 or more pages a minute! _(assuming each page contains approximately 400KB of HTML)_. To scrape this fast with a full browser scraper, such as the <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>, you'd need significantly more computing power.
 
 **Advantages:**
 
@@ -55,7 +55,7 @@ But <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink
 
 ### Basic use of `CheerioCrawler`
 
-Now that we have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
+Now that you have an idea of the crawler's inner workings, let's build one. We'll use the example from the previous section and improve on it by letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
 
 #### Refresher
 
@@ -180,7 +180,7 @@ And we're approaching the finishing line. All we need to do now is to integrate 
 
 ##### The `maxRequestsPerCrawl` limit
 
-This configuration option is available in all crawler classes, and you can use it to limit the number of `Request`s the crawler should process. It's very useful when you're just testing your code or when your crawler could potentially crawl millions of pages, and you want to save resources. You can add it to the crawler options like this:
+This configuration option is available in all crawler classes, and you can use it to limit the number of requests the crawler should process. It's very useful when you're just testing your code or when your crawler could potentially crawl millions of pages, and you want to save resources. You can add it to the crawler options like this:
 
 ```ts
 const crawler = new CheerioCrawler({
@@ -189,7 +189,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-This limits the number of successfully handled `Request`s to 20. Bear in mind that the actual number of processed requests might be a little higher and that's because usually there are multiple `Request`s processed at the same time and once the 20th `Request` finishes, the other running `Request`s will be allowed to finish too.
+This limits the number of successfully handled requests to 20. Bear in mind that the actual number of processed requests might be a little higher and that's because usually there are multiple requests processed at the same time and once the 20th `Request` finishes, the other running requests will be allowed to finish too.
 
 #### Putting it all together
 
