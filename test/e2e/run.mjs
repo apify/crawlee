@@ -16,7 +16,7 @@ process.env.APIFY_CONTAINER_PORT ??= '8000';
 
 /**
  * Depending on STORAGE_IMPLEMENTATION the workflow of the tests slightly differs:
- *   - for 'MEMORY': the 'crawlee_storage' folder should be removed after the test actor finishes;
+ *   - for 'MEMORY': the 'storage' folder should be removed after the test actor finishes;
  *   - for 'LOCAL': the 'apify_storage' folder should be removed after the test actor finishes;
  *   - for 'PLATFORM': SDK packages should be copied to respective test actor folders
  *      (and also should be removed after pushing the actor to platform and starting the test run there)

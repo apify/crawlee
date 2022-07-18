@@ -535,10 +535,10 @@ await crawler.run();
 
 #### Finding your saved data
 
-It might not be perfectly obvious where the data you saved using the previous command went. Unless you changed the environment variables that Crawlee uses locally, which would suggest that you knew what you were doing, and you didn't need this tutorial anyway, you'll find your data in the `crawlee_storage` directory:
+It might not be perfectly obvious where the data you saved using the previous command went. Unless you changed the environment variables that Crawlee uses locally, which would suggest that you knew what you were doing, and you didn't need this tutorial anyway, you'll find your data in the `storage` directory:
 
 ```
-{PROJECT_FOLDER}/crawlee_storage/datasets/default/
+{PROJECT_FOLDER}/storage/datasets/default/
 ```
 
 The above folder will hold all your saved data in numbered files, as they were pushed into the dataset. Each file represents one invocation of `Dataset.pushData()` or one table row.
@@ -562,7 +562,7 @@ const input = await KeyValueStore.getInput();
 You need to place an `INPUT.json` file in your default key-value store for this to work.
 
 ```
-{PROJECT_FOLDER}/crawlee_storage/key_value_stores/default/INPUT.json
+{PROJECT_FOLDER}/storage/key_value_stores/default/INPUT.json
 ```
 
 #### Use `INPUT` to seed your crawler with users

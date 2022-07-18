@@ -6,7 +6,7 @@ description: Where are you going to store all of that juicy scraped data?!
 
 import ApiLink from '@site/src/components/ApiLink';
 
-Crawlee has several result storage types that are useful for specific tasks. The data is stored on a local disk to the directory defined by the `CRAWLEE_STORAGE_DIR` environment variable. If this variable is not defined, by default Crawlee sets `CRAWLEE_STORAGE_DIR` to `./crawlee_storage` in the current working directory.
+Crawlee has several result storage types that are useful for specific tasks. The data is stored on a local disk to the directory defined by the `CRAWLEE_STORAGE_DIR` environment variable. If this variable is not defined, by default Crawlee sets `CRAWLEE_STORAGE_DIR` to `./storage` in the current working directory.
 
 Crawlee storage is managed by <ApiLink to="memory-storage/class/MemoryStorage">`MemoryStorage`</ApiLink> class. During the crawler run all information is stored in memory, while also being off-loaded to the local files in respective storage type folders.
 
