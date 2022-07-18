@@ -92,6 +92,21 @@ module.exports = {
                 },
             },
         ],
+        [
+            '@docusaurus/plugin-client-redirects',
+            {
+                redirects: [
+                    {
+                        from: '/docs',
+                        to: '/docs/quick-start',
+                    },
+                    {
+                        from: '/docs/next',
+                        to: '/docs/next/quick-start',
+                    },
+                ],
+            },
+        ],
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({
