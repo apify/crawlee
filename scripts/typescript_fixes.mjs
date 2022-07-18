@@ -16,9 +16,12 @@ for (const filepath of files) {
             output.push(`${match[1]} '${match[2]}`);
             changed = true;
         } else if (
-            line.match(/^([^']+)'puppeteer'/) ||
-            line.match(/^([^']+)'playwright'/) ||
-            line.match(/^export declare type PuppeteerHook/)
+            // playwright/puppeteer import
+            line.match(/^([^']+)'(playwright|puppeteer)'/) ||
+            // proxy-per-page reexport of puppeteer
+            line.match(/: Puppeteer\.\w+/) ||
+            // don't ask me why, but this one is needed too ¯\_(ツ)_/¯
+            line.match(/^export declare type (PlaywrightHook|PuppeteerHook|PlaywrightCookie)/)
         ) {
             output.push('// @ts-ignore optional peer dependency');
             output.push(line);

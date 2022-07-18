@@ -1,0 +1,27 @@
+{
+	"name": "test-cheerio-default-ts",
+	"version": "0.0.1",
+	"description": "Cheerio Crawler Test - TypeScript",
+	"dependencies": {
+        "apify": "next",
+        "@apify/storage-local": "^2.1.0",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/cheerio": "file:./packages/cheerio-crawler",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "typescript": "4.7.4"
+    },
+    "scripts": {
+        "start": "tsc && node main.js",
+        "start:prod": "node main.js",
+        "build": "tsc"
+    },
+	"type": "module",
+	"license": "ISC"
+}

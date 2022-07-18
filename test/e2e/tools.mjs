@@ -60,16 +60,9 @@ export async function runActor(dirName, memory = 4096) {
     let stats;
     let datasetItems;
 
-    if (process.env.STORAGE_IMPLEMENTATION === 'MEMORY' || process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
-        await import(join(dirName, 'main.js'));
-        await setTimeout(10);
-        stats = await getStats(dirName);
-        datasetItems = await getDatasetItems(dirName);
-    }
-
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         await copyPackages(dirName);
-        execSync('npx -y apify-cli push', { cwd: dirName });
+        execSync('npx -y apify-cli push', { cwd: dirName, stdio: 'inherit' });
 
         const actorName = await getActorName(dirName);
         const client = Actor.newClient();
@@ -97,6 +90,16 @@ export async function runActor(dirName, memory = 4096) {
         stats = value;
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
+    } else {
+        if (dirName.endsWith('-ts')) {
+            execSync('tsc', { cwd: dirName, stdio: 'inherit' });
+        }
+
+        await import(join(dirName, 'main.js'));
+
+        await setTimeout(10);
+        stats = await getStats(dirName);
+        datasetItems = await getDatasetItems(dirName);
     }
 
     return { stats, datasetItems };

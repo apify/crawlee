@@ -55,6 +55,7 @@ async function run() {
         let seenFirst = false;
         worker.stdout.on('data', (data) => {
             const str = data.toString();
+            console.log(`${colors.yellow(`[${dir.name}] `)}${str}`);
 
             if (str.startsWith('[test skipped]')) {
                 return;
