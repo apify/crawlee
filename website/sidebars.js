@@ -13,7 +13,7 @@ module.exports = {
             // },
             link: {
                 type: 'doc',
-                id: 'introduction/index',
+                id: 'introduction/introduction',
             },
             items: [
                 'introduction/setting-up',
