@@ -125,6 +125,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * {@link Request.pushErrorMessage} function.
      *
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
+     * @ignore
      */
     handlePageFunction?: CheerioRequestHandler<JSONData>;
 
@@ -181,6 +182,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * for the default implementation of this function.
      *
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
+     * @ignore
      */
     handleFailedRequestFunction?: CheerioFailedRequestHandler<JSONData>;
 

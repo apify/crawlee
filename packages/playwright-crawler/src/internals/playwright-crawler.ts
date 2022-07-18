@@ -77,6 +77,7 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
      * {@link Request.pushErrorMessage} function.
      *
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
+     * @ignore
      */
     handlePageFunction?: PlaywrightRequestHandler;
 
