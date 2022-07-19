@@ -33,7 +33,6 @@ module.exports = {
                 keywords: ['guides'],
             },
             items: [
-                'guides/motivation',
                 'guides/request-storage',
                 'guides/result-storage',
                 'guides/environment-variables',
