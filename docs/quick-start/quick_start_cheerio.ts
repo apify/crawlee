@@ -8,15 +8,14 @@ const crawler = new CheerioCrawler({
         const title = $('title').text();
         log.info(`Title of ${url}: ${title}`);
 
-        // Add URLs that match the provided pattern.
-        await enqueueLinks({
-            globs: ['https://www.iana.org/*'],
-        });
+        // Add links from the page that point
+        // to the same domain as the original request.
+        await enqueueLinks({ strategy: 'same-domain' });
 
-        // Save extracted data to dataset.
+        // Save extracted data to storage.
         await Dataset.pushData({ url, title });
     },
 });
 
-// Enqueue the initial request and run the crawler.
-await crawler.run(['https://www.iana.org/']);
+// Add a start URL to the queue and run the crawler.
+await crawler.run(['https://crawlee.dev/']);
