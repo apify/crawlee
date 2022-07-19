@@ -91,7 +91,7 @@ export async function runActor(dirName, memory = 4096) {
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
     } else {
-        if (dirName.endsWith('-ts')) {
+        if (dirName.split('/').at(-2).endsWith('-ts')) {
             execSync('tsc', { cwd: dirName, stdio: 'inherit' });
         }
 

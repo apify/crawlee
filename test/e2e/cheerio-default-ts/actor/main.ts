@@ -26,5 +26,5 @@ await Actor.main(async () => {
         await Dataset.pushData({ url, pageTitle });
     });
 
-    await crawler.run(['https://crawlee.dev/docs']);
+    await crawler.run(['https://crawlee.dev/docs/quick-start']);
 }, mainOptions);
