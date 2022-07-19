@@ -2,7 +2,7 @@ import { KeyValueStore, launchPuppeteer } from 'crawlee';
 
 const keyValueStore = await KeyValueStore.open();
 
-const url = 'http://www.example.com/';
+const url = 'https://crawlee.dev';
 // Start a browser
 const browser = await launchPuppeteer();
 

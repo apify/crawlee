@@ -1,9 +1,9 @@
 import { PuppeteerCrawler } from 'crawlee';
 
 const crawler = new PuppeteerCrawler({
-    async requestHandler({ request, page, enqueueLinks }) {
+    async requestHandler({ request, page, enqueueLinks, log }) {
         const title = await page.title();
-        console.log(`Title of ${request.url}: ${title}`);
+        log.info(`Title of ${request.url}: ${title}`);
 
         await enqueueLinks({
             globs: ['http?(s)://www.iana.org/**'],
