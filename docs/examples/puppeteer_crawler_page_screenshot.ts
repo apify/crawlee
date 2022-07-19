@@ -1,7 +1,5 @@
 import { PuppeteerCrawler, KeyValueStore } from 'crawlee';
 
-const keyValueStore = await KeyValueStore.open();
-
 // Create a PuppeteerCrawler
 const crawler = new PuppeteerCrawler({
     async requestHandler({ request, page }) {
@@ -10,7 +8,7 @@ const crawler = new PuppeteerCrawler({
         // Convert the URL into a valid key
         const key = request.url.replace(/[:/]/g, '_');
         // Save the screenshot to the default key-value store
-        await keyValueStore.setValue(key, screenshot, { contentType: 'image/png' });
+        await KeyValueStore.setValue(key, screenshot, { contentType: 'image/png' });
     },
 });
 

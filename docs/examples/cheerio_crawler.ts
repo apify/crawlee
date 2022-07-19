@@ -1,7 +1,5 @@
 import { Dataset, CheerioCrawler, log, LogLevel } from 'crawlee';
 
-const dataset = await Dataset.open();
-
 // Crawlers come with various utilities, e.g. for logging.
 // Here we use debug level of logging to improve the debugging experience.
 // This functionality is optional!
@@ -27,7 +25,7 @@ const crawler = new CheerioCrawler({
 
     // This function will be called for each URL to crawl.
     // It accepts a single parameter, which is an object with options as:
-    // https://sdk.apify.com/docs/typedefs/cheerio-crawler-options#handlepagefunction
+    // https://crawlee.dev/api/cheerio-crawler/interface/CheerioCrawlerOptions#requestHandler
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
     // - $: the cheerio object containing parsed HTML
@@ -36,7 +34,7 @@ const crawler = new CheerioCrawler({
 
         // Extract data from the page using cheerio.
         const title = $('title').text();
-        const h1texts = [];
+        const h1texts: { text: string }[] = [];
         $('h1').each((index, el) => {
             h1texts.push({
                 text: $(el).text(),
@@ -45,7 +43,7 @@ const crawler = new CheerioCrawler({
 
         // Store the results to the dataset. In local configuration,
         // the data will be stored as JSON files in ./storage/datasets/default
-        await dataset.pushData({
+        await Dataset.pushData({
             url: request.url,
             title,
             h1texts,
