@@ -100,10 +100,10 @@ module.exports = {
                         from: '/docs',
                         to: '/docs/quick-start',
                     },
-                    {
-                        from: '/docs/next',
-                        to: '/docs/next/quick-start',
-                    },
+                //     {
+                //         from: '/docs/next',
+                //         to: '/docs/next/quick-start',
+                //     },
                 ],
             },
         ],
