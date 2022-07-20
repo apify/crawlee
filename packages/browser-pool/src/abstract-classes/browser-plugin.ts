@@ -109,7 +109,7 @@ export abstract class BrowserPlugin<
 
         this.library = library;
         this.launchOptions = launchOptions;
-        this.proxyUrl = proxyUrl && new URL(proxyUrl).href;
+        this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
     }

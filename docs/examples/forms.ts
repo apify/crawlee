@@ -1,7 +1,5 @@
 import { Dataset, launchPuppeteer } from 'crawlee';
 
-const dataset = await Dataset.open();
-
 // Launch the web browser.
 const browser = await launchPuppeteer();
 
@@ -33,7 +31,7 @@ const results = await page.$$eval('div.f4.text-normal a', (nodes) => nodes.map((
 console.log('Results:', results);
 
 // Store data in default dataset
-await dataset.pushData(results);
+await Dataset.pushData(results);
 
 // Close browser
 await browser.close();

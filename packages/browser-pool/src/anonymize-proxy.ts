@@ -16,7 +16,7 @@ export const anonymizeProxySugar = async (
         }
 
         if (url.username || url.password) {
-            const anonymized = await anonymizeProxy(url.href);
+            const anonymized = await anonymizeProxy(url.href.slice(0, -1));
 
             return [
                 anonymized,

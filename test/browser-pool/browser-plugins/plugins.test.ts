@@ -85,7 +85,7 @@ const runPluginTest = <
 
             const context = plugin.createLaunchContext();
 
-            expect(context.proxyUrl).toEqual(proxyUrl);
+            expect(context.proxyUrl).toEqual(proxyUrl.slice(0, -1));
             expect(context.useIncognitoPages).toBeTruthy();
             expect(context.userDataDir).toEqual('test');
         });
