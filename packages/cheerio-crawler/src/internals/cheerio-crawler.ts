@@ -417,7 +417,7 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
         super({
             ...basicCrawlerOptions,
             // Will be overridden below
-            requestHandler: () => {},
+            requestHandler,
             autoscaledPoolOptions,
             // We need to add some time for internal functions to finish,
             // but not too much so that we would stall the crawler.
