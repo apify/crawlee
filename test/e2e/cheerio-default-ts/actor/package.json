@@ -11,7 +11,9 @@
         "@crawlee/core": "file:./packages/core",
         "@crawlee/memory-storage": "file:./packages/memory-storage",
         "@crawlee/types": "file:./packages/types",
-        "@crawlee/utils": "file:./packages/utils"
+        "@crawlee/utils": "file:./packages/utils",
+        "playwright-core": "^1.23.4",
+        "puppeteer": "^14.4.1"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
