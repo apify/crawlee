@@ -218,7 +218,7 @@ export async function initialize(dirName) {
         process.env.APIFY_CONTAINER_URL ??= 'http://127.0.0.1';
         process.env.APIFY_CONTAINER_PORT ??= '8000';
     }
-    console.log('[init] Storage directory:', process.env.APIFY_LOCAL_STORAGE_DIR);
+    console.log('[init] Storage directory:', process.env.APIFY_LOCAL_STORAGE_DIR || 'n/a (running on the platform)');
 }
 
 /**
