@@ -1,6 +1,6 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import type { BasicCrawlerOptions, ErrorHandler } from '@crawlee/basic';
 import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue, Session } from '@crawlee/core';
 import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrl, validators } from '@crawlee/core';
@@ -35,7 +35,7 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
     },
 };
 
-export type CheerioFailedRequestHandler<JSONData = Dictionary> = (inputs: CheerioCrawlingContext<JSONData>, error: Error) => Awaitable<void>;
+export type CheerioErrorHandler<JSONData = Dictionary> = ErrorHandler<CheerioCrawlingContext<JSONData>>;
 
 export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<BasicCrawlerOptions<CheerioCrawlingContext<JSONData>>,
     // Overridden with cheerio context
@@ -137,7 +137,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: CheerioFailedRequestHandler<JSONData>;
+    errorHandler?: CheerioErrorHandler<JSONData>;
 
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -150,7 +150,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * See [source code](https://github.com/apify/crawlee/blob/master/src/crawlers/cheerio_crawler.js#L13)
      * for the default implementation of this function.
      */
-    failedRequestHandler?: CheerioFailedRequestHandler<JSONData>;
+    failedRequestHandler?: CheerioErrorHandler<JSONData>;
 
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -166,7 +166,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
      * @ignore
      */
-    handleFailedRequestFunction?: CheerioFailedRequestHandler<JSONData>;
+    handleFailedRequestFunction?: CheerioErrorHandler<JSONData>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
