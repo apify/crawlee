@@ -268,6 +268,19 @@ describe('CheerioCrawler', () => {
         });
     });
 
+    test('should throw when no requestHandler nor default route provided', async () => {
+        const requestList = await getRequestListForMirror(port);
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+        });
+
+        // eslint-disable-next-line max-len
+        await expect(cheerioCrawler.run()).rejects.toThrow(`No default route set up. Please specify 'requestHandler' option or provide default route via 'crawler.router.addDefaultRoute()'.`);
+    });
+
     test('should ignore ssl by default', async () => {
         const sources = [
             { url: 'http://example.com/?q=1' },
