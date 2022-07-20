@@ -682,7 +682,7 @@ export async function browserCrawlerEnqueueLinks({
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
 async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl?: string): Promise<string[]> {
-    const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href));
+    const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
 
     return urls.map((href: string) => {
         // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
