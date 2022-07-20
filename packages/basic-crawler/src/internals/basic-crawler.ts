@@ -61,7 +61,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context) => Awaitable<void>;
 
-export type FailedRequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
+export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -144,7 +144,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: FailedRequestHandler<Context>;
+    errorHandler?: ErrorHandler<Context>;
 
     /**
      * A function to handle requests that failed more than {@link BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
@@ -154,7 +154,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    failedRequestHandler?: FailedRequestHandler<Context>;
+    failedRequestHandler?: ErrorHandler<Context>;
 
     /**
      * A function to handle requests that failed more than {@link BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
@@ -167,7 +167,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
      * @ignore
      */
-    handleFailedRequestFunction?: FailedRequestHandler<Context>;
+    handleFailedRequestFunction?: ErrorHandler<Context>;
 
     /**
      * Indicates how many times the request is retried if {@link BasicCrawlerOptions.requestHandler|`requestHandler`} fails.
@@ -335,8 +335,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
-    protected errorHandler?: FailedRequestHandler<Context>;
-    protected failedRequestHandler?: FailedRequestHandler<Context>;
+    protected errorHandler?: ErrorHandler<Context>;
+    protected failedRequestHandler?: ErrorHandler<Context>;
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
