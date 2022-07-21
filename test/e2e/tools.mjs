@@ -125,10 +125,6 @@ async function copyPackages(dirName) {
 
     const { dependencies } = await fs.readJSON(join(dirName, 'package.json'));
 
-    // Note: Actor SDK will be in a separate repository,
-    // we will need to get it from NPM probably once that happens,
-    // Thus, test actors dependencies should be updated respectively.
-
     // We don't need to copy the following packages
     delete dependencies['@apify/storage-local'];
     delete dependencies['deep-equal'];

@@ -12,7 +12,7 @@ This page summarizes most of the breaking changes between Crawlee (v3) and Apify
 Up until version 3 of `apify`, the package contained both scraping related tools and Apify platform related helper methods. With v3 we are splitting the whole project into two main parts:
 
 - Crawlee, the new web-scraping library, available as `crawlee` package on NPM
-- Actor SDK, helpers for the Apify platform, available as `apify` package on NPM
+- Apify SDK, helpers for the Apify platform, available as `apify` package on NPM
 
 Moreover, the Crawlee library is published as several packages under `@crawlee` namespace:
 
@@ -56,7 +56,7 @@ Alternatively we can also use the `crawlee` meta-package which contains (re-expo
 
 ## Full TypeScript support
 
-Both Crawlee and Actor SDK are full TypeScript rewrite, so they include up-to-date types in the package. For your TypeScript crawlers we recommend using our predefined TypeScript configuration from `@apify/tsconfig` package. Don't forget to set the `module` and `target` to `ES2022` or above to be able to use top level await.
+Both Crawlee and Apify SDK are full TypeScript rewrite, so they include up-to-date types in the package. For your TypeScript crawlers we recommend using our predefined TypeScript configuration from `@apify/tsconfig` package. Don't forget to set the `module` and `target` to `ES2022` or above to be able to use top level await.
 
 > The `@apify/tsconfig` config has [`noImplicitAny`](https://www.typescriptlang.org/tsconfig#noImplicitAny) enabled, you might want to disable it during the initial development as it will cause build failures if you left some unused local variables in your code.
 
@@ -77,7 +77,7 @@ Both Crawlee and Actor SDK are full TypeScript rewrite, so they include up-to-da
 
 ### Docker build
 
-For `Dockerfile` we recommend using multi-stage build so you don't install the dev dependencies like TypeScript in your final image:
+For `Dockerfile` we recommend using multi-stage build, so you don't install the dev dependencies like TypeScript in your final image:
 
 ```dockerfile title="Dockerfile"
 # using multistage build, as we need dev deps to build the TS source code
@@ -131,13 +131,13 @@ Previously, if we wanted to get or add cookies for the session that would be use
 
 ## Memory storage
 
-When we store some data or intermediate state (like the one `RequestQueue` holds), we now use `@crawlee/memory-storage` by default. It is an alternative to the `@apify/storage-local`, that stores the state inside memory (as opposed to SQLite database used by `@apify/storage-local`). While the state is stored in memory, it also dumps it to the file system so we can observe it, as well as respects the existing data stored in KeyValueStore (e.g. the `INPUT.json` file).
+When we store some data or intermediate state (like the one `RequestQueue` holds), we now use `@crawlee/memory-storage` by default. It is an alternative to the `@apify/storage-local`, that stores the state inside memory (as opposed to SQLite database used by `@apify/storage-local`). While the state is stored in memory, it also dumps it to the file system, so we can observe it, as well as respects the existing data stored in KeyValueStore (e.g. the `INPUT.json` file).
 
 When we want to run the crawler on Apify platform, we need to use `Actor.init` or `Actor.main`, which will automatically switch the storage client to `ApifyClient` when on the Apify platform.
 
 We can still use the `@apify/storage-local`, to do it, first install it pass it to the `Actor.init` or `Actor.main` options:
 
-> `@apify/storage-local` v2.1.0+ is required for crawlee
+> `@apify/storage-local` v2.1.0+ is required for Crawlee
 
 ```ts
 import { Actor } from 'apify';
@@ -249,7 +249,7 @@ In the `requestAsBrowser` approach, some of the options were named differently. 
 
 #### `payload`
 
-This options represents the body to send. It could be a `string` or a `Buffer`. However there is no `payload` option anymore. You need to use `body` instead. Or, if you wish to send JSON, `json`. Here's an example:
+This options represents the body to send. It could be a `string` or a `Buffer`. However, there is no `payload` option anymore. You need to use `body` instead. Or, if you wish to send JSON, `json`. Here's an example:
 
 ```ts
 // Before:
@@ -265,7 +265,7 @@ await gotScraping({ …, json: { hello: 'world' } });
 
 #### `ignoreSslErrors`
 
-It has been renamed to `https.rejectUnauthorized`. By default it's set to `false` for covenience. However, if you want to make sure the connection is secure, you can do the following:
+It has been renamed to `https.rejectUnauthorized`. By default, it's set to `false` for convenience. However, if you want to make sure the connection is secure, you can do the following:
 
 ```ts
 // Before:
@@ -330,7 +330,7 @@ await gotScraping({
 
 #### `abortFunction`
 
-This function used to make the promise throw on specific responses, if it returned `true`. However it wasn't that useful.
+This function used to make the promise throw on specific responses, if it returned `true`. However, it wasn't that useful.
 
 You probably want to cancel the request instead, which you can do in the following way:
 
@@ -394,9 +394,9 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-## Actor SDK
+## Apify SDK
 
-The Apify platform helpers can be now found in the Actor SDK (`apify` NPM package). It exports the `Actor` class that offers following static helpers:
+The Apify platform helpers can be now found in the Apify SDK (`apify` NPM package). It exports the `Actor` class that offers following static helpers:
 
 * `ApifyClient` shortcuts: `addWebhook()`, `call()`, `callTask()`, `metamorph()`
 * helpers for running on Apify platform: `init()`, `exit()`, `fail()`, `main()`, `isAtHome()`, `createProxyConfiguration()`
@@ -426,7 +426,7 @@ await Actor.main(async () => {
 
 ### Events
 
-Apify SDK exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by <ApiLink to="core/class/EventManager">`EventManager`</ApiLink> class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
+Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by <ApiLink to="core/class/EventManager">`EventManager`</ApiLink> class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
 
 ```diff
 -Apify.events.on(...);
