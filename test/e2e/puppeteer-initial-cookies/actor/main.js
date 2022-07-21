@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const initialCookies = [
@@ -40,7 +40,7 @@ await Actor.main(async () => {
                 }
             }
 
-            await Actor.pushData({ initialCookiesLength, numberOfMatchingCookies });
+            await Dataset.pushData({ initialCookiesLength, numberOfMatchingCookies });
         },
     });
 

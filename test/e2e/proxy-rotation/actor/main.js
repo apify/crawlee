@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, KeyValueStore, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -16,13 +16,13 @@ await Actor.main(async () => {
             const pageContent = await page.evaluate(() => document.body.children[0].innerText);
             const { clientIp } = JSON.parse(pageContent);
 
-            const presentAlready = await Actor.getValue(clientIp);
+            const presentAlready = await KeyValueStore.getValue(clientIp);
             if (presentAlready) {
                 throw new Error(`The ip address ${clientIp} was already used. Proxy rotation does not work properly.`);
             }
 
-            await Actor.setValue(clientIp, true);
-            await Actor.pushData({ clientIp });
+            await KeyValueStore.setValue(clientIp, true);
+            await Dataset.pushData({ clientIp });
         },
     });
 

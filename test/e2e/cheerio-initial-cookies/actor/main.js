@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const initialCookies = [
@@ -44,7 +44,7 @@ await Actor.main(async () => {
                 }
             }
 
-            await Actor.pushData({ initialCookiesLength, numberOfMatchingCookies });
+            await Dataset.pushData({ initialCookiesLength, numberOfMatchingCookies });
         },
     });
 
