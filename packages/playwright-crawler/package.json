@@ -60,8 +60,7 @@
         "@crawlee/core": "^3.0.1",
         "@crawlee/utils": "^3.0.1",
         "jquery": "^3.6.0",
-        "ow": "^0.28.1",
-        "tough-cookie": "^4.0.0"
+        "ow": "^0.28.1"
     },
     "peerDependencies": {
         "playwright": "^1.21.1"
