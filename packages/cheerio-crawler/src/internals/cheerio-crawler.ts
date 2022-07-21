@@ -624,16 +624,16 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
 
             const sourceCookies = [];
 
-            if (Array.isArray(upperCaseHeader)) {
-                sourceCookies.push(...upperCaseHeader);
-            } else {
-                sourceCookies.push(upperCaseHeader);
-            }
-
             if (Array.isArray(lowerCaseHeader)) {
                 sourceCookies.push(...lowerCaseHeader);
             } else {
                 sourceCookies.push(lowerCaseHeader);
+            }
+
+            if (Array.isArray(upperCaseHeader)) {
+                sourceCookies.push(...upperCaseHeader);
+            } else {
+                sourceCookies.push(upperCaseHeader);
             }
 
             alteredGotOptionsCookies = mergeCookies(request.url, sourceCookies);

@@ -1065,7 +1065,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected _getCookieHeaderFromRequest(request: Request) {
         if (request.headers?.Cookie && request.headers?.cookie) {
             this.log.warning(`Encountered mixed casing for the cookie headers for request ${request.url} (${request.id}). Their values will be merged.`);
-            return mergeCookies(request.url, [request.headers.Cookie, request.headers.cookie]);
+            return mergeCookies(request.url, [request.headers.cookie, request.headers.Cookie]);
         }
 
         return request.headers?.Cookie || request.headers?.cookie || '';
