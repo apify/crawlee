@@ -4,11 +4,11 @@ export interface FingerprintGenerator {
     getFingerprint: (fingerprintGeneratorOptions?: FingerprintGeneratorOptions) => GetFingerprintReturn;
 }
 
-export type GetFingerprintReturn = {
+export interface GetFingerprintReturn {
     fingerprint: Fingerprint;
 }
 
-export type FingerprintGeneratorOptions = {
+export interface FingerprintGeneratorOptions {
     browsers?: BrowserName[] | BrowserSpecification[];
     operatingSystems?: OperatingSystemsName[];
     devices?: DeviceCategory[];
@@ -21,7 +21,7 @@ export const enum BrowserName {
     safari = 'safari',
 }
 
-export type BrowserSpecification = {
+export interface BrowserSpecification {
     name: BrowserName;
     minVersion?: number;
     maxVersion?: number;

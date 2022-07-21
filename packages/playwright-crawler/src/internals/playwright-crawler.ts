@@ -1,7 +1,7 @@
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
-import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserCrawlerHandleRequest, BrowserHook } from '@crawlee/browser';
+import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserRequestHandler, BrowserHook } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import { Cookie } from 'tough-cookie';
@@ -10,10 +10,10 @@ import { PlaywrightLauncher } from './playwright-launcher';
 import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
 import { gotoExtended, registerUtilsToContext } from './utils/playwright-utils';
 
-export type PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> =
-    BrowserCrawlingContext<Page, Response, PlaywrightController, UserData> & PlaywrightContextUtils;
-export type PlaywrightHook = BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions>;
-export type PlaywrightRequestHandler = BrowserCrawlerHandleRequest<PlaywrightCrawlingContext>;
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> extends
+    BrowserCrawlingContext<Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
+export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
+export interface PlaywrightRequestHandler extends BrowserRequestHandler<PlaywrightCrawlingContext> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 export type PlaywrightCookie = Parameters<ReturnType<Page['context']>['addCookies']>[0][0];
 

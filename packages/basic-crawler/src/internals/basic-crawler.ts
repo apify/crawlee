@@ -46,7 +46,7 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
 }
 
 /** @internal */
-export type BasicCrawlerEnqueueLinksOptions = Omit<EnqueueLinksOptions, 'requestQueue'>
+export interface BasicCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'requestQueue'> {}
 
 /**
  * Since there's no set number of seconds before the container is terminated after

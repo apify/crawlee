@@ -15,15 +15,8 @@ import {
     resolveBaseUrl,
     Configuration,
 } from '@crawlee/core';
-import type {
-    BasicCrawlerOptions,
-    Awaitable,
-    Dictionary,
-} from '@crawlee/basic';
-import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-    BasicCrawler,
-} from '@crawlee/basic';
+import type { BasicCrawlerOptions, Awaitable, Dictionary, RequestHandler, ErrorHandler } from '@crawlee/basic';
+import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS, BasicCrawler } from '@crawlee/basic';
 import type {
     BrowserController,
     BrowserPlugin,
@@ -33,10 +26,7 @@ import type {
     InferBrowserPluginArray,
     LaunchContext,
 } from '@crawlee/browser-pool';
-import {
-    BROWSER_CONTROLLER_EVENTS,
-    BrowserPool,
-} from '@crawlee/browser-pool';
+import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { GotOptionsInit, Response as GotResponse } from 'got-scraping';
 import ow from 'ow';
 import { Cookie } from 'tough-cookie';
@@ -57,13 +47,11 @@ export interface BrowserCrawlingContext<
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
-export type BrowserCrawlerHandleRequest<
-    Context extends BrowserCrawlingContext = BrowserCrawlingContext> = (inputs: Context) => Awaitable<void>;
+export type BrowserRequestHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = RequestHandler<Context>;
 
-export type BrowserCrawlerHandleFailedRequest<
-    Context extends BrowserCrawlingContext= BrowserCrawlingContext>= (inputs: Context, error: Error) => Awaitable<void>;
+export type BrowserErrorHandler<Context extends BrowserCrawlingContext= BrowserCrawlingContext>= ErrorHandler<Context>;
 
-export type BrowserCrawlerEnqueueLinksOptions = Omit<EnqueueLinksOptions, 'requestQueue' | 'urls'>
+export interface BrowserCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'requestQueue' | 'urls'> {}
 
 export type BrowserHook<
     Context = BrowserCrawlingContext,
@@ -116,7 +104,7 @@ export interface BrowserCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@link Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: BrowserCrawlerHandleRequest<Context>;
+    requestHandler?: BrowserRequestHandler<Context>;
 
     /**
      * Function that is called to process each request.
@@ -148,7 +136,7 @@ export interface BrowserCrawlerOptions<
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
      * @ignore
      */
-    handlePageFunction?: BrowserCrawlerHandleRequest<Context>;
+    handlePageFunction?: BrowserRequestHandler<Context>;
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
@@ -160,7 +148,7 @@ export interface BrowserCrawlerOptions<
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: BrowserCrawlerHandleFailedRequest<Context>;
+    errorHandler?: BrowserErrorHandler<Context>;
 
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -171,7 +159,7 @@ export interface BrowserCrawlerOptions<
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    failedRequestHandler?: BrowserCrawlerHandleFailedRequest<Context>;
+    failedRequestHandler?: BrowserErrorHandler<Context>;
 
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -185,7 +173,7 @@ export interface BrowserCrawlerOptions<
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
      * @ignore
      */
-    handleFailedRequestFunction?: BrowserCrawlerHandleFailedRequest<Context>;
+    handleFailedRequestFunction?: BrowserErrorHandler<Context>;
 
     /**
      * Custom options passed to the underlying {@link BrowserPool} constructor.
@@ -314,7 +302,7 @@ export abstract class BrowserCrawler<
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
-    protected userProvidedRequestHandler!: BrowserCrawlerHandleRequest<Context>;
+    protected userProvidedRequestHandler!: BrowserRequestHandler<Context>;
     protected navigationTimeoutMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];

@@ -1,6 +1,6 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
-import type { BasicCrawlerOptions, ErrorHandler } from '@crawlee/basic';
+import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue, Session } from '@crawlee/core';
 import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrl, validators } from '@crawlee/core';
@@ -267,8 +267,8 @@ export interface CheerioCrawlingContext<JSONData extends Dictionary = Dictionary
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
-export type CheerioRequestHandler<JSONData = Dictionary> = (inputs: CheerioCrawlingContext<JSONData>) => Awaitable<void>;
-export type CheerioCrawlerEnqueueLinksOptions = Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'>;
+export type CheerioRequestHandler<JSONData = Dictionary> = RequestHandler<CheerioCrawlingContext<JSONData>>;
+export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
