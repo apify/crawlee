@@ -5,13 +5,13 @@
 	"dependencies": {
         "apify-client": "^2.6.0",
         "@apify/storage-local": "^2.1.0",
-        "@crawlee/basic": "file:./packages/basic-crawler",
-        "@crawlee/browser-pool": "file:./packages/browser-pool",
-        "@crawlee/cheerio": "file:./packages/cheerio-crawler",
-        "@crawlee/core": "file:./packages/core",
-        "@crawlee/memory-storage": "file:./packages/memory-storage",
-        "@crawlee/types": "file:./packages/types",
-        "@crawlee/utils": "file:./packages/utils"
+        "@crawlee/basic": "file:./packages/basic-crawler/dist",
+        "@crawlee/browser-pool": "file:./packages/browser-pool/dist",
+        "@crawlee/cheerio": "file:./packages/cheerio-crawler/dist",
+        "@crawlee/core": "file:./packages/core/dist",
+        "@crawlee/memory-storage": "file:./packages/memory-storage/dist",
+        "@crawlee/types": "file:./packages/types/dist",
+        "@crawlee/utils": "file:./packages/utils/dist"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",

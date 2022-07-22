@@ -1,7 +1,6 @@
 import { ApifyClient } from 'apify-client';
-import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { Configuration, CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
-import { Configuration } from 'apify';
 
 const config = Configuration.getGlobalConfig();
 config.set('availableMemoryRatio', 1);
