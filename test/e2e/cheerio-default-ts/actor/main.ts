@@ -1,30 +1,29 @@
-import { Actor } from 'apify';
-// @ts-ignore
+import { ApifyClient } from 'apify-client';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
-// @ts-ignore
 import { ApifyStorageLocal } from '@apify/storage-local';
+import { Configuration } from 'apify';
 
-const mainOptions = {
-    exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined,
-};
+const config = Configuration.getGlobalConfig();
+config.set('availableMemoryRatio', 1);
 
-// @ts-ignore
-await Actor.main(async () => {
-    const crawler = new CheerioCrawler();
+if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
+    config.useStorageClient(new ApifyClient());
+} else if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
+    config.useStorageClient(new ApifyStorageLocal());
+}
 
-    // @ts-ignore
-    crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
-        const { url } = request;
-        await enqueueLinks({
-            globs: ['https://crawlee.dev/docs/**'],
-        });
+const crawler = new CheerioCrawler();
 
-        const pageTitle = $('title').first().text();
-        log.info(`URL: ${url} TITLE: ${pageTitle}`);
-
-        await Dataset.pushData({ url, pageTitle });
+crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
+    const { url } = request;
+    await enqueueLinks({
+        globs: ['https://crawlee.dev/docs/**'],
     });
 
-    await crawler.run(['https://crawlee.dev/docs/quick-start']);
-}, mainOptions);
+    const pageTitle = $('title').first().text();
+    log.info(`URL: ${url} TITLE: ${pageTitle}`);
+
+    await Dataset.pushData({ url, pageTitle });
+});
+
+await crawler.run(['https://crawlee.dev/docs/quick-start']);
