@@ -28,7 +28,7 @@ export class PuppeteerController extends BrowserController<typeof Puppeteer> {
     protected async _newPage(contextOptions?: Puppeteer.ContextOptions): Promise<Puppeteer.Page> {
         if (contextOptions !== undefined) {
             if (!this.launchContext.useIncognitoPages) {
-                throw new Error('A new page can be created with provided context only when using incognito pages.');
+                throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
             }
 
             // eslint-disable-next-line @typescript-eslint/no-empty-function
