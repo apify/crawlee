@@ -611,11 +611,52 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
      */
     private _applyCookies({ session, request }: CrawlingContext, gotOptions: OptionsInit, preHookCookies: string, postHookCookies: string) {
         const sessionCookie = session?.getCookieString(request.url) ?? '';
-        const alteredGotOptionsCookies = (gotOptions.headers?.Cookie ?? gotOptions.headers?.cookie ?? '') as string;
+        let alteredGotOptionsCookies = (gotOptions.headers?.Cookie || gotOptions.headers?.cookie || '');
 
-        const mergedCookie = mergeCookies(request.url, [sessionCookie, preHookCookies, alteredGotOptionsCookies, postHookCookies]);
+        if (gotOptions.headers?.Cookie && gotOptions.headers?.cookie) {
+            const {
+                Cookie: upperCaseHeader,
+                cookie: lowerCaseHeader,
+            } = gotOptions.headers;
+
+            // eslint-disable-next-line max-len
+            this.log.warning(`Encountered mixed casing for the cookie headers in the got options for request ${request.url} (${request.id}). Their values will be merged`);
+
+            const sourceCookies = [];
+
+            if (Array.isArray(lowerCaseHeader)) {
+                sourceCookies.push(...lowerCaseHeader);
+            } else {
+                sourceCookies.push(lowerCaseHeader);
+            }
+
+            if (Array.isArray(upperCaseHeader)) {
+                sourceCookies.push(...upperCaseHeader);
+            } else {
+                sourceCookies.push(upperCaseHeader);
+            }
+
+            alteredGotOptionsCookies = mergeCookies(request.url, sourceCookies);
+        }
+
+        const sourceCookies = [
+            sessionCookie,
+            preHookCookies,
+        ];
+
+        if (Array.isArray(alteredGotOptionsCookies)) {
+            sourceCookies.push(...alteredGotOptionsCookies);
+        } else {
+            sourceCookies.push(alteredGotOptionsCookies);
+        }
+
+        sourceCookies.push(postHookCookies);
+
+        const mergedCookie = mergeCookies(request.url, sourceCookies);
 
         gotOptions.headers ??= {};
+        Reflect.deleteProperty(gotOptions.headers, 'Cookie');
+        Reflect.deleteProperty(gotOptions.headers, 'cookie');
         gotOptions.headers.Cookie = mergedCookie;
     }
 
@@ -689,6 +730,9 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
             },
             isStream: true,
         };
+
+        // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
+        Reflect.deleteProperty(requestOptions.headers!, 'cookie');
 
         // TODO this is incorrect, the check for man in the middle needs to be done
         //   on individual proxy level, not on the `proxyConfiguration` level,

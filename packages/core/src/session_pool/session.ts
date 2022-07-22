@@ -4,11 +4,12 @@ import type { Dictionary, Cookie as CookieObject, BrowserLikeResponse } from '@c
 import type { IncomingMessage } from 'node:http';
 import { EventEmitter } from 'node:events';
 import ow from 'ow';
-import { Cookie, CookieJar } from 'tough-cookie';
+import type { Cookie } from 'tough-cookie';
+import { CookieJar } from 'tough-cookie';
 import { STATUS_CODES_BLOCKED } from '../constants';
 import { log as defaultLog } from '../log';
 import { EVENT_SESSION_RETIRED } from './events';
-import { getCookiesFromResponse } from './session_utils';
+import { browserPoolCookieToToughCookie, getCookiesFromResponse, getDefaultCookieExpirationDate, toughCookieToBrowserPoolCookie } from '../cookie_utils';
 
 // CONSTANTS
 const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
@@ -144,7 +145,7 @@ export class Session {
             log = defaultLog,
         } = options;
 
-        const { expiresAt = this._getDefaultCookieExpirationDate(maxAgeSecs) } = options;
+        const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
 
         this.log = log.child({ prefix: 'Session' });
 
@@ -162,8 +163,6 @@ export class Session {
         this.errorScore = errorScore; // indicates number of markBaded request with the session
         this.maxUsageCount = maxUsageCount;
         this.sessionPool = sessionPool;
-
-        this._cookieObjectToTough = this._cookieObjectToTough.bind(this);
     }
 
     /**
@@ -308,17 +307,17 @@ export class Session {
      * ```
      */
     setCookies(cookies: CookieObject[], url: string) {
-        const normalizedCookies = cookies.map(this._cookieObjectToTough);
+        const normalizedCookies = cookies.map((c) => browserPoolCookieToToughCookie(c, this.maxAgeSecs));
         this._setCookies(normalizedCookies, url);
     }
 
     /**
-     * Returns cookies in a format compatible with puppeteer and ready to be used with `page.setCookie`.
+     * Returns cookies in a format compatible with puppeteer/playwright and ready to be used with `page.setCookie`.
      * @param url website url. Only cookies stored for this url will be returned
      */
     getCookies(url: string): CookieObject[] {
         const cookies = this.cookieJar.getCookiesSync(url);
-        return cookies.map(this._toughCookieToPuppeteer);
+        return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
     }
 
     /**
@@ -336,46 +335,6 @@ export class Session {
      */
     setCookie(rawCookie: string, url: string): void {
         this.cookieJar.setCookieSync(rawCookie, url);
-    }
-
-    /**
-     * Transforms puppeteer cookie to tough-cookie.
-     * @param cookieObject Cookie object (for instance from the `page.cookies` method).
-     */
-    protected _cookieObjectToTough(cookieObject: CookieObject): Cookie {
-        const isExpiresValid = cookieObject.expires && typeof cookieObject.expires === 'number' && cookieObject.expires > 0;
-        const expires = isExpiresValid ? new Date(cookieObject.expires! * 1000) : this._getDefaultCookieExpirationDate(this.maxAgeSecs);
-        const domain = typeof cookieObject.domain === 'string' && cookieObject.domain.startsWith('.')
-            ? cookieObject.domain.slice(1)
-            : cookieObject.domain;
-
-        return new Cookie({
-            key: cookieObject.name,
-            value: cookieObject.value,
-            expires,
-            domain,
-            path: cookieObject.path,
-            secure: cookieObject.secure,
-            httpOnly: cookieObject.httpOnly,
-        });
-    }
-
-    /**
-     * Transforms tough-cookie to puppeteer cookie.
-     * @param toughCookie Cookie from CookieJar
-     * @return Cookie from Puppeteer
-     */
-    protected _toughCookieToPuppeteer(toughCookie: Cookie): CookieObject {
-        return {
-            name: toughCookie.key,
-            value: toughCookie.value,
-            // Puppeteer and Playwright expect 'expires' to be 'Unix time in seconds', not ms
-            expires: new Date(toughCookie.expires).getTime() / 1000,
-            domain: toughCookie.domain,
-            path: toughCookie.path,
-            secure: toughCookie.secure,
-            httpOnly: toughCookie.httpOnly,
-        } as CookieObject;
     }
 
     /**
@@ -397,15 +356,6 @@ export class Session {
         if (errorMessages.length) {
             this.log.debug('Could not set cookies.', { errorMessages });
         }
-    }
-
-    /**
-     * Calculate cookie expiration date
-     * @param maxAgeSecs
-     * @returns Calculated date by session max age seconds.
-     */
-    protected _getDefaultCookieExpirationDate(maxAgeSecs: number): Date {
-        return new Date(Date.now() + (maxAgeSecs * 1000));
     }
 
     /**

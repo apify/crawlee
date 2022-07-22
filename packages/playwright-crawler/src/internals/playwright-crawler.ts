@@ -4,7 +4,6 @@ import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from 
 import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserRequestHandler, BrowserHook } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
-import { Cookie } from 'tough-cookie';
 import type { PlaywrightLaunchContext } from './playwright-launcher';
 import { PlaywrightLauncher } from './playwright-launcher';
 import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
@@ -215,20 +214,6 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
 
     protected override async _navigationHandler(crawlingContext: PlaywrightCrawlingContext, gotoOptions: DirectNavigationOptions) {
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
-    }
-
-    protected override async _applyCookies({ session, request, page }: PlaywrightCrawlingContext, preHooksCookies: string, postHooksCookies: string) {
-        const sessionCookie = session?.getCookies(request.url) ?? [];
-        const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => Cookie.parse(c)?.toJSON() as PlaywrightCookie | undefined);
-        const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => Cookie.parse(c)?.toJSON() as PlaywrightCookie | undefined);
-
-        await page.context().addCookies(
-            [
-                ...sessionCookie,
-                ...parsedPreHooksCookies,
-                ...parsedPostHooksCookies,
-            ].filter((c): c is PlaywrightCookie => c !== undefined),
-        );
     }
 }
 

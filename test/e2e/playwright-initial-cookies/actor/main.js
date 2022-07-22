@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const expectedCookies = [
@@ -15,14 +15,6 @@ const expectedCookies = [
         name: 'hook_request',
         value: 'true',
     },
-    {
-        name: 'got_options_upper_case',
-        value: 'true',
-    },
-    {
-        name: 'got_options_lower_case',
-        value: 'true',
-    },
 ];
 
 const mainOptions = {
@@ -31,9 +23,8 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const crawler = new CheerioCrawler({
-        additionalMimeTypes: ['application/json'],
-        preNavigationHooks: [({ session, request }, gotOptions) => {
+    const crawler = new PlaywrightCrawler({
+        preNavigationHooks: [({ session, request }, goToOptions) => {
             session.setCookies([
                 {
                     name: 'session',
@@ -42,18 +33,12 @@ await Actor.main(async () => {
             ], request.url);
             request.headers.cookie = 'hook_request=true';
 
-            gotOptions.headers ??= {};
-            gotOptions.headers.Cookie = 'got_options_upper_case=true';
-            gotOptions.headers.cookie = 'got_options_lower_case=true';
+            goToOptions.waitUntil = 'networkidle';
         }],
-        async requestHandler({ json }) {
+        async requestHandler({ page }) {
             const initialCookiesLength = expectedCookies.length;
 
-            const cookieString = json.headers.cookie;
-            const pageCookies = cookieString.split(';').map((cookie) => {
-                const [name, value] = cookie.split('=').map((str) => str.trim());
-                return { name, value };
-            });
+            const pageCookies = await page.context().cookies();
 
             let numberOfMatchingCookies = 0;
             for (const cookie of expectedCookies) {
