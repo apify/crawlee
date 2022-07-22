@@ -6,7 +6,10 @@ const config = Configuration.getGlobalConfig();
 config.set('availableMemoryRatio', 1);
 
 if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
-    config.useStorageClient(new ApifyClient());
+    config.useStorageClient(new ApifyClient({
+        baseUrl: process.env.APIFY_API_BASE_URL,
+        token: process.env.APIFY_TOKEN,
+    }));
 } else if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     config.useStorageClient(new ApifyStorageLocal());
 }
