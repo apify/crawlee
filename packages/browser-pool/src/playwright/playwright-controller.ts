@@ -36,23 +36,21 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         let close = async () => {};
 
-        if (this.launchContext.useIncognitoPages) {
-            if (contextOptions?.proxy) {
-                const [anonymizedProxyUrl, closeProxy] = await anonymizeProxySugar(
-                    contextOptions.proxy.server,
-                    contextOptions.proxy.username,
-                    contextOptions.proxy.password,
-                );
+        if (this.launchContext.useIncognitoPages && contextOptions?.proxy) {
+            const [anonymizedProxyUrl, closeProxy] = await anonymizeProxySugar(
+                contextOptions.proxy.server,
+                contextOptions.proxy.username,
+                contextOptions.proxy.password,
+            );
 
-                if (anonymizedProxyUrl) {
-                    contextOptions.proxy = {
-                        server: anonymizedProxyUrl,
-                        bypass: contextOptions.proxy.bypass,
-                    };
-                }
-
-                close = closeProxy;
+            if (anonymizedProxyUrl) {
+                contextOptions.proxy = {
+                    server: anonymizedProxyUrl,
+                    bypass: contextOptions.proxy.bypass,
+                };
             }
+
+            close = closeProxy;
         }
 
         try {
@@ -69,14 +67,12 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                 await page.waitForNavigation();
                 const { tabid, proxyIp }: { tabid: number; proxyIp: string } = JSON.parse(decodeURIComponent(page.url().slice('about:blank#'.length)));
 
-                if (this.launchContext.experimentalContainers) {
-                    if (contextOptions?.proxy) {
-                        const url = new URL(contextOptions.proxy.server);
-                        url.username = contextOptions.proxy.username ?? '';
-                        url.password = contextOptions.proxy.password ?? '';
+                if (contextOptions?.proxy) {
+                    const url = new URL(contextOptions.proxy.server);
+                    url.username = contextOptions.proxy.username ?? '';
+                    url.password = contextOptions.proxy.password ?? '';
 
-                        (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyIp, url.href);
-                    }
+                    (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyIp, url.href);
                 }
 
                 tabIds.set(page, tabid);
