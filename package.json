@@ -40,6 +40,7 @@
         "build": "turbo run build",
         "postbuild": "node ./scripts/typescript_fixes.mjs",
         "ci:build": "turbo run build --cache-dir=\".turbo\"",
+        "postci:build": "node ./scripts/typescript_fixes.mjs",
         "test": "jest --silent",
         "test:e2e": "node test/e2e/run.mjs",
         "coverage": "jest --coverage",
