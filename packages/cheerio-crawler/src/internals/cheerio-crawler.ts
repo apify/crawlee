@@ -3,7 +3,7 @@ import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue, Session } from '@crawlee/core';
-import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrl, validators } from '@crawlee/core';
+import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrlForEnqueueLinksFiltering, validators } from '@crawlee/core';
 import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import { entries, parseContentTypeFromResponse } from '@crawlee/utils';
@@ -871,14 +871,14 @@ export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, ori
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
 
-    const baseUrl = resolveBaseUrl({
+    const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
         enqueueStrategy: options?.strategy,
         finalRequestUrl,
         originalRequestUrl,
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = extractUrlsFromCheerio($, options?.selector ?? 'a', baseUrl);
+    const urls = extractUrlsFromCheerio($, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
 
     return enqueueLinks({
         requestQueue,

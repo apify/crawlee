@@ -13,7 +13,7 @@ import {
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
     validators,
-    resolveBaseUrl,
+    resolveBaseUrlForEnqueueLinksFiltering,
     Configuration,
 } from '@crawlee/core';
 import type { BasicCrawlerOptions, Awaitable, Dictionary, RequestHandler, ErrorHandler } from '@crawlee/basic';
@@ -661,14 +661,14 @@ export async function browserCrawlerEnqueueLinks({
     originalRequestUrl,
     finalRequestUrl,
 }: EnqueueLinksInternalOptions) {
-    const baseUrl = resolveBaseUrl({
+    const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
         enqueueStrategy: options?.strategy,
         finalRequestUrl,
         originalRequestUrl,
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = await extractUrlsFromPage(page as any, options?.selector ?? 'a', baseUrl);
+    const urls = await extractUrlsFromPage(page as any, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
 
     return enqueueLinks({
         requestQueue,
