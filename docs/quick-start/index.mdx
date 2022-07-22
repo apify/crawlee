@@ -16,9 +16,22 @@ import PuppeteerSource from '!!raw-loader!./quick_start_puppeteer.ts';
 
 import CheerioLog from '!!raw-loader!./quick_start_cheerio.txt';
 
-With this short tutorial you can start scraping with Crawlee in a minute or two. To learn how Crawlee works, read the [Introduction](./introduction), which is a comprehensive step-by-step guide for creating your first scraper.
+With this short tutorial you can start scraping with Crawlee in a minute or two. To learn in-depth how Crawlee works, read the [Introduction](./introduction), which is a comprehensive step-by-step guide for creating your first scraper.
 
-## Local stand-alone usage
+## Choose your crawler
+
+Crawlee comes with three different crawler classes: <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. All classes share the same interface for maximum flexibility when switching between them.
+
+### CheerioCrawler
+This is a plain HTTP crawler. It parses HTML using the [Cheerio](https://github.com/cheeriojs/cheerio) library and crawls the web using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client which masks as a browser. It's very fast and efficient, but can't handle JavaScript rendering.
+
+### PuppeteerCrawler
+This crawler uses a headless browser to crawl, controlled by the [Puppeteer](https://github.com/puppeteer/puppeteer) library. It can control Chromium or Chrome. Puppeteer is the de-facto standard in headless browser automation.
+
+### PlaywrightCrawler
+[Playwright](https://github.com/microsoft/playwright) is a more powerful and full-featured successor to Puppeteer. It can control Chromium, Chrome, Firefox, Webkit and many other browsers. If you're not familiar with Puppeteer already, and you need a headless browser, go with Playwright.
+
+## Installation
 
 Crawlee requires [Node.js](https://nodejs.org/en/) 16 or later.
 It can be added to any Node.js project by running:
@@ -32,7 +45,7 @@ It can be added to any Node.js project by running:
 
 :::caution
 
-`playwright` is not bundled with Crawlee to reduce install size and allow greater flexibility - thus you need to explicitly install it with NPM.
+`playwright` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM.
 
 :::
 
@@ -42,14 +55,16 @@ It can be added to any Node.js project by running:
 
 :::caution
 
-`puppeteer` is not bundled with Crawlee to reduce install size and allow greater flexibility - thus you need to explicitly install it with NPM.
+`puppeteer` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM.
 
 :::
 
 </TabItem>
 </Tabs>
 
-You could run the following example to perform a recursive crawl of a website using:
+## Crawling
+
+Run the following example to perform a recursive crawl of a website using:
 
 <Tabs groupId="quick_start">
     <TabItem value="cheerio" label="CheerioCrawler" default>
@@ -63,28 +78,32 @@ You could run the following example to perform a recursive crawl of a website us
     </TabItem>
 </Tabs>
 
-When you run the example, you should see Crawlee automating the data extraction process.
+When you run the example, you will see Crawlee automating the data extraction process.
 
 <Tabs groupId="quick_start">
 <TabItem value="cheerio" label="CheerioCrawler" default>
-You should only see the logs in your terminal as no browser is used:
+Logs in your terminal will show the progress of your scraping:
 <CodeBlock language="log">{CheerioLog}</CodeBlock>
 </TabItem>
 <TabItem value="playwright" label="PlaywrightCrawler">
-Besides the logs, you should also see Crawlee automating the browser:
+Logs in your terminal will show the progress of your scraping and you will also see Crawlee automating a browser:
 
 ![Chrome Scrape](/img/chrome_scrape.gif)
 
 </TabItem>
 <TabItem value="puppeteer" label="PuppeteerCrawler">
-Besides the logs, you should also see Crawlee automating the browser:
+Logs in your terminal will show the progress of your scraping and you will also see Crawlee automating a browser:
 
 ![Chrome Scrape](/img/chrome_scrape.gif)
 
 </TabItem>
 </Tabs>
 
-By default, Crawlee stores data to `./storage` in the current working directory. You can override this behavior by setting the `storage_DIR` environment variable.
+:::tip
+
+Crawlee stores data to `./storage` in the current working directory. The results of your crawl will be available under `./storage/datasets/default/*`. You can override this behavior by setting the `CRAWLEE_STORAGE_DIR` environment variable.
+
+:::
 
 More examples showcasing various features of Crawlee could be found in [Examples](./examples) section of the documentation.
 
@@ -102,18 +121,9 @@ To create a boilerplate of your project, you can use the [Crawlee CLI](https://w
 npx crawlee create my-cheerio-crawler
 ```
 
-The CLI will prompt you to select a project boilerplate template - let's pick the `Crawlee cheerio template [TypeScript]`. The tool will create a directory called `my-cheerio-crawler` with a Node.js project files. You can run the project as follows:
-
-```bash
-cd my-cheerio-crawler
-crawlee run
-```
-
-Or even:
+The CLI will prompt you to select a project boilerplate template - let's pick the **Crawlee cheerio template [TypeScript]**. The tool will create a directory called `my-cheerio-crawler` with Node.js project files. You can run the project as follows:
 
 ```bash
 cd my-cheerio-crawler
 npm start
 ```
-
-By default, the crawling data will be stored in a local directory at `./storage`. For example, the input JSON file for the actor is expected to be in the default key-value store in `./storage/key_value_stores/default/INPUT.json`.
