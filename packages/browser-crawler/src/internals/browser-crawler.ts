@@ -552,7 +552,9 @@ export abstract class BrowserCrawler<
                 ...sessionCookie,
                 ...parsedPreHooksCookies,
                 ...parsedPostHooksCookies,
-            ].filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null),
+            ]
+                .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)
+                .map((c) => ({ ...c, url: c.domain ? undefined : request.url })),
         );
     }
 

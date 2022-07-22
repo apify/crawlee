@@ -731,6 +731,10 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
             isStream: true,
         };
 
+        // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase
+        // Cookie header
+        Reflect.deleteProperty(requestOptions.headers!, 'cookie');
+
         // TODO this is incorrect, the check for man in the middle needs to be done
         //   on individual proxy level, not on the `proxyConfiguration` level,
         //   because users can use normal + MITM proxies in a single configuration.

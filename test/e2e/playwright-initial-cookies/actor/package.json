@@ -1,0 +1,21 @@
+{
+	"name": "test-playwright-default",
+	"version": "0.0.1",
+	"description": "Playwright Test - Default",
+	"dependencies": {
+        "apify": "^3.0.0-beta.75",
+        "@apify/storage-local": "^2.1.0",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/browser": "file:./packages/browser-crawler",
+        "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/playwright": "file:./packages/playwright-crawler",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils",
+        "playwright": "*"
+    },
+    "scripts": { "start": "node main.js" },
+	"type": "module",
+	"license": "ISC"
+}

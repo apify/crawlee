@@ -41,9 +41,10 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
         name: toughCookie.key,
         value: toughCookie.value,
         // Puppeteer and Playwright expect 'expires' to be 'Unix time in seconds', not ms
-        expires: new Date(toughCookie.expires).getTime() / 1000,
-        domain: toughCookie.domain!,
-        path: toughCookie.path!,
+        // If there is no expires date (so defaults to Infinity), we don't provide it to the browsers
+        expires: toughCookie.expires === 'Infinity' ? undefined : new Date(toughCookie.expires).getTime() / 1000,
+        domain: toughCookie.domain ?? undefined,
+        path: toughCookie.path ?? undefined,
         secure: toughCookie.secure,
         httpOnly: toughCookie.httpOnly,
     };
