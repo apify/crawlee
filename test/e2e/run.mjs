@@ -35,7 +35,7 @@ async function run() {
         throw new Error(`Unknown storage provided: '${process.env.STORAGE_IMPLEMENTATION}'`);
     }
 
-    execSync(`npm install @apify/storage-local`, { stdio: 'inherit' });
+    execSync(`npm install --no-save @apify/storage-local`, { stdio: 'inherit' });
 
     console.log(`Running E2E tests with storage implementation '${process.env.STORAGE_IMPLEMENTATION}'`);
 
