@@ -130,6 +130,7 @@ async function copyPackages(dirName) {
 
     // We don't need to copy the following packages
     delete dependencies['@apify/storage-local'];
+    delete dependencies['apify-client'];
     delete dependencies['deep-equal'];
     delete dependencies['playwright-core'];
     delete dependencies.apify;
