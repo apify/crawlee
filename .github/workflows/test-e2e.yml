@@ -51,7 +51,7 @@ jobs:
                 run: npm ci
 
             -   name: Build
-                run: npm run ci:build
+                run: npm run build
 
             -   name: Test with storage ${{ matrix.storage }}
                 run: npm run test:e2e
