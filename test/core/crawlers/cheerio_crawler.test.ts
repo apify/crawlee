@@ -7,7 +7,6 @@ import bodyParser from 'body-parser';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
-    PrepareRequestInputs,
     ProxyInfo,
     Source,
 } from '@crawlee/cheerio';
@@ -234,6 +233,52 @@ describe('CheerioCrawler', () => {
             expect(typeof request.userData.body).toBe('string');
             expect((request.userData.body as string).length).not.toBe(0);
         });
+    });
+
+    test('should work with router', async () => {
+        const requestList = await getRequestListForMirror(port);
+        const processed: Request[] = [];
+        const failed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        cheerioCrawler.router.addDefaultHandler(({ $, body, request }) => {
+            request.userData.title = $('title').text();
+            request.userData.body = body;
+            processed.push(request);
+        });
+
+        await cheerioCrawler.run();
+
+        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(processed).toHaveLength(4);
+        expect(failed).toHaveLength(0);
+
+        processed.forEach((request) => {
+            expect(request.userData.title).toBe('Title');
+            expect(typeof request.userData.body).toBe('string');
+            expect((request.userData.body as string).length).not.toBe(0);
+        });
+    });
+
+    test('should throw when no requestHandler nor default route provided', async () => {
+        const requestList = await getRequestListForMirror(port);
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+        });
+
+        // eslint-disable-next-line max-len
+        await expect(cheerioCrawler.run()).rejects.toThrow(`No default route set up. Please specify 'requestHandler' option or provide default route via 'crawler.router.addDefaultRoute()'.`);
     });
 
     test('should ignore ssl by default', async () => {
@@ -1089,9 +1134,9 @@ describe('CheerioCrawler', () => {
         });
 
         test('uses correct crawling context', async () => {
-            let prepareCrawlingContext: PrepareRequestInputs;
+            let prepareCrawlingContext: CheerioCrawlingContext;
 
-            const prepareRequestFunction = (crawlingContext: PrepareRequestInputs) => {
+            const prepareRequestFunction = (crawlingContext: CheerioCrawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
                 expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);

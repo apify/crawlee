@@ -88,7 +88,8 @@ export class Router<Context extends CrawlingContext> {
         }
 
         if (!label) {
-            throw new MissingRouteError(`No default route set up!`);
+            // eslint-disable-next-line max-len
+            throw new MissingRouteError(`No default route set up. Please specify 'requestHandler' option or provide default route via 'crawler.router.addDefaultRoute()'.`);
         }
 
         throw new MissingRouteError(`Route not found for label '${String(label)}' and no default route set up!`);

@@ -270,8 +270,12 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
 
 /**
  * @internal
+ * This method helps resolve the baseUrl that will be used for filtering in {@link enqueueLinks}.
+ * - If a user provides a base url, we always return it
+ * - If a user specifies {@link EnqueueStrategy.All} strategy, they do not care if the newly found urls are on the original request domain, or a redirected one
+ * - In all other cases, we return the domain of the original request as that's the one we need to use for filtering
  */
-export function resolveBaseUrl({
+export function resolveBaseUrlForEnqueueLinksFiltering({
     enqueueStrategy,
     finalRequestUrl,
     originalRequestUrl,
@@ -287,22 +291,11 @@ export function resolveBaseUrl({
 
     // We can assume users want to go off the domain in this case
     if (enqueueStrategy === EnqueueStrategy.All) {
-        return finalUrlOrigin ?? originalUrlOrigin;
+        return finalUrlOrigin;
     }
 
-    // Ensure links use the same hostname
-    if (enqueueStrategy === EnqueueStrategy.SameDomain) {
-        const originalHostname = getDomain(originalUrlOrigin, { mixedInputs: false })!;
-        const finalHostname = getDomain(finalUrlOrigin, { mixedInputs: false })!;
-
-        if (originalHostname === finalHostname) {
-            return finalUrlOrigin;
-        }
-
-        return undefined;
-    }
-
-    // Always enqueue urls that are from the same origin
+    // Always enqueue urls that are from the same origin in all other cases, as the filtering happens on the original request url, even if there was a redirect
+    // before actually finding the urls
     return originalUrlOrigin;
 }
 

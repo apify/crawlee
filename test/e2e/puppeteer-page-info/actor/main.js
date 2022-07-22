@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -45,7 +45,7 @@ await Actor.main(async () => {
                 const modifiedDate = new Date(Number(modifiedTimestamp));
                 const runCount = Number(runCountText.match(/[\d,]+/)[0].replace(/,/g, ''));
 
-                await Actor.pushData({ url, uniqueIdentifier, title, description, modifiedDate, runCount });
+                await Dataset.pushData({ url, uniqueIdentifier, title, description, modifiedDate, runCount });
             }
         },
     });

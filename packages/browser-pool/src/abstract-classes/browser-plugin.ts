@@ -64,15 +64,15 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
     userDataDir?: string;
-};
+}
 
-export type CreateLaunchContextOptions<
+export interface CreateLaunchContextOptions<
     Library extends CommonLibrary,
     LibraryOptions = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
-> = Partial<Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>>;
+> extends Partial<Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>> {}
 
 /**
  * The `BrowserPlugin` serves two purposes. First, it is the base class that
@@ -109,7 +109,7 @@ export abstract class BrowserPlugin<
 
         this.library = library;
         this.launchOptions = launchOptions;
-        this.proxyUrl = proxyUrl && new URL(proxyUrl).href;
+        this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
     }

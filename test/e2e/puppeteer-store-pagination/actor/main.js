@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined });
@@ -53,7 +53,7 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
     const modifiedDate = new Date(Number(modifiedTimestamp));
     const runCount = Number(runCountText.match(/[\d,]+/)[0].replace(/,/g, ''));
 
-    await Actor.pushData({ url, uniqueIdentifier, title, description, modifiedDate, runCount });
+    await Dataset.pushData({ url, uniqueIdentifier, title, description, modifiedDate, runCount });
 });
 
 await crawler.run([{ url: 'https://apify.com/store?page=1', userData: { label: 'START' } }]);

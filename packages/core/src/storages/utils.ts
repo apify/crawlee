@@ -2,7 +2,7 @@ import type { StorageClient } from '@crawlee/types';
 import { Configuration } from '../configuration';
 
 /**
- * Cleans up the local storage folder (defaults to `./crawlee_storage`) created when running code locally.
+ * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
  * Purging will remove all the files in all storages except for INPUT.json in the default KV store.
  *
  * Purging of storages is happening automatically when we run our crawler (or when we open some storage

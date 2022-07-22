@@ -16,7 +16,7 @@ process.env.APIFY_CONTAINER_PORT ??= '8000';
 
 /**
  * Depending on STORAGE_IMPLEMENTATION the workflow of the tests slightly differs:
- *   - for 'MEMORY': the 'crawlee_storage' folder should be removed after the test actor finishes;
+ *   - for 'MEMORY': the 'storage' folder should be removed after the test actor finishes;
  *   - for 'LOCAL': the 'apify_storage' folder should be removed after the test actor finishes;
  *   - for 'PLATFORM': SDK packages should be copied to respective test actor folders
  *      (and also should be removed after pushing the actor to platform and starting the test run there)
@@ -35,7 +35,7 @@ async function run() {
         throw new Error(`Unknown storage provided: '${process.env.STORAGE_IMPLEMENTATION}'`);
     }
 
-    execSync(`npm install @apify/storage-local`, { stdio: 'inherit' });
+    execSync(`npm install --no-save @apify/storage-local`, { stdio: 'inherit' });
 
     console.log(`Running E2E tests with storage implementation '${process.env.STORAGE_IMPLEMENTATION}'`);
 

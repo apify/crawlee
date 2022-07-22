@@ -21,9 +21,9 @@ module.exports = {
         repoUrl: 'https://github.com/apify/crawlee',
     },
     onBrokenLinks:
-    /** @type {import('@docusaurus/types').ReportingSeverity} */ ('error'),
+    /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
     onBrokenMarkdownLinks:
-    /** @type {import('@docusaurus/types').ReportingSeverity} */ ('error'),
+    /** @type {import('@docusaurus/types').ReportingSeverity} */ ('throw'),
     presets: /** @type {import('@docusaurus/types').PresetConfig[]} */ ([
         [
             '@docusaurus/preset-classic',
@@ -90,6 +90,21 @@ module.exports = {
                 typedocOptions: {
                     excludeExternals: false,
                 },
+            },
+        ],
+        [
+            '@docusaurus/plugin-client-redirects',
+            {
+                redirects: [
+                    {
+                        from: '/docs',
+                        to: '/docs/quick-start',
+                    },
+                //     {
+                //         from: '/docs/next',
+                //         to: '/docs/next/quick-start',
+                //     },
+                ],
             },
         ],
     ],
@@ -249,15 +264,14 @@ module.exports = {
                 height: '60px',
             },
         },
-        // disabled as we don't have docsearch approved for crawlee.dev yet
-        // algolia: {
-        //     appId: 'UXG5NIR52R',
-        //     apiKey: '83302bb4196d8377aa5b3526c6d904fb', // search only (public) API key
-        //     indexName: 'apify_sdk',
-        //     algoliaOptions: {
-        //         facetFilters: ['version:VERSION'],
-        //     },
-        // },
+        algolia: {
+            appId: '5JC94MPMLY',
+            apiKey: '267679200b833c2ca1255ab276731869', // search only (public) API key
+            indexName: 'crawlee',
+            algoliaOptions: {
+                facetFilters: ['version:VERSION'],
+            },
+        },
         gaGtag: {
             trackingID: 'UA-67003981-4',
         },

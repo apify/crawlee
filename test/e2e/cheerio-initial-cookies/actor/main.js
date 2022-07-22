@@ -1,19 +1,27 @@
 import { Actor } from 'apify';
-import { CheerioCrawler } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
-const initialCookies = [
+const expectedCookies = [
     {
-        name: 'test',
-        value: 'testing cookies',
+        name: 'initial_request',
+        value: 'true',
     },
     {
-        name: 'store',
-        value: 'value store',
+        name: 'session',
+        value: 'true',
     },
     {
-        name: 'market_place',
-        value: 'value market place',
+        name: 'hook_request',
+        value: 'true',
+    },
+    {
+        name: 'got_options_upper_case',
+        value: 'true',
+    },
+    {
+        name: 'got_options_lower_case',
+        value: 'true',
     },
 ];
 
@@ -25,11 +33,21 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         additionalMimeTypes: ['application/json'],
-        preNavigationHooks: [({ session, request }) => {
-            session.setCookies(initialCookies, request.url);
+        preNavigationHooks: [({ session, request }, gotOptions) => {
+            session.setCookies([
+                {
+                    name: 'session',
+                    value: 'true',
+                },
+            ], request.url);
+            request.headers.cookie = 'hook_request=true';
+
+            gotOptions.headers ??= {};
+            gotOptions.headers.Cookie = 'got_options_upper_case=true';
+            gotOptions.headers.cookie = 'got_options_lower_case=true';
         }],
         async requestHandler({ json }) {
-            const initialCookiesLength = initialCookies.length;
+            const initialCookiesLength = expectedCookies.length;
 
             const cookieString = json.headers.cookie;
             const pageCookies = cookieString.split(';').map((cookie) => {
@@ -38,15 +56,22 @@ await Actor.main(async () => {
             });
 
             let numberOfMatchingCookies = 0;
-            for (const cookie of initialCookies) {
+            for (const cookie of expectedCookies) {
                 if (pageCookies.some((pageCookie) => pageCookie.name === cookie.name && pageCookie.value === cookie.value)) {
                     numberOfMatchingCookies++;
                 }
             }
 
-            await Actor.pushData({ initialCookiesLength, numberOfMatchingCookies });
+            await Dataset.pushData({ initialCookiesLength, numberOfMatchingCookies });
         },
     });
 
-    await crawler.run(['https://api.apify.com/v2/browser-info']);
+    await crawler.run([
+        {
+            url: 'https://api.apify.com/v2/browser-info',
+            headers: {
+                Cookie: 'initial_request=true',
+            },
+        },
+    ]);
 }, mainOptions);

@@ -1,3 +1,6 @@
+# Migration from 2.x.x to 3.0.0
+Check the v3 [upgrading guide](https://crawlee.dev/docs/upgrading/upgrading-to-v3).
+
 # Migration from 1.x.x to 2.0.0
 There should be no changes needed apart from upgrading your Node.js version to >= 15.10. If you encounter issues with `cheerio`, [read their CHANGELOG](https://github.com/cheeriojs/cheerio/releases). We bumped it from `rc.3` to `rc.10`.
 

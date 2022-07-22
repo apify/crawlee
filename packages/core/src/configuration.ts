@@ -57,7 +57,7 @@ export interface ConfigurationOptions {
  * ---|---|---
  * `memoryMbytes` | `CRAWLEE_MEMORY_MBYTES` | -
  * `logLevel` | `CRAWLEE_LOG_LEVEL` | -
- * `headless` | `CRAWLEE_HEADLESS` | -
+ * `headless` | `CRAWLEE_HEADLESS` | `true`
  * `defaultDatasetId` | `CRAWLEE_DEFAULT_DATASET_ID` | `'default'`
  * `defaultKeyValueStoreId` | `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
  * `defaultRequestQueueId` | `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
@@ -106,6 +106,7 @@ export class Configuration {
         availableMemoryRatio: 0.25,
         storageClientOptions: {},
         purgeOnStart: true,
+        headless: true,
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 60_000,
     };

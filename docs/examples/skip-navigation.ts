@@ -1,9 +1,9 @@
-import { PuppeteerCrawler, KeyValueStore } from 'crawlee';
+import { PlaywrightCrawler, KeyValueStore } from 'crawlee';
 
 // Create a key value store for all images we find
 const imageStore = await KeyValueStore.open('images');
 
-const crawler = new PuppeteerCrawler({
+const crawler = new PlaywrightCrawler({
     async requestHandler({ request, page, sendRequest }) {
         // The request should have the navigation skipped
         if (request.skipNavigation) {
@@ -25,7 +25,7 @@ const crawler = new PuppeteerCrawler({
     },
 });
 
-await crawler.addRequests(['https://apify.com/']);
+await crawler.addRequests(['https://crawlee.dev']);
 
 // Run the crawler
 await crawler.run();

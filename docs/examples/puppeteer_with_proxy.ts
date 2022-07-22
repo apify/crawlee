@@ -5,13 +5,13 @@ const proxyConfiguration = new ProxyConfiguration();
 
 const crawler = new PuppeteerCrawler({
     proxyConfiguration,
-    async requestHandler({ page }) {
+    async requestHandler({ page, log }) {
         const status = await page.$eval('td.status', (el) => el.textContent);
-        console.log(`Proxy Status: ${status}`);
+        log.info(`Proxy Status: ${status}`);
     },
 });
 
-await crawler.addRequests(['http://proxy.apify.com']);
+await crawler.addRequests(['http://proxy.crawlee.dev']);
 
 console.log('Running Puppeteer script...');
 

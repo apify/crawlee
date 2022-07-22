@@ -1,7 +1,18 @@
 {
     "extends": "@apify/tsconfig",
     "compilerOptions": {
-        "target": "ES2020",
-        "module": "ESNext"
+        "baseUrl": "../..",
+        "paths": {
+            "crawlee": ["packages/crawlee/src"],
+            "@crawlee/basic": ["packages/basic-crawler/src"],
+            "@crawlee/browser": ["packages/browser-crawler/src"],
+            "@crawlee/cheerio": ["packages/cheerio-crawler/src"],
+            "@crawlee/playwright": ["packages/playwright-crawler/src"],
+            "@crawlee/puppeteer": ["packages/puppeteer-crawler/src"],
+            "@crawlee/*": ["packages/*/src"]
+        },
+        "target": "ES2022",
+        "module": "ES2022",
+        "noUnusedParameters": false
     }
 }
