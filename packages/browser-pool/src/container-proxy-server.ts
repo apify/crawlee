@@ -10,8 +10,15 @@ export const createProxyServerForContainers = async () => {
                 ? request.socket.localAddress!.slice(prefix4to6.length)
                 : request.socket.localAddress!;
 
+            const upstreamProxyUrl = ipToProxy.get(localAddress);
+
+            if (upstreamProxyUrl === undefined) {
+                // eslint-disable-next-line no-console
+                console.warn(`Request without proxy ${localAddress} ${request.headers.host}`);
+            }
+
             return {
-                upstreamProxyUrl: ipToProxy.get(localAddress),
+                upstreamProxyUrl,
                 requestAuthentication: false,
             };
         },
