@@ -5,7 +5,8 @@ import type {
     ProxyConfiguration,
     ProxyInfo,
     RequestQueue,
-    Session } from '@crawlee/core';
+    Session,
+} from '@crawlee/core';
 import {
     cookieStringToToughCookie,
     enqueueLinks,

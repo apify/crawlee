@@ -1,7 +1,7 @@
 {
-	"name": "test-playwright-default",
+	"name": "test-playwright-initial-cookies",
 	"version": "0.0.1",
-	"description": "Playwright Test - Default",
+	"description": "Playwright Test - Initial Cookies",
 	"dependencies": {
         "apify": "^3.0.0-beta.75",
         "@apify/storage-local": "^2.1.0",
