@@ -1,9 +1,9 @@
-import ProxyChain from 'proxy-chain';
+import { Server as ProxyChainServer } from 'proxy-chain';
 
 export const createProxyServerForContainers = async () => {
     const ipToProxy = new Map<string, string>();
 
-    const proxyServer = new ProxyChain.Server({
+    const proxyServer = new ProxyChainServer({
         prepareRequestFunction({ request }) {
             const prefix4to6 = '::ffff:';
             const localAddress = request.socket.localAddress!.startsWith(prefix4to6)

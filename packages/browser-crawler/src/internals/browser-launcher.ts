@@ -83,6 +83,7 @@ export abstract class BrowserLauncher<
         proxyUrl: ow.optional.string.url,
         useChrome: ow.optional.boolean,
         useIncognitoPages: ow.optional.boolean,
+        experimentalContainers: ow.optional.boolean,
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,
         userAgent: ow.optional.string,

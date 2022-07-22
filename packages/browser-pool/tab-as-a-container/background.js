@@ -1,5 +1,10 @@
 'use strict';
 
+let resolveLoading;
+const loading = new Promise((resolve) => {
+    resolveLoading = resolve;
+});
+
 const isFirefox = navigator.userAgent.includes('Firefox');
 
 const webRequestPermissions = {
@@ -273,10 +278,10 @@ if (isFirefox) {
     );
 }
 
-// External communication.
+// External communication. Note: the JSON keys are lowercased by the browser.
 const routes = Object.assign(Object.create(null), {
     async tabid(details) {
-        return {tabId: details.tabId, proxyIp: getNextLocalhostIp(details.tabId)};
+        return {tabid: details.tabId, proxyip: getNextLocalhostIp(details.tabId)};
     },
     async proxy(details, body) {
         proxyPort = body.port;
@@ -373,4 +378,6 @@ chrome.webNavigation.onCompleted.addListener(async details => {
             runAt: 'document_start',
         });
     });
+
+    resolveLoading();
 })();

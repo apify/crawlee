@@ -197,6 +197,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
             throw new Error('PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.'
                 + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
         }
+
         const playwrightLauncher = new PlaywrightLauncher(launchContext, config);
 
         browserPoolOptions.browserPlugins = [

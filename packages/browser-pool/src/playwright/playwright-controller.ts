@@ -65,14 +65,14 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
             if (this.launchContext.experimentalContainers) {
                 await page.goto('data:text/plain,tabid');
                 await page.waitForNavigation();
-                const { tabid, proxyIp }: { tabid: number; proxyIp: string } = JSON.parse(decodeURIComponent(page.url().slice('about:blank#'.length)));
+                const { tabid, proxyip }: { tabid: number; proxyip: string } = JSON.parse(decodeURIComponent(page.url().slice('about:blank#'.length)));
 
                 if (contextOptions?.proxy) {
                     const url = new URL(contextOptions.proxy.server);
                     url.username = contextOptions.proxy.username ?? '';
                     url.password = contextOptions.proxy.password ?? '';
 
-                    (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyIp, url.href);
+                    (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyip, url.href);
                 }
 
                 tabIds.set(page, tabid);
