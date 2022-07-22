@@ -429,8 +429,9 @@ export abstract class BrowserCrawler<
         };
 
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
+        const experimentalContainers = this.launchContext?.experimentalContainers;
 
-        if (this.proxyConfiguration && useIncognitoPages) {
+        if (this.proxyConfiguration && (useIncognitoPages || experimentalContainers)) {
             const { session } = crawlingContext;
 
             const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
@@ -451,7 +452,7 @@ export abstract class BrowserCrawler<
 
         const page = await this.browserPool.newPage(newPageOptions) as CommonPage;
         tryCancel();
-        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages);
+        this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages || experimentalContainers);
 
         // DO NOT MOVE THIS LINE ABOVE!
         // `enhanceCrawlingContextWithPageInfo` gives us a valid session.
@@ -489,7 +490,7 @@ export abstract class BrowserCrawler<
         }
     }
 
-    protected _enhanceCrawlingContextWithPageInfo(crawlingContext: Context, page: CommonPage, useIncognitoPages?: boolean): void {
+    protected _enhanceCrawlingContextWithPageInfo(crawlingContext: Context, page: CommonPage, createNewSession?: boolean): void {
         crawlingContext.page = page;
 
         // This switch is because the crawlingContexts are created on per request basis.
@@ -499,7 +500,7 @@ export abstract class BrowserCrawler<
         const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page as any) as Context['browserController'];
         crawlingContext.browserController = browserControllerInstance;
 
-        if (!useIncognitoPages) {
+        if (!createNewSession) {
             crawlingContext.session = browserControllerInstance.launchContext.session as Session;
         }
 

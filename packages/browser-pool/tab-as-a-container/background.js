@@ -184,9 +184,8 @@ const getProxyConfiguration = (scheme, host, port) => {
     };
 };
 
-// 127.0.0.0 is used as a control server
 const localhostIpCache = new Map();
-const localHostIp = [127, 0, 0, 1];
+const localHostIp = [127, 0, 0, 0];
 const getNextLocalhostIp = openerId => {
     if (localhostIpCache.has(openerId)) {
         return localhostIpCache.get(openerId);
@@ -203,7 +202,7 @@ const getNextLocalhostIp = openerId => {
                 localHostIp[0] = 127;
                 localHostIp[1] = 0;
                 localHostIp[2] = 0;
-                localHostIp[3] = 1;
+                localHostIp[3] = 0;
             } else {
                 localHostIp[1]++;
             }
