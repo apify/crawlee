@@ -9,6 +9,7 @@ RUN npm install --include=dev \
 # create final image
 FROM apify/actor-node:16
 # copy only necessary files
+COPY --from=builder packages ./packages
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/main.js ./
 
