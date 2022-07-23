@@ -27,6 +27,8 @@ import log_ from '@apify/log';
 import type { Request } from '@crawlee/core';
 import { KeyValueStore, validators } from '@crawlee/core';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { CheerioRoot } from '@crawlee/utils';
+import * as cheerio from 'cheerio';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { InterceptHandler } from './puppeteer_request_interception';
@@ -106,7 +108,7 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  *
  * File contents are cached for up to 10 files to limit file system access.
  *
- * @param page Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param filePath File path
  * @param [options]
  */
@@ -152,14 +154,30 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * ```
  *
  * Note that `injectJQuery()` does not affect the Puppeteer's
- * [`page.$()`](https://pptr.dev/#?product=Puppeteer&show=api-pageselector)
+ * [`page.$()`](https://pptr.dev/api/puppeteer.page._/)
  * function in any way.
  *
- * @param page Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  */
 export function injectJQuery(page: Page): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
     return injectFile(page, jqueryPath, { surviveNavigations: true });
+}
+
+/**
+ * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@link CheerioCrawler}.
+ *
+ * **Example usage:**
+ * ```javascript
+ * const $ = await puppeteerUtils.parseWithCheerio(page);
+ * const title = $('title').text();
+ * ```
+ *
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
+ */
+export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+    const pageContent = await page.content();
+    return cheerio.load(pageContent);
 }
 
 /**
@@ -201,7 +219,7 @@ export function injectJQuery(page: Page): Promise<unknown> {
  * await page.goto('https://cnn.com');
  * ```
  *
- * @param page Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param [options]
  */
 export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
@@ -249,7 +267,7 @@ export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 
  * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
  *   This issue should be resolved or atleast mitigated in future iterations of this feature.
  * @param page
- *   Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ *   Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param cache
  *   Object in which responses are stored
  * @param responseUrlRules
@@ -312,7 +330,7 @@ export async function cacheResponses(page: Page, cache: Dictionary<Partial<Respo
  *    request: Request,
  * }
  * ```
- * Where `page` is a Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page)
+ * Where `page` is a Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page)
  * and `request` is a {@link Request}.
  *
  * The function is compiled by using the `scriptString` parameter as the function's body,
@@ -354,7 +372,7 @@ export function compileScript(scriptString: string, context: Dictionary = Object
  * *NOTE:* In recent versions of Puppeteer using requests other than GET, overriding headers and adding payloads disables
  * browser cache which degrades performance.
  *
- * @param page Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param request
  * @param [gotoOptions] Custom options for `page.goto()`.
  */
@@ -432,7 +450,7 @@ export interface InfiniteScrollOptions {
 /**
  * Scrolls to the bottom of a page, or until it times out.
  * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
- * @param page Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param [options]
  */
 export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
@@ -572,7 +590,7 @@ export interface SaveSnapshotOptions {
 
 /**
  * Saves a full screenshot and HTML of the current page into a Key-Value store.
- * @param page Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param [options]
  */
 export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
@@ -615,6 +633,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
 export interface PuppeteerContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
+    parseWithCheerio(): Promise<CheerioRoot>;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
     blockResources(resourceTypes?: string[]): Promise<void>;
@@ -630,6 +649,7 @@ export interface PuppeteerContextUtils {
 export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = () => injectJQuery(context.page);
+    context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         page: context.page,
         requestQueue: context.crawler.requestQueue!,
@@ -667,4 +687,5 @@ export const puppeteerUtils = {
     removeInterceptRequestHandler,
     infiniteScroll,
     saveSnapshot,
+    parseWithCheerio,
 };

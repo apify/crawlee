@@ -25,7 +25,8 @@ import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/core';
 import { validators } from '@crawlee/core';
-import type { Dictionary } from '@crawlee/utils';
+import type { CheerioRoot, Dictionary } from '@crawlee/utils';
+import * as cheerio from 'cheerio';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
@@ -191,14 +192,32 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
     return page.goto(url, gotoOptions);
 }
 
+/**
+ * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@link CheerioCrawler}.
+ *
+ * **Example usage:**
+ * ```javascript
+ * const $ = await playwrightUtils.parseWithCheerio(page);
+ * const title = $('title').text();
+ * ```
+ *
+ * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ */
+export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+    const pageContent = await page.content();
+    return cheerio.load(pageContent);
+}
+
 export interface PlaywrightContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
+    parseWithCheerio(): Promise<CheerioRoot>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = () => injectJQuery(context.page);
+    context.parseWithCheerio = () => parseWithCheerio(context.page);
 }
 
 /** @internal */
@@ -206,4 +225,5 @@ export const playwrightUtils = {
     injectFile,
     injectJQuery,
     gotoExtended,
+    parseWithCheerio,
 };
