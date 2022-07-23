@@ -1,14 +1,11 @@
 import { Actor } from 'apify';
-import { Configuration, CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
-const config = Configuration.getGlobalConfig();
-config.set('availableMemoryRatio', 1);
-
-if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
+if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
+    await Actor.init({ storage: new ApifyStorageLocal() });
+} else {
     await Actor.init();
-} else if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
-    config.useStorageClient(new ApifyStorageLocal());
 }
 
 const crawler = new CheerioCrawler();
@@ -26,3 +23,5 @@ crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
 });
 
 await crawler.run(['https://crawlee.dev/docs/quick-start']);
+
+await Actor.exit({ exit: Actor.isAtHome() });
