@@ -60,13 +60,6 @@ export async function runActor(dirName, memory = 4096) {
     let stats;
     let datasetItems;
 
-    if (process.env.STORAGE_IMPLEMENTATION === 'MEMORY' || process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
-        await import(join(dirName, 'main.js'));
-        await setTimeout(10);
-        stats = await getStats(dirName);
-        datasetItems = await getDatasetItems(dirName);
-    }
-
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         await copyPackages(dirName);
         execSync('npx -y apify-cli push', { cwd: dirName });
@@ -97,6 +90,16 @@ export async function runActor(dirName, memory = 4096) {
         stats = value;
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
+    } else {
+        if (dirName.split('/').at(-2).endsWith('-ts')) {
+            execSync('tsc', { cwd: dirName });
+        }
+
+        await import(join(dirName, 'main.js'));
+
+        await setTimeout(10);
+        stats = await getStats(dirName);
+        datasetItems = await getDatasetItems(dirName);
     }
 
     return { stats, datasetItems };
@@ -127,7 +130,9 @@ async function copyPackages(dirName) {
 
     // We don't need to copy the following packages
     delete dependencies['@apify/storage-local'];
+    delete dependencies['apify-client'];
     delete dependencies['deep-equal'];
+    delete dependencies['playwright-core'];
     delete dependencies.apify;
     delete dependencies.puppeteer;
     delete dependencies.playwright;
@@ -215,7 +220,7 @@ export async function initialize(dirName) {
         process.env.APIFY_CONTAINER_URL ??= 'http://127.0.0.1';
         process.env.APIFY_CONTAINER_PORT ??= '8000';
     }
-    console.log('[init] Storage directory:', process.env.APIFY_LOCAL_STORAGE_DIR);
+    console.log('[init] Storage directory:', process.env.APIFY_LOCAL_STORAGE_DIR || 'n/a (running on the platform)');
 }
 
 /**
