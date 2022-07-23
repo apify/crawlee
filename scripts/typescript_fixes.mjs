@@ -21,7 +21,7 @@ for (const filepath of files) {
             // proxy-per-page reexport of puppeteer
             line.match(/: Puppeteer\.\w+/) ||
             // don't ask me why, but this one is needed too ¯\_(ツ)_/¯
-            line.match(/^export interface (PlaywrightHook|PuppeteerHook|PlaywrightCookie)/)
+            line.match(/^export interface (PlaywrightHook|PuppeteerHook)/)
         ) {
             output.push('// @ts-ignore optional peer dependency');
             output.push(line);

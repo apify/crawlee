@@ -14,7 +14,6 @@ export interface PlaywrightCrawlingContext<UserData extends Dictionary = Diction
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export interface PlaywrightRequestHandler extends BrowserRequestHandler<PlaywrightCrawlingContext> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
-export type PlaywrightCookie = Parameters<ReturnType<Page['context']>['addCookies']>[0][0];
 
 export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
     PlaywrightCrawlingContext,
