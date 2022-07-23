@@ -169,11 +169,11 @@ export function injectJQuery(page: Page): Promise<unknown> {
  *
  * **Example usage:**
  * ```javascript
- * const $ = await playwrightUtils.parseWithCheerio(page);
+ * const $ = await puppeteerUtils.parseWithCheerio(page);
  * const title = $('title').text();
  * ```
  *
- * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  */
 export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
     const pageContent = await page.content();
