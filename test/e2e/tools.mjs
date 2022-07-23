@@ -62,7 +62,7 @@ export async function runActor(dirName, memory = 4096) {
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         await copyPackages(dirName);
-        execSync('npx -y apify-cli push', { cwd: dirName, stdio: 'inherit' });
+        execSync('npx -y apify-cli push', { cwd: dirName });
 
         const actorName = await getActorName(dirName);
         const client = Actor.newClient();
@@ -92,7 +92,7 @@ export async function runActor(dirName, memory = 4096) {
         datasetItems = items;
     } else {
         if (dirName.split('/').at(-2).endsWith('-ts')) {
-            execSync('tsc', { cwd: dirName, stdio: 'inherit' });
+            execSync('tsc', { cwd: dirName });
         }
 
         await import(join(dirName, 'main.js'));
