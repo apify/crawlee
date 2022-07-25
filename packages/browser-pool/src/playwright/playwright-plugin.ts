@@ -11,7 +11,8 @@ import { anonymizeProxySugar } from '../anonymize-proxy';
 import { createProxyServerForContainers } from '../container-proxy-server';
 
 // __dirname = browser-pool/dist/playwright
-const taacPath = path.join(__dirname, '..', '..', 'tab-as-a-container');
+//  taacPath = browser-pool/dist/tab-as-a-container
+const taacPath = path.join(__dirname, '..', 'tab-as-a-container');
 
 export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<BrowserType['launch']>[0], PlaywrightBrowser> {
     private _browserVersion?: string;
