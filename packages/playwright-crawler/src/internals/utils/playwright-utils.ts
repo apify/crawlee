@@ -204,6 +204,7 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
  */
 export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+    ow(page, ow.object.validate(validators.browserPage));
     const pageContent = await page.content();
     return cheerio.load(pageContent);
 }
