@@ -33,25 +33,25 @@ The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of sever
 
 ### Installing Crawlee
 
-> As Crawlee is not yet released as `latest`, we need to install from the `next` distribution tag!
-
 Most of the Crawlee packages are extending and reexporting each other, so it's enough to install just the one you plan on using, e.g. `@crawlee/playwright` if you plan on using `playwright` - it already contains everything from the `@crawlee/browser` package, which includes everything from `@crawlee/basic`, which includes everything from `@crawlee/core`.
 
+If we don't care much about additional code being pulled in, we can just use the `crawlee` meta-package, which contains (re-exports) most of the `@crawlee/*` packages, and therefore contains all the crawler classes.
+
 ```bash
-npm install crawlee@next
+npm install crawlee
 ```
 
-Or if all we need is cheerio support, we can install only @crawlee/cheerio
+Or if all we need is cheerio support, we can install only `@crawlee/cheerio`.
 
 ```bash
-npm install @crawlee/cheerio@next
+npm install @crawlee/cheerio
 ```
 
 When using `playwright` or `puppeteer`, we still need to install those dependencies explicitly - this allows the users to be in control of which version will be used.
 
 ```bash
-npm install crawlee@next playwright
-# or npm install @crawlee/playwright@next playwright
+npm install crawlee playwright
+# or npm install @crawlee/playwright playwright
 ```
 
 Alternatively we can also use the `crawlee` meta-package which contains (re-exports) most of the `@crawlee/*` packages, and therefore contains all the crawler classes.
