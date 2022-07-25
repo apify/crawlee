@@ -39,7 +39,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "npm run clean && npm run compile && npm run copy && npm run copy-templates",
+        "build": "npm run clean && npm run compile && npm run copy-templates && npm run copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy-templates": "node ./scripts/copy-templates.mjs",
