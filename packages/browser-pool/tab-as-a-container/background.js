@@ -223,7 +223,7 @@ const getNextLocalhostIp = (openerId) => {
     }
 
     // [127.0.0.1 - 127.255.255.254] = 1 * 255 * 255 * 254 = 16 516 350
-    while (localhostIpCache.length >= (1 * 254 * 254 * 254)) {
+    while (localhostIpCache.length >= (1 * 255 * 255 * 254)) {
         localhostIpCache.delete(localhostIpCache.keys().next().value);
     }
 
