@@ -176,6 +176,7 @@ export function injectJQuery(page: Page): Promise<unknown> {
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  */
 export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+    ow(page, ow.object.validate(validators.browserPage));
     const pageContent = await page.content();
     return cheerio.load(pageContent);
 }
