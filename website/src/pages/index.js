@@ -14,11 +14,11 @@ function Hero() {
                 <div className="row">
                     <div className="col col--7">
                         <div className="row">
-                            <p className={styles.tagline}>
-                                The scalable <span>web crawling</span>,<br />
-                                <span>scraping</span> and <span>automation library</span><br />
+                            <h1 className={styles.tagline}>
+                                The scalable <span>web crawling</span>, <br />
+                                <span>scraping</span> and <span>automation library</span> <br />
                                 for JavaScript/Node.js
-                            </p>
+                            </h1>
                         </div>
                         <div className={styles.heroButtons}>
                             <Link to="#try" className={styles.getStarted}>Try it out</Link>

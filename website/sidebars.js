@@ -18,9 +18,8 @@ module.exports = {
             items: [
                 'introduction/setting-up',
                 'introduction/first-crawler',
-                'introduction/cheerio-crawler',
-                'introduction/enqueue-links',
-                'introduction/realworld-example',
+                'introduction/crawling-links',
+                'introduction/real-world-project',
             ],
         },
         {
@@ -36,6 +35,7 @@ module.exports = {
                 'guides/request-storage',
                 'guides/result-storage',
                 'guides/environment-variables',
+                'guides/cheerio-crawler-guide',
                 'guides/proxy-management',
                 'guides/session-management',
                 'guides/scaling-crawlers',

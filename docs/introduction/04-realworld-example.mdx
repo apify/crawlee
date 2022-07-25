@@ -1,36 +1,40 @@
 ---
-id: realworld-example
+id: real-world-project
 title: "Getting some real-world data"
-sidebar_label: "Real-world example"
+sidebar_label: "Real-world project"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
 
-> *Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real data and save it somewhere in a machine-readable format? Because that's why we started reading this tutorial in the first place!*
+> *Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real data and save it somewhere in a machine-readable format? Because that's why I started reading this tutorial in the first place!*
 
-We hear you, young padawan! First, learn how to crawl, we must. Only then, walk through data, we can!
+We hear you, young padawan! First, learn how to crawl, you must. Only then, walk through data, you can!
 
-### Making a store crawler
+## Making a store crawler
 
-Fortunately, you don't have to travel to a galaxy far far away to find a good candidate for learning how to scrape structured data. The [Apify Store](https://apify.com/store) is a library of public actors that anyone can grab and use. You can find ready-made solutions for crawling [Google Places](https://apify.com/drobnikj/crawler-google-places), [Amazon](https://apify.com/vaclavrut/amazon-crawler), [Google Search](https://apify.com/apify/google-search-scraper), [Booking](https://apify.com/dtrungtin/booking-scraper), [Instagram](https://apify.com/jaroslavhejlek/instagram-scraper), [Tripadvisor](https://apify.com/maxcopell/tripadvisor) and many other websites. Feel free to check them out! It's also a great place to practice your Jedi scraping skills since it has categories, lists and details.
+Fortunately, you don't have to travel to a galaxy far, far away to find a good candidate for learning how to scrape structured data. We could pick any modern e-commerce website, but we've chosen the [Apify Store](https://apify.com/store). It is a library of public scrapers and automations that anyone can grab and use for free.
 
-### The importance of having a plan
+:::info
+
+While this definitely is a bit of a shameless self-promotion, the real reason why we chose the Apify Store is quite simple, actually. It's our own website, so we know when it will change and when to update our tutorials. Unlike with third-party websites where it always breaks in the most annoying moment. It also requires JavaScript rendering, which will allow us to show more features of Crawlee.
+
+:::
+
+## Drawing a plan
 
 Sometimes scraping is really straightforward, but most of the time, it really pays off to do a bit of research first and try to answer some of these questions:
 - How is the website structured?
 - Can I scrape it only with HTTP requests (read "with `CheerioCrawler`")?
-- Would I need a full browser solution?
+- Do I need a headless browser for something?
 - Are there any anti-scraping protections in place?
 - Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API?
 
-Jakub, one of Apify's founders, wrote a [great article](https://blog.apify.com/web-scraping-in-2018-forget-html-use-xhrs-metadata-or-javascript-variables-8167f252439c) about all the different techniques, tips and tricks related to web scraping, so make sure to check that out!
-
 For the purposes of this tutorial, let's just go ahead with HTTP requests and HTML parsing using `CheerioCrawler`. The number one reason being: you already know how to use it, and we want to build on that knowledge to learn specific crawling and scraping techniques.
 
-#### Choosing the data you need
+### Choosing the data you need
 
-A good first step is always to figure out what is it you want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors from [Apify Store](https://apify.com/store) in all categories (which can be found on the left side of the page) and for each actor we want to get its:
+A good first step is to figure out what data you want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors from [Apify Store](https://apify.com/store) in all categories (which can be found on the left side of the page) and for each actor we want to get its:
 
 - URL
 - Owner
@@ -44,7 +48,7 @@ You can notice that some information is available directly on the list page, but
 
 ![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
-#### Analyzing the target
+### Analyzing the target
 
 Knowing that we will use plain HTTP requests, we immediately know that we won't be able to manipulate the website in any way. We will only be able to go through the HTML it gives us and parse our data from there. This might sound like a huge limitation, but you might be surprised in how effective it can be. Let's get to it!
 
