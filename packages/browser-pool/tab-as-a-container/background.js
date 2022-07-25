@@ -207,16 +207,17 @@ const getNextLocalhostIp = (openerId) => {
     if (localHostIp[3] === 254) {
         if (localHostIp[2] === 254) {
             if (localHostIp[1] === 254) {
-                localHostIp[0] = 127;
                 localHostIp[1] = 0;
-                localHostIp[2] = 0;
-                localHostIp[3] = 1;
             } else {
                 localHostIp[1]++;
             }
+
+            localHostIp[2] = 0;
         } else {
             localHostIp[2]++;
         }
+
+        localHostIp[3] = 1;
     } else {
         localHostIp[3]++;
     }
