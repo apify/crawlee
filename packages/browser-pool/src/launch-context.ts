@@ -38,6 +38,7 @@ export interface LaunchContextOptions<
      */
     useIncognitoPages?: boolean;
     /**
+     * @experimental
      * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
      */
     experimentalContainers?: boolean;

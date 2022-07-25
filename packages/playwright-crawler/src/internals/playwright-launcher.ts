@@ -56,6 +56,7 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
     useIncognitoPages?: boolean;
 
     /**
+    * @experimental
     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
     */
     experimentalContainers?: boolean;
