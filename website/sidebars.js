@@ -5,12 +5,6 @@ module.exports = {
             type: 'category',
             label: 'Introduction',
             collapsed: false,
-            // link: {
-            //     type: 'generated-index',
-            //     title: 'Getting started',
-            //     slug: '/getting-started',
-            //     keywords: ['getting started'],
-            // },
             link: {
                 type: 'doc',
                 id: 'introduction/index',

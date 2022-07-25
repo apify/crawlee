@@ -7,14 +7,18 @@ import ApiLink from '@site/src/components/ApiLink';
 
 This page summarizes most of the breaking changes between Crawlee (v3) and Apify SDK (v2). Crawlee is the spiritual successor to Apify SDK, so we decided to keep the versioning and release Crawlee as v3.
 
-## Crawlee vs Apify SDK
+:::info Crawlee vs Apify SDK v2
 
 Up until version 3 of `apify`, the package contained both scraping related tools and Apify platform related helper methods. With v3 we are splitting the whole project into two main parts:
 
-- Crawlee, the new web-scraping library, available as `crawlee` package on NPM
-- Apify SDK, helpers for the Apify platform, available as `apify` package on NPM
+- [Crawlee](https://github.com/apify/crawlee), the new web-scraping library, available as [`crawlee`](https://www.npmjs.com/package/crawlee) package on NPM
+- [Apify SDK](https://github.com/apify/apify-sdk-js), helpers for the Apify platform, available as [`apify`](https://www.npmjs.com/package/apify) package on NPM
 
-Moreover, the Crawlee library is published as several packages under `@crawlee` namespace:
+:::
+
+## Crawlee monorepo
+
+The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of several smaller packages, released separately under `@crawlee` namespace:
 
 - `@crawlee/core`: the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
 - `@crawlee/basic`: exports `BasicCrawler`

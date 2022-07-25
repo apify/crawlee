@@ -209,6 +209,10 @@ module.exports = {
                             label: 'API reference',
                             to: 'api/core',
                         },
+                        {
+                            label: 'Upgrading to v3',
+                            to: 'docs/upgrading/upgrading-to-v3',
+                        },
                     ],
                 },
                 {
