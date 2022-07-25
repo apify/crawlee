@@ -1,5 +1,9 @@
 'use strict';
 
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
+/* eslint-disable no-empty */
+
 let resolveLoading;
 const loading = new Promise((resolve) => {
     resolveLoading = resolve;
@@ -12,12 +16,12 @@ const webRequestPermissions = {
     blockingResponse: isFirefox ? ['blocking', 'responseHeaders'] : ['blocking', 'responseHeaders', 'extraHeaders'],
 };
 
-chrome.privacy.network.networkPredictionEnabled.set({value: false});
+chrome.privacy.network.networkPredictionEnabled.set({ value: false });
 
 const translator = new Map();
 const counter = new Map();
 
-const getOpenerId = id => {
+const getOpenerId = (id) => {
     if (typeof id !== 'number') {
         throw new Error('Expected `id` to be a number');
     }
@@ -36,9 +40,9 @@ const getOpenerId = id => {
     return id;
 };
 
-const keyFromTabId = tabId => `.${tabId}.`;
+const keyFromTabId = (tabId) => `.${tabId}.`;
 
-const getCookieURL = cookie => {
+const getCookieURL = (cookie) => {
     const protocol = cookie.secure ? 'https:' : 'http:';
     const fixedDomain = cookie.domain[0] === '.' ? cookie.domain.slice(1) : cookie.domain;
     const url = `${protocol}//${fixedDomain}${cookie.path}`;
@@ -48,9 +52,9 @@ const getCookieURL = cookie => {
 
 // Rewrite cookies that were programatically set to tabId instead of openerId.
 // This is requried because we cannot reliably get openerId inside Playwright.
-chrome.cookies.onChanged.addListener(async changeInfo => {
+chrome.cookies.onChanged.addListener(async (changeInfo) => {
     if (!changeInfo.removed) {
-        const {cookie} = changeInfo;
+        const { cookie } = changeInfo;
 
         if (cookie.name[0] !== '.') {
             return;
@@ -85,12 +89,12 @@ chrome.cookies.onChanged.addListener(async changeInfo => {
 });
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
-    details => {
+    (details) => {
         for (const header of details.requestHeaders) {
             if (header.name.toLowerCase() === 'cookie') {
                 const id = keyFromTabId(getOpenerId(details.tabId));
 
-                const fixedCookies = header.value.split('; ').filter(x => x.startsWith(id)).map(x => x.slice(id.length)).join('; ');
+                const fixedCookies = header.value.split('; ').filter((x) => x.startsWith(id)).map((x) => x.slice(id.length)).join('; ');
                 header.value = fixedCookies;
             }
 
@@ -98,6 +102,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
             // We don't want these in order to prevent cluttering cookies.
             // Yes, `webNavigation.onComitted` is emitted and `webNavigation.onCreatedNavigationTarget` is not.
             if (header.name.toLowerCase() === 'purpose' && header.value === 'prefetch' && !(counter.has(details.tabId))) {
+                // eslint-disable-next-line no-console
                 console.log(details);
                 return {
                     cancel: true,
@@ -106,16 +111,16 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
         }
 
         return {
-            requestHeaders: details.requestHeaders.filter(header => header.name !== 'cookie' || header.value !== ''),
+            requestHeaders: details.requestHeaders.filter((header) => header.name !== 'cookie' || header.value !== ''),
         };
     },
-    {urls: ['<all_urls>']},
+    { urls: ['<all_urls>'] },
     webRequestPermissions.blockingRequest,
 );
 
 // Firefox Bug: doesn't catch https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri
 chrome.webRequest.onHeadersReceived.addListener(
-    details => {
+    (details) => {
         for (const header of details.responseHeaders) {
             if (header.name.toLowerCase() === 'set-cookie') {
                 const parts = header.value.split('\n');
@@ -124,13 +129,12 @@ chrome.webRequest.onHeadersReceived.addListener(
 
                 const openerId = getOpenerId(details.tabId);
 
-                header.value = parts.map(part => {
+                header.value = parts.map((part) => {
                     const equalsIndex = part.indexOf('=');
                     if (equalsIndex === -1) {
                         return `${keyFromTabId(openerId)}=${part.trimStart()}`;
-                    } else {
-                        return keyFromTabId(openerId) + part.trimStart();
                     }
+                    return keyFromTabId(openerId) + part.trimStart();
                 }).join('\n');
             }
         }
@@ -139,11 +143,11 @@ chrome.webRequest.onHeadersReceived.addListener(
             responseHeaders: details.responseHeaders,
         };
     },
-    {urls: ['<all_urls>']},
+    { urls: ['<all_urls>'] },
     webRequestPermissions.blockingResponse,
 );
 
-chrome.tabs.onRemoved.addListener(async tabId => {
+chrome.tabs.onRemoved.addListener(async (tabId) => {
     const opener = getOpenerId(tabId);
     translator.delete(tabId);
 
@@ -159,8 +163,8 @@ chrome.tabs.onRemoved.addListener(async tabId => {
 
     const id = keyFromTabId(opener);
 
-    chrome.cookies.getAll({}, async cookies => {
-        await Promise.allSettled(cookies.filter(cookie => cookie.name.startsWith(id)).map(cookie => {
+    chrome.cookies.getAll({}, async (cookies) => {
+        await Promise.allSettled(cookies.filter((cookie) => cookie.name.startsWith(id)).map((cookie) => {
             return chrome.cookies.remove({
                 name: cookie.name,
                 url: getCookieURL(cookie),
@@ -185,13 +189,13 @@ const getProxyConfiguration = (scheme, host, port) => {
                 host,
                 port,
             },
-        }
+        },
     };
 };
 
 const localhostIpCache = new Map();
 const localHostIp = [127, 0, 0, 0];
-const getNextLocalhostIp = openerId => {
+const getNextLocalhostIp = (openerId) => {
     if (localhostIpCache.has(openerId)) {
         return localhostIpCache.get(openerId);
     }
@@ -241,7 +245,7 @@ if (isFirefox) {
     // Therefore users need to manually set the DNS settings.
 
     browser.proxy.onRequest.addListener(
-        details => {
+        (details) => {
             const openerId = getOpenerId(details.tabId);
 
             if (typeof proxyPort === 'number') {
@@ -250,18 +254,17 @@ if (isFirefox) {
                     host: getNextLocalhostIp(openerId),
                     port: proxyPort,
                 };
-            } else {
-                return {
-                    type: 'direct',
-                };
             }
+            return {
+                type: 'direct',
+            };
         },
-        {urls: ['<all_urls>']},
+        { urls: ['<all_urls>'] },
     );
 } else {
     // The connection is not yet created with `onBeforeSendHeaders`, but is with `onSendHeaders`.
     chrome.webRequest.onBeforeSendHeaders.addListener(
-        details => {
+        (details) => {
             const openerId = getOpenerId(details.tabId);
 
             if (typeof proxyPort === 'number') {
@@ -273,7 +276,7 @@ if (isFirefox) {
                 chrome.proxy.settings.clear({});
             }
         },
-        {urls: ['<all_urls>']},
+        { urls: ['<all_urls>'] },
         webRequestPermissions.blockingRequest,
     );
 }
@@ -281,7 +284,7 @@ if (isFirefox) {
 // External communication. Note: the JSON keys are lowercased by the browser.
 const routes = Object.assign(Object.create(null), {
     async tabid(details) {
-        return {tabid: details.tabId, proxyip: getNextLocalhostIp(details.tabId)};
+        return { tabid: details.tabId, proxyip: getNextLocalhostIp(details.tabId) };
     },
     async proxy(details, body) {
         proxyPort = body.port;
@@ -290,7 +293,7 @@ const routes = Object.assign(Object.create(null), {
     },
 });
 
-chrome.webNavigation.onCompleted.addListener(async details => {
+chrome.webNavigation.onCompleted.addListener(async (details) => {
     const textPlain = 'data:text/plain,';
 
     if (details.frameId === 0 && details.url.startsWith(textPlain)) {
@@ -312,7 +315,7 @@ chrome.webNavigation.onCompleted.addListener(async details => {
                 // Different protocols are required, otherwise `onCompleted` won't be emitted.
                 const result = await routes[route](details, body);
                 if (result !== undefined) {
-                    await chrome.tabs.update(details.tabId, {url: 'about:blank#' + encodeURIComponent(JSON.stringify(result))});
+                    await chrome.tabs.update(details.tabId, { url: `about:blank#${encodeURIComponent(JSON.stringify(result))}` });
                 }
             }
         } catch {
@@ -330,7 +333,7 @@ chrome.webNavigation.onCompleted.addListener(async details => {
     // because the opener is the current tab active.
     //
     // This events only fires when the page opens something.
-    chrome.webNavigation.onCreatedNavigationTarget.addListener(details => {
+    chrome.webNavigation.onCreatedNavigationTarget.addListener((details) => {
         translator.set(details.tabId, getOpenerId(details.sourceTabId));
 
         const opener = getOpenerId(details.tabId);
@@ -342,7 +345,7 @@ chrome.webNavigation.onCompleted.addListener(async details => {
         }
     });
 
-    chrome.webNavigation.onCommitted.addListener(async details => {
+    chrome.webNavigation.onCommitted.addListener(async (details) => {
         if (details.url.startsWith('chrome')) {
             return;
         }
