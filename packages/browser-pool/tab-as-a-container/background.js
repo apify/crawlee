@@ -194,7 +194,7 @@ const getProxyConfiguration = (scheme, host, port) => {
 };
 
 const localhostIpCache = new Map();
-const localHostIp = [127, 0, 0, 0];
+const localHostIp = [127, 0, 0, 1];
 const getNextLocalhostIp = (openerId) => {
     if (localhostIpCache.has(openerId)) {
         return localhostIpCache.get(openerId);
@@ -204,14 +204,13 @@ const getNextLocalhostIp = (openerId) => {
 
     localhostIpCache.set(openerId, result);
 
-    // 255 * 255 * 255 = 16 581 375
-    if (localHostIp[3] === 255) {
-        if (localHostIp[2] === 255) {
-            if (localHostIp[1] === 255) {
+    if (localHostIp[3] === 254) {
+        if (localHostIp[2] === 254) {
+            if (localHostIp[1] === 254) {
                 localHostIp[0] = 127;
                 localHostIp[1] = 0;
                 localHostIp[2] = 0;
-                localHostIp[3] = 0;
+                localHostIp[3] = 1;
             } else {
                 localHostIp[1]++;
             }
@@ -222,7 +221,8 @@ const getNextLocalhostIp = (openerId) => {
         localHostIp[3]++;
     }
 
-    while (localhostIpCache.length >= (1 * 255 * 255 * 255)) {
+    // [127.0.0.1 - 127.255.255.254] = 1 * 254 * 254 * 254 = 16 387 064
+    while (localhostIpCache.length >= (1 * 254 * 254 * 254)) {
         localhostIpCache.delete(localhostIpCache.keys().next().value);
     }
 
