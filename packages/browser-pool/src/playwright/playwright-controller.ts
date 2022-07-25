@@ -75,6 +75,17 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                     (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyip, url.href);
                 }
 
+                const session = await page.context().newCDPSession(page);
+                await session.send('Network.enable');
+
+                session.on('Network.responseReceived', (responseRecevied) => {
+                    const { remoteIPAddress } = responseRecevied.response;
+                    if (remoteIPAddress && remoteIPAddress !== proxyip) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`Request to ${responseRecevied.response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
+                    }
+                });
+
                 tabIds.set(page, tabid);
             }
 
