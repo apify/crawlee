@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import type { WorkerReceivedMessage } from '../utils';
