@@ -36,7 +36,7 @@ afterAll(() => {
     server.close();
 });
 
-describe('utils.puppeteer', () => {
+describe('puppeteerUtils', () => {
     let ll: number;
     const localStorageEmulator = new MemoryStorageEmulator();
 
@@ -152,6 +152,22 @@ describe('utils.puppeteer', () => {
                     isDefined: true,
                     text: '',
                 });
+            } finally {
+                await browser.close();
+            }
+        });
+
+        test('parseWithCheerio() works', async () => {
+            const browser = await method(launchContext);
+
+            try {
+                const page = await browser.newPage();
+                await page.goto('https://www.example.com');
+
+                const $ = await puppeteerUtils.parseWithCheerio(page);
+
+                const title = $('h1').text().trim();
+                expect(title).toBe('Example Domain');
             } finally {
                 await browser.close();
             }

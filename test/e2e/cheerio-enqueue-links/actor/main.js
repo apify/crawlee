@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import deepEqual from 'deep-equal';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
@@ -21,7 +21,7 @@ await Actor.main(async () => {
 
             if (loadedUrl.startsWith('https://drive')) {
                 const isEqual = deepEqual(results, { processedRequests: [], unprocessedRequests: [] });
-                await Actor.pushData({ isEqual });
+                await Dataset.pushData({ isEqual });
             }
         },
     });

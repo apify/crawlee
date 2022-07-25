@@ -59,7 +59,6 @@
         "@crawlee/core": "^3.0.1",
         "@crawlee/types": "^3.0.1",
         "@crawlee/utils": "^3.0.1",
-        "ow": "^0.28.1",
-        "tough-cookie": "^4.0.0"
+        "ow": "^0.28.1"
     }
 }

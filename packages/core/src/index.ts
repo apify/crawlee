@@ -13,5 +13,6 @@ export * from './serialization';
 export * from './session_pool';
 export * from './storages';
 export * from './validators';
+export * from './cookie_utils';
 export { PseudoUrl } from '@apify/pseudo_url';
 export { Dictionary, Awaitable, Constructor, StorageClient } from '@crawlee/types';

@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -29,7 +29,7 @@ await Actor.main(async () => {
                 const modifiedDate = $('ul.ActorHeader-stats time').attr('datetime');
                 const runCount = $('ul.ActorHeader-stats > li:nth-of-type(3)').text().match(/[\d,]+/)[0].replace(/,/g, '');
 
-                await Actor.pushData({
+                await Dataset.pushData({
                     url,
                     uniqueIdentifier,
                     title,

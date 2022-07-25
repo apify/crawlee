@@ -66,10 +66,10 @@ export interface SnapshotterOptions {
     config?: Configuration;
 }
 
-type MemorySnapshot = { createdAt: Date; isOverloaded: boolean; usedBytes?: number };
-type CpuSnapshot = { createdAt: Date; isOverloaded: boolean; usedRatio: number; ticks?: { idle: number; total: number } };
-type EventLoopSnapshot = { createdAt: Date; isOverloaded: boolean; exceededMillis: number };
-type ClientSnapshot = { createdAt: Date; isOverloaded: boolean; rateLimitErrorCount: number };
+interface MemorySnapshot { createdAt: Date; isOverloaded: boolean; usedBytes?: number }
+interface CpuSnapshot { createdAt: Date; isOverloaded: boolean; usedRatio: number; ticks?: { idle: number; total: number } }
+interface EventLoopSnapshot { createdAt: Date; isOverloaded: boolean; exceededMillis: number }
+interface ClientSnapshot { createdAt: Date; isOverloaded: boolean; rateLimitErrorCount: number }
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource

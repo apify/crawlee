@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from '@docusaurus/Link';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { useDocsVersion } from '@docusaurus/theme-common';
+import { useDocsVersion } from '@docusaurus/theme-common/internal';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 const ApiLink = ({ to, children }) => {

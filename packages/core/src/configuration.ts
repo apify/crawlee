@@ -57,7 +57,7 @@ export interface ConfigurationOptions {
  * ---|---|---
  * `memoryMbytes` | `CRAWLEE_MEMORY_MBYTES` | -
  * `logLevel` | `CRAWLEE_LOG_LEVEL` | -
- * `headless` | `CRAWLEE_HEADLESS` | -
+ * `headless` | `CRAWLEE_HEADLESS` | `true`
  * `defaultDatasetId` | `CRAWLEE_DEFAULT_DATASET_ID` | `'default'`
  * `defaultKeyValueStoreId` | `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
  * `defaultRequestQueueId` | `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
@@ -76,7 +76,7 @@ export class Configuration {
     /**
      * Maps environment variables to config keys (e.g. `CRAWLEE_MEMORY_MBYTES` to `memoryMbytes`)
      */
-    protected static ENV_MAP = {
+    protected static ENV_MAP: Dictionary = {
         CRAWLEE_AVAILABLE_MEMORY_RATIO: 'availableMemoryRatio',
         CRAWLEE_PURGE_ON_START: 'purgeOnStart',
         CRAWLEE_MEMORY_MBYTES: 'memoryMbytes',
@@ -93,11 +93,11 @@ export class Configuration {
         CRAWLEE_LOG_LEVEL: 'logLevel',
     };
 
-    protected static BOOLEAN_VARS: string[] = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox'];
+    protected static BOOLEAN_VARS = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox'];
 
     protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
 
-    protected static DEFAULTS = {
+    protected static DEFAULTS: Dictionary = {
         defaultKeyValueStoreId: 'default',
         defaultDatasetId: 'default',
         defaultRequestQueueId: 'default',
@@ -106,6 +106,7 @@ export class Configuration {
         availableMemoryRatio: 0.25,
         storageClientOptions: {},
         purgeOnStart: true,
+        headless: true,
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 60_000,
     };
@@ -151,7 +152,7 @@ export class Configuration {
 
         for (const [k, v] of entries(Configuration.ENV_MAP)) {
             if (key === v) {
-                envValue = process.env[k];
+                envValue = process.env[k as string];
 
                 if (envValue) {
                     break;

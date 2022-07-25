@@ -4,7 +4,7 @@ import type { AddressInfo } from 'net';
 import log from '@apify/log';
 import type {
     CrawlingContext,
-    FailedRequestHandler,
+    ErrorHandler,
     RequestHandler } from '@crawlee/basic';
 import {
     Request,
@@ -278,13 +278,13 @@ describe('BasicCrawler', () => {
             throw new Error(`This is an error ${errorHandlerCalls}`);
         };
 
-        const errorHandler: FailedRequestHandler = async ({ request }, error) => {
+        const errorHandler: ErrorHandler = async ({ request }, error) => {
             expect(error.message).toBe(`This is an error ${errorHandlerCalls}`);
             errorHandlerCalls++;
             request.label = `error_${errorHandlerCalls}`;
         };
 
-        const failedRequestHandler: FailedRequestHandler = async ({ request }, error) => {
+        const failedRequestHandler: ErrorHandler = async ({ request }, error) => {
             failed[request.url] = { request, error };
             failedRequestHandlerCalls++;
         };
@@ -322,7 +322,7 @@ describe('BasicCrawler', () => {
             processed[request.url] = request;
         };
 
-        const failedRequestHandler: FailedRequestHandler = async ({ request }, error) => {
+        const failedRequestHandler: ErrorHandler = async ({ request }, error) => {
             failed[request.url] = request;
             errors.push(error);
         };
@@ -362,7 +362,7 @@ describe('BasicCrawler', () => {
             throw new NonRetryableError('some-error');
         };
 
-        const failedRequestHandler: FailedRequestHandler = async ({ request }, error) => {
+        const failedRequestHandler: ErrorHandler = async ({ request }, error) => {
             failed[request.url] = request;
             errors.push(error);
         };
@@ -399,7 +399,7 @@ describe('BasicCrawler', () => {
             throw new CriticalError('some-error');
         };
 
-        const failedRequestHandler = jest.fn() as FailedRequestHandler;
+        const failedRequestHandler = jest.fn() as ErrorHandler;
 
         const basicCrawler = new BasicCrawler({
             requestList,
@@ -421,7 +421,7 @@ describe('BasicCrawler', () => {
         ];
         const requestList = await RequestList.open(null, sources);
 
-        const failedRequestHandler = jest.fn() as FailedRequestHandler;
+        const failedRequestHandler = jest.fn() as ErrorHandler;
 
         const basicCrawler = new BasicCrawler({
             requestList,

@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -15,7 +15,7 @@ await Actor.main(async () => {
         async requestHandler({ page, enqueueLinks, request }) {
             const { url } = request;
             const pageTitle = await page.title();
-            await Actor.pushData({ url, pageTitle });
+            await Dataset.pushData({ url, pageTitle });
             await enqueueLinks({ regexps: [/^https:\/\/apify\.com(\/[\w-]+)?$/i] });
         },
     });

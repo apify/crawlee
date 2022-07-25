@@ -17,6 +17,7 @@ import type {
     SessionPoolOptions,
 } from '@crawlee/core';
 import {
+    mergeCookies,
     AutoscaledPool,
     Configuration,
     type CrawlingContext,
@@ -46,7 +47,7 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
 }
 
 /** @internal */
-export type BasicCrawlerEnqueueLinksOptions = Omit<EnqueueLinksOptions, 'requestQueue'>
+export interface BasicCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'requestQueue'> {}
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -61,7 +62,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context) => Awaitable<void>;
 
-export type FailedRequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
+export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -144,7 +145,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: FailedRequestHandler<Context>;
+    errorHandler?: ErrorHandler<Context>;
 
     /**
      * A function to handle requests that failed more than {@link BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
@@ -154,7 +155,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    failedRequestHandler?: FailedRequestHandler<Context>;
+    failedRequestHandler?: ErrorHandler<Context>;
 
     /**
      * A function to handle requests that failed more than {@link BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
@@ -167,7 +168,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
      * @ignore
      */
-    handleFailedRequestFunction?: FailedRequestHandler<Context>;
+    handleFailedRequestFunction?: ErrorHandler<Context>;
 
     /**
      * Indicates how many times the request is retried if {@link BasicCrawlerOptions.requestHandler|`requestHandler`} fails.
@@ -335,8 +336,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
-    protected errorHandler?: FailedRequestHandler<Context>;
-    protected failedRequestHandler?: FailedRequestHandler<Context>;
+    protected errorHandler?: ErrorHandler<Context>;
+    protected failedRequestHandler?: ErrorHandler<Context>;
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
@@ -1062,7 +1063,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     protected _getCookieHeaderFromRequest(request: Request) {
-        return request.headers?.Cookie ?? request.headers?.cookie ?? '';
+        if (request.headers?.Cookie && request.headers?.cookie) {
+            this.log.warning(`Encountered mixed casing for the cookie headers for request ${request.url} (${request.id}). Their values will be merged.`);
+            return mergeCookies(request.url, [request.headers.cookie, request.headers.Cookie]);
+        }
+
+        return request.headers?.Cookie || request.headers?.cookie || '';
     }
 }
 

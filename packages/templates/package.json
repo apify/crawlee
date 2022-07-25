@@ -39,10 +39,11 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "npm run clean && npm run compile && npm run copy",
+        "build": "npm run clean && npm run compile && npm run copy && npm run copy-templates",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
-        "copy": "node ./scripts/copy-templates.mjs && ts-node -T ../../scripts/copy.ts"
+        "copy-templates": "node ./scripts/copy-templates.mjs",
+        "copy": "ts-node -T ../../scripts/copy.ts"
     },
     "publishConfig": {
         "access": "public"

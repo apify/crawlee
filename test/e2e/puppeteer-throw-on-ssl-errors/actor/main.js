@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -25,7 +25,7 @@ await Actor.main(async () => {
             } else if (label === 'DETAIL') {
                 log.info(`Scraping ${url}`);
                 const title = await page.title();
-                await Actor.pushData({ url, title });
+                await Dataset.pushData({ url, title });
             }
         },
     });

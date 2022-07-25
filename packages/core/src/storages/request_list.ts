@@ -893,5 +893,5 @@ export interface RequestListState {
 }
 
 export type Source = string | (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | Request;
-type InternalSource = { requestsFromUrl: string; regex?: RegExp };
+interface InternalSource { requestsFromUrl: string; regex?: RegExp }
 export type RequestListSourcesFunction = () => Promise<Source[]>;

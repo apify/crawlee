@@ -1,7 +1,7 @@
 /* eslint-disable import/export */
 
 import { log, enqueueLinks } from '@crawlee/core';
-import { social } from '@crawlee/utils';
+import { social, sleep } from '@crawlee/utils';
 import { puppeteerUtils } from '@crawlee/puppeteer';
 import { playwrightUtils } from '@crawlee/playwright';
 
@@ -19,4 +19,5 @@ export const utils = {
     log,
     enqueueLinks,
     social,
+    sleep,
 };

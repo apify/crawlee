@@ -1,5 +1,5 @@
 import type {
-    BrowserCrawlerHandleRequest,
+    BrowserRequestHandler,
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
@@ -14,10 +14,10 @@ import { PuppeteerLauncher } from './puppeteer-launcher';
 import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
 import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
 
-export type PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> =
-    BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData> & PuppeteerContextUtils;
-export type PuppeteerHook = BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions>;
-export type PuppeteerRequestHandler = BrowserCrawlerHandleRequest<PuppeteerCrawlingContext>;
+export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends
+    BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
+export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
+export interface PuppeteerRequestHandler extends BrowserRequestHandler<PuppeteerCrawlingContext> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
 export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<

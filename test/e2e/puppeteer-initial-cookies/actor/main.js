@@ -1,19 +1,19 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
-const initialCookies = [
+const expectedCookies = [
     {
-        name: 'test',
-        value: 'testing cookies',
+        name: 'initial_request',
+        value: 'true',
     },
     {
-        name: 'store',
-        value: 'value store',
+        name: 'session',
+        value: 'true',
     },
     {
-        name: 'market_place',
-        value: 'value market place',
+        name: 'hook_request',
+        value: 'true',
     },
 ];
 
@@ -25,24 +25,38 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         preNavigationHooks: [({ session, request }, goToOptions) => {
-            session.setCookies(initialCookies, request.url);
+            session.setCookies([
+                {
+                    name: 'session',
+                    value: 'true',
+                },
+            ], request.url);
+            request.headers.cookie = 'hook_request=true';
+
             goToOptions.waitUntil = ['networkidle2'];
         }],
         async requestHandler({ page }) {
-            const initialCookiesLength = initialCookies.length;
+            const initialCookiesLength = expectedCookies.length;
 
             const pageCookies = await page.cookies();
 
             let numberOfMatchingCookies = 0;
-            for (const cookie of initialCookies) {
+            for (const cookie of expectedCookies) {
                 if (pageCookies.some((pageCookie) => pageCookie.name === cookie.name && pageCookie.value === cookie.value)) {
                     numberOfMatchingCookies++;
                 }
             }
 
-            await Actor.pushData({ initialCookiesLength, numberOfMatchingCookies });
+            await Dataset.pushData({ initialCookiesLength, numberOfMatchingCookies });
         },
     });
 
-    await crawler.run(['https://api.apify.com/v2/browser-info']);
+    await crawler.run([
+        {
+            url: 'https://api.apify.com/v2/browser-info',
+            headers: {
+                Cookie: 'initial_request=true',
+            },
+        },
+    ]);
 }, mainOptions);

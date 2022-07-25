@@ -59,6 +59,7 @@
         "@crawlee/browser-pool": "^3.0.1",
         "@crawlee/types": "^3.0.1",
         "@crawlee/utils": "^3.0.1",
+        "cheerio": "1.0.0-rc.12",
         "jquery": "^3.6.0",
         "ow": "^0.28.1"
     },

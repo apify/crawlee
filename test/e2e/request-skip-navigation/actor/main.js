@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler, log, Request } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset, log, Request } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 log.setLevel(log.LEVELS.DEBUG);
@@ -44,5 +44,5 @@ await Actor.main(async () => {
 
     await crawler.run([r1, r2, r3]);
 
-    await Actor.pushData({ requestCounter, navigationCounter });
+    await Dataset.pushData({ requestCounter, navigationCounter });
 }, mainOptions);

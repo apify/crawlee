@@ -173,7 +173,7 @@ export abstract class BrowserLauncher<
     }
 
     protected _getDefaultHeadlessOption(): boolean {
-        return this.config.get('headless', false) && !this.config.get('xvfb', false);
+        return this.config.get('headless')! && !this.config.get('xvfb', false);
     }
 
     protected _getChromeExecutablePath(): string {

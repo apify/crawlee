@@ -36,7 +36,7 @@ afterAll(() => {
     server.close();
 });
 
-describe('Apify.utils.playwright', () => {
+describe('playwrightUtils', () => {
     let ll: number;
     const localStorageEmulator = new MemoryStorageEmulator();
 
@@ -153,6 +153,22 @@ describe('Apify.utils.playwright', () => {
                     isDefined: true,
                     text: '',
                 });
+            } finally {
+                await browser.close();
+            }
+        });
+
+        test('parseWithCheerio() works', async () => {
+            const browser = await launchName(launchContext);
+
+            try {
+                const page = await browser.newPage();
+                await page.goto('https://www.example.com');
+
+                const $ = await playwrightUtils.parseWithCheerio(page);
+
+                const title = $('h1').text().trim();
+                expect(title).toBe('Example Domain');
             } finally {
                 await browser.close();
             }

@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -44,7 +44,7 @@ await Actor.main(async () => {
                     runCount: Number($('ul.ActorHeader-stats > li:nth-of-type(3)').text().match(/[\d,]+/)[0].replace(/,/g, '')), // eslint-disable-line
                 }));
 
-                await Actor.pushData({ url, uniqueIdentifier, ...results });
+                await Dataset.pushData({ url, uniqueIdentifier, ...results });
             }
         },
     });

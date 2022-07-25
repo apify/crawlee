@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler } from '@crawlee/cheerio';
+import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -23,7 +23,7 @@ await Actor.main(async () => {
                 const { url } = request;
                 log.info(`Scraping ${url}`);
                 const title = $('title').text();
-                await Actor.pushData({ url, title });
+                await Dataset.pushData({ url, title });
             }
         },
     });
