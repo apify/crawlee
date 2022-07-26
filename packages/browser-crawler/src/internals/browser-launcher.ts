@@ -38,9 +38,9 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useIncognitoPages?: boolean;
 
     /**
-    * @experimental
-    * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-    */
+     * @experimental
+     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
+     */
     experimentalContainers?: boolean;
 
     /**
