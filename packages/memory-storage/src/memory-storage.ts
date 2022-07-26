@@ -2,16 +2,16 @@
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { pathExistsSync } from 'fs-extra';
-import { readdir, rm } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { ensureDir, pathExistsSync } from 'fs-extra';
+import { rm, rename, readdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { DatasetClient } from './resource-clients/dataset';
 import { DatasetCollectionClient } from './resource-clients/dataset-collection';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';
 import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection';
 import { RequestQueueClient } from './resource-clients/request-queue';
 import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection';
-import { initWorkerIfNeeded } from './workers/instance';
+import { initWorkerIfNeeded, promiseMap } from './workers/instance';
 
 export interface MemoryStorageOptions {
     /**
@@ -114,32 +114,136 @@ export class MemoryStorage implements storage.StorageClient {
      *  - local directory containing the default request queue.
      */
     async purge(): Promise<void> {
-        const defaultDatasetPath = resolve(this.datasetsDirectory, 'default');
-        await this.removeFiles(defaultDatasetPath);
+        // Datasets
+        const datasets = await readdir(this.datasetsDirectory).catch(() => []);
+        const datasetPromises: Promise<void>[] = [];
 
-        const defaultKeyValueStorePath = resolve(this.keyValueStoresDirectory, 'default');
-        await this.removeFiles(defaultKeyValueStorePath);
+        for (const datasetFolder of datasets) {
+            if (datasetFolder === 'default' || datasetFolder.startsWith('__CRAWLEE_TEMPORARY')) {
+                datasetPromises.push((await this.batchRemoveFiles(resolve(this.datasetsDirectory, datasetFolder)))());
+            }
+        }
 
-        const defaultRequestQueuePath = resolve(this.requestQueuesDirectory, 'default');
-        await this.removeFiles(defaultRequestQueuePath);
+        void Promise.allSettled(datasetPromises);
+
+        // Request queues
+        const requestQueues = await readdir(this.requestQueuesDirectory).catch(() => []);
+        const requestQueuePromises: Promise<void>[] = [];
+
+        for (const requestQueueFolder of requestQueues) {
+            if (requestQueueFolder === 'default' || requestQueueFolder.startsWith('__CRAWLEE_TEMPORARY')) {
+                requestQueuePromises.push((await this.batchRemoveFiles(resolve(this.requestQueuesDirectory, requestQueueFolder)))());
+            }
+        }
+
+        void Promise.allSettled(requestQueuePromises);
+
+        // Key-value stores
+        const keyValueStores = await readdir(this.keyValueStoresDirectory).catch(() => []);
+        const keyValueStorePromises: Promise<void>[] = [];
+
+        for (const keyValueStoreFolder of keyValueStores) {
+            if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY')) {
+                keyValueStorePromises.push((await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
+            } else if (keyValueStoreFolder === 'default') {
+                keyValueStorePromises.push((await this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
+            }
+        }
+
+        void Promise.allSettled(keyValueStorePromises);
     }
 
-    private async removeFiles(folder: string): Promise<void> {
+    /**
+     * This method should be called at the end of the process, to ensure all data is saved.
+     */
+    async teardown(): Promise<void> {
+        const promises = [...promiseMap.values()].map(({ promise }) => promise);
+
+        await Promise.all(promises);
+    }
+
+    private async handleDefaultKeyValueStore(folder: string): Promise<() => Promise<void>> {
         const storagePathExists = pathExistsSync(folder);
+        const temporaryPath = resolve(folder, '../__CRAWLEE_MIGRATING_KEY_VALUE_STORE__');
+
+        // For optimization, we want to only attempt to copy a few files from the default key-value store
+        const possibleInputKeys = [
+            'INPUT',
+            'INPUT.json',
+            'INPUT.bin',
+            'INPUT.txt',
+        ];
 
         if (storagePathExists) {
-            const direntNames = await readdir(folder);
-            const deletePromises = [];
+            // Create temporary folder to save important files in
+            await ensureDir(temporaryPath);
 
-            for (const direntName of direntNames) {
-                const fileName = join(folder, direntName);
+            // Go through each file and save the ones that are important
+            for (const entity of possibleInputKeys) {
+                const originalFilePath = resolve(folder, entity);
+                const tempFilePath = resolve(temporaryPath, entity);
 
-                if (!fileName.match(/INPUT/)) {
-                    deletePromises.push(rm(fileName, { recursive: true, force: true }));
+                try {
+                    await rename(originalFilePath, tempFilePath);
+                } catch {
+                    // Ignore
                 }
             }
 
-            await Promise.all(deletePromises);
+            // Remove the original folder and all its content
+            const tempPathForOldFolder = resolve(folder, '../__OLD_DEFAULT__');
+            await rename(folder, tempPathForOldFolder);
+
+            // Replace the temporary folder with the original folder
+            await rename(temporaryPath, folder);
+
+            // Remove the old folder
+            return async () => (await this.batchRemoveFiles(tempPathForOldFolder))();
         }
+
+        return () => Promise.resolve();
+    }
+
+    private async batchRemoveFiles(folder: string, counter = 0): Promise<() => Promise<void>> {
+        const folderExists = pathExistsSync(folder);
+
+        if (folderExists) {
+            const temporaryFolder = folder.startsWith('__CRAWLEE_TEMPORARY_') ? folder : resolve(folder, `../__CRAWLEE_TEMPORARY_${counter}__`);
+
+            try {
+                // Rename the old folder to the new one to allow background deletions
+                await rename(folder, temporaryFolder);
+            } catch {
+                // Folder exists already, try again with an incremented counter
+                return this.batchRemoveFiles(folder, ++counter);
+            }
+
+            return async () => {
+                // Read all files in the folder
+                const entries = await readdir(temporaryFolder);
+
+                let processed = 0;
+                let promises: Promise<void>[] = [];
+
+                for (const entry of entries) {
+                    processed++;
+                    promises.push(rm(resolve(temporaryFolder, entry), { force: true }));
+
+                    // Every 2000 files, delete them
+                    if (processed % 2000 === 0) {
+                        await Promise.allSettled(promises);
+                        promises = [];
+                    }
+                }
+
+                // Ensure last promises are handled
+                await Promise.allSettled(promises);
+
+                // Delete the folder itself
+                await rm(temporaryFolder, { force: true, recursive: true });
+            };
+        }
+
+        return () => Promise.resolve();
     }
 }
