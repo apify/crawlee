@@ -79,6 +79,11 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                 await session.send('Network.enable');
 
                 session.on('Network.responseReceived', (responseRecevied) => {
+                    const skipLogging = ['Document', 'XHR', 'Fetch', 'EventSource', 'WebSocket', 'Other'];
+                    if (!skipLogging.includes(responseRecevied.type)) {
+                        return;
+                    }
+
                     const { response } = responseRecevied;
                     if (response.fromDiskCache || response.fromPrefetchCache || response.fromServiceWorker) {
                         return;
