@@ -156,7 +156,7 @@ export class MemoryStorage implements storage.StorageClient {
     /**
      * This method should be called at the end of the process, to ensure all data is saved.
      */
-    async waitForFilesToSync(): Promise<void> {
+    async teardown(): Promise<void> {
         const promises = [...promiseMap.values()].map(({ promise }) => promise);
 
         await Promise.all(promises);

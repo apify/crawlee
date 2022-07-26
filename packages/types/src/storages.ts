@@ -297,6 +297,6 @@ export interface StorageClient {
     requestQueues(): RequestQueueCollectionClient;
     requestQueue(id: string, options?: RequestQueueOptions): RequestQueueClient;
     purge?(): Promise<void>;
-    waitForFilesToSync?(): Promise<void>;
+    teardown?(): Promise<void>;
     stats?: { rateLimitErrors: number[] };
 }
