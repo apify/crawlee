@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import type { WorkerReceivedMessage } from '../utils';
@@ -21,7 +20,9 @@ export function initWorkerIfNeeded() {
     });
 
     const workerPath = resolve(__dirname, './file-storage-worker.js');
-    const exists = existsSync(workerPath);
+    // vladfrangu: The worker is temporarily disabled due to node/v8 having internal bugs that sometimes cause hard crashes when the process exits.
+    // const exists = existsSync(workerPath);
+    const exists = false;
 
     if (exists) {
         workerInstance = new Worker(workerPath);
