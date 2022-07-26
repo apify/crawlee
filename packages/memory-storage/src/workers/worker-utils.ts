@@ -2,11 +2,12 @@ import log from '@apify/log';
 import { ensureDir } from 'fs-extra';
 import { rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { parentPort } from 'node:worker_threads';
 import type { WorkerDeleteEntryMessage, WorkerReceivedMessage, WorkerUpdateEntriesMessage, WorkerUpdateMetadataMessage } from '../utils';
 
 const workerLog = log.child({ prefix: 'MemoryStorageWorker' });
 
-export async function handleMessage(message: WorkerReceivedMessage) {
+export async function handleMessage(message: WorkerReceivedMessage & { messageId: string }) {
     switch (message.action) {
         case 'update-metadata':
             await updateMetadata(message);
@@ -22,6 +23,11 @@ export async function handleMessage(message: WorkerReceivedMessage) {
             // we should be aware of them
             workerLog.warning(`Unknown worker message action ${(message as WorkerReceivedMessage).action}`);
     }
+
+    parentPort?.postMessage({
+        type: 'ack',
+        messageId: message.messageId,
+    });
 }
 
 async function updateMetadata(message: WorkerUpdateMetadataMessage) {

@@ -2,16 +2,16 @@
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { pathExistsSync } from 'fs-extra';
-import { readdir, rm } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { ensureDir, pathExistsSync } from 'fs-extra';
+import { opendir, rm, rename } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { DatasetClient } from './resource-clients/dataset';
 import { DatasetCollectionClient } from './resource-clients/dataset-collection';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';
 import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection';
 import { RequestQueueClient } from './resource-clients/request-queue';
 import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection';
-import { initWorkerIfNeeded } from './workers/instance';
+import { initWorkerIfNeeded, promiseMap } from './workers/instance';
 
 export interface MemoryStorageOptions {
     /**
@@ -115,31 +115,49 @@ export class MemoryStorage implements storage.StorageClient {
      */
     async purge(): Promise<void> {
         const defaultDatasetPath = resolve(this.datasetsDirectory, 'default');
-        await this.removeFiles(defaultDatasetPath);
+        await rm(defaultDatasetPath, { recursive: true, force: true });
 
         const defaultKeyValueStorePath = resolve(this.keyValueStoresDirectory, 'default');
-        await this.removeFiles(defaultKeyValueStorePath);
+        const temporaryKeyValueStorePath = resolve(this.keyValueStoresDirectory, '__CRAWLEE_TEMPORARY__');
+        await this.removeFiles(defaultKeyValueStorePath, temporaryKeyValueStorePath);
 
         const defaultRequestQueuePath = resolve(this.requestQueuesDirectory, 'default');
-        await this.removeFiles(defaultRequestQueuePath);
+        await rm(defaultRequestQueuePath, { recursive: true, force: true });
     }
 
-    private async removeFiles(folder: string): Promise<void> {
+    /**
+     * This method should be called at the end of the process, to ensure all data is saved.
+     */
+    async waitForFilesToSync(): Promise<void> {
+        const promises = [...promiseMap.values()].map(({ promise }) => promise);
+
+        await Promise.all(promises);
+    }
+
+    private async removeFiles(folder: string, temporaryPath: string): Promise<void> {
         const storagePathExists = pathExistsSync(folder);
 
         if (storagePathExists) {
-            const direntNames = await readdir(folder);
-            const deletePromises = [];
+            // Create temporary folder to save important files in
+            await ensureDir(temporaryPath);
 
-            for (const direntName of direntNames) {
-                const fileName = join(folder, direntName);
+            // Go through each file and save the ones that are important
+            for await (const entity of await opendir(folder)) {
+                if (entity.name.match(/INPUT/)) {
+                    const originalFilePath = resolve(folder, entity.name);
+                    const tempFilePath = resolve(folder, entity.name);
 
-                if (!fileName.match(/INPUT/)) {
-                    deletePromises.push(rm(fileName, { recursive: true, force: true }));
+                    await rename(originalFilePath, tempFilePath);
                 }
             }
 
-            await Promise.all(deletePromises);
+            // Remove the original folder and all its content
+            const tempPathForOldFolder = resolve(folder, '../__OLD_DEFAULT__');
+            await rename(folder, tempPathForOldFolder);
+            void rm(tempPathForOldFolder, { force: true, recursive: true });
+
+            // Replace the temporary folder with the original folder
+            await rename(temporaryPath, folder);
         }
     }
 }
