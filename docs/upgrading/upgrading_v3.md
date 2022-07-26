@@ -192,7 +192,7 @@ Moreover, we can specify patterns the URL should match via globs:
 const crawler = new PlaywrightCrawler({
     async requestHandler({ enqueueLinks }) {
         await enqueueLinks({
-            globs: ['https://apify.com/*/*'],
+            globs: ['https://crawlee.dev/*/*'],
             // we can also use `regexps` and `pseudoUrls` keys here
         });
     },

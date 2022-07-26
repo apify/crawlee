@@ -2,7 +2,7 @@
 import { CheerioCrawler, KeyValueStore, log, ProxyConfiguration } from 'crawlee';
 import { router } from './routes.js';
 
-const { startUrls = ['https://apify.com'], debug } = await KeyValueStore.getInput() ?? {};
+const { startUrls = ['https://crawlee.dev'], debug } = await KeyValueStore.getInput() ?? {};
 
 if (debug) {
     log.setLevel(log.LEVELS.DEBUG);
@@ -15,8 +15,4 @@ const crawler = new CheerioCrawler({
     requestHandler: router,
 });
 
-await crawler.addRequests(startUrls);
-
-log.info('Starting the crawl.');
-await crawler.run();
-log.info('Crawl finished.');
+await crawler.run(startUrls);

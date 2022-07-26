@@ -5,7 +5,7 @@ export const router = createPuppeteerRouter();
 router.addDefaultHandler(async ({ enqueueLinks, log }) => {
     log.info(`Handle Start URLs`);
     await enqueueLinks({
-        globs: ['https://apify.com/*'],
+        globs: ['https://crawlee.dev/*'],
         label: 'DETAIL',
     });
 });
