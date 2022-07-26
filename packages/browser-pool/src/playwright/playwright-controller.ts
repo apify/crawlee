@@ -79,10 +79,15 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                 await session.send('Network.enable');
 
                 session.on('Network.responseReceived', (responseRecevied) => {
-                    const { remoteIPAddress } = responseRecevied.response;
+                    const { response } = responseRecevied;
+                    if (response.fromDiskCache || response.fromPrefetchCache || response.fromServiceWorker) {
+                        return;
+                    }
+
+                    const { remoteIPAddress } = response;
                     if (remoteIPAddress && remoteIPAddress !== proxyip) {
                         // eslint-disable-next-line no-console
-                        console.warn(`Request to ${responseRecevied.response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
+                        console.warn(`Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
                     }
                 });
 
