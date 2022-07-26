@@ -9,7 +9,6 @@ interface InputSchema {
 
 const { startUrls = ['https://apify.com'], debug } = await KeyValueStore.getInput<InputSchema>() ?? {};
 
-log.setLevel(log.LEVELS.DEBUG);
 if (debug) {
     log.setLevel(log.LEVELS.DEBUG);
 }
