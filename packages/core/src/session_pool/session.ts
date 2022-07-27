@@ -1,18 +1,14 @@
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { Dictionary, Cookie as CookieObject, BrowserLikeResponse } from '@crawlee/types';
+import type { BrowserLikeResponse, Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import type { IncomingMessage } from 'node:http';
 import { EventEmitter } from 'node:events';
 import ow from 'ow';
 import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
-import { STATUS_CODES_BLOCKED } from '../constants';
 import { log as defaultLog } from '../log';
 import { EVENT_SESSION_RETIRED } from './events';
 import { browserPoolCookieToToughCookie, getCookiesFromResponse, getDefaultCookieExpirationDate, toughCookieToBrowserPoolCookie } from '../cookie_utils';
-
-// CONSTANTS
-const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
 
 /**
  * Persistable {@link Session} state.
@@ -134,7 +130,7 @@ export class Session {
             sessionPool,
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
-            maxAgeSecs = DEFAULT_SESSION_MAX_AGE_SECS,
+            maxAgeSecs = 3000,
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
@@ -268,7 +264,7 @@ export class Session {
      * @returns Whether the session was retired.
      */
     retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes: number[] = []): boolean {
-        const isBlocked = STATUS_CODES_BLOCKED.concat(blockedStatusCodes).includes(statusCode);
+        const isBlocked = this.sessionPool.getBlockedStatusCodes(blockedStatusCodes).includes(statusCode);
         if (isBlocked) {
             this.retire();
         }
