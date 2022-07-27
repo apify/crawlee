@@ -97,7 +97,7 @@ export async function runActor(dirName, memory = 4096) {
 
         await import(join(dirName, 'main.js'));
 
-        await setTimeout(10);
+        await setTimeout(50);
         stats = await getStats(dirName);
         datasetItems = await getDatasetItems(dirName);
     }

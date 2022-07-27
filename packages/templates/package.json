@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/templates",
-    "version": "3.0.1",
+    "version": "3.0.2",
     "description": "Templates for the crawlee projects",
     "engines": {
         "node": ">=16.0.0"
@@ -39,7 +39,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "npm run clean && npm run compile && npm run copy && npm run copy-templates",
+        "build": "npm run clean && npm run compile && npm run copy-templates && npm run copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy-templates": "node ./scripts/copy-templates.mjs",

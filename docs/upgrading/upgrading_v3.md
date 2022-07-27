@@ -7,14 +7,18 @@ import ApiLink from '@site/src/components/ApiLink';
 
 This page summarizes most of the breaking changes between Crawlee (v3) and Apify SDK (v2). Crawlee is the spiritual successor to Apify SDK, so we decided to keep the versioning and release Crawlee as v3.
 
-## Crawlee vs Apify SDK
+:::info Crawlee vs Apify SDK v2
 
 Up until version 3 of `apify`, the package contained both scraping related tools and Apify platform related helper methods. With v3 we are splitting the whole project into two main parts:
 
-- Crawlee, the new web-scraping library, available as `crawlee` package on NPM
-- Apify SDK, helpers for the Apify platform, available as `apify` package on NPM
+- [Crawlee](https://github.com/apify/crawlee), the new web-scraping library, available as [`crawlee`](https://www.npmjs.com/package/crawlee) package on NPM
+- [Apify SDK](https://github.com/apify/apify-sdk-js), helpers for the Apify platform, available as [`apify`](https://www.npmjs.com/package/apify) package on NPM
 
-Moreover, the Crawlee library is published as several packages under `@crawlee` namespace:
+:::
+
+## Crawlee monorepo
+
+The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of several smaller packages, released separately under `@crawlee` namespace:
 
 - `@crawlee/core`: the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
 - `@crawlee/basic`: exports `BasicCrawler`
@@ -29,25 +33,25 @@ Moreover, the Crawlee library is published as several packages under `@crawlee` 
 
 ### Installing Crawlee
 
-> As Crawlee is not yet released as `latest`, we need to install from the `next` distribution tag!
-
 Most of the Crawlee packages are extending and reexporting each other, so it's enough to install just the one you plan on using, e.g. `@crawlee/playwright` if you plan on using `playwright` - it already contains everything from the `@crawlee/browser` package, which includes everything from `@crawlee/basic`, which includes everything from `@crawlee/core`.
 
+If we don't care much about additional code being pulled in, we can just use the `crawlee` meta-package, which contains (re-exports) most of the `@crawlee/*` packages, and therefore contains all the crawler classes.
+
 ```bash
-npm install crawlee@next
+npm install crawlee
 ```
 
-Or if all we need is cheerio support, we can install only @crawlee/cheerio
+Or if all we need is cheerio support, we can install only `@crawlee/cheerio`.
 
 ```bash
-npm install @crawlee/cheerio@next
+npm install @crawlee/cheerio
 ```
 
 When using `playwright` or `puppeteer`, we still need to install those dependencies explicitly - this allows the users to be in control of which version will be used.
 
 ```bash
-npm install crawlee@next playwright
-# or npm install @crawlee/playwright@next playwright
+npm install crawlee playwright
+# or npm install @crawlee/playwright playwright
 ```
 
 Alternatively we can also use the `crawlee` meta-package which contains (re-exports) most of the `@crawlee/*` packages, and therefore contains all the crawler classes.
@@ -188,7 +192,7 @@ Moreover, we can specify patterns the URL should match via globs:
 const crawler = new PlaywrightCrawler({
     async requestHandler({ enqueueLinks }) {
         await enqueueLinks({
-            globs: ['https://apify.com/*/*'],
+            globs: ['https://crawlee.dev/*/*'],
             // we can also use `regexps` and `pseudoUrls` keys here
         });
     },

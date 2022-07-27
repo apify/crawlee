@@ -100,11 +100,17 @@ module.exports = {
                         from: '/docs',
                         to: '/docs/quick-start',
                     },
-                //     {
-                //         from: '/docs/next',
-                //         to: '/docs/next/quick-start',
-                //     },
+                    // {
+                    //     from: '/docs/next',
+                    //     to: '/docs/next/quick-start',
+                    // },
                 ],
+            },
+        ],
+        [
+            require.resolve('docusaurus-gtm-plugin'),
+            {
+                id: 'GTM-TKBX678',
             },
         ],
     ],
@@ -191,7 +197,7 @@ module.exports = {
             additionalLanguages: ['docker', 'log'],
         },
         metadata: [],
-        image: 'img/apify_og_SDK.png',
+        image: 'img/crawlee-og.png',
         footer: {
             links: [
                 {
@@ -208,6 +214,10 @@ module.exports = {
                         {
                             label: 'API reference',
                             to: 'api/core',
+                        },
+                        {
+                            label: 'Upgrading to v3',
+                            to: 'docs/upgrading/upgrading-to-v3',
                         },
                     ],
                 },
@@ -271,9 +281,6 @@ module.exports = {
             algoliaOptions: {
                 facetFilters: ['version:VERSION'],
             },
-        },
-        gaGtag: {
-            trackingID: 'UA-67003981-4',
         },
     }),
 };

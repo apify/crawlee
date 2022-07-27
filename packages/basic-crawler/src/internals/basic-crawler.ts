@@ -563,6 +563,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this.stats.startCapturing();
 
         try {
+            this.log.info('Starting the crawl');
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
@@ -576,7 +577,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             retryHistogram: this.stats.requestRetryHistogram,
             ...finalStats,
         };
-        this.log.info('Final request statistics:', stats);
+        this.log.info('Crawl finished. Final request statistics:', stats);
 
         return stats;
     }

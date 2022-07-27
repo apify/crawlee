@@ -196,7 +196,7 @@ export class AutoscaledPool {
     private _desiredConcurrency: number;
     private _currentConcurrency = 0;
     private isStopped = false;
-    private lastLoggingTime = 0;
+    private lastLoggingTime?: number;
     private resolve: ((val?: unknown) => void) | null = null;
     private reject: ((reason?: unknown) => void) | null = null;
     private snapshotter: Snapshotter;
@@ -274,7 +274,6 @@ export class AutoscaledPool {
         this._desiredConcurrency = desiredConcurrency ?? minConcurrency;
         this._currentConcurrency = 0;
         this.isStopped = false;
-        this.lastLoggingTime = 0;
         this.resolve = null;
         this.reject = null;
         this._autoscale = this._autoscale.bind(this);
@@ -592,7 +591,10 @@ export class AutoscaledPool {
         // On periodic intervals, print comprehensive log information
         if (this.loggingIntervalMillis > 0) {
             const now = Date.now();
-            if (now > this.lastLoggingTime + this.loggingIntervalMillis) {
+
+            if (this.lastLoggingTime == null) {
+                this.lastLoggingTime = now;
+            } else if (now > this.lastLoggingTime + this.loggingIntervalMillis) {
                 this.lastLoggingTime = now;
                 this.log.info('state', {
                     currentConcurrency: this._currentConcurrency,

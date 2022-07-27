@@ -19,7 +19,6 @@ import {
     Request,
     RequestList,
     Session,
-    STATUS_CODES_BLOCKED,
 } from '@crawlee/cheerio';
 import express from 'express';
 import fs from 'fs';
@@ -858,6 +857,7 @@ describe('CheerioCrawler', () => {
 
             await cheerioCrawler.run();
 
+            // @ts-expect-error private symbol
             const { sessions } = cheerioCrawler.sessionPool;
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
@@ -878,7 +878,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('should retire session on "blocked" status codes', async () => {
-            for (const code of STATUS_CODES_BLOCKED) {
+            for (const code of [401, 403, 429]) {
                 const failed: Request[] = [];
                 const sessions: Session[] = [];
                 const crawler = new CheerioCrawler({
@@ -899,7 +899,9 @@ describe('CheerioCrawler', () => {
                 });
                 await crawler.run();
 
+                // @ts-expect-error private symbol
                 expect(crawler.sessionPool.sessions.length).toBe(4);
+                // @ts-expect-error private symbol
                 // eslint-disable-next-line no-loop-func
                 crawler.sessionPool.sessions.forEach((session) => {
                     // @ts-expect-error Accessing private prop

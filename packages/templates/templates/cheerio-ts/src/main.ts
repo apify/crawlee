@@ -7,9 +7,8 @@ interface InputSchema {
     debug?: boolean;
 }
 
-const { startUrls = ['https://apify.com'], debug } = await KeyValueStore.getInput<InputSchema>() ?? {};
+const { startUrls = ['https://crawlee.dev'], debug } = await KeyValueStore.getInput<InputSchema>() ?? {};
 
-log.setLevel(log.LEVELS.DEBUG);
 if (debug) {
     log.setLevel(log.LEVELS.DEBUG);
 }
@@ -21,8 +20,4 @@ const crawler = new CheerioCrawler({
     requestHandler: router,
 });
 
-await crawler.addRequests(startUrls);
-
-log.info('Starting the crawl.');
-await crawler.run();
-log.info('Crawl finished.');
+await crawler.run(startUrls);

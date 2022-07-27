@@ -11,6 +11,6 @@ setInterval(() => {
     parentPort!.postMessage('ping');
 }, 30_000);
 
-parentPort!.on('message', async (message: WorkerReceivedMessage) => {
+parentPort!.on('message', async (message: WorkerReceivedMessage & { messageId: string }) => {
     await handleMessage(message);
 });

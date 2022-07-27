@@ -47,6 +47,13 @@ export interface SessionPoolOptions {
      */
     createSessionFunction?: CreateSession;
 
+    /**
+     * Specifies which response status codes are considered as blocked.
+     * Session connected to such request will be marked as retired.
+     * @default [401, 403, 429]
+     */
+    blockedStatusCodes?: number[];
+
     /** @internal */
     log?: Log;
 }
@@ -110,17 +117,18 @@ export interface SessionPoolOptions {
  * @category Scaling
  */
 export class SessionPool extends EventEmitter {
-    log: Log;
-    maxPoolSize: number;
-    createSessionFunction: CreateSession;
-    keyValueStore!: KeyValueStore;
-    sessions: Session[] = [];
-    sessionMap = new Map<string, Session>();
-    sessionOptions: SessionOptions;
-    persistStateKeyValueStoreId?: string;
-    persistStateKey: string;
-    private _listener!: () => Promise<void>;
-    private events: EventManager;
+    protected log: Log;
+    protected maxPoolSize: number;
+    protected createSessionFunction: CreateSession;
+    protected keyValueStore!: KeyValueStore;
+    protected sessions: Session[] = [];
+    protected sessionMap = new Map<string, Session>();
+    protected sessionOptions: SessionOptions;
+    protected persistStateKeyValueStoreId?: string;
+    protected persistStateKey: string;
+    protected _listener!: () => Promise<void>;
+    protected events: EventManager;
+    protected readonly blockedStatusCodes: number[];
 
     /**
      * @internal
@@ -134,22 +142,22 @@ export class SessionPool extends EventEmitter {
             persistStateKey: ow.optional.string,
             createSessionFunction: ow.optional.function,
             sessionOptions: ow.optional.object,
+            blockedStatusCodes: ow.optional.array.ofType(ow.number),
             log: ow.optional.object,
         }));
 
         const {
             maxPoolSize = 1000,
-
             persistStateKeyValueStoreId,
             persistStateKey = 'SDK_SESSION_POOL_STATE',
-
             createSessionFunction,
             sessionOptions = {},
-
+            blockedStatusCodes = [401, 403, 429],
             log = defaultLog,
         } = options;
 
         this.config = config;
+        this.blockedStatusCodes = blockedStatusCodes;
         this.events = config.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
 

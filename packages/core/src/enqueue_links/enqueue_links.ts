@@ -294,6 +294,20 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
         return finalUrlOrigin;
     }
 
+    // If the user wants to ensure the same domain is accessed, regardless of subdomains, we check to ensure the domains match
+    // Returning undefined here is intentional! If the domains don't match, having no baseUrl in enqueueLinks will cause it to not enqueue anything
+    // which is the intended behavior (since we went off domain)
+    if (enqueueStrategy === EnqueueStrategy.SameDomain) {
+        const originalHostname = getDomain(originalUrlOrigin, { mixedInputs: false })!;
+        const finalHostname = getDomain(finalUrlOrigin, { mixedInputs: false })!;
+
+        if (originalHostname === finalHostname) {
+            return finalUrlOrigin;
+        }
+
+        return undefined;
+    }
+
     // Always enqueue urls that are from the same origin in all other cases, as the filtering happens on the original request url, even if there was a redirect
     // before actually finding the urls
     return originalUrlOrigin;

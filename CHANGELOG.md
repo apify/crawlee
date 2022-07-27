@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.0.1](https://github.com/apify/crawlee/compare/v3.0.0...v3.0.1) (2022-07-26)
+
+### Fixes
+
+* remove `JSONData` generic type arg from `CheerioCrawler` in ([#1402](https://github.com/apify/crawlee/pull/1402))
+* rename default storage folder to just `storage` in ([#1403](https://github.com/apify/crawlee/pull/1403))
+* remove trailing slash for proxyUrl in ([#1405](https://github.com/apify/crawlee/pull/1405))
+* run browser crawlers in headless mode by default in ([#1409](https://github.com/apify/crawlee/pull/1409))
+* rename interface `FailedRequestHandler` to `ErrorHandler` in ([#1410](https://github.com/apify/crawlee/pull/1410))
+* ensure default route is not ignored in `CheerioCrawler` in ([#1411](https://github.com/apify/crawlee/pull/1411))
+* add `headless` option to `BrowserCrawlerOptions` in ([#1412](https://github.com/apify/crawlee/pull/1412))
+* processing custom cookies in ([#1414](https://github.com/apify/crawlee/pull/1414))
+* enqueue link not finding relative links if the checked page is redirected in ([#1416](https://github.com/apify/crawlee/pull/1416))
+* fix building projects with TS when puppeteer and playwright are not installed in ([#1404](https://github.com/apify/crawlee/pull/1404))
+* calling `enqueueLinks` in browser crawler on page without any links in ([385ca27](https://github.com/apify/crawlee/commit/385ca27c4c50096f2e28bf0da369d6aaf849a73b))
+* improve error message when no default route provided in ([04c3b6a](https://github.com/apify/crawlee/commit/04c3b6ac2fd151379d57e95bde085e2a098d1b76))
+
+### Features
+
+* feat: add parseWithCheerio for puppeteer & playwright in ([#1418](https://github.com/apify/crawlee/pull/1418))
+
+
 ## [3.0.0](https://github.com/apify/crawlee/compare/v2.3.2...v3.0.0) (2022-07-13)
 
 This section summarizes most of the breaking changes between Crawlee (v3) and Apify SDK (v2). Crawlee is the spiritual successor to Apify SDK, so we decided to keep the versioning and release Crawlee as v3.

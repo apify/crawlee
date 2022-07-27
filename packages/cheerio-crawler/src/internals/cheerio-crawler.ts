@@ -35,9 +35,15 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
     },
 };
 
-export type CheerioErrorHandler<JSONData = Dictionary> = ErrorHandler<CheerioCrawlingContext<JSONData>>;
+export type CheerioErrorHandler<
+    UserData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = Dictionary,
+> = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
-export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<BasicCrawlerOptions<CheerioCrawlingContext<JSONData>>,
+export interface CheerioCrawlerOptions<
+    UserData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = Dictionary,
+> extends Omit<BasicCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>>,
     // Overridden with cheerio context
     | 'requestHandler'
     | 'handleRequestFunction'
@@ -76,7 +82,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * The exceptions are logged to the request using the
      * {@link Request.pushErrorMessage} function.
      */
-    requestHandler?: CheerioRequestHandler<JSONData>;
+    requestHandler?: CheerioRequestHandler<UserData, JSONData>;
 
     /**
      * User-provided function that performs the logic of the crawler. It is called for each page
@@ -109,7 +115,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
      * @ignore
      */
-    handlePageFunction?: CheerioRequestHandler<JSONData>;
+    handlePageFunction?: CheerioRequestHandler<UserData, JSONData>;
 
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
@@ -137,7 +143,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
-    errorHandler?: CheerioErrorHandler<JSONData>;
+    errorHandler?: CheerioErrorHandler<UserData, JSONData>;
 
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -150,7 +156,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * See [source code](https://github.com/apify/crawlee/blob/master/src/crawlers/cheerio_crawler.js#L13)
      * for the default implementation of this function.
      */
-    failedRequestHandler?: CheerioErrorHandler<JSONData>;
+    failedRequestHandler?: CheerioErrorHandler<UserData, JSONData>;
 
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
@@ -166,7 +172,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
      * @ignore
      */
-    handleFailedRequestFunction?: CheerioErrorHandler<JSONData>;
+    handleFailedRequestFunction?: CheerioErrorHandler<UserData, JSONData>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -181,7 +187,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * ]
      * ```
      */
-    preNavigationHooks?: CheerioHook<JSONData>[];
+    preNavigationHooks?: CheerioHook<UserData, JSONData>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -195,7 +201,7 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
      * ]
      * ```
      */
-    postNavigationHooks?: CheerioHook<JSONData>[];
+    postNavigationHooks?: CheerioHook<UserData, JSONData>[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -236,12 +242,18 @@ export interface CheerioCrawlerOptions<JSONData = Dictionary> extends Omit<Basic
     persistCookiesPerSession?: boolean;
 }
 
-export type CheerioHook<JSONData = Dictionary> = (
-    crawlingContext: CheerioCrawlingContext<JSONData>,
+export type CheerioHook<
+    UserData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = Dictionary,
+> = (
+    crawlingContext: CheerioCrawlingContext<UserData, JSONData>,
     gotOptions: OptionsInit,
 ) => Awaitable<void>;
 
-export interface CheerioCrawlingContext<JSONData extends Dictionary = Dictionary> extends CrawlingContext<JSONData> {
+export interface CheerioCrawlingContext<
+    UserData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = Dictionary,
+> extends CrawlingContext<UserData> {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      */
@@ -267,7 +279,10 @@ export interface CheerioCrawlingContext<JSONData extends Dictionary = Dictionary
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
-export type CheerioRequestHandler<JSONData = Dictionary> = RequestHandler<CheerioCrawlingContext<JSONData>>;
+export type CheerioRequestHandler<
+    UserData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = Dictionary,
+> = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
 export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
 /**

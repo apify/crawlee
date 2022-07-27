@@ -970,6 +970,7 @@ describe('BasicCrawler', () => {
             });
             await crawler.run();
 
+            // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
 
@@ -998,6 +999,7 @@ describe('BasicCrawler', () => {
 
             await crawler.run();
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
+            // @ts-expect-error private symbol
             expect(crawler.sessionPool.maxPoolSize).toEqual(10);
         });
     });
