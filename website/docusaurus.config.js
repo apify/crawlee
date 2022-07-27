@@ -197,7 +197,7 @@ module.exports = {
             additionalLanguages: ['docker', 'log'],
         },
         metadata: [],
-        image: 'img/apify_og_SDK.png',
+        image: 'img/crawlee-og.png',
         footer: {
             links: [
                 {
