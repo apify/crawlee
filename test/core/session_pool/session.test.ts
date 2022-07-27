@@ -178,7 +178,8 @@ describe('Session - testing session behaviour ', () => {
         expect(session.retireOnBlockedStatusCodes(200)).toBeFalsy();
         expect(session.retireOnBlockedStatusCodes(400)).toBeFalsy();
         expect(session.retireOnBlockedStatusCodes(500)).toBeFalsy();
-        sessionPool.getBlockedStatusCodes().forEach((status) => {
+        // @ts-expect-error
+        sessionPool.blockedStatusCodes.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
             const call = () => { isCalled = true; };

@@ -264,7 +264,8 @@ export class Session {
      * @returns Whether the session was retired.
      */
     retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes: number[] = []): boolean {
-        const isBlocked = this.sessionPool.getBlockedStatusCodes(blockedStatusCodes).includes(statusCode);
+        // @ts-expect-error
+        const isBlocked = this.sessionPool.blockedStatusCodes.concat(blockedStatusCodes).includes(statusCode);
         if (isBlocked) {
             this.retire();
         }

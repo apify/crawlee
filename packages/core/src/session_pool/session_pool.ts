@@ -314,11 +314,6 @@ export class SessionPool extends EventEmitter {
         await this.persistState();
     }
 
-    /** @internal */
-    getBlockedStatusCodes(additionalCodes: number[] = []): number[] {
-        return this.blockedStatusCodes.concat(additionalCodes);
-    }
-
     /**
      * SessionPool should not work before initialization.
      */
