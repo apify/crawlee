@@ -33,19 +33,19 @@ architectures such as Raspberry PI. We strive to make it work, but there are no 
 
 ## Logging into Apify platform from Crawlee
 
-To access our [Apify account](https://console.apify.com/sign-up) from Crawlee, we must provide
-credentials - [our API token](https://console.apify.com/account?tab=integrations). We can do that
+To access your [Apify account](https://console.apify.com/sign-up) from Crawlee, you must provide
+credentials - your [API token](https://console.apify.com/account?tab=integrations). You can do that
 either by utilizing [Apify CLI](https://github.com/apify/apify-cli) or with environment
 variables.
 
-Once we provide credentials to our scraper, we will be able to use all the Apify platform
+Once you provide credentials to your scraper, you will be able to use all the Apify platform
 features, such as calling actors, saving to cloud storages, using Apify proxies,
 setting up webhooks and so on.
 
 ### Log in with CLI
 
-Apify CLI allows us to log in to our Apify account on our computer. If we then run our
-scraper using the CLI, our credentials will automatically be added.
+Apify CLI allows you to log in to your Apify account on your computer. If you then run your
+scraper using the CLI, your credentials will automatically be added.
 
 ```bash
 npm install -g apify-cli
@@ -54,17 +54,17 @@ apify login -t OUR_API_TOKEN
 
 ### Log in with environment variables
 
-Alternatively, we can always provide credentials to our scraper
+Alternatively, you can always provide credentials to your scraper
 by setting the [`APIFY_TOKEN`](#apify_token) environment
-variable to our API token.
+variable to your API token.
 
 > There's also the [`APIFY_PROXY_PASSWORD`](#apify_proxy_password)
-> environment variable. Actor automatically infers that from our token, but it can be useful
-> when we need to access proxies from a different account than our token represents.
+> environment variable. Actor automatically infers that from your token, but it can be useful
+> when you need to access proxies from a different account than your token represents.
 
 ### Log in with Configuration
 
-Another option is to use the [`Configuration`](https://apify.github.io/apify-sdk-js/api/apify/class/Configuration) instance and set our api token there.
+Another option is to use the [`Configuration`](https://apify.github.io/apify-sdk-js/api/apify/class/Configuration) instance and set your api token there.
 
 ```javascript
 import { Actor } from 'apify';
@@ -74,15 +74,15 @@ const sdk = new Actor({ token: 'our_api_token' });
 
 ## What is an actor
 
-When we deploy our script to the Apify platform, it becomes an [actor](https://apify.com/actors).
+When you deploy your script to the Apify platform, it becomes an [actor](https://apify.com/actors).
 An actor is a serverless microservice that accepts an input and produces an output. It can run for
 a few seconds, hours or even infinitely. An actor can perform anything from a simple action such
 as filling out a web form or sending an email, to complex operations such as crawling an entire website
 and removing duplicates from a large dataset.
 
 Actors can be shared in the [Apify Store](https://apify.com/store) so that other people can use them.
-But don't worry, if we share our actor in the store and somebody uses it, it runs under their account,
-not ours.
+But don't worry, if you share your actor in the store and somebody uses it, it runs under their account,
+not yours.
 
 **Related links**
 
@@ -93,13 +93,13 @@ not ours.
 
 ## Running an actor locally
 
-First let's create a boilerplate of the new actor. We could use Apify CLI and just run:
+First let's create a boilerplate of the new actor. You could use Apify CLI and just run:
 
 ```bash
 apify create my-hello-world
 ```
 
-The CLI will prompt us to select a project boilerplate template - let's pick "Hello world". The tool will create a directory called `my-hello-world` with a Node.js project files. We can run the actor as follows:
+The CLI will prompt you to select a project boilerplate template - let's pick "Hello world". The tool will create a directory called `my-hello-world` with a Node.js project files. You can run the actor as follows:
 
 ```bash
 cd my-hello-world
@@ -108,7 +108,7 @@ apify run
 
 ## Running Crawlee code as an actor
 
-For running the Crawlee code as an actor on the [Apify platform](https://apify.com/actors) we should either:
+For running the Crawlee code as an actor on the [Apify platform](https://apify.com/actors) you should either:
 - wrap it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) function;
 - or use a combination of [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) and [`Actor.exit()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#exit) functions.
 
@@ -127,34 +127,38 @@ Let's look at the `CheerioCrawler` example from the [Quick Start](../quick-start
     </TabItem>
 </Tabs>
 
-Note that we could also run our actor (that is using Crawlee) locally with Apify CLI. We could start it via the following command in our project folder:
+Note that you could also run your actor (that is using Crawlee) locally with Apify CLI. You could start it via the following command in your project folder:
 
 ```bash
-apify run -p
+apify run
 ```
 
 ## Deploying an actor to Apify platform
 
-Now (assuming we are already logged in to our Apify account) we can easily deploy our code to the Apify platform by running:
+Now (assuming you are already logged in to your Apify account) you can easily deploy your code to the Apify platform by running:
 
 ```bash
 apify push
 ```
 
-Our script will be uploaded to and built on the Apify platform so that it can be run there. For more information, view the
+Your script will be uploaded to and built on the Apify platform so that it can be run there. For more information, view the
 [Apify Actor](https://docs.apify.com/cli) documentation.
 
 ## Usage on Apify platform
 
-We can also develop our actor in an online code editor directly on the platform (we'll need an Apify Account). Let's go to the [Actors](https://console.apify.com/actors) page in the app, click *Create new* and then go to the *Source* tab and start writing our code or paste one of the examples from the [Examples](../examples) section.
+You can also develop your actor in an online code editor directly on the platform (you'll need an Apify Account). Let's go to the [Actors](https://console.apify.com/actors) page in the app, click *Create new* and then go to the *Source* tab and start writing the code or paste one of the examples from the [Examples](../examples) section.
 
 ## Storages
 
 There are several things worth mentioning here.
 
-1. Compared to Crawlee, in order to simplify access to the default <ApiLink to="core/class/KeyValueStore">`Key-Value Store`</ApiLink> and <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> we don't need to use the helper functions of storage classes, but instead, we could use [`Actor.getValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#getValue), [`Actor.setValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#setValue) for the default `Key-Value Store` and [`Actor.pushData()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#pushData) for the default `Dataset` directly.
-2. In order to open the storage, we shouldn't use the storage classes, but instead use the Actor class. Thus, instead of <ApiLink to="core/class/KeyValueStore#open">`KeyValueStore.open()`</ApiLink>, <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> and <ApiLink to="core/class/RequestQueue#open">`RequestQueue.open()`</ApiLink>, we could use [`Actor.openKeyValueStore()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openKeyValueStore), [`Actor.openDataset()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openDataset) and [`Actor.openRequestQueue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openRequestQueue) respectively. Using each of these methods allows us to pass the [`OpenStorageOptions`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions) as a second argument, which has only one optional property: [`forceCloud`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions#forceCloud). If set to `true` - cloud storage will be used instead of the folder on the local disk.
-3. When the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> is stored on the `Apify platform`, we can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the [Storage](https://console.apify.com/storage) section in the Apify Console. The actual data is exported using the [Get dataset items](https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint. This way we can easily share the crawling results.
+1. Compared to Crawlee, in order to simplify access to the default <ApiLink to="core/class/KeyValueStore">`Key-Value Store`</ApiLink> and <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>, you could also use [`Actor.getValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#getValue), [`Actor.setValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#setValue) for the default `Key-Value Store` and [`Actor.pushData()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#pushData) for the default `Dataset` directly, instead of using the helper functions of respective storage classes.
+2. When you plan to use the platform storage while developing and running your actor locally, you should use [`Actor.openKeyValueStore()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openKeyValueStore), [`Actor.openDataset()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openDataset) and [`Actor.openRequestQueue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openRequestQueue) to open the <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink>, <ApiLink to="core/class/Datase">`Dataset`</ApiLink> and <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> respectively. Using each of these methods allows to pass the [`OpenStorageOptions`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions) as a second argument, which has only one optional property: [`forceCloud`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions#forceCloud). If set to `true` - cloud storage will be used instead of the folder on the local disk.
+:::note
+If you don't plan to use the platform storage for a local actor - you don't need to use the [`Actor`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor) class, meaning you could use <ApiLink to="core/class/KeyValueStore#open">`KeyValueStore.open()`</ApiLink>, <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> and <ApiLink to="core/class/RequestQueue#open">`RequestQueue.open()`</ApiLink> to open the respective storage both on the platform and locally.
+:::
+
+3. When the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> is stored on the `Apify platform`, you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the [Storage](https://console.apify.com/storage) section in the Apify Console. The actual data is exported using the [Get dataset items](https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint. This way you can easily share the crawling results.
 
 **Related links**
 
@@ -170,21 +174,21 @@ The following are some additional environment variables specific to Apify platfo
 
 :::note
 
-It's important to notice that `CRAWLEE_` environment variables don't need to be replaced with `APIFY_` ones respected by Apify platform. E.g. if we have `CRAWLEE_DEFAULT_DATASET_ID` set in our project, and then we push our code to the Apify platform as an Actor - this variable would still be respected by the Actor/platform.
+It's important to notice that `CRAWLEE_` environment variables don't need to be replaced with `APIFY_` ones respected by Apify platform. E.g. if you have `CRAWLEE_DEFAULT_DATASET_ID` set in your project, and then you push your code to the Apify platform as an Actor - this variable would still be respected by the Actor/platform.
 
 :::
 
 ### `APIFY_TOKEN`
 
-The API token for our Apify account. It is used to access the Apify API, e.g. to access cloud storage
-or to run an actor on the Apify platform. We can find our API token on the
-[Account - Integrations](https://console.apify.com/account?tab=integrations) page.
+The API token for your Apify account. It is used to access the Apify API, e.g. to access cloud storage
+or to run an actor on the Apify platform. You can find your API token on the
+[Account Settings / Integrations](https://console.apify.com/account?tab=integrations) page.
 
 ### Combinations of `APIFY_TOKEN` and `CRAWLEE_STORAGE_DIR`
 
 > `CRAWLEE_STORAGE_DIR` env variable description could be found in [Environment Variables](../guides/environment-variables#crawlee_storage_dir) guide.
 
-By combining the env vars in various ways, we can greatly influence the actor's behavior.
+By combining the env vars in various ways, you can greatly influence the actor's behavior.
 
 | Env Vars                                | API | Storages         |
 | --------------------------------------- | --- | ---------------- |
@@ -192,9 +196,9 @@ By combining the env vars in various ways, we can greatly influence the actor's 
 | `APIFY_TOKEN`                           | yes | Apify platform   |
 | `APIFY_TOKEN` AND `CRAWLEE_STORAGE_DIR` | yes | local + platform |
 
-When using both `APIFY_TOKEN` and `CRAWLEE_STORAGE_DIR`, we can use all the Apify platform
-features and our data will be stored locally by default. If we want to access platform storages,
-we can use the `{ forceCloud: true }` option in their respective functions.
+When using both `APIFY_TOKEN` and `CRAWLEE_STORAGE_DIR`, you can use all the Apify platform
+features and your data will be stored locally by default. If you want to access platform storages,
+you can use the `{ forceCloud: true }` option in their respective functions.
 
 ```js
 import { Actor } from 'apify';
@@ -206,19 +210,21 @@ const remoteDataset = await Actor.openDataset('my-remote-data', { forceCloud: tr
 ### `APIFY_PROXY_PASSWORD`
 
 Optional password to [Apify Proxy](https://docs.apify.com/proxy) for IP address rotation.
-Assuming Apify Account was already created, we can find the password on the [Proxy page](https://console.apify.com/proxy)
+Assuming Apify Account was already created, you can find the password on the [Proxy page](https://console.apify.com/proxy)
 in the Apify Console. The password is automatically inferred using the `APIFY_TOKEN` env var,
-so in most cases, we don't need to touch it. We should use it when, for some reason,
-we need access to Apify Proxy, but not access to Apify API, or when we need access to
-proxy from a different account than our token represents.
+so in most cases, you don't need to touch it. You should use it when, for some reason,
+you need access to Apify Proxy, but not access to Apify API, or when you need access to
+proxy from a different account than your token represents.
 
 ## Proxy management
 
-In addition to our own proxy servers and proxy servers acquired from
-third-party providers used together with Crawlee, we can also rely on [Apify Proxy](https://apify.com/proxy)
-for our scraping needs.
+In addition to your own proxy servers and proxy servers acquired from
+third-party providers used together with Crawlee, you can also rely on [Apify Proxy](https://apify.com/proxy)
+for your scraping needs.
 
-If we are already subscribed to Apify Proxy, we can start using them immediately in only a few lines of code (for local usage we first we should be [logged in](#logging-into-apify-platform-from-crawlee) to our Apify account.
+### Apify Proxy
+
+If you are already subscribed to Apify Proxy, you can start using them immediately in only a few lines of code (for local usage you first should be [logged in](#logging-into-apify-platform-from-crawlee) to your Apify account.
 
 ```javascript
 import { Actor } from 'apify';
@@ -227,25 +233,12 @@ const proxyConfiguration = await Actor.createProxyConfiguration();
 const proxyUrl = await proxyConfiguration.newUrl();
 ```
 
-Note that unlike using proxy in Crawlee, we shouldn't use the constructor to create <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> instance. For using Apify Proxy we should create an instance using the [`Actor.createProxyConfiguration()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#createProxyConfiguration) function instead.
-
-### Apify Proxy vs. Own proxies
-
-The `ProxyConfiguration` class covers both Apify Proxy and custom proxy URLs so that
-we can easily switch between proxy providers, however, some features of the class
-are available only to Apify Proxy users, mainly because Apify Proxy is what
-one would call a super-proxy. It's not a single proxy server, but an API endpoint
-that allows connection through millions of different IP addresses. So the class
-essentially has two modes: Apify Proxy or Own (third party) proxy.
-
-The difference is easy to remember.
-- If we're using our own proxies - we should create an instance with the ProxyConfiguration <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink>.
-- If we are planning to use Apify Proxy - we should create an instance using the [`Actor.createProxyConfiguration()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#createProxyConfiguration) function - <ApiLink to="core/interface/ProxyConfigurationOptions#proxyUrls">`ProxyConfigurationOptions.proxyUrls`</ApiLink> and <ApiLink to="core/interface/ProxyConfigurationOptions#newUrlFunction">`ProxyConfigurationOptions.newUrlFunction`</ApiLink> enable use of our custom proxy URLs, whereas all the other options are there to configure Apify Proxy.
+Note that unlike using your own proxies in Crawlee, you shouldn't use the constructor to create <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> instance. For using Apify Proxy you should create an instance using the [`Actor.createProxyConfiguration()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#createProxyConfiguration) function instead.
 
 ### Apify Proxy Configuration
 
-With Apify Proxy, we can select specific proxy groups to use, or countries to connect from.
-This allows us to get better proxy performance after some initial research.
+With Apify Proxy, you can select specific proxy groups to use, or countries to connect from.
+This allows you to get better proxy performance after some initial research.
 
 ```javascript
 import { Actor } from 'apify';
@@ -257,9 +250,22 @@ const proxyConfiguration = await Actor.createProxyConfiguration({
 const proxyUrl = await proxyConfiguration.newUrl();
 ```
 
-Now our crawlers will use only Residential proxies from the US. Note that we must first get access
-to a proxy group before We are able to use it. We can check proxy groups available to us
+Now your crawlers will use only Residential proxies from the US. Note that you must first get access
+to a proxy group before you are able to use it. You can check proxy groups available to you
 in the [proxy dashboard](https://console.apify.com/proxy).
+
+### Apify Proxy vs. Own proxies
+
+The `ProxyConfiguration` class covers both Apify Proxy and custom proxy URLs so that
+you can easily switch between proxy providers. However, some features of the class
+are available only to Apify Proxy users, mainly because Apify Proxy is what
+one would call a super-proxy. It's not a single proxy server, but an API endpoint
+that allows connection through millions of different IP addresses. So the class
+essentially has two modes: Apify Proxy or Own (third party) proxy.
+
+The difference is easy to remember.
+- If you're using your own proxies - you should create an instance with the ProxyConfiguration <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink>.
+- If you are planning to use Apify Proxy - you should create an instance using the [`Actor.createProxyConfiguration()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#createProxyConfiguration) function. <ApiLink to="core/interface/ProxyConfigurationOptions#proxyUrls">`ProxyConfigurationOptions.proxyUrls`</ApiLink> and <ApiLink to="core/interface/ProxyConfigurationOptions#newUrlFunction">`ProxyConfigurationOptions.newUrlFunction`</ApiLink> enable use of your custom proxy URLs, whereas all the other options are there to configure Apify Proxy.
 
 **Related links**
 
