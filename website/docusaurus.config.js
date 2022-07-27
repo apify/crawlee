@@ -100,11 +100,17 @@ module.exports = {
                         from: '/docs',
                         to: '/docs/quick-start',
                     },
-                //     {
-                //         from: '/docs/next',
-                //         to: '/docs/next/quick-start',
-                //     },
+                    // {
+                    //     from: '/docs/next',
+                    //     to: '/docs/next/quick-start',
+                    // },
                 ],
+            },
+        ],
+        [
+            require.resolve('docusaurus-gtm-plugin'),
+            {
+                id: 'GTM-TKBX678',
             },
         ],
     ],
@@ -275,9 +281,6 @@ module.exports = {
             algoliaOptions: {
                 facetFilters: ['version:VERSION'],
             },
-        },
-        gaGtag: {
-            trackingID: 'UA-67003981-4',
         },
     }),
 };
