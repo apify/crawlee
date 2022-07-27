@@ -1,0 +1,180 @@
+---
+id: scraping
+title: "Scraping the Store"
+sidebar_label: "Scraping"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+In the [Real-world project chapter](./real-world-project#choosing-the-data-you-need), we created a list of the information we wanted to collect about the actors in the Apify Store. Let's review that and figure out ways to access the data.
+
+- URL
+- Owner
+- Unique identifier (such as `apify/web-scraper`)
+- Title
+- Description
+- Last modification date
+- Number of runs
+
+![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
+
+### Scraping the URL, Owner and Unique identifier
+
+Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
+
+:::info
+
+You can use `request.loadedUrl` as well. Remember the difference: `request.url` is what you enqueue, `request.loadedUrl` is what gets processed (after possible redirects).
+
+:::
+
+```js
+// request.url = https://apify.com/apify/web-scraper
+
+const urlParts = request.url.split('/').slice(-2); // ['apify', 'web-scraper']
+const uniqueIdentifier = urlParts.join('/'); // 'apify/web-scraper'
+const owner = urlParts[0]; // 'apify'
+```
+
+:::tip
+
+It's a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should you duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's better to make the dataset as rich as possible. For example, someone might want to filter by `owner`.
+
+:::
+
+Now it's time to add more data to the results. Let's open one of the actor detail pages, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu 🥋 to figure out how to get the title of the actor.
+
+### Title
+
+![actor title](/img/getting-started/title.jpg 'Finding actor title in DevTools.')
+
+By using the element selector tool, you can see that the title is there under an `<h1>` tag, as titles should be.
+
+:::caution
+
+In some cases there could actually be more `<h1>` tags on the same page. Yes, it's wrong, but it is quite common in the wild. Be careful when scraping and don't assume that websites are programmed correctly. They aren't.
+
+:::
+
+:::tip
+
+Remember that you can press CTRL+F (or CMD+F on Mac) in the **Elements** tab of DevTools to open the search bar where you can quickly search for elements using their selectors. Always verify your scraping process and assumptions using the DevTools. It's faster than changing the crawler code all the time.
+
+:::
+
+To get the title we just need to find it using `Playwright` and a `h1` locator, which selects the first `<h1>` element it finds and throws if it finds more. That's good. It's usually better to crash the crawler than silently return bad data.
+
+```js
+const title = await page.locator('h1').textContent();
+```
+
+### Description
+
+Getting the actor's description is a little more involved, but still pretty straightforward. You can't just simply search for a `<p>` tag, because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description is actually nested inside a `<span>` tag with a class `actor-description`. And since there's no other `<span>` with that class on the page, we can safely use it.
+
+![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
+
+```js
+const description = await page.locator('span.actor-description').textContent();
+```
+
+### Last modification date
+
+DevTools tell us that the `modifiedDate` can be found in a `<time>` element with a `datetime` property. You can use the [attribute CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) to get it.
+
+![actor last modification date selector](/img/getting-started/modified-date.jpg 'Finding actor last modification date in DevTools.')
+
+```js
+const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
+const modifiedDate = new Date(Number(modifiedTimestamp));
+```
+
+It might look a little too complex at first glance, but let's walk through it. We find the right `<time>` element, and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
+
+But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()` constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`. Phew!
+
+### Run count
+
+We're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
+
+```js
+const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
+const runCountString = await runsRow.locator('span').last().textContent();
+const runCount = Number(runCountString.replaceAll(',', ''));
+```
+
+The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-stats ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<span>` element inside that `<li>`. But its type is still a `string`, so we remove the commas by replacing them with empty strings, and finally convert the result to a `number` by wrapping it with a `Number()` call.
+
+And there we have it! All the data we needed. For the sake of completeness, let's add all the properties together, and we're good to go.
+
+```js
+const urlParts = request.url.split('/').slice(-2);
+const uniqueIdentifier = urlParts.join('/');
+const owner = urlParts[0];
+
+const title = await page.locator('h1').textContent();
+
+const description = await page.locator('span.actor-description').textContent();
+
+const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
+const modifiedDate = new Date(Number(modifiedTimestamp));
+
+const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
+const runCountString = await runsRow.locator('span').last().textContent();
+const runCount = Number(runCountString.replaceAll(',', ''));
+```
+
+## Trying it out
+
+We have everything we need so grab our newly created scraping logic, dump it into our original `requestHandler()` and see the magic happen!
+
+```js
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    requestHandler: async ({ page, request, enqueueLinks }) => {
+        console.log(`Processing: ${request.url}`)
+        if (request.label === 'DETAIL') {
+            const urlParts = request.url.split('/').slice(-2);
+            const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
+            const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
+            const runCountString = await runsRow.locator('span').last().textContent();
+
+            const results = {
+                url: request.url,
+                uniqueIdentifier: urlParts.join('/'),
+                owner: urlParts[0],
+                title: await page.locator('h1').textContent(),
+                description: await page.locator('span.actor-description').textContent(),
+                modifiedDate: new Date(Number(modifiedTimestamp)),
+                runCount: Number(runCountString.replaceAll(',', '')),
+            }
+
+            console.log(results)
+        } else {
+            await page.waitForSelector('.ActorStorePagination-pages a');
+            await enqueueLinks({
+                selector: '.ActorStorePagination-pages > a',
+                label: 'LIST',
+            })
+            await page.waitForSelector('.ActorStoreItem');
+            await enqueueLinks({
+                selector: '.ActorStoreItem',
+                label: 'DETAIL', // <= note the different label
+            })
+        }
+    }
+});
+
+await crawler.run(['https://apify.com/store']);
+```
+
+
+
+When you run the actor, you should see the crawled URLs and their scraped data printed to the console.
+
+## Next lesson
+
+In the next lesson, we will show you how to save the data you scraped to the disk for further processing.
+

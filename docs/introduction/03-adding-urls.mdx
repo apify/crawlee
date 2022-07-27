@@ -1,6 +1,6 @@
 ---
-id: crawling-links
-title: "Crawling links"
+id: adding-urls
+title: "Adding more URLs"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
@@ -15,7 +15,7 @@ import FilterWithELSource from '!!raw-loader!./03-filter-el.ts';
 import FindWithoutELSource from '!!raw-loader!./03-find-without-el.ts';
 import FilterWithoutELSource from '!!raw-loader!./03-filter-without-el.ts';
 
-In the previous lesson you built a very simple crawler that downloads the HTML of a single page, reads its title and prints
+In the previous lesson you built a very simple crawler that downloads HTML of a single page, reads its title and prints
 it to the console. This is the original source code:
 
 ```ts
@@ -31,7 +31,7 @@ const crawler = new CheerioCrawler({
 await crawler.run(['https://crawlee.dev']);
 ```
 
-In this lesson we'll use the example from the previous section and improve on it by letting it truly crawl the page, finding new links as it goes, enqueuing them into the `RequestQueue` and then scraping them.
+In this lesson you'll use the example from the previous section and improve on it. You'll add more URLs to the queue and thanks to that the crawler will keep going, finding new links, enqueuing them into the `RequestQueue` and then scraping them.
 
 ## How crawling works
 
@@ -164,4 +164,4 @@ And that's it! `enqueueLinks()` is just one example of Crawlee's powerful helper
 
 ## Next lesson
 
-In the next lesson you will start your project of scraping a business website and learn some more Crawlee tricks in the process.
+In the next lesson you will start your project of scraping a production website and learn some more Crawlee tricks in the process.

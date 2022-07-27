@@ -53,7 +53,7 @@ The <ApiLink to="core/class/RequestQueue#addRequest">`requestQueue.addRequest()`
 
 :::tip
 
-The code above is for illustration of the request queue concept. Later you'll learn about the `crawler.addRequests()` method which allows you to skip this initialization code, and it also supports adding a large number of requests without blocking.
+The code above is for illustration of the request queue concept. Soon you'll learn about the `crawler.addRequests()` method which allows you to skip this initialization code, and it also supports adding a large number of requests without blocking.
 
 :::
 
@@ -66,7 +66,7 @@ Unless you have a good reason to start with a different one, you should try buil
 Let's continue with the earlier `RequestQueue` example.
 
 ```ts title="src/main.mjs"
-// import CheerioCrawler
+// Add import of CheerioCrawler
 import { RequestQueue, CheerioCrawler } from 'crawlee';
 
 const requestQueue = await RequestQueue.open();
