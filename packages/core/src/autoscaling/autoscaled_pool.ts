@@ -271,7 +271,7 @@ export class AutoscaledPool {
         // Internal properties.
         this._minConcurrency = minConcurrency;
         this._maxConcurrency = maxConcurrency;
-        this._desiredConcurrency = desiredConcurrency ?? minConcurrency;
+        this._desiredConcurrency = Math.min(desiredConcurrency ?? minConcurrency, maxConcurrency);
         this._currentConcurrency = 0;
         this.isStopped = false;
         this.resolve = null;

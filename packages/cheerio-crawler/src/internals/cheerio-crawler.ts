@@ -1,6 +1,6 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
-import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
+import type { AutoscaledPoolOptions, BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue, Session } from '@crawlee/core';
 import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrlForEnqueueLinksFiltering, validators } from '@crawlee/core';
@@ -25,7 +25,8 @@ import util from 'util';
  */
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
-const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
+const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS: AutoscaledPoolOptions = {
+    desiredConcurrency: 10,
     snapshotterOptions: {
         eventLoopSnapshotIntervalSecs: 2,
         maxBlockedMillis: 100,
