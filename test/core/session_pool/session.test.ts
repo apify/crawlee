@@ -1,4 +1,4 @@
-import { EVENT_SESSION_RETIRED, ProxyConfiguration, Session, SessionPool, STATUS_CODES_BLOCKED } from '@crawlee/core';
+import { EVENT_SESSION_RETIRED, ProxyConfiguration, Session, SessionPool } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { entries, sleep } from '@crawlee/utils';
 
@@ -178,7 +178,8 @@ describe('Session - testing session behaviour ', () => {
         expect(session.retireOnBlockedStatusCodes(200)).toBeFalsy();
         expect(session.retireOnBlockedStatusCodes(400)).toBeFalsy();
         expect(session.retireOnBlockedStatusCodes(500)).toBeFalsy();
-        STATUS_CODES_BLOCKED.forEach((status) => {
+        // @ts-expect-error
+        sessionPool.blockedStatusCodes.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
             const call = () => { isCalled = true; };

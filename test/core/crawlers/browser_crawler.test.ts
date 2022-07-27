@@ -17,7 +17,6 @@ import {
     Request,
     RequestList,
     Session,
-    STATUS_CODES_BLOCKED,
 } from '@crawlee/puppeteer';
 import { gotScraping } from 'got-scraping';
 import { sleep } from '@crawlee/utils';
@@ -390,7 +389,7 @@ describe('BrowserCrawler', () => {
 
     test('should throw on "blocked" status codes', async () => {
         const baseUrl = 'https://example.com/';
-        const sources = STATUS_CODES_BLOCKED.map((statusCode) => {
+        const sources = [401, 403, 429].map((statusCode) => {
             return {
                 url: baseUrl + statusCode,
                 userData: { statusCode },
@@ -423,7 +422,7 @@ describe('BrowserCrawler', () => {
 
         await crawler.run();
 
-        expect(failedRequests.length).toBe(STATUS_CODES_BLOCKED.length);
+        expect(failedRequests.length).toBe(3);
         failedRequests.forEach((fr) => {
             const [msg] = fr.errorMessages;
             expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);
@@ -433,7 +432,7 @@ describe('BrowserCrawler', () => {
 
     test('should throw on "blocked" status codes (retire session)', async () => {
         const baseUrl = 'https://example.com/';
-        const sources = STATUS_CODES_BLOCKED.map((statusCode) => {
+        const sources = [401, 403, 429].map((statusCode) => {
             return {
                 url: baseUrl + statusCode,
                 userData: { statusCode },
@@ -466,7 +465,7 @@ describe('BrowserCrawler', () => {
 
         await crawler.run();
 
-        expect(failedRequests.length).toBe(STATUS_CODES_BLOCKED.length);
+        expect(failedRequests.length).toBe(3);
         failedRequests.forEach((fr) => {
             const [msg] = fr.errorMessages;
             expect(msg).toContain(`Request blocked - received ${fr.userData.statusCode} status code.`);

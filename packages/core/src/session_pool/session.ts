@@ -1,18 +1,14 @@
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { Dictionary, Cookie as CookieObject, BrowserLikeResponse } from '@crawlee/types';
+import type { BrowserLikeResponse, Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import type { IncomingMessage } from 'node:http';
 import { EventEmitter } from 'node:events';
 import ow from 'ow';
 import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
-import { STATUS_CODES_BLOCKED } from '../constants';
 import { log as defaultLog } from '../log';
 import { EVENT_SESSION_RETIRED } from './events';
 import { browserPoolCookieToToughCookie, getCookiesFromResponse, getDefaultCookieExpirationDate, toughCookieToBrowserPoolCookie } from '../cookie_utils';
-
-// CONSTANTS
-const DEFAULT_SESSION_MAX_AGE_SECS = 3000;
 
 /**
  * Persistable {@link Session} state.
@@ -134,7 +130,7 @@ export class Session {
             sessionPool,
             id = `session_${cryptoRandomObjectId(10)}`,
             cookieJar = new CookieJar(),
-            maxAgeSecs = DEFAULT_SESSION_MAX_AGE_SECS,
+            maxAgeSecs = 3000,
             userData = {},
             maxErrorScore = 3,
             errorScoreDecrement = 0.5,
@@ -264,11 +260,28 @@ export class Session {
      * by retiring the session when such code is received. Optionally the default status
      * codes can be extended in the second parameter.
      * @param statusCode HTTP status code.
-     * @param [blockedStatusCodes] Custom HTTP status codes that means blocking on particular website.
      * @returns Whether the session was retired.
      */
-    retireOnBlockedStatusCodes(statusCode: number, blockedStatusCodes: number[] = []): boolean {
-        const isBlocked = STATUS_CODES_BLOCKED.concat(blockedStatusCodes).includes(statusCode);
+    retireOnBlockedStatusCodes(statusCode: number): boolean;
+
+    /**
+     * With certain status codes: `401`, `403` or `429` we can be certain
+     * that the target website is blocking us. This function helps to do this conveniently
+     * by retiring the session when such code is received. Optionally the default status
+     * codes can be extended in the second parameter.
+     * @param statusCode HTTP status code.
+     * @param [additionalBlockedStatusCodes]
+     *   Custom HTTP status codes that means blocking on particular website.
+     *
+     *   **This parameter is deprecated and will be removed in next major version.**
+     * @returns Whether the session was retired.
+     * @deprecated The parameter `additionalBlockedStatusCodes` is deprecated and will be removed in next major version.
+     */
+    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes?: number[]): boolean;
+
+    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes: number[] = []): boolean {
+        // @ts-expect-error
+        const isBlocked = this.sessionPool.blockedStatusCodes.concat(additionalBlockedStatusCodes).includes(statusCode);
         if (isBlocked) {
             this.retire();
         }
