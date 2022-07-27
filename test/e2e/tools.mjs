@@ -31,10 +31,8 @@ export function getStorage(dirName) {
 
 /**
  * @param {string} dirName
- * @param {number} retry
- * @return {Promise<any>}
  */
-export async function getStats(dirName, retry = 3) {
+export async function getStats(dirName) {
     const dir = getStorage(dirName);
     const path = join(dir, 'key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json');
 
@@ -42,17 +40,7 @@ export async function getStats(dirName, retry = 3) {
         return false;
     }
 
-    // TODO this should not be needed once we release 3.0.2 to latest (so it will be used in apify sdk)
-    try {
-        return await fs.readJSON(path);
-    } catch (e) {
-        if (retry > 0) {
-            await setTimeout(100);
-            return getStats(dirName, retry - 1);
-        }
-
-        throw e;
-    }
+    return fs.readJSON(path);
 }
 
 /**
