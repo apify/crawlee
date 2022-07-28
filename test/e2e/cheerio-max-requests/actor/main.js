@@ -10,6 +10,7 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         maxRequestsPerCrawl: 10,
+        autoscaledPoolOptions: { desiredConcurrency: 2 },
         async requestHandler({ $, request }) {
             const { url, userData: { label } } = request;
 
