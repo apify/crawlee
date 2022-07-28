@@ -53,11 +53,8 @@ async function run() {
             stdout: true,
         });
         let seenFirst = false;
-        /** @type string[] */
-        const logs = [];
         worker.stdout.on('data', (data) => {
             const str = data.toString();
-            logs.push(str);
 
             if (str.startsWith('[test skipped]')) {
                 return;
@@ -98,10 +95,6 @@ async function run() {
             const status = code === 0 ? 'success' : 'failure';
             const color = code === 0 ? 'green' : 'red';
             console.log(`${colors.yellow(`[${dir.name}] `)}${colors[color](`Test finished with status: ${status} `)}${colors.grey(`[took ${took}s]`)}`);
-
-            if (code !== 0) {
-                console.log(logs.join('\n'));
-            }
 
             if (['MEMORY', 'LOCAL'].includes(process.env.STORAGE_IMPLEMENTATION)) {
                 await clearStorage(`${basePath}/${dir.name}`);
