@@ -36,14 +36,14 @@ const CHEERIO_OPTIMIZED_AUTOSCALED_POOL_OPTIONS = {
 };
 
 export type CheerioErrorHandler<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-> = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
+    > = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlerOptions<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-> extends Omit<BasicCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>>,
+    > extends Omit<BasicCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>>,
     // Overridden with cheerio context
     | 'requestHandler'
     | 'handleRequestFunction'
@@ -53,7 +53,7 @@ export interface CheerioCrawlerOptions<
     | 'handleRequestTimeoutSecs'
 
     | 'errorHandler'
-> {
+    > {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each page
      * loaded and parsed by the crawler.
@@ -243,17 +243,17 @@ export interface CheerioCrawlerOptions<
 }
 
 export type CheerioHook<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-> = (
+    > = (
     crawlingContext: CheerioCrawlingContext<UserData, JSONData>,
     gotOptions: OptionsInit,
 ) => Awaitable<void>;
 
 export interface CheerioCrawlingContext<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-> extends CrawlingContext<UserData> {
+    > extends CrawlingContext<UserData> {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      */
@@ -280,9 +280,9 @@ export interface CheerioCrawlingContext<
 }
 
 export type CheerioRequestHandler<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-> = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
+    > = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
 export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
 /**
@@ -575,9 +575,9 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
 
             Object.defineProperty(crawlingContext, 'body', {
                 get() {
-                // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
-                // This is to save memory for high-concurrency crawls. The downside is that changes
-                // made to DOM are reflected in the HTML, but we can live with that...
+                    // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
+                    // This is to save memory for high-concurrency crawls. The downside is that changes
+                    // made to DOM are reflected in the HTML, but we can live with that...
                     if (dom) {
                         return isXml ? $!.xml() : $!.html({ decodeEntities: false });
                     }

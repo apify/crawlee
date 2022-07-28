@@ -14,6 +14,7 @@ import {
     AutoscaledPool,
     CheerioCrawler,
     CrawlerExtension,
+    createCheerioRouter,
     mergeCookies,
     ProxyConfiguration,
     Request,
@@ -234,7 +235,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    test('should work with router', async () => {
+    test('should work with implicit router', async () => {
         const requestList = await getRequestListForMirror(port);
         const processed: Request[] = [];
         const failed: Request[] = [];
@@ -251,6 +252,42 @@ describe('CheerioCrawler', () => {
         cheerioCrawler.router.addDefaultHandler(({ $, body, request }) => {
             request.userData.title = $('title').text();
             request.userData.body = body;
+            processed.push(request);
+        });
+
+        await cheerioCrawler.run();
+
+        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(processed).toHaveLength(4);
+        expect(failed).toHaveLength(0);
+
+        processed.forEach((request) => {
+            expect(request.userData.title).toBe('Title');
+            expect(typeof request.userData.body).toBe('string');
+            expect((request.userData.body as string).length).not.toBe(0);
+        });
+    });
+
+    test('should work with explcit router', async () => {
+        const requestList = await getRequestListForMirror(port);
+        const processed: Request[] = [];
+        const failed: Request[] = [];
+
+        const router = createCheerioRouter<CheerioCrawlingContext<{ title: string; body: string }>>();
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestHandler: router,
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        router.addDefaultHandler(({ $, body, request }) => {
+            request.userData.title = $('title').text();
+            request.userData.body = body.toString();
             processed.push(request);
         });
 
