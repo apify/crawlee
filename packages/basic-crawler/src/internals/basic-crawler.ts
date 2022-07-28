@@ -579,6 +579,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
         this.log.info('Crawl finished. Final request statistics:', stats);
 
+        const client = this.config.getStorageClient();
+
+        if (client.teardown) {
+            let finished = false;
+            setTimeout(() => {
+                if (!finished) {
+                    this.log.info('Waiting for the storage to write its state to file system.');
+                }
+            }, 1000);
+            await client.teardown();
+            finished = true;
+        }
+
         return stats;
     }
 
