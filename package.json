@@ -63,6 +63,7 @@
         "@types/htmlparser2": "^3.10.3",
         "@types/inquirer": "^8.2.1",
         "@types/jest": "^28.1.1",
+        "@types/proper-lockfile": "^4.1.2",
         "@types/lodash.merge": "^4.6.7",
         "@types/mime-types": "^2.1.1",
         "@types/node": "^18.0.3",

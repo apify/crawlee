@@ -54,6 +54,7 @@
         "@sapphire/shapeshift": "^3.0.0",
         "content-type": "^1.0.4",
         "fs-extra": "^10.1.0",
+        "proper-lockfile": "^4.1.2",
         "mime-types": "^2.1.35",
         "tslib": "^2.4.0"
     }

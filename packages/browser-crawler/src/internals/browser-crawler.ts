@@ -513,8 +513,8 @@ export abstract class BrowserCrawler<
                 options: enqueueOptions,
                 page,
                 requestQueue: await this.getRequestQueue(),
-                originalRequestUrl: new URL(crawlingContext.request.url).origin,
-                finalRequestUrl: new URL(crawlingContext.request.loadedUrl ?? crawlingContext.request.url).origin,
+                originalRequestUrl: crawlingContext.request.url,
+                finalRequestUrl: crawlingContext.request.loadedUrl,
             });
         };
     }
