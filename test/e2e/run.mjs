@@ -48,7 +48,6 @@ async function run() {
         const now = Date.now();
         const worker = new Worker(fileURLToPath(import.meta.url), {
             workerData: dir.name,
-            stdout: true,
         });
         let seenFirst = false;
         /** @type Map<string, string[]> */
