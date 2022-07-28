@@ -38,6 +38,12 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useIncognitoPages?: boolean;
 
     /**
+     * @experimental
+     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
+     */
+    experimentalContainers?: boolean;
+
+    /**
     * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
     * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
     * If not specified, a temporary directory is used instead.
@@ -78,6 +84,7 @@ export abstract class BrowserLauncher<
         proxyUrl: ow.optional.string.url,
         useChrome: ow.optional.boolean,
         useIncognitoPages: ow.optional.boolean,
+        experimentalContainers: ow.optional.boolean,
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,
         userAgent: ow.optional.string,

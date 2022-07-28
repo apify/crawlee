@@ -47,8 +47,8 @@
         "release": "npm run build && lerna version patch && lerna publish from-package --contents dist --force-publish",
         "publish:next": "lerna publish from-package --contents dist --dist-tag next --force-publish",
         "release:next": "npm run build && npm run publish:next",
-        "lint": "eslint packages/*/src packages/*/test test",
-        "lint:fix": "eslint packages/*/src packages/*/test test --fix"
+        "lint": "eslint packages/browser-pool/tab-as-a-container packages/*/src packages/*/test test",
+        "lint:fix": "eslint packages/browser-pool/tab-as-a-container packages/*/src packages/*/test test --fix"
     },
     "devDependencies": {
         "@apify/eslint-config-ts": "^0.2.3",
@@ -99,5 +99,5 @@
         "typescript": "^4.7.4",
         "ws": "^7.5.8"
     },
-    "packageManager": "npm@8.15.0"
+    "packageManager": "npm@8.15.1"
 }

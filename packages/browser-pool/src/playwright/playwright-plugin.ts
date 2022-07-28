@@ -1,3 +1,4 @@
+import path from 'path';
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
 import { PlaywrightController } from './playwright-controller';
@@ -7,9 +8,15 @@ import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { getLocalProxyAddress } from '../proxy-server';
 import { anonymizeProxySugar } from '../anonymize-proxy';
+import { createProxyServerForContainers } from '../container-proxy-server';
+
+// __dirname = browser-pool/dist/playwright
+//  taacPath = browser-pool/dist/tab-as-a-container
+const taacPath = path.join(__dirname, '..', 'tab-as-a-container');
 
 export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<BrowserType['launch']>[0], PlaywrightBrowser> {
     private _browserVersion?: string;
+    _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         const {
@@ -45,7 +52,42 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
                     });
                 }
             } else {
+                if (launchContext.experimentalContainers) {
+                    launchOptions!.args = [
+                        ...(launchOptions!.args ?? []),
+                    ];
+
+                    // Use native headless mode so we can load an extension
+                    if (launchOptions!.headless) {
+                        launchOptions!.args.push('--headless=chrome');
+                    }
+
+                    launchOptions!.args.push(`--disable-extensions-except=${taacPath}`, `--load-extension=${taacPath}`);
+                }
+
                 const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions);
+
+                if (launchContext.experimentalContainers) {
+                    // Wait for the extension to load.
+                    let [backgroundPage] = browserContext.backgroundPages();
+                    if (!backgroundPage) {
+                        backgroundPage = await browserContext.waitForEvent('backgroundpage');
+                    }
+
+                    this._containerProxyServer = await createProxyServerForContainers();
+
+                    // @ts-expect-error loading is defined inside background script
+                    await backgroundPage.evaluate(() => loading);
+
+                    const page = await browserContext.newPage();
+                    await page.goto(`data:text/plain,proxy#{"port":${this._containerProxyServer.port}}`);
+                    await page.waitForNavigation();
+                    await page.close();
+
+                    browserContext.on('close', async () => {
+                        await this._containerProxyServer!.close(true);
+                    });
+                }
 
                 if (anonymizedProxyUrl) {
                     browserContext.on('close', async () => {

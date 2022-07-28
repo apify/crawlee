@@ -38,6 +38,11 @@ export interface LaunchContextOptions<
      */
     useIncognitoPages?: boolean;
     /**
+     * @experimental
+     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
+     */
+    experimentalContainers?: boolean;
+    /**
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
     userDataDir?: string;
@@ -55,6 +60,7 @@ export class LaunchContext<
     browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     launchOptions: LibraryOptions;
     useIncognitoPages: boolean;
+    experimentalContainers: boolean;
     userDataDir: string;
 
     private _proxyUrl?: string;
@@ -70,6 +76,7 @@ export class LaunchContext<
             launchOptions,
             proxyUrl,
             useIncognitoPages,
+            experimentalContainers,
             userDataDir = '',
         } = options;
 
@@ -77,6 +84,7 @@ export class LaunchContext<
         this.browserPlugin = browserPlugin;
         this.launchOptions = launchOptions;
         this.useIncognitoPages = useIncognitoPages ?? false;
+        this.experimentalContainers = experimentalContainers ?? false;
         this.userDataDir = userDataDir;
 
         this._proxyUrl = proxyUrl;
