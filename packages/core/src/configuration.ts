@@ -35,14 +35,21 @@ export interface ConfigurationOptions {
 /**
  * `Configuration` is a value object holding Crawlee configuration. By default, there is a
  * global singleton instance of this class available via `Configuration.getGlobalConfig()`.
- * Places that depend on a configurable behaviour depend on this class as have the global
+ * Places that depend on a configurable behaviour depend on this class, as they have the global
  * instance as the default value.
  *
  * ```js
  * import { BasicCrawler, Configuration } from 'crawlee';
  *
- * const config = new Configuration({ persistStateIntervalMillis: 30_000 });
- * const crawler = new BasicCrawler({ ... }, config);
+ * // Get the global configuration
+ * const config = Configuration.getGlobalConfig();
+ * // Set the 'persistStateIntervalMillis' option
+ * // of global configuration to 10 seconds
+ * config.set('persistStateIntervalMillis', 10_000);
+ *
+ * // No need to pass the configuration to the crawler,
+ * // as it's using the global configuration by default
+ * const crawler = new BasicCrawler();
  * ```
  *
  * The configuration provided via environment variables always takes precedence. We can also
