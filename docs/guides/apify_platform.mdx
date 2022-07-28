@@ -233,7 +233,9 @@ you can use the `{ forceCloud: true }` option in their respective functions.
 import { Actor } from 'apify';
 import { Dataset } from 'crawlee';
 
-const localDataset = await Dataset.open();
+// or Dataset.open('my-local-data')
+const localDataset = await Actor.openDataset('my-local-data');
+// but here we need the `Actor` class
 const remoteDataset = await Actor.openDataset('my-dataset', { forceCloud: true });
 ```
 
