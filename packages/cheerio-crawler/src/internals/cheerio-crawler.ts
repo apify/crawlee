@@ -3,7 +3,7 @@ import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type { AutoscaledPoolOptions, BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue, Session } from '@crawlee/core';
-import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrlForEnqueueLinksFiltering, validators } from '@crawlee/core';
+import { CrawlerExtension, enqueueLinks, mergeCookies, Router, resolveBaseUrlForEnqueueLinksFiltering, validators, Configuration } from '@crawlee/core';
 import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import { entries, parseContentTypeFromResponse } from '@crawlee/utils';
@@ -404,7 +404,7 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options: CheerioCrawlerOptions = {}) {
+    constructor(options: CheerioCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
         ow(options, 'CheerioCrawlerOptions', ow.object.exactShape(CheerioCrawler.optionsShape));
 
         const {
@@ -437,7 +437,7 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
             // We need to add some time for internal functions to finish,
             // but not too much so that we would stall the crawler.
             requestHandlerTimeoutSecs: navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-        });
+        }, config);
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -716,7 +716,7 @@ export class CheerioCrawler extends BasicCrawler<CheerioCrawlingContext> {
                 throw new Error(`${statusCode} - ${message}`);
             }
 
-            // It's not a JSON so it's probably some text. Get the first 100 chars of it.
+            // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
             const dom = await this._parseHtmlToDom(response);
