@@ -48,10 +48,18 @@ async function run() {
         const now = Date.now();
         const worker = new Worker(fileURLToPath(import.meta.url), {
             workerData: dir.name,
+            stdout: true,
+            stderr: true,
         });
         let seenFirst = false;
         /** @type Map<string, string[]> */
         const allLogs = new Map();
+        worker.stderr.on('data', (data) => {
+            const str = data.toString();
+            const taskLogs = allLogs.get(dir.name) ?? [];
+            allLogs.set(dir.name, taskLogs);
+            taskLogs.push(str);
+        });
         worker.stdout.on('data', (data) => {
             const str = data.toString();
             const taskLogs = allLogs.get(dir.name) ?? [];
