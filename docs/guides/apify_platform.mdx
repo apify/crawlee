@@ -49,7 +49,7 @@ scraper using the CLI, your credentials will automatically be added.
 
 ```bash
 npm install -g apify-cli
-apify login -t OUR_API_TOKEN
+apify login -t YOUR_API_TOKEN
 ```
 
 ### Log in with environment variables
@@ -69,7 +69,7 @@ Another option is to use the [`Configuration`](https://apify.github.io/apify-sdk
 ```javascript
 import { Actor } from 'apify';
 
-const sdk = new Actor({ token: 'our_api_token' });
+const sdk = new Actor({ token: 'your_api_token' });
 ```
 
 ## What is an actor
@@ -108,9 +108,13 @@ apify run
 
 ## Running Crawlee code as an actor
 
-For running the Crawlee code as an actor on the [Apify platform](https://apify.com/actors) you should either:
-- wrap it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) function;
-- or use a combination of [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) and [`Actor.exit()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#exit) functions.
+For running Crawlee code as an actor on [Apify platform](https://apify.com/actors) you should either:
+- use a combination of [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) and [`Actor.exit()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#exit) functions;
+- or wrap it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) function.
+
+:::info NOTE
+Adding [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) to your code or wrapping it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) is the only important thing needed to run it on Apify platform as an actor. Some things mentioned below are either used for your convenience or for some specific use cases.
+:::
 
 Let's look at the `CheerioCrawler` example from the [Quick Start](../quick-start) guide:
 
@@ -152,13 +156,37 @@ You can also develop your actor in an online code editor directly on the platfor
 
 There are several things worth mentioning here.
 
-1. Compared to Crawlee, in order to simplify access to the default <ApiLink to="core/class/KeyValueStore">`Key-Value Store`</ApiLink> and <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>, you could also use [`Actor.getValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#getValue), [`Actor.setValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#setValue) for the default `Key-Value Store` and [`Actor.pushData()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#pushData) for the default `Dataset` directly, instead of using the helper functions of respective storage classes.
-2. When you plan to use the platform storage while developing and running your actor locally, you should use [`Actor.openKeyValueStore()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openKeyValueStore), [`Actor.openDataset()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openDataset) and [`Actor.openRequestQueue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openRequestQueue) to open the <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink>, <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> and <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> respectively. Using each of these methods allows to pass the [`OpenStorageOptions`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions) as a second argument, which has only one optional property: [`forceCloud`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions#forceCloud). If set to `true` - cloud storage will be used instead of the folder on the local disk.
+### Helper functions for default Key-Value Store and Dataset
+
+To simplify access to the _default_ storages, instead of using the helper functions of respective storage classes, you could use:
+- [`Actor.setValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#setValue), [`Actor.getValue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#getValue), [`Actor.getInput()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#getInput) for `Key-Value Store`
+- [`Actor.pushData()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#pushData) for `Dataset`
+
+### Using platform storage in a local actor
+
+When you plan to use the platform storage while developing and running your actor locally, you should use [`Actor.openKeyValueStore()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openKeyValueStore), [`Actor.openDataset()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openDataset) and [`Actor.openRequestQueue()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#openRequestQueue) to open the respective storage.
+
+Using each of these methods allows to pass the [`OpenStorageOptions`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions) as a second argument, which has only one optional property: [`forceCloud`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions#forceCloud). If set to `true` - cloud storage will be used instead of the folder on the local disk.
+
 :::note
-If you don't plan to use the platform storage for a local actor - you don't need to use the [`Actor`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor) class, meaning you could use <ApiLink to="core/class/KeyValueStore#open">`KeyValueStore.open()`</ApiLink>, <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> and <ApiLink to="core/class/RequestQueue#open">`RequestQueue.open()`</ApiLink> to open the respective storage both on the platform and locally.
+If you don't plan to force usage of the platform storages when running the actor locally, there is no need to use the [`Actor`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor) class for it. The Crawlee variants <ApiLink to="core/class/KeyValueStore#open">`KeyValueStore.open()`</ApiLink>, <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> and <ApiLink to="core/class/RequestQueue#open">`RequestQueue.open()`</ApiLink> will work the same.
 :::
 
-3. When the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> is stored on the `Apify platform`, you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the [Storage](https://console.apify.com/storage) section in the Apify Console. The actual data is exported using the [Get dataset items](https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint. This way you can easily share the crawling results.
+### Getting public url of an item in the platform storage
+
+If you need to share a link to some file stored in a Key-Value Store on Apify Platform, you can use [`getPublicUrl()`](https://apify.github.io/apify-sdk-js/api/apify/class/KeyValueStore#getPublicUrl) method. It accepts only one parameter: `key` - the key of the item you want to share.
+
+```js
+import { KeyValueStore } from 'apify';
+
+await KeyValueStore.setValue('your-file', { foo: 'bar' });
+const url = store.getPublicUrl('your-file');
+// https://api.apify.com/v2/key-value-stores/<your-store-id>/records/your-file
+```
+
+### Exporting dataset data
+
+When the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> is stored on the [Apify platform](https://apify.com/actors), you can export its data to the following formats: HTML, JSON, CSV, Excel, XML and RSS. The datasets are displayed on the actor run details page and in the [Storage](https://console.apify.com/storage) section in the Apify Console. The actual data is exported using the [Get dataset items](https://apify.com/docs/api/v2#/reference/datasets/item-collection/get-items) Apify API endpoint. This way you can easily share the crawling results.
 
 **Related links**
 
@@ -174,7 +202,7 @@ The following are some additional environment variables specific to Apify platfo
 
 :::note
 
-It's important to notice that `CRAWLEE_` environment variables don't need to be replaced with `APIFY_` ones respected by Apify platform. E.g. if you have `CRAWLEE_DEFAULT_DATASET_ID` set in your project, and then you push your code to the Apify platform as an Actor - this variable would still be respected by the Actor/platform.
+It's important to notice that `CRAWLEE_` environment variables don't need to be replaced with equivalent `APIFY_` ones. Likewise, Crawlee understands `APIFY_` environment variables after calling `Actor.init()` or when using `Actor.main()`.
 
 :::
 
@@ -202,9 +230,12 @@ you can use the `{ forceCloud: true }` option in their respective functions.
 
 ```js
 import { Actor } from 'apify';
+import { Dataset } from 'crawlee';
 
+// or Dataset.open('my-local-data')
 const localDataset = await Actor.openDataset('my-local-data');
-const remoteDataset = await Actor.openDataset('my-remote-data', { forceCloud: true });
+// but here we need the `Actor` class
+const remoteDataset = await Actor.openDataset('my-dataset', { forceCloud: true });
 ```
 
 ### `APIFY_PROXY_PASSWORD`
