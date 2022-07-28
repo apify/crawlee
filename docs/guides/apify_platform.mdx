@@ -179,8 +179,7 @@ If you need to share a link to some file stored in a Key-Value Store on Apify Pl
 ```js
 import { KeyValueStore } from 'apify';
 
-const store = await KeyValueStore.open();
-await store.setValue('your-file', { foo: 'bar' });
+await KeyValueStore.setValue('your-file', { foo: 'bar' });
 const url = store.getPublicUrl('your-file');
 // https://api.apify.com/v2/key-value-stores/<your-store-id>/records/your-file
 ```
