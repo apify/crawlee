@@ -47,9 +47,11 @@ export interface ConfigurationOptions {
  *
  * The configuration provided via environment variables always takes precedence. We can also
  * define the `crawlee.json` file in the project root directory which will serve as a baseline,
- * so the options provided in constructor will override those.
+ * so the options provided in constructor will override those. In other words, the precedence is:
  *
- * > In other words, the precedence is: crawlee.json < constructor options < environment variables.
+ * ```text
+ * crawlee.json < constructor options < environment variables
+ * ```
  *
  * ## Supported Configuration Options
  *
