@@ -8,8 +8,6 @@ import { colors, getApifyToken, clearPackages, clearStorage, SKIPPED_TEST_CLOSE_
 
 const basePath = dirname(fileURLToPath(import.meta.url));
 
-process.env.APIFY_LOG_LEVEL = '0'; // switch off logs for better test results visibility
-process.env.APIFY_HEADLESS = '1'; // run browser in headless mode (default on platform)
 process.env.APIFY_TOKEN ??= await getApifyToken();
 process.env.APIFY_CONTAINER_URL ??= 'http://127.0.0.1';
 process.env.APIFY_CONTAINER_PORT ??= '8000';
