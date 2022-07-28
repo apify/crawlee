@@ -1,6 +1,12 @@
 import { Server as ProxyChainServer } from 'proxy-chain';
 
-export const createProxyServerForContainers = async () => {
+/**
+ * Creates a proxy server designed to handle requests from "container" instances.
+ * Each container instance is assigned to a different (but still localhost) IP address
+ * in order to work around authorization and to enable upstream.
+ * @internal
+ */
+export async function createProxyServerForContainers() {
     const ipToProxy = new Map<string, string>();
 
     const proxyServer = new ProxyChainServer({
