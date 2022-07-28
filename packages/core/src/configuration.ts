@@ -38,6 +38,7 @@ export interface ConfigurationOptions {
  * Places that depend on a configurable behaviour depend on this class, as they have the global
  * instance as the default value.
  *
+ * *Using global configuration:*
  * ```js
  * import { BasicCrawler, Configuration } from 'crawlee';
  *
@@ -50,6 +51,16 @@ export interface ConfigurationOptions {
  * // No need to pass the configuration to the crawler,
  * // as it's using the global configuration by default
  * const crawler = new BasicCrawler();
+ * ```
+ *
+ * *Using custom configuration:*
+ * ```js
+ * import { BasicCrawler, Configuration } from 'crawlee';
+ *
+ * // Create a new configuration
+ * const config = new Configuration({ persistStateIntervalMillis: 30_000 });
+ * // Pass the configuration to the crawler
+ * const crawler = new BasicCrawler({ ... }, config);
  * ```
  *
  * The configuration provided via environment variables always takes precedence. We can also
