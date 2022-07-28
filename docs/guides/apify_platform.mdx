@@ -169,7 +169,7 @@ When you plan to use the platform storage while developing and running your acto
 Using each of these methods allows to pass the [`OpenStorageOptions`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions) as a second argument, which has only one optional property: [`forceCloud`](https://apify.github.io/apify-sdk-js/api/apify/interface/OpenStorageOptions#forceCloud). If set to `true` - cloud storage will be used instead of the folder on the local disk.
 
 :::note
-If you don't plan to use the platform storage for a local actor - there is no need to use the [`Actor`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor) class for it, meaning you could use <ApiLink to="core/class/KeyValueStore#open">`KeyValueStore.open()`</ApiLink>, <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> and <ApiLink to="core/class/RequestQueue#open">`RequestQueue.open()`</ApiLink> to open the respective storage both on the platform and locally.
+If you don't plan to force usage of the platform storages when running the actor locally, there is no need to use the [`Actor`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor) class for it. The Crawlee variants <ApiLink to="core/class/KeyValueStore#open">`KeyValueStore.open()`</ApiLink>, <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> and <ApiLink to="core/class/RequestQueue#open">`RequestQueue.open()`</ApiLink> will work the same.
 :::
 
 ### Getting public url of an item in the platform storage
