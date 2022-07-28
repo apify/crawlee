@@ -49,9 +49,19 @@ export interface RouterHandler<Context extends CrawlingContext = CrawlingContext
  *
  * await crawler.run();
  * ```
+ *
+ * Middlewares are also supported via the `router.use` method. There can be multiple
+ * middlewares for a single router, they will be executed sequentially in the same
+ * order as they were registered.
+ *
+ * ```ts
+ * crawler.router.use(async (ctx) => {
+ *    ctx.log.info('...');
+ * });
  */
 export class Router<Context extends CrawlingContext> {
     private readonly routes: Map<string | symbol, (ctx: Context) => Awaitable<void>> = new Map();
+    private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
     /**
      * use Router.create() instead!
@@ -73,6 +83,14 @@ export class Router<Context extends CrawlingContext> {
     addDefaultHandler(handler: (ctx: Context) => Awaitable<void>) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
+    }
+
+    /**
+     * Registers a middleware that will be fired before the matching route handler.
+     * Multiple middlewares can be registered, they will be fired in the same order.
+     */
+    use(middleware: (ctx: Context) => Awaitable<void>) {
+        this.middlewares.push(middleware);
     }
 
     /**
@@ -134,10 +152,16 @@ export class Router<Context extends CrawlingContext> {
         obj.addHandler = router.addHandler.bind(router);
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
         obj.getHandler = router.getHandler.bind(router);
+        obj.use = router.use.bind(router);
 
-        const func = function (context: Context) {
+        const func = async function (context: Context) {
             const { url, loadedUrl, label } = context.request;
             context.log.debug('Page opened.', { label, url: loadedUrl ?? url });
+
+            for (const middleware of router.middlewares) {
+                await middleware(context);
+            }
+
             return router.getHandler(label)(context);
         };
 
