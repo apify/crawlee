@@ -51,8 +51,13 @@ async function run() {
             stdout: true,
         });
         let seenFirst = false;
+        /** @type Map<string, string[]> */
+        const allLogs = new Map();
         worker.stdout.on('data', (data) => {
             const str = data.toString();
+            const taskLogs = allLogs.get(dir.name) ?? [];
+            allLogs.set(dir.name, taskLogs);
+            taskLogs.push(str);
 
             if (str.startsWith('[test skipped]')) {
                 return;
@@ -100,6 +105,12 @@ async function run() {
 
             if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
                 await clearPackages(`${basePath}/${dir.name}`);
+            }
+
+            const taskLogs = allLogs.get(dir.name);
+
+            if (code !== 0 && taskLogs?.length > 0) {
+                console.log(taskLogs.join('\n'));
             }
 
             if (status === 'failure') failure = true;
