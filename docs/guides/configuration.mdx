@@ -1,0 +1,144 @@
+---
+id: configuration
+title: Crawlee Configuration
+description: Configuring Crawlee parameters
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+In previous guide we talked about the environment variables, and we already mentioned, that setting some of them would have a huge impact on certain aspects of how Crawlee works. That's because environment variables affect the Crawlee <ApiLink to="core/class/Configuration">`Configuration`</ApiLink>. And setting certain environment variables basically means adjusting the configuration options. Let's look at two more ways to adjust the configuration.
+
+## Configuration class
+
+Although environment variables take precedence over other ways of configuring Crawlee, you could also use the <ApiLink to="core/class/Configuration">`Configuration`</ApiLink> class.
+
+### Global Configuration
+
+By default, there is a global singleton instance of this class. It is used by default by the crawlers and some other classes that depend on a configurable behaviour. In most cases you don't need to adjust any options there, but if needed - you can get access to it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink> function. Now you can easily <ApiLink to="core/class/Configuration#get">`get`</ApiLink> and <ApiLink to="core/class/Configuration#set">`set`</ApiLink> the <ApiLink to="core/interface/ConfigurationOptions">`ConfigurationOptions`</ApiLink>.
+
+```js
+import { CheerioCrawler, Configuration, sleep } from 'crawlee';
+
+// Get the global configuration
+const config = Configuration.getGlobalConfig();
+// Set the 'persistStateIntervalMillis' option
+// of global configuration to 10 seconds
+config.set('persistStateIntervalMillis', 10_000);
+
+// Note, that we are not passing the configuration to the crawler
+// as it's using the global configuration
+const crawler = new CheerioCrawler();
+
+crawler.router.addDefaultHandler(async ({ request }) => {
+    // For the first request we wait for 5 seconds,
+    // and add the second request to the queue
+    if (request.url === 'https://www.example.com/1') {
+        await sleep(5_000);
+        await crawler.addRequests(['https://www.example.com/2'])
+    }
+    // For the second request we wait for 10 seconds,
+    // and abort the run
+    if (request.url === 'https://www.example.com/2') {
+        await sleep(10_000);
+        process.exit(0);
+    }
+});
+
+await crawler.run(['https://www.example.com/1']);
+```
+
+If you run this example - you will find the `SDK_CRAWLER_STATISTICS` file in default Key-Value store,
+which would show, that there's 1 finished request and crawler runtime is about 10 seconds.
+This confirms that the state was persisted after 10 seconds, as it was set in the global configuration.
+
+After running the same example with commented two lines of code related to `Configuration` there will be
+no `SDK_CRAWLER_STATISTICS` file stored in the default Key-Value store:
+as we did not change the `persistStateIntervalMillis`, Crawlee used the default value of 60 seconds,
+and the crawler was forcefully aborted after ~15 seconds of run time before it persisted the state for the first time.
+
+### Custom configuration
+
+Alternatively, you can create a custom configuration. In this case you need to pass it to the class that is going to use it, e.g. to the crawler. Let's adjust the example from above:
+
+```js
+import { CheerioCrawler, Configuration, sleep } from 'crawlee';
+
+// Create new configuration
+const config = new Configuration({
+    // Set the 'persistStateIntervalMillis' option to 10 seconds
+    persistStateIntervalMillis: 10_000,
+});
+
+// Now we need to pass the configuration to the crawler
+const crawler = new CheerioCrawler({}, config);
+
+crawler.router.addDefaultHandler(async ({ request }) => {
+    // for the first request we wait for 5 seconds,
+    // and add the second request to the queue
+    if (request.url === 'https://www.example.com/1') {
+        await sleep(5_000);
+        await crawler.addRequests(['https://www.example.com/2'])
+    }
+    // for the second request we wait for 10 seconds,
+    // and abort the run
+    if (request.url === 'https://www.example.com/2') {
+        await sleep(10_000);
+        process.exit(0);
+    }
+});
+
+await crawler.run(['https://www.example.com/1']);
+```
+
+If you run this example - it would work exactly the same as the previous one,
+meaning you will also find the `SDK_CRAWLER_STATISTICS` file in default Key-Value store,
+showing the same number of finished requests and the same crawler runtime.
+
+However, if you would not pass the configuration to the crawler, there again will be
+no `SDK_CRAWLER_STATISTICS` file stored in the default Key-Value store, this time for a different reason though.
+Since we did not pass the configuration to the crawler,
+the crawler will use the global configuration, which is using the default `persistStateIntervalMillis`. So again, the run was aborted before the state was persisted for the first time.
+
+## `crawlee.json`
+
+The last option you could use for configuring Crawlee is `crawlee.json` file. You could specify the <ApiLink to="core/interface/ConfigurationOptions">`ConfigurationOptions`</ApiLink> in the file, place the file in the root of your project, and Crawlee will use provided options as global configuration.
+
+```json title="crawlee.json"
+{
+  "persistStateIntervalMillis": 5000,
+  "logLevel": "DEBUG"
+}
+```
+
+Let's adjust the previous examples:
+
+```js
+import { CheerioCrawler, sleep } from 'crawlee';
+// Note that we are not importing Configuration
+// and not passing it to the crawler
+const crawler = new CheerioCrawler();
+
+// We are using the exact same requestHandler
+crawler.router.addDefaultHandler(async ({ request }) => {
+    // for the first request we wait for 5 seconds,
+    // and add the second request to the queue
+    if (request.url === 'https://www.example.com/1') {
+        await sleep(5_000);
+        await crawler.addRequests(['https://www.example.com/2'])
+    }
+    // for the second request we wait for 10 seconds,
+    // and abort the run
+    if (request.url === 'https://www.example.com/2') {
+        await sleep(10_000);
+        process.exit(0);
+    }
+});
+
+await crawler.run(['https://www.example.com/1']);
+```
+
+Assuming you placed the `crawlee.json` file with `persistStateIntervalMillis` and `logLevel` specified there in the root of your project, you should not only see the same `SDK_CRAWLER_STATISTICS` as in previous examples, but you should also see `DEBUG` logs in addition to `INFO` ones in your terminal, as you set `logLevel` to `DEBUG` in the `crawlee.json`, meaning Crawlee picked the provided options correctly.
+
+## Precedence
+
+As mentioned above, `crawlee.json` is a baseline, which means the options provided in the constructor will override the options provided in the file. Environment variables will override both.
