@@ -1,12 +1,49 @@
 ---
+id: introduction
 title: Introduction
 description: Your first steps into the world of scraping with Crawlee
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
 
-Without the right tools, crawling and scraping the web can be difficult. At the very least, you need an HTTP client to make the necessary requests, but that only gets you raw HTML and sometimes not even that. Then you have to read this HTML and extract the data you're interested in. Once extracted, it must be stored in a machine-readable format and easily accessible for further processing, because it is the processed data that holds value.
+Crawlee covers your crawling and scraping end-to-end and helps you **build reliable scrapers. Fast.**
 
-Crawlee covers the process end-to-end. From crawling the web for links and scraping the raw data to storing it in various machine-readable formats, ready for processing. With this guide in hand, you should have your own data extraction solutions up and running in a few hours.
+Your crawlers will appear human-like and fly under the radar of modern bot protections even with the default configuration. Crawlee gives you the tools to crawl the web for links, scrape data and persistently store it in machine-readable formats, without having to worry about the technical details. And thanks to rich configuration options, you can tweak almost any aspect of Crawlee to suit your project's needs if the default settings don't cut it.
 
-The goal of this guide is to provide a step-by-step introduction to all the features of Crawlee. It will walk you through creating the simplest of crawlers that only prints text to console, all the way up to complex systems that crawl pages, interact with them as if a real user were sitting in front of a real browser and output structured data.
+## What you will learn
+
+The goal of the introduction is to provide a step-by-step guide to all the features of Crawlee. It will walk you through creating the simplest of crawlers that only prints text to console, all the way up to a full-featured scraper that collects links from a website and extracts data.
+
+## 🛠 Features
+
+- Single interface for **HTTP and headless browser** crawling
+- Persistent **queue** for URLs to crawl (breadth & depth first)
+- Pluggable **storage** of both tabular data and files
+- Automatic **scaling** with available system resources
+- Integrated **proxy rotation** and session management
+- Lifecycles customizable with **hooks**
+- **CLI** to bootstrap your projects
+- Configurable **routing**, **error handling** and **retries**
+- **Dockerfiles** ready to deploy
+- Written in **TypeScript** with generics
+
+### 👾 HTTP crawling
+
+- Zero config **HTTP2 support**, even for proxies
+- Automatic generation of **browser-like headers**
+- Replication of browser **TLS fingerprints**
+- Integrated fast **HTML parser**
+- Yes, you can scrape **JSON APIs** as well
+
+### 💻 Real browser crawling
+
+- JavaScript **rendering** and **screenshots**
+- **Headless** and **headful** support
+- Zero-config generation of **human-like fingerprints**
+- Automatic **browser management**
+- Use **Playwright** and **Puppeteer** with the same interface
+- **Chrome**, **Firefox**, **Webkit** and many others
+
+## Next lesson
+
+In the next lesson you will install Crawlee and learn how to bootstrap projects with the Crawlee CLI.

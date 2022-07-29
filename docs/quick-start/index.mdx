@@ -12,7 +12,9 @@ import CodeBlock from '@theme/CodeBlock';
 
 import CheerioSource from '!!raw-loader!./quick_start_cheerio.ts';
 import PlaywrightSource from '!!raw-loader!./quick_start_playwright.ts';
+import PlaywrightHeadful from '!!raw-loader!./headful_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./quick_start_puppeteer.ts';
+import PuppeteerHeadful from '!!raw-loader!./headful_puppeteer.ts';
 
 import CheerioLog from '!!raw-loader!./quick_start_cheerio.txt';
 
@@ -20,7 +22,7 @@ With this short tutorial you can start scraping with Crawlee in a minute or two.
 
 ## Choose your crawler
 
-Crawlee comes with three different crawler classes: <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. All classes share the same interface for maximum flexibility when switching between them.
+Crawlee comes with three main crawler classes: <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. All classes share the same interface for maximum flexibility when switching between them.
 
 ### CheerioCrawler
 This is a plain HTTP crawler. It parses HTML using the [Cheerio](https://github.com/cheeriojs/cheerio) library and crawls the web using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client which masks as a browser. It's very fast and efficient, but can't handle JavaScript rendering.
@@ -41,30 +43,30 @@ It can be added to any Node.js project by running:
 <CodeBlock language="bash">npm install crawlee</CodeBlock>
 </TabItem>
 <TabItem value="playwright" label="PlaywrightCrawler">
-<CodeBlock language="bash">npm install crawlee playwright</CodeBlock>
 
 :::caution
 
-`playwright` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM.
+`playwright` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM. 👇
 
 :::
 
+<CodeBlock language="bash">npm install crawlee playwright</CodeBlock>
 </TabItem>
 <TabItem value="puppeteer" label="PuppeteerCrawler">
-<CodeBlock language="bash">npm install crawlee puppeteer</CodeBlock>
 
 :::caution
 
-`puppeteer` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM.
+`puppeteer` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM. 👇
 
 :::
 
+<CodeBlock language="bash">npm install crawlee puppeteer</CodeBlock>
 </TabItem>
 </Tabs>
 
 ## Crawling
 
-Run the following example to perform a recursive crawl of a website using:
+Run the following example to perform a recursive crawl of the Crawlee website using:
 
 <Tabs groupId="quick_start">
     <TabItem value="cheerio" label="CheerioCrawler" default>
@@ -78,34 +80,47 @@ Run the following example to perform a recursive crawl of a website using:
     </TabItem>
 </Tabs>
 
-When you run the example, you will see Crawlee automating the data extraction process.
+When you run the example, you will see Crawlee automating the data extraction process in your terminal.
+
+<CodeBlock language="log">{CheerioLog}</CodeBlock>
+
+
+### Running headful browsers
+
+Browsers controlled by Puppeteer and Playwright run headless (without a visible window). You can switch to headful by adding the `headless: false` option to the crawlers' constructor. This is useful in the development phase when you want to see what's going on in the browser.
 
 <Tabs groupId="quick_start">
-<TabItem value="cheerio" label="CheerioCrawler" default>
-Logs in your terminal will show the progress of your scraping:
-<CodeBlock language="log">{CheerioLog}</CodeBlock>
-</TabItem>
-<TabItem value="playwright" label="PlaywrightCrawler">
-Logs in your terminal will show the progress of your scraping and you will also see Crawlee automating a browser:
-
-![Chrome Scrape](/img/chrome_scrape.gif)
-
-</TabItem>
-<TabItem value="puppeteer" label="PuppeteerCrawler">
-Logs in your terminal will show the progress of your scraping and you will also see Crawlee automating a browser:
-
-![Chrome Scrape](/img/chrome_scrape.gif)
-
-</TabItem>
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PlaywrightHeadful}</CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PuppeteerHeadful}</CodeBlock>
+    </TabItem>
 </Tabs>
+
+When you run the example code, you'll see an automated browser blaze through the Crawlee website.
+
+![Chrome Scrape](/img/chrome_scrape.gif)
+
+## Results
+
+Crawlee stores data to the `./storage` directory in your current working directory. The results of your crawl will be available under `./storage/datasets/default/*.json` as JSON files.
+
+```json title="./storage/datasets/default/000000001.json"
+{
+    "url": "https://crawlee.dev/",
+    "title": "Crawlee · The scalable web crawling, scraping and automation library for JavaScript/Node.js | Crawlee"
+}
+```
 
 :::tip
 
-Crawlee stores data to `./storage` in the current working directory. The results of your crawl will be available under `./storage/datasets/default/*`. You can override this behavior by setting the `CRAWLEE_STORAGE_DIR` environment variable.
+You can override the storage directory by setting the `CRAWLEE_STORAGE_DIR` environment variable.
 
 :::
 
-More examples showcasing various features of Crawlee could be found in [Examples](./examples) section of the documentation.
+## Examples and further reading
+You can find more examples showcasing various features of Crawlee in the [Examples](./examples) section of the documentation. To better understand Crawlee and its components you should read the [Introduction](./introduction) step-by-step guide.
 
 **Related links**
 

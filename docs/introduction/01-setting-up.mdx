@@ -8,11 +8,10 @@ import ApiLink from '@site/src/components/ApiLink';
 
 To run Crawlee on your own computer, you need to meet the following pre-requisites first:
 
-1. Have Node.js version 16.0 or higher installed.
- - Visit [Node.js website](https://nodejs.org/en/download/) to download or use [fnm](https://github.com/Schniz/fnm)
-2. Have NPM installed.
- - NPM comes bundled with Node.js, so you should already have it. If not, reinstall Node.js.
- > Or use any other package manager of your choice.
+1. Have **Node.js version 16.0** or higher installed.
+   - Visit [Node.js website](https://nodejs.org/en/download/) to download or use [fnm](https://github.com/Schniz/fnm)
+2. Have **NPM** installed, or use other package manager of your choice.
+   - NPM comes bundled with Node.js, so you should already have it. If not, reinstall Node.js.
 
 If not certain, confirm the prerequisites by running:
 
@@ -24,48 +23,41 @@ node -v
 npm -v
 ```
 
-### Creating a new project
+## Creating a new project
 
-The fastest and best way to create new projects with Crawlee is to use the [Crawlee CLI](https://www.npmjs.com/package/@crawlee/cli). This command line tool allows you to create and run Crawlee projects with ease. You can use the `npx` utility to download and run the CLI - it is also embedded to the `crawlee` meta-package:
+The fastest and best way to create new projects with Crawlee is to use the [Crawlee CLI](https://www.npmjs.com/package/@crawlee/cli). You can use the `npx` utility to download and run the CLI - it is also embedded in the `crawlee` package:
 
 ```bash
 npx crawlee create my-new-project
 ```
 
-A prompt will be shown, asking you to choose a template. Let's choose the first one called `Crawlee playwright template [TypeScript]`. The command will now create a new directory in your current working directory, called `my-new-project`, create a `package.json` in this folder and install all the necessary dependencies. It will also add example source code that you can immediately run.
+A prompt will be shown, asking you to choose a template. Crawlee is written in TypeScript so if you're familiar with it, choosing a TypeScript template will give you better code completion and static type checking, but feel free to use JavaScript as well. Functionally they're identical.
+
+Let's choose the first template called **Crawlee playwright template**. The command will create a new directory in your current working directory, called **my-new-project**, add a **package.json** to this folder and install all the necessary dependencies. It will also add example source code that you can immediately run.
 
 Let's try that!
 
 ```bash
 cd my-new-project
+npm start
 ```
 
-```bash
-npx crawlee run
-```
+You will see log messages in the terminal as Crawlee boots up and after a second a Chromium browser window will open. In the window, you'll see quickly changing pages and back in the terminal, you will see the printed titles (contents of the `<title>` HTML tags) of the pages.
 
-We used the `crawlee run` CLI command, but all what it actually does is to call `npm run start`. You can use the `--script` or `-s` option to specify what script you want to run instead of the default `start`:
+![Chrome Scrape](/img/chrome_scrape.gif)
 
-```bash
-npx crawlee run --script=start:prod
-```
+:::info
 
-:::info Purging of storages
-
-Another option of the `crawlee run` command is the control over purging: `--purge` and more importantly `--no-purge`, as purging is enabled by default. To understand what those are about, you first need to know about the concept of storages in Crawlee. There are 3 storage types you can use: <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink> and <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>. Crawlee is using the first two for storing the runtime data about current crawl, and the third one is for storing the results.
-
-When Crawlee stores some state, it uses a storage client - by default a <ApiLink to="memory-storage/class/MemoryStorage">`MemoryStorage`</ApiLink>, which - contrary to its name - will also store the state in JSON files, so you can observe it easily. This state is being purged automatically when you run the crawler, and with the `--no-purge` flag you can disable this behaviour and reuse the state you already have.
-
-More about storages and purging can be found in [Request Storage guide](../guides/request-storage).
+We picked the Playwright template, which uses Chromium to open pages. If you pick the Cheerio template instead, there won't be any browser window, as the requests to the target site will be done via a specialized HTTP client: [`got-scraping`](https://github.com/apify/got-scraping), instead of a browser.
 
 :::
-
-You should start seeing log messages in the terminal as the system boots up and after a second, a Chromium browser window should pop up. In the window, you'll see quickly changing pages and back in the terminal, you should see the titles (contents of the `<title>` HTML tags) of the pages printed.
-
-> We picked the playwright template, which will use the Chromium browser to open pages. If you picked the cheerio template instead, there won't be any browser window, as the requests to the target site will be done via [`got-scraping`](https://github.com/apify/got-scraping) instead of real browser.
 
 You can always terminate the crawl with a keypress in the terminal:
 
 ```bash
 CTRL+C
 ```
+
+## Next lesson
+
+The next lesson will teach you how to create a very simple crawler and explain Crawlee components while building it.
