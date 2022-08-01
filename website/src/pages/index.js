@@ -15,19 +15,26 @@ function Hero() {
                     <div className="col col--7">
                         <div className="row">
                             <h1 className={styles.tagline}>
-                                The scalable <span>web crawling</span>, <br />
-                                <span>scraping</span> and <span>automation library</span> <br />
-                                for JavaScript/Node.js
+                                Crawlee is a web<br /> scraping and browser<br /> automation library
+                            </h1>
+                            <h1 className={styles.tagline}>
+                                Crawlee is a <span>web<br /> scraping</span> and <span>browser<br /> automation</span> library
                             </h1>
                         </div>
-                        <div className={styles.heroButtons}>
-                            <Link to="#try" className={styles.getStarted}>Try it out</Link>
-                            <Link to="docs/introduction" className={styles.seeExamples}>Get Started</Link>
-                            <Link to="docs/examples/basic-crawler" className={styles.seeExamples}>See examples</Link>
-                            <iframe src="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large" frameBorder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+                        <div className="row">
+                            <h2>It helps you build reliable crawlers. Fast.</h2>
+                        </div>
+                        <div className="row">
+                            <div className={styles.heroButtons}>
+                                <Link to="docs/introduction" className={styles.getStarted}>Get Started</Link>
+                                <iframe src="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large" frameBorder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+                            </div>
                         </div>
                     </div>
                     <div className="col col--5" style={{ textAlign: 'center' }}>
+                        <CodeBlock className="language-bash">
+                            npx crawlee create my-crawler
+                        </CodeBlock>
                         <img src={require('../../static/img/API.png').default} className={clsx(styles.hideSmall)} />
                     </div>
                 </div>

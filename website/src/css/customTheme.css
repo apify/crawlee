@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap');
 
 html[data-theme='dark'] {
-    --ifm-navbar-background-color: #191a22;
-    --ifm-background-color: #191a22;
+    --ifm-navbar-background-color: #1a1b23;
+    --ifm-background-color: #1a1b23;
     --ifm-background-surface-color: #242736;
 
     --ifm-font-color-base: #f2f3fb;
@@ -12,12 +12,17 @@ html[data-theme='dark'] {
     --ifm-footer-background-color: #242736;
     --ifm-color-primary: #5d9df1;
     --ifm-link-color: #5d9df1;
+    --ifm-heading-color: #b3b8d2;
 
     --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
 
 :root {
-    --ifm-font-family-base: 'Be Vietnam Pro', sans-serif;
+    /* use default system font based on https://devhints.io/css-system-font-stack */
+    --ifm-font-family-base: -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "Roboto", "Oxygen",
+        "Ubuntu", "Cantarell", "Fira Sans",
+        "Droid Sans", "Helvetica Neue", sans-serif;
     --ifm-font-weight-semibold: 600;
     --ifm-font-color-base: #242736;
 
@@ -49,6 +54,15 @@ html[data-theme='dark'] {
     --max-layout-width: 1680px;
 
     --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+    --ifm-heading-color: #41465d;
+}
+
+@font-face {
+    font-family: 'Lota Grotesque';
+    src: url('/font/lota.woff2') format('woff2'),
+         url('/font/lota.woff') format('woff');
+    font-weight: 600;
 }
 
 .footer__title {
@@ -177,6 +191,39 @@ nav.navbar .dropdown__menu {
 
 .main-wrapper a[class*='sidebarLogo'] img {
     height: 3rem;
+}
+
+.hero h1:nth-child(1) {
+    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
+    linear-gradient(0deg, #41465D, #41465D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero h1:nth-child(2) {
+    position: absolute;
+    z-index: 1;
+}
+
+.hero h2 {
+    font-style: normal;
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 40px;
+    color: #41465d;
+}
+
+html[data-theme='dark'] .hero h2 {
+    color: #b3b8d2;
+}
+
+.hero code {
+    background: #272C3D;
+}
+
+.hero code span {
+    color: #f2f3fb;
 }
 
 h1#change-log {

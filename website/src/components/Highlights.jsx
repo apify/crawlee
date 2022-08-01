@@ -76,10 +76,10 @@ const FeatureList = [
 function Feature({ Svg, title, description }) {
     return (
         <div className={clsx('col col--4')}>
-            <div className="text--center">
+            <div className="padding-horiz--md">
                 {Svg ? <Svg className={styles.featureSvg} alt={title}/> : null}
             </div>
-            <div className="text--center padding-horiz--md padding-bottom--xl">
+            <div className="padding-horiz--md padding-bottom--xl">
                 <h3>{title}</h3>
                 <p>{description}</p>
             </div>

@@ -27,9 +27,16 @@
 }
 
 .tagline {
-    font-weight: 700;
-    font-size: 38px;
+    font-family: 'Lota Grotesque', sans-serif;
+    font-size: 64px;
+    font-weight: 600;
+    line-height: 80px;
+    letter-spacing: 0;
     text-align: left;
+}
+
+.tagline span {
+    color: transparent !important;
 }
 
 @media only screen and (max-device-width: 736px) {
@@ -52,16 +59,23 @@
 }
 
 .getStarted {
-    background-color: hsl(214, 84%, 50%);
-    color: white;
-    padding: 12px 20px;
+    font-size: 18px;
+    line-height: 28px;
+    padding: 12px 24px;
+    background: #ed3545;
+    border: 1px solid #cfd4eb;
     border-radius: 8px;
+    color: white;
     font-weight: 600;
 }
 
 .getStarted:hover {
     color: white;
-    background-color: hsl(214, 84%, 60%);
+    background: linear-gradient(180deg, #ed3545 0.1%, #ad1934 99.9%);
+}
+
+html[data-theme='dark'] .getStarted {
+    border-color: #585e76;
 }
 
 html[data-theme='dark'] .seeExamples {

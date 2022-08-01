@@ -25,3 +25,9 @@ input#search_input_react::placeholder {
 .docs-prev span, .docs-next span {
     text-transform: none;
 }
+
+@font-face {
+    font-family: 'Lota Grotesque', sans-serif;
+    src: url('/font/lota.woff2');
+    font-weight: 600;
+}

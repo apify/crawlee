@@ -9,3 +9,14 @@
     height: 60px;
     width: 60px;
 }
+
+.features h3 {
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 32px;
+}
+
+.features p {
+    font-size: 18px;
+    line-height: 32px;
+}
