@@ -113,7 +113,8 @@ For running Crawlee code as an actor on [Apify platform](https://apify.com/actor
 - or wrap it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) function.
 
 :::info NOTE
-Adding [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) to your code or wrapping it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) is the only important thing needed to run it on Apify platform as an actor. Some things mentioned below are either used for your convenience or for some specific use cases.
+- Adding [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) and [`Actor.exit()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#exit) to your code are the only two important things needed to run it on Apify platform as an actor. `Actor.init()` is needed to initialize your actor (e.g. to set the correct storage implementation), while without `Actor.exit()` the process will simply never stop.
+- [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) is an alternative to `Actor.init()` and `Actor.exit()` as it calls both behind the scenes.
 :::
 
 Let's look at the `CheerioCrawler` example from the [Quick Start](../quick-start) guide:
