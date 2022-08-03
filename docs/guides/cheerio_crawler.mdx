@@ -1,0 +1,87 @@
+---
+id: cheerio-crawler-guide
+title: "CheerioCrawler guide"
+sidebar_label: "CheerioCrawler"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+&#8203;<ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> is our simplest and fastest crawler. If you're familiar with [jQuery](https://jquery.com/), you'll understand `CheerioCrawler` in minutes.
+
+## What is Cheerio
+
+[Cheerio](https://www.npmjs.com/package/cheerio) is essentially [jQuery](https://jquery.com/) for Node.js. It offers the same API, including the familiar `$` object. You can use it, as you would use jQuery for manipulating the DOM of an HTML page. In crawling, you'll mostly use it to select the needed elements and extract their values - the data you're interested in. But jQuery runs in a browser and attaches directly to the browser's DOM. Where does `cheerio` get its HTML? This is where the `Crawler` part of <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> comes in.
+
+## How the crawler works
+
+&#8203;<ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> crawls by making plain HTTP requests to the provided URLs using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client. The URLs are fed to the crawler using <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. The HTTP responses it gets back are usually HTML pages. The same pages you would get in your browser when you first load a URL. But it can handle any content types with the help of the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#additionalMimeTypes">`additionalMimeTypes`</ApiLink> option.
+
+:::info
+
+Modern web pages often do not serve all of their content in the first HTML response, but rather the first HTML contains links to other resources such as CSS and JavaScript that get downloaded afterwards, and together they create the final page. To crawl those, see <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>.
+
+:::
+
+Once the page's HTML is retrieved, the crawler will pass it to [Cheerio](https://www.npmjs.com/package/cheerio) for parsing. The result is the typical `$` function, which should be familiar to jQuery users. You can use the `$` function to do all sorts of lookups and manipulation of the page's HTML, but in scraping, you will mostly use it to find specific HTML elements and extract their data.
+
+Example use of Cheerio and its `$` function in comparison to browser JavaScript:
+
+```ts
+// Return the text content of the <title> element.
+document.querySelector('title').textContent; // plain JS
+$('title').text(); // Cheerio
+
+// Return an array of all 'href' links on the page.
+Array.from(document.querySelectorAll('[href]')).map(el => el.href); // plain JS
+$('[href]')
+    .map((i, el) => $(el).attr('href'))
+    .get(); // Cheerio
+```
+
+:::note
+
+This is not to show that Cheerio is better than plain browser JavaScript. Some might actually prefer the more expressive way plain JS provides. Unfortunately, the browser JavaScript methods are not available in Node.js, so Cheerio is your best bet to do the parsing in Node.
+
+:::
+
+## When to use `CheerioCrawler`
+
+`CheerioCrawler` really shines when you need to cope with extremely high workloads. With just 4 GBs of memory and a single CPU core, you can scrape 500 or more pages a minute! _(assuming each page contains approximately 400KB of HTML)_. To scrape this fast with a full browser scraper, such as the <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>, you'd need significantly more computing power.
+
+**Advantages:**
+
+-   Extremely fast and cheap to run
+-   Easy to set up
+-   Familiar for jQuery users
+-   Automatically avoids some anti-scraping bans
+
+**Disadvantages:**
+
+-   Does not work for websites that require JavaScript rendering
+-   May easily overload the target website with requests
+-   Does not enable any manipulation of the website before scraping
+
+## Example use of Cheerio
+
+### Get text content of an element
+
+Finds the first `<h2>` element and returns its text content.
+
+```js
+$('h2').text()
+```
+
+### Find all links on a page
+
+This snippet finds all `<a>` elements which have the `href` attribute and extracts the hrefs into an array.
+
+```js
+$('a[href]')
+    .map((i, el) => $(el).attr('href'))
+    .get();
+```
+
+### Other examples
+
+Visit the [Examples](../examples) section to browse examples of `CheerioCrawler` usage. Almost all examples show `CheerioCrawler` code in their code tabs.

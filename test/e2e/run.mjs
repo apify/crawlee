@@ -8,8 +8,6 @@ import { colors, getApifyToken, clearPackages, clearStorage, SKIPPED_TEST_CLOSE_
 
 const basePath = dirname(fileURLToPath(import.meta.url));
 
-process.env.APIFY_LOG_LEVEL = '0'; // switch off logs for better test results visibility
-process.env.APIFY_HEADLESS = '1'; // run browser in headless mode (default on platform)
 process.env.APIFY_TOKEN ??= await getApifyToken();
 process.env.APIFY_CONTAINER_URL ??= 'http://127.0.0.1';
 process.env.APIFY_CONTAINER_PORT ??= '8000';
@@ -51,10 +49,22 @@ async function run() {
         const worker = new Worker(fileURLToPath(import.meta.url), {
             workerData: dir.name,
             stdout: true,
+            stderr: true,
         });
         let seenFirst = false;
+        /** @type Map<string, string[]> */
+        const allLogs = new Map();
+        worker.stderr.on('data', (data) => {
+            const str = data.toString();
+            const taskLogs = allLogs.get(dir.name) ?? [];
+            allLogs.set(dir.name, taskLogs);
+            taskLogs.push(str);
+        });
         worker.stdout.on('data', (data) => {
             const str = data.toString();
+            const taskLogs = allLogs.get(dir.name) ?? [];
+            allLogs.set(dir.name, taskLogs);
+            taskLogs.push(str);
 
             if (str.startsWith('[test skipped]')) {
                 return;
@@ -102,6 +112,12 @@ async function run() {
 
             if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
                 await clearPackages(`${basePath}/${dir.name}`);
+            }
+
+            const taskLogs = allLogs.get(dir.name);
+
+            if (code !== 0 && taskLogs?.length > 0) {
+                console.log(taskLogs.join('\n'));
             }
 
             if (status === 'failure') failure = true;

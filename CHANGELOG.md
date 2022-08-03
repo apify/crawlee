@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.0.2](https://github.com/apify/crawlee/compare/v3.0.1...v3.0.2) (2022-07-28)
+
+### Fixes
+
+* regression in resolving the base url for enqueue link filtering ([1422](https://github.com/apify/crawlee/pull/1422))
+* improve file saving on memory storage ([1421](https://github.com/apify/crawlee/pull/1421))
+* add `UserData` type argument to `CheerioCrawlingContext` and related interfaces ([1424](https://github.com/apify/crawlee/pull/1424))
+* always limit `desiredConcurrency` to the value of `maxConcurrency` ([bcb689d](https://github.com/apify/crawlee/commit/bcb689d4cb90835136295d879e710969ebaf29fa))
+* wait for storage to finish before resolving `crawler.run()` ([9d62d56](https://github.com/apify/crawlee/commit/9d62d565c2ff8d058164c22333b07b7d2bf79ee0))
+* using explicitly typed router with `CheerioCrawler` ([07b7e69](https://github.com/apify/crawlee/commit/07b7e69e1a7b7c89b8a5538279eb6de8be0effde))
+* declare dependency on `ow` in `@crawlee/cheerio` package ([be59f99](https://github.com/apify/crawlee/commit/be59f992d2897ce5c02349bbcc62472d99bb2718))
+* use `crawlee@^3.0.0` in the CLI templates ([6426f22](https://github.com/apify/crawlee/commit/6426f22ce53fcce91b1d8686577557bae09fc0e9))
+* fix building projects with TS when puppeteer and playwright are not installed ([1404](https://github.com/apify/crawlee/pull/1404))
+* enqueueLinks should respect full URL of the current request for relative link resolution ([1427](https://github.com/apify/crawlee/pull/1427))
+* use `desiredConcurrency: 10` as the default for `CheerioCrawler` ([1428](https://github.com/apify/crawlee/pull/1428))
+
+### Features
+
+* feat: allow configuring what status codes will cause session retirement ([1423](https://github.com/apify/crawlee/pull/1423))
+* feat: add support for middlewares to the `Router` via `use` method ([1431](https://github.com/apify/crawlee/pull/1431))
+
+
 ## [3.0.1](https://github.com/apify/crawlee/compare/v3.0.0...v3.0.1) (2022-07-26)
 
 ### Fixes

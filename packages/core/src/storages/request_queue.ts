@@ -282,7 +282,6 @@ export class RequestQueue {
      * it will not be updated. You can find out whether this happened by finding the request in the resulting
      * {@link BatchAddRequestsResult} object.
      *
-     * @experimental
      * @param requestsLike {@link Request} objects or vanilla objects with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed requests if missing.
      * @param [options] Request queue operation options.

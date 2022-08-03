@@ -6,118 +6,116 @@ description: Your first steps into the world of scraping with Crawlee
 
 import ApiLink from '@site/src/components/ApiLink';
 
-Now it's time to start writing some actual source code. But before you do, let's just briefly introduce all Crawlee classes necessary to make it happen.
+In this lesson, you will build your first crawler. But before you do, let's briefly introduce the Crawlee classes involved in the process.
 
-### The general idea
+## How Crawlee works
 
-There are 4 crawler classes available for use in Crawlee. <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. We'll talk about their differences later. Now, let's talk about what they have in common.
+There are 3 main crawler classes available for use in Crawlee. <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. We'll talk about their differences later. Now, let's talk about what they have in common.
 
-The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results and continue to the next page, until it's done its job. So the crawler always needs to find answers to two questions: **Where should I go?** and **What should I do there?** Answering those two questions is the only setup mandatory for running the crawlers.
+The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results, continue to the next page, and repeat this process until the crawler's done its job. So the crawler always needs to find answers to two questions: **Where should I go?** and **What should I do there?** Answering those two questions is the only required setup. The crawlers have reasonable defaults for everything else.
 
-### The Where - `Request`, `RequestList` and `RequestQueue`
+### The Where - `Request` and `RequestQueue`
 
-All crawlers use instances of the <ApiLink to="core/class/Request">`Request`</ApiLink> class to determine where they need to go. Each request may hold a lot of information, but at the very least, it must hold a URL - a web page to open. But having only one URL would not make sense for crawling. You need to either have a pre-existing list of your own URLs that you wish to visit, perhaps a thousand, or a million, or you need to build this list dynamically as you crawl, adding more and more URLs to the list as you progress. Or both at the same time.
+All crawlers use instances of the <ApiLink to="core/class/Request">`Request`</ApiLink> class to determine where they need to go. Each request may hold a lot of information, but at the very least, it must hold a URL - a web page to open. But having only one URL would not make sense for crawling. Sometimes you have a pre-existing list of your own URLs that you wish to visit, perhaps a thousand. Other times you need to build this list dynamically as you crawl, adding more and more URLs to the list as you progress. Most of the time, you will use both options.
 
-A representation of the pre-existing list is an instance of the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> class. It is a static, immutable list of URLs and other metadata (see the <ApiLink to="core/class/Request">`Request`</ApiLink> object) that the crawler will visit, one by one, retrying whenever an error occurs, until there are no more requests to process.
-
-&#8203;<ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> on the other hand, represents a dynamic queue of requests. One that can be updated at runtime by adding more pages - <ApiLink to="core/class/Request">`Request`</ApiLink> objects - to process. This allows the crawler to open one page, extract interesting URLs, such as links to other pages on the same domain, add them to the queue (called _enqueuing_) and repeat this process to build a queue of tens of thousands or more URLs while knowing only a single one at the beginning.
-
-`RequestList` and `RequestQueue` are essential for the crawler's operation. There is no other way to supply requests = "pages to crawl" to the crawlers. At least one of them always needs to be provided while setting up. You can also use both at the same time, if you wish.
+The requests are stored in a <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, a dynamic queue of `Request` instances. You can seed it with start URLs and also add more requests while the crawler is running. This allows the crawler to open one page, extract interesting URLs, such as links to other pages on the same domain, add them to the queue (called _enqueuing_) and repeat this process to build a queue of virtually unlimited number of URLs.
 
 ### The What - `requestHandler`
 
-The `requestHandler` is the brain of the crawler. It tells it what to do at each and every page it visits. Generally it handles extraction of data from the page, processing the data, saving it, calling APIs, doing calculations and whatever else you need it to do.
+In the `requestHandler` you tell the crawler what to do at each and every page it visits. You can use it to handle extraction of data from the page, processing the data, saving it, calling APIs, doing calculations and so on.
 
-The `requestHandler` is a user-defined function, invoked automatically by the crawler for each `Request` object, either from the `RequestList` or `RequestQueue`. It always receives a single argument - a plain object containing the crawling context. Its properties change depending on the crawler class used, but it always includes at least the `request` property, which represents the currently crawled `Request` instance (i.e. the URL the crawler is visiting and related metadata) and the `autoscaledPool` property, which is an instance of the <ApiLink to="core/class/AutoscaledPool">`AutoscaledPool`</ApiLink> class and we'll talk about it in detail later.
+The `requestHandler` is a user-defined function, invoked automatically by the crawler for each `Request` from the `RequestQueue`. It always receives a single argument - a <ApiLink to="core/interface/CrawlingContext">`CrawlingContext`</ApiLink>. Its properties change depending on the crawler class used, but it always includes the `request` property, which represents the currently crawled URL and related metadata.
 
-```ts
-// The object received as a single argument by the requestHandler
-{
-    request: Request,
-    autoscaledPool: AutoscaledPool,
-}
-```
+## Building a crawler
 
-### Putting it all together
+Let's put the theory into practice and start with something easy. Visit a page and get its HTML title. In this tutorial, you'll scrape the Crawlee website [https://crawlee.dev](https://crawlee.dev), but the same code will work for any website.
 
-Enough theory! Let's put some of those hard-learned facts into practice. We learned above that we need at least one `Request` and a `requestHandler` to setup a crawler.
+:::info
 
-Let's start with something super easy. Visit a page, get its title and close. For the purposes of this tutorial, we'll be scraping our own webpage [https://apify.com](https://apify.com). Now, to get there, we need a `Request` with the page's URL in one of our sources, `RequestList` or `RequestQueue`. Let's go with `RequestQueue` for now.
+We are using a JavaScript feature called [Top level await](https://blog.saeloun.com/2021/11/25/ecmascript-top-level-await.html) in our examples. To be able to use that, you might need some extra setup. Namely, it requires the use of [ECMAScript Modules](https://nodejs.org/api/esm.html) - this means you either need to add `"type": "module"` to your `package.json` file, or use `*.mjs` extension for your files. Additionally, if you are in a TypeScript project, you need to set the `module` and `target` compiler options to `ES2022` or above.
 
-```ts
+:::
+
+### Adding requests to the crawling queue
+
+Earlier you learned that the crawler uses a queue of requests as its source of URLs to crawl. Let's create it and add the first request.
+
+```ts title="src/main.mjs"
 import { RequestQueue } from 'crawlee';
 
 // First you create the request queue instance.
 const requestQueue = await RequestQueue.open();
-// And then you add a request to it.
-await requestQueue.addRequest({ url: 'https://apify.com' });
+// And then you add one or more requests to it.
+await requestQueue.addRequest({ url: 'https://crawlee.dev' });
 ```
 
-> If you're not familiar with the `async` and `await` keywords used in the example, you should know that these are native syntax in modern JavaScript. You can [learn more about them here](https://nikgrozev.com/2017/10/01/async-await/).
+The <ApiLink to="core/class/RequestQueue#addRequest">`requestQueue.addRequest()`</ApiLink> function automatically converts the object with URL string to a <ApiLink to="core/class/Request">`Request`</ApiLink> instance. So now you have a `requestQueue` that holds one request which points to `https://crawlee.dev`.
 
-The <ApiLink to="core/class/RequestQueue#addRequest">`requestQueue.addRequest()`</ApiLink> function automatically converts the plain object you passed to it to a `Request` instance, so now you have a `requestQueue` that holds one `request` which points to `https://apify.com`. In case you want to add more requests, you can also use the <ApiLink to="core/class/RequestQueue#addRequests">`requestQueue.addRequests()`</ApiLink> method, that accepts an array of request-like objects (or directly an array of strings - the URLs). Even better, there is a `crawler.addRequests()` method we will describe later in the tutorial - for now just keep in mind that the `crawler.addRequests()` is the smartest method of those three, because it supports adding large numbers of requests without blocking.
+:::tip
 
-Now you need the `requestHandler`.
+The code above is for illustration of the request queue concept. Soon you'll learn about the `crawler.addRequests()` method which allows you to skip this initialization code, and it also supports adding a large number of requests without blocking.
 
-```ts
-// Type import, applies only to TypeScript projects.
-import type { CheerioCrawlingContext } from 'crawlee';
+:::
 
-// We'll define the function separately, so it's more obvious.
-const requestHandler: CheerioCrawlingContext = async ({ request, $ }) => {
-    // This should look familiar if you ever worked with jQuery.
-    // We're just getting the text content of the <title> HTML element.
-    const title = $('title').text();
+### Building a CheerioCrawler
 
-    console.log(`The title of "${request.url}" is: ${title}.`);
-};
-```
+Crawlee comes with three main crawler classes: <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. You can read their short descriptions in the [Quick start](../quick-start) lesson.
 
-Wait, where did the `$` come from? Remember what you learned about the `requestHandler` earlier. It accepts a plain `Object` as an argument that will always have a `request` property, but it will also have other properties, depending on the chosen crawler class. Well, `$` is a property provided by the `CheerioCrawler` class, which we'll set up right now.
+Unless you have a good reason to start with a different one, you should try building a `CheerioCrawler` first. It is an HTTP crawler with HTTP2 support, anti-blocking features and integrated HTML parser - [Cheerio](https://www.npmjs.com/package/cheerio). It's fast, simple, cheap to run and does not require complicated dependencies. The only downside is that it won't work out of the box for websites which require JavaScript rendering. But you might not need JavaScript rendering at all, because many modern websites use server-side rendering.
 
-```ts
-import { CheerioCrawler, RequestQueue, CheerioCrawlingContext } from 'crawlee';
+Let's continue with the earlier `RequestQueue` example.
+
+```ts title="src/main.mjs"
+// Add import of CheerioCrawler
+import { RequestQueue, CheerioCrawler } from 'crawlee';
 
 const requestQueue = await RequestQueue.open();
-await requestQueue.addRequests(['https://apify.com']);
+await requestQueue.addRequest({ url: 'https://crawlee.dev' });
 
-const requestHandler: CheerioCrawlingContext = async ({ request, $ }) => {
-    const title = $('title').text();
-    console.log(`The title of "${request.url}" is: ${title}.`);
-};
-
-// Set up the crawler, passing a single options object as an argument.
+// Create the crawler and add the queue with our URL
+// and a request handler to process the page.
 const crawler = new CheerioCrawler({
     requestQueue,
-    requestHandler,
-});
+    // The `$` argument is the Cheerio object
+    // which contains parsed HTML of the website.
+    async requestHandler({ $, request }) {
+        // Extract <title> text with Cheerio.
+        // See Cheerio documentation for API docs.
+        const title = $('title').text();
+        console.log(`The title of "${request.url}" is: ${title}.`);
+    }
+})
 
+// Start the crawler and wait for it to finish
 await crawler.run();
 ```
 
-That starts to look almost good. Almost? Yes, you can do even better! Every crawler has an implicit `RequestQueue` instance, so you can save yourself from all the `RequestQueue` related code and just use `crawler.addRequests()` method. In fact, you can even go further and just use the first parameter of `crawler.run()`! You can also move the `requestHandler` method definition directly to the crawler options, this way you get type inference for free:
+When you run the example, you will see the title of https://crawlee.dev printed to the log. What really happens is that CheerioCrawler first makes an HTTP request to `https://crawlee.dev`, then parses the received HTML with Cheerio and makes it available as the `$` argument of the `requestHandler`.
 
-```ts
-import { CheerioCrawler } from 'crawlee';
-
-// Set up the crawler, passing a single options object as an argument.
-const crawler = new CheerioCrawler({
-    async requestHandler({ request, $ }) {
-        const title = $('title').text();
-        console.log(`The title of "${request.url}" is: ${title}.`);
-    },
-});
-
-// Enqueue the initial request and run the crawler
-await crawler.run(['https://apify.com']);
+```log
+The title of "https://crawlee.dev" is: Crawlee · The scalable web crawling, scraping and automation library for JavaScript/Node.js | Crawlee.
 ```
 
-And you're done! You just created your first crawler from scratch. It will download the HTML of `https://apify.com`, find the `<title>` element, get its text content and print it to console. Good job!
+### Add requests faster
 
-You should see the message `The title of "https://apify.com" is: Web Scraping, Data Extraction and Automation · Apify.` printed to the screen. If you do, congratulations and let's move onto some bigger challenges! And if you feel like you don't really know what just happened there, no worries, it will all become clear when you learn more about `CheerioCrawler`.
+Earlier we mentioned that you'll learn how to use the `crawler.addRequests()` method to skip the request queue initialization. It's simple. Every crawler has an implicit `RequestQueue` instance, and you can add requests to it with the `crawler.addRequests()` method. In fact, you can go even further and just use the first parameter of `crawler.run()`!
 
-:::info
+```ts title="src/main.mjs"
+// You don't need to import RequestQueue anymore
+import { CheerioCrawler } from 'crawlee';
 
-You are using a feature called [Top level await](https://blog.saeloun.com/2021/11/25/ecmascript-top-level-await.html) in your examples. To be able to use that, you might need some extra setup. Namely, it requires the use of [ECMAScript Modules](https://nodejs.org/api/esm.html) - this means you either need to add `"type": "module"` to your `package.json` file, or use `*.mjs` extension for your files. Additionally, if you are in a TypeScript project, you need to set the `module` and `target` compiler options to `ES2022` or above.
+const crawler = new CheerioCrawler({
+    async requestHandler({ $, request }) {
+        const title = $('title').text();
+        console.log(`The title of "${request.url}" is: ${title}.`);
+    }
+})
 
-:::
+// Start the crawler with the provided URLs
+await crawler.run(['https://crawlee.dev']);
+```
+
+When you run this code, you'll see exactly the same output as with the earlier, longer example. The `RequestQueue` is still there, it's just managed by the crawler automatically.
+
+## Next lesson
+In the next lesson you'll learn about crawling links. That means finding new URLs on the pages you crawl and adding them to the `RequestQueue` for the crawler to visit.

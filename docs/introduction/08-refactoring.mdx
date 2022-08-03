@@ -1,0 +1,137 @@
+---
+id: refactoring
+title: "Refactoring"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import Admonition from '@theme/Admonition';
+
+It may seem that the data is extracted and the crawler is done, but honestly, this is just the beginning. For the sake of brevity, we've completely omitted error handling, proxies, logging, architecture, tests, documentation and other stuff that a reliable software should have. The good thing is, **error handling is mostly done by Crawlee itself**, so no worries on that front, unless you need some custom magic.
+
+:::info
+
+If you've got to this point and are wondering where all the **anti-blocking, bot-protection avoiding stealthy features** are, you're right, we haven't shown you any. But that's the point! They are **automatically used** with the default configuration.
+
+That does not mean the default configuration can handle everything, but it should get you far enough. If you want to learn more, browse the [Avoid getting blocked](../guides/avoid-blocking), [Proxy management](../guides/proxy-management) and [Session management](../guides/session-management) guides.
+
+:::
+
+Anyway, to promote good coding practices, let's look at how you can use a <ApiLink to="core/class/Router">`Router`</ApiLink> to better structure your crawler code.
+
+## Routing
+
+In the following code we've made several changes:
+
+- Split the code into multiple files.
+- Replaced `console.log` with the Crawlee logger for nicer, colourful logs.
+- Added a `Router` to make our routing cleaner, without `if` clauses.
+
+In our `main.mjs` file, we place the general structure of the crawler:
+
+```js title="src/main.mjs"
+import { PlaywrightCrawler, log } from 'crawlee';
+import { router } from './routes.js';
+
+// This is better set with CRAWLEE_LOG_LEVEL env var
+// or a configuration option. This is just for show 😈
+log.setLevel(log.LEVELS.DEBUG);
+
+log.debug('Setting up crawler.');
+const crawler = new PlaywrightCrawler({
+    // Instead of the long requestHandler with
+    // if clauses we provide a router instance.
+    requestHandler: router,
+});
+
+log.debug('Adding requests to the queue.');
+await crawler.addRequests(['https://apify.com/store']);
+
+// crawler.run has its own logs 🙂
+await crawler.run();
+```
+
+Then in a separate `routes.mjs` file:
+
+```js title="src/routes.mjs"
+import { createPlaywrightRouter, Dataset } from 'crawlee';
+
+// createPlaywrightRouter() is only a helper to get better
+// intellisense and typings. You can use Router.create() too.
+export const router = createPlaywrightRouter();
+
+// This replaces the request.label === DETAIL branch of the if clause.
+router.addHandler('DETAIL', async ({ request, page, log }) => {
+    log.debug(`Extracting data: ${request.url}`)
+    const urlParts = request.url.split('/').slice(-2);
+    const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
+    const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
+    const runCountString = await runsRow.locator('span').last().textContent();
+
+    const results = {
+        url: request.url,
+        uniqueIdentifier: urlParts.join('/'),
+        owner: urlParts[0],
+        title: await page.locator('h1').textContent(),
+        description: await page.locator('span.actor-description').textContent(),
+        modifiedDate: new Date(Number(modifiedTimestamp)),
+        runCount: Number(runCountString.replaceAll(',', '')),
+    }
+
+    log.debug(`Saving data: ${request.url}`)
+    await Dataset.pushData(results);
+});
+
+// This is a fallback route which will handle the start URL
+// as well as the LIST labelled URLs.
+router.addDefaultHandler(async ({ request, page, enqueueLinks, log }) => {
+    log.debug(`Enqueueing pagination: ${request.url}`)
+    await page.waitForSelector('.ActorStorePagination-pages a');
+    await enqueueLinks({
+        selector: '.ActorStorePagination-pages > a',
+        label: 'LIST',
+    })
+    log.debug(`Enqueueing actor details: ${request.url}`)
+    await page.waitForSelector('.ActorStoreItem');
+    await enqueueLinks({
+        selector: '.ActorStoreItem',
+        label: 'DETAIL', // <= note the different label
+    })
+});
+```
+
+Let's describe the changes a bit more in detail. We hope that in the end, you will agree that this structure makes the actor more readable and manageable.
+
+## Splitting your code into multiple files
+
+There's no reason not to split your code into multiple files and keep your logic separate. Less code in a single file means less code you need to think about at any time, and that's good. We would most likely go even further and split even the routes into separate files.
+
+## Using Crawlee `log` instead of `console.log`
+
+We won't go to great lengths here to talk about `log` object from Crawlee, because you can read it all in the <ApiLink to="core/class/Log">documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
+
+Crawlee `log` has multiple log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting the `CRAWLEE_LOG_LEVEL` environment variable. This is huge! Because you can now add a lot of debug logs in your actor, which will help you when something goes wrong and turn them on or off with a simple configuration change.
+
+The punch line? Use `log` from Crawlee instead of `console.log` now and thank us later when something goes wrong!
+
+## Using a router to structure your crawling
+
+At first, it might seem more readable using just a simple `if / else` statement to select different logic based on the crawled pages, but trust us, it becomes far less impressive when working with more than two different pages, and it definitely starts to fall apart when the logic to handle each page spans tens or hundreds of lines of code.
+
+It's good practice in any programming language to split your logic into bite-sized chunks that are easy to read and reason about. Scrolling through a thousand line long `requestHandler()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to do and a pain to debug. That's why we prefer the separation of routes into their own files.
+
+## Learning more about web scraping
+
+:::tip
+
+If you want to learn more about web scraping and browser automation, check out the [Apify Academy](https://developers.apify.com/academy). It's full of courses and tutorials on the topic. From beginner to advanced. And the best thing: **It's free and open source** ❤️
+
+:::
+
+## Running your crawler in the Cloud
+
+Now that you have your crawler ready, it's the right time to think about where you want to run it. If you used the CLI to bootstrap your project, you already have a **Dockerfile** ready. To read more about how to run this Dockerfile in the cloud, check out the [Apify Platform guide](../guides/apify-platform).
+
+## Thank you! 🎉
+
+That's it! Thanks for reading the whole introduction and if there's anything wrong, please 🙏 let us know on [GitHub](https://github.com/apify/crawlee) or in our [Discord community](https://discord.com/invite/jyEM2PRvMU). Happy scraping! 👋

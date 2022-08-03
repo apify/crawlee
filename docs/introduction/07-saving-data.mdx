@@ -1,0 +1,94 @@
+---
+id: saving-data
+title: "Saving data"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+A data extraction job would not be complete without saving the data for later use and processing. We've come to the final and most difficult part of this tutorial so make sure to pay attention very carefully!
+
+First, add a new import to the top of the file:
+
+```ts
+import { PlaywrightCrawler, Dataset } from 'crawlee';
+```
+
+Then, replace the `console.log(results)` call with:
+
+```js
+await Dataset.pushData(results);
+```
+
+and that's it. Unlike earlier, we are being serious now. That's it, we're done. The final code looks like this:
+
+```js
+import { PlaywrightCrawler, Dataset } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    requestHandler: async ({ page, request, enqueueLinks }) => {
+        console.log(`Processing: ${request.url}`)
+        if (request.label === 'DETAIL') {
+            const urlParts = request.url.split('/').slice(-2);
+            const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
+            const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
+            const runCountString = await runsRow.locator('span').last().textContent();
+
+            const results = {
+                url: request.url,
+                uniqueIdentifier: urlParts.join('/'),
+                owner: urlParts[0],
+                title: await page.locator('h1').textContent(),
+                description: await page.locator('span.actor-description').textContent(),
+                modifiedDate: new Date(Number(modifiedTimestamp)),
+                runCount: Number(runCountString.replaceAll(',', '')),
+            }
+
+            await Dataset.pushData(results);
+        } else {
+            await page.waitForSelector('.ActorStorePagination-pages a');
+            await enqueueLinks({
+                selector: '.ActorStorePagination-pages > a',
+                label: 'LIST',
+            })
+            await page.waitForSelector('.ActorStoreItem');
+            await enqueueLinks({
+                selector: '.ActorStoreItem',
+                label: 'DETAIL', // <= note the different label
+            })
+        }
+    }
+});
+
+await crawler.run(['https://apify.com/store']);
+```
+
+## What's `Dataset.pushData()`
+
+&#8203;<ApiLink to="core/class/Dataset#pushData">`Dataset.pushData()`</ApiLink> is a function that saves data to the default <ApiLink to="core/class/Dataset">`Dataset`</ApiLink>. `Dataset` is a storage designed to hold data in a format similar to a table. Each time you call `Dataset.pushData()` a new row in the table is created, with the property names serving as column titles. In the default configuration, the rows are represented as JSON files saved on your disk, but other storage systems can be plugged into Crawlee as well.
+
+:::info
+
+Each time you start Crawlee a default `Dataset` is automatically created, so there's no need to initialize it or create an instance first. You can create as many datasets as you want and even give them names. For more details see the [Result storage guide](../guides/result-storage#dataset) and the <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink> function.
+
+:::
+
+## Finding saved data
+
+Unless you changed the configuration that Crawlee uses locally, which would suggest that you knew what you were doing, and you didn't need this tutorial anyway, you'll find your data in the `storage` directory that Crawlee creates in the working directory of the running script:
+
+```
+{PROJECT_FOLDER}/storage/datasets/default/
+```
+
+The above folder will hold all your saved data in numbered files, as they were pushed into the dataset. Each file represents one invocation of `Dataset.pushData()` or one table row.
+
+:::tip
+
+If you would like to store your data in a single big file, instead of many small ones, see the [Result storage guide](../guides/result-storage#key-value-store) for Key-value stores.
+
+:::
+
+## Next lesson
+
+In the next and final lesson, we will show you some improvements that you can add to your crawler code that will make it more readable and maintainable in the long run.

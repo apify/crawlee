@@ -1,8 +1,10 @@
 import log from '@apify/log';
 import { ensureDir } from 'fs-extra';
 import { rm, writeFile } from 'node:fs/promises';
+import { setTimeout } from 'node:timers/promises';
 import { resolve } from 'node:path';
 import { parentPort } from 'node:worker_threads';
+import { lock } from 'proper-lockfile';
 import type { WorkerDeleteEntryMessage, WorkerReceivedMessage, WorkerUpdateEntriesMessage, WorkerUpdateMetadataMessage } from '../utils';
 
 const workerLog = log.child({ prefix: 'MemoryStorageWorker' });
@@ -45,6 +47,19 @@ async function updateMetadata(message: WorkerUpdateMetadataMessage) {
     await writeFile(filePath, JSON.stringify(message.data, null, '\t'));
 }
 
+async function lockAndWrite(filePath: string, data: unknown, stringify = true, retry = 10, timeout = 10): Promise<void> {
+    try {
+        const release = await lock(filePath, { realpath: false });
+        await writeFile(filePath, stringify ? JSON.stringify(data, null, '\t') : data as Buffer);
+        await release();
+    } catch (e: any) {
+        if (e.code === 'ELOCKED' && retry > 0) {
+            await setTimeout(timeout);
+            return lockAndWrite(filePath, data, stringify, retry - 1, timeout * 2);
+        }
+    }
+}
+
 async function updateItems(message: WorkerUpdateEntriesMessage) {
     // Ensure the directory for the entity exists
     const dir = message.entityDirectory;
@@ -54,16 +69,14 @@ async function updateItems(message: WorkerUpdateEntriesMessage) {
         case 'requestQueues': {
             // Write the entry to the file
             const filePath = resolve(dir, `${message.data.id}.json`);
-            await writeFile(filePath, JSON.stringify(message.data, null, '\t'));
+            await lockAndWrite(filePath, message.data);
             break;
         }
         case 'datasets': {
             // Save all the new items to the disk
             for (const [idx, data] of message.data) {
-                await writeFile(
-                    resolve(dir, `${idx}.json`),
-                    JSON.stringify(data, null, '\t'),
-                );
+                const filePath = resolve(dir, `${idx}.json`);
+                await lockAndWrite(filePath, data);
             }
 
             break;
@@ -85,23 +98,17 @@ async function updateItems(message: WorkerUpdateEntriesMessage) {
                     await rm(itemMetadataPath, { force: true });
 
                     if (message.writeMetadata) {
-                        const metadataPath = itemMetadataPath;
-
-                        await writeFile(
-                            metadataPath,
-                            JSON.stringify(
-                                {
-                                    key: record.key,
-                                    contentType: record.contentType ?? 'unknown/no content type',
-                                    extension: record.extension,
-                                },
-                                null,
-                                '\t',
-                            ),
+                        await lockAndWrite(
+                            itemMetadataPath,
+                            {
+                                key: record.key,
+                                contentType: record.contentType ?? 'unknown/no content type',
+                                extension: record.extension,
+                            },
                         );
                     }
 
-                    await writeFile(itemPath, record.value);
+                    await lockAndWrite(itemPath, record.value, false);
 
                     break;
                 }
