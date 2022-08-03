@@ -31,7 +31,6 @@ module.exports = {
                 'guides/request-storage',
                 'guides/result-storage',
                 'guides/environment-variables',
-                'guides/configuration',
                 'guides/proxy-management',
                 'guides/session-management',
                 'guides/scaling-crawlers',
