@@ -67,7 +67,7 @@ const FeatureList = [
 function Feature({ Svg, title, description }) {
     return (
         <div className={clsx('col col--4')}>
-            <div className="padding-horiz--md padding-bottom--xl">
+            <div className="padding-horiz--md padding-bottom--md">
                 <div className={styles.featureIcon}>
                     {Svg ? <Svg alt={title}/> : null}
                 </div>

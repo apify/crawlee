@@ -187,34 +187,6 @@ nav.navbar .dropdown__menu {
     height: 3rem;
 }
 
-html.plugin-pages .hero h1:nth-child(1) {
-    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
-    linear-gradient(0deg, #41465D, #41465D);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-html.plugin-pages .hero h1:nth-child(2) {
-    position: absolute;
-    z-index: 1;
-}
-
-html.plugin-pages .hero h2 {
-    font-style: normal;
-    font-weight: 400;
-    font-size: 24px;
-    line-height: 40px;
-    color: #41465d;
-    margin-top: 8px;
-    margin-bottom: 24px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-}
-
-html[data-theme='dark'] .hero h2 {
-    color: #b3b8d2;
-}
-
 html.plugin-pages {
     font-size: 18px;
     line-height: 32px;
@@ -273,40 +245,11 @@ html.plugin-docs .theme-doc-markdown h3 {
     position: relative;
 }
 
-.hero .theme-code-block {
-    position: absolute;
-    top: 40%;
-    left: calc(50% - 200px);
-    width: 400px;
-}
-
-.hero .theme-code-block code {
-    background: #272c3d;
-    padding: 10px 20px;
-}
-
-.hero .theme-code-block button {
-    opacity: 0.4;
-    padding: 5px 8px;
-    margin-top: -2px;
-}
-
-.hero .theme-code-block button span {
-    width: 16px;
-    height: 16px;
-    padding: 0;
-    margin: 0;
-}
-
-.hero code span {
-    color: #f2f3fb;
-}
-
 h1#change-log {
     display: none;
 }
 
-@media (min-width: 996px) and (max-width: 1250px) {
+@media (min-width: §px) and (max-width: 1250px) {
     .navbar__items--right a.icon {
         display: none;
     }

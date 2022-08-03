@@ -30,7 +30,7 @@ function Footer() {
     const ApifyLogo = require('../../../static/img/footer-apify-logo.svg').default;
     return (
         <footer className={clsx(styles.footer, style)}>
-            <div className="container">
+            <div className="container padding-horiz--lg">
                 <div className="row">
                     <div className="col col--5">
                         <div className="row">
@@ -50,14 +50,14 @@ function Footer() {
                         </div>
                     </div>
                 </div>
-                <div className="row padding-vert--lg padding-top--xl">
-                    <div className="col col--6">
+                <div className="row padding-vert--md padding-top--lg">
+                    <div className="col padding-vert--md col--6">
                         <div className={styles.freeAndOpenSource}>
                             <OpenSourceIcon className={styles.alignMiddle} />
                             <span className={styles.alignMiddle}>Crawlee is free and open source</span>
                         </div>
                     </div>
-                    <div className="col col--6 text--right">
+                    <div className="col padding-vert--md col--6 text--right">
                         <span className={styles.builtBy}>
                             <span className={styles.alignMiddle}>Built by</span>
                             <ApifyLogo className={styles.alignMiddle} />

@@ -144,7 +144,7 @@ module.exports = {
                 {
                     type: 'docsVersion',
                     to: 'api/core',
-                    label: 'API reference',
+                    label: 'API',
                     position: 'left',
                     activeBaseRegex: 'api/(?!core/changelog)',
                 },

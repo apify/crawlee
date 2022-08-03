@@ -1,5 +1,5 @@
 <svg width="676" height="676" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g filter="url(#a)" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke-linecap="round" stroke-linejoin="round">
         <path
             d="M543.647 511.33H132.054c-5.888 0-9.569-6.625-6.625-11.961l102.91-185.348 102.91-185.348c2.944-5.291 10.305-5.291 13.249 0l66.199 119.241c-39.793 9.844-69.281 45.773-69.281 88.602 0 50.42 40.851 91.271 91.271 91.271 24.703 0 47.153-9.798 63.576-25.808l54.054 97.39c2.945 5.29-.736 11.961-6.624 11.961h-.046Z"
             fill="url(#b)" stroke="url(#c)" stroke-width="8.661"/>
