@@ -8,8 +8,9 @@ import styles from './index.module.css';
 import Hightlights from '../components/Highlights';
 
 function Hero() {
+    const SvgLogoBlur = require('../../static/img/logo-blur.svg').default;
     return (
-        <header className={clsx('hero container', styles.heroBanner)}>
+        <header className={clsx('hero container padding-top--xl', styles.heroBanner)}>
             <div className="container">
                 <div className="row">
                     <div className="col col--7">
@@ -31,11 +32,13 @@ function Hero() {
                             </div>
                         </div>
                     </div>
-                    <div className="col col--5" style={{ textAlign: 'center' }}>
-                        <CodeBlock className="language-bash">
-                            npx crawlee create my-crawler
-                        </CodeBlock>
-                        <img src={require('../../static/img/API.png').default} className={clsx(styles.hideSmall)} />
+                    <div className="col col--5">
+                        <div className={styles.logoBlur}>
+                            <CodeBlock className="language-bash">
+                                npx crawlee create my-crawler
+                            </CodeBlock>
+                            <SvgLogoBlur className={clsx(styles.hideSmall)} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -47,18 +50,21 @@ function Features() {
     return (
         <section className={clsx('container', styles.features)}>
             <div className="row">
-                <div className="col col--6">
-                    <img src={require('../../static/img/chrome_scrape.gif').default} className={clsx(styles.hideSmall)} />
-                </div>
                 <div className="col col--4">
                     <h2>Easy crawling</h2>
+                </div>
+            </div>
+            <div className="row">
+                <div className="col col--4">
                     <p>
                         There are three main classes that you can use to start crawling the web in no time. Need to crawl plain HTML?
                         Use the blazing fast CheerioCrawler. For complex websites that use React, Vue or other front-end javascript libraries and require
                         JavaScript execution, spawn a headless browser with PlaywrightCrawler or PuppeteerCrawler.
                     </p>
                 </div>
-                <div className="col col--2"></div>
+                <div className="col col--8 text--center">
+                    <img src={require('../../static/img/chrome_scrape.gif').default} className={clsx(styles.hideSmall)} />
+                </div>
             </div>
         </section>
     );
@@ -84,7 +90,7 @@ await crawler.run(['https://crawlee.dev']);
 
 function ActorExample() {
     return (
-        <section id="try" className="container">
+        <section id="try" className={clsx(styles.try, 'container')}>
             <h2>Try it out</h2>
             <p>Install Crawlee into a Node.js project. You must have Node.js 16 or higher installed.</p>
             <CodeBlock className="language-bash">
@@ -94,7 +100,7 @@ function ActorExample() {
             <CodeBlock className="language-typescript">
                 {example}
             </CodeBlock>
-            <p>Execute the following command in the project's folder and watch it recursively crawl IANA with Puppeteer and Chromium.</p>
+            <p>Execute the following command in the project's folder and watch it recursively crawl Crawlee website with Puppeteer and Chromium.</p>
             <CodeBlock className="language-bash">
                 node main.mjs
             </CodeBlock>
@@ -103,6 +109,7 @@ function ActorExample() {
 }
 
 export default function Home() {
+    const SvgLogo = require('../../static/img/crawlee-logo.svg').default;
     const { siteConfig } = useDocusaurusContext();
     return (
         <Layout
@@ -112,6 +119,13 @@ export default function Home() {
             <Hightlights />
             <Features />
             <ActorExample />
+            <div className="container">
+                <div className="row">
+                    <div className="col col--12 text--center padding-top--lg padding-bottom--xl">
+                        <SvgLogo className={styles.bottomLogo} />
+                    </div>
+                </div>
+            </div>
         </Layout>
     );
 }

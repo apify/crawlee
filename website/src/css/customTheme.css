@@ -9,20 +9,17 @@ html[data-theme='dark'] {
 
     --ifm-pre-background: #242736;
 
-    --ifm-footer-background-color: #242736;
     --ifm-color-primary: #5d9df1;
     --ifm-link-color: #5d9df1;
-    --ifm-heading-color: #b3b8d2;
+    --ifm-heading-color: #f2f3fb;
 
     --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
 
 :root {
     /* use default system font based on https://devhints.io/css-system-font-stack */
-    --ifm-font-family-base: -apple-system, BlinkMacSystemFont,
-        "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans",
-        "Droid Sans", "Helvetica Neue", sans-serif;
+    --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --ifm-heading-font-family: 'Lota Grotesque', sans-serif;
     --ifm-font-weight-semibold: 600;
     --ifm-font-color-base: #242736;
 
@@ -48,14 +45,14 @@ html[data-theme='dark'] {
     --ifm-link-hover-color: hsl(214, 84%, 65%);
     --ifm-link-hover-decoration: none;
 
-    --ifm-footer-background-color: #1a1b22;
+    --ifm-footer-background-color: #272c3d;
     --ifm-footer-title-color: #f2f3fb;
     --ifm-footer-link-color: #f2f3fb;
     --max-layout-width: 1680px;
 
     --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 
-    --ifm-heading-color: #41465d;
+    --ifm-heading-color: #242736;
 }
 
 @font-face {
@@ -115,10 +112,11 @@ aside > div > a > b {
     display: none;
 }
 
-.navbar .icon{
+.navbar .icon {
     font-size: 0;
     padding: 4px;
     margin-right: 20px;
+    line-height: 0;
 }
 
 .navbar .icon::before {
@@ -148,10 +146,6 @@ html[data-theme="dark"] .navbar .navbar__link[href*=discord]:before {
 .navbar svg[class*=iconExternalLink],
 aside svg[class*=iconExternalLink] {
     display: none;
-}
-
-#try {
-    padding-top: 20px;
 }
 
 header.hero div[class^=heroButtons] {
@@ -193,7 +187,7 @@ nav.navbar .dropdown__menu {
     height: 3rem;
 }
 
-.hero h1:nth-child(1) {
+html.plugin-pages .hero h1:nth-child(1) {
     background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
     linear-gradient(0deg, #41465D, #41465D);
     -webkit-background-clip: text;
@@ -201,25 +195,107 @@ nav.navbar .dropdown__menu {
     background-clip: text;
 }
 
-.hero h1:nth-child(2) {
+html.plugin-pages .hero h1:nth-child(2) {
     position: absolute;
     z-index: 1;
 }
 
-.hero h2 {
+html.plugin-pages .hero h2 {
     font-style: normal;
     font-weight: 400;
     font-size: 24px;
     line-height: 40px;
     color: #41465d;
+    margin-top: 8px;
+    margin-bottom: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 html[data-theme='dark'] .hero h2 {
     color: #b3b8d2;
 }
 
-.hero code {
-    background: #272C3D;
+html.plugin-pages {
+    font-size: 18px;
+    line-height: 32px;
+}
+
+html.plugin-pages h2 {
+    font-size: 36px;
+    line-height: 48px;
+}
+
+html.plugin-docs .theme-doc-markdown {
+    font-size: 18px;
+    line-height: 32px;
+}
+
+html.plugin-docs .theme-doc-markdown h1 {
+    font-weight: 600;
+    font-size: 48px;
+    line-height: 64px;
+    color: #000;
+}
+
+html[data-theme='dark'].plugin-docs .theme-doc-markdown h1 {
+    color: #fff;
+}
+
+html.plugin-typedoc-api .theme-doc-markdown h1 {
+    color: #000;
+}
+
+html[data-theme='dark'].plugin-typedoc-api .theme-doc-markdown h1 {
+    color: #fff;
+}
+
+html.plugin-docs .theme-doc-markdown h2 {
+    font-size: 36px;
+    line-height: 48px;
+}
+
+html.plugin-docs .theme-doc-markdown h3 {
+    font-size: 28px;
+    line-height: 36px;
+    /*color: #242736;*/
+}
+
+.theme-doc-toc-desktop .table-of-contents {
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.theme-doc-toc-desktop .table-of-contents .toc-highlight {
+    height: auto;
+}
+
+.hero {
+    position: relative;
+}
+
+.hero .theme-code-block {
+    position: absolute;
+    top: 40%;
+    left: calc(50% - 200px);
+    width: 400px;
+}
+
+.hero .theme-code-block code {
+    background: #272c3d;
+    padding: 10px 20px;
+}
+
+.hero .theme-code-block button {
+    opacity: 0.4;
+    padding: 5px 8px;
+    margin-top: -2px;
+}
+
+.hero .theme-code-block button span {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
 }
 
 .hero code span {
@@ -240,4 +316,21 @@ h1#change-log {
     .navbar__link.changelog {
         display: none;
     }
+}
+
+html .theme-doc-sidebar-container {
+    border: 0;
+}
+
+html .theme-doc-sidebar-container button {
+    border: 0;
+    border-radius: 10px;
+}
+
+html .table-of-contents {
+    border-left: 0;
+}
+
+html .table-of-contents ul {
+    border-left: 2px solid #dfe2f5;
 }

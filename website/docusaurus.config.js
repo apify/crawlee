@@ -1,5 +1,4 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
-const { createHref } = require('./tools/utils/createHref');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
@@ -246,27 +245,20 @@ module.exports = {
                     title: 'More',
                     items: [
                         {
-                            html: createHref(
-                                'https://apify.com',
-                                'Apify Platform',
-                            ),
+                            label: 'Apify Platform',
+                            href: 'https://apify.com',
                         },
                         {
-                            html: createHref(
-                                'https://docusaurus.io',
-                                'Docusaurus',
-                            ),
+                            label: 'Docusaurus',
+                            href: 'https://docusaurus.io',
                         },
                         {
-                            html: createHref(
-                                'https://github.com/apify/crawlee',
-                                'GitHub',
-                            ),
+                            label: 'GitHub',
+                            href: 'https://github.com/apify/crawlee',
                         },
                     ],
                 },
             ],
-            copyright: `Copyright © ${new Date().getFullYear()} Apify Technologies s.r.o.`,
             logo: {
                 src: 'img/apify_logo.svg',
                 href: '/',
