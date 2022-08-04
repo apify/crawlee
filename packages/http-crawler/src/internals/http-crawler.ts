@@ -466,6 +466,8 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
     use(extension: CrawlerExtension) {
         ow(extension, ow.object.instanceOf(CrawlerExtension));
 
+        const clazz = this.constructor.name;
+
         const extensionOptions = extension.getCrawlerOptions();
 
         for (const [key, value] of entries(extensionOptions)) {
@@ -476,16 +478,16 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
             const exists = this[key as keyof this] != null;
 
             if (!isConfigurable) { // Test if the property can be configured on the crawler
-                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on HttpCrawler instance.`);
+                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on ${clazz} instance.`);
             }
 
             if (!isSameType && exists) { // Assuming that extensions will only add up configuration
                 throw new Error(
-                    `${extension.name} tries to set property of different type "${extensionType}". "HttpCrawler.${key}: ${originalType}".`,
+                    `${extension.name} tries to set property of different type "${extensionType}". "${clazz}.${key}: ${originalType}".`,
                 );
             }
 
-            this.log.warning(`${extension.name} is overriding "HttpCrawler.${key}: ${originalType}" with ${value}.`);
+            this.log.warning(`${extension.name} is overriding "${clazz}.${key}: ${originalType}" with ${value}.`);
 
             this[key as keyof this] = value as this[keyof this];
         }
