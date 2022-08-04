@@ -91,11 +91,11 @@ html[data-theme='dark'] .heroBanner h2 {
 }
 
 .logoBlur {
-    position: relative;
-    width: 436px;
-    height: 396px;
-    overflow: hidden;
-    filter: blur(45px);
+    position: absolute;
+    width: 680px;
+    height: 680px;
+    top: -120px;
+    left: -100px;
 }
 
 .logoBlur > svg {
@@ -175,7 +175,6 @@ html[data-theme='dark'] .heroBanner h2 {
     line-height: 28px;
     padding: 12px 24px;
     background: #ed3545;
-    border: 1px solid #cfd4eb;
     border-radius: 8px;
     color: white;
     font-weight: 600;

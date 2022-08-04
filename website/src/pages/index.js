@@ -8,7 +8,6 @@ import styles from './index.module.css';
 import Hightlights from '../components/Highlights';
 
 function Hero() {
-    const SvgLogoBlur = require('../../static/img/logo-big.svg').default;
     return (
         <header className={clsx('container', styles.heroBanner)}>
             <div className="row padding-horiz--md">
@@ -39,7 +38,7 @@ function Hero() {
                 </div>
                 <div className={clsx(styles.relative, 'col', 'col--5')}>
                     <div className={styles.logoBlur}>
-                        <SvgLogoBlur className={clsx(styles.hideSmall)} />
+                        <img src={require('../../static/img/logo-blur.png').default} className={clsx(styles.hideSmall)} />
                     </div>
                     <div className={styles.codeBlock}>
                         <CodeBlock className="language-bash">
