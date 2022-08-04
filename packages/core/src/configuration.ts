@@ -11,24 +11,146 @@ import type { EventManager } from './events';
 import { LocalEventManager } from './events';
 
 export interface ConfigurationOptions {
+    /**
+     * Defines storage client to be used.
+     * @default {@link MemoryStorage}
+     */
     storageClient?: StorageClient;
+
+    /**
+     * Defines the Event Manager to be used.
+     * @default {@link EventManager}
+     */
     eventManager?: EventManager;
+
+    /**
+     * Could be used to adjust the storage client behavior
+     * e.g. {@link MemoryStorageOptions} could be used to adjust the {@link MemoryStorage} behavior.
+     */
     storageClientOptions?: Dictionary;
+
+    /**
+     * Default dataset id.
+     *
+     * Alternative to `CRAWLEE_DEFAULT_DATASET_ID` environment variable.
+     * @default 'default'
+     */
     defaultDatasetId?: string;
+
+    /**
+     * Defines whether to purge the default storage folders before starting the crawler run.
+     *
+     * Alternative to `CRAWLEE_PURGE_ON_START` environment variable.
+     * @default true
+     */
     purgeOnStart?: boolean;
+
+    /**
+     * Default key-value store id.
+     *
+     * Alternative to `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+     * @default 'default'
+     */
     defaultKeyValueStoreId?: string;
+
+    /**
+     * Default request queue id.
+     *
+     * Alternative to `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` environment variable.
+     * @default 'default'
+     */
     defaultRequestQueueId?: string;
+
+    /**
+     * Sets the ratio, defining the maximum CPU usage.
+     * When the CPU usage is higher than the provided ratio, the CPU is considered overloaded.
+     * @default 0.95
+     */
     maxUsedCpuRatio?: number;
+
+    /**
+     * Sets the ratio, defining the amount of system memory that could be used by the {@link AutoscaledPool}.
+     * When the memory usage is more than the provided ratio, the memory is considered overloaded.
+     *
+     * Alternative to `CRAWLEE_AVAILABLE_MEMORY_RATIO` environment variable.
+     * @default 0.25
+     */
     availableMemoryRatio?: number;
+
+    /**
+     * Sets the amount of system memory in megabytes to be used by the {@link AutoscaledPool}.
+     * By default, the maximum memory is set to one quarter of total system memory.
+     *
+     * Alternative to `CRAWLEE_MEMORY_MBYTES` environment variable.
+     */
     memoryMbytes?: number;
+
+    /**
+     * Defines the interval of emitting the `persistState` event.
+     *
+     * Alternative to `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` environment variable.
+     * @default 60_000
+     */
     persistStateIntervalMillis?: number;
+
+    /**
+     Defines the interval of emitting the `systemInfo` event.
+     @default 60_000
+     */
     systemInfoIntervalMillis?: number;
+
+    /**
+     * Defines the default input key, i.e. the key that is used to get the crawler input value
+     * from the default {@link KeyValueStore} associated with the current crawler run.
+     *
+     * Alternative to `CRAWLEE_INPUT_KEY` environment variable.
+     * @default 'INPUT'
+     */
     inputKey?: string;
+
+    /**
+     * Defines whether web browsers launched by Crawlee will run in the headless mode.
+     *
+     * Alternative to `CRAWLEE_HEADLESS` environment variable.
+     * @default true
+     */
     headless?: boolean;
+
+    /**
+     * Defines whether to run X virtual framebuffer on the web browsers launched by Crawlee.
+     *
+     * Alternative to `CRAWLEE_XVFB` environment variable.
+     * @default false
+     */
     xvfb?: boolean;
+
+    /**
+     * Defines a path to Chrome executable.
+     *
+     * Alternative to `CRAWLEE_CHROME_EXECUTABLE_PATH` environment variable.
+     */
     chromeExecutablePath?: string;
+
+    /**
+     * Defines a path to default browser executable.
+     *
+     * Alternative to `CRAWLEE_DEFAULT_BROWSER_PATH` environment variable.
+     */
     defaultBrowserPath?: string;
+
+    /**
+     * Defines whether to disable browser sandbox by adding `--no-sandbox` flag to `launchOptions`.
+     *
+     * Alternative to `CRAWLEE_DISABLE_BROWSER_SANDBOX` environment variable.
+     */
     disableBrowserSandbox?: boolean;
+
+    /**
+     * Sets the log level to the given value.
+     *
+     * Alternative to `CRAWLEE_LOG_LEVEL`.
+     * @default 'INFO'
+     */
     logLevel?: LogLevel | LogLevel[keyof LogLevel];
 }
 
