@@ -343,7 +343,7 @@ export type HttpRequestHandler<
  * ```
  * @category Crawlers
  */
-export class HttpCrawler extends BasicCrawler<HttpCrawlingContext> {
+export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingContext> extends BasicCrawler<Context> {
     /**
      * A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
@@ -494,7 +494,7 @@ export class HttpCrawler extends BasicCrawler<HttpCrawlingContext> {
     /**
      * Wrapper around requestHandler that opens and closes pages etc.
      */
-    protected override async _runRequestHandler(crawlingContext: HttpCrawlingContext) {
+    protected override async _runRequestHandler(crawlingContext: Context) {
         const { request, session } = crawlingContext;
 
         if (this.proxyConfiguration) {
