@@ -15,6 +15,7 @@ module.exports = {
         '^crawlee$': '<rootDir>/packages/crawlee/src',
         '^@crawlee/basic$': '<rootDir>/packages/basic-crawler/src',
         '^@crawlee/browser$': '<rootDir>/packages/browser-crawler/src',
+        '^@crawlee/http$': '<rootDir>/packages/http-crawler/src',
         '^@crawlee/cheerio$': '<rootDir>/packages/cheerio-crawler/src',
         '^@crawlee/playwright$': '<rootDir>/packages/playwright-crawler/src',
         '^@crawlee/puppeteer$': '<rootDir>/packages/puppeteer-crawler/src',
