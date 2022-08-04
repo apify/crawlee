@@ -157,21 +157,41 @@ export interface ConfigurationOptions {
 /**
  * `Configuration` is a value object holding Crawlee configuration. By default, there is a
  * global singleton instance of this class available via `Configuration.getGlobalConfig()`.
- * Places that depend on a configurable behaviour depend on this class as have the global
+ * Places that depend on a configurable behaviour depend on this class, as they have the global
  * instance as the default value.
  *
+ * *Using global configuration:*
  * ```js
  * import { BasicCrawler, Configuration } from 'crawlee';
  *
+ * // Get the global configuration
+ * const config = Configuration.getGlobalConfig();
+ * // Set the 'persistStateIntervalMillis' option
+ * // of global configuration to 10 seconds
+ * config.set('persistStateIntervalMillis', 10_000);
+ *
+ * // No need to pass the configuration to the crawler,
+ * // as it's using the global configuration by default
+ * const crawler = new BasicCrawler();
+ * ```
+ *
+ * *Using custom configuration:*
+ * ```js
+ * import { BasicCrawler, Configuration } from 'crawlee';
+ *
+ * // Create a new configuration
  * const config = new Configuration({ persistStateIntervalMillis: 30_000 });
+ * // Pass the configuration to the crawler
  * const crawler = new BasicCrawler({ ... }, config);
  * ```
  *
  * The configuration provided via environment variables always takes precedence. We can also
  * define the `crawlee.json` file in the project root directory which will serve as a baseline,
- * so the options provided in constructor will override those.
+ * so the options provided in constructor will override those. In other words, the precedence is:
  *
- * > In other words, the precedence is: crawlee.json < constructor options < environment variables.
+ * ```text
+ * crawlee.json < constructor options < environment variables
+ * ```
  *
  * ## Supported Configuration Options
  *

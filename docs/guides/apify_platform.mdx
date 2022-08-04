@@ -180,7 +180,8 @@ If you need to share a link to some file stored in a Key-Value Store on Apify Pl
 ```js
 import { KeyValueStore } from 'apify';
 
-await KeyValueStore.setValue('your-file', { foo: 'bar' });
+const store = await KeyValueStore.open();
+await store.setValue('your-file', { foo: 'bar' });
 const url = store.getPublicUrl('your-file');
 // https://api.apify.com/v2/key-value-stores/<your-store-id>/records/your-file
 ```
@@ -199,7 +200,7 @@ When the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> is stored on the [
 
 ## Environment variables
 
-The following are some additional environment variables specific to Apify platform. More Crawlee specific environment variables could be found in the [Environment Variables](./environment-variables) guide.
+The following are some additional environment variables specific to Apify platform. More Crawlee specific environment variables could be found in the [Environment Variables](./configuration#environment-variables) guide.
 
 :::note
 
@@ -215,7 +216,7 @@ or to run an actor on the Apify platform. You can find your API token on the
 
 ### Combinations of `APIFY_TOKEN` and `CRAWLEE_STORAGE_DIR`
 
-> `CRAWLEE_STORAGE_DIR` env variable description could be found in [Environment Variables](../guides/environment-variables#crawlee_storage_dir) guide.
+> `CRAWLEE_STORAGE_DIR` env variable description could be found in [Environment Variables](../guides/configuration#crawlee_storage_dir) guide.
 
 By combining the env vars in various ways, you can greatly influence the actor's behavior.
 
