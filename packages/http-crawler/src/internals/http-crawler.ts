@@ -505,7 +505,7 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
             await this._handleNavigation(crawlingContext);
             tryCancel();
 
-            const parsed = await this._parseResponse(request, crawlingContext.response!);
+            const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
             const response = parsed.response!;
             const contentType = parsed.contentType!;
             tryCancel();
@@ -642,7 +642,7 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
     /**
      * Encodes and parses response according to the provided content type
      */
-    protected async _parseResponse(request: Request, responseStream: IncomingMessage) {
+    protected async _parseResponse(request: Request, responseStream: IncomingMessage, crawlingContext: Context) {
         const { statusCode } = responseStream;
         const { type, charset } = parseContentTypeFromResponse(responseStream);
         const { response, encoding } = this._encodeResponse(request, responseStream, charset);
@@ -663,14 +663,15 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${statusCode} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            return { ...this._parseHTML(response), isXml: type.includes('xml'), response, contentType };
+            const isXml = type.includes('xml');
+            return { ...this._parseHTML(response, isXml, crawlingContext), isXml, response, contentType };
         } else {
             const body = await concatStreamToBuffer(response);
             return { body, response, contentType };
         }
     }
 
-    protected async _parseHTML(response: IncomingMessage): Promise<Partial<Context>> {
+    protected async _parseHTML(response: IncomingMessage, _isXml: boolean, _crawlingContext: Context): Promise<Partial<Context>> {
         return {
             body: await concatStreamToBuffer(response),
         } as Partial<Context>;

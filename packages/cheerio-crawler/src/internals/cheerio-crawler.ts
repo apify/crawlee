@@ -1,21 +1,16 @@
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
-import { HttpCrawler, HttpCrawlerOptions } from '@crawlee/http';
-import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue } from '@crawlee/core';
-import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, Configuration } from '@crawlee/core';
+import type { HttpCrawlerOptions } from '@crawlee/http';
+import { HttpCrawler } from '@crawlee/http';
+import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, RequestQueue, Configuration } from '@crawlee/core';
+import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/core';
 import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
-import { parseContentTypeFromResponse } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import type { RequestLike, ResponseLike } from 'content-type';
-import contentTypeParser from 'content-type';
 import type { OptionsInit, Response as GotResponse, GotOptionsInit } from 'got-scraping';
 import { DomHandler } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import type { IncomingMessage } from 'http';
-import util from 'util';
 
 export type CheerioErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -350,9 +345,6 @@ export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpti
  * @category Crawlers
  */
 export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
-    protected override preNavigationHooks: CheerioHook[];
-    protected override postNavigationHooks: CheerioHook[];
-
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
@@ -360,47 +352,24 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         super(options as HttpCrawlerOptions, config);
     }
 
-    /**
-     * Wrapper around requestHandler that opens and closes pages etc.
-     */
-    protected override async _runRequestHandler(crawlingContext: CheerioCrawlingContext) {
-        const { request, session } = crawlingContext;
+    protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: CheerioCrawlingContext) {
+        const dom = await this._parseHtmlToDom(response);
 
-        if (this.proxyConfiguration) {
-            const sessionId = session ? session.id : undefined;
-            crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId);
-        }
-        if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
-            tryCancel();
+        const $ = cheerio.load(dom as string, {
+            xmlMode: isXml,
+            // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
+            // and not good for scraping. It also does not have a great streaming interface.
+            // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
+            _useHtmlParser2: true,
+        } as CheerioOptions);
 
-            const { dom, isXml, body, contentType, response } = await this._parseResponse(request, crawlingContext.response!);
-            tryCancel();
-
-            if (this.useSessionPool) {
-                this._throwOnBlockedRequest(session!, response.statusCode!);
-            }
-
-            if (this.persistCookiesPerSession) {
-                session!.setCookiesFromResponse(response);
-            }
-
-            request.loadedUrl = response.url;
-
-            const $ = dom
-                ? cheerio.load(dom as string, {
-                    xmlMode: isXml,
-                    // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
-                    // and not good for scraping. It also does not have a great streaming interface.
-                    // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
-                    _useHtmlParser2: true,
-                } as CheerioOptions)
-                : null;
-
-            crawlingContext.$ = $!;
-            crawlingContext.contentType = contentType;
-            crawlingContext.response = response;
-            crawlingContext.enqueueLinks = async (enqueueOptions) => {
+        return {
+            dom,
+            $,
+            get body() {
+                return isXml ? $!.xml() : $!.html({ decodeEntities: false });
+            },
+            enqueueLinks: async (enqueueOptions?: CheerioCrawlerEnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
                     $,
@@ -408,39 +377,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                 });
-            };
-
-            Object.defineProperty(crawlingContext, 'json', {
-                get() {
-                    if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
-                    const jsonString = body!.toString(contentType.encoding);
-                    return JSON.parse(jsonString);
-                },
-            });
-
-            Object.defineProperty(crawlingContext, 'body', {
-                get() {
-                    // NOTE: For XML/HTML documents, we don't store the original body and only reconstruct it from Cheerio's DOM.
-                    // This is to save memory for high-concurrency crawls. The downside is that changes
-                    // made to DOM are reflected in the HTML, but we can live with that...
-                    if (dom) {
-                        return isXml ? $!.xml() : $!.html({ decodeEntities: false });
-                    }
-                    return body;
-                },
-            });
-        }
-
-        return addTimeoutToPromise(
-            () => Promise.resolve(this.requestHandler(crawlingContext)),
-            this.userRequestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
-        );
-    }
-
-    protected override async _parseHTML(response: IncomingMessage) {
-        return {
-            dom: await this._parseHtmlToDom(response),
+            },
         };
     }
 
