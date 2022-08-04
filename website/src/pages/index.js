@@ -37,7 +37,7 @@ function Hero() {
                         </div>
                     </div>
                 </div>
-                <div className="col col--5">
+                <div className={clsx(styles.relative, 'col', 'col--5')}>
                     <div className={styles.logoBlur}>
                         <SvgLogoBlur className={clsx(styles.hideSmall)} />
                     </div>

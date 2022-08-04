@@ -126,6 +126,10 @@ html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
     justify-content: center;
 }
 
+.main-wrapper {
+    overflow-x: hidden;
+}
+
 .main-wrapper > div {
     max-width: var(--max-layout-width);
 }
@@ -331,15 +335,22 @@ h1#change-log {
     display: none;
 }
 
-@media (min-width: 996px) and (max-width: 1250px) {
+@media (min-width: 997px) and (max-width: 1250px) {
     .navbar__items--right a.icon {
         display: none;
     }
 }
 
-@media (min-width: 996px) and (max-width: 1130px) {
+@media (min-width: 997px) and (max-width: 1130px) {
     .navbar__link.changelog {
         display: none;
+    }
+}
+
+@media (min-width: 997px) and (max-width: 1439px) {
+    footer .col--offset-9 {
+        --ifm-col-width: calc(4 / 12 * 100%);
+        margin-left: calc(8 / 12 * 100%);
     }
 }
 

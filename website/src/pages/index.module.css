@@ -28,7 +28,7 @@
 
 .codeBlock {
     position: absolute;
-    top: 45%;
+    top: 40%;
     max-width: 400px;
     width: 100%;
 }
@@ -110,7 +110,7 @@ html[data-theme='dark'] .heroBanner h2 {
     margin-bottom: 50px;
 }
 
-@media only screen and (max-device-width: 995px) {
+@media only screen and (max-device-width: 996px) {
     .codeBlock {
         position: relative;
         top: 50px;
