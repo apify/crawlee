@@ -9,9 +9,10 @@ import ApiLink from '@site/src/components/ApiLink';
 &#8203;<ApiLink to="core/class/Configuration">`Configuration`</ApiLink> is a class holding Crawlee configuration parameters. By default, you don't need to set or change any of them, but for certain use cases you might want to do so, e.g. in order to change the default storage directory, or enable verbose error logging, and so on.
 
 There are three ways of changing the configuration parameters:
-- adding `crawlee.json` file to your project;
-- setting environment variables;
-- using the `Configuration` class.
+
+- adding `crawlee.json` file to your project
+- setting environment variables
+- using the `Configuration` class
 
 You could also combine all the above, but you should keep in mind, that the precedence for these 3 options is the following:
 ***`crawlee.json`*** < ***constructor options*** < ***environment variables***.
