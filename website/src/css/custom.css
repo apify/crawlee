@@ -15,6 +15,7 @@ html[data-theme='dark'] {
     --ifm-navbar-link-color: #f2f3fb;
 
     --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+    --docsearch-text-color: #8d92af;
 }
 
 :root {
@@ -93,13 +94,32 @@ html[data-theme='dark'] {
     font-size: 14px !important;
 }
 
-.DocSearch-Button {
+html .DocSearch-Button {
     border-radius: 6px !important;
     font-weight: 400 !important;
+    background: #f9fafd;
+    border: 1px solid #c1c6dd;
 
     /* Annoying, but needed */
     /* https://stackoverflow.com/questions/26140050/why-is-font-family-not-inherited-in-button-tags-automatically/26140154 */
     font-family: inherit;
+}
+
+html .DocSearch-Button .DocSearch-Search-Icon {
+    color: var(--docsearch-muted-color);
+}
+
+html[data-theme="dark"] .DocSearch-Button {
+    background: none;
+    border: 1px solid var(--docsearch-muted-color);
+}
+
+html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
+    color: var(--docsearch-muted-color);
+}
+
+.DocSearch-Button:hover {
+    box-shadow: none !important;
 }
 
 .navbar, .main-wrapper {
@@ -258,8 +278,49 @@ html.plugin-docs .theme-doc-markdown h3 {
     line-height: 24px;
 }
 
+.theme-doc-sidebar-menu .menu__link,
 .theme-doc-toc-desktop .table-of-contents .toc-highlight {
     height: auto;
+    color: #6f7490;
+    background: none;
+}
+
+.theme-doc-sidebar-menu .menu__link:hover {
+    background: inherit;
+}
+
+.theme-doc-sidebar-menu .menu__link {
+    font-weight: 400;
+}
+
+.theme-doc-sidebar-menu .menu__link--active {
+    font-weight: 700;
+}
+
+.theme-doc-sidebar-menu .menu__list-item-collapsible,
+.theme-doc-sidebar-menu .menu__list-item-collapsible--active {
+    background: none;
+}
+
+.theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+    font-weight: 700;
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link,
+html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .toc-highlight {
+    color: #b3b8d2;
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link--active,
+html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+    color: #f2f3fb;
+}
+
+.theme-doc-sidebar-menu .menu__link:hover,
+.theme-doc-sidebar-menu .menu__link--active,
+.theme-doc-toc-desktop .table-of-contents .table-of-contents__link:hover,
+.theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+    color: #242736;
 }
 
 .hero {
