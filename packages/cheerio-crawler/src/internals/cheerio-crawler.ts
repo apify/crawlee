@@ -1,7 +1,7 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
-import { HttpCrawler } from '@crawlee/http';
+import { HttpCrawler, HttpCrawlerOptions } from '@crawlee/http';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, Request, RequestQueue } from '@crawlee/core';
 import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, Configuration } from '@crawlee/core';
 import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
@@ -356,8 +356,8 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options: CheerioCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
-        super(options, config);
+    constructor(options?: CheerioCrawlerOptions, config?: Configuration) {
+        super(options as HttpCrawlerOptions, config);
     }
 
     /**
@@ -438,36 +438,10 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         );
     }
 
-    /**
-     * Encodes and parses response according to the provided content type
-     */
-    protected async _parseResponse(request: Request, responseStream: IncomingMessage) {
-        const { statusCode } = responseStream;
-        const { type, charset } = parseContentTypeFromResponse(responseStream);
-        const { response, encoding } = this._encodeResponse(request, responseStream, charset);
-        const contentType = { type, encoding };
-
-        if (statusCode! >= 500) {
-            const body = await readStreamToString(response, encoding);
-
-            // Errors are often sent as JSON, so attempt to parse them,
-            // despite Accept header being set to text/html.
-            if (type === APPLICATION_JSON_MIME_TYPE) {
-                const errorResponse = JSON.parse(body);
-                let { message } = errorResponse;
-                if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                throw new Error(`${statusCode} - ${message}`);
-            }
-
-            // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
-        } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            const dom = await this._parseHtmlToDom(response);
-            return ({ dom, isXml: type.includes('xml'), response, contentType });
-        } else {
-            const body = await concatStreamToBuffer(response);
-            return { body, response, contentType };
-        }
+    protected override async _parseHTML(response: IncomingMessage) {
+        return {
+            dom: await this._parseHtmlToDom(response),
+        };
     }
 
     protected async _parseHtmlToDom(response: IncomingMessage) {
@@ -481,20 +455,6 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
             response
                 .on('error', reject)
                 .pipe(parser);
-        });
-    }
-
-    /**
-     * Checks and extends supported mime types
-     */
-    protected _extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
-        additionalMimeTypes.forEach((mimeType) => {
-            try {
-                const parsedType = contentTypeParser.parse(mimeType);
-                this.supportedMimeTypes.add(parsedType.type);
-            } catch (err) {
-                throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
-            }
         });
     }
 }

@@ -263,7 +263,7 @@ export interface HttpCrawlingContext<
     /**
      * Parsed `Content-Type header: { type, encoding }`.
      */
-    contentType: { type: string; encoding: string };
+    contentType: { type: string; encoding: BufferEncoding };
     crawler: HttpCrawler;
     response: IncomingMessage;
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
@@ -505,7 +505,9 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
             await this._handleNavigation(crawlingContext);
             tryCancel();
 
-            const { body, contentType, response } = await this._parseResponse(request, crawlingContext.response!);
+            const parsed = await this._parseResponse(request, crawlingContext.response!);
+            const response = parsed.response!;
+            const contentType = parsed.contentType!;
             tryCancel();
 
             if (this.useSessionPool) {
@@ -518,18 +520,15 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
 
             request.loadedUrl = response.url;
 
-            crawlingContext.contentType = contentType;
-            crawlingContext.response = response;
+            Object.assign(crawlingContext, parsed);
 
             Object.defineProperty(crawlingContext, 'json', {
                 get() {
                     if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
-                    const jsonString = body!.toString(contentType.encoding);
+                    const jsonString = parsed.body!.toString(contentType.encoding);
                     return JSON.parse(jsonString);
                 },
             });
-
-            crawlingContext.body = body;
         }
 
         return addTimeoutToPromise(
@@ -662,14 +661,19 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
             }
 
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`${statusCode} - Internal Server Error: ${body.substr(0, 100)}`);
+            throw new Error(`${statusCode} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            const body = await concatStreamToBuffer(response);
-            return { body, isXml: type.includes('xml'), response, contentType };
+            return { ...this._parseHTML(response), isXml: type.includes('xml'), response, contentType };
         } else {
             const body = await concatStreamToBuffer(response);
             return { body, response, contentType };
         }
+    }
+
+    protected async _parseHTML(response: IncomingMessage): Promise<Partial<Context>> {
+        return {
+            body: await concatStreamToBuffer(response),
+        } as Partial<Context>;
     }
 
     /**
