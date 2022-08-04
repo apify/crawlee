@@ -12,6 +12,7 @@ html[data-theme='dark'] {
     --ifm-color-primary: #5d9df1;
     --ifm-link-color: #5d9df1;
     --ifm-heading-color: #f2f3fb;
+    --ifm-navbar-link-color: #f2f3fb;
 
     --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
@@ -24,6 +25,7 @@ html[data-theme='dark'] {
     --ifm-font-color-base: #242736;
 
     --ifm-navbar-item-padding-horizontal: 1.75rem;
+    --ifm-navbar-link-color: #41465d;
     --ifm-navbar-shadow: none;
 
     --ifm-heading-margin-top: var(--ifm-heading-margin-bottom);
@@ -87,9 +89,13 @@ html[data-theme='dark'] {
     width: 100%;
 }
 
+.DocSearch-Button-Placeholder {
+    font-size: 14px !important;
+}
+
 .DocSearch-Button {
     border-radius: 6px !important;
-    font-weight: var(--ifm-font-weight-semibold) !important;
+    font-weight: 400 !important;
 
     /* Annoying, but needed */
     /* https://stackoverflow.com/questions/26140050/why-is-font-family-not-inherited-in-button-tags-automatically/26140154 */
@@ -112,18 +118,33 @@ aside > div > a > b {
     display: none;
 }
 
+.dropdown > .navbar__link::after {
+    border-color: currentColor;
+    border-style: solid;
+    border-width: 0.1em 0.1em 0 0;
+    content: '';
+    display: inline-block;
+    height: 0.4em;
+    left: 0.3em;
+    position: relative;
+    vertical-align: top;
+    width: 0.4em;
+    top: 9px;
+    transform: rotate(135deg);
+}
+
 .navbar .icon {
     font-size: 0;
     padding: 4px;
-    margin-right: 20px;
+    margin-left: 20px;
     line-height: 0;
 }
 
 .navbar .icon::before {
     content: '';
     display: block;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     background-size: cover;
 }
 
@@ -249,7 +270,7 @@ h1#change-log {
     display: none;
 }
 
-@media (min-width: §px) and (max-width: 1250px) {
+@media (min-width: 996px) and (max-width: 1250px) {
     .navbar__items--right a.icon {
         display: none;
     }

@@ -1,5 +1,9 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
+const pkg = require('../packages/crawlee/package.json');
+
+const [v1, v2] = pkg.version.split('.');
+const version = [v1, v2].join('.');
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
@@ -33,7 +37,7 @@ module.exports = {
                     lastVersion: 'current',
                     versions: {
                         current: {
-                            label: '3.0.0',
+                            label: `v${version}`,
                         },
                     },
                     showLastUpdateAuthor: true,
@@ -43,7 +47,7 @@ module.exports = {
                     rehypePlugins: [externalLinkProcessor],
                 },
                 theme: {
-                    customCss: '/src/css/customTheme.css',
+                    customCss: '/src/css/custom.css',
                 },
             }),
         ],
@@ -156,7 +160,7 @@ module.exports = {
                 },
                 {
                     type: 'docsVersionDropdown',
-                    position: 'right',
+                    position: 'left',
                     dropdownItemsAfter: [
                         {
                             href: 'https://sdk.apify.com/docs/guides/getting-started',
