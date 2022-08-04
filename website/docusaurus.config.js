@@ -102,7 +102,7 @@ module.exports = {
                     },
                     {
                         from: '/docs/guides/environment-variables',
-                        to: '/docs/guides/configuration#environment-variables',
+                        to: '/docs/guides/configuration',
                     },
                     // {
                     //     from: '/docs/next',
