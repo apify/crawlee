@@ -96,10 +96,6 @@ html[data-theme='dark'] .heroBanner h2 {
     height: 680px;
     top: -120px;
     left: -100px;
-}
-
-.logoBlur > svg {
-    position: relative;
     z-index: -1;
 }
 
