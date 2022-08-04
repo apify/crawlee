@@ -250,7 +250,7 @@ export interface CheerioCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    crawler: CheerioCrawler;
+    crawler: HttpCrawler; // FIXME
     response: IncomingMessage;
     enqueueLinks: (options?: CheerioCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
