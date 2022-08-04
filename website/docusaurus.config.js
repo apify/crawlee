@@ -1,6 +1,9 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
-const { createHref } = require('./tools/utils/createHref');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
+const pkg = require('../packages/crawlee/package.json');
+
+const [v1, v2] = pkg.version.split('.');
+const version = [v1, v2].join('.');
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
@@ -34,7 +37,7 @@ module.exports = {
                     lastVersion: 'current',
                     versions: {
                         current: {
-                            label: '3.0.0',
+                            label: `v${version}`,
                         },
                     },
                     showLastUpdateAuthor: true,
@@ -44,7 +47,7 @@ module.exports = {
                     rehypePlugins: [externalLinkProcessor],
                 },
                 theme: {
-                    customCss: '/src/css/customTheme.css',
+                    customCss: '/src/css/custom.css',
                 },
             }),
         ],
@@ -145,7 +148,7 @@ module.exports = {
                 {
                     type: 'docsVersion',
                     to: 'api/core',
-                    label: 'API reference',
+                    label: 'API',
                     position: 'left',
                     activeBaseRegex: 'api/(?!core/changelog)',
                 },
@@ -157,7 +160,7 @@ module.exports = {
                 },
                 {
                     type: 'docsVersionDropdown',
-                    position: 'right',
+                    position: 'left',
                     dropdownItemsAfter: [
                         {
                             href: 'https://sdk.apify.com/docs/guides/getting-started',
@@ -246,27 +249,20 @@ module.exports = {
                     title: 'More',
                     items: [
                         {
-                            html: createHref(
-                                'https://apify.com',
-                                'Apify Platform',
-                            ),
+                            label: 'Apify Platform',
+                            href: 'https://apify.com',
                         },
                         {
-                            html: createHref(
-                                'https://docusaurus.io',
-                                'Docusaurus',
-                            ),
+                            label: 'Docusaurus',
+                            href: 'https://docusaurus.io',
                         },
                         {
-                            html: createHref(
-                                'https://github.com/apify/crawlee',
-                                'GitHub',
-                            ),
+                            label: 'GitHub',
+                            href: 'https://github.com/apify/crawlee',
                         },
                     ],
                 },
             ],
-            copyright: `Copyright © ${new Date().getFullYear()} Apify Technologies s.r.o.`,
             logo: {
                 src: 'img/apify_logo.svg',
                 href: '/',

@@ -3,23 +3,6 @@
  * and scoped locally.
  */
 
-.heroBanner {
-    padding: 4rem 0;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.heroBanner {
-    text-align: left;
-}
-
-@media screen and (max-width: 966px) {
-    .heroBanner {
-        padding: 2rem;
-    }
-}
-
 .buttons {
     display: flex;
     align-items: center;
@@ -27,14 +10,144 @@
 }
 
 .tagline {
-    font-weight: 700;
-    font-size: 38px;
+    font-family: 'Lota Grotesque', sans-serif;
+    font-size: 64px;
+    font-weight: 600;
+    line-height: 80px;
+    letter-spacing: 0;
     text-align: left;
 }
 
+.tagline span {
+    color: transparent !important;
+}
+
+.relative {
+    position: relative;
+}
+
+.codeBlock {
+    position: absolute;
+    top: 45%;
+    max-width: 400px;
+    width: 100%;
+}
+
+.heroBanner {
+    padding-top: 100px;
+    padding-bottom: 4rem;
+}
+
+.heroBanner h1:nth-child(1) {
+    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
+    linear-gradient(0deg, #41465D, #41465D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.heroBanner h1:nth-child(2) {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    width: calc(100% - 2rem);
+}
+
+html .heroBanner h2 {
+    font-style: normal;
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 40px;
+    color: #41465d;
+    margin-top: 8px;
+    margin-bottom: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+html[data-theme='dark'] .heroBanner h2 {
+    color: #b3b8d2;
+}
+
+.heroBanner code {
+    background: #272c3d;
+    padding: 10px 20px;
+}
+
+.heroBanner button {
+    opacity: 0.4;
+    padding: 5px 8px;
+    margin-top: -2px;
+}
+
+.heroBanner button span {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+}
+
+.heroBanner code span {
+    color: #f2f3fb;
+}
+
+.logoBlur {
+    position: relative;
+    width: 436px;
+    height: 396px;
+    overflow: hidden;
+    filter: blur(45px);
+}
+
+.logoBlur > svg {
+    position: relative;
+    z-index: -1;
+}
+
+.heroButtons {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 50px;
+}
+
+@media only screen and (max-device-width: 995px) {
+    .codeBlock {
+        position: relative;
+        top: 50px;
+    }
+
+    .logoBlur {
+        display: none;
+    }
+}
+
 @media only screen and (max-device-width: 736px) {
+    .heroBanner {
+        padding-top: 20px;
+        padding-bottom: 2rem;
+    }
+
     .tagline {
-        font-size: 26px;
+        font-size: 32px;
+        line-height: 48px;
+    }
+
+    .tagline br {
+        display: none;
+    }
+
+    .hideSmall {
+        display: none;
+    }
+
+    .codeBlock {
+        top: 0;
+    }
+}
+
+@media only screen and (max-device-width: 450px) {
+    .codeBlock code {
+        font-size: 0.8em;
     }
 
     .heroButtons {
@@ -42,8 +155,14 @@
         align-items: flex-start !important;
     }
 
-    .hideSmall {
-        display: none;
+    .heroBanner button {
+        opacity: 0;
+    }
+}
+
+@media only screen and (max-device-width: 350px) {
+    .codeBlock code {
+        font-size: 0.7em;
     }
 }
 
@@ -52,46 +171,43 @@
 }
 
 .getStarted {
-    background-color: hsl(214, 84%, 50%);
-    color: white;
-    padding: 12px 20px;
+    font-size: 18px;
+    line-height: 28px;
+    padding: 12px 24px;
+    background: #ed3545;
+    border: 1px solid #cfd4eb;
     border-radius: 8px;
+    color: white;
     font-weight: 600;
 }
 
 .getStarted:hover {
     color: white;
-    background-color: hsl(214, 84%, 60%);
+    background: #ad1934;
 }
 
-html[data-theme='dark'] .seeExamples {
-    border-color: #585E76;
+html[data-theme='dark'] .getStarted {
+    border-color: #585e76;
 }
 
-.seeExamples {
-    border: 2px solid #CFD4EB;
-    color: var(--ifm-font-family-base);
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: 600;
+.try {
+    padding-top: 20px;
 }
 
-.seeExamples:hover {
-    color: var(--ifm-font-color-base);
-    background-color: hsl(229, 41%, 97%);
+.try, .features {
+    color: #41465d;
 }
 
-html[data-theme='dark'] .seeExamples:hover {
-    background-color: hsla(214, 0%, 95%, 10%);
-}
-
-.heroButtons {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
+html[data-theme='dark'] .try,
+html[data-theme='dark'] .features {
+    color: #b3b8d2;
 }
 
 .features > * {
     margin: 2em 0;
+}
+
+.bottomLogo path:nth-child(1) {
+    fill: url(#gradient-1) !important;
+    stroke: url(#gradient-1) !important;
 }

@@ -5,7 +5,7 @@ import styles from './Highlights.module.css';
 const FeatureList = [
     {
         title: 'Runs on JavaScript',
-        Svg: require('../../static/img/js_file.svg').default,
+        Svg: require('../../static/img/features/runs-on-js.svg').default,
         description: (
             <>
                 JavaScript is the language of the web. Crawlee builds on popular tools like <a href="https://www.npmjs.com/package/playwright">Playwright</a>, {' '}
@@ -16,7 +16,7 @@ const FeatureList = [
     },
     {
         title: 'Automates any web workflow',
-        Svg: require('../../static/img/workflow.svg').default,
+        Svg: require('../../static/img/features/automate-everything.svg').default,
         description: (
             <>
                 Run headless Chrome, Firefox, WebKit or other browsers, manage lists and queues of URLs to crawl, run crawlers in parallel at maximum
@@ -26,7 +26,7 @@ const FeatureList = [
     },
     {
         title: 'Works on any system',
-        Svg: require('../../static/img/system.svg').default,
+        Svg: require('../../static/img/features/works-everywhere.svg').default,
         description: (
             <>
                 Crawlee can be used stand-alone on your own systems or it can run as a serverless microservice on the {' '}
@@ -36,7 +36,7 @@ const FeatureList = [
     },
     {
         title: 'Automatic scaling',
-        // Svg: require('../../static/img/system.svg').default,
+        Svg: require('../../static/img/features/auto-scaling.svg').default,
         description: (
             <>
                 All the crawlers are automatically scaled based on available system resources using the <code>AutoscaledPool</code> class.
@@ -46,7 +46,7 @@ const FeatureList = [
     },
     {
         title: 'Generated fingerprints',
-        // Svg: require('../../static/img/system.svg').default,
+        Svg: require('../../static/img/features/fingerprints.svg').default,
         description: (
             <>
                 Never get blocked with unique fingerprints for browsers generated based on real world data.
@@ -55,31 +55,22 @@ const FeatureList = [
     },
     {
         title: 'Browser like requests from Node.js',
-        // Svg: require('../../static/img/system.svg').default,
+        Svg: require('../../static/img/features/node-requests.svg').default,
         description: (
             <>
                 Crawl using HTTP requests as if they were from browsers, using auto-generated headers based on real browsers and their TLS fingerprints.
             </>
         ),
     },
-    // {
-    //     title: '',
-    //     Svg: require('../../static/img/system.svg').default,
-    //     description: (
-    //         <>
-    //
-    //         </>
-    //     ),
-    // },
 ];
 
 function Feature({ Svg, title, description }) {
     return (
         <div className={clsx('col col--4')}>
-            <div className="text--center">
-                {Svg ? <Svg className={styles.featureSvg} alt={title}/> : null}
-            </div>
-            <div className="text--center padding-horiz--md padding-bottom--xl">
+            <div className="padding-horiz--md padding-bottom--md">
+                <div className={styles.featureIcon}>
+                    {Svg ? <Svg alt={title}/> : null}
+                </div>
                 <h3>{title}</h3>
                 <p>{description}</p>
             </div>
@@ -88,8 +79,10 @@ function Feature({ Svg, title, description }) {
 }
 
 export default function Highlights() {
+    const Svg = require('../../static/img/features/gradient.svg').default;
     return (
         <section className={styles.features}>
+            {<Svg />}
             <div className="container">
                 <div className="row">
                     {FeatureList.map((props, idx) => (

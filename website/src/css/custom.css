@@ -1,0 +1,361 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap');
+
+html[data-theme='dark'] {
+    --ifm-navbar-background-color: #1a1b23;
+    --ifm-background-color: #1a1b23;
+    --ifm-background-surface-color: #242736;
+
+    --ifm-font-color-base: #f2f3fb;
+
+    --ifm-pre-background: #242736;
+
+    --ifm-color-primary: #5d9df1;
+    --ifm-link-color: #5d9df1;
+    --ifm-heading-color: #f2f3fb;
+    --ifm-navbar-link-color: #f2f3fb;
+
+    --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+    --docsearch-text-color: #8d92af;
+}
+
+:root {
+    /* use default system font based on https://devhints.io/css-system-font-stack */
+    --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    --ifm-heading-font-family: 'Lota Grotesque', sans-serif;
+    --ifm-font-weight-semibold: 600;
+    --ifm-font-color-base: #242736;
+
+    --ifm-navbar-item-padding-horizontal: 1.75rem;
+    --ifm-navbar-link-color: #41465d;
+    --ifm-navbar-shadow: none;
+
+    --ifm-heading-margin-top: var(--ifm-heading-margin-bottom);
+    --ifm-hero-background-color: transparent;
+
+    --ifm-code-background: var(--ifm-pre-background) !important;
+    --ifm-code-padding-horizontal: 0.4rem;
+    --ifm-code-padding-vertical: 0.2rem;
+
+    --ifm-color-primary-lightest: #5d9df1;
+    --ifm-color-primary-lighter: #3a87ee;
+    --ifm-color-primary-light: #2e80ed;
+    --ifm-color-primary: #1672eb;
+    --ifm-color-primary-dark: #1266d5;
+    --ifm-color-primary-darker: #1161c9;
+    --ifm-color-primary-darkest: #0e50a6;
+
+    --ifm-link-color: hsl(214, 84%, 50%);
+    --ifm-link-hover-color: hsl(214, 84%, 65%);
+    --ifm-link-hover-decoration: none;
+
+    --ifm-footer-background-color: #272c3d;
+    --ifm-footer-title-color: #f2f3fb;
+    --ifm-footer-link-color: #f2f3fb;
+    --max-layout-width: 1680px;
+
+    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+    --ifm-heading-color: #242736;
+}
+
+@font-face {
+    font-family: 'Lota Grotesque';
+    src: url('/font/lota.woff2') format('woff2'),
+         url('/font/lota.woff') format('woff');
+    font-weight: 600;
+}
+
+.footer__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.footer__bottom a {
+    opacity: 0.75;
+}
+
+.footer__copyright {
+    color: var(--ifm-footer-title-color);
+}
+
+.navbar__title {
+    /* Replaced by SVG */
+    display: none;
+}
+
+.navbar__inner {
+    /* .container */
+    max-width: calc(var(--max-layout-width) - 32px);
+    padding: 0 var(--ifm-spacing-horizontal);
+    width: 100%;
+}
+
+.DocSearch-Button-Placeholder {
+    font-size: 14px !important;
+}
+
+html .DocSearch-Button {
+    border-radius: 6px !important;
+    font-weight: 400 !important;
+    background: #f9fafd;
+    border: 1px solid #c1c6dd;
+
+    /* Annoying, but needed */
+    /* https://stackoverflow.com/questions/26140050/why-is-font-family-not-inherited-in-button-tags-automatically/26140154 */
+    font-family: inherit;
+}
+
+html .DocSearch-Button .DocSearch-Search-Icon {
+    color: var(--docsearch-muted-color);
+}
+
+html[data-theme="dark"] .DocSearch-Button {
+    background: none;
+    border: 1px solid var(--docsearch-muted-color);
+}
+
+html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
+    color: var(--docsearch-muted-color);
+}
+
+.DocSearch-Button:hover {
+    box-shadow: none !important;
+}
+
+.navbar, .main-wrapper {
+    justify-content: center;
+}
+
+.main-wrapper > div {
+    max-width: var(--max-layout-width);
+}
+
+aside > div > a {
+    padding-left: 16px;
+}
+
+aside > div > a > b {
+    display: none;
+}
+
+.dropdown > .navbar__link::after {
+    border-color: currentColor;
+    border-style: solid;
+    border-width: 0.1em 0.1em 0 0;
+    content: '';
+    display: inline-block;
+    height: 0.4em;
+    left: 0.3em;
+    position: relative;
+    vertical-align: top;
+    width: 0.4em;
+    top: 9px;
+    transform: rotate(135deg);
+}
+
+.navbar .icon {
+    font-size: 0;
+    padding: 4px;
+    margin-left: 20px;
+    line-height: 0;
+}
+
+.navbar .icon::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 24px;
+    background-size: cover;
+}
+
+.navbar .icon[href*=github]::before {
+    background-image: url('/static/img/github-brand.svg');
+}
+
+html[data-theme="dark"] .navbar .navbar__link[href*=github]:before {
+    background-image: url('/static/img/github-brand-dark.svg');
+}
+
+.navbar .icon[href*=discord]::before {
+    background-image: url('/static/img/discord-brand.svg');
+}
+
+html[data-theme="dark"] .navbar .navbar__link[href*=discord]:before {
+    background-image: url('/static/img/discord-brand-dark.svg');
+}
+
+.navbar svg[class*=iconExternalLink],
+aside svg[class*=iconExternalLink] {
+    display: none;
+}
+
+header.hero div[class^=heroButtons] {
+    justify-content: inherit;
+}
+
+article .card h2 {
+    margin-top: 0;
+}
+
+.tsd-kind-icon,
+.menu__link,
+.table-of-contents__link {
+    text-overflow: ellipsis;
+    display: inline-block;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.menu__caret:before,
+.menu__link--sublist:after {
+    float: right;
+}
+
+.table-of-contents__link {
+    height: 20px;
+}
+
+nav.navbar .dropdown__menu {
+    min-width: 6rem;
+}
+
+.navbar__logo {
+    height: 3rem;
+}
+
+.main-wrapper a[class*='sidebarLogo'] img {
+    height: 3rem;
+}
+
+html.plugin-pages {
+    font-size: 18px;
+    line-height: 32px;
+}
+
+html.plugin-pages h2 {
+    font-size: 36px;
+    line-height: 48px;
+}
+
+html.plugin-docs .theme-doc-markdown {
+    font-size: 18px;
+    line-height: 32px;
+}
+
+html.plugin-docs .theme-doc-markdown h1 {
+    font-weight: 600;
+    font-size: 48px;
+    line-height: 64px;
+    color: #000;
+}
+
+html[data-theme='dark'].plugin-docs .theme-doc-markdown h1 {
+    color: #fff;
+}
+
+html.plugin-typedoc-api .theme-doc-markdown h1 {
+    color: #000;
+}
+
+html[data-theme='dark'].plugin-typedoc-api .theme-doc-markdown h1 {
+    color: #fff;
+}
+
+html.plugin-docs .theme-doc-markdown h2 {
+    font-size: 36px;
+    line-height: 48px;
+}
+
+html.plugin-docs .theme-doc-markdown h3 {
+    font-size: 28px;
+    line-height: 36px;
+    /*color: #242736;*/
+}
+
+.theme-doc-toc-desktop .table-of-contents {
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.theme-doc-sidebar-menu .menu__link,
+.theme-doc-toc-desktop .table-of-contents .toc-highlight {
+    height: auto;
+    color: #6f7490;
+    background: none;
+}
+
+.theme-doc-sidebar-menu .menu__link:hover {
+    background: inherit;
+}
+
+.theme-doc-sidebar-menu .menu__link {
+    font-weight: 400;
+}
+
+.theme-doc-sidebar-menu .menu__link--active {
+    font-weight: 700;
+}
+
+.theme-doc-sidebar-menu .menu__list-item-collapsible,
+.theme-doc-sidebar-menu .menu__list-item-collapsible--active {
+    background: none;
+}
+
+.theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+    font-weight: 700;
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link,
+html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .toc-highlight {
+    color: #b3b8d2;
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-menu .menu__link--active,
+html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+    color: #f2f3fb;
+}
+
+.theme-doc-sidebar-menu .menu__link:hover,
+.theme-doc-sidebar-menu .menu__link--active,
+.theme-doc-toc-desktop .table-of-contents .table-of-contents__link:hover,
+.theme-doc-toc-desktop .table-of-contents .table-of-contents__link--active {
+    color: #242736;
+}
+
+.hero {
+    position: relative;
+}
+
+h1#change-log {
+    display: none;
+}
+
+@media (min-width: 996px) and (max-width: 1250px) {
+    .navbar__items--right a.icon {
+        display: none;
+    }
+}
+
+@media (min-width: 996px) and (max-width: 1130px) {
+    .navbar__link.changelog {
+        display: none;
+    }
+}
+
+html .theme-doc-sidebar-container {
+    border: 0;
+}
+
+html .theme-doc-sidebar-container button {
+    border: 0;
+    border-radius: 10px;
+}
+
+html .table-of-contents {
+    border-left: 0;
+}
+
+html .table-of-contents ul {
+    border-left: 2px solid #dfe2f5;
+}
