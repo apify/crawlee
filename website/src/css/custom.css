@@ -126,7 +126,7 @@ html[data-theme="dark"] .DocSearch-Button .DocSearch-Search-Icon {
     justify-content: center;
 }
 
-.main-wrapper {
+html.plugin-pages .main-wrapper {
     overflow-x: hidden;
 }
 
