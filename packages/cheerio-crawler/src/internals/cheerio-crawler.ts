@@ -249,7 +249,7 @@ export interface CheerioCrawlingContext<
     /**
      * Parsed `Content-Type header: { type, encoding }`.
      */
-    contentType: { type: string; encoding: string };
+    contentType: { type: string; encoding: BufferEncoding };
     crawler: CheerioCrawler;
     response: IncomingMessage;
     enqueueLinks: (options?: CheerioCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
