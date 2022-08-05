@@ -1,13 +1,13 @@
 import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
-import type { HttpCrawlerOptions, HttpCrawlingContext, HttpHook, InternalHttpCrawlingContext } from '@crawlee/http';
+import type { InternalHttpCrawlingContext } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
-import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, RequestQueue, Configuration } from '@crawlee/core';
+import type { EnqueueLinksOptions, ProxyConfiguration, RequestQueue, Configuration } from '@crawlee/core';
 import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/core';
 import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import type { OptionsInit, Response as GotResponse, GotOptionsInit } from 'got-scraping';
+import type { OptionsInit } from 'got-scraping';
 import { DomHandler } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import type { IncomingMessage } from 'http';
@@ -333,7 +333,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
      */
     // eslint-disable-next-line @typescript-eslint/no-useless-constructor
     constructor(options?: CheerioCrawlerOptions, config?: Configuration) {
-        super(options as HttpCrawlingContext, config);
+        super(options, config);
     }
 
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: CheerioCrawlingContext) {
