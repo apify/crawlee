@@ -36,83 +36,10 @@ export type HttpErrorHandler<
     JSONData extends Dictionary = Dictionary,
     > = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
 
-export interface HttpCrawlerOptions<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
-    > extends Omit<BasicCrawlerOptions<HttpCrawlingContext<UserData, JSONData>>,
-    // Overridden with http crawler context
-    | 'requestHandler'
-    | 'handleRequestFunction'
+type GetUserDataFromContext<T> = T extends HttpCrawlingContext<infer UserData, unknown> ? UserData : never;
+type GetJSONDataFromContext<T> = T extends HttpCrawlingContext<unknown, infer JSONData> ? JSONData : never;
 
-    | 'failedRequestHandler'
-    | 'handleFailedRequestFunction'
-    | 'handleRequestTimeoutSecs'
-
-    | 'errorHandler'
-    > {
-    /**
-     * User-provided function that performs the logic of the crawler. It is called for each page
-     * loaded and parsed by the crawler.
-     *
-     * The function receives the {@link HttpCrawlingContext} as an argument,
-     * where the {@link HttpCrawlingContext.request} instance represents the URL to crawl.
-     *
-     * Type of {@link HttpCrawlingContext.body} depends on the `Content-Type` header of the web page:
-     * - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
-     * - Buffer for others MIME content types
-     *
-     * Parsed `Content-Type` header using
-     * [content-type package](https://www.npmjs.com/package/content-type)
-     * is stored in {@link HttpCrawlingContext.contentType}`.
-     *
-     * HTTP crawler accepts only HTML and XML content types.
-     *
-     * If the function returns, the returned promise is awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to `option.maxRequestRetries` times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the `failedRequestHandler` parameter.
-     * To make this work, you should **always**
-     * let your function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage} function.
-     */
-    requestHandler?: HttpRequestHandler<UserData, JSONData>;
-
-    /**
-     * User-provided function that performs the logic of the crawler. It is called for each page
-     * loaded and parsed by the crawler.
-     *
-     * The function receives the {@link HttpCrawlingContext} as an argument,
-     * where the {@link HttpCrawlingContext.request} instance represents the URL to crawl.
-     *
-     * Type of {@link HttpCrawlingContext.body} depends on the `Content-Type` header of the web page:
-     * - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
-     * - Buffer for others MIME content types
-     *
-     * Parsed `Content-Type` header using
-     * [content-type package](https://www.npmjs.com/package/content-type)
-     * is stored in {@link HttpCrawlingContext.contentType}`.
-     *
-     * HTTP crawler accepts only HTML and XML content types.
-     *
-     * If the function returns, the returned promise is awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to `option.maxRequestRetries` times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the `failedRequestHandler` parameter.
-     * To make this work, you should **always**
-     * let your function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage} function.
-     *
-     * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handlePageFunction?: HttpRequestHandler<UserData, JSONData>;
-
+export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
@@ -131,46 +58,6 @@ export interface HttpCrawlerOptions<
     proxyConfiguration?: ProxyConfiguration;
 
     /**
-     * User-provided function that allows modifying the request object before it gets retried by the crawler.
-     * It's executed before each retry for the requests that failed less than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@link HttpCrawlingContext} as the first argument,
-     * where the {@link HttpCrawlingContext.request} corresponds to the request to be retried.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     */
-    errorHandler?: HttpErrorHandler<UserData, JSONData>;
-
-    /**
-     * A function to handle requests that failed more than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@link HttpCrawlingContext} as the first argument,
-     * where the {@link HttpCrawlingContext.request} corresponds to the failed request.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     *
-     * See [source code]()
-     * for the default implementation of this function.
-     */
-    failedRequestHandler?: HttpErrorHandler<UserData, JSONData>;
-
-    /**
-     * A function to handle requests that failed more than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@link HttpCrawlingContext} as the first argument,
-     * where the {@link HttpCrawlingContext.request} corresponds to the failed request.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     *
-     * See [source code]()
-     * for the default implementation of this function.
-     *
-     * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handleFailedRequestFunction?: HttpErrorHandler<UserData, JSONData>;
-
-    /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotOptions`,
      * which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
@@ -183,7 +70,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: HttpHook<UserData, JSONData>[];
+    preNavigationHooks?: HttpHook<GetUserDataFromContext<Context>, GetJSONDataFromContext<Context>>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -197,7 +84,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: HttpHook<UserData, JSONData>[];
+    postNavigationHooks?: HttpHook<GetUserDataFromContext<Context>, GetJSONDataFromContext<Context>>[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -238,17 +125,26 @@ export interface HttpCrawlerOptions<
     persistCookiesPerSession?: boolean;
 }
 
-export type HttpHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
-    > = (
-    crawlingContext: HttpCrawlingContext<UserData, JSONData>,
+/**
+ * @internal
+ */
+export type InternalHttpHook<Context> = (
+    crawlingContext: Context,
     gotOptions: OptionsInit,
 ) => Awaitable<void>;
 
-export interface HttpCrawlingContext<
+export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
+> = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
+
+/**
+ * @internal
+ */
+export interface InternalHttpCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    JSONData extends Dictionary = Dictionary,
+    Crawler = HttpCrawler<any>
     > extends CrawlingContext<UserData> {
     /**
      * The request body of the web page.
@@ -264,10 +160,13 @@ export interface HttpCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    crawler: HttpCrawler;
+    crawler: Crawler;
     response: IncomingMessage;
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
+
+export interface HttpCrawlingContext<UserData = any, JSONData = any>
+    extends InternalHttpCrawlingContext<UserData, JSONData, HttpCrawler<HttpCrawlingContext<UserData, JSONData>>> {}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -343,7 +242,7 @@ export type HttpRequestHandler<
  * ```
  * @category Crawlers
  */
-export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingContext> extends BasicCrawler<Context> {
+export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>>> extends BasicCrawler<Context> {
     /**
      * A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
@@ -351,8 +250,8 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
     proxyConfiguration?: ProxyConfiguration;
 
     protected userRequestHandlerTimeoutMillis: number;
-    protected preNavigationHooks: HttpHook[];
-    protected postNavigationHooks: HttpHook[];
+    protected preNavigationHooks: InternalHttpHook<Context>[];
+    protected postNavigationHooks: InternalHttpHook<Context>[];
     protected persistCookiesPerSession: boolean;
     protected navigationTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
@@ -379,7 +278,7 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
     /**
      * All `HttpCrawlerOptions` parameters are passed via an options object.
      */
-    constructor(options: HttpCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
+    constructor(options: HttpCrawlerOptions<Context> = {}, override readonly config = Configuration.getGlobalConfig()) {
         ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
 
         const {
@@ -445,10 +344,10 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
         this.proxyConfiguration = proxyConfiguration;
-        this.preNavigationHooks = preNavigationHooks;
+        this.preNavigationHooks = preNavigationHooks as InternalHttpHook<Context>[]; // TODO: why the cast is needed?
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
-            ...postNavigationHooks,
+            ...postNavigationHooks as InternalHttpHook<Context>[], // TODO: why the cast is needed?
         ];
 
         if (this.useSessionPool) {
@@ -540,7 +439,7 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
         );
     }
 
-    protected async _handleNavigation(crawlingContext: HttpCrawlingContext) {
+    protected async _handleNavigation(crawlingContext: Context) {
         const gotOptions = {} as OptionsInit;
         const { request, session } = crawlingContext;
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);

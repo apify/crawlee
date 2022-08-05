@@ -1,5 +1,5 @@
 import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
-import type { HttpCrawlerOptions } from '@crawlee/http';
+import type { HttpCrawlerOptions, HttpCrawlingContext, HttpHook, InternalHttpCrawlingContext } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { CrawlingContext, EnqueueLinksOptions, ProxyConfiguration, RequestQueue, Configuration } from '@crawlee/core';
 import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/core';
@@ -230,30 +230,13 @@ export type CheerioHook<
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-    > extends CrawlingContext<UserData> {
+    > extends InternalHttpCrawlingContext<UserData, JSONData, CheerioCrawler> {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      */
     $: CheerioRoot;
 
-    /**
-     * The request body of the web page.
-     */
-    body: (string | Buffer);
-
-    /**
-     * The parsed object from JSON string if the response contains the content type application/json.
-     */
-    json: JSONData;
-
-    /**
-     * Parsed `Content-Type header: { type, encoding }`.
-     */
-    contentType: { type: string; encoding: BufferEncoding };
-    crawler: HttpCrawler; // FIXME
-    response: IncomingMessage;
     enqueueLinks: (options?: CheerioCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
-    sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
 export type CheerioRequestHandler<
@@ -348,8 +331,9 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
+    // eslint-disable-next-line @typescript-eslint/no-useless-constructor
     constructor(options?: CheerioCrawlerOptions, config?: Configuration) {
-        super(options as HttpCrawlerOptions, config);
+        super(options as HttpCrawlingContext, config);
     }
 
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: CheerioCrawlingContext) {
