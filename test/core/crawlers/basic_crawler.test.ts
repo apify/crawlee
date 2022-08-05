@@ -1109,7 +1109,7 @@ describe('BasicCrawler', () => {
         });
 
         test('proxyUrl TypeScript support', async () => {
-            expect.assertions(0);
+            expect.assertions(1);
 
             const crawler = new BasicCrawler({
                 useSessionPool: true,
