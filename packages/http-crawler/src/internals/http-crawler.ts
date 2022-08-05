@@ -666,7 +666,8 @@ export class HttpCrawler<Context extends HttpCrawlingContext = HttpCrawlingConte
             throw new Error(`${statusCode} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
             const isXml = type.includes('xml');
-            return { ...this._parseHTML(response, isXml, crawlingContext), isXml, response, contentType };
+            const parsed = await this._parseHTML(response, isXml, crawlingContext);
+            return { ...parsed, isXml, response, contentType };
         } else {
             const body = await concatStreamToBuffer(response);
             return { body, response, contentType };
