@@ -1076,6 +1076,7 @@ describe('BasicCrawler', () => {
             const requestList = await RequestList.open(null, [url]);
 
             const crawler = new BasicCrawler({
+                useSessionPool: true,
                 requestList,
                 async requestHandler({ sendRequest }) {
                     const response = await sendRequest();
@@ -1086,6 +1087,40 @@ describe('BasicCrawler', () => {
             });
 
             await crawler.run();
+        });
+
+        test('works without session', async () => {
+            expect.assertions(2);
+
+            const requestList = await RequestList.open(null, [url]);
+
+            const crawler = new BasicCrawler({
+                useSessionPool: false,
+                requestList,
+                async requestHandler({ sendRequest }) {
+                    const response = await sendRequest();
+
+                    expect(response.statusCode).toBe(200);
+                    expect(response.body.includes('Hello, world!')).toBe(true);
+                },
+            });
+
+            await crawler.run();
+        });
+
+        test('proxyUrl TypeScript support', async () => {
+            expect.assertions(0);
+
+            const crawler = new BasicCrawler({
+                useSessionPool: true,
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({
+                        proxyUrl: 'http://example.com',
+                    });
+                },
+            });
+
+            expect(crawler).toBeTruthy();
         });
     });
 });
