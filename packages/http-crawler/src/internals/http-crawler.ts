@@ -36,9 +36,6 @@ export type HttpErrorHandler<
     JSONData extends Dictionary = Dictionary,
     > = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
 
-type GetUserDataFromContext<T> = T extends HttpCrawlingContext<infer UserData, unknown> ? UserData : never;
-type GetJSONDataFromContext<T> = T extends HttpCrawlingContext<unknown, infer JSONData> ? JSONData : never;
-
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
@@ -70,7 +67,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      * ]
      * ```
      */
-    preNavigationHooks?: HttpHook<GetUserDataFromContext<Context>, GetJSONDataFromContext<Context>>[];
+    preNavigationHooks?: InternalHttpHook<Context>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -84,7 +81,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      * ]
      * ```
      */
-    postNavigationHooks?: HttpHook<GetUserDataFromContext<Context>, GetJSONDataFromContext<Context>>[];
+    postNavigationHooks?: InternalHttpHook<Context>[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -344,10 +341,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
         this.proxyConfiguration = proxyConfiguration;
-        this.preNavigationHooks = preNavigationHooks as InternalHttpHook<Context>[]; // TODO: why the cast is needed?
+        this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
-            ...postNavigationHooks as InternalHttpHook<Context>[], // TODO: why the cast is needed?
+            ...postNavigationHooks,
         ];
 
         if (this.useSessionPool) {
