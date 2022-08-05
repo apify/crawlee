@@ -33,6 +33,7 @@ import {
     Statistics,
     purgeDefaultStorages,
     validators,
+    RetryRequest,
 } from '@crawlee/core';
 import type { GotOptionsInit, OptionsOfTextResponseBody, Response as GotResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
@@ -875,7 +876,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         } catch (err) {
             try {
                 await addTimeoutToPromise(
-                    () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
+                    () => this._requestFunctionErrorHandler(err, crawlingContext, source),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
                 );
@@ -941,7 +942,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Handles errors thrown by user provided requestHandler()
      */
     protected async _requestFunctionErrorHandler(
-        error: Error,
+        error: unknown,
         crawlingContext: Context,
         source: RequestList | RequestQueue,
     ): Promise<void> {
@@ -952,20 +953,30 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             throw error;
         }
 
-        const shouldRetryRequest = !request.noRetry && request.retryCount < this.maxRequestRetries && !(error instanceof NonRetryableError);
+        const isUserRequestedRetry = error instanceof RetryRequest;
+
+        const shouldRetryRequest = isUserRequestedRetry
+            || (!request.noRetry && request.retryCount < this.maxRequestRetries && !(error instanceof NonRetryableError));
+
         if (shouldRetryRequest) {
             request.retryCount++;
 
-            await this._tagUserHandlerError(() => this.errorHandler?.({ ...crawlingContext, error }, error));
+            await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
 
             const { url, retryCount, id } = request;
-            // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
-            // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
-            const message = process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error;
-            this.log.warning(
-                `Reclaiming failed request back to the list or queue. ${message}`,
-                { id, url, retryCount },
-            );
+
+            if (isUserRequestedRetry) {
+                // Let the user know the request they want retried was rescheduled, while respecting the maximum retry count
+                this.log.info("Rescheduled request for a retry at the user's request", { id, url, retryCount });
+            } else {
+                // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
+                // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
+                const message = process.env.CRAWLEE_VERBOSE_LOG ? (error as any).stack ?? (error as any).message ?? error : error;
+                this.log.warning(
+                    `Reclaiming failed request back to the list or queue. ${message}`,
+                    { id, url, retryCount },
+                );
+            }
 
             await source.reclaimRequest(request);
         } else {
@@ -989,18 +1000,33 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected async _handleFailedRequestHandler(crawlingContext: Context, error: Error): Promise<void> {
-        if (this.failedRequestHandler) {
-            await this._tagUserHandlerError(() => this.failedRequestHandler?.({ ...crawlingContext, error }, error));
-            return;
-        }
-
+    protected async _handleFailedRequestHandler(crawlingContext: Context, error: unknown): Promise<void> {
+        // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
-        const message = error instanceof TimeoutError && !process.env.CRAWLEE_VERBOSE_LOG ? error.message : error.stack;
+        const message = error instanceof TimeoutError && !process.env.CRAWLEE_VERBOSE_LOG
+            ? error.message : (error as any).stack ?? (error as any).message ?? error;
+
         this.log.error(
             `Request failed and reached maximum retries. ${message}`,
             { id, url, method, uniqueKey },
         );
+
+        if (this.failedRequestHandler) {
+            await this._tagUserHandlerError(() => this.failedRequestHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
+        }
+    }
+
+    protected _augmentContextWithDeprecatedError(context: Context, error: unknown) {
+        Object.defineProperty(context, 'error', {
+            get: () => {
+                // eslint-disable-next-line max-len
+                this.log.deprecated("The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'failedRequestHandler' or 'errorHandler'. Please update your code, as this property will be removed in a future version.");
+
+                return error;
+            },
+        });
+
+        return context;
     }
 
     /**
