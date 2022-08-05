@@ -62,7 +62,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context) => Awaitable<void>;
 
-export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
+export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: unknown) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -956,7 +956,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (shouldRetryRequest) {
             request.retryCount++;
 
-            await this._tagUserHandlerError(() => this.errorHandler?.(crawlingContext, error));
+            await this._tagUserHandlerError(() => this.errorHandler?.({ ...crawlingContext, error }, error));
 
             const { url, retryCount, id } = request;
             // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
@@ -991,7 +991,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     protected async _handleFailedRequestHandler(crawlingContext: Context, error: Error): Promise<void> {
         if (this.failedRequestHandler) {
-            await this._tagUserHandlerError(() => this.failedRequestHandler?.(crawlingContext, error));
+            await this._tagUserHandlerError(() => this.failedRequestHandler?.({ ...crawlingContext, error }, error));
             return;
         }
 
