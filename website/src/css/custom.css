@@ -370,3 +370,20 @@ html .table-of-contents {
 html .table-of-contents ul {
     border-left: 2px solid #dfe2f5;
 }
+
+/*
+.theme-doc-sidebar-menu > li:first-child::before,
+.theme-doc-sidebar-menu > li:nth-child(5)::before {
+    text-transform: uppercase;
+}
+
+.theme-doc-sidebar-menu > li:first-child::before {
+    display: block;
+    content: 'Core features';
+}
+
+.theme-doc-sidebar-menu > li:nth-child(5)::before {
+    display: block;
+    content: 'Advanced';
+}
+*/

@@ -5,6 +5,20 @@ const pkg = require('../packages/crawlee/package.json');
 const [v1, v2] = pkg.version.split('.');
 const version = [v1, v2].join('.');
 
+const packages = [
+    'core',
+    'cheerio-crawler',
+    'puppeteer-crawler',
+    'playwright-crawler',
+    'basic-crawler',
+    'browser-crawler',
+    'memory-storage',
+    'browser-pool',
+    'utils',
+    'types',
+];
+const packageNames = packages.map((name) => `@crawlee/${name.replace(/-crawler$/, '')}`);
+
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
     title: 'Crawlee',
@@ -58,38 +72,10 @@ module.exports = {
             {
                 projectRoot: `${__dirname}/..`,
                 changelogs: true,
-                packages: [
-                    {
-                        path: 'packages/core',
-                    },
-                    {
-                        path: 'packages/browser-pool',
-                    },
-                    {
-                        path: 'packages/basic-crawler',
-                    },
-                    {
-                        path: 'packages/browser-crawler',
-                    },
-                    {
-                        path: 'packages/cheerio-crawler',
-                    },
-                    {
-                        path: 'packages/puppeteer-crawler',
-                    },
-                    {
-                        path: 'packages/playwright-crawler',
-                    },
-                    {
-                        path: 'packages/memory-storage',
-                    },
-                    {
-                        path: 'packages/utils',
-                    },
-                    {
-                        path: 'packages/types',
-                    },
-                ],
+                sortPackages: (a, b) => {
+                    return packageNames.indexOf(a.packageName) - packageNames.indexOf(b.packageName);
+                },
+                packages: packages.map((name) => ({ path: `packages/${name}` })),
                 typedocOptions: {
                     excludeExternals: false,
                 },
