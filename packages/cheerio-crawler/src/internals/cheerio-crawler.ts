@@ -1,5 +1,10 @@
-import type { ErrorHandler, RequestHandler } from '@crawlee/basic';
-import type { HttpCrawlerOptions, InternalHttpCrawlingContext, InternalHttpHook } from '@crawlee/http';
+import type {
+    HttpCrawlerOptions,
+    InternalHttpCrawlingContext,
+    InternalHttpHook,
+    ErrorHandler,
+    RequestHandler,
+} from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { EnqueueLinksOptions, RequestQueue, Configuration } from '@crawlee/core';
 import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/core';
