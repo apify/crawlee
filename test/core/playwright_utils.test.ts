@@ -174,6 +174,52 @@ describe('playwrightUtils', () => {
             }
         });
 
+        describe('blockRequests()', () => {
+            let browser: Browser = null;
+            beforeAll(async () => {
+                browser = await launchName(launchContext);
+            });
+            afterAll(async () => {
+                await browser.close();
+            });
+
+            test('works with default values', async () => {
+                const loadedUrls: string[] = [];
+
+                const page = await browser.newPage();
+                await playwrightUtils.blockRequests(page);
+                page.on('response', (response) => loadedUrls.push(response.url()));
+                await page.setContent(`<html><body>
+                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
+                <img src="https://example.com/image.png">
+                <img src="https://example.com/image.gif">
+                <script src="https://example.com/script.js" defer="defer">></script>
+            </body></html>`, { waitUntil: 'load' });
+                expect(loadedUrls).toEqual(['https://example.com/script.js']);
+            });
+
+            test('works with overridden values', async () => {
+                const loadedUrls: string[] = [];
+
+                const page = await browser.newPage();
+                await playwrightUtils.blockRequests(page, {
+                    urlPatterns: ['.css'],
+                });
+                page.on('response', (response) => loadedUrls.push(response.url()));
+                await page.setContent(`<html><body>
+                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
+                <img src="https://example.com/image.png">
+                <img src="https://example.com/image.gif">
+                <script src="https://example.com/script.js" defer="defer">></script>
+            </body></html>`, { waitUntil: 'load' });
+                expect(loadedUrls).toEqual(expect.arrayContaining([
+                    'https://example.com/image.png',
+                    'https://example.com/script.js',
+                    'https://example.com/image.gif',
+                ]));
+            });
+        });
+
         test('gotoExtended() works', async () => {
             const browser = await chromium.launch({ headless: true });
 
