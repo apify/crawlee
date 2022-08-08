@@ -37,7 +37,7 @@ const requestOptionalPredicates = {
  * Each `Request` instance has the `uniqueKey` property, which can be either specified
  * manually in the constructor or generated automatically from the URL. Two requests with the same `uniqueKey`
  * are considered as pointing to the same web resource. This behavior applies to all Apify SDK classes,
- * such as {@link RequestList}, {@link RequestQueue}, {@link PuppeteerCrawler} or {@link PlaywrightCrawler}.
+ * such as {@apilink RequestList}, {@apilink RequestQueue}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler}.
  *
  * Example use:
  *
@@ -69,7 +69,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * An actually loaded URL after redirects, if present. HTTP redirects are guaranteed
      * to be included.
      *
-     * When using {@link PuppeteerCrawler} or {@link PlaywrightCrawler}, meta tag and JavaScript redirects may,
+     * When using {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler}, meta tag and JavaScript redirects may,
      * or may not be included, depending on their nature. This generally means that redirects,
      * which happen immediately will most likely be included, but delayed redirects will not.
      */
@@ -315,7 +315,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 }
 
 /**
- * Specifies required and optional fields for constructing a {@link Request}.
+ * Specifies required and optional fields for constructing a {@apilink Request}.
  */
 export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 

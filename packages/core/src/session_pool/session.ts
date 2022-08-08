@@ -11,7 +11,7 @@ import { EVENT_SESSION_RETIRED } from './events';
 import { browserPoolCookieToToughCookie, getCookiesFromResponse, getDefaultCookieExpirationDate, toughCookieToBrowserPoolCookie } from '../cookie_utils';
 
 /**
- * Persistable {@link Session} state.
+ * Persistable {@apilink Session} state.
  */
 export interface SessionState {
     id: string;

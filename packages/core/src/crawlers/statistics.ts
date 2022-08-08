@@ -47,7 +47,7 @@ export class Statistics {
     readonly id = Statistics.id++; // assign an id while incrementing so it can be saved/restored from KV
 
     /**
-     * Current statistic state used for doing calculations on {@link Statistics.calculate} calls
+     * Current statistic state used for doing calculations on {@apilink Statistics.calculate} calls
      */
     state!: StatisticState;
 

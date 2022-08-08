@@ -1,0 +1,18 @@
+# `@crawlee/browser`
+
+Provides a simple framework for parallel crawling of web pages using headless browsers with [Puppeteer](https://github.com/puppeteer/puppeteer) and [Playwright](https://github.com/microsoft/playwright). The URLs to crawl are fed either from a static list of URLs or from a dynamic queue of URLs enabling recursive crawling of websites.
+
+Since `BrowserCrawler` uses headless (or even headful) browsers to download web pages and extract data, it is useful for crawling of websites that require to execute JavaScript. If the target website doesn't need JavaScript, we should consider using the [CheerioCrawler](https://crawlee.dev/api/cheerio-crawler/class/CheerioCrawler), which downloads the pages using raw HTTP requests and is about 10x faster.
+
+The source URLs are represented by the [Request](https://crawlee.dev/api/core/class/Request) objects that are fed from the [RequestList](https://crawlee.dev/api/core/class/RequestList) or [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) instances provided by the [`requestList`](https://crawlee.dev/api/browser-crawler/interface/BrowserCrawlerOptions#requestList) or [`requestQueue`](https://crawlee.dev/api/browser-crawler/interface/BrowserCrawlerOptions#requestQueue) constructor options, respectively. If neither `requestList` nor `requestQueue` options are provided, the crawler will open the default request queue either when the [`crawler.addRequests()`](https://crawlee.dev/api/browser-crawler/class/BrowserCrawler#addRequests) function is called, or if `requests` parameter (representing the initial requests) of the [`crawler.run()`](https://crawlee.dev/api/browser-crawler/class/BrowserCrawler#run) function is provided.
+
+If both [`requestList`](https://crawlee.dev/api/browser-crawler/interface/BrowserCrawlerOptions#requestList) and [`requestQueue`](https://crawlee.dev/api/browser-crawler/interface/BrowserCrawlerOptions#requestQueue) options are used, the instance first processes URLs from the [RequestList](https://crawlee.dev/api/core/class/RequestList) and automatically enqueues all of them to the [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
+
+The crawler finishes when there are no more [Request](https://crawlee.dev/api/core/class/Request) objects to crawl.
+
+`BrowserCrawler` opens a new browser page (i.e. tab or window) for each [Request](https://crawlee.dev/api/core/class/Request) object to crawl and then calls the function provided by user as the [`requestHandler`](https://crawlee.dev/api/browser-crawler/interface/BrowserCrawlerOptions#requestHandler) option.
+
+New pages are only opened when there is enough free CPU and memory available, using the functionality provided by the [AutoscaledPool](https://crawlee.dev/api/core/class/AutoscaledPool) class.
+All [AutoscaledPool](https://crawlee.dev/api/core/class/AutoscaledPool) configuration options can be passed to the [`autoscaledPoolOptions`](https://crawlee.dev/api/browser-crawler/interface/BrowserCrawlerOptions#autoscaledPoolOptions) parameter of the `BrowserCrawler` constructor. For user convenience, the [`minConcurrency`](https://crawlee.dev/api/core/interface/AutoscaledPoolOptions#minConcurrency) and [`maxConcurrency`](https://crawlee.dev/api/core/interface/AutoscaledPoolOptions#maxConcurrency) options of the underlying [AutoscaledPool](https://crawlee.dev/api/core/class/AutoscaledPool) constructor are available directly in the `BrowserCrawler` constructor.
+
+> *NOTE:* the pool of browser instances is internally managed by the [BrowserPool](https://crawlee.dev/api/browser-pool/class/BrowserPool) class.

@@ -26,10 +26,10 @@ export interface EnqueueLinksOptions {
     /** A CSS selector matching links to be enqueued. */
     selector?: string;
 
-    /** Sets {@link Request.userData} for newly enqueued requests. */
+    /** Sets {@apilink Request.userData} for newly enqueued requests. */
     userData?: Dictionary;
 
-    /** Sets {@link Request.label} for newly enqueued requests. */
+    /** Sets {@apilink Request.label} for newly enqueued requests. */
     label?: string;
 
     /**
@@ -43,7 +43,7 @@ export interface EnqueueLinksOptions {
      * containing glob pattern strings matching the URLs to be enqueued.
      *
      * The plain objects must include at least the `glob` property, which holds the glob pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@link Request} objects.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * The matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
@@ -58,7 +58,7 @@ export interface EnqueueLinksOptions {
      * containing regular expressions matching the URLs to be enqueued.
      *
      * The plain objects must include at least the `regexp` property, which holds the regular expression.
-     * All remaining keys will be used as request options for the corresponding enqueued {@link Request} objects.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the function
      * enqueues the links with the same subdomain.
@@ -69,11 +69,11 @@ export interface EnqueueLinksOptions {
      * *NOTE:* In future versions of SDK the options will be removed.
      * Please use `globs` or `regexps` instead.
      *
-     * An array of {@link PseudoUrl} strings or plain objects
-     * containing {@link PseudoUrl} strings matching the URLs to be enqueued.
+     * An array of {@apilink PseudoUrl} strings or plain objects
+     * containing {@apilink PseudoUrl} strings matching the URLs to be enqueued.
      *
      * The plain objects must include at least the `purl` property, which holds the pseudo-URL string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@link Request} objects.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * With a pseudo-URL string, the matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
@@ -86,7 +86,7 @@ export interface EnqueueLinksOptions {
     pseudoUrls?: PseudoUrlInput[];
 
     /**
-     * Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
+     * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
      * to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
      * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
      * or to dynamically update or create `userData`.
@@ -140,11 +140,11 @@ export enum EnqueueStrategy {
 }
 
 /**
- * This function enqueues the urls provided to the {@link RequestQueue} provided. If you want to automatically find and enqueue links,
+ * This function enqueues the urls provided to the {@apilink RequestQueue} provided. If you want to automatically find and enqueue links,
  * you should use the context-aware `enqueueLinks` function provided on the crawler contexts.
  *
  * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
- * and override settings of the enqueued {@link Request} objects.
+ * and override settings of the enqueued {@apilink Request} objects.
  *
  * **Example usage**
  *
@@ -161,7 +161,7 @@ export enum EnqueueStrategy {
  * ```
  *
  * @param options All `enqueueLinks()` parameters are passed via an options object.
- * @returns Promise that resolves to {@link BatchAddRequestsResult} object.
+ * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
 export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchAddRequestsResult> {
     ow(options, ow.object.exactShape({
@@ -270,9 +270,9 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
 
 /**
  * @internal
- * This method helps resolve the baseUrl that will be used for filtering in {@link enqueueLinks}.
+ * This method helps resolve the baseUrl that will be used for filtering in {@apilink enqueueLinks}.
  * - If a user provides a base url, we always return it
- * - If a user specifies {@link EnqueueStrategy.All} strategy, they do not care if the newly found urls are on the original request domain, or a redirected one
+ * - If a user specifies {@apilink EnqueueStrategy.All} strategy, they do not care if the newly found urls are on the original request domain, or a redirected one
  * - In all other cases, we return the domain of the original request as that's the one we need to use for filtering
  */
 export function resolveBaseUrlForEnqueueLinksFiltering({

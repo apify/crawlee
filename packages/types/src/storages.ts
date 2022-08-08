@@ -2,7 +2,7 @@ import type { AllowedHttpMethods, Dictionary } from './utility-types';
 
 /**
  * A helper class that is used to report results from various
- * {@link RequestQueue} functions as well as {@link enqueueLinks}.
+ * {@apilink RequestQueue} functions as well as {@apilink enqueueLinks}.
  */
 export interface QueueOperationInfo {
 

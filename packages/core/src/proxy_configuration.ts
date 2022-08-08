@@ -17,7 +17,7 @@ export interface ProxyConfigurationOptions {
     /**
      * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
      * and should always return stringified proxy URL. Can be asynchronous.
-     * This function is used to generate the URL when {@link ProxyConfiguration.newUrl} or {@link ProxyConfiguration.newProxyInfo} is called.
+     * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
 }
@@ -25,7 +25,7 @@ export interface ProxyConfigurationOptions {
 /**
  * The main purpose of the ProxyInfo object is to provide information
  * about the current proxy connection used by the crawler for the request.
- * Outside of crawlers, you can get this object by calling {@link ProxyConfiguration.newProxyInfo}.
+ * Outside of crawlers, you can get this object by calling {@apilink ProxyConfiguration.newProxyInfo}.
  *
  * **Example usage:**
  *
@@ -54,7 +54,7 @@ export interface ProxyConfigurationOptions {
  */
 export interface ProxyInfo {
     /**
-     * The identifier of used {@link Session}, if used.
+     * The identifier of used {@apilink Session}, if used.
      */
     sessionId?: string;
 
@@ -88,9 +88,9 @@ export interface ProxyInfo {
  * Configures connection to a proxy server with the provided options. Proxy servers are used to prevent target websites from blocking
  * your crawlers based on IP address rate limits or blacklists. Setting proxy configuration in your crawlers automatically configures
  * them to use the selected proxies for all connections. You can get information about the currently used proxy by inspecting
- * the {@link ProxyInfo} property in your crawler's page function. There, you can inspect the proxy's URL and other attributes.
+ * the {@apilink ProxyInfo} property in your crawler's page function. There, you can inspect the proxy's URL and other attributes.
  *
- * If you want to use your own proxies, use the {@link ProxyConfigurationOptions.proxyUrls} option. Your list of proxy URLs will
+ * If you want to use your own proxies, use the {@apilink ProxyConfigurationOptions.proxyUrls} option. Your list of proxy URLs will
  * be rotated by the configuration if this option is provided.
  *
  * **Example usage:**
@@ -121,7 +121,7 @@ export class ProxyConfiguration {
     protected log = log.child({ prefix: 'ProxyConfiguration' });
 
     /**
-     * Creates a {@link ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
+     * Creates a {@apilink ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
      * blocking your crawlers based on IP address rate limits or blacklists. Setting proxy configuration in your crawlers automatically configures
      * them to use the selected proxies for all connections.
      *
@@ -157,16 +157,16 @@ export class ProxyConfiguration {
     }
 
     /**
-     * This function creates a new {@link ProxyInfo} info object.
+     * This function creates a new {@apilink ProxyInfo} info object.
      * It is used by CheerioCrawler and PuppeteerCrawler to generate proxy URLs and also to allow the user to inspect
      * the currently used proxy via the requestHandler parameter `proxyInfo`.
      * Use it if you want to work with a rich representation of a proxy URL.
-     * If you need the URL string only, use {@link ProxyConfiguration.newUrl}.
+     * If you need the URL string only, use {@apilink ProxyConfiguration.newUrl}.
      * @param [sessionId]
-     *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
+     *  Represents the identifier of user {@apilink Session} that can be managed by the {@apilink SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
      *  When the provided sessionId is a number, it's converted to a string. Property sessionId of
-     *  {@link ProxyInfo} is always returned as a type string.
+     *  {@apilink ProxyInfo} is always returned as a type string.
      *
      *  All the HTTP requests going through the proxy with the same session identifier
      *  will use the same target proxy server (i.e. the same IP address).
@@ -192,7 +192,7 @@ export class ProxyConfiguration {
     /**
      * Returns a new proxy URL based on provided configuration options and the `sessionId` parameter.
      * @param [sessionId]
-     *  Represents the identifier of user {@link Session} that can be managed by the {@link SessionPool} or
+     *  Represents the identifier of user {@apilink Session} that can be managed by the {@apilink SessionPool} or
      *  you can use the Apify Proxy [Session](https://docs.apify.com/proxy#sessions) identifier.
      *  When the provided sessionId is a number, it's converted to a string.
      *

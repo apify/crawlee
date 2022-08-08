@@ -165,7 +165,7 @@ function getDefaultExecutablePath(launchContext: PlaywrightLaunchContext, config
  * @param [launchContext]
  *   Optional settings passed to `browserType.launch()`. In addition to
  *   [Playwright's options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
- *   the object may contain our own  {@link PlaywrightLaunchContext} that enable additional features.
+ *   the object may contain our own  {@apilink PlaywrightLaunchContext} that enable additional features.
  * @param [config]
  * @returns
  *   Promise that resolves to Playwright's `Browser` instance.

@@ -271,7 +271,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 }
 
 /**
- * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@link CheerioCrawler}.
+ * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
  *
  * **Example usage:**
  * ```javascript

@@ -20,15 +20,15 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
     { browserPlugins: [PlaywrightPlugin] }
 > {
     /**
-     * The same options as used by {@link launchPlaywright}.
+     * The same options as used by {@apilink launchPlaywright}.
      */
     launchContext?: PlaywrightLaunchContext;
 
     /**
      * Function that is called to process each request.
      *
-     * The function receives the {@link PlaywrightCrawlingContext} as an argument, where:
-     * - `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
+     * The function receives the {@apilink PlaywrightCrawlingContext} as an argument, where:
+     * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an instance of the `Playwright`
      * [`Page`](https://playwright.dev/docs/api/class-page)
      * - `browserController` is an instance of the
@@ -46,15 +46,15 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
      * To make this work, you should **always**
      * let your function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage} function.
+     * {@apilink Request.pushErrorMessage} function.
      */
     requestHandler?: PlaywrightRequestHandler;
 
     /**
      * Function that is called to process each request.
      *
-     * The function receives the {@link PlaywrightCrawlingContext} as an argument, where:
-     * - `request` is an instance of the {@link Request} object with details about the URL to open, HTTP method etc.
+     * The function receives the {@apilink PlaywrightCrawlingContext} as an argument, where:
+     * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an instance of the `Playwright`
      * [`Page`](https://playwright.dev/docs/api/class-page)
      * - `browserController` is an instance of the
@@ -72,7 +72,7 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
      * To make this work, you should **always**
      * let your function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage} function.
+     * {@apilink Request.pushErrorMessage} function.
      *
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
      * @ignore
@@ -120,27 +120,27 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
  *
  * Since `Playwright` uses headless browser to download web pages and extract data,
  * it is useful for crawling of websites that require to execute JavaScript.
- * If the target website doesn't need JavaScript, consider using {@link CheerioCrawler},
+ * If the target website doesn't need JavaScript, consider using {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link PlaywrightCrawlerOptions.requestList}
- * or {@link PlaywrightCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from
+ * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink PlaywrightCrawlerOptions.requestList}
+ * or {@apilink PlaywrightCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link PlaywrightCrawlerOptions.requestList} and {@link PlaywrightCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
- * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both {@apilink PlaywrightCrawlerOptions.requestList} and {@apilink PlaywrightCrawlerOptions.requestQueue} are used,
+ * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
+ * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes when there are no more {@link Request} objects to crawl.
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * `PlaywrightCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
- * and then calls the function provided by user as the {@link PlaywrightCrawlerOptions.requestHandler} option.
+ * `PlaywrightCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
+ * and then calls the function provided by user as the {@apilink PlaywrightCrawlerOptions.requestHandler} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the {@link PlaywrightCrawlerOptions.autoscaledPoolOptions}
+ * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PlaywrightCrawlerOptions.autoscaledPoolOptions}
  * parameter of the `PlaywrightCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPoolOptions} are available directly in the `PlaywrightCrawler` constructor.
+ * {@apilink AutoscaledPoolOptions} are available directly in the `PlaywrightCrawler` constructor.
  *
  * Note that the pool of Playwright instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -148,7 +148,6 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
  *
  * ```javascript
  * const crawler = new PlaywrightCrawler({
- *     requestList,
  *     async requestHandler({ page, request }) {
  *         // This function is called to extract data from a single web page
  *         // 'page' is an instance of Playwright.Page with page.goto(request.url) already called
@@ -169,7 +168,10 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
  *     },
  * });
  *
- * await crawler.run();
+ * await crawler.run([
+ *     'http://www.example.com/page-1',
+ *     'http://www.example.com/page-2',
+ * ]);
  * ```
  * @category Crawlers
  */
@@ -218,9 +220,9 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
 }
 
 /**
- * Creates new {@link Router} instance that works based on request labels.
- * This instance can then serve as a `requestHandler` of your {@link PlaywrightCrawler}.
- * Defaults to the {@link PlaywrightCrawlingContext}.
+ * Creates new {@apilink Router} instance that works based on request labels.
+ * This instance can then serve as a `requestHandler` of your {@apilink PlaywrightCrawler}.
+ * Defaults to the {@apilink PlaywrightCrawlingContext}.
  *
  * > Serves as a shortcut for using `Router.create<PlaywrightCrawlingContext>()`.
  *

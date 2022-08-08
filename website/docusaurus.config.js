@@ -83,6 +83,7 @@ module.exports = {
             {
                 projectRoot: `${__dirname}/..`,
                 changelogs: true,
+                readmes: true,
                 sortPackages: (a, b) => {
                     return packagesOrder.indexOf(a.packageName) - packagesOrder.indexOf(b.packageName);
                 },
@@ -112,7 +113,7 @@ module.exports = {
             },
         ],
         [
-            require.resolve('docusaurus-gtm-plugin'),
+            'docusaurus-gtm-plugin',
             {
                 id: 'GTM-TKBX678',
             },

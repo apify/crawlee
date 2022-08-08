@@ -165,7 +165,7 @@ export function injectJQuery(page: Page): Promise<unknown> {
 }
 
 /**
- * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@link CheerioCrawler}.
+ * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
  *
  * **Example usage:**
  * ```javascript
@@ -332,7 +332,7 @@ export async function cacheResponses(page: Page, cache: Dictionary<Partial<Respo
  * }
  * ```
  * Where `page` is a Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page)
- * and `request` is a {@link Request}.
+ * and `request` is a {@apilink Request}.
  *
  * The function is compiled by using the `scriptString` parameter as the function's body,
  * so any limitations to function bodies apply. Return value of the compiled function

@@ -80,15 +80,15 @@ export interface BrowserCrawlerOptions<
     /**
      * Function that is called to process each request.
      *
-     * The function receives the {@link BrowserCrawlingContext}
+     * The function receives the {@apilink BrowserCrawlingContext}
      * (actual context will be enhanced with the crawler specific properties) as an argument, where:
-     * - {@link BrowserCrawlingContext.request|`request`} is an instance of the {@link Request} object
+     * - {@apilink BrowserCrawlingContext.request|`request`} is an instance of the {@apilink Request} object
      * with details about the URL to open, HTTP method etc;
-     * - {@link BrowserCrawlingContext.page|`page`} is an instance of the
+     * - {@apilink BrowserCrawlingContext.page|`page`} is an instance of the
      * Puppeteer [Page](https://pptr.dev/api/puppeteer.page) or
      * Playwright [Page](https://playwright.dev/docs/api/class-page);
-     * - {@link BrowserCrawlingContext.browserController|`browserController`} is an instance of the {@link BrowserController};
-     * - {@link BrowserCrawlingContext.response|`response`} is an instance of the
+     * - {@apilink BrowserCrawlingContext.browserController|`browserController`} is an instance of the {@apilink BrowserController};
+     * - {@apilink BrowserCrawlingContext.response|`response`} is an instance of the
      * Puppeteer [Response](https://pptr.dev/api/puppeteer.httpresponse) or
      * Playwright [Response](https://playwright.dev/docs/api/class-response),
      * which is the main resource response as returned by the respective `page.goto()` function.
@@ -96,28 +96,28 @@ export interface BrowserCrawlerOptions<
      * The function must return a promise, which is then awaited by the crawler.
      *
      * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to the {@link BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
+     * request later, up to the {@apilink BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
      * If all the retries fail, the crawler calls the function
-     * provided to the {@link BrowserCrawlerOptions.failedRequestHandler|`failedRequestHandler`} parameter.
+     * provided to the {@apilink BrowserCrawlerOptions.failedRequestHandler|`failedRequestHandler`} parameter.
      * To make this work, we should **always**
      * let our function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
+     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
     requestHandler?: BrowserRequestHandler<Context>;
 
     /**
      * Function that is called to process each request.
      *
-     * The function receives the {@link BrowserCrawlingContext}
+     * The function receives the {@apilink BrowserCrawlingContext}
      * (actual context will be enhanced with the crawler specific properties) as an argument, where:
-     * - {@link BrowserCrawlingContext.request|`request`} is an instance of the {@link Request} object
+     * - {@apilink BrowserCrawlingContext.request|`request`} is an instance of the {@apilink Request} object
      * with details about the URL to open, HTTP method etc;
-     * - {@link BrowserCrawlingContext.page|`page`} is an instance of the
+     * - {@apilink BrowserCrawlingContext.page|`page`} is an instance of the
      * Puppeteer [Page](https://pptr.dev/api/puppeteer.page) or
      * Playwright [Page](https://playwright.dev/docs/api/class-page);
-     * - {@link BrowserCrawlingContext.browserController|`browserController`} is an instance of the {@link BrowserController};
-     * - {@link BrowserCrawlingContext.response|`response`} is an instance of the
+     * - {@apilink BrowserCrawlingContext.browserController|`browserController`} is an instance of the {@apilink BrowserController};
+     * - {@apilink BrowserCrawlingContext.response|`response`} is an instance of the
      * Puppeteer [Response](https://pptr.dev/api/puppeteer.httpresponse) or
      * Playwright [Response](https://playwright.dev/docs/api/class-response),
      * which is the main resource response as returned by the respective `page.goto()` function.
@@ -125,13 +125,13 @@ export interface BrowserCrawlerOptions<
      * The function must return a promise, which is then awaited by the crawler.
      *
      * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to the {@link BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
+     * request later, up to the {@apilink BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
      * If all the retries fail, the crawler calls the function
-     * provided to the {@link BrowserCrawlerOptions.failedRequestHandler|`failedRequestHandler`} parameter.
+     * provided to the {@apilink BrowserCrawlerOptions.failedRequestHandler|`failedRequestHandler`} parameter.
      * To make this work, we should **always**
      * let our function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
+     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      *
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
      * @ignore
@@ -140,11 +140,11 @@ export interface BrowserCrawlerOptions<
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
-     * It's executed before each retry for the requests that failed less than {@link BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
+     * It's executed before each retry for the requests that failed less than {@apilink BrowserCrawlerOptions.maxRequestRetries|`maxRequestRetries`} times.
      *
-     * The function receives the {@link BrowserCrawlingContext}
+     * The function receives the {@apilink BrowserCrawlingContext}
      * (actual context will be enhanced with the crawler specific properties) as the first argument,
-     * where the {@link BrowserCrawlingContext.request|`request`} corresponds to the request to be retried.
+     * where the {@apilink BrowserCrawlingContext.request|`request`} corresponds to the request to be retried.
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
@@ -153,9 +153,9 @@ export interface BrowserCrawlerOptions<
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
      *
-     * The function receives the {@link BrowserCrawlingContext}
+     * The function receives the {@apilink BrowserCrawlingContext}
      * (actual context will be enhanced with the crawler specific properties) as the first argument,
-     * where the {@link BrowserCrawlingContext.request|`request`} corresponds to the failed request.
+     * where the {@apilink BrowserCrawlingContext.request|`request`} corresponds to the failed request.
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      */
@@ -164,9 +164,9 @@ export interface BrowserCrawlerOptions<
     /**
      * A function to handle requests that failed more than `option.maxRequestRetries` times.
      *
-     * The function receives the {@link BrowserCrawlingContext}
+     * The function receives the {@apilink BrowserCrawlingContext}
      * (actual context will be enhanced with the crawler specific properties) as the first argument,
-     * where the {@link BrowserCrawlingContext.request|`request`} corresponds to the failed request.
+     * where the {@apilink BrowserCrawlingContext.request|`request`} corresponds to the failed request.
      * Second argument is the `Error` instance that
      * represents the last error thrown during processing of the request.
      *
@@ -176,7 +176,7 @@ export interface BrowserCrawlerOptions<
     handleFailedRequestFunction?: BrowserErrorHandler<Context>;
 
     /**
-     * Custom options passed to the underlying {@link BrowserPool} constructor.
+     * Custom options passed to the underlying {@apilink BrowserPool} constructor.
      * We can tweak those to fine-tune browser management.
      */
     browserPoolOptions?: Partial<BrowserPoolOptions> & Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
@@ -239,7 +239,7 @@ export interface BrowserCrawlerOptions<
 
     /**
      * Whether to run browser in headless mode. Defaults to `true`.
-     * Can be also set via {@link Configuration}.
+     * Can be also set via {@apilink Configuration}.
      */
     headless?: boolean;
 }
@@ -253,33 +253,33 @@ export interface BrowserCrawlerOptions<
  *
  * Since `BrowserCrawler` uses headless (or even headful) browsers to download web pages and extract data,
  * it is useful for crawling of websites that require to execute JavaScript.
- * If the target website doesn't need JavaScript, we should consider using the {@link CheerioCrawler},
+ * If the target website doesn't need JavaScript, we should consider using the {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented by the {@link Request} objects that are fed from the {@link RequestList} or {@link RequestQueue} instances
- * provided by the {@link BrowserCrawlerOptions.requestList|`requestList`} or {@link BrowserCrawlerOptions.requestQueue|`requestQueue`}
+ * The source URLs are represented by the {@apilink Request} objects that are fed from the {@apilink RequestList} or {@apilink RequestQueue} instances
+ * provided by the {@apilink BrowserCrawlerOptions.requestList|`requestList`} or {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`}
  * constructor options, respectively. If neither `requestList` nor `requestQueue` options are provided,
- * the crawler will open the default request queue either when the {@link BrowserCrawler.addRequests|`crawler.addRequests()`} function is called,
- * or if `requests` parameter (representing the initial requests) of the {@link BrowserCrawler.run|`crawler.run()`} function is provided.
+ * the crawler will open the default request queue either when the {@apilink BrowserCrawler.addRequests|`crawler.addRequests()`} function is called,
+ * or if `requests` parameter (representing the initial requests) of the {@apilink BrowserCrawler.run|`crawler.run()`} function is provided.
  *
- * If both {@link BrowserCrawlerOptions.requestList|`requestList`} and {@link BrowserCrawlerOptions.requestQueue|`requestQueue`} options are used,
- * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
- * to the {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both {@apilink BrowserCrawlerOptions.requestList|`requestList`} and {@apilink BrowserCrawlerOptions.requestQueue|`requestQueue`} options are used,
+ * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
+ * to the {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes when there are no more {@link Request} objects to crawl.
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * `BrowserCrawler` opens a new browser page (i.e. tab or window) for each {@link Request} object to crawl
- * and then calls the function provided by user as the {@link BrowserCrawlerOptions.requestHandler|`requestHandler`} option.
+ * `BrowserCrawler` opens a new browser page (i.e. tab or window) for each {@apilink Request} object to crawl
+ * and then calls the function provided by user as the {@apilink BrowserCrawlerOptions.requestHandler|`requestHandler`} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the {@link BrowserCrawlerOptions.autoscaledPoolOptions|`autoscaledPoolOptions`}
+ * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink BrowserCrawlerOptions.autoscaledPoolOptions|`autoscaledPoolOptions`}
  * parameter of the `BrowserCrawler` constructor.
- * For user convenience, the {@link AutoscaledPoolOptions.minConcurrency|`minConcurrency`} and
- * {@link AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} options of the
- * underlying {@link AutoscaledPool} constructor are available directly in the `BrowserCrawler` constructor.
+ * For user convenience, the {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} and
+ * {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} options of the
+ * underlying {@apilink AutoscaledPool} constructor are available directly in the `BrowserCrawler` constructor.
  *
- * > *NOTE:* the pool of browser instances is internally managed by the {@link BrowserPool} class.
+ * > *NOTE:* the pool of browser instances is internally managed by the {@apilink BrowserPool} class.
  *
  * @category Crawlers
  */
@@ -290,13 +290,13 @@ export abstract class BrowserCrawler<
     GoToOptions extends Record<PropertyKey, any> = Dictionary
 > extends BasicCrawler<Context> {
     /**
-     * A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
+     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
      */
     proxyConfiguration?: ProxyConfiguration;
 
     /**
-     * A reference to the underlying {@link BrowserPool} class that manages the crawler's browsers.
+     * A reference to the underlying {@apilink BrowserPool} class that manages the crawler's browsers.
      */
     browserPool: BrowserPool<InternalBrowserPoolOptions>;
 

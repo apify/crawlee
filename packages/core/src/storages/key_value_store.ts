@@ -46,16 +46,16 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
  * for saving screenshots, crawler inputs and outputs, web pages, PDFs or to persist the state of crawlers.
  *
  * Do not instantiate this class directly, use the
- * {@link KeyValueStore.open} function instead.
+ * {@apilink KeyValueStore.open} function instead.
  *
  * Each crawler run is associated with a default key-value store, which is created exclusively
  * for the run. By convention, the crawler input and output are stored into the
  * default key-value store under the `INPUT` and `OUTPUT` key, respectively.
  * Typically, input and output are JSON files, although it can be any other format.
  * To access the default key-value store directly, you can use the
- * {@link KeyValueStore.getValue} and {@link KeyValueStore.setValue} convenience functions.
+ * {@apilink KeyValueStore.getValue} and {@apilink KeyValueStore.setValue} convenience functions.
  *
- * To access the input, you can also use the {@link KeyValueStore.getInput} convenience function.
+ * To access the input, you can also use the {@apilink KeyValueStore.getInput} convenience function.
  *
  * `KeyValueStore` stores its data on a local disk.
  *
@@ -127,7 +127,7 @@ export class KeyValueStore {
      * If the record does not exist, the function resolves to `null`.
      *
      * To save or delete a value in the key-value store, use the
-     * {@link KeyValueStore.setValue} function.
+     * {@apilink KeyValueStore.setValue} function.
      *
      * **Example usage:**
      *
@@ -205,7 +205,7 @@ export class KeyValueStore {
      * regardless whether the record existed or not.
      *
      * To retrieve a value from the key-value store, use the
-     * {@link KeyValueStore.getValue} function.
+     * {@apilink KeyValueStore.getValue} function.
      *
      * **IMPORTANT:** Always make sure to use the `await` keyword when calling `setValue()`,
      * otherwise the crawler process might finish before the value is stored!
@@ -325,13 +325,13 @@ export class KeyValueStore {
     }
 
     /**
-     * Opens a key-value store and returns a promise resolving to an instance of the {@link KeyValueStore} class.
+     * Opens a key-value store and returns a promise resolving to an instance of the {@apilink KeyValueStore} class.
      *
      * Key-value stores are used to store records or files, along with their MIME content type.
      * The records are stored and retrieved using a unique key.
      * The actual data is stored either on a local filesystem or in the Apify cloud.
      *
-     * For more details and code examples, see the {@link KeyValueStore} class.
+     * For more details and code examples, see the {@apilink KeyValueStore} class.
      *
      * @param [storeIdOrName]
      *   ID or name of the key-value store to be opened. If `null` or `undefined`,
@@ -350,9 +350,9 @@ export class KeyValueStore {
     }
 
     /**
-     * Gets a value from the default {@link KeyValueStore} associated with the current crawler run.
+     * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *
-     * This is just a convenient shortcut for {@link KeyValueStore.getValue}.
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getValue}.
      * For example, calling the following code:
      * ```javascript
      * const value = await KeyValueStore.getValue('my-key');
@@ -364,10 +364,10 @@ export class KeyValueStore {
      * const value = await store.getValue('my-key');
      * ```
      *
-     * To store the value to the default key-value store, you can use the {@link KeyValueStore.setValue} function.
+     * To store the value to the default key-value store, you can use the {@apilink KeyValueStore.setValue} function.
      *
-     * For more information, see  {@link KeyValueStore.open}
-     * and  {@link KeyValueStore.getValue}.
+     * For more information, see  {@apilink KeyValueStore.open}
+     * and  {@apilink KeyValueStore.getValue}.
      *
      * @param key Unique record key.
      * @param defaultValue Fallback that will be returned if no value if present in the storage.
@@ -389,9 +389,9 @@ export class KeyValueStore {
     }
 
     /**
-     * Stores or deletes a value in the default {@link KeyValueStore} associated with the current crawler run.
+     * Stores or deletes a value in the default {@apilink KeyValueStore} associated with the current crawler run.
      *
-     * This is just a convenient shortcut for  {@link KeyValueStore.setValue}.
+     * This is just a convenient shortcut for  {@apilink KeyValueStore.setValue}.
      * For example, calling the following code:
      * ```javascript
      * await KeyValueStore.setValue('OUTPUT', { foo: "bar" });
@@ -403,10 +403,10 @@ export class KeyValueStore {
      * await store.setValue('OUTPUT', { foo: "bar" });
      * ```
      *
-     * To get a value from the default key-value store, you can use the  {@link KeyValueStore.getValue} function.
+     * To get a value from the default key-value store, you can use the  {@apilink KeyValueStore.getValue} function.
      *
-     * For more information, see  {@link KeyValueStore.open}
-     * and  {@link KeyValueStore.getValue}.
+     * For more information, see  {@apilink KeyValueStore.open}
+     * and  {@apilink KeyValueStore.getValue}.
      *
      * @param key
      *   Unique record key.
@@ -425,7 +425,7 @@ export class KeyValueStore {
     }
 
     /**
-     * Gets the crawler input value from the default {@link KeyValueStore} associated with the current crawler run.
+     * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *
      * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](core/class/KeyValueStore#getValue).
      * For example, calling the following code:
@@ -443,8 +443,8 @@ export class KeyValueStore {
      * If you need to use the input multiple times in your crawler,
      * it is far more efficient to read it once and store it locally.
      *
-     * For more information, see  {@link KeyValueStore.open}
-     * and {@link KeyValueStore.getValue}.
+     * For more information, see  {@apilink KeyValueStore.open}
+     * and {@apilink KeyValueStore.getValue}.
      *
      * @returns
      *   Returns a promise that resolves to an object, string
@@ -460,13 +460,13 @@ export class KeyValueStore {
 }
 
 /**
- * User-function used in the  {@link KeyValueStore.forEachKey} method.
+ * User-function used in the  {@apilink KeyValueStore.forEachKey} method.
  */
 export interface KeyConsumer {
     /**
-     * @param key Current {@link KeyValueStore} key being processed.
-     * @param index Position of the current key in {@link KeyValueStore}.
-     * @param info Information about the current {@link KeyValueStore} entry.
+     * @param key Current {@apilink KeyValueStore} key being processed.
+     * @param index Position of the current key in {@apilink KeyValueStore}.
+     * @param info Information about the current {@apilink KeyValueStore} entry.
      * @param info.size Size of the value associated with the current key in bytes.
      */
     (key: string, index: number, info: { size: number }): Awaitable<void>;

@@ -13,19 +13,19 @@ import { LocalEventManager } from './events';
 export interface ConfigurationOptions {
     /**
      * Defines storage client to be used.
-     * @default {@link MemoryStorage}
+     * @default {@apilink MemoryStorage}
      */
     storageClient?: StorageClient;
 
     /**
      * Defines the Event Manager to be used.
-     * @default {@link EventManager}
+     * @default {@apilink EventManager}
      */
     eventManager?: EventManager;
 
     /**
      * Could be used to adjust the storage client behavior
-     * e.g. {@link MemoryStorageOptions} could be used to adjust the {@link MemoryStorage} behavior.
+     * e.g. {@apilink MemoryStorageOptions} could be used to adjust the {@apilink MemoryStorage} behavior.
      */
     storageClientOptions?: Dictionary;
 
@@ -69,7 +69,7 @@ export interface ConfigurationOptions {
     maxUsedCpuRatio?: number;
 
     /**
-     * Sets the ratio, defining the amount of system memory that could be used by the {@link AutoscaledPool}.
+     * Sets the ratio, defining the amount of system memory that could be used by the {@apilink AutoscaledPool}.
      * When the memory usage is more than the provided ratio, the memory is considered overloaded.
      *
      * Alternative to `CRAWLEE_AVAILABLE_MEMORY_RATIO` environment variable.
@@ -78,7 +78,7 @@ export interface ConfigurationOptions {
     availableMemoryRatio?: number;
 
     /**
-     * Sets the amount of system memory in megabytes to be used by the {@link AutoscaledPool}.
+     * Sets the amount of system memory in megabytes to be used by the {@apilink AutoscaledPool}.
      * By default, the maximum memory is set to one quarter of total system memory.
      *
      * Alternative to `CRAWLEE_MEMORY_MBYTES` environment variable.
@@ -101,7 +101,7 @@ export interface ConfigurationOptions {
 
     /**
      * Defines the default input key, i.e. the key that is used to get the crawler input value
-     * from the default {@link KeyValueStore} associated with the current crawler run.
+     * from the default {@apilink KeyValueStore} associated with the current crawler run.
      *
      * Alternative to `CRAWLEE_INPUT_KEY` environment variable.
      * @default 'INPUT'
@@ -337,8 +337,8 @@ export class Configuration {
     }
 
     /**
-     * Returns cached instance of {@link StorageClient} using options as defined in the environment variables or in
-     * this {@link Configuration} instance. Only first call of this method will create the client, following calls will
+     * Returns cached instance of {@apilink StorageClient} using options as defined in the environment variables or in
+     * this {@apilink Configuration} instance. Only first call of this method will create the client, following calls will
      * return the same client instance.
      *
      * Caching works based on the `storageClientOptions`, so calling this method with different options will return
@@ -407,14 +407,14 @@ export class Configuration {
     }
 
     /**
-     * Gets default {@link StorageClient} instance.
+     * Gets default {@apilink StorageClient} instance.
      */
     static getStorageClient(): StorageClient {
         return this.getGlobalConfig().getStorageClient();
     }
 
     /**
-     * Gets default {@link EventManager} instance.
+     * Gets default {@apilink EventManager} instance.
      */
     static getEventManager(): EventManager {
         return this.getGlobalConfig().getEventManager();
