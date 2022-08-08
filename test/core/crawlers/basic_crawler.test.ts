@@ -1094,23 +1094,32 @@ describe('BasicCrawler', () => {
 
             const requestList = await RequestList.open(null, [url]);
 
+            const responses: { statusCode: number; body: string }[] = [];
+
             const crawler = new BasicCrawler({
                 useSessionPool: false,
                 requestList,
                 async requestHandler({ sendRequest }) {
                     const response = await sendRequest();
 
-                    expect(response.statusCode).toBe(200);
-                    expect(response.body.includes('Hello, world!')).toBe(true);
+                    responses.push({
+                        statusCode: response.statusCode,
+                        body: response.body,
+                    });
                 },
             });
+
+            expect(responses).toStrictEqual([
+                {
+                    statusCode: 200,
+                    body: 'Hello, world!',
+                },
+            ]);
 
             await crawler.run();
         });
 
         test('proxyUrl TypeScript support', async () => {
-            expect.assertions(1);
-
             const crawler = new BasicCrawler({
                 useSessionPool: true,
                 async requestHandler({ sendRequest }) {

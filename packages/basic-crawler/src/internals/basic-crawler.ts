@@ -831,14 +831,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             },
             sendRequest: async (overrideOptions?: OptionsInit) => {
                 const cookieJar = session ? {
-                    getCookieString: (url: string) => session!.getCookieString(url),
-                    setCookie: (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
+                    getCookieString: async (url: string) => session!.getCookieString(url),
+                    setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
                     ...overrideOptions?.cookieJar,
                 } : overrideOptions?.cookieJar;
 
                 return gotScraping({
                     url: request!.url,
-                    method: request!.method as Method, // Force cast to omit CONNECT
+                    method: request!.method as Method, // Narrow type to omit CONNECT
                     body: request!.payload,
                     headers: request!.headers,
                     proxyUrl: crawlingContext.proxyInfo?.url,
@@ -849,7 +849,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         limit: 0,
                         ...overrideOptions?.retry,
                     },
-                    cookieJar: cookieJar as OptionsInit['cookieJar'], // Force cast to omit old tough-cookie versions
+                    cookieJar,
                 });
             },
         };
