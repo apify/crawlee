@@ -57,7 +57,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotOptions`,
-     * which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
+     * which are passed to the `sendRequest()` function the crawler calls to navigate.
      * Example:
      * ```
      * preNavigationHooks: [
@@ -145,6 +145,9 @@ export interface InternalHttpCrawlingContext<
     > extends CrawlingContext<UserData> {
     /**
      * The request body of the web page.
+     * The type depends on the `Content-Type` header of the web page:
+     * - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
+     * - Buffer for others MIME content types
      */
     body: (string | Buffer);
 

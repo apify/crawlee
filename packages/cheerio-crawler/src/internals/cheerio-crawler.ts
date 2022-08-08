@@ -1,13 +1,12 @@
-import type { BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
-import type { InternalHttpCrawlingContext } from '@crawlee/http';
+import type { ErrorHandler, RequestHandler } from '@crawlee/basic';
+import type { HttpCrawlerOptions, InternalHttpCrawlingContext, InternalHttpHook } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
-import type { EnqueueLinksOptions, ProxyConfiguration, RequestQueue, Configuration } from '@crawlee/core';
+import type { EnqueueLinksOptions, RequestQueue, Configuration } from '@crawlee/core';
 import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/core';
-import type { BatchAddRequestsResult, Awaitable, Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
-import type { OptionsInit } from 'got-scraping';
 import { DomHandler } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
 import type { IncomingMessage } from 'http';
@@ -20,212 +19,12 @@ export type CheerioErrorHandler<
 export interface CheerioCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-    > extends Omit<BasicCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>>,
-    // Overridden with cheerio context
-    | 'requestHandler'
-    | 'handleRequestFunction'
-
-    | 'failedRequestHandler'
-    | 'handleFailedRequestFunction'
-    | 'handleRequestTimeoutSecs'
-
-    | 'errorHandler'
-    > {
-    /**
-     * User-provided function that performs the logic of the crawler. It is called for each page
-     * loaded and parsed by the crawler.
-     *
-     * The function receives the {@link CheerioCrawlingContext} as an argument,
-     * where the {@link CheerioCrawlingContext.request} instance represents the URL to crawl.
-     *
-     * Type of {@link CheerioCrawlingContext.body} depends on the `Content-Type` header of the web page:
-     * - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
-     * - Buffer for others MIME content types
-     *
-     * Parsed `Content-Type` header using
-     * [content-type package](https://www.npmjs.com/package/content-type)
-     * is stored in {@link CheerioCrawlingContext.contentType}`.
-     *
-     * Cheerio is available only for HTML and XML content types.
-     *
-     * If the function returns, the returned promise is awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to `option.maxRequestRetries` times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the `failedRequestHandler` parameter.
-     * To make this work, you should **always**
-     * let your function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage} function.
-     */
-    requestHandler?: CheerioRequestHandler<UserData, JSONData>;
-
-    /**
-     * User-provided function that performs the logic of the crawler. It is called for each page
-     * loaded and parsed by the crawler.
-     *
-     * The function receives the {@link CheerioCrawlingContext} as an argument,
-     * where the {@link CheerioCrawlingContext.request} instance represents the URL to crawl.
-     *
-     * Type of {@link CheerioCrawlingContext.body} depends on the `Content-Type` header of the web page:
-     * - String for `text/html`, `application/xhtml+xml`, `application/xml` MIME content types
-     * - Buffer for others MIME content types
-     *
-     * Parsed `Content-Type` header using
-     * [content-type package](https://www.npmjs.com/package/content-type)
-     * is stored in {@link CheerioCrawlingContext.contentType}`.
-     *
-     * Cheerio is available only for HTML and XML content types.
-     *
-     * If the function returns, the returned promise is awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to `option.maxRequestRetries` times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the `failedRequestHandler` parameter.
-     * To make this work, you should **always**
-     * let your function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@link Request.pushErrorMessage} function.
-     *
-     * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handlePageFunction?: CheerioRequestHandler<UserData, JSONData>;
-
-    /**
-     * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
-     */
-    navigationTimeoutSecs?: number;
-
-    /**
-     * If set to true, SSL certificate errors will be ignored.
-     */
-    ignoreSslErrors?: boolean;
-
-    /**
-     * If set, `CheerioCrawler` will be configured for all connections to use
-     * [Apify Proxy](https://console.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
-     * For more information, see the [documentation](https://docs.apify.com/proxy).
-     */
-    proxyConfiguration?: ProxyConfiguration;
-
-    /**
-     * User-provided function that allows modifying the request object before it gets retried by the crawler.
-     * It's executed before each retry for the requests that failed less than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@link CheerioCrawlingContext} as the first argument,
-     * where the {@link CheerioCrawlingContext.request} corresponds to the request to be retried.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     */
-    errorHandler?: CheerioErrorHandler<UserData, JSONData>;
-
-    /**
-     * A function to handle requests that failed more than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@link CheerioCrawlingContext} as the first argument,
-     * where the {@link CheerioCrawlingContext.request} corresponds to the failed request.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     *
-     * See [source code](https://github.com/apify/crawlee/blob/master/src/crawlers/cheerio_crawler.js#L13)
-     * for the default implementation of this function.
-     */
-    failedRequestHandler?: CheerioErrorHandler<UserData, JSONData>;
-
-    /**
-     * A function to handle requests that failed more than `option.maxRequestRetries` times.
-     *
-     * The function receives the {@link CheerioCrawlingContext} as the first argument,
-     * where the {@link CheerioCrawlingContext.request} corresponds to the failed request.
-     * Second argument is the `Error` instance that
-     * represents the last error thrown during processing of the request.
-     *
-     * See [source code](https://github.com/apify/crawlee/blob/master/src/crawlers/cheerio_crawler.js#L13)
-     * for the default implementation of this function.
-     *
-     * @deprecated `handleFailedRequestFunction` has been renamed to `failedRequestHandler` and will be removed in a future version.
-     * @ignore
-     */
-    handleFailedRequestFunction?: CheerioErrorHandler<UserData, JSONData>;
-
-    /**
-     * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotOptions`,
-     * which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
-     * Example:
-     * ```
-     * preNavigationHooks: [
-     *     async (crawlingContext, gotOptions) => {
-     *         // ...
-     *     },
-     * ]
-     * ```
-     */
-    preNavigationHooks?: CheerioHook<UserData, JSONData>[];
-
-    /**
-     * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
-     * The function accepts `crawlingContext` as the only parameter.
-     * Example:
-     * ```
-     * postNavigationHooks: [
-     *     async (crawlingContext) => {
-     *         // ...
-     *     },
-     * ]
-     * ```
-     */
-    postNavigationHooks?: CheerioHook<UserData, JSONData>[];
-
-    /**
-     * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
-     * you want the crawler to load and process. By default, only `text/html` and `application/xhtml+xml` MIME types are supported.
-     */
-    additionalMimeTypes?: string[];
-
-    /**
-     * By default `CheerioCrawler` will extract correct encoding from the HTTP response headers.
-     * Sadly, there are some websites which use invalid headers. Those are encoded using the UTF-8 encoding.
-     * If those sites actually use a different encoding, the response will be corrupted. You can use
-     * `suggestResponseEncoding` to fall back to a certain encoding, if you know that your target website uses it.
-     * To force a certain encoding, disregarding the response headers, use {@link CheerioCrawlerOptions.forceResponseEncoding}
-     * ```
-     * // Will fall back to windows-1250 encoding if none found
-     * suggestResponseEncoding: 'windows-1250'
-     * ```
-     */
-    suggestResponseEncoding?: string;
-
-    /**
-     * By default `CheerioCrawler` will extract correct encoding from the HTTP response headers. Use `forceResponseEncoding`
-     * to force a certain encoding, disregarding the response headers.
-     * To only provide a default for missing encodings, use {@link CheerioCrawlerOptions.suggestResponseEncoding}
-     * ```
-     * // Will force windows-1250 encoding even if headers say otherwise
-     * forceResponseEncoding: 'windows-1250'
-     * ```
-     */
-    forceResponseEncoding?: string;
-
-    /**
-     * Automatically saves cookies to Session. Works only if Session Pool is used.
-     *
-     * It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
-     * It passes the "Cookie" header to the request with the session cookies.
-     */
-    persistCookiesPerSession?: boolean;
-}
+    > extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = Dictionary,
-    > = (
-    crawlingContext: CheerioCrawlingContext<UserData, JSONData>,
-    gotOptions: OptionsInit,
-) => Awaitable<void>;
+    > = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -233,6 +32,7 @@ export interface CheerioCrawlingContext<
     > extends InternalHttpCrawlingContext<UserData, JSONData, CheerioCrawler> {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
+     * Cheerio is available only for HTML and XML content types.
      */
     $: CheerioRoot;
 
