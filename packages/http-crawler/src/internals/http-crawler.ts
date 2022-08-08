@@ -38,6 +38,11 @@ export type HttpErrorHandler<
 
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
     /**
+     * An alias for {@link HttpCrawlerOptions.requestHandler}
+     */
+    handlePageFunction?: HttpCrawlerOptions<Context>['requestHandler'];
+
+    /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
     navigationTimeoutSecs?: number;
@@ -57,7 +62,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotOptions`,
-     * which are passed to the `sendRequest()` function the crawler calls to navigate.
+     * which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
      * Example:
      * ```
      * preNavigationHooks: [
