@@ -7,17 +7,28 @@ const version = [v1, v2].join('.');
 
 const packages = [
     'core',
+    'browser-pool',
+    'basic-crawler',
+    'browser-crawler',
     'cheerio-crawler',
     'puppeteer-crawler',
     'playwright-crawler',
-    'basic-crawler',
-    'browser-crawler',
     'memory-storage',
-    'browser-pool',
     'utils',
     'types',
 ];
-const packageNames = packages.map((name) => `@crawlee/${name.replace(/-crawler$/, '')}`);
+const packagesOrder = [
+    '@crawlee/core',
+    '@crawlee/cheerio',
+    '@crawlee/puppeteer',
+    '@crawlee/playwright',
+    '@crawlee/basic',
+    '@crawlee/browser',
+    '@crawlee/memory-storage',
+    '@crawlee/browser-pool',
+    '@crawlee/utils',
+    '@crawlee/types',
+];
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
@@ -73,7 +84,7 @@ module.exports = {
                 projectRoot: `${__dirname}/..`,
                 changelogs: true,
                 sortPackages: (a, b) => {
-                    return packageNames.indexOf(a.packageName) - packageNames.indexOf(b.packageName);
+                    return packagesOrder.indexOf(a.packageName) - packagesOrder.indexOf(b.packageName);
                 },
                 packages: packages.map((name) => ({ path: `packages/${name}` })),
                 typedocOptions: {
