@@ -34,6 +34,7 @@ const log = log_.child({ prefix: 'Playwright Utils' });
 const jqueryPath = require.resolve('jquery');
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
+const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
 export interface InjectFileOptions {
     /**
@@ -42,6 +43,21 @@ export interface InjectFileOptions {
      * re-injected on each navigation before any other scripts get the chance to execute.
      */
     surviveNavigations?: boolean;
+}
+
+export interface BlockRequestsOptions {
+    /**
+     * The patterns of URLs to block from being loaded by the browser.
+     * Only `*` can be used as a wildcard. It is also automatically added to the beginning
+     * and end of the pattern. This limitation is enforced by the DevTools protocol.
+     * `.png` is the same as `*.png*`.
+     */
+    urlPatterns?: string[];
+
+    /**
+     * If you just want to append to the default blocked patterns, use this property.
+     */
+    extraUrlPatterns?: string[];
 }
 
 /**
@@ -193,6 +209,68 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
 }
 
 /**
+ * Forces the Playwright browser tab to block loading URLs that match a provided pattern.
+ * This is useful to speed up crawling of websites, since it reduces the amount
+ * of data that needs to be downloaded from the web, but it may break some websites
+ * or unexpectedly prevent loading of resources.
+ *
+ * By default, the function will block all URLs including the following patterns:
+ *
+ * ```json
+ * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
+ * ```
+ *
+ * If you want to extend this list further, use the `extraUrlPatterns` option,
+ * which will keep blocking the default patterns, as well as add your custom ones.
+ * If you would like to block only specific patterns, use the `urlPatterns` option,
+ * which will override the defaults and block only URLs with your custom patterns.
+ *
+ * This function does not use Playwright's request interception and therefore does not interfere
+ * with browser cache. It's also faster than blocking requests using interception,
+ * because the blocking happens directly in the browser without the round-trip to Node.js,
+ * but it does not provide the extra benefits of request interception.
+ *
+ * The function will never block main document loads and their respective redirects.
+ *
+ * **Example usage**
+ * ```javascript
+ * import { launchPlaywright, playwrightUtils } from 'crawlee';
+ *
+ * const browser = await launchPlaywright();
+ * const page = await browser.newPage();
+ *
+ * // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
+ * await playwrightUtils.blockRequests(page, {
+ *     extraUrlPatterns: ['adsbygoogle.js'],
+ * });
+ *
+ * await page.goto('https://cnn.com');
+ * ```
+ *
+ * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param [options]
+ */
+export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
+    ow(page, ow.object.validate(validators.browserPage));
+    ow(options, ow.object.exactShape({
+        urlPatterns: ow.optional.array.ofType(ow.string),
+        extraUrlPatterns: ow.optional.array.ofType(ow.string),
+    }));
+
+    const {
+        urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
+        extraUrlPatterns = [],
+    } = options;
+
+    const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
+
+    const client = await page.context().newCDPSession(page);
+
+    await client.send('Network.enable');
+    await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+}
+
+/**
  * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@link CheerioCrawler}.
  *
  * **Example usage:**
@@ -212,12 +290,14 @@ export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
 export interface PlaywrightContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
+    blockRequests(options?: BlockRequestsOptions): Promise<void>;
     parseWithCheerio(): Promise<CheerioRoot>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = () => injectJQuery(context.page);
+    context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
 }
 
@@ -226,5 +306,6 @@ export const playwrightUtils = {
     injectFile,
     injectJQuery,
     gotoExtended,
+    blockRequests,
     parseWithCheerio,
 };
