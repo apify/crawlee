@@ -1051,9 +1051,11 @@ describe('BasicCrawler', () => {
     });
 
     describe('sendRequest', () => {
+        const html = `<!DOCTYPE html><html><head><title>foobar</title></head><body><p>Hello, world!</p></body></html>`;
+
         const httpServer = http.createServer((request, response) => {
             response.setHeader('content-type', 'text/html');
-            response.end(`<!DOCTYPE html><html><head><title>foobar</title></head><body><p>Hello, world!</p></body></html>`);
+            response.end(html);
         });
 
         let url: string;
@@ -1093,7 +1095,7 @@ describe('BasicCrawler', () => {
             expect(responses).toStrictEqual([
                 {
                     statusCode: 200,
-                    body: 'Hello, world!',
+                    body: html,
                 },
             ]);
         });
@@ -1121,7 +1123,7 @@ describe('BasicCrawler', () => {
             expect(responses).toStrictEqual([
                 {
                     statusCode: 200,
-                    body: 'Hello, world!',
+                    body: html,
                 },
             ]);
         });
