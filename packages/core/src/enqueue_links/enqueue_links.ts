@@ -272,7 +272,8 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
  * @internal
  * This method helps resolve the baseUrl that will be used for filtering in {@apilink enqueueLinks}.
  * - If a user provides a base url, we always return it
- * - If a user specifies {@apilink EnqueueStrategy.All} strategy, they do not care if the newly found urls are on the original request domain, or a redirected one
+ * - If a user specifies {@apilink EnqueueStrategy.All} strategy, they do not care if the newly found urls are on the original
+ *   request domain, or a redirected one
  * - In all other cases, we return the domain of the original request as that's the one we need to use for filtering
  */
 export function resolveBaseUrlForEnqueueLinksFiltering({
