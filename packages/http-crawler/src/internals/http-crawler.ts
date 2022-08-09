@@ -20,11 +20,12 @@ import {
     Configuration,
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { parseContentTypeFromResponse } from '@crawlee/utils';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
+import mime from 'mime-types';
 import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
+import { extname } from 'path';
 import type { IncomingHttpHeaders, IncomingMessage } from 'http';
 import iconv from 'iconv-lite';
 import ow from 'ow';
@@ -773,6 +774,41 @@ function addResponsePropertiesToStream(stream: GotRequest) {
     }
 
     return stream as unknown as IncomingMessage;
+}
+
+/**
+ * Gets parsed content type from response object
+ * @param response HTTP response object
+ */
+function parseContentTypeFromResponse(response: IncomingMessage): { type: string; charset: BufferEncoding } {
+    ow(response, ow.object.partialShape({
+        url: ow.string.url,
+        headers: ow.object,
+    }));
+
+    const { url, headers } = response;
+    let parsedContentType;
+
+    if (headers['content-type']) {
+        try {
+            parsedContentType = contentTypeParser.parse(headers['content-type']);
+        } catch {
+            // Can not parse content type from Content-Type header. Try to parse it from file extension.
+        }
+    }
+
+    // Parse content type from file extension as fallback
+    if (!parsedContentType) {
+        const parsedUrl = new URL(url);
+        const contentTypeFromExtname = mime.contentType(extname(parsedUrl.pathname))
+            || 'application/octet-stream; charset=utf-8'; // Fallback content type, specified in https://tools.ietf.org/html/rfc7231#section-3.1.1.5
+        parsedContentType = contentTypeParser.parse(contentTypeFromExtname);
+    }
+
+    return {
+        type: parsedContentType.type,
+        charset: parsedContentType.parameters.charset as BufferEncoding,
+    };
 }
 
 /**
