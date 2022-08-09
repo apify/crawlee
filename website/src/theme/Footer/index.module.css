@@ -1,0 +1,46 @@
+.footer {
+    background: #272c3d;
+    padding-top: 64px;
+}
+
+.builtBy {
+    color: #b3b8d2;
+}
+
+.builtBy svg {
+    margin-left: 10px;
+    width: 90px;
+    height: 24px;
+}
+
+.freeAndOpenSource {
+    color: #b3b8d2;
+}
+
+.alignMiddle {
+    vertical-align: middle;
+    display: inline-block;
+}
+
+.freeAndOpenSource svg {
+    margin-right: 10px;
+}
+
+.freeAndOpenSource svg path {
+    fill: #b3b8d2 !important;
+}
+
+.footer .footer__item svg path {
+    fill: #6f7490;
+}
+
+.footerTitle {
+    font-family: 'Lota Grotesque', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 20px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8d92af;
+    margin-bottom: 20px;
+}

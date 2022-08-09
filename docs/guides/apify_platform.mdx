@@ -113,7 +113,8 @@ For running Crawlee code as an actor on [Apify platform](https://apify.com/actor
 - or wrap it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) function.
 
 :::info NOTE
-Adding [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) to your code or wrapping it into [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) is the only important thing needed to run it on Apify platform as an actor. Some things mentioned below are either used for your convenience or for some specific use cases.
+- Adding [`Actor.init()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#init) and [`Actor.exit()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#exit) to your code are the only two important things needed to run it on Apify platform as an actor. `Actor.init()` is needed to initialize your actor (e.g. to set the correct storage implementation), while without `Actor.exit()` the process will simply never stop.
+- [`Actor.main()`](https://apify.github.io/apify-sdk-js/api/apify/class/Actor#main) is an alternative to `Actor.init()` and `Actor.exit()` as it calls both behind the scenes.
 :::
 
 Let's look at the `CheerioCrawler` example from the [Quick Start](../quick-start) guide:
@@ -179,7 +180,8 @@ If you need to share a link to some file stored in a Key-Value Store on Apify Pl
 ```js
 import { KeyValueStore } from 'apify';
 
-await KeyValueStore.setValue('your-file', { foo: 'bar' });
+const store = await KeyValueStore.open();
+await store.setValue('your-file', { foo: 'bar' });
 const url = store.getPublicUrl('your-file');
 // https://api.apify.com/v2/key-value-stores/<your-store-id>/records/your-file
 ```
@@ -198,7 +200,7 @@ When the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> is stored on the [
 
 ## Environment variables
 
-The following are some additional environment variables specific to Apify platform. More Crawlee specific environment variables could be found in the [Environment Variables](./environment-variables) guide.
+The following are some additional environment variables specific to Apify platform. More Crawlee specific environment variables could be found in the [Environment Variables](./configuration#environment-variables) guide.
 
 :::note
 
@@ -214,7 +216,7 @@ or to run an actor on the Apify platform. You can find your API token on the
 
 ### Combinations of `APIFY_TOKEN` and `CRAWLEE_STORAGE_DIR`
 
-> `CRAWLEE_STORAGE_DIR` env variable description could be found in [Environment Variables](../guides/environment-variables#crawlee_storage_dir) guide.
+> `CRAWLEE_STORAGE_DIR` env variable description could be found in [Environment Variables](../guides/configuration#crawlee_storage_dir) guide.
 
 By combining the env vars in various ways, you can greatly influence the actor's behavior.
 

@@ -28,12 +28,12 @@
         "rimraf": "^3.0.2"
     },
     "dependencies": {
-        "@docusaurus/core": "2.0.0-rc.1",
-        "@docusaurus/plugin-client-redirects": "2.0.0-rc.1",
-        "@docusaurus/preset-classic": "2.0.0-rc.1",
+        "@docusaurus/core": "2.0.1",
+        "@docusaurus/plugin-client-redirects": "2.0.1",
+        "@docusaurus/preset-classic": "2.0.1",
         "clsx": "^1.1.1",
         "docusaurus-gtm-plugin": "^0.0.2",
-        "docusaurus-plugin-typedoc-api": "2.2.1",
+        "docusaurus-plugin-typedoc-api": "2.3.0",
         "prop-types": "^15.8.1",
         "raw-loader": "^4.0.2",
         "react": "^17.0.2",

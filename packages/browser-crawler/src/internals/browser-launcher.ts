@@ -21,7 +21,7 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     proxyUrl?: string;
 
     /**
-     * If `true` and the `executablePath` option of {@link BrowserLaunchContext.launchOptions|`launchOptions`} is not set,
+     * If `true` and the `executablePath` option of {@apilink BrowserLaunchContext.launchOptions|`launchOptions`} is not set,
      * the launcher will launch full Google Chrome browser available on the machine
      * rather than the bundled Chromium. The path to Chrome executable
      * is taken from the `CRAWLEE_CHROME_EXECUTABLE_PATH` environment variable if provided,

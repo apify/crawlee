@@ -47,15 +47,15 @@ export interface EnqueueLinksByClickingElementsOptions {
     requestQueue: RequestQueue;
 
     /**
-     * A CSS selector matching elements to be clicked on. Unlike in {@link enqueueLinks}, there is no default
+     * A CSS selector matching elements to be clicked on. Unlike in {@apilink enqueueLinks}, there is no default
      * value. This is to prevent suboptimal use of this function by using it too broadly.
      */
     selector: string;
 
-    /** Sets {@link Request.userData} for newly enqueued requests. */
+    /** Sets {@apilink Request.userData} for newly enqueued requests. */
     userData?: Dictionary;
 
-    /** Sets {@link Request.label} for newly enqueued requests. */
+    /** Sets {@apilink Request.label} for newly enqueued requests. */
     label?: string;
 
     /**
@@ -68,7 +68,7 @@ export interface EnqueueLinksByClickingElementsOptions {
      * containing glob pattern strings matching the URLs to be enqueued.
      *
      * The plain objects must include at least the `glob` property, which holds the glob pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@link Request} objects.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * The matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
@@ -84,7 +84,7 @@ export interface EnqueueLinksByClickingElementsOptions {
      * containing regular expressions matching the URLs to be enqueued.
      *
      * The plain objects must include at least the `regexp` property, which holds the regular expression.
-     * All remaining keys will be used as request options for the corresponding enqueued {@link Request} objects.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * If `regexps` is an empty array or `undefined`, then the function
      * enqueues all the intercepted navigation requests produced by the page
@@ -96,11 +96,11 @@ export interface EnqueueLinksByClickingElementsOptions {
      * *NOTE:* In future versions of SDK the options will be removed.
      * Please use `globs` or `regexps` instead.
      *
-     * An array of {@link PseudoUrl} strings or plain objects
-     * containing {@link PseudoUrl} strings matching the URLs to be enqueued.
+     * An array of {@apilink PseudoUrl} strings or plain objects
+     * containing {@apilink PseudoUrl} strings matching the URLs to be enqueued.
      *
      * The plain objects must include at least the `purl` property, which holds the pseudo-URL pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@link Request} objects.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
      * With a pseudo-URL string, the matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
@@ -114,7 +114,7 @@ export interface EnqueueLinksByClickingElementsOptions {
     pseudoUrls?: PseudoUrlInput[];
 
     /**
-     * Just before a new {@link Request} is constructed and enqueued to the {@link RequestQueue}, this function can be used
+     * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
      * to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
      * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
      * or to dynamically update or create `userData`.
@@ -167,12 +167,12 @@ export interface EnqueueLinksByClickingElementsOptions {
  * clicks all those elements using a mouse move and a left mouse button click and intercepts
  * all the navigation requests that are subsequently produced by the page. The intercepted
  * requests, including their methods, headers and payloads are then enqueued to a provided
- * {@link RequestQueue}. This is useful to crawl JavaScript heavy pages where links are not available
+ * {@apilink RequestQueue}. This is useful to crawl JavaScript heavy pages where links are not available
  * in `href` elements, but rather navigations are triggered in click handlers.
- * If you're looking to find URLs in `href` attributes of the page, see {@link enqueueLinks}.
+ * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
  *
- * Optionally, the function allows you to filter the target links' URLs using an array of {@link PseudoUrl} objects
- * and override settings of the enqueued {@link Request} objects.
+ * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
+ * and override settings of the enqueued {@apilink Request} objects.
  *
  * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
  * such as changing the Z-index of elements being clicked and their visibility. Therefore,
@@ -201,7 +201,7 @@ export interface EnqueueLinksByClickingElementsOptions {
  * });
  * ```
  *
- * @returns Promise that resolves to {@link BatchAddRequestsResult} object.
+ * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
 export async function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult> {
     ow(options, ow.object.exactShape({

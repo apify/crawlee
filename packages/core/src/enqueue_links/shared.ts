@@ -177,8 +177,8 @@ export function createRequestOptions(
 }
 
 /**
- * Takes an Apify {@link RequestOptions} object and changes its attributes in a desired way. This user-function is used
- * {@link enqueueLinks} to modify requests before enqueuing them.
+ * Takes an Apify {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
+ * {@apilink enqueueLinks} to modify requests before enqueuing them.
  */
 export interface RequestTransform {
     /**

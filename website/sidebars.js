@@ -32,7 +32,7 @@ module.exports = {
             items: [
                 'guides/request-storage',
                 'guides/result-storage',
-                'guides/environment-variables',
+                'guides/configuration',
                 'guides/cheerio-crawler-guide',
                 'guides/javascript-rendering',
                 'guides/proxy-management',

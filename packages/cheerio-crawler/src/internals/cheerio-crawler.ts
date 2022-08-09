@@ -58,23 +58,23 @@ export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpti
  *
  * Since `CheerioCrawler` uses raw HTTP requests to download web pages,
  * it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
- * to display the content, you might need to use {@link PuppeteerCrawler} or {@link PlaywrightCrawler} instead,
+ * to display the content, you might need to use {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead,
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `CheerioCrawler` downloads each URL using a plain HTTP request,
  * parses the HTML content using [Cheerio](https://www.npmjs.com/package/cheerio)
- * and then invokes the user-provided {@link CheerioCrawlerOptions.requestHandler} to extract page data
+ * and then invokes the user-provided {@apilink CheerioCrawlerOptions.requestHandler} to extract page data
  * using a [jQuery](https://jquery.com/)-like interface to the parsed HTML DOM.
  *
- * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link CheerioCrawlerOptions.requestList}
- * or {@link CheerioCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from
+ * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink CheerioCrawlerOptions.requestList}
+ * or {@apilink CheerioCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link CheerioCrawlerOptions.requestList} and {@link CheerioCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
- * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both {@apilink CheerioCrawlerOptions.requestList} and {@apilink CheerioCrawlerOptions.requestQueue} are used,
+ * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
+ * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes when there are no more {@link Request} objects to crawl.
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
  * We can use the `preNavigationHooks` to adjust `gotOptions`:
  *
@@ -89,28 +89,20 @@ export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpti
  * By default, `CheerioCrawler` only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
- * use the {@link CheerioCrawlerOptions.additionalMimeTypes} constructor option.
+ * use the {@apilink CheerioCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
- * For details, see {@link CheerioCrawlerOptions.requestHandler}.
+ * For details, see {@apilink CheerioCrawlerOptions.requestHandler}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
+ * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
  * parameter of the `CheerioCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPool} options are available directly in the `CheerioCrawler` constructor.
+ * {@apilink AutoscaledPool} options are available directly in the `CheerioCrawler` constructor.
  *
  * **Example usage:**
  *
  * ```javascript
- * // Prepare a list of URLs to crawl
- * const requestList = await RequestList.open(null, [
- *     { url: 'http://www.example.com/page-1' },
- *     { url: 'http://www.example.com/page-2' },
- * ]);
- *
- * // Crawl the URLs
  * const crawler = new CheerioCrawler({
- *     requestList,
  *     async requestHandler({ request, response, body, contentType, $ }) {
  *         const data = [];
  *
@@ -128,7 +120,10 @@ export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpti
  *     },
  * });
  *
- * await crawler.run();
+ * await crawler.run([
+ *     'http://www.example.com/page-1',
+ *     'http://www.example.com/page-2',
+ * ]);
  * ```
  * @category Crawlers
  */
@@ -247,9 +242,9 @@ function extractUrlsFromCheerio($: CheerioRoot, selector: string, baseUrl?: stri
 }
 
 /**
- * Creates new {@link Router} instance that works based on request labels.
+ * Creates new {@apilink Router} instance that works based on request labels.
  * This instance can then serve as a `requestHandler` of your {@link CheerioCrawler}.
- * Defaults to the {@link CheerioCrawlingContext}.
+ * Defaults to the {@apilink CheerioCrawlingContext}.
  *
  * > Serves as a shortcut for using `Router.create<CheerioCrawlingContext>()`.
  *

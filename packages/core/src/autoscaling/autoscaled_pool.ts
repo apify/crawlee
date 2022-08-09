@@ -30,7 +30,7 @@ export interface AutoscaledPoolOptions {
      * If it resolves to `true` then the pool's run finishes. Being called only
      * when there are no tasks being processed means that as long as `isTaskReadyFunction()`
      * keeps resolving to `true`, `isFinishedFunction()` will never be called.
-     * To abort a run, use the {@link AutoscaledPool.abort} method.
+     * To abort a run, use the {@apilink AutoscaledPool.abort} method.
      */
     isFinishedFunction?: () => Promise<boolean>;
 
@@ -105,13 +105,13 @@ export interface AutoscaledPoolOptions {
     taskTimeoutSecs?: number;
 
     /**
-     * Options to be passed down to the {@link Snapshotter} constructor. This is useful for fine-tuning
+     * Options to be passed down to the {@apilink Snapshotter} constructor. This is useful for fine-tuning
      * the snapshot intervals and history.
      */
     snapshotterOptions?: SnapshotterOptions;
 
     /**
-     * Options to be passed down to the {@link SystemStatus} constructor. This is useful for fine-tuning
+     * Options to be passed down to the {@apilink SystemStatus} constructor. This is useful for fine-tuning
      * the system status reports. If a custom snapshotter is set in the options, it will be used
      * by the pool.
      */
@@ -131,22 +131,22 @@ export interface AutoscaledPoolOptions {
  * The pool only starts new tasks if there is enough free CPU and memory available
  * and the Javascript event loop is not blocked.
  *
- * The information about the CPU and memory usage is obtained by the {@link Snapshotter} class,
+ * The information about the CPU and memory usage is obtained by the {@apilink Snapshotter} class,
  * which makes regular snapshots of system resources that may be either local
  * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
- * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@link SystemStatus} class.
+ * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@apilink SystemStatus} class.
  *
  * Before running the pool, you need to implement the following three functions:
- * {@link AutoscaledPoolOptions.runTaskFunction},
- * {@link AutoscaledPoolOptions.isTaskReadyFunction} and
- * {@link AutoscaledPoolOptions.isFinishedFunction}.
+ * {@apilink AutoscaledPoolOptions.runTaskFunction},
+ * {@apilink AutoscaledPoolOptions.isTaskReadyFunction} and
+ * {@apilink AutoscaledPoolOptions.isFinishedFunction}.
  *
- * The auto-scaled pool is started by calling the {@link AutoscaledPool.run} function.
- * The pool periodically queries the {@link AutoscaledPoolOptions.isTaskReadyFunction} function
+ * The auto-scaled pool is started by calling the {@apilink AutoscaledPool.run} function.
+ * The pool periodically queries the {@apilink AutoscaledPoolOptions.isTaskReadyFunction} function
  * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the {@link AutoscaledPoolOptions.isFinishedFunction}. If it resolves to `true`, the run finishes after all running tasks complete.
+ * the {@apilink AutoscaledPoolOptions.isFinishedFunction}. If it resolves to `true`, the run finishes after all running tasks complete.
  * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
- * If any of the tasks throws then the {@link AutoscaledPool.run} function rejects the promise with an error.
+ * If any of the tasks throws then the {@apilink AutoscaledPool.run} function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
  * and also in the interval set by the `options.maybeRunIntervalSecs` parameter.
@@ -385,7 +385,7 @@ export class AutoscaledPool {
 
     /**
      * Aborts the run of the auto-scaled pool and destroys it. The promise returned from
-     * the {@link AutoscaledPool.run} function will immediately resolve, no more new tasks
+     * the {@apilink AutoscaledPool.run} function will immediately resolve, no more new tasks
      * will be spawned and all running tasks will be left in their current state.
      *
      * Due to the nature of the tasks, auto-scaled pool cannot reliably guarantee abortion
@@ -404,13 +404,13 @@ export class AutoscaledPool {
 
     /**
      * Prevents the auto-scaled pool from starting new tasks, but allows the running ones to finish
-     * (unlike abort, which terminates them). Used together with {@link AutoscaledPool.resume}
+     * (unlike abort, which terminates them). Used together with {@apilink AutoscaledPool.resume}
      *
      * The function's promise will resolve once all running tasks have completed and the pool
      * is effectively idle. If the `timeoutSecs` argument is provided, the promise will reject
      * with a timeout error after the `timeoutSecs` seconds.
      *
-     * The promise returned from the {@link AutoscaledPool.run} function will not resolve
+     * The promise returned from the {@apilink AutoscaledPool.run} function will not resolve
      * when `.pause()` is invoked (unlike abort, which resolves it).
      */
     async pause(timeoutSecs?: number): Promise<void> {
@@ -439,7 +439,7 @@ export class AutoscaledPool {
 
     /**
      * Resumes the operation of the autoscaled-pool by allowing more tasks to be run.
-     * Used together with {@link AutoscaledPool.pause}
+     * Used together with {@apilink AutoscaledPool.pause}
      *
      * Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
      */

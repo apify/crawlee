@@ -40,7 +40,7 @@ export interface MemoryInfo {
 }
 
 /**
- * Returns memory statistics of the process and the system, see {@link MemoryInfo}.
+ * Returns memory statistics of the process and the system, see {@apilink MemoryInfo}.
  *
  * If the process runs inside of Docker, the `getMemoryInfo` gets container memory limits,
  * otherwise it gets system memory limits.

@@ -1051,9 +1051,11 @@ describe('BasicCrawler', () => {
     });
 
     describe('sendRequest', () => {
+        const html = `<!DOCTYPE html><html><head><title>foobar</title></head><body><p>Hello, world!</p></body></html>`;
+
         const httpServer = http.createServer((request, response) => {
             response.setHeader('content-type', 'text/html');
-            response.end(`<!DOCTYPE html><html><head><title>foobar</title></head><body><p>Hello, world!</p></body></html>`);
+            response.end(html);
         });
 
         let url: string;
@@ -1071,21 +1073,72 @@ describe('BasicCrawler', () => {
         });
 
         test('works', async () => {
-            expect.assertions(2);
+            const responses: { statusCode: number; body: string }[] = [];
 
             const requestList = await RequestList.open(null, [url]);
 
             const crawler = new BasicCrawler({
+                useSessionPool: true,
                 requestList,
                 async requestHandler({ sendRequest }) {
                     const response = await sendRequest();
 
-                    expect(response.statusCode).toBe(200);
-                    expect(response.body.includes('Hello, world!')).toBe(true);
+                    responses.push({
+                        statusCode: response.statusCode,
+                        body: response.body,
+                    });
                 },
             });
 
             await crawler.run();
+
+            expect(responses).toStrictEqual([
+                {
+                    statusCode: 200,
+                    body: html,
+                },
+            ]);
+        });
+
+        test('works without session', async () => {
+            const requestList = await RequestList.open(null, [url]);
+
+            const responses: { statusCode: number; body: string }[] = [];
+
+            const crawler = new BasicCrawler({
+                useSessionPool: false,
+                requestList,
+                async requestHandler({ sendRequest }) {
+                    const response = await sendRequest();
+
+                    responses.push({
+                        statusCode: response.statusCode,
+                        body: response.body,
+                    });
+                },
+            });
+
+            await crawler.run();
+
+            expect(responses).toStrictEqual([
+                {
+                    statusCode: 200,
+                    body: html,
+                },
+            ]);
+        });
+
+        test('proxyUrl TypeScript support', async () => {
+            const crawler = new BasicCrawler({
+                useSessionPool: true,
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({
+                        proxyUrl: 'http://example.com',
+                    });
+                },
+            });
+
+            expect(crawler).toBeTruthy();
         });
     });
 });

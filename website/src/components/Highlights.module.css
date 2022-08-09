@@ -1,11 +1,46 @@
 .features {
     display: flex;
     align-items: center;
-    padding: 4rem 0;
     width: 100%;
+    font-size: 18px;
+    line-height: 32px;
+    color: #41465d;
 }
 
-.featureSvg {
+html[data-theme="dark"] .features {
+    color: #b3b8d2;
+}
+
+.feature svg {
     height: 60px;
     width: 60px;
+}
+
+.features svg path:nth-child(1) {
+    fill: url(#gradient-1) !important;
+}
+
+.features svg path:nth-child(n + 1) {
+    fill: url(#gradient-2) !important;
+}
+
+html[data-theme="dark"] .featureIcon {
+    background: #272c3d;
+}
+
+.featureIcon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    border-radius: 8px;
+    background-color: #f2f3fb;
+    width: 48px;
+    height: 48px;
+}
+
+.features h3 {
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 32px;
 }

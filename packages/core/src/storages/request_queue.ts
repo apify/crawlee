@@ -72,7 +72,7 @@ export function getRequestId(uniqueKey: string) {
 
 /**
  * A helper class that is used to report results from various
- * {@link RequestQueue} functions as well as {@link enqueueLinks}.
+ * {@apilink RequestQueue} functions as well as {@apilink enqueueLinks}.
  */
 export interface QueueOperationInfo {
 
@@ -94,7 +94,7 @@ export interface RequestQueueOperationOptions {
      * If set to `true`:
      *   - while adding the request to the queue: the request will be added to the foremost position in the queue.
      *   - while reclaiming the request: the request will be placed to the beginning of the queue, so that it's returned
-     *   in the next call to {@link RequestQueue.fetchNextRequest}.
+     *   in the next call to {@apilink RequestQueue.fetchNextRequest}.
      * By default, it's put to the end of the queue.
      * @default false
      */
@@ -106,17 +106,17 @@ export interface RequestQueueOperationOptions {
  * where you start with several URLs and then recursively
  * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
  *
- * Each URL is represented using an instance of the {@link Request} class.
- * The queue can only contain unique URLs. More precisely, it can only contain {@link Request} instances
+ * Each URL is represented using an instance of the {@apilink Request} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain {@apilink Request} instances
  * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
  * To add a single URL multiple times to the queue,
- * corresponding {@link Request} objects will need to have different `uniqueKey` properties.
+ * corresponding {@apilink Request} objects will need to have different `uniqueKey` properties.
  *
- * Do not instantiate this class directly, use the {@link RequestQueue.open} function instead.
+ * Do not instantiate this class directly, use the {@apilink RequestQueue.open} function instead.
  *
- * `RequestQueue` is used by {@link BasicCrawler}, {@link CheerioCrawler}, {@link PuppeteerCrawler}
- * and {@link PlaywrightCrawler} as a source of URLs to crawl.
- * Unlike {@link RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
+ * `RequestQueue` is used by {@apilink BasicCrawler}, {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler}
+ * and {@apilink PlaywrightCrawler} as a source of URLs to crawl.
+ * Unlike {@apilink RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
  * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
  *
  * `RequestQueue` stores its data either on local disk or in the Apify Cloud,
@@ -128,7 +128,7 @@ export interface RequestQueueOperationOptions {
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` is not, the data is stored in the
  * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to {@link RequestQueue.open} function,
+ * option to {@apilink RequestQueue.open} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
@@ -219,12 +219,12 @@ export class RequestQueue {
      *
      * If a request with the same `uniqueKey` property is already present in the queue,
      * it will not be updated. You can find out whether this happened from the resulting
-     * {@link QueueOperationInfo} object.
+     * {@apilink QueueOperationInfo} object.
      *
      * To add multiple requests to the queue by extracting links from a webpage,
-     * see the {@link enqueueLinks} helper function.
+     * see the {@apilink enqueueLinks} helper function.
      *
-     * @param requestLike {@link Request} object or vanilla object with request data.
+     * @param requestLike {@apilink Request} object or vanilla object with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
      * @param [options] Request queue operation options.
      */
@@ -280,9 +280,9 @@ export class RequestQueue {
      *
      * If a request that is passed in is already present due to its `uniqueKey` property being the same,
      * it will not be updated. You can find out whether this happened by finding the request in the resulting
-     * {@link BatchAddRequestsResult} object.
+     * {@apilink BatchAddRequestsResult} object.
      *
-     * @param requestsLike {@link Request} objects or vanilla objects with request data.
+     * @param requestsLike {@apilink Request} objects or vanilla objects with request data.
      * Note that the function sets the `uniqueKey` and `id` fields to the passed requests if missing.
      * @param [options] Request queue operation options.
      */
@@ -394,15 +394,15 @@ export class RequestQueue {
      * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
      *
      * Once you successfully finish processing of the request, you need to call
-     * {@link RequestQueue.markRequestHandled}
+     * {@apilink RequestQueue.markRequestHandled}
      * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call {@link RequestQueue.reclaimRequest} instead,
+     * call {@apilink RequestQueue.reclaimRequest} instead,
      * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
      *
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
      * To check whether all requests in queue were finished,
-     * use {@link RequestQueue.isFinished} instead.
+     * use {@apilink RequestQueue.isFinished} instead.
      *
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
@@ -467,7 +467,7 @@ export class RequestQueue {
 
     /**
      * Marks a request that was previously returned by the
-     * {@link RequestQueue.fetchNextRequest}
+     * {@apilink RequestQueue.fetchNextRequest}
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
@@ -503,7 +503,7 @@ export class RequestQueue {
 
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processing later again
-     * by another call to {@link RequestQueue.fetchNextRequest}.
+     * by another call to {@apilink RequestQueue.fetchNextRequest}.
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      */
@@ -548,10 +548,10 @@ export class RequestQueue {
     }
 
     /**
-     * Resolves to `true` if the next call to {@link RequestQueue.fetchNextRequest}
+     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest}
      * would return `null`, otherwise it resolves to `false`.
      * Note that even if the queue is empty, there might be some pending requests currently being processed.
-     * If you need to ensure that there is no activity in the queue, use {@link RequestQueue.isFinished}.
+     * If you need to ensure that there is no activity in the queue, use {@apilink RequestQueue.isFinished}.
      */
     async isEmpty(): Promise<boolean> {
         await this._ensureHeadIsNonEmpty();
@@ -764,14 +764,14 @@ export class RequestQueue {
 
     /**
      * Opens a request queue and returns a promise resolving to an instance
-     * of the {@link RequestQueue} class.
+     * of the {@apilink RequestQueue} class.
      *
-     * {@link RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+     * {@apilink RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
      * The queue is used for deep crawling of websites, where you start with several URLs and then
      * recursively follow links to other pages. The data structure supports both breadth-first
      * and depth-first crawling orders.
      *
-     * For more details and code examples, see the {@link RequestQueue} class.
+     * For more details and code examples, see the {@apilink RequestQueue} class.
      *
      * @param [queueIdOrName]
      *   ID or name of the request queue to be opened. If `null` or `undefined`,

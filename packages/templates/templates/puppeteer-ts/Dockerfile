@@ -1,19 +1,25 @@
-# using multistage build, as we need dev deps to build the TS source code
+# First, specify the base Docker image. You can read more about
+# the available images at https://crawlee.dev/docs/guides/docker-images
+# You can also use any other image from Docker Hub.
 FROM apify/actor-node:16 AS builder
 
-# copy all files, install all dependencies (including dev deps) and build the project
-COPY . ./
-RUN npm install --include=dev \
-    && npm run build
+# Second, copy the TS source files, package.json and package-lock.json since it should be
+# the only files that affects the installation and build in the next step
+COPY package*.json ./
+COPY src ./src
 
-# create final image
+# Install all dependencies (including dev deps) and build the project
+RUN npm install --include=dev && npm run build
+
+# Create final image
 FROM apify/actor-node-puppeteer-chrome:16
-# copy only necessary files
+
+# Copy only necessary files
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/README.md ./
 COPY --from=builder /usr/src/app/dist ./dist
 
-# install only prod deps
+# Install only prod deps
 RUN npm --quiet set progress=false \
     && npm install --only=prod --no-optional \
     && echo "Installed NPM packages:" \
@@ -23,5 +29,5 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-# run compiled code
-CMD npm run start:prod
+# Run compiled code
+CMD ./start_xvfb_and_run_cmd.sh && npm run start:prod

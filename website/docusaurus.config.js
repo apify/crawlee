@@ -1,6 +1,34 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
-const { createHref } = require('./tools/utils/createHref');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
+const pkg = require('../packages/crawlee/package.json');
+
+const [v1, v2] = pkg.version.split('.');
+const version = [v1, v2].join('.');
+
+const packages = [
+    'core',
+    'browser-pool',
+    'basic-crawler',
+    'browser-crawler',
+    'cheerio-crawler',
+    'puppeteer-crawler',
+    'playwright-crawler',
+    'memory-storage',
+    'utils',
+    'types',
+];
+const packagesOrder = [
+    '@crawlee/core',
+    '@crawlee/cheerio',
+    '@crawlee/puppeteer',
+    '@crawlee/playwright',
+    '@crawlee/basic',
+    '@crawlee/browser',
+    '@crawlee/memory-storage',
+    '@crawlee/browser-pool',
+    '@crawlee/utils',
+    '@crawlee/types',
+];
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
@@ -34,7 +62,7 @@ module.exports = {
                     lastVersion: 'current',
                     versions: {
                         current: {
-                            label: '3.0.0',
+                            label: `v${version}`,
                         },
                     },
                     showLastUpdateAuthor: true,
@@ -44,7 +72,7 @@ module.exports = {
                     rehypePlugins: [externalLinkProcessor],
                 },
                 theme: {
-                    customCss: '/src/css/customTheme.css',
+                    customCss: '/src/css/custom.css',
                 },
             }),
         ],
@@ -55,41 +83,11 @@ module.exports = {
             {
                 projectRoot: `${__dirname}/..`,
                 changelogs: true,
-                packages: [
-                    {
-                        path: 'packages/core',
-                    },
-                    {
-                        path: 'packages/browser-pool',
-                    },
-                    {
-                        path: 'packages/basic-crawler',
-                    },
-                    {
-                        path: 'packages/browser-crawler',
-                    },
-                    {
-                        path: 'packages/http-crawler',
-                    },
-                    {
-                        path: 'packages/cheerio-crawler',
-                    },
-                    {
-                        path: 'packages/puppeteer-crawler',
-                    },
-                    {
-                        path: 'packages/playwright-crawler',
-                    },
-                    {
-                        path: 'packages/memory-storage',
-                    },
-                    {
-                        path: 'packages/utils',
-                    },
-                    {
-                        path: 'packages/types',
-                    },
-                ],
+                readmes: true,
+                sortPackages: (a, b) => {
+                    return packagesOrder.indexOf(a.packageName) - packagesOrder.indexOf(b.packageName);
+                },
+                packages: packages.map((name) => ({ path: `packages/${name}` })),
                 typedocOptions: {
                     excludeExternals: false,
                 },
@@ -103,6 +101,10 @@ module.exports = {
                         from: '/docs',
                         to: '/docs/quick-start',
                     },
+                    {
+                        from: '/docs/guides/environment-variables',
+                        to: '/docs/guides/configuration',
+                    },
                     // {
                     //     from: '/docs/next',
                     //     to: '/docs/next/quick-start',
@@ -111,7 +113,7 @@ module.exports = {
             },
         ],
         [
-            require.resolve('docusaurus-gtm-plugin'),
+            'docusaurus-gtm-plugin',
             {
                 id: 'GTM-TKBX678',
             },
@@ -148,7 +150,7 @@ module.exports = {
                 {
                     type: 'docsVersion',
                     to: 'api/core',
-                    label: 'API reference',
+                    label: 'API',
                     position: 'left',
                     activeBaseRegex: 'api/(?!core/changelog)',
                 },
@@ -160,7 +162,7 @@ module.exports = {
                 },
                 {
                     type: 'docsVersionDropdown',
-                    position: 'right',
+                    position: 'left',
                     dropdownItemsAfter: [
                         {
                             href: 'https://sdk.apify.com/docs/guides/getting-started',
@@ -249,27 +251,20 @@ module.exports = {
                     title: 'More',
                     items: [
                         {
-                            html: createHref(
-                                'https://apify.com',
-                                'Apify Platform',
-                            ),
+                            label: 'Apify Platform',
+                            href: 'https://apify.com',
                         },
                         {
-                            html: createHref(
-                                'https://docusaurus.io',
-                                'Docusaurus',
-                            ),
+                            label: 'Docusaurus',
+                            href: 'https://docusaurus.io',
                         },
                         {
-                            html: createHref(
-                                'https://github.com/apify/crawlee',
-                                'GitHub',
-                            ),
+                            label: 'GitHub',
+                            href: 'https://github.com/apify/crawlee',
                         },
                     ],
                 },
             ],
-            copyright: `Copyright © ${new Date().getFullYear()} Apify Technologies s.r.o.`,
             logo: {
                 src: 'img/apify_logo.svg',
                 href: '/',

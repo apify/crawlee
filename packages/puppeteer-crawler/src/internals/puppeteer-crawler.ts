@@ -25,7 +25,7 @@ export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
     { browserPlugins: [PuppeteerPlugin] }
 > {
     /**
-     * Options used by {@link launchPuppeteer} to start new Puppeteer instances.
+     * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
     launchContext?: PuppeteerLaunchContext;
 
@@ -71,27 +71,27 @@ export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
  *
  * Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
  * it is useful for crawling of websites that require to execute JavaScript.
- * If the target website doesn't need JavaScript, consider using {@link CheerioCrawler},
+ * If the target website doesn't need JavaScript, consider using {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link PuppeteerCrawlerOptions.requestList}
- * or {@link PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from
+ * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink PuppeteerCrawlerOptions.requestList}
+ * or {@apilink PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link PuppeteerCrawlerOptions.requestList} and {@link PuppeteerCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
- * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both {@apilink PuppeteerCrawlerOptions.requestList} and {@apilink PuppeteerCrawlerOptions.requestQueue} are used,
+ * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
+ * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes when there are no more {@link Request} objects to crawl.
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@link Request} object to crawl
- * and then calls the function provided by user as the {@link PuppeteerCrawlerOptions.requestHandler} option.
+ * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
+ * and then calls the function provided by user as the {@apilink PuppeteerCrawlerOptions.requestHandler} option.
  *
  * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the {@link PuppeteerCrawlerOptions.autoscaledPoolOptions}
+ * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PuppeteerCrawlerOptions.autoscaledPoolOptions}
  * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ * {@apilink AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
  *
  * Note that the pool of Puppeteer instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -99,7 +99,6 @@ export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
  *
  * ```javascript
  * const crawler = new PuppeteerCrawler({
- *     requestList,
  *     async requestHandler({ page, request }) {
  *         // This function is called to extract data from a single web page
  *         // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
@@ -120,7 +119,10 @@ export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
  *     },
  * });
  *
- * await crawler.run();
+ * await crawler.run([
+ *     'http://www.example.com/page-1',
+ *     'http://www.example.com/page-2',
+ * ]);
  * ```
  * @category Crawlers
  */
@@ -169,9 +171,9 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
 }
 
 /**
- * Creates new {@link Router} instance that works based on request labels.
- * This instance can then serve as a `requestHandler` of your {@link PuppeteerCrawler}.
- * Defaults to the {@link PuppeteerCrawlingContext}.
+ * Creates new {@apilink Router} instance that works based on request labels.
+ * This instance can then serve as a `requestHandler` of your {@apilink PuppeteerCrawler}.
+ * Defaults to the {@apilink PuppeteerCrawlingContext}.
  *
  * > Serves as a shortcut for using `Router.create<PuppeteerCrawlingContext>()`.
  *

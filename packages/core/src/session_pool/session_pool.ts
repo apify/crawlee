@@ -11,7 +11,7 @@ import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 
 /**
- * Factory user-function which creates customized {@link Session} instances.
+ * Factory user-function which creates customized {@apilink Session} instances.
  */
 export interface CreateSession {
     /**
@@ -28,7 +28,7 @@ export interface SessionPoolOptions {
      */
     maxPoolSize?: number;
 
-    /** The configuration options for {@link Session} instances. */
+    /** The configuration options for {@apilink Session} instances. */
     sessionOptions?: SessionOptions;
 
     /** Name or Id of `KeyValueStore` where is the `SessionPool` state stored. */
@@ -60,11 +60,11 @@ export interface SessionPoolOptions {
 
 /**
  * Handles the rotation, creation and persistence of user-like sessions.
- * Creates a pool of {@link Session} instances, that are randomly rotated.
+ * Creates a pool of {@apilink Session} instances, that are randomly rotated.
  * When some session is marked as blocked, it is removed and new one is created instead (the pool never returns an unusable session).
  * Learn more in the [Session management guide](../../../docs/guides/session-management).
  *
- * You can create one by calling the {@link SessionPool.open} function.
+ * You can create one by calling the {@apilink SessionPool.open} function.
  *
  * Session pool is already integrated into crawlers, and it can significantly improve your scraper
  * performance with just 2 lines of code.
@@ -79,10 +79,10 @@ export interface SessionPoolOptions {
  * })
  * ```
  *
- * You can configure the pool with many options. See the {@link SessionPoolOptions}.
- * Session pool is by default persisted in default {@link KeyValueStore}.
+ * You can configure the pool with many options. See the {@apilink SessionPoolOptions}.
+ * Session pool is by default persisted in default {@apilink KeyValueStore}.
  * If you want to have one pool for all runs you have to specify
- * {@link SessionPoolOptions.persistStateKeyValueStoreId}.
+ * {@apilink SessionPoolOptions.persistStateKeyValueStoreId}.
  *
  * **Advanced usage:**
  *
@@ -193,8 +193,8 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Starts periodic state persistence and potentially loads SessionPool state from {@link KeyValueStore}.
-     * It is called automatically by the {@link SessionPool.open} function.
+     * Starts periodic state persistence and potentially loads SessionPool state from {@apilink KeyValueStore}.
+     * It is called automatically by the {@apilink SessionPool.open} function.
      */
     async initialize(): Promise<void> {
         this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, { config: this.config });
@@ -294,7 +294,7 @@ export class SessionPool extends EventEmitter {
     }
 
     /**
-     * Persists the current state of the `SessionPool` into the default {@link KeyValueStore}.
+     * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
      * The state is persisted automatically in regular intervals.
      */
     async persistState(): Promise<void> {
@@ -426,9 +426,9 @@ export class SessionPool extends EventEmitter {
 
     /**
      * Opens a SessionPool and returns a promise resolving to an instance
-     * of the {@link SessionPool} class that is already initialized.
+     * of the {@apilink SessionPool} class that is already initialized.
      *
-     * For more details and code examples, see the {@link SessionPool} class.
+     * For more details and code examples, see the {@apilink SessionPool} class.
      */
     static async open(options?: SessionPoolOptions): Promise<SessionPool> {
         const sessionPool = new SessionPool(options);

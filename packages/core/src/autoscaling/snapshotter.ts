@@ -75,7 +75,7 @@ interface ClientSnapshot { createdAt: Date; isOverloaded: boolean; rateLimitErro
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
  * It tracks the following resources: Memory, EventLoop, API and CPU.
- * The class is used by the {@link AutoscaledPool} class.
+ * The class is used by the {@apilink AutoscaledPool} class.
  *
  * When running on the Apify platform, the CPU and memory statistics are provided by the platform,
  * as collected from the running Docker container. When running locally, `Snapshotter`

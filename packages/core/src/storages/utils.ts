@@ -6,7 +6,7 @@ import { Configuration } from '../configuration';
  * Purging will remove all the files in all storages except for INPUT.json in the default KV store.
  *
  * Purging of storages is happening automatically when we run our crawler (or when we open some storage
- * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@link Configuration}
+ * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@apilink Configuration}
  * option or by setting `CRAWLEE_PURGE_ON_START` environment variable to `0` or `false`.
  *
  * This is a shortcut for running (optional) `purge` method on the StorageClient interface, in other words

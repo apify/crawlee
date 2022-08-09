@@ -44,7 +44,7 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * Options that will be passed down to the automation library. E.g.
      * `puppeteer.launch(launchOptions);`. This is a good place to set
      * options that you want to apply as defaults. To dynamically override
-     * those options per-browser, see the `preLaunchHooks` of {@link BrowserPool}.
+     * those options per-browser, see the `preLaunchHooks` of {@apilink BrowserPool}.
      */
     launchOptions?: LibraryOptions;
     /**
@@ -83,7 +83,7 @@ export interface CreateLaunchContextOptions<
  * The `BrowserPlugin` serves two purposes. First, it is the base class that
  * specialized controllers like `PuppeteerPlugin` or `PlaywrightPlugin` extend.
  * Second, it allows the user to configure the automation libraries and
- * feed them to {@link BrowserPool} for use.
+ * feed them to {@apilink BrowserPool} for use.
  */
 export abstract class BrowserPlugin<
     Library extends CommonLibrary = CommonLibrary,

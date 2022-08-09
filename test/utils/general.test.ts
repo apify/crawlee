@@ -79,10 +79,10 @@ describe('sleep()', () => {
 describe('snakeCaseToCamelCase()', () => {
     test('should camel case all sneaky cases of snake case', () => {
         const tests = {
-            aaa_bbb_: 'aaaBbb',
+            'aaa_bbb_': 'aaaBbb',
             '': '',
-            AaA_bBb_cCc: 'aaaBbbCcc',
-            a_1_b_1a: 'a1B1a',
+            'AaA_bBb_cCc': 'aaaBbbCcc',
+            'a_1_b_1a': 'a1B1a',
         };
 
         Object.entries(tests).forEach(([snakeCase, camelCase]) => {

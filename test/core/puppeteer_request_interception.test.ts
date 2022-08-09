@@ -197,7 +197,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                     // Override headers
                     const headers = {
                         ...request.headers(),
-                        accept: 'text/html',
+                        'accept': 'text/html',
                         'accept-language': 'en-GB',
                         'upgrade-insecure-requests': '2',
                     };

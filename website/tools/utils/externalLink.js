@@ -2,7 +2,7 @@ const { parse } = require('url');
 
 const visit = import('unist-util-visit').then((m) => m.visit);
 
-const internalUrls = ['sdk.apify.com'];
+const internalUrls = ['crawlee.dev'];
 
 /**
  * @param {import('url').UrlWithStringQuery} href

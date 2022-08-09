@@ -167,7 +167,7 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
  * Typically it is used to store crawling results.
  *
  * Do not instantiate this class directly, use the
- * {@link Dataset.open} function instead.
+ * {@apilink Dataset.open} function instead.
  *
  * `Dataset` stores its data either on local disk or in the Apify cloud,
  * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
@@ -184,7 +184,7 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
  * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
  * [Apify Dataset](https://docs.apify.com/storage/dataset)
  * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to {@link Dataset.open} function,
+ * option to {@apilink Dataset.open} function,
  * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
  *
  * **Example usage:**
@@ -268,7 +268,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     * Returns {@link DatasetContent} object holding the items in the dataset based on the provided parameters.
+     * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
      */
     async getData(options: DatasetDataOptions = {}): Promise<PaginatedList<Data>> {
         try {
@@ -412,13 +412,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     * Opens a dataset and returns a promise resolving to an instance of the {@link Dataset} class.
+     * Opens a dataset and returns a promise resolving to an instance of the {@apilink Dataset} class.
      *
      * Datasets are used to store structured data where each object stored has the same attributes,
      * such as online store products or real estate offers.
      * The actual data is stored either on the local filesystem or in the cloud.
      *
-     * For more details and code examples, see the {@link Dataset} class.
+     * For more details and code examples, see the {@apilink Dataset} class.
      *
      * @param [datasetIdOrName]
      *   ID or name of the dataset to be opened. If `null` or `undefined`,
@@ -438,9 +438,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     * Stores an object or an array of objects to the default {@link Dataset} of the current crawler run.
+     * Stores an object or an array of objects to the default {@apilink Dataset} of the current crawler run.
      *
-     * This is just a convenient shortcut for {@link Dataset.pushData}.
+     * This is just a convenient shortcut for {@apilink Dataset.pushData}.
      * For example, calling the following code:
      * ```javascript
      * await Dataset.pushData({ myValue: 123 });
@@ -452,7 +452,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * await dataset.pushData({ myValue: 123 });
      * ```
      *
-     * For more information, see {@link Dataset.open} and {@link Dataset.pushData}
+     * For more information, see {@apilink Dataset.open} and {@apilink Dataset.pushData}
      *
      * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
      * otherwise the crawler process might finish before the data are stored!
@@ -473,8 +473,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 export interface DatasetConsumer<Data> {
 
     /**
-     * @param item Current {@link Dataset} entry being processed.
-     * @param index Position of current {@link Dataset} entry.
+     * @param item Current {@apilink Dataset} entry being processed.
+     * @param index Position of current {@apilink Dataset} entry.
      */
     (item: Data, index: number): Awaitable<void>;
 
@@ -487,8 +487,8 @@ export interface DatasetMapper<Data, R> {
 
     /**
      * User-function used in the `Dataset.map()` API.
-     * @param item Current {@link Dataset} entry being processed.
-     * @param index Position of current {@link Dataset} entry.
+     * @param item Current {@apilink Dataset} entry being processed.
+     * @param index Position of current {@apilink Dataset} entry.
      */
     (item: Data, index: number): Awaitable<R>;
 
@@ -501,8 +501,8 @@ export interface DatasetReducer<T, Data> {
 
     /**
      * @param memo Previous state of the reduction.
-     * @param item Current {@link Dataset} entry being processed.
-     * @param index Position of current {@link Dataset} entry.
+     * @param item Current {@apilink Dataset} entry being processed.
+     * @param index Position of current {@apilink Dataset} entry.
      */
     (memo: T, item: Data, index: number): Awaitable<T>;
 
