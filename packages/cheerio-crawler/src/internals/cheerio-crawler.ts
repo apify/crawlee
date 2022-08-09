@@ -91,7 +91,7 @@ export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpti
  * and skips pages with other content types. If you want the crawler to process other content types,
  * use the {@apilink CheerioCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
- * For details, see {@apilink CheerioCrawlerOptions.requestHandler}.
+ * For more details, see {@apilink CheerioCrawlerOptions.requestHandler}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
