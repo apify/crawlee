@@ -54,6 +54,7 @@
     },
     "dependencies": {
         "@crawlee/http": "^3.0.3",
+        "@crawlee/types": "^3.0.3",
         "cheerio": "1.0.0-rc.12",
         "htmlparser2": "^8.0.1"
     }

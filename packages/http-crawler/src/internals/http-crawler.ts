@@ -1,11 +1,26 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
-import type { AutoscaledPoolOptions, BasicCrawlerOptions, ErrorHandler, RequestHandler } from '@crawlee/basic';
-import { BasicCrawler, BASIC_CRAWLER_TIMEOUT_BUFFER_SECS } from '@crawlee/basic';
-import type { CrawlingContext, ProxyConfiguration, Request, Session } from '@crawlee/core';
-import { CrawlerExtension, mergeCookies, Router, validators, Configuration } from '@crawlee/core';
+import type {
+    AutoscaledPoolOptions,
+    BasicCrawlerOptions,
+    ErrorHandler,
+    RequestHandler,
+    CrawlingContext,
+    ProxyConfiguration,
+    Request,
+    Session,
+} from '@crawlee/basic';
+import {
+    BasicCrawler,
+    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    CrawlerExtension,
+    mergeCookies,
+    Router,
+    validators,
+    Configuration,
+} from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { entries, parseContentTypeFromResponse } from '@crawlee/utils';
+import { parseContentTypeFromResponse } from '@crawlee/utils';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit } from 'got-scraping';
@@ -374,7 +389,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
 
         const extensionOptions = extension.getCrawlerOptions();
 
-        for (const [key, value] of entries(extensionOptions)) {
+        for (const [key, value] of Object.entries(extensionOptions)) {
             const isConfigurable = this.hasOwnProperty(key);
             const originalType = typeof this[key as keyof this];
             const extensionType = typeof value; // What if we want to null something? It is really needed?

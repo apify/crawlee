@@ -10,7 +10,6 @@ import type {
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import type { CheerioRoot } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler } from 'htmlparser2';
@@ -40,7 +39,7 @@ export interface CheerioCrawlingContext<
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      * Cheerio is available only for HTML and XML content types.
      */
-    $: CheerioRoot;
+    $: cheerio.CheerioAPI;
 
     enqueueLinks: (options?: CheerioCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
@@ -183,7 +182,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 
 interface EnqueueLinksInternalOptions {
     options?: CheerioCrawlerEnqueueLinksOptions;
-    $: CheerioRoot | null;
+    $: cheerio.CheerioAPI | null;
     requestQueue: RequestQueue;
     originalRequestUrl: string;
     finalRequestUrl?: string;
@@ -216,7 +215,7 @@ export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, ori
  * Extracts URLs from a given Cheerio object.
  * @ignore
  */
-function extractUrlsFromCheerio($: CheerioRoot, selector: string, baseUrl?: string): string[] {
+function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl?: string): string[] {
     return $(selector)
         .map((_i, el) => $(el).attr('href'))
         .get()
