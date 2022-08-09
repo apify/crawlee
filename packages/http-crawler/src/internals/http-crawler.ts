@@ -38,7 +38,7 @@ export type HttpErrorHandler<
 
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
     /**
-     * An alias for {@link HttpCrawlerOptions.requestHandler}
+     * An alias for {@apilink HttpCrawlerOptions.requestHandler}
      */
     handlePageFunction?: HttpCrawlerOptions<Context>['requestHandler'];
 
@@ -99,7 +99,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      * Sadly, there are some websites which use invalid headers. Those are encoded using the UTF-8 encoding.
      * If those sites actually use a different encoding, the response will be corrupted. You can use
      * `suggestResponseEncoding` to fall back to a certain encoding, if you know that your target website uses it.
-     * To force a certain encoding, disregarding the response headers, use {@link HttpCrawlerOptions.forceResponseEncoding}
+     * To force a certain encoding, disregarding the response headers, use {@apilink HttpCrawlerOptions.forceResponseEncoding}
      * ```
      * // Will fall back to windows-1250 encoding if none found
      * suggestResponseEncoding: 'windows-1250'
@@ -110,7 +110,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     /**
      * By default this crawler will extract correct encoding from the HTTP response headers. Use `forceResponseEncoding`
      * to force a certain encoding, disregarding the response headers.
-     * To only provide a default for missing encodings, use {@link HttpCrawlerOptions.suggestResponseEncoding}
+     * To only provide a default for missing encodings, use {@apilink HttpCrawlerOptions.suggestResponseEncoding}
      * ```
      * // Will force windows-1250 encoding even if headers say otherwise
      * forceResponseEncoding: 'windows-1250'
@@ -184,20 +184,20 @@ export type HttpRequestHandler<
  * or from a dynamic queue of URLs enabling recursive crawling of websites.
  *
  * It is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
- * to display the content, you might need to use {@link PuppeteerCrawler} or {@link PlaywrightCrawler} instead,
+ * to display the content, you might need to use {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead,
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * This crawler downloads each URL using a plain HTTP request and doesn't do any HTML parsing.
  *
- * The source URLs are represented using {@link Request} objects that are fed from
- * {@link RequestList} or {@link RequestQueue} instances provided by the {@link HttpCrawlerOptions.requestList}
- * or {@link HttpCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from
+ * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink HttpCrawlerOptions.requestList}
+ * or {@apilink HttpCrawlerOptions.requestQueue} constructor options, respectively.
  *
- * If both {@link HttpCrawlerOptions.requestList} and {@link HttpCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@link RequestList} and automatically enqueues all of them
- * to {@link RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both {@apilink HttpCrawlerOptions.requestList} and {@apilink HttpCrawlerOptions.requestQueue} are used,
+ * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
+ * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes when there are no more {@link Request} objects to crawl.
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
  * We can use the `preNavigationHooks` to adjust `gotOptions`:
  *
@@ -212,15 +212,15 @@ export type HttpRequestHandler<
  * By default, this crawler only processes web pages with the `text/html`
  * and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header),
  * and skips pages with other content types. If you want the crawler to process other content types,
- * use the {@link HttpCrawlerOptions.additionalMimeTypes} constructor option.
+ * use the {@apilink HttpCrawlerOptions.additionalMimeTypes} constructor option.
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
- * For details, see {@link HttpCrawlerOptions.requestHandler}.
+ * For details, see {@apilink HttpCrawlerOptions.requestHandler}.
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
- * using the functionality provided by the {@link AutoscaledPool} class.
- * All {@link AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
+ * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
  * parameter of the constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@link AutoscaledPool} options are available directly in the constructor.
+ * {@apilink AutoscaledPool} options are available directly in the constructor.
  *
  * **Example usage:**
  *
@@ -249,7 +249,7 @@ export type HttpRequestHandler<
  */
 export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>>> extends BasicCrawler<Context> {
     /**
-     * A reference to the underlying {@link ProxyConfiguration} class that manages the crawler's proxies.
+     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
      */
     proxyConfiguration?: ProxyConfiguration;
@@ -761,9 +761,9 @@ function addResponsePropertiesToStream(stream: GotRequest) {
 }
 
 /**
- * Creates new {@link Router} instance that works based on request labels.
- * This instance can then serve as a `requestHandler` of your {@link HttpCrawler}.
- * Defaults to the {@link HttpCrawlingContext}.
+ * Creates new {@apilink Router} instance that works based on request labels.
+ * This instance can then serve as a `requestHandler` of your {@apilink HttpCrawler}.
+ * Defaults to the {@apilink HttpCrawlingContext}.
  *
  * > Serves as a shortcut for using `Router.create<HttpCrawlingContext>()`.
  *
