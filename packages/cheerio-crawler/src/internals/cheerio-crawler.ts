@@ -4,10 +4,11 @@ import type {
     InternalHttpHook,
     ErrorHandler,
     RequestHandler,
+    EnqueueLinksOptions,
+    RequestQueue,
+    Configuration,
 } from '@crawlee/http';
-import { HttpCrawler } from '@crawlee/http';
-import type { EnqueueLinksOptions, RequestQueue, Configuration } from '@crawlee/core';
-import { enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/core';
+import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
@@ -243,7 +244,7 @@ function extractUrlsFromCheerio($: CheerioRoot, selector: string, baseUrl?: stri
 
 /**
  * Creates new {@apilink Router} instance that works based on request labels.
- * This instance can then serve as a `requestHandler` of your {@link CheerioCrawler}.
+ * This instance can then serve as a `requestHandler` of your {@apilink CheerioCrawler}.
  * Defaults to the {@apilink CheerioCrawlingContext}.
  *
  * > Serves as a shortcut for using `Router.create<CheerioCrawlingContext>()`.

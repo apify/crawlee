@@ -58,6 +58,7 @@
         "@crawlee/basic": "^3.0.3",
         "@types/content-type": "^1.1.5",
         "content-type": "^1.0.4",
+        "got-scraping": "^3.2.9",
         "iconv-lite": "^0.6.3",
         "ow": "^0.28.1"
     }
