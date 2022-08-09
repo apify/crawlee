@@ -69,6 +69,9 @@ module.exports = {
                         path: 'packages/browser-crawler',
                     },
                     {
+                        path: 'packages/http-crawler',
+                    },
+                    {
                         path: 'packages/cheerio-crawler',
                     },
                     {

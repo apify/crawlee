@@ -201,7 +201,7 @@ export type HttpRequestHandler<
  *
  * We can use the `preNavigationHooks` to adjust `gotOptions`:
  *
- * ```
+ * ```javascript
  * preNavigationHooks: [
  *     (crawlingContext, gotOptions) => {
  *         // ...
