@@ -106,7 +106,7 @@ function ActorExample() {
                 <CodeBlock className="language-typescript">
                     {example}
                 </CodeBlock>
-                <p>Execute the following command in the project's folder and watch it recursively crawl Crawlee website with Puppeteer and Chromium.</p>
+                <p>Execute the following command in the project's folder and watch it recursively crawl the Crawlee website with Playwright and Chromium.</p>
                 <CodeBlock className="language-bash">
                     node main.mjs
                 </CodeBlock>
