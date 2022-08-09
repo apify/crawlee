@@ -371,19 +371,22 @@ html .table-of-contents ul {
     border-left: 2px solid #dfe2f5;
 }
 
-/*
 .theme-doc-sidebar-menu > li:first-child::before,
 .theme-doc-sidebar-menu > li:nth-child(5)::before {
     text-transform: uppercase;
+    font-size: 18px;
+    line-height: 28px;
+    color: #6f7490;
+    padding: 20px 12px;
 }
 
 .theme-doc-sidebar-menu > li:first-child::before {
     display: block;
-    content: 'Core features';
+    content: 'Core';
 }
 
 .theme-doc-sidebar-menu > li:nth-child(5)::before {
     display: block;
     content: 'Advanced';
+    padding-top: 60px;
 }
-*/
