@@ -371,8 +371,8 @@ html .table-of-contents ul {
     border-left: 2px solid #dfe2f5;
 }
 
-.theme-doc-sidebar-menu > li:first-child::before,
-.theme-doc-sidebar-menu > li:nth-child(5)::before {
+html.plugin-typedoc-api .theme-doc-sidebar-menu > li:first-child::before,
+html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(5)::before {
     text-transform: uppercase;
     font-size: 18px;
     line-height: 28px;
@@ -380,12 +380,12 @@ html .table-of-contents ul {
     padding: 20px 12px;
 }
 
-.theme-doc-sidebar-menu > li:first-child::before {
+html.plugin-typedoc-api .theme-doc-sidebar-menu > li:first-child::before {
     display: block;
     content: 'Core';
 }
 
-.theme-doc-sidebar-menu > li:nth-child(5)::before {
+html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(5)::before {
     display: block;
     content: 'Advanced';
     padding-top: 60px;
