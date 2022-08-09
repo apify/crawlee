@@ -16,6 +16,7 @@
     line-height: 80px;
     letter-spacing: 0;
     text-align: left;
+    transition: all var(--ifm-transition-fast);
 }
 
 .tagline span {
@@ -104,6 +105,20 @@ html[data-theme='dark'] .heroBanner h2 {
     align-items: center;
     gap: 1rem;
     margin-bottom: 50px;
+}
+
+@media only screen and (min-device-width: 1101px) and (max-device-width: 1440px) {
+    .tagline {
+        font-size: 56px;
+        line-height: 78px;
+    }
+}
+
+@media only screen and (min-device-width: 997px) and (max-device-width: 1100px) {
+    .tagline {
+        font-size: 48px;
+        line-height: 64px;
+    }
 }
 
 @media only screen and (max-device-width: 996px) {
