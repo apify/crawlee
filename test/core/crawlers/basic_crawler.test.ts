@@ -53,8 +53,11 @@ describe('BasicCrawler', () => {
         await localStorageEmulator.init();
     });
 
-    afterAll(async () => {
+    afterEach(async () => {
         await localStorageEmulator.destroy();
+    });
+
+    afterAll(async () => {
         log.setLevel(logLevel);
     });
 

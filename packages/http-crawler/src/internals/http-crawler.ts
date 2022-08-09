@@ -682,14 +682,19 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
      * Checks and extends supported mime types
      */
     protected _extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
-        additionalMimeTypes.forEach((mimeType) => {
+        for (const mimeType of additionalMimeTypes) {
+            if (mimeType === '*/*') {
+                this.supportedMimeTypes.add(mimeType);
+                continue;
+            }
+
             try {
                 const parsedType = contentTypeParser.parse(mimeType);
                 this.supportedMimeTypes.add(parsedType.type);
             } catch (err) {
                 throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
-        });
+        }
     }
 
     /**
@@ -709,7 +714,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             throw new Error(`Resource ${request.url} is not available in the format requested by the Accept header. Skipping resource.`);
         }
 
-        if (!this.supportedMimeTypes.has(type) && statusCode! < 500) {
+        if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && statusCode! < 500) {
             request.noRetry = true;
             throw new Error(`Resource ${request.url} served Content-Type ${type}, `
                 + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);

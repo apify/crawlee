@@ -1,4 +1,4 @@
-import { isDocker, weightedAvg, sleep, snakeCaseToCamelCase, parseContentTypeFromResponse } from '@crawlee/utils';
+import { isDocker, weightedAvg, sleep, snakeCaseToCamelCase } from '@crawlee/utils';
 import type { IncomingMessage } from 'node:http';
 import asyncFs from 'node:fs/promises';
 
@@ -88,40 +88,5 @@ describe('snakeCaseToCamelCase()', () => {
         Object.entries(tests).forEach(([snakeCase, camelCase]) => {
             expect(snakeCaseToCamelCase(snakeCase)).toEqual(camelCase);
         });
-    });
-});
-
-describe('parseContentTypeFromResponse', () => {
-    test('should parse content type from header', () => {
-        const parsed = parseContentTypeFromResponse({ url: 'http://example.com', headers: { 'content-type': 'text/html; charset=utf-8' } } as IncomingMessage);
-        expect(parsed.type).toBe('text/html');
-        expect(parsed.charset).toBe('utf-8');
-    });
-
-    test('should parse content type from file extension', () => {
-        const parsedHtml = parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file.html?someparam=foo', headers: {} } as IncomingMessage);
-        expect(parsedHtml.type).toBe('text/html');
-        expect(parsedHtml.charset).toBe('utf-8');
-
-        const parsedTxt = parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file.txt', headers: {} } as IncomingMessage);
-        expect(parsedTxt.type).toBe('text/plain');
-        expect(parsedTxt.charset).toBe('utf-8');
-    });
-
-    test('should return default content type for bad content type headers', () => {
-        const parsedWithoutCt = parseContentTypeFromResponse({ url: 'http://www.example.com/foo/file', headers: {} } as IncomingMessage);
-        expect(parsedWithoutCt.type).toBe('application/octet-stream');
-        expect(parsedWithoutCt.charset).toBe('utf-8');
-
-        const parsedBadHeader = parseContentTypeFromResponse({
-            url: 'http://www.example.com/foo/file.html',
-            headers: { 'content-type': 'text/html,text/html' },
-        } as IncomingMessage);
-        expect(parsedBadHeader.type).toBe('text/html');
-        expect(parsedBadHeader.charset).toBe('utf-8');
-
-        const parsedReallyBad = parseContentTypeFromResponse({ url: 'http://www.example.com/foo', headers: { 'content-type': 'crazy-stuff' } } as IncomingMessage);
-        expect(parsedReallyBad.type).toBe('application/octet-stream');
-        expect(parsedReallyBad.charset).toBe('utf-8');
     });
 });

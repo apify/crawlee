@@ -73,10 +73,13 @@ describe('PuppeteerCrawler', () => {
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);
     });
 
+    afterEach(async () => {
+        await localStorageEmulator.destroy();
+    });
+
     afterAll(async () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
-        await localStorageEmulator.destroy();
 
         await Promise.all(servers.map((server) => promisify(server.close.bind(server))(true)));
         await promisify(target.close.bind(target))();
