@@ -7,6 +7,7 @@
         "@apify/storage-local": "^2.1.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/http": "file:./packages/http-crawler",
         "@crawlee/cheerio": "file:./packages/cheerio-crawler",
         "@crawlee/core": "file:./packages/core",
         "@crawlee/memory-storage": "file:./packages/memory-storage",

@@ -197,8 +197,11 @@ describe('CheerioCrawler', () => {
     });
 
     afterAll(async () => {
-        log.setLevel(logLevel);
         await localStorageEmulator.destroy();
+    });
+
+    afterAll(async () => {
+        log.setLevel(logLevel);
         server.close();
     });
 

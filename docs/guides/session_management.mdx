@@ -11,6 +11,7 @@ import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
 import BasicSource from '!!raw-loader!./session_management_basic.ts';
+import HttpSource from '!!raw-loader!./session_management_http.ts';
 import CheerioSource from '!!raw-loader!./session_management_cheerio.ts';
 import PlaywrightSource from '!!raw-loader!./session_management_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./session_management_puppeteer.ts';
@@ -27,15 +28,21 @@ which should prevent burning out a small pool of available IPs.
 
 Now let's take a look at the examples of how to use Session pool:
 - with <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>;
+- with <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>;
 - with <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>;
 - with <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>;
 - with <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>;
 - without a crawler (standalone usage to manage sessions manually).
 
 <Tabs groupId="session_pool">
-    <TabItem value="basic" label="BasicCrawler" default>
+    <TabItem value="basic" label="BasicCrawler">
         <CodeBlock language="js">
             {BasicSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="http" label="HttpCrawler">
+        <CodeBlock language="js">
+            {HttpSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="cheerio" label="CheerioCrawler" default>

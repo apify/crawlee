@@ -55,14 +55,17 @@ describe('BrowserCrawler', () => {
         puppeteerPlugin = new PuppeteerPlugin(puppeteer);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         puppeteerPlugin = null;
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
     });
 
     afterAll(async () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
-        await localStorageEmulator.destroy();
     });
 
     test('should work', async () => {

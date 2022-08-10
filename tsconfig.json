@@ -6,6 +6,7 @@
             "crawlee": ["packages/crawlee/src"],
             "@crawlee/basic": ["packages/basic-crawler/src"],
             "@crawlee/browser": ["packages/browser-crawler/src"],
+            "@crawlee/http": ["packages/http-crawler/src"],
             "@crawlee/cheerio": ["packages/cheerio-crawler/src"],
             "@crawlee/playwright": ["packages/playwright-crawler/src"],
             "@crawlee/puppeteer": ["packages/puppeteer-crawler/src"],

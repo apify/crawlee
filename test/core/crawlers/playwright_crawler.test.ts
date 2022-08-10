@@ -53,9 +53,12 @@ describe('PlaywrightCrawler', () => {
     });
 
     afterAll(async () => {
+        await localStorageEmulator.destroy();
+    });
+
+    afterAll(async () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
-        await localStorageEmulator.destroy();
     });
     afterAll(async () => {
         server.close();
