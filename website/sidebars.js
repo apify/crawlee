@@ -39,6 +39,7 @@ module.exports = {
                 'guides/session-management',
                 'guides/scaling-crawlers',
                 'guides/avoid-blocking',
+                'guides/dom-crawler-guide',
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',

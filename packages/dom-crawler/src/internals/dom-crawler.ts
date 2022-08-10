@@ -176,7 +176,7 @@ export async function domCrawlerEnqueueLinks({ options, window, requestQueue, or
 function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: string): string[] {
     return Array.from(window.document.querySelectorAll(selector))
         .map((e: any) => e.href)
-        .filter((href) => href !== undefined)
+        .filter((href) => href !== undefined && href !== '')
         .map((href: string | undefined) => {
             if (href === undefined) {
                 return undefined;
@@ -188,7 +188,7 @@ function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: str
                 return undefined;
             }
         })
-        .filter((href) => href !== undefined) as string[];
+        .filter((href) => href !== undefined && href !== '') as string[];
 }
 
 /**
