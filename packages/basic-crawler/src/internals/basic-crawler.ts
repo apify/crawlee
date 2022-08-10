@@ -1020,7 +1020,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         Object.defineProperty(context, 'error', {
             get: () => {
                 // eslint-disable-next-line max-len
-                this.log.deprecated("The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'failedRequestHandler' or 'errorHandler'. Please update your code, as this property will be removed in a future version.");
+                this.log.deprecated("The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.");
 
                 return error;
             },
