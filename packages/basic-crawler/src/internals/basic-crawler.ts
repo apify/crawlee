@@ -1,6 +1,6 @@
 import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AutoscaledPoolOptions,
@@ -33,7 +33,7 @@ import {
     Statistics,
     purgeDefaultStorages,
     validators,
-    RetryRequest,
+    RetryRequestError,
 } from '@crawlee/core';
 import type { GotOptionsInit, OptionsOfTextResponseBody, Response as GotResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
@@ -953,10 +953,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             throw error;
         }
 
-        const isUserRequestedRetry = error instanceof RetryRequest;
-
-        const shouldRetryRequest = isUserRequestedRetry
-            || (!request.noRetry && request.retryCount < this.maxRequestRetries && !(error instanceof NonRetryableError));
+        const shouldRetryRequest = this._canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
             request.retryCount++;
@@ -965,18 +962,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             const { url, retryCount, id } = request;
 
-            if (isUserRequestedRetry) {
-                // Let the user know the request they want retried was rescheduled, while respecting the maximum retry count
-                this.log.info("Rescheduled request for a retry at the user's request", { id, url, retryCount });
-            } else {
-                // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
-                // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
-                const message = process.env.CRAWLEE_VERBOSE_LOG ? (error as any).stack ?? (error as any).message ?? error : error;
-                this.log.warning(
-                    `Reclaiming failed request back to the list or queue. ${message}`,
-                    { id, url, retryCount },
-                );
-            }
+            // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
+            // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
+            const message = this._getMessageFromError(error);
+            this.log.warning(
+                `Reclaiming failed request back to the list or queue. ${message}`,
+                { id, url, retryCount },
+            );
 
             await source.reclaimRequest(request);
         } else {
@@ -1000,11 +992,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected async _handleFailedRequestHandler(crawlingContext: Context, error: unknown): Promise<void> {
+    protected async _handleFailedRequestHandler(crawlingContext: Context, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
-        const message = error instanceof TimeoutError && !process.env.CRAWLEE_VERBOSE_LOG
-            ? error.message : (error as any).stack ?? (error as any).message ?? error;
+        const message = this._getMessageFromError(error);
 
         this.log.error(
             `Request failed and reached maximum retries. ${message}`,
@@ -1016,7 +1007,31 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
     }
 
-    protected _augmentContextWithDeprecatedError(context: Context, error: unknown) {
+    /**
+     * Resolves the most verbose error message from a thrown error
+     * @param error The error received
+     * @returns The message to be logged
+     */
+    protected _getMessageFromError(error: Error) {
+        return process.env.CRAWLEE_VERBOSE_LOG ? error.stack ?? error.message ?? error : error;
+    }
+
+    protected _canRequestBeRetried(request: Request, error: Error) {
+        // User requested retry (we ignore retry count here as its explicitly told by the user to retry)
+        if (error instanceof RetryRequestError) {
+            return true;
+        }
+
+        // Request should never be retried, or the error encountered makes it not able to be retried
+        if (request.noRetry || (error instanceof NonRetryableError)) {
+            return false;
+        }
+
+        // Ensure there are more retries available for the request
+        return request.retryCount < this.maxRequestRetries;
+    }
+
+    protected _augmentContextWithDeprecatedError(context: Context, error: Error) {
         Object.defineProperty(context, 'error', {
             get: () => {
                 // eslint-disable-next-line max-len
