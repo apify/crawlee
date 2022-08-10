@@ -29,7 +29,7 @@ import { extname } from 'path';
 import type { IncomingHttpHeaders, IncomingMessage } from 'http';
 import iconv from 'iconv-lite';
 import ow from 'ow';
-import util from 'util';
+import util from 'node:util';
 
 /**
  * Default mime types, which HttpScraper supports.
