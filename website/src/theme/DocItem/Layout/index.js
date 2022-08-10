@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { useWindowSize } from '@docusaurus/theme-common';
+import { useWindowSize, useColorMode } from '@docusaurus/theme-common';
 import { useDoc } from '@docusaurus/theme-common/internal';
 import DocItemPaginator from '@theme/DocItem/Paginator';
 import DocVersionBanner from '@theme/DocVersionBanner';
@@ -37,6 +37,7 @@ function useDocTOC() {
 
 export default function DocItemLayout({ children }) {
     const docTOC = useDocTOC();
+    const { colorMode } = useColorMode();
     return (
         <div className="row">
             <div className={clsx('col', !docTOC.hidden && styles.docItemCol)}>
@@ -61,7 +62,7 @@ export default function DocItemLayout({ children }) {
                         reactionsEnabled="1"
                         emitMetadata="0"
                         inputPosition="top"
-                        theme="preferred_color_scheme"
+                        theme={colorMode}
                         lang="en"
                         strict="0"
                     />
