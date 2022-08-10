@@ -53,7 +53,7 @@ import { HttpCrawler, Dataset } from 'crawlee';
 import { JSDOM } from 'jsdom';
 
 const crawler = new HttpCrawler({
-    requestHandler: async ({ body }) => {
+    async requestHandler({ body }) {
         const { window } = new JSDOM(body);
         const textContent = window.document.querySelector('h2')?.textContent;
 
