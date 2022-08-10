@@ -2,6 +2,8 @@ import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { jsonStringifyExtended } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
+import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { Configuration } from '../configuration';
 import type { Awaitable } from '../typedefs';
 import type { StorageManagerOptions } from './storage_manager';
@@ -426,24 +428,14 @@ export class KeyValueStore {
 
     /**
      * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
-     *
-     * This is just a convenient shortcut for [`keyValueStore.getValue('INPUT')`](core/class/KeyValueStore#getValue).
-     * For example, calling the following code:
-     * ```javascript
-     * const input = await KeyValueStore.getInput();
-     * ```
-     *
-     * is equivalent to:
-     * ```javascript
-     * const store = await KeyValueStore.open();
-     * await store.getValue('INPUT');
-     * ```
+     * By default, it will try to find root input files (either extension-less, `.json` or `.txt`),
+     * or alternatively read the input from the default {@apilink KeyValueStore}.
      *
      * Note that the `getInput()` function does not cache the value read from the key-value store.
      * If you need to use the input multiple times in your crawler,
      * it is far more efficient to read it once and store it locally.
      *
-     * For more information, see  {@apilink KeyValueStore.open}
+     * For more information, see {@apilink KeyValueStore.open}
      * and {@apilink KeyValueStore.getValue}.
      *
      * @returns
@@ -455,7 +447,32 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        return store.getValue<T>(store.config.get('inputKey'));
+        const inputKey = store.config.get('inputKey')!;
+
+        const cwd = process.cwd();
+        const possibleExtensions = ['', '.json', '.txt'];
+
+        // Attempt to read input from root file instead of key-value store
+        for (const extension of possibleExtensions) {
+            const inputFile = join(cwd, `${inputKey}${extension}`);
+            let input: Buffer;
+
+            // Try getting the file from the file system
+            try {
+                input = await readFile(inputFile);
+            } catch {
+                continue;
+            }
+
+            // Attempt to parse as JSON, or return the input as is otherwise
+            try {
+                return JSON.parse(input.toString()) as T;
+            } catch {
+                return input as unknown as T;
+            }
+        }
+
+        return store.getValue<T>(inputKey);
     }
 }
 
