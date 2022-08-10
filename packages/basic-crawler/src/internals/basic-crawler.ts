@@ -63,7 +63,7 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context) => Awaitable<void>;
 
-export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: unknown) => Awaitable<void>;
+export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -876,7 +876,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         } catch (err) {
             try {
                 await addTimeoutToPromise(
-                    () => this._requestFunctionErrorHandler(err, crawlingContext, source),
+                    () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
                 );
@@ -942,7 +942,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Handles errors thrown by user provided requestHandler()
      */
     protected async _requestFunctionErrorHandler(
-        error: unknown,
+        error: Error,
         crawlingContext: Context,
         source: RequestList | RequestQueue,
     ): Promise<void> {
