@@ -11,15 +11,18 @@ import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
 import HttpSource from '!!raw-loader!./proxy_management_integration_http.ts';
+import DOMSource from '!!raw-loader!./proxy_management_integration_dom.ts';
 import CheerioSource from '!!raw-loader!./proxy_management_integration_cheerio.ts';
 import PlaywrightSource from '!!raw-loader!./proxy_management_integration_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./proxy_management_integration_puppeteer.ts';
 import SessionStandaloneSource from '!!raw-loader!./proxy_management_session_standalone.ts';
 import SessionHttpSource from '!!raw-loader!./proxy_management_session_http.ts';
+import SessionDOMSource from '!!raw-loader!./proxy_management_session_dom.ts';
 import SessionCheerioSource from '!!raw-loader!./proxy_management_session_cheerio.ts';
 import SessionPlaywrightSource from '!!raw-loader!./proxy_management_session_playwright.ts';
 import SessionPuppeteerSource from '!!raw-loader!./proxy_management_session_puppeteer.ts';
 import InspectionHttpSource from '!!raw-loader!./proxy_management_inspection_http.ts';
+import InspectionDOMSource from '!!raw-loader!./proxy_management_inspection_dom.ts';
 import InspectionCheerioSource from '!!raw-loader!./proxy_management_inspection_cheerio.ts';
 import InspectionPlaywrightSource from '!!raw-loader!./proxy_management_inspection_playwright.ts';
 import InspectionPuppeteerSource from '!!raw-loader!./proxy_management_inspection_puppeteer.ts';
@@ -58,7 +61,7 @@ All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguratio
 
 ### Crawler integration
 
-`ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
+`ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="dom-crawler/class/DOMCrawler">`DOMCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
@@ -69,6 +72,11 @@ All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguratio
     <TabItem value="cheerio" label="CheerioCrawler" default>
         <CodeBlock language="js">
             {CheerioSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="dom" label="DOMCrawler">
+        <CodeBlock language="js">
+            {DOMSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
@@ -102,6 +110,11 @@ When no `sessionId` is provided, our proxy URLs are rotated round-robin.
             {SessionCheerioSource}
         </CodeBlock>
     </TabItem>
+    <TabItem value="dom" label="DOMCrawler">
+        <CodeBlock language="js">
+            {SessionDOMSource}
+        </CodeBlock>
+    </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
         <CodeBlock language="js">
             {SessionPlaywrightSource}
@@ -121,7 +134,7 @@ When no `sessionId` is provided, our proxy URLs are rotated round-robin.
 
 ## Inspecting current proxy in Crawlers
 
-`HttpCrawler`, `CheerioCrawler`, `PlaywrightCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
+`HttpCrawler`, `CheerioCrawler`, `DOMCrawler`, `PlaywrightCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
 in their `requestHandler` using a <ApiLink to="core/interface/ProxyInfo">`proxyInfo`</ApiLink> object.
 With the `proxyInfo` object, we can easily access the proxy URL.
 
@@ -134,6 +147,11 @@ With the `proxyInfo` object, we can easily access the proxy URL.
     <TabItem value="cheerio" label="CheerioCrawler" default>
         <CodeBlock language="js">
             {InspectionCheerioSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="dom" label="DOMCrawler">
+        <CodeBlock language="js">
+            {InspectionDOMSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
