@@ -31,6 +31,7 @@
         "@docusaurus/core": "2.0.1",
         "@docusaurus/plugin-client-redirects": "2.0.1",
         "@docusaurus/preset-classic": "2.0.1",
+        "@giscus/react": "^2.2.0",
         "clsx": "^1.1.1",
         "docusaurus-gtm-plugin": "^0.0.2",
         "docusaurus-plugin-typedoc-api": "2.3.0",
