@@ -995,7 +995,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _handleFailedRequestHandler(crawlingContext: Context, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
-        const message = this._getMessageFromError(error);
+        const message = this._getMessageFromError(error, true);
 
         this.log.error(
             `Request failed and reached maximum retries. ${message}`,
@@ -1012,8 +1012,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @param error The error received
      * @returns The message to be logged
      */
-    protected _getMessageFromError(error: Error) {
-        return process.env.CRAWLEE_VERBOSE_LOG ? error.stack ?? error.message ?? error : error;
+    protected _getMessageFromError(error: Error, forceStack = false) {
+        return process.env.CRAWLEE_VERBOSE_LOG || forceStack ? error.stack ?? error.message ?? error : error;
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
