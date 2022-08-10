@@ -11,7 +11,7 @@ import ApiLink from '@site/src/components/ApiLink';
 
 ## How the crawler works
 
-&#8203;<ApiLink to="dom-crawler/class/DOMCrawler">`DOMCrawler`</ApiLink> crawls by making plain HTTP requests to the provided URLs using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client. The URLs are fed to the crawler using <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. The HTTP responses it gets back are usually HTML pages. The same pages you would get in your browser when you first load a URL. But it can handle any content types with the help of the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#additionalMimeTypes">`additionalMimeTypes`</ApiLink> option.
+&#8203;<ApiLink to="dom-crawler/class/DOMCrawler">`DOMCrawler`</ApiLink> crawls by making plain HTTP requests to the provided URLs using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client. The URLs are fed to the crawler using <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. The HTTP responses it gets back are usually HTML pages. The same pages you would get in your browser when you first load a URL. But it can handle any content types with the help of the <ApiLink to="dom-crawler/interface/DOMCrawlerOptions#additionalMimeTypes">`additionalMimeTypes`</ApiLink> option.
 
 :::info
 
@@ -21,7 +21,7 @@ Modern web pages often do not serve all of their content in the first HTML respo
 
 Once the page's HTML is retrieved, the crawler will pass it to [JSDOM](https://www.npmjs.com/package/jsdom) for parsing. The result is a `window` property, which should be familiar to frontend developers. You can use the Window API to do all sorts of lookups and manipulation of the page's HTML, but in scraping, you will mostly use it to find specific HTML elements and extract their data.
 
-Example use of Cheerio and its `$` function in comparison to browser JavaScript:
+Example use of browser JavaScript:
 
 ```ts
 // Return the page title

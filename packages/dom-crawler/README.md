@@ -4,7 +4,7 @@ Provides a framework for the parallel crawling of web pages using plain HTTP req
 
 Since `DOMCrawler` uses raw HTTP requests to download web pages, it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript to display the content, you might need to use [PuppeteerCrawler](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler) or [PlaywrightCrawler](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler) instead, because it loads the pages using full-featured headless Chrome browser.
 
-`DOMCrawler` downloads each URL using a plain HTTP request, parses the HTML content using [JSDOM](https://www.npmjs.com/package/jsdom) and then invokes the user-provided {@apilink DOMCrawlerOptions.requestHandler} to extract page data using the `window` object.
+`DOMCrawler` downloads each URL using a plain HTTP request, parses the HTML content using [JSDOM](https://www.npmjs.com/package/jsdom) and then invokes the user-provided [DOMCrawlerOptions.requestHandler](https://crawlee.dev/api/dom-crawler/interface/DOMCrawlerOptions#requestHandler) to extract page data using the `window` object.
 
 The source URLs are represented using [Request](https://crawlee.dev/api/core/class/Request) objects that are fed from [RequestList](https://crawlee.dev/api/core/class/RequestList) or [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) instances provided by the [DOMCrawlerOptions.requestList](https://crawlee.dev/api/dom-crawler/interface/DOMCrawlerOptions#requestList) or [DOMCrawlerOptions.requestQueue](https://crawlee.dev/api/dom-crawler/interface/DOMCrawlerOptions#requestQueue) constructor options, respectively.
 
