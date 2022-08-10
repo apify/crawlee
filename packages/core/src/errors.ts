@@ -17,7 +17,7 @@ export class MissingRouteError extends CriticalError {}
  * Indicates that the request should be retried (while still respecting the maximum number of retries).
  */
 export class RetryRequestError extends Error {
-    public constructor(message?: string) {
+   constructor(message?: string) {
         super(message ?? "Request is being retried at the user's request");
     }
 }
