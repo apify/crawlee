@@ -50,23 +50,22 @@ export default function DocItemLayout({ children }) {
                         <DocItemFooter/>
                     </article>
                     <DocItemPaginator/>
-                </div>
 
-                <Giscus
-                    id="comments"
-                    repo="apify/crawlee"
-                    repoId="MDEwOlJlcG9zaXRvcnk2NjY3MDgxOQ="
-                    category="Comments"
-                    categoryId="DIC_kwDOA_lQ484CQufN"
-                    mapping="title"
-                    reactionsEnabled="1"
-                    emitMetadata="0"
-                    inputPosition="top"
-                    theme="preferred_color_scheme"
-                    lang="en"
-                    strict="0"
-                    loading="lazy"
-                />
+                    <Giscus
+                        id="giscus-comments"
+                        repo="apify/crawlee"
+                        repoId="MDEwOlJlcG9zaXRvcnk2NjY3MDgxOQ="
+                        category="Comments"
+                        categoryId="DIC_kwDOA_lQ484CQufN"
+                        mapping="pathname"
+                        reactionsEnabled="1"
+                        emitMetadata="0"
+                        inputPosition="top"
+                        theme="preferred_color_scheme"
+                        lang="en"
+                        strict="0"
+                    />
+                </div>
             </div>
 
             {docTOC.desktop && <div className="col col--3">{docTOC.desktop}</div>}

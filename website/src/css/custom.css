@@ -390,3 +390,8 @@ html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(5)::before {
     content: 'Advanced';
     padding-top: 60px;
 }
+
+#giscus-comments {
+    display: block;
+    margin-top: 50px;
+}
