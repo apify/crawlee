@@ -26,7 +26,7 @@ import mime from 'mime-types';
 import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
 import { extname } from 'path';
-import type { IncomingHttpHeaders, IncomingMessage } from 'http';
+import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import iconv from 'iconv-lite';
 import ow from 'ow';
 import util from 'node:util';
