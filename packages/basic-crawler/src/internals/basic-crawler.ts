@@ -1,6 +1,6 @@
 import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AutoscaledPoolOptions,
@@ -1013,7 +1013,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @returns The message to be logged
      */
     protected _getMessageFromError(error: Error, forceStack = false) {
-        return process.env.CRAWLEE_VERBOSE_LOG || forceStack ? error.stack ?? error.message ?? error : error;
+        // For timeout errors we want to show the stack just in case the env variable is set
+        if (error instanceof TimeoutError) {
+            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error;
+        }
+
+        return process.env.CRAWLEE_VERBOSE_LOG || forceStack ? error.stack ?? (error.message || error) : error.message || error;
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {

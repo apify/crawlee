@@ -1203,7 +1203,7 @@ describe('CheerioCrawler', () => {
                 expect(typeof crawlingContext.response).toBe('object');
                 expect(typeof crawlingContext.contentType).toBe('object');
 
-                expect(crawlingContext.error).toBeUndefined();
+                expect(crawlingContext.error).toBeInstanceOf(Error);
                 expect(error).toBeInstanceOf(Error);
                 expect(error.message).toEqual('some error');
             };
