@@ -214,6 +214,13 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     maxRequestsPerMinute?: number;
 
     /**
+     * Allows to keep the crawler alive even if the {@apilink RequestQueue} gets empty.
+     * By default, the `crawler.run()` will resolve once the queue is empty. With `keepAlive: true` it will keep running,
+     * waiting for more requests to come. Use `crawler.teardown()` to exit the crawler.
+     */
+    keepAlive?: boolean;
+
+    /**
      * Basic crawler will initialize the {@apilink SessionPool} with the corresponding {@apilink SessionPoolOptions|`sessionPoolOptions`}.
      * The session instance will be than available in the {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      */
@@ -375,6 +382,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         minConcurrency: ow.optional.number,
         maxConcurrency: ow.optional.number,
         maxRequestsPerMinute: ow.optional.number.integerOrInfinite.positive.greaterThanOrEqual(1),
+        keepAlive: ow.optional.boolean,
 
         // internal
         log: ow.optional.object,
@@ -392,6 +400,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             maxRequestRetries = 3,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
+            keepAlive,
             sessionPoolOptions = {},
             useSessionPool = true,
 
@@ -494,7 +503,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
 
-        const { isFinishedFunction } = autoscaledPoolOptions;
+        let { isFinishedFunction } = autoscaledPoolOptions;
+
+        // override even if `isFinishedFunction` provided by user - `keepAlive` has higher priority
+        if (keepAlive) {
+            isFinishedFunction = async () => false;
+        }
 
         const basicCrawlerAutoscaledPoolConfiguration: Partial<AutoscaledPoolOptions> = {
             minConcurrency,
@@ -1043,6 +1057,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this._closeEvents) {
             await this.events.close();
         }
+
+        await this.autoscaledPool?.abort();
     }
 
     protected _handlePropertyNameChange<New, Old>({
