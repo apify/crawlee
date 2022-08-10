@@ -13,7 +13,7 @@ const crawler = new HttpCrawler({
     // and set the cookie header to request automatically (default is true).
     persistCookiesPerSession: true,
     async requestHandler({ session, body }) {
-        const title = body.match(/<title>(.*?)<\/title>/)?.[1];
+        const title = body.match(/<title(?:.*?)>(.*?)<\/title>/)?.[1];
 
         if (title === 'Blocked') {
             session.retire();
