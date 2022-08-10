@@ -99,7 +99,7 @@ export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpt
  *     async requestHandler({ request, window }) {
  *         await Dataset.pushData({
  *             url: request.url,
- *             title: window.title,
+ *             title: window.document.title,
  *         });
  *     },
  * });
@@ -126,7 +126,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
                     options: enqueueOptions,
-                    window,
+                    window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
