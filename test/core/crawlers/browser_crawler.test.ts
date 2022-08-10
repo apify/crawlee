@@ -56,9 +56,11 @@ describe('BrowserCrawler', () => {
     });
 
     afterEach(async () => {
-        await localStorageEmulator.destroy();
-
         puppeteerPlugin = null;
+    });
+
+    afterAll(async () => {
+        await localStorageEmulator.destroy();
     });
 
     afterAll(async () => {

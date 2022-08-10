@@ -27,13 +27,8 @@ New requests are only dispatched when there is enough free CPU and memory availa
 ## Example usage
 
 ```javascript
-// Prepare a list of URLs to crawl
-const requestList = await RequestList.open(null, [
-    { url: 'http://www.example.com/page-1' },
-    { url: 'http://www.example.com/page-2' },
-]);
+import { HttpCrawler, Dataset } from '@crawlee/http';
 
-// Crawl the URLs
 const crawler = new HttpCrawler({
     requestList,
     async requestHandler({ request, response, body, contentType }) {
@@ -44,5 +39,9 @@ const crawler = new HttpCrawler({
         });
     },
 });
-await crawler.run();
+
+await crawler.run([
+    'http://www.example.com/page-1',
+    'http://www.example.com/page-2',
+]);
 ```

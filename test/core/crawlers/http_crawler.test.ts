@@ -1,6 +1,6 @@
 import { HttpCrawler } from '@crawlee/http';
-import type { AddressInfo } from 'net';
-import http from 'http';
+import type { AddressInfo } from 'node:net';
+import http from 'node:http';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 const router = new Map<string, http.RequestListener>();
@@ -51,7 +51,7 @@ beforeEach(async () => {
     await localStorageEmulator.init();
 });
 
-afterEach(async () => {
+afterAll(async () => {
     await localStorageEmulator.destroy();
 });
 
@@ -71,7 +71,7 @@ test('works', async () => {
 });
 
 test('should parse content type from header', async () => {
-    const results: {type: string; encoding: BufferEncoding}[] = [];
+    const results: { type: string; encoding: BufferEncoding }[] = [];
 
     const crawler = new HttpCrawler({
         maxRequestRetries: 0,
@@ -91,7 +91,7 @@ test('should parse content type from header', async () => {
 });
 
 test('should parse content type from file extension', async () => {
-    const results: {type: string; encoding: BufferEncoding}[] = [];
+    const results: { type: string; encoding: BufferEncoding }[] = [];
 
     const crawler = new HttpCrawler({
         maxRequestRetries: 0,
@@ -111,7 +111,7 @@ test('should parse content type from file extension', async () => {
 });
 
 test('no content type defaults to octet-stream', async () => {
-    const results: {type: string; encoding: BufferEncoding}[] = [];
+    const results: { type: string; encoding: BufferEncoding }[] = [];
 
     const crawler = new HttpCrawler({
         maxRequestRetries: 0,
@@ -132,7 +132,7 @@ test('no content type defaults to octet-stream', async () => {
 });
 
 test('invalid content type defaults to octet-stream', async () => {
-    const results: {type: string; encoding: BufferEncoding}[] = [];
+    const results: { type: string; encoding: BufferEncoding }[] = [];
 
     const crawler = new HttpCrawler({
         maxRequestRetries: 0,

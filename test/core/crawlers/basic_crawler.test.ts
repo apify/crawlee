@@ -53,7 +53,7 @@ describe('BasicCrawler', () => {
         await localStorageEmulator.init();
     });
 
-    afterEach(async () => {
+    afterAll(async () => {
         await localStorageEmulator.destroy();
     });
 

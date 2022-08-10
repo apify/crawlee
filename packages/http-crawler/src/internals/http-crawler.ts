@@ -55,6 +55,8 @@ export type HttpErrorHandler<
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
     /**
      * An alias for {@apilink HttpCrawlerOptions.requestHandler}
+     * Soon to be removed, use `requestHandler` instead.
+     * @deprecated
      */
     handlePageFunction?: HttpCrawlerOptions<Context>['requestHandler'];
 
@@ -241,13 +243,8 @@ export type HttpRequestHandler<
  * **Example usage:**
  *
  * ```javascript
- * // Prepare a list of URLs to crawl
- * const requestList = await RequestList.open(null, [
- *     { url: 'http://www.example.com/page-1' },
- *     { url: 'http://www.example.com/page-2' },
- * ]);
+ * import { HttpCrawler, Dataset } from '@crawlee/http';
  *
- * // Crawl the URLs
  * const crawler = new HttpCrawler({
  *     requestList,
  *     async requestHandler({ request, response, body, contentType }) {
@@ -259,7 +256,10 @@ export type HttpRequestHandler<
  *     },
  * });
  *
- * await crawler.run();
+ * await crawler.run([
+ *     'http://www.example.com/page-1',
+ *     'http://www.example.com/page-2',
+ * ]);
  * ```
  * @category Crawlers
  */
@@ -386,7 +386,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
     use(extension: CrawlerExtension) {
         ow(extension, ow.object.instanceOf(CrawlerExtension));
 
-        const clazz = this.constructor.name;
+        const className = this.constructor.name;
 
         const extensionOptions = extension.getCrawlerOptions();
 
@@ -398,16 +398,16 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             const exists = this[key as keyof this] != null;
 
             if (!isConfigurable) { // Test if the property can be configured on the crawler
-                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on ${clazz} instance.`);
+                throw new Error(`${extension.name} tries to set property "${key}" that is not configurable on ${className} instance.`);
             }
 
             if (!isSameType && exists) { // Assuming that extensions will only add up configuration
                 throw new Error(
-                    `${extension.name} tries to set property of different type "${extensionType}". "${clazz}.${key}: ${originalType}".`,
+                    `${extension.name} tries to set property of different type "${extensionType}". "${className}.${key}: ${originalType}".`,
                 );
             }
 
-            this.log.warning(`${extension.name} is overriding "${clazz}.${key}: ${originalType}" with ${value}.`);
+            this.log.warning(`${extension.name} is overriding "${className}.${key}: ${originalType}" with ${value}.`);
 
             this[key as keyof this] = value as this[keyof this];
         }
