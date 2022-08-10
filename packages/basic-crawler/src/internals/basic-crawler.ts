@@ -1018,7 +1018,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error;
         }
 
-        return process.env.CRAWLEE_VERBOSE_LOG || forceStack ? error.stack ?? (error.message || error) : error.message || error;
+        return (process.env.CRAWLEE_VERBOSE_LOG || forceStack)
+            ? error.stack ?? (error.message || error)
+            : error.message || error;
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
