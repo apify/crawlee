@@ -1,3 +1,4 @@
+import os from 'os';
 import fs from 'fs';
 import net from 'net';
 import path from 'path';
@@ -97,7 +98,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
                             .join('\n');
 
                         if (userDataDir === '') {
-                            userDataDir = fs.mkdtempSync('apify-playwright-firefox-taac-');
+                            userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'apify-playwright-firefox-taac-'));
                         }
 
                         fs.writeFileSync(path.join(userDataDir, 'user.js'), prefsRaw);

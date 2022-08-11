@@ -1,6 +1,5 @@
 import net from 'net';
 import { firefox } from 'playwright';
-import { buffer } from 'stream/consumers';
 
 const RDP_PORT = 12345;
 
