@@ -367,7 +367,7 @@ chrome.webNavigation.onCompleted.addListener(onCompleted);
                 if (window.totallyRandomString) {
                     return;
                 }
-                tabs
+
                 window.totallyRandomString = true;
 
                 const code = "'use strict'; const tabId = '${getOpenerId(details.tabId)}'; (() => {\\n" + ${JSON.stringify(contentText)} + "\\n})();\\n";
