@@ -1,4 +1,4 @@
-import { DOMCrawler } from '@crawlee/dom';
+import { JSDOMCrawler } from '@crawlee/jsdom';
 import type { AddressInfo } from 'node:net';
 import http from 'node:http';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -45,7 +45,7 @@ afterAll(async () => {
 test('works', async () => {
     const results: string[] = [];
 
-    const crawler = new DOMCrawler({
+    const crawler = new JSDOMCrawler({
         maxRequestRetries: 0,
         requestHandler: ({ window }) => {
             results.push(window.document.title, window.document.querySelector('p').textContent);

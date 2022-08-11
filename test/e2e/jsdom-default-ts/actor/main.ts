@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { DOMCrawler, Dataset } from '@crawlee/dom';
+import { JSDOMCrawler, Dataset } from '@crawlee/jsdom';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
@@ -8,7 +8,7 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     await Actor.init();
 }
 
-const crawler = new DOMCrawler();
+const crawler = new JSDOMCrawler();
 
 crawler.router.addDefaultHandler(async ({ window, enqueueLinks, request, log }) => {
     const { url } = request;

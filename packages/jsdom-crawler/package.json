@@ -1,5 +1,5 @@
 {
-    "name": "@crawlee/dom",
+    "name": "@crawlee/jsdom",
     "version": "3.0.3",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {

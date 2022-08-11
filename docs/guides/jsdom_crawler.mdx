@@ -1,17 +1,17 @@
 ---
-id: dom-crawler-guide
-title: "DOMCrawler guide"
-sidebar_label: "DOMCrawler"
+id: jsdom-crawler-guide
+title: "JSDOMCrawler guide"
+sidebar_label: "JSDOMCrawler"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
 
-&#8203;<ApiLink to="dom-crawler/class/DOMCrawler">`DOMCrawler`</ApiLink> is very useful for scraping with the Window API.
+&#8203;<ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> is very useful for scraping with the Window API.
 
 ## How the crawler works
 
-&#8203;<ApiLink to="dom-crawler/class/DOMCrawler">`DOMCrawler`</ApiLink> crawls by making plain HTTP requests to the provided URLs using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client. The URLs are fed to the crawler using <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. The HTTP responses it gets back are usually HTML pages. The same pages you would get in your browser when you first load a URL. But it can handle any content types with the help of the <ApiLink to="dom-crawler/interface/DOMCrawlerOptions#additionalMimeTypes">`additionalMimeTypes`</ApiLink> option.
+&#8203;<ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> crawls by making plain HTTP requests to the provided URLs using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client. The URLs are fed to the crawler using <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. The HTTP responses it gets back are usually HTML pages. The same pages you would get in your browser when you first load a URL. But it can handle any content types with the help of the <ApiLink to="jsdom-crawler/interface/JSDOMCrawlerOptions#additionalMimeTypes">`additionalMimeTypes`</ApiLink> option.
 
 :::info
 
@@ -29,9 +29,9 @@ document.title; // browsers
 window.document.title; // JSDOM
 ```
 
-## When to use `DOMCrawler`
+## When to use `JSDOMCrawler`
 
-`DOMCrawler` really shines when `CheerioCrawler` is just not enough. There is an entire set of [APIs](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API) available!
+`JSDOMCrawler` really shines when `CheerioCrawler` is just not enough. There is an entire set of [APIs](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API) available!
 
 **Advantages:**
 
@@ -58,4 +58,4 @@ Array.from(document.querySelectorAll('a[href]')).map((a) => a.href);
 
 ### Other examples
 
-Visit the [Examples](../examples) section to browse examples of `DOMCrawler` usage. Almost all examples show `DOMCrawler` code in their code tabs.
+Visit the [Examples](../examples) section to browse examples of `JSDOMCrawler` usage. Almost all examples show `JSDOMCrawler` code in their code tabs.

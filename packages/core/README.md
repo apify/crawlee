@@ -8,9 +8,9 @@ The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of sever
 - [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler): exports `CheerioCrawler`
 - [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler): exports `PlaywrightCrawler`
 - [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler): exports `PuppeteerCrawler`
-- [`@crawlee/dom`](https://crawlee.dev/api/dom-crawler): exports `DOMCrawler`
+- [`@crawlee/jsdom`](https://crawlee.dev/api/jsdom-crawler): exports `JSDOMCrawler`
 - [`@crawlee/basic`](https://crawlee.dev/api/basic-crawler): exports `BasicCrawler`
-- [`@crawlee/http`](https://crawlee.dev/api/http-crawler): exports `HttpCrawler` (which is used for creating [`@crawlee/dom`](https://crawlee.dev/api/dom-crawler) and [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler))
+- [`@crawlee/http`](https://crawlee.dev/api/http-crawler): exports `HttpCrawler` (which is used for creating [`@crawlee/jsdom`](https://crawlee.dev/api/jsdom-crawler) and [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler))
 - [`@crawlee/browser`](https://crawlee.dev/api/browser-crawler): exports `BrowserCrawler` (which is used for creating [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler) and [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler))
 - [`@crawlee/memory-storage`](https://crawlee.dev/api/memory-storage): [`@apify/storage-local`](https://npmjs.com/package/@apify/storage-local) alternative
 - [`@crawlee/browser-pool`](https://crawlee.dev/api/browser-pool): previously [`browser-pool`](https://npmjs.com/package/browser-pool) package

@@ -14,7 +14,7 @@ const packages = [
     'cheerio-crawler',
     'puppeteer-crawler',
     'playwright-crawler',
-    'dom-crawler',
+    'jsdom-crawler',
     'memory-storage',
     'utils',
     'types',
@@ -22,7 +22,7 @@ const packages = [
 const packagesOrder = [
     '@crawlee/core',
     '@crawlee/cheerio',
-    '@crawlee/dom',
+    '@crawlee/jsdom',
     '@crawlee/playwright',
     '@crawlee/puppeteer',
     '@crawlee/basic',

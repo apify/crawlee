@@ -1,4 +1,4 @@
-import { DOMCrawler, ProxyConfiguration } from 'crawlee';
+import { JSDOMCrawler, ProxyConfiguration } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
     proxyUrls: [
@@ -7,7 +7,7 @@ const proxyConfiguration = new ProxyConfiguration({
     ],
 });
 
-const crawler = new DOMCrawler({
+const crawler = new JSDOMCrawler({
     proxyConfiguration,
     // ...
 });

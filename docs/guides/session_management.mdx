@@ -13,7 +13,7 @@ import CodeBlock from '@theme/CodeBlock';
 import BasicSource from '!!raw-loader!./session_management_basic.ts';
 import HttpSource from '!!raw-loader!./session_management_http.ts';
 import CheerioSource from '!!raw-loader!./session_management_cheerio.ts';
-import DOMSource from '!!raw-loader!./session_management_dom.ts';
+import JSDOMSource from '!!raw-loader!./session_management_jsdom.ts';
 import PlaywrightSource from '!!raw-loader!./session_management_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./session_management_puppeteer.ts';
 import StandaloneSource from '!!raw-loader!./session_management_standalone.ts';
@@ -31,7 +31,7 @@ Now let's take a look at the examples of how to use Session pool:
 - with <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>;
 - with <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>;
 - with <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>;
-- with <ApiLink to="dom-crawler/class/DOMCrawler">`DOMCrawler`</ApiLink>;
+- with <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>;
 - with <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>;
 - with <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>;
 - without a crawler (standalone usage to manage sessions manually).
@@ -52,9 +52,9 @@ Now let's take a look at the examples of how to use Session pool:
             {CheerioSource}
         </CodeBlock>
     </TabItem>
-    <TabItem value="dom" label="DOMCrawler">
+    <TabItem value="jsdom" label="JSDOMCrawler">
         <CodeBlock language="js">
-            {DOMSource}
+            {JSDOMSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
