@@ -1,4 +1,4 @@
-import { Dataset, DOMCrawler, log, LogLevel } from 'crawlee';
+import { Dataset, JSDOMCrawler, log, LogLevel } from 'crawlee';
 
 // Crawlers come with various utilities, e.g. for logging.
 // Here we use debug level of logging to improve the debugging experience.
@@ -7,7 +7,7 @@ log.setLevel(LogLevel.DEBUG);
 
 // Create an instance of the CheerioCrawler class - a crawler
 // that automatically loads the URLs and parses their HTML using the cheerio library.
-const crawler = new DOMCrawler({
+const crawler = new JSDOMCrawler({
     // The crawler downloads and processes the web pages in parallel, with a concurrency
     // automatically managed based on the available system memory and CPU (see AutoscaledPool class).
     // Here we define some hard limits for the concurrency.

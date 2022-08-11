@@ -22,8 +22,8 @@ The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of sever
 
 - `@crawlee/core`: the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
 - `@crawlee/basic`: exports `BasicCrawler`
-- `@crawlee/http`: exports `HttpCrawler` (which is used for creating `@crawlee/dom` and `@crawlee/cheerio`)
-- `@crawlee/dom`: exports `DOMCrawler`
+- `@crawlee/http`: exports `HttpCrawler` (which is used for creating `@crawlee/jsdom` and `@crawlee/cheerio`)
+- `@crawlee/jsdom`: exports `JSDOMCrawler`
 - `@crawlee/cheerio`: exports `CheerioCrawler`
 - `@crawlee/browser`: exports `BrowserCrawler` (which is used for creating `@crawlee/playwright` and `@crawlee/puppeteer`)
 - `@crawlee/playwright`: exports `PlaywrightCrawler`

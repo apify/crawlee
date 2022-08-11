@@ -62,7 +62,7 @@
         "@crawlee/browser": "^3.0.3",
         "@crawlee/http": "^3.0.3",
         "@crawlee/cheerio": "^3.0.3",
-        "@crawlee/dom": "^3.0.3",
+        "@crawlee/jsdom": "^3.0.3",
         "@crawlee/playwright": "^3.0.3",
         "@crawlee/puppeteer": "^3.0.3",
         "@crawlee/utils": "^3.0.3",
