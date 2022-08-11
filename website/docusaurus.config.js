@@ -1,9 +1,5 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
-const pkg = require('../packages/crawlee/package.json');
-
-const [v1, v2] = pkg.version.split('.');
-const version = [v1, v2].join('.');
 
 const packages = [
     'core',

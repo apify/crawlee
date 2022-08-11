@@ -62,7 +62,7 @@ export interface SessionPoolOptions {
  * Handles the rotation, creation and persistence of user-like sessions.
  * Creates a pool of {@apilink Session} instances, that are randomly rotated.
  * When some session is marked as blocked, it is removed and new one is created instead (the pool never returns an unusable session).
- * Learn more in the [Session management guide](../../../docs/guides/session-management).
+ * Learn more in the {@doclink guides/session-management | Session management guide}.
  *
  * You can create one by calling the {@apilink SessionPool.open} function.
  *
