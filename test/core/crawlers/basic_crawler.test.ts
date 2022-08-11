@@ -591,6 +591,52 @@ describe('BasicCrawler', () => {
         jest.restoreAllMocks();
     });
 
+    test('keepAlive', async () => {
+        const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+        const processed: Request[] = [];
+        const queue: Request[] = [];
+
+        const basicCrawler = new BasicCrawler({
+            requestQueue,
+            keepAlive: true,
+            requestHandler: async ({ request }) => {
+                await sleep(10);
+                processed.push(request);
+            },
+        });
+
+        // Speed up the test
+        // @ts-expect-error Accessing private prop
+        basicCrawler.autoscaledPoolOptions.maybeRunIntervalSecs = 0.05;
+
+        const request0 = new Request({ url: 'http://example.com/0' });
+        const request1 = new Request({ url: 'http://example.com/1' });
+
+        jest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
+        const markRequestHandled = jest.spyOn(requestQueue, 'markRequestHandled')
+            .mockReturnValue(Promise.resolve() as any);
+
+        const isFinishedOrig = jest.spyOn(requestQueue, 'isFinished').mockImplementation();
+
+        requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
+        requestQueue.isEmpty = () => Promise.resolve(!queue.length);
+
+        setTimeout(() => queue.push(request0), 10);
+        setTimeout(() => queue.push(request1), 100);
+        setTimeout(() => { void basicCrawler.teardown(); }, 150);
+
+        await basicCrawler.run();
+
+        expect(markRequestHandled).toBeCalledWith(request0);
+        expect(markRequestHandled).toBeCalledWith(request1);
+        expect(isFinishedOrig).not.toBeCalled();
+
+        // TODO: see why the request1 was passed as a second parameter to includes
+        expect(processed.includes(request0)).toBe(true);
+
+        jest.restoreAllMocks();
+    });
+
     test('should support maxRequestsPerCrawl parameter', async () => {
         const sources = [
             { url: 'http://example.com/1' },
