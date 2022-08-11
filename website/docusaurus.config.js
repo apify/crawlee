@@ -62,13 +62,6 @@ module.exports = {
             /** @type {import('@docusaurus/preset-classic').Options} */
             ({
                 docs: {
-                    disableVersioning: true,
-                    lastVersion: 'current',
-                    versions: {
-                        current: {
-                            label: `v${version}`,
-                        },
-                    },
                     showLastUpdateAuthor: true,
                     showLastUpdateTime: true,
                     path: '../docs',
@@ -106,6 +99,10 @@ module.exports = {
                         to: '/docs/quick-start',
                     },
                     {
+                        from: '/docs/next',
+                        to: '/docs/next/quick-start',
+                    },
+                    {
                         from: '/docs/guides/environment-variables',
                         to: '/docs/guides/configuration',
                     },
@@ -113,10 +110,6 @@ module.exports = {
                         from: '/docs/guides/getting-started',
                         to: '/docs/introduction',
                     },
-                    // {
-                    //     from: '/docs/next',
-                    //     to: '/docs/next/quick-start',
-                    // },
                 ],
             },
         ],

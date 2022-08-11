@@ -1,0 +1,6 @@
+INFO  CheerioCrawler:AutoscaledPool: state {"currentConcurrency":0,"desiredConcurrency":2,"systemStatus":{"isSystemIdle":true,"memInfo":{"isOverloaded":false,"limitRatio":0.2,"actualRatio":null},"eventLoopInfo":{"isOverloaded":false,"limitRatio":0.7,"actualRatio":null},"cpuInfo":{"isOverloaded":false,"limitRatio":0.4,"actualRatio":null},"clientInfo":{"isOverloaded":false,"limitRatio":0.3,"actualRatio":null}}}
+INFO  CheerioCrawler: Title of https://crawlee.dev/: Crawlee · The scalable web crawling, scraping and automation library for JavaScript/Node.js | Crawlee
+INFO  CheerioCrawler: Title of https://crawlee.dev/docs/examples: Examples | Crawlee
+INFO  CheerioCrawler: Title of https://crawlee.dev/docs/quick-start: Quick Start | Crawlee
+INFO  CheerioCrawler: Title of https://crawlee.dev/api/core: @crawlee/core | API | Crawlee
+INFO  CheerioCrawler: Title of https://crawlee.dev/api/core/changelog: Changelog | API | Crawlee

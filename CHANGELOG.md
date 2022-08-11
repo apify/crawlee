@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.0.3](https://github.com/apify/crawlee/compare/v3.0.2...v3.0.3) (2022-08-11)
+
+### Fixes
+
+* add missing configuration to CheerioCrawler constructor ([#1432](https://github.com/apify/crawlee/pull/1432))
+* sendRequest types ([#1445](https://github.com/apify/crawlee/pull/1445))
+* respect `headless` option in browser crawlers ([#1455](https://github.com/apify/crawlee/pull/1455))
+* make `CheerioCrawlerOptions` type more loose ([d871d8c](https://github.com/apify/crawlee/commit/d871d8caf22bc8d8ca1041e4975f3c95eae4b487))
+* improve dockerfiles and project templates ([7c21a64](https://github.com/apify/crawlee/commit/7c21a646360d10453f17380f9882ac52d06fedb6))
+
+### Features
+
+* add `utils.playwright.blockRequests()` ([#1447](https://github.com/apify/crawlee/pull/1447))
+* http-crawler ([#1440](https://github.com/apify/crawlee/pull/1440))
+* prefer `/INPUT.json` files for `KeyValueStore.getInput()` ([#1453](https://github.com/apify/crawlee/pull/1453))
+* jsdom-crawler ([#1451](https://github.com/apify/crawlee/pull/1451))
+* add `RetryRequestError` + add error to the context for BC ([#1443](https://github.com/apify/crawlee/pull/1443))
+* add `keepAlive` to crawler options ([#1452](https://github.com/apify/crawlee/pull/1452))
+
+
 ## [3.0.2](https://github.com/apify/crawlee/compare/v3.0.1...v3.0.2) (2022-07-28)
 
 ### Fixes

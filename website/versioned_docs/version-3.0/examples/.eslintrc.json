@@ -1,0 +1,12 @@
+{
+    "root": true,
+    "extends": "@apify",
+    "parserOptions": {
+        "ecmaVersion": 2022
+    },
+    "rules": {
+        "import/extensions": 0,
+        "import/no-extraneous-dependencies": 0,
+        "no-console": "off"
+    }
+}

@@ -1,0 +1,148 @@
+---
+id: request-storage
+title: Request Storage
+description: How to store the requests your crawler will go through
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import BasicOperationsSource from '!!raw-loader!./request_storage_queue_basic.ts';
+import CrawlerExplicitSource from '!!raw-loader!./request_storage_queue_crawler_explicit.ts';
+import CrawlerSource from '!!raw-loader!./request_storage_queue_crawler.ts';
+
+import RequestQueueListSource from '!!raw-loader!./request_storage_queue_list.ts';
+import RequestQueueAddRequestsSource from '!!raw-loader!./request_storage_queue_only.ts';
+
+Crawlee has several request storage types that are useful for specific tasks. The requests are stored on local disk to a directory defined by the `CRAWLEE_STORAGE_DIR` environment variable. If this variable is not defined, by default Crawlee sets `CRAWLEE_STORAGE_DIR` to `./storage` in the current working directory.
+
+## Request queue
+
+The request queue is a storage of URLs to crawl. The queue is used for the deep crawling of websites, where we start with several URLs and then recursively follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
+
+Each Crawlee project run is associated with a **default request queue**. Typically, it is used to store URLs to crawl in the specific crawler run. Its usage is optional.
+
+In Crawlee, the request queue is represented by the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> class.
+
+The request queue is managed by <ApiLink to="memory-storage/class/MemoryStorage">`MemoryStorage`</ApiLink> class and its data is stored in memory, while also being off-loaded to the local directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
+
+```
+{CRAWLEE_STORAGE_DIR}/request_queues/{QUEUE_ID}/entries.json
+```
+
+:::note
+
+`{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID `default`, unless we override it by setting the `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` environment variable.
+
+:::
+
+:::note
+
+`entries.json` contains an array or requests.
+
+:::
+
+The following code demonstrates the usage of the request queue:
+
+<Tabs groupId="request_queue">
+    <TabItem value="crawler" label="Usage with Crawler" default>
+        <CodeBlock language="js">
+            {CrawlerSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="crawler_explicit" label="Explicit usage with Crawler">
+        <CodeBlock language="js">
+            {CrawlerExplicitSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="basic_operations" label="Basic Operations" default>
+        <CodeBlock language="js">
+            {BasicOperationsSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+To see more detailed example of how to use the request queue with a crawler, see the [Puppeteer Crawler](/docs/examples/puppeteer-crawler) example.
+
+## Request list
+
+The request list is not a storage per se - it represents the list of URLs to crawl that is stored in a crawler run memory (or optionally in default [Key-Value Store](../guides/result-storage#key-value-store) associated with the run, if specified). The list is used for the crawling of a large number of URLs, when we know all the URLs which should be visited by the crawler and no URLs would be added during the run. The URLs can be provided either in code or parsed from a text file hosted on the web.
+
+Request list is created exclusively for the crawler run and only if its usage is explicitly specified in the code. Its usage is optional.
+
+In Crawlee, the request list is represented by the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> class.
+
+The following code demonstrates basic operations of the request list:
+
+```javascript
+import { RequestList, PuppeteerCrawler } from 'crawlee';
+
+// Prepare the sources array with URLs to visit
+const sources = [
+    { url: 'http://www.example.com/page-1' },
+    { url: 'http://www.example.com/page-2' },
+    { url: 'http://www.example.com/page-3' },
+];
+
+// Open the request list.
+// List name is used to persist the sources and the list state in the key-value store
+const requestList = await RequestList.open('my-list', sources);
+
+// The crawler will automatically process requests from the list
+// It's used the same way for Cheerio /Playwright crawlers.
+const crawler = new PuppeteerCrawler({
+    requestList,
+    async requestHandler({ page, request }) {
+        // Process the page (extract data, take page screenshot, etc).
+        // No more requests could be added to the request list here
+    },
+});
+```
+
+To see more detailed example of how to use the request list with a crawler, see the [Puppeteer with proxy](/docs/examples/puppeteer-with-proxy) example.
+
+## Which one to choose?
+
+When using Request queue - we would normally have several start URLs (e.g. category pages on e-commerce website) and then recursively add more (e.g. individual item pages) programmatically to the queue, it supports dynamic adding and removing of requests. No more URLs can be added to Request list after its initialization as it is immutable, URLs cannot be removed from the list either.
+
+On the other hand, the Request queue is not optimized for adding or removing numerous URLs in a batch. This is technically possible, but requests are added one by one to the queue, and thus it would take significant time with a larger number of requests. Request list however can contain even millions of URLs, and it would take significantly less time to add them to the list, compared to the queue.
+
+Note that Request queue and Request list can be used together by the same crawler. In such cases, each request from the Request list is enqueued into the Request queue first (to the foremost position in the queue, even if Request queue is not empty) and then consumed from the latter. This is necessary to avoid the same URL being processed more than once (from the list first and then possibly from the queue). In practical terms, such a combination can be useful when there are numerous initial URLs, but more URLs would be added dynamically by the crawler.
+
+:::tip
+
+In Crawlee, there is no much need to combine the request queue together with the request list (although it's technically possible).
+
+Previously there was no way to add the initial requests to the queue in batches (to add an array of requests), i.e. we could have only added the requests one by one to the queue with the help of <ApiLink to="core/class/RequestQueue#addRequest">`addRequest()`</ApiLink> function.
+
+However, now we could use the <ApiLink to="core/class/RequestQueue#addRequests">`addRequests()`</ApiLink> function, which adds requests in batches. Thus, instead of combining the request queue and the request list, we can use only the request queue for such use-cases now. See the examples below.
+
+:::
+
+<Tabs groupId="queue_list">
+    <TabItem value="add_requests" label="Request Queue" default>
+        <CodeBlock language="js">
+            {RequestQueueAddRequestsSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="queue_list" label="Request Queue + Request List">
+        <CodeBlock language="js">
+            {RequestQueueListSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+## Cleaning up the storages
+
+Default storages are purged before the crawler starts if not specified otherwise. This happens as early as when we try to open some storage (e.g. via `RequestQueue.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `crawler.addRequests()` that under the hood calls `RequestQueue.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
+
+```javascript
+import { purgeDefaultStorages } from 'crawlee';
+
+await purgeDefaultStorages();
+```
+
+Calling this function will clean up the default request storage directory (and also the request list stored in default key-value store). This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageClient">`StorageClient`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.
