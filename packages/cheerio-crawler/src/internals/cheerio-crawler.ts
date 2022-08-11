@@ -18,22 +18,22 @@ import type { IncomingMessage } from 'http';
 
 export type CheerioErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends InternalHttpCrawlingContext<UserData, JSONData, CheerioCrawler> {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
@@ -46,7 +46,7 @@ export interface CheerioCrawlingContext<
 
 export type CheerioRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
 export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 

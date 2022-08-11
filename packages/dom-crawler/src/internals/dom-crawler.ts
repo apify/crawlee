@@ -16,22 +16,22 @@ import type { IncomingMessage } from 'http';
 
 export type DOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = ErrorHandler<DOMCrawlingContext<UserData, JSONData>>;
 
 export interface DOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends HttpCrawlerOptions<DOMCrawlingContext<UserData, JSONData>> {}
 
 export type DOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = InternalHttpHook<DOMCrawlingContext<UserData, JSONData>>;
 
 export interface DOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends InternalHttpCrawlingContext<UserData, JSONData, DOMCrawler> {
     window: DOMWindow;
 
@@ -40,7 +40,7 @@ export interface DOMCrawlingContext<
 
 export type DOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = RequestHandler<DOMCrawlingContext<UserData, JSONData>>;
 export interface DOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 

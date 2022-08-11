@@ -49,7 +49,7 @@ const HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS: AutoscaledPoolOptions = {
 
 export type HttpErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
 
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
@@ -155,7 +155,7 @@ export type InternalHttpHook<Context> = (
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
 
 /**
@@ -163,7 +163,7 @@ export type HttpHook<
  */
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Crawler = HttpCrawler<any>
     > extends CrawlingContext<UserData> {
     /**
@@ -193,7 +193,7 @@ export interface HttpCrawlingContext<UserData = any, JSONData = any>
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = Dictionary,
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = RequestHandler<HttpCrawlingContext<UserData, JSONData>>;
 
 /**
