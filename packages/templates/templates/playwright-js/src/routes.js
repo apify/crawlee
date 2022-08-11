@@ -5,7 +5,7 @@ export const router = createPlaywrightRouter();
 router.addDefaultHandler(async ({ enqueueLinks, log }) => {
     log.info(`Handle Start URLs`);
     await enqueueLinks({
-        globs: ['https://crawlee.dev/*'],
+        globs: ['https://crawlee.dev/**'],
         label: 'DETAIL',
     });
 });

@@ -1,6 +1,8 @@
 FROM apify/actor-node:16
 
-COPY . ./
+# copy package.json, lock file and possibly crawlee.json
+COPY package*.json crawlee?json ./
+COPY src ./src
 
 # install only prod deps
 RUN npm --quiet set progress=false \
