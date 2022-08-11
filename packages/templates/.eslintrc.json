@@ -3,7 +3,7 @@
     "extends": "../../.eslintrc.json",
     "parserOptions": {
         "project": "../../tsconfig.eslint.json",
-        "ecmaVersion": 2020
+        "ecmaVersion": 2022
     },
     "rules": {
         "no-console": 0,
