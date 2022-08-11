@@ -63,7 +63,7 @@ Additionally, the package provides various helper functions to simplify running 
 
 ## Quick Start
 
-This short tutorial will set you up to start using Crawlee in a minute or two. If you want to learn more, proceed to the [Getting Started](https://crawlee.dev/docs/guides/getting-started) tutorial that will take you step by step through creating your first scraper.
+This short tutorial will set you up to start using Crawlee in a minute or two. If you want to learn more, proceed to the [Getting Started](https://crawlee.dev/docs/introduction) tutorial that will take you step by step through creating your first scraper.
 
 ### Local stand-alone usage
 

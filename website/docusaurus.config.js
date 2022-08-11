@@ -109,6 +109,10 @@ module.exports = {
                         from: '/docs/guides/environment-variables',
                         to: '/docs/guides/configuration',
                     },
+                    {
+                        from: '/docs/guides/getting-started',
+                        to: '/docs/introduction',
+                    },
                     // {
                     //     from: '/docs/next',
                     //     to: '/docs/next/quick-start',
