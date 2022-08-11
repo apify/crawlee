@@ -51,35 +51,52 @@ export const loadFirefoxAddon = (port: number, host: string, addonPath: string) 
         let remainingBytes = 0;
 
         socket.on('data', (data) => {
-            if (remainingBytes === 0) {
-                const index = data.indexOf(':');
+            while (true) {
+                if (remainingBytes === 0) {
+                    const index = data.indexOf(':');
 
-                buffers.push(data);
+                    buffers.push(data);
 
-                if (index === -1) {
-                    return;
+                    if (index === -1) {
+                        return;
+                    }
+
+                    const buffer = Buffer.concat(buffers);
+                    const bufferIndex = buffer.indexOf(':');
+
+                    buffers.length = 0;
+                    remainingBytes = Number(buffer.subarray(0, bufferIndex).toString());
+
+                    if (!Number.isFinite(remainingBytes)) {
+                        throw new Error('Invalid state');
+                    }
+
+                    data = buffer.subarray(bufferIndex + 1);
                 }
 
-                const buffer = Buffer.concat(buffers);
-                const bufferIndex = buffer.indexOf(':');
+                if (data.length < remainingBytes) {
+                    remainingBytes -= data.length;
+                    buffers.push(data);
+                    break;
+                } else {
+                    buffers.push(data.subarray(0, remainingBytes));
 
-                buffers.length = 0;
-                remainingBytes = Number(buffer.subarray(0, bufferIndex).toString());
-                data = buffer.subarray(bufferIndex + 1);
-            }
-
-            if (remainingBytes !== 0) {
-                remainingBytes -= data.length;
-                buffers.push(data);
-
-                if (remainingBytes === 0) {
                     const buffer = Buffer.concat(buffers);
                     buffers.length = 0;
 
                     const json = JSON.parse(buffer.toString());
-                    onMessage(json);
-                } else if (remainingBytes < 0) {
-                    throw new Error('Invalid state');
+                    queueMicrotask(() => {
+                        onMessage(json);
+                    });
+
+                    const remainder = data.subarray(remainingBytes);
+                    remainingBytes = 0;
+
+                    if (remainder.length === 0) {
+                        break;
+                    } else {
+                        data = remainder;
+                    }
                 }
             }
         });

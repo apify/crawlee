@@ -6,7 +6,7 @@ import { Server as ProxyChainServer } from 'proxy-chain';
  * in order to work around authorization and to enable upstream.
  * @internal
  */
-export async function createProxyServerForContainers() {
+export async function createProxyServerForContainers(fallbackProxyUrl?: string) {
     const ipToProxy = new Map<string, string>();
 
     const proxyServer = new ProxyChainServer({
@@ -19,6 +19,13 @@ export async function createProxyServerForContainers() {
             const upstreamProxyUrl = ipToProxy.get(localAddress);
 
             if (upstreamProxyUrl === undefined) {
+                if (fallbackProxyUrl) {
+                    return {
+                        upstreamProxyUrl: fallbackProxyUrl,
+                        requestAuthentication: false,
+                    };
+                }
+
                 // eslint-disable-next-line no-console
                 console.warn(`Request without proxy ${localAddress} ${request.headers.host}`);
             }

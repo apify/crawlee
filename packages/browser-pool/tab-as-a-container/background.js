@@ -68,6 +68,7 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
         const opener = getOpenerId(tabId);
 
         if (tabId !== opener) {
+            // eslint-disable-next-line no-console
             console.log(`${realCookieName} -> ${keyFromTabId(opener)}`);
 
             await chrome.cookies.remove({
@@ -109,11 +110,26 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
                 };
             }
 
-            if (['beacon', 'csp_report', 'ping'].includes(details.type)) {
+            // This one is for Firefox
+            if (header.name.toLowerCase() === 'x-moz' && header.value === 'prefetch' && !(counter.has(details.tabId))) {
+                // eslint-disable-next-line no-console
                 console.log(details);
                 return {
                     cancel: true,
                 };
+            }
+
+            if (['beacon', 'csp_report', 'ping', 'speculative'].includes(details.type)) {
+                // eslint-disable-next-line no-console
+                console.log(details);
+                return {
+                    cancel: true,
+                };
+            }
+
+            if (details.tabId === -1) {
+                // eslint-disable-next-line no-console
+                console.log(details);
             }
         }
 
