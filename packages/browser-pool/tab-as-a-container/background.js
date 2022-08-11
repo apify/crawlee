@@ -53,12 +53,12 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
             return;
         }
 
-        const dotIndex = cookie.name.slice(1).indexOf('.');
+        const dotIndex = cookie.name.indexOf('.', 1);
         if (dotIndex === -1) {
             return;
         }
 
-        const tabId = Number(cookie.name.slice(0, dotIndex));
+        const tabId = Number(cookie.name.slice(1, dotIndex));
         const realCookieName = cookie.name.slice(dotIndex + 1);
         const opener = getOpenerId(tabId);
 
