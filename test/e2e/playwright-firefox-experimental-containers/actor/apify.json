@@ -1,0 +1,6 @@
+{
+	"name": "test-playwright-firefox-experimental-containers",
+	"version": "0.0",
+	"buildTag": "latest",
+	"env": null
+}
