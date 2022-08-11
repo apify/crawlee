@@ -56,7 +56,7 @@ export interface JSDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOption
  * because it loads the pages using full-featured headless Chrome browser.
  *
  * `JSDOMCrawler` downloads each URL using a plain HTTP request,
- * parses the HTML content using [JSJSDOM](https://www.npmjs.com/package/jsdom)
+ * parses the HTML content using [JSDOM](https://www.npmjs.com/package/jsdom)
  * and then invokes the user-provided {@apilink JSDOMCrawlerOptions.requestHandler} to extract page data
  * using the `window` object.
  *
