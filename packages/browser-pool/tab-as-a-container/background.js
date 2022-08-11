@@ -1,13 +1,6 @@
 'use strict';
 
-/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
-/* eslint-disable no-empty */
-
-let resolveLoading;
-const loading = new Promise((resolve) => {
-    resolveLoading = resolve;
-});
 
 const isFirefox = navigator.userAgent.includes('Firefox');
 
@@ -294,7 +287,7 @@ const routes = Object.assign(Object.create(null), {
     },
 });
 
-chrome.webNavigation.onCompleted.addListener(async (details) => {
+const onCompleted = async (details) => {
     const textPlain = 'data:text/plain,';
 
     if (details.frameId === 0 && details.url.startsWith(textPlain)) {
@@ -310,7 +303,9 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
                 if (hash !== '') {
                     try {
                         body = JSON.parse(decodeURIComponent(hash));
-                    } catch {}
+                    } catch {
+                        // Empty on purpose.
+                    }
                 }
 
                 // Different protocols are required, otherwise `onCompleted` won't be emitted.
@@ -323,7 +318,9 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
             // Invalid URL, ignore.
         }
     }
-});
+};
+
+chrome.webNavigation.onCompleted.addListener(onCompleted);
 
 // Load content scripts.
 (async () => {
@@ -370,7 +367,7 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
                 if (window.totallyRandomString) {
                     return;
                 }
-
+                tabs
                 window.totallyRandomString = true;
 
                 const code = "'use strict'; const tabId = '${getOpenerId(details.tabId)}'; (() => {\\n" + ${JSON.stringify(contentText)} + "\\n})();\\n";
@@ -383,5 +380,13 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
         });
     });
 
-    resolveLoading();
+    chrome.tabs.query({}, async (tabs) => {
+        for (const tab of tabs) {
+            await onCompleted({
+                frameId: 0,
+                url: tab.url,
+                tabId: tab.id,
+            });
+        }
+    });
 })();
