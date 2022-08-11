@@ -4,14 +4,8 @@ This template is a production ready boilerplate for developing with `PlaywrightC
 
 If you're looking for examples or want to learn more visit:
 
-- [Documentation](https://sdk.apify.com/docs/api/playwright-crawler)
-- [Examples](https://sdk.apify.com/docs/examples/playwright-crawler)
-
-## Documentation reference
-
-- [Apify SDK](https://sdk.apify.com/)
-- [Apify Actor documentation](https://docs.apify.com/actor)
-- [Apify CLI](https://docs.apify.com/cli)
+- [Documentation](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler)
+- [Examples](https://crawlee.dev/docs/examples/playwright-crawler)
 
 ## Writing a README
 

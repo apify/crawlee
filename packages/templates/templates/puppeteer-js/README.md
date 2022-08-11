@@ -4,14 +4,8 @@ This template is a production ready boilerplate for developing with `PuppeteerCr
 
 If you're looking for examples or want to learn more visit:
 
-- [Documentation](https://sdk.apify.com/docs/api/puppeteer-crawler)
-- [Examples](https://sdk.apify.com/docs/examples/puppeteer-crawler)
-
-## Documentation reference
-
-- [Apify SDK](https://sdk.apify.com/)
-- [Apify Actor documentation](https://docs.apify.com/actor)
-- [Apify CLI](https://docs.apify.com/cli)
+- [Documentation](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler)
+- [Examples](https://crawlee.dev/docs/examples/puppeteer-crawler)
 
 ## Writing a README
 
