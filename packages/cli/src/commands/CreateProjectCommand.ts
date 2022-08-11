@@ -113,6 +113,6 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         execSync(`${npm} install`, { cwd: projectDir, stdio: 'inherit' });
 
         // eslint-disable-next-line no-console
-        console.log(colors.green(`Project ${projectName} was created. To run it, run "cd ${projectName}" and "crawlee run".`));
+        console.log(colors.green(`Project ${projectName} was created. To run it, run "cd ${projectName}" and "npm start".`));
     }
 }
