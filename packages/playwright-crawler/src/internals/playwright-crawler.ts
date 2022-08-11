@@ -190,6 +190,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
 
         const {
             launchContext = {},
+            headless,
             browserPoolOptions = {} as BrowserPoolOptions<PlaywrightPlugin>,
             ...browserCrawlerOptions
         } = options;
@@ -197,6 +198,11 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
         if (launchContext.proxyUrl) {
             throw new Error('PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.'
                 + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
+        }
+
+        if (headless != null) {
+            launchContext.launchOptions ??= {} as LaunchOptions;
+            launchContext.launchOptions.headless = headless;
         }
 
         const playwrightLauncher = new PlaywrightLauncher(launchContext, config);

@@ -140,6 +140,7 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
 
         const {
             launchContext = {},
+            headless,
             browserPoolOptions = {} as BrowserPoolOptions,
             proxyConfiguration,
             ...browserCrawlerOptions
@@ -148,6 +149,11 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
         if (launchContext.proxyUrl) {
             throw new Error('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.'
                 + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
+        }
+
+        if (headless != null) {
+            launchContext.launchOptions ??= {} as LaunchOptions;
+            launchContext.launchOptions.headless = headless;
         }
 
         const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
