@@ -108,6 +108,13 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
                     cancel: true,
                 };
             }
+
+            if (['beacon', 'csp_report', 'ping'].includes(details.type)) {
+                console.log(details);
+                return {
+                    cancel: true,
+                };
+            }
         }
 
         return {
