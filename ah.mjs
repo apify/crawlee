@@ -34,4 +34,10 @@ const crawler = new PlaywrightCrawler({
 	},
 });
 
-await crawler.run(['https://httpbin.org/anything?a', 'https://httpbin.org/anything?b']);
+const urls = [];
+
+for (let i = 0; i < 100; i++) {
+    urls.push('https://httpbin.org/anything?' + Math.random());
+}
+
+await crawler.run(urls);
