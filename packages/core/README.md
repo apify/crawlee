@@ -4,18 +4,18 @@ Core set of classes required for Crawlee.
 
 The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of several smaller packages, released separately under `@crawlee` namespace:
 
-- `@crawlee/core`: the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
-- `@crawlee/basic`: exports `BasicCrawler`
-- `@crawlee/http`: exports `HttpCrawler` (which is used for creating `@crawlee/dom` and `@crawlee/cheerio`)
-- `@crawlee/dom`: exports `DOMCrawler`
-- `@crawlee/cheerio`: exports `CheerioCrawler`
-- `@crawlee/browser`: exports `BrowserCrawler` (which is used for creating `@crawlee/playwright` and `@crawlee/puppeteer`)
-- `@crawlee/playwright`: exports `PlaywrightCrawler`
-- `@crawlee/puppeteer`: exports `PuppeteerCrawler`
-- `@crawlee/memory-storage`: `@apify/storage-local` alternative
-- `@crawlee/browser-pool`: previously `browser-pool` package
-- `@crawlee/utils`: utility methods
-- `@crawlee/types`: holds TS interfaces mainly about the `StorageClient`
+- [`@crawlee/core`](https://crawlee.dev/api/core): the base for all the crawler implementations, also contains things like `Request`, `RequestQueue`, `RequestList` or `Dataset` classes
+- [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler): exports `CheerioCrawler`
+- [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler): exports `PlaywrightCrawler`
+- [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler): exports `PuppeteerCrawler`
+- [`@crawlee/dom`](https://crawlee.dev/api/dom-crawler): exports `DOMCrawler`
+- [`@crawlee/basic`](https://crawlee.dev/api/basic-crawler): exports `BasicCrawler`
+- [`@crawlee/http`](https://crawlee.dev/api/http-crawler): exports `HttpCrawler` (which is used for creating [`@crawlee/dom`](https://crawlee.dev/api/dom-crawler) and [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler))
+- [`@crawlee/browser`](https://crawlee.dev/api/browser-crawler): exports `BrowserCrawler` (which is used for creating [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler) and [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler))
+- [`@crawlee/memory-storage`](https://crawlee.dev/api/memory-storage): [`@apify/storage-local`](https://npmjs.com/package/@apify/storage-local) alternative
+- [`@crawlee/browser-pool`](https://crawlee.dev/api/browser-pool): previously [`browser-pool`](https://npmjs.com/package/browser-pool) package
+- [`@crawlee/utils`](https://crawlee.dev/api/utils): utility methods
+- [`@crawlee/types`](https://crawlee.dev/api/types): holds TS interfaces mainly about the [`StorageClient`](https://crawlee.dev/api/core/interface/StorageClient)
 
 ## Installing Crawlee
 

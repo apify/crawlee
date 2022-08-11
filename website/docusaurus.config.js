@@ -22,11 +22,11 @@ const packages = [
 const packagesOrder = [
     '@crawlee/core',
     '@crawlee/cheerio',
-    '@crawlee/puppeteer',
     '@crawlee/playwright',
+    '@crawlee/puppeteer',
+    '@crawlee/dom',
     '@crawlee/basic',
     '@crawlee/http',
-    '@crawlee/dom',
     '@crawlee/browser',
     '@crawlee/memory-storage',
     '@crawlee/browser-pool',

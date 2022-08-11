@@ -372,7 +372,7 @@ html .table-of-contents ul {
 }
 
 html.plugin-typedoc-api .theme-doc-sidebar-menu > li:first-child::before,
-html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(5)::before {
+html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(6)::before {
     text-transform: uppercase;
     font-size: 18px;
     line-height: 28px;
@@ -385,7 +385,7 @@ html.plugin-typedoc-api .theme-doc-sidebar-menu > li:first-child::before {
     content: 'Core';
 }
 
-html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(5)::before {
+html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(6)::before {
     display: block;
     content: 'Advanced';
     padding-top: 60px;
