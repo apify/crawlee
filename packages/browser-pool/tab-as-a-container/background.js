@@ -59,10 +59,17 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
         }
 
         const tabId = Number(cookie.name.slice(1, dotIndex));
+
+        if (!Number.isFinite(tabId)) {
+            return;
+        }
+
         const realCookieName = cookie.name.slice(dotIndex + 1);
         const opener = getOpenerId(tabId);
 
         if (tabId !== opener) {
+            console.log(`${realCookieName} -> ${keyFromTabId(opener)}`);
+
             await chrome.cookies.remove({
                 name: cookie.name,
                 url: getCookieURL(cookie),
@@ -104,7 +111,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
         }
 
         return {
-            requestHeaders: details.requestHeaders.filter((header) => header.name !== 'cookie' || header.value !== ''),
+            requestHeaders: details.requestHeaders.filter((header) => header.name.toLowerCase() !== 'cookie' || header.value !== ''),
         };
     },
     { urls: ['<all_urls>'] },
