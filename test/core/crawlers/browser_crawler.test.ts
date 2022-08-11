@@ -725,7 +725,7 @@ describe('BrowserCrawler', () => {
                 expect((crawlingContext.crawler as BrowserCrawler).browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
-                expect(crawlingContext.error).toBeUndefined();
+                expect(crawlingContext.error).toBeInstanceOf(Error);
                 expect(error).toBeInstanceOf(Error);
                 expect(error.message).toEqual('some error');
             };

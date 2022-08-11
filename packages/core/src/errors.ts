@@ -12,3 +12,12 @@ export class CriticalError extends NonRetryableError {}
  * @ignore
  */
 export class MissingRouteError extends CriticalError {}
+
+/**
+ * Indicates that the request should be retried (while still respecting the maximum number of retries).
+ */
+export class RetryRequestError extends Error {
+    constructor(message?: string) {
+        super(message ?? "Request is being retried at the user's request");
+    }
+}

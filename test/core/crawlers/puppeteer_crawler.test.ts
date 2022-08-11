@@ -249,15 +249,15 @@ describe('PuppeteerCrawler', () => {
         const warnings = logWarningSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
         expect(warnings).toEqual([
             [
-                'Reclaiming failed request back to the list or queue. Error: Navigation timed out after 0.005 seconds.',
+                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
                 1,
             ],
             [
-                'Reclaiming failed request back to the list or queue. Error: Navigation timed out after 0.005 seconds.',
+                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
                 2,
             ],
             [
-                'Reclaiming failed request back to the list or queue. Error: Navigation timed out after 0.005 seconds.',
+                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
                 3,
             ],
         ]);
@@ -308,15 +308,15 @@ describe('PuppeteerCrawler', () => {
         const warnings = logWarningSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
         expect(warnings).toEqual([
             [
-                'Reclaiming failed request back to the list or queue. Error: Navigation timed out after 0.005 seconds.',
+                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
                 1,
             ],
             [
-                'Reclaiming failed request back to the list or queue. Error: Navigation timed out after 0.005 seconds.',
+                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
                 2,
             ],
             [
-                'Reclaiming failed request back to the list or queue. Error: Navigation timed out after 0.005 seconds.',
+                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
                 3,
             ],
         ]);
