@@ -10,9 +10,13 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
+        browserPoolOptions: {
+            browserPlugins: [
+                playwright.chromium,
+            ],
+        },
         proxyConfiguration: await Actor.createProxyConfiguration(),
         launchContext: {
-            launcher: playwright.firefox,
             experimentalContainers: true,
         },
         preNavigationHooks: [(_ctx, goToOptions) => {
