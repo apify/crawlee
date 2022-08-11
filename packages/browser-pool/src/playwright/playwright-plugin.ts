@@ -108,7 +108,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
                 const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions);
 
                 browserContext.once('close', () => {
-                    if (userDataDir.startsWith('apify-playwright-firefox-taac-')) {
+                    if (userDataDir.includes('apify-playwright-firefox-taac-')) {
                         fs.rmSync(userDataDir, {
                             recursive: true,
                             force: true,
