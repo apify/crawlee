@@ -317,6 +317,7 @@ export abstract class BrowserCrawler<
         postNavigationHooks: ow.optional.array,
 
         launchContext: ow.optional.object,
+        headless: ow.optional.boolean,
         browserPoolOptions: ow.object,
         sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,
