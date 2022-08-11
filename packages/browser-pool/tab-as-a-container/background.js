@@ -15,7 +15,7 @@ const translator = new Map();
 const counter = new Map();
 
 const getOpenerId = (id) => {
-    if (typeof id !== 'number') {
+    if (typeof id !== 'number' || !Number.isFinite(id)) {
         throw new Error('Expected `id` to be a number');
     }
 
