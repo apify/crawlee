@@ -78,26 +78,26 @@ export const loadFirefoxAddon = (port: number, host: string, addonPath: string) 
                     remainingBytes -= data.length;
                     buffers.push(data);
                     break;
-                } else {
-                    buffers.push(data.subarray(0, remainingBytes));
-
-                    const buffer = Buffer.concat(buffers);
-                    buffers.length = 0;
-
-                    const json = JSON.parse(buffer.toString());
-                    queueMicrotask(() => {
-                        onMessage(json);
-                    });
-
-                    const remainder = data.subarray(remainingBytes);
-                    remainingBytes = 0;
-
-                    if (remainder.length === 0) {
-                        break;
-                    } else {
-                        data = remainder;
-                    }
                 }
+
+                buffers.push(data.subarray(0, remainingBytes));
+
+                const buffer = Buffer.concat(buffers);
+                buffers.length = 0;
+
+                const json = JSON.parse(buffer.toString());
+                queueMicrotask(() => {
+                    onMessage(json);
+                });
+
+                const remainder = data.subarray(remainingBytes);
+                remainingBytes = 0;
+
+                if (remainder.length === 0) {
+                    break;
+                }
+
+                data = remainder;
             }
         });
     });
