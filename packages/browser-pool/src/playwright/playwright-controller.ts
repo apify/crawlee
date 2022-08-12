@@ -75,7 +75,9 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                     (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyip, url.href);
                 }
 
-                try {
+                if (this.browserPlugin.library.name() === 'firefox') {
+                    // Playwright does not support creating new CDP sessions with Firefox
+                } else {
                     const session = await page.context().newCDPSession(page);
                     await session.send('Network.enable');
 
@@ -96,8 +98,6 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                             console.warn(`Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
                         }
                     });
-                } catch {
-                    // Firefox does not support this
                 }
 
                 tabIds.set(page, tabid);
