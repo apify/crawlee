@@ -1,3 +1,6 @@
+import os from 'os';
+import fs from 'fs';
+import net from 'net';
 import path from 'path';
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
@@ -9,6 +12,16 @@ import { log } from '../logger';
 import { getLocalProxyAddress } from '../proxy-server';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import { createProxyServerForContainers } from '../container-proxy-server';
+import { loadFirefoxAddon } from './load-firefox-addon';
+
+const getFreePort = async () => {
+    return new Promise<number>((resolve, reject) => {
+        const server = net.createServer().once('error', reject).listen(() => {
+            resolve((server.address() as net.AddressInfo).port);
+            server.close();
+        });
+    });
+};
 
 // __dirname = browser-pool/dist/playwright
 //  taacPath = browser-pool/dist/tab-as-a-container
@@ -22,8 +35,11 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
         const {
             launchOptions,
             useIncognitoPages,
-            userDataDir,
             proxyUrl,
+        } = launchContext;
+
+        let {
+            userDataDir,
         } = launchContext;
 
         let browser: PlaywrightBrowser;
@@ -52,32 +68,71 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
                     });
                 }
             } else {
-                if (launchContext.experimentalContainers) {
+                const experimentalContainers = launchContext.experimentalContainers && this.library.name() !== 'webkit';
+                let firefoxPort: number | undefined;
+
+                if (experimentalContainers) {
                     launchOptions!.args = [
                         ...(launchOptions!.args ?? []),
                     ];
 
                     // Use native headless mode so we can load an extension
-                    if (launchOptions!.headless) {
+                    if (launchOptions!.headless && this.library.name() === 'chromium') {
                         launchOptions!.args.push('--headless=chrome');
                     }
 
-                    launchOptions!.args.push(`--disable-extensions-except=${taacPath}`, `--load-extension=${taacPath}`);
+                    if (this.library.name() === 'chromium') {
+                        launchOptions!.args.push(`--disable-extensions-except=${taacPath}`, `--load-extension=${taacPath}`);
+                    } else if (this.library.name() === 'firefox') {
+                        firefoxPort = await getFreePort();
+
+                        launchOptions!.args.push(`--start-debugger-server=${firefoxPort}`);
+
+                        const prefs = {
+                            'devtools.debugger.remote-enabled': true,
+                            'devtools.debugger.prompt-connection': false,
+                        };
+
+                        const prefsRaw = Object.entries(prefs)
+                            .map(([name, value]) => `user_pref(${JSON.stringify(name)}, ${JSON.stringify(value)});`)
+                            .join('\n');
+
+                        if (userDataDir === '') {
+                            userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'apify-playwright-firefox-taac-'));
+                        }
+
+                        fs.writeFileSync(path.join(userDataDir, 'user.js'), prefsRaw);
+                    }
                 }
 
                 const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions);
 
-                if (launchContext.experimentalContainers) {
-                    // Wait for the extension to load.
-                    let [backgroundPage] = browserContext.backgroundPages();
-                    if (!backgroundPage) {
-                        backgroundPage = await browserContext.waitForEvent('backgroundpage');
+                browserContext.once('close', () => {
+                    if (userDataDir.includes('apify-playwright-firefox-taac-')) {
+                        fs.rmSync(userDataDir, {
+                            recursive: true,
+                            force: true,
+                        });
+                    }
+                });
+
+                if (experimentalContainers) {
+                    if (this.library.name() === 'firefox') {
+                        const loaded = await loadFirefoxAddon(firefoxPort!, '127.0.0.1', taacPath);
+
+                        if (!loaded) {
+                            await browserContext.close();
+                            throw new Error('Failed to load Firefox experimental containers addon');
+                        }
                     }
 
-                    this._containerProxyServer = await createProxyServerForContainers();
+                    // Wait for the extension to load.
+                    const checker = await browserContext.newPage();
+                    await checker.goto('data:text/plain,tabid');
+                    await checker.waitForNavigation();
+                    await checker.close();
 
-                    // @ts-expect-error loading is defined inside background script
-                    await backgroundPage.evaluate(() => loading);
+                    this._containerProxyServer = await createProxyServerForContainers();
 
                     const page = await browserContext.newPage();
                     await page.goto(`data:text/plain,proxy#{"port":${this._containerProxyServer.port}}`);

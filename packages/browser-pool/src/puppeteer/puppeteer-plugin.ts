@@ -18,8 +18,13 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
             launchOptions,
             userDataDir,
             useIncognitoPages,
+            experimentalContainers,
             proxyUrl,
         } = launchContext;
+
+        if (experimentalContainers) {
+            throw new Error('Experimental containers are only available with Playwright');
+        }
 
         launchOptions!.userDataDir = launchOptions!.userDataDir ?? userDataDir;
 

@@ -75,26 +75,30 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
                     (this.browserPlugin as PlaywrightPlugin)._containerProxyServer!.ipToProxy.set(proxyip, url.href);
                 }
 
-                const session = await page.context().newCDPSession(page);
-                await session.send('Network.enable');
+                if (this.browserPlugin.library.name() === 'firefox') {
+                    // Playwright does not support creating new CDP sessions with Firefox
+                } else {
+                    const session = await page.context().newCDPSession(page);
+                    await session.send('Network.enable');
 
-                session.on('Network.responseReceived', (responseRecevied) => {
-                    const logOnly = ['Document', 'XHR', 'Fetch', 'EventSource', 'WebSocket', 'Other'];
-                    if (!logOnly.includes(responseRecevied.type)) {
-                        return;
-                    }
+                    session.on('Network.responseReceived', (responseRecevied) => {
+                        const logOnly = ['Document', 'XHR', 'Fetch', 'EventSource', 'WebSocket', 'Other'];
+                        if (!logOnly.includes(responseRecevied.type)) {
+                            return;
+                        }
 
-                    const { response } = responseRecevied;
-                    if (response.fromDiskCache || response.fromPrefetchCache || response.fromServiceWorker) {
-                        return;
-                    }
+                        const { response } = responseRecevied;
+                        if (response.fromDiskCache || response.fromPrefetchCache || response.fromServiceWorker) {
+                            return;
+                        }
 
-                    const { remoteIPAddress } = response;
-                    if (remoteIPAddress && remoteIPAddress !== proxyip) {
-                        // eslint-disable-next-line no-console
-                        console.warn(`Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
-                    }
-                });
+                        const { remoteIPAddress } = response;
+                        if (remoteIPAddress && remoteIPAddress !== proxyip) {
+                            // eslint-disable-next-line no-console
+                            console.warn(`Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
+                        }
+                    });
+                }
 
                 tabIds.set(page, tabid);
             }

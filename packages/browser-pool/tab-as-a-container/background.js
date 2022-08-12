@@ -1,13 +1,6 @@
 'use strict';
 
-/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
-/* eslint-disable no-empty */
-
-let resolveLoading;
-const loading = new Promise((resolve) => {
-    resolveLoading = resolve;
-});
 
 const isFirefox = navigator.userAgent.includes('Firefox');
 
@@ -22,7 +15,7 @@ const translator = new Map();
 const counter = new Map();
 
 const getOpenerId = (id) => {
-    if (typeof id !== 'number') {
+    if (typeof id !== 'number' || !Number.isFinite(id)) {
         throw new Error('Expected `id` to be a number');
     }
 
@@ -60,16 +53,24 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
             return;
         }
 
-        const dotIndex = cookie.name.slice(1).indexOf('.');
+        const dotIndex = cookie.name.indexOf('.', 1);
         if (dotIndex === -1) {
             return;
         }
 
-        const tabId = Number(cookie.name.slice(0, dotIndex));
+        const tabId = Number(cookie.name.slice(1, dotIndex));
+
+        if (!Number.isFinite(tabId)) {
+            return;
+        }
+
         const realCookieName = cookie.name.slice(dotIndex + 1);
         const opener = getOpenerId(tabId);
 
         if (tabId !== opener) {
+            // eslint-disable-next-line no-console
+            console.log(`${realCookieName} -> ${keyFromTabId(opener)}`);
+
             await chrome.cookies.remove({
                 name: cookie.name,
                 url: getCookieURL(cookie),
@@ -108,10 +109,32 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
                     cancel: true,
                 };
             }
+
+            // This one is for Firefox
+            if (header.name.toLowerCase() === 'x-moz' && header.value === 'prefetch' && !(counter.has(details.tabId))) {
+                // eslint-disable-next-line no-console
+                console.log(details);
+                return {
+                    cancel: true,
+                };
+            }
+
+            if (['beacon', 'csp_report', 'ping', 'speculative'].includes(details.type)) {
+                // eslint-disable-next-line no-console
+                console.log(details);
+                return {
+                    cancel: true,
+                };
+            }
+
+            if (details.tabId === -1) {
+                // eslint-disable-next-line no-console
+                console.log(details);
+            }
         }
 
         return {
-            requestHeaders: details.requestHeaders.filter((header) => header.name !== 'cookie' || header.value !== ''),
+            requestHeaders: details.requestHeaders.filter((header) => header.name.toLowerCase() !== 'cookie' || header.value !== ''),
         };
     },
     { urls: ['<all_urls>'] },
@@ -294,7 +317,7 @@ const routes = Object.assign(Object.create(null), {
     },
 });
 
-chrome.webNavigation.onCompleted.addListener(async (details) => {
+const onCompleted = async (details) => {
     const textPlain = 'data:text/plain,';
 
     if (details.frameId === 0 && details.url.startsWith(textPlain)) {
@@ -310,7 +333,9 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
                 if (hash !== '') {
                     try {
                         body = JSON.parse(decodeURIComponent(hash));
-                    } catch {}
+                    } catch {
+                        // Empty on purpose.
+                    }
                 }
 
                 // Different protocols are required, otherwise `onCompleted` won't be emitted.
@@ -323,7 +348,9 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
             // Invalid URL, ignore.
         }
     }
-});
+};
+
+chrome.webNavigation.onCompleted.addListener(onCompleted);
 
 // Load content scripts.
 (async () => {
@@ -383,5 +410,13 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
         });
     });
 
-    resolveLoading();
+    chrome.tabs.query({}, async (tabs) => {
+        for (const tab of tabs) {
+            await onCompleted({
+                frameId: 0,
+                url: tab.url,
+                tabId: tab.id,
+            });
+        }
+    });
 })();
