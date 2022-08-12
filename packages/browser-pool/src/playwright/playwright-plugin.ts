@@ -118,7 +118,12 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
 
                 if (experimentalContainers) {
                     if (this.library.name() === 'firefox') {
-                        await loadFirefoxAddon(firefoxPort!, '127.0.0.1', taacPath);
+                        const loaded = await loadFirefoxAddon(firefoxPort!, '127.0.0.1', taacPath);
+
+                        if (!loaded) {
+                            await browserContext.close();
+                            throw new Error('Failed to load Firefox experimental containers addon');
+                        }
                     }
 
                     // Wait for the extension to load.
