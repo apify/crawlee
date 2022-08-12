@@ -1,7 +1,7 @@
 {
     "name": "crawlee",
     "private": true,
-    "version": "3.0.3",
+    "version": "3.0.4",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "workspaces": [
         "packages/*"
