@@ -143,7 +143,7 @@ export class MemoryStorage implements storage.StorageClient {
         const keyValueStorePromises: Promise<void>[] = [];
 
         for (const keyValueStoreFolder of keyValueStores) {
-            if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY')) {
+            if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY') || keyValueStoreFolder.startsWith('__OLD')) {
                 keyValueStorePromises.push((await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
             } else if (keyValueStoreFolder === 'default') {
                 keyValueStorePromises.push((await this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
@@ -191,8 +191,18 @@ export class MemoryStorage implements storage.StorageClient {
             }
 
             // Remove the original folder and all its content
-            const tempPathForOldFolder = resolve(folder, '../__OLD_DEFAULT__');
-            await rename(folder, tempPathForOldFolder);
+            let counter = 0;
+            let tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${counter}__`);
+            let done = false;
+
+            while (!done) {
+                try {
+                    await rename(folder, tempPathForOldFolder);
+                    done = true;
+                } catch {
+                    tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${++counter}__`);
+                }
+            }
 
             // Replace the temporary folder with the original folder
             await rename(temporaryPath, folder);
