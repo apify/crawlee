@@ -123,7 +123,7 @@ export class MemoryStorage implements storage.StorageClient {
             if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY') || keyValueStoreFolder.startsWith('__OLD')) {
                 keyValueStorePromises.push((await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
             } else if (keyValueStoreFolder === 'default') {
-                keyValueStorePromises.push((await this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
+                keyValueStorePromises.push(this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder))());
             }
         }
 
