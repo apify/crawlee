@@ -5,9 +5,8 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import CodeBlock from '@theme/CodeBlock';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import { minSatisfying } from 'semver';
 import styles from './index.module.css';
-import Hightlights from '../components/Highlights';
+import Highlights from '../components/Highlights';
 
 function Hero() {
     return (
@@ -58,18 +57,29 @@ function Features() {
         <section className={clsx('container', styles.features)}>
             <div className="row">
                 <div className="col col--4">
-                    <h2>Easy crawling</h2>
+                    <h2>Reliable crawling 🏗</h2>
                 </div>
             </div>
             <div className="row">
-                <div className="col col--4">
+                <div className="col col--5">
                     <p>
-                        There are three main classes that you can use to start crawling the web in no time. Need to crawl plain HTML?
-                        Use the blazing fast CheerioCrawler. For complex websites that use React, Vue or other front-end javascript libraries and require
-                        JavaScript execution, spawn a headless browser with PlaywrightCrawler or PuppeteerCrawler.
+                        Crawlee won't fix broken selectors for you (yet), but it helps you <b>build and maintain your crawlers faster</b>.
+                    </p>
+                    <p>
+                        When a website adds JavaScript rendering, you don't have to rewrite everything, only switch to
+                        one of the browser crawlers. When you later find a great API to speed up your crawls, flip the switch back.
+                    </p>
+                    <p>
+                        It keeps your proxies healthy by rotating them smartly with good fingerprints that make your crawlers
+                        look human-like. It's not unblockable,
+                        but <a href="https://blog.apify.com/daltix-python-vs-apify-sdk/" target="_blank" rel="noreferrer"><b>it will save you money in the long run</b></a>.
+                    </p>
+                    <p>
+                        Crawlee is built by people who scrape for a living and use it every day to scrape millions of pages.
+                        <a href="https://discord.com/invite/jyEM2PRvMU" target="_blank" rel="noreferrer"><b> Meet us on Discord</b></a>.
                     </p>
                 </div>
-                <div className="col col--8 text--center">
+                <div className="col col--7 text--center">
                     <img src={require('../../static/img/chrome_scrape.gif').default} className={clsx(styles.hideSmall)} />
                 </div>
             </div>
@@ -128,6 +138,9 @@ function ActorExample() {
                 <CodeBlock className="language-typescript">
                     {example}
                 </CodeBlock>
+                <div className="col col--12 text--center">
+                    <img src={require('../../static/img/chrome_scrape.gif').default} className={clsx(styles.hideSmall)} />
+                </div>
             </div>
         </section>
     );
@@ -141,7 +154,7 @@ export default function Home() {
             title={`${siteConfig.title} · ${siteConfig.tagline}`}
             description={siteConfig.description}>
             <Hero />
-            <Hightlights />
+            <Highlights />
             <Features />
             <ActorExample />
             <div className="container">
