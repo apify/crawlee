@@ -76,7 +76,7 @@ function Features() {
                     </p>
                     <p>
                         Crawlee is built by people who scrape for a living and use it every day to scrape millions of pages.
-                        <a href="https://discord.com/invite/jyEM2PRvMU" target="_blank" rel="noreferrer"><b> Meet us on Discord</b></a>.
+                        <a href="https://discord.com/invite/jyEM2PRvMU" target="_blank" rel="noreferrer"><b> Meet our community on Discord</b></a>.
                     </p>
                 </div>
                 <div className="col col--7 text--center">
