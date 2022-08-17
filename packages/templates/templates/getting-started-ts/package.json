@@ -1,0 +1,24 @@
+{
+    "name": "crawlee-getting-started-ts",
+    "version": "0.0.1",
+    "type": "module",
+    "description": "This is an example of a Crawlee project.",
+    "dependencies": {
+        "crawlee": "^3.0.0",
+        "playwright": "*"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "ts-node": "^10.8.0",
+        "typescript": "^4.7.4"
+    },
+    "scripts": {
+        "start": "npm run start:dev",
+        "start:prod": "node dist/main.js",
+        "start:dev": "ts-node-esm -T src/main.ts",
+        "build": "tsc",
+        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
+    },
+    "author": "It's not you it's me",
+    "license": "ISC"
+}

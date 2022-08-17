@@ -1,9 +1,11 @@
 import React from 'react';
 import clsx from 'clsx';
+import Admonition from '@theme/Admonition';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import CodeBlock from '@theme/CodeBlock';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import { minSatisfying } from 'semver';
 import styles from './index.module.css';
 import Hightlights from '../components/Highlights';
 
@@ -77,19 +79,26 @@ function Features() {
 
 const example = `import { PlaywrightCrawler, Dataset } from 'crawlee';
 
+// PlaywrightCrawler crawls the web using a headless
+// browser controlled by the Playwright library.
 const crawler = new PlaywrightCrawler({
+    // Use the requestHandler to process each of the crawled pages.
     async requestHandler({ request, page, enqueueLinks }) {
         const title = await page.title();
-        console.log(\`Title of $\{request.loadedUrl} is '$\{title}'\`);
+        console.log(\`Title of \${request.loadedUrl} is '\${title}'\`);
 
-        // save some results
+        // Save results as JSON to ./storage/datasets/default
         await Dataset.pushData({ title, url: request.loadedUrl });
 
-        // enqueue all links targeting the same hostname
+        // Extract links from the current page
+        // and add them to the crawling queue.
         await enqueueLinks();
-    }
+    },
+    // Uncomment this option to see the browser window.
+    // headless: false,
 });
 
+// Add first URL to the queue and start the crawl.
 await crawler.run(['https://crawlee.dev']);
 `;
 
@@ -97,18 +106,27 @@ function ActorExample() {
     return (
         <section className={clsx(styles.try, 'container')}>
             <div className="col">
-                <h2>Try it out</h2>
-                <p>Install Crawlee into a Node.js project. You must have Node.js 16 or higher installed.</p>
+                <h2>Try Crawlee out 👾</h2>
+                <Admonition type="caution">
+                    You must have <a href="https://nodejs.org/en/" target="_blank" rel="noreferrer"><b>Node.js 16 or higher</b></a> installed.
+                </Admonition>
+                <p>
+                    The fastest way to try Crawlee out is to use the <b>Crawlee CLI</b> and choose the <b>Getting started example</b>.
+                    The CLI will install all the necessary dependencies and add boilerplate code for you to play with.
+                </p>
+                <CodeBlock className="language-bash">
+                    npx crawlee create my-crawler
+                </CodeBlock>
+                <p>
+                    If you want to add Crawlee <b>into your own project</b>, try the example below.
+                    Because it uses <code>PlaywrightCrawler</code> we also need to install Playwright.
+                    It's not bundled with Crawlee to reduce install size.
+                </p>
                 <CodeBlock className="language-bash">
                     npm install crawlee playwright
                 </CodeBlock>
-                <p>Copy the following code into a file in the project, for example <code>main.mjs</code>:</p>
                 <CodeBlock className="language-typescript">
                     {example}
-                </CodeBlock>
-                <p>Execute the following command in the project's folder and watch it recursively crawl the Crawlee website with Playwright and Chromium.</p>
-                <CodeBlock className="language-bash">
-                    node main.mjs
                 </CodeBlock>
             </div>
         </section>
