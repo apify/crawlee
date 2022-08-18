@@ -1,11 +1,12 @@
 ---
 id: quick-start
 title: Quick Start
-description: Quick and easy steps to get started using Crawlee today!
+description: With this short tutorial you can start scraping with Crawlee in a minute or two. To learn more, read the Introduction.
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
 
+import Admonition from '@theme/Admonition';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
@@ -33,10 +34,30 @@ This crawler uses a headless browser to crawl, controlled by the [Puppeteer](htt
 ### PlaywrightCrawler
 [Playwright](https://github.com/microsoft/playwright) is a more powerful and full-featured successor to Puppeteer. It can control Chromium, Chrome, Firefox, Webkit and many other browsers. If you're not familiar with Puppeteer already, and you need a headless browser, go with Playwright.
 
-## Installation
+:::caution before you start
 
-Crawlee requires [Node.js](https://nodejs.org/en/) 16 or later.
-It can be added to any Node.js project by running:
+Crawlee requires [Node.js 16 or later](https://nodejs.org/en/).
+
+:::
+
+## Installation with Crawlee CLI
+
+The fastest way to try Crawlee out is to use the **Crawlee CLI** and choose the **Getting started example**.
+The CLI will install all the necessary dependencies and add boilerplate code for you to play with.
+
+```bash
+npx crawlee create my-crawler
+```
+
+After the installation is complete you can start the crawler like this:
+
+```bash
+cd my-crawler && npm start
+```
+
+## Manual installation
+
+You can add Crawlee to any Node.js project by running:
 
 <Tabs groupId="quick_start">
 <TabItem value="cheerio" label="CheerioCrawler" default>
@@ -66,17 +87,24 @@ It can be added to any Node.js project by running:
 
 ## Crawling
 
-Run the following example to perform a recursive crawl of the Crawlee website using:
+Run the following example to perform a recursive crawl of the Crawlee website using the selected crawler.
+
+<Admonition type="caution" title="Don't forget about module imports">
+    To run the example, add a <code>"type": "module"</code> clause into your <code>package.json</code> or
+    copy it into a file with an <code>.mjs</code> suffix. This enables <code>import</code> statements in Node.js.
+    See <a href="https://nodejs.org/dist/latest-v16.x/docs/api/esm.html#enabling" target="_blank" rel="noreferrer">Node.js docs</a> for
+    more information.
+</Admonition>
 
 <Tabs groupId="quick_start">
     <TabItem value="cheerio" label="CheerioCrawler" default>
-        <CodeBlock language="js" title="src/main.mjs">{CheerioSource}</CodeBlock>
+        <CodeBlock language="js">{CheerioSource}</CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PlaywrightSource}</CodeBlock>
+        <CodeBlock language="js">{PlaywrightSource}</CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PuppeteerSource}</CodeBlock>
+        <CodeBlock language="js">{PuppeteerSource}</CodeBlock>
     </TabItem>
 </Tabs>
 
@@ -91,10 +119,10 @@ Browsers controlled by Puppeteer and Playwright run headless (without a visible 
 
 <Tabs groupId="quick_start">
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PlaywrightHeadful}</CodeBlock>
+        <CodeBlock language="js">{PlaywrightHeadful}</CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PuppeteerHeadful}</CodeBlock>
+        <CodeBlock language="js">{PuppeteerHeadful}</CodeBlock>
     </TabItem>
 </Tabs>
 
@@ -127,18 +155,3 @@ You can find more examples showcasing various features of Crawlee in the [Exampl
 - [Configuration](./guides/configuration)
 - [Request storage](./guides/request-storage)
 - [Result storage](./guides/result-storage)
-
-## Local usage with Crawlee command-line interface (CLI)
-
-To create a boilerplate of your project, you can use the [Crawlee CLI](https://www.npmjs.com/package/@crawlee/cli) tool by running:
-
-```bash
-npx crawlee create my-cheerio-crawler
-```
-
-The CLI will prompt you to select a project boilerplate template - let's pick the **Crawlee cheerio template [TypeScript]**. The tool will create a directory called `my-cheerio-crawler` with Node.js project files. You can run the project as follows:
-
-```bash
-cd my-cheerio-crawler
-npm start
-```
