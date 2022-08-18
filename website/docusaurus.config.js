@@ -107,6 +107,13 @@ module.exports = {
                         to: '/docs/introduction',
                     },
                 ],
+                createRedirects(existingPath) {
+                    if (!existingPath.endsWith('/')) {
+                        return `${existingPath}/`;
+                    }
+
+                    return undefined; // Return a falsy value: no redirect created
+                },
             },
         ],
         [
