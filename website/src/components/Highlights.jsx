@@ -8,8 +8,8 @@ const FeatureList = [
         Svg: require('../../static/img/features/runs-on-js.svg').default,
         description: (
             <>
-                We believe websites are best scraped in the language they're written in. Crawlee runs on Node.js
-                and it's built in TypeScript to improve code completion in your IDE, even if you don't use TypeScript yourself.
+                We believe websites are best scraped in the language they're written in. Crawlee <b>runs on Node.js
+                and it's built in TypeScript</b> to improve code completion in your IDE, even if you don't use TypeScript yourself.
             </>
         ),
     },
@@ -39,7 +39,7 @@ const FeatureList = [
         description: (
             <>
                 Crawlee automatically manages concurrency based on available system resources and smartly rotates proxies.
-                Proxies that time-out, return network errors or bad HTTP codes like 401 or 403 are removed from the pool.
+                Proxies that often time-out, return network errors or bad HTTP codes like 401 or 403 are discarded.
             </>
         ),
     },
@@ -48,8 +48,8 @@ const FeatureList = [
         Svg: require('../../static/img/features/fingerprints.svg').default,
         description: (
             <>
-                You can save files, screenshots and JSON results to disk with one line of code and your URLs are kept
-                in a queue that ensures their uniqueness and that you don't lose progress when something fails.
+                You can save files, screenshots and JSON results to disk with one line of code or plug an adapter
+                for your DB. Your URLs are kept in a queue that ensures their uniqueness and that you don't lose progress when something fails.
             </>
         ),
     },
@@ -58,7 +58,7 @@ const FeatureList = [
         Svg: require('../../static/img/features/node-requests.svg').default,
         description: (
             <>
-                Crawlee includes tools for parsing social handles or phone numbers, infinite scrolling, blocking
+                Crawlee includes tools for extracting social handles or phone numbers, infinite scrolling, blocking
                 unwanted assets and many more. It works great out of the box, but also provides rich configuration options.
             </>
         ),

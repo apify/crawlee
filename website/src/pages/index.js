@@ -56,12 +56,8 @@ function Features() {
     return (
         <section className={clsx('container', styles.features)}>
             <div className="row">
-                <div className="col col--4">
+                <div className="col col--6">
                     <h2>Reliable crawling 🏗</h2>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col col--5">
                     <p>
                         Crawlee won't fix broken selectors for you (yet), but it helps you <b>build and maintain your crawlers faster</b>.
                     </p>
@@ -79,8 +75,8 @@ function Features() {
                         <a href="https://discord.com/invite/jyEM2PRvMU" target="_blank" rel="noreferrer"><b> Meet our community on Discord</b></a>.
                     </p>
                 </div>
-                <div className="col col--7 text--center">
-                    <img src={require('../../static/img/chrome_scrape.gif').default} className={clsx(styles.hideSmall)} />
+                <div className="col col--5 col--offset-1">
+                    <img src={require('../../static/img/logo-blur.png').default} className={clsx(styles.hideSmall)} />
                 </div>
             </div>
         </section>
@@ -93,9 +89,9 @@ const example = `import { PlaywrightCrawler, Dataset } from 'crawlee';
 // browser controlled by the Playwright library.
 const crawler = new PlaywrightCrawler({
     // Use the requestHandler to process each of the crawled pages.
-    async requestHandler({ request, page, enqueueLinks }) {
+    async requestHandler({ request, page, enqueueLinks, log }) {
         const title = await page.title();
-        console.log(\`Title of \${request.loadedUrl} is '\${title}'\`);
+        log.info(\`Title of \${request.loadedUrl} is '\${title}'\`);
 
         // Save results as JSON to ./storage/datasets/default
         await Dataset.pushData({ title, url: request.loadedUrl });
@@ -117,8 +113,8 @@ function ActorExample() {
         <section className={clsx(styles.try, 'container')}>
             <div className="col">
                 <h2>Try Crawlee out 👾</h2>
-                <Admonition type="caution">
-                    You must have <a href="https://nodejs.org/en/" target="_blank" rel="noreferrer"><b>Node.js 16 or higher</b></a> installed.
+                <Admonition type="caution" title="before you start">
+                    Crawlee requires <a href="https://nodejs.org/en/" target="_blank" rel="noreferrer"><b>Node.js 16 or higher</b></a>.
                 </Admonition>
                 <p>
                     The fastest way to try Crawlee out is to use the <b>Crawlee CLI</b> and choose the <b>Getting started example</b>.
@@ -128,7 +124,7 @@ function ActorExample() {
                     npx crawlee create my-crawler
                 </CodeBlock>
                 <p>
-                    If you want to add Crawlee <b>into your own project</b>, try the example below.
+                    If you prefer adding Crawlee <b>into your own project</b>, try the example below.
                     Because it uses <code>PlaywrightCrawler</code> we also need to install Playwright.
                     It's not bundled with Crawlee to reduce install size.
                 </p>
@@ -138,9 +134,6 @@ function ActorExample() {
                 <CodeBlock className="language-typescript">
                     {example}
                 </CodeBlock>
-                <div className="col col--12 text--center">
-                    <img src={require('../../static/img/chrome_scrape.gif').default} className={clsx(styles.hideSmall)} />
-                </div>
             </div>
         </section>
     );
