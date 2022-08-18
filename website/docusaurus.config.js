@@ -140,20 +140,22 @@ module.exports = {
             },
             items: [
                 {
-                    type: 'docsVersion',
-                    to: 'docs/quick-start',
+                    type: 'doc',
+                    docId: 'quick-start/quick-start',
                     label: 'Docs',
                     position: 'left',
+                    activeBaseRegex: 'docs/quick-start',
                 },
                 {
-                    type: 'docsVersion',
-                    to: 'docs/examples',
+                    type: 'doc',
+                    docId: 'examples/examples',
                     label: 'Examples',
                     position: 'left',
+                    activeBaseRegex: 'docs/examples',
                 },
                 {
-                    type: 'docsVersion',
-                    to: 'api/core',
+                    type: 'custom-api',
+                    to: 'core',
                     label: 'API',
                     position: 'left',
                     activeBaseRegex: 'api/(?!core/changelog)',
