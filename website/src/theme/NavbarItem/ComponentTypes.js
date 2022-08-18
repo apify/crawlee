@@ -39,7 +39,6 @@ function DocNavbarItem({
 }
 
 function ApiNavbarItem(ctx) {
-    const { activeDoc, activeVersion } = useActiveDocContext();
     let version = {};
 
     try {
@@ -56,8 +55,7 @@ function ApiNavbarItem(ctx) {
             <DefaultNavbarItem
                 exact
                 {...ctx}
-                isActive={() => activeDoc?.path.startsWith(activeVersion?.path.replace(/^\/docs/, '/api'))}
-                label={ctx.staticLabel ?? ctx.label}
+                label={ctx.label}
                 to={`api/${ctx.to}`}
             />
         );
@@ -67,8 +65,7 @@ function ApiNavbarItem(ctx) {
         <DefaultNavbarItem
             exact
             {...ctx}
-            isActive={() => activeDoc?.path.startsWith(activeVersion?.path.replace(/^\/docs/, '/api'))}
-            label={ctx.staticLabel ?? ctx.label}
+            label={ctx.label}
             to={`api/${version.version === 'current' ? 'next' : version.version}/${ctx.to}`}
         />
     );

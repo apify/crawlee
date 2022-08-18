@@ -156,6 +156,7 @@ module.exports = {
                     to: 'core',
                     label: 'API',
                     position: 'left',
+                    activeBaseRegex: 'api/(?!.*/changelog)',
                 },
                 {
                     type: 'custom-api',
@@ -163,6 +164,7 @@ module.exports = {
                     label: 'Changelog',
                     position: 'left',
                     className: 'changelog',
+                    activeBaseRegex: 'changelog',
                 },
                 {
                     type: 'docsVersionDropdown',
