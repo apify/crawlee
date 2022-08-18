@@ -6,15 +6,14 @@ import HtmlNavbarItem from '@theme/NavbarItem/HtmlNavbarItem';
 import DocSidebarNavbarItem from '@theme/NavbarItem/DocSidebarNavbarItem';
 import DocsVersionNavbarItem from '@theme/NavbarItem/DocsVersionNavbarItem';
 import DocsVersionDropdownNavbarItem from '@theme/NavbarItem/DocsVersionDropdownNavbarItem';
-import React from 'react';
 import { useActiveDocContext } from '@docusaurus/plugin-content-docs/client';
 import { useDocsVersion, useLayoutDoc } from '@docusaurus/theme-common/internal';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import React from 'react';
 
-const pkg = require('../../../../packages/crawlee/package.json');
+const versions = require('../../../versions.json');
 
-const [v1, v2] = pkg.version.split('.');
-const stable = [v1, v2].join('.');
+const stable = versions[0];
 
 function DocNavbarItem({
     docId,
@@ -41,17 +40,16 @@ function DocNavbarItem({
 
 function ApiNavbarItem(ctx) {
     const { activeDoc, activeVersion } = useActiveDocContext();
-    const version = useDocsVersion();
+    let version = {};
+
+    try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        version = useDocsVersion();
+    } catch {
+        version.version = stable;
+    }
+
     const { siteConfig } = useDocusaurusContext();
-    console.log(ctx, activeDoc, activeVersion, activeVersion?.path.replace(/^\/docs/, '/api'));
-    console.log(window.location.href, version);
-    // const { activeDoc } = useActiveDocContext(docsPluginId);
-    // const doc = useLayoutDoc(docId, docsPluginId);
-    // console.log(activeDoc, doc, (!!activeDoc?.sidebar && activeDoc.sidebar === doc.sidebar));
-    // Draft items are not displayed in the navbar.
-    // if (doc === null) {
-    //     return null;
-    // }
 
     if (siteConfig.presets[0][1].docs.disableVersioning || version.version === stable) {
         return (
