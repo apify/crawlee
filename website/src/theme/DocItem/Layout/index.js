@@ -64,7 +64,7 @@ export default function DocItemLayout({ children }) {
                         inputPosition="top"
                         theme={colorMode}
                         lang="en"
-                        strict="0"
+                        strict="1"
                     />
                 </div>
             </div>
