@@ -112,7 +112,7 @@ module.exports = {
         [
             'docusaurus-gtm-plugin',
             {
-                id: 'GTM-TKBX678',
+                id: 'GTM-5P7MCS7',
             },
         ],
     ],
