@@ -26,4 +26,4 @@ COPY --chown=myuser . ./
 
 
 # Run the image.
-CMD npm run start:prod --silent
+CMD npm start --silent
