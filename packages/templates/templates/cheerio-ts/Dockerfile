@@ -5,7 +5,7 @@ FROM apify/actor-node:16 AS builder
 
 # Second, copy the source files using the user set
 # in the base image. We don't wanna run as root.
-COPY --chown=myuser . ./
+COPY . ./
 
 # Install all dependencies and build the project.
 # Don't audit to speed up the installation.
@@ -15,11 +15,11 @@ RUN npm install --include=dev --audit=false && npm run build
 FROM apify/actor-node:16
 
 # Copy only built JS files from builder image
-COPY --from=builder --chown=myuser /home/myuser/dist ./dist
+COPY --from=builder /usr/src/app/dist ./dist
 
 # Copy just package.json and package-lock.json
 # to speed up the build using Docker layer cache.
-COPY --chown=myuser package*.json ./
+COPY package*.json ./
 
 # Install NPM packages, skip optional and development dependencies to
 # keep the image small. Avoid logging too much and print the dependency
@@ -36,7 +36,7 @@ RUN npm --quiet set progress=false \
 # Next, copy the remaining files and directories with the source code.
 # Since we do this after NPM install, quick build will be really fast
 # for most source file changes.
-COPY --chown=myuser . ./
+COPY . ./
 
 
 # Run the image.
