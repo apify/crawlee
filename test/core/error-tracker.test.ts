@@ -497,14 +497,14 @@ test('placeholder #4', () => {
 
     tracker.add({
         name: 'Error',
-        message: 'The weather is wild today, but the grass is yellow.',
+        message: 'The weather is wild today, however the grass is yellow.',
     });
 
     expect(tracker.result).toMatchObject({
         null: {                                                     // source
             null: {                                                 // code
                 Error: {                                            // name
-                    'The weather is _ today, but the grass is _': { // message
+                    'The weather is _ today, _ the grass is _': { // message
                         count: 3,
                     },
                 },
