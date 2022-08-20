@@ -1,3 +1,10 @@
+interface ErrnoException extends Error {
+    errno?: number | undefined;
+    code?: string | undefined;
+    path?: string | undefined;
+    syscall?: string | undefined;
+}
+
 export type ErrorTracker = ReturnType<typeof createErrorTracker>;
 
 export const createErrorTracker = ({
@@ -42,7 +49,7 @@ export const createErrorTracker = ({
         return extractPathFromStackTraceLine(stack[0]);
     };
 
-    const getStackTraceGroup = (error: NodeJS.ErrnoException, storage: Record<string, unknown>) => {
+    const getStackTraceGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
         const stack = error.stack!.split('\n');
 
         let sliceAt = -1;
@@ -70,7 +77,7 @@ export const createErrorTracker = ({
         return storage[normalizedStackTrace] as Record<string, unknown>;
     };
 
-    const getErrorCodeGroup = (error: NodeJS.ErrnoException, storage: Record<string, unknown>) => {
+    const getErrorCodeGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
         let { code } = error;
 
         if (code === undefined) {
@@ -84,7 +91,7 @@ export const createErrorTracker = ({
         return storage[code] as Record<string, unknown>;
     };
 
-    const getErrorNameGroup = (error: NodeJS.ErrnoException, storage: Record<string, unknown>) => {
+    const getErrorNameGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
         const { name } = error;
 
         if (!(name in storage)) {
@@ -254,7 +261,7 @@ export const createErrorTracker = ({
         ).join(' ');
 
         if (placeholder === '_') {
-            return;
+            return undefined;
         }
 
         interface HasCount {
@@ -273,7 +280,7 @@ export const createErrorTracker = ({
         return placeholder;
     };
 
-    const getErrorMessageGroup = (error: NodeJS.ErrnoException, storage: Record<string, unknown>) => {
+    const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
         let { message } = error;
 
         if (!(message in storage)) {
@@ -307,7 +314,7 @@ export const createErrorTracker = ({
     let total = 0;
 
     return {
-        add(error: NodeJS.ErrnoException) {
+        add(error: ErrnoException) {
             total++;
 
             let group = result;
