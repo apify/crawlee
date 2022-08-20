@@ -1,28 +1,36 @@
 {
     "templates": [
         {
+            "name": "getting-started-ts",
+            "description": "Getting started example [TypeScript]"
+        },
+        {
+            "name": "getting-started-js",
+            "description": "Getting started example [JavaScript]"
+        },
+        {
             "name": "cheerio-ts",
-            "description": "Crawlee cheerio template [TypeScript]"
+            "description": "CheerioCrawler template project [TypeScript]"
         },
         {
             "name": "playwright-ts",
-            "description": "Crawlee playwright template [TypeScript]"
+            "description": "PlaywrightCrawler template project [TypeScript]"
         },
         {
             "name": "puppeteer-ts",
-            "description": "Crawlee puppeteer template [TypeScript]"
+            "description": "PuppeteerCrawler template project [TypeScript]"
         },
         {
             "name": "cheerio-js",
-            "description": "Crawlee cheerio template [JavaScript]"
+            "description": "CheerioCrawler template project [JavaScript]"
         },
         {
             "name": "playwright-js",
-            "description": "Crawlee playwright template [JavaScript]"
+            "description": "PlaywrightCrawler template project [JavaScript]"
         },
         {
             "name": "puppeteer-js",
-            "description": "Crawlee puppeteer template [JavaScript]"
+            "description": "PlaywrightCrawler template project [JavaScript]"
         }
     ]
 }

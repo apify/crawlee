@@ -9,9 +9,9 @@ import ApiLink from '@site/src/components/ApiLink';
 To run Crawlee on your own computer, you need to meet the following pre-requisites first:
 
 1. Have **Node.js version 16.0** or higher installed.
-   - Visit [Node.js website](https://nodejs.org/en/download/) to download or use [fnm](https://github.com/Schniz/fnm)
+- Visit [Node.js website](https://nodejs.org/en/download/) to download or use [fnm](https://github.com/Schniz/fnm)
 2. Have **NPM** installed, or use other package manager of your choice.
-   - NPM comes bundled with Node.js, so you should already have it. If not, reinstall Node.js.
+- NPM comes bundled with Node.js, so you should already have it. If not, reinstall Node.js.
 
 If not certain, confirm the prerequisites by running:
 
@@ -25,38 +25,53 @@ npm -v
 
 ## Creating a new project
 
-The fastest and best way to create new projects with Crawlee is to use the [Crawlee CLI](https://www.npmjs.com/package/@crawlee/cli). You can use the `npx` utility to download and run the CLI - it is also embedded in the `crawlee` package:
+The fastest and best way to create new projects with Crawlee is to use the [Crawlee CLI](https://www.npmjs.com/package/@crawlee/cli). You can use the `npx` utility to download and run the CLI - it is embedded in the `crawlee` package:
 
 ```bash
-npx crawlee create my-new-project
+npx crawlee create my-crawler
 ```
 
 A prompt will be shown, asking you to choose a template. Crawlee is written in TypeScript so if you're familiar with it, choosing a TypeScript template will give you better code completion and static type checking, but feel free to use JavaScript as well. Functionally they're identical.
 
-Let's choose the first template called **Crawlee playwright template**. The command will create a new directory in your current working directory, called **my-new-project**, add a **package.json** to this folder and install all the necessary dependencies. It will also add example source code that you can immediately run.
+Let's choose the first template called **Getting started example**. The command will create a new directory in your current working directory, called **my-crawler**, add a **package.json** to this folder and install all the necessary dependencies. It will also add example source code that you can immediately run.
 
 Let's try that!
 
 ```bash
-cd my-new-project
+cd my-crawler
 npm start
 ```
 
-You will see log messages in the terminal as Crawlee boots up and after a second a Chromium browser window will open. In the window, you'll see quickly changing pages and back in the terminal, you will see the printed titles (contents of the `<title>` HTML tags) of the pages.
+You will see log messages in the terminal as Crawlee boots up and starts scraping the Crawlee website.
 
-![Chrome Scrape](/img/chrome_scrape.gif)
-
-:::info
-
-We picked the Playwright template, which uses Chromium to open pages. If you pick the Cheerio template instead, there won't be any browser window, as the requests to the target site will be done via a specialized HTTP client: [`got-scraping`](https://github.com/apify/got-scraping), instead of a browser.
-
-:::
+```log
+INFO  PlaywrightCrawler: Starting the crawl
+INFO  PlaywrightCrawler: Title of https://crawlee.dev/ is 'Crawlee · Build reliable crawlers. Fast. | Crawlee'
+INFO  PlaywrightCrawler: Title of https://crawlee.dev/docs/examples is 'Examples | Crawlee'
+INFO  PlaywrightCrawler: Title of https://crawlee.dev/api/core is '@crawlee/core | API | Crawlee'
+INFO  PlaywrightCrawler: Title of https://crawlee.dev/api/core/changelog is 'Changelog | API | Crawlee'
+INFO  PlaywrightCrawler: Title of https://crawlee.dev/docs/quick-start is 'Quick Start | Crawlee'
+```
 
 You can always terminate the crawl with a keypress in the terminal:
 
-```bash
+```text
 CTRL+C
 ```
+
+### Running headful browsers
+
+Browsers controlled by Playwright run headless (without a visible window). You can switch to headful by uncommenting the `headless: false` option in the crawler's constructor. This is useful in the development phase when you want to see what's going on in the browser.
+
+
+```typescript
+// Uncomment this option to see the browser window.
+headless: false
+```
+
+When you run the example again, after a second a Chromium browser window will open. In the window, you'll see quickly changing pages as the crawler does its job.
+
+![Chrome Scrape](/img/chrome_scrape.gif)
 
 ## Next lesson
 

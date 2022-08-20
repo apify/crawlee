@@ -1,21 +1,21 @@
 import { CheerioCrawler, Dataset } from 'crawlee';
 
+// CheerioCrawler crawls the web using HTTP requests
+// and parses HTML using the Cheerio library.
 const crawler = new CheerioCrawler({
+    // Use the requestHandler to process each of the crawled pages.
     async requestHandler({ request, $, enqueueLinks, log }) {
-        const { url } = request;
-
-        // Extract HTML title of the page.
         const title = $('title').text();
-        log.info(`Title of ${url}: ${title}`);
+        log.info(`Title of ${request.loadedUrl} is '${title}'`);
 
-        // Add links from the page that point
-        // to the same domain as the original request.
-        await enqueueLinks({ strategy: 'same-domain' });
+        // Save results as JSON to ./storage/datasets/default
+        await Dataset.pushData({ title, url: request.loadedUrl });
 
-        // Save extracted data to storage.
-        await Dataset.pushData({ url, title });
+        // Extract links from the current page
+        // and add them to the crawling queue.
+        await enqueueLinks();
     },
 });
 
-// Add a start URL to the queue and run the crawler.
-await crawler.run(['https://crawlee.dev/']);
+// Add first URL to the queue and start the crawl.
+await crawler.run(['https://crawlee.dev']);

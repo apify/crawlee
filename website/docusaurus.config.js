@@ -33,7 +33,7 @@ const packagesOrder = [
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
     title: 'Crawlee',
-    tagline: 'The scalable web crawling, scraping and automation library for JavaScript/Node.js',
+    tagline: 'Build reliable crawlers. Fast.',
     url: 'https://crawlee.dev',
     baseUrl: '/',
     trailingSlash: false,

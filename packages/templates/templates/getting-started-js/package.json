@@ -1,10 +1,11 @@
 {
-    "name": "crawlee-cheerio-js",
+    "name": "crawlee-getting-started-js",
     "version": "0.0.1",
     "type": "module",
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
-        "crawlee": "^3.0.0"
+        "crawlee": "^3.0.0",
+        "playwright": "*"
     },
     "scripts": {
         "start": "node src/main.js",
