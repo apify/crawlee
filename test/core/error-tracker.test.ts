@@ -365,7 +365,7 @@ test('placeholder #2', () => {
     });
 });
 
-test('placeholder #2', () => {
+test('placeholder #3', () => {
     const tracker = createErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -402,7 +402,7 @@ test('placeholder #2', () => {
     });
 });
 
-test('placeholder #3', () => {
+test('placeholder #4', () => {
     const tracker = createErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -439,7 +439,7 @@ test('placeholder #3', () => {
     });
 });
 
-test('placeholder #3', () => {
+test('placeholder #5', () => {
     const tracker = createErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -476,7 +476,7 @@ test('placeholder #3', () => {
     });
 });
 
-test('placeholder #4', () => {
+test('placeholder #6', () => {
     const tracker = createErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -505,6 +505,55 @@ test('placeholder #4', () => {
             null: {                                                 // code
                 Error: {                                            // name
                     'The weather is _ today, _ the grass is _': { // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #7', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `number`',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `number`',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                           // source
+            null: {                                       // code
+                Error: {                                  // name
+                    'Expected `boolean`, got `number`': { // message
+                        count: 2,
+                    },
+                },
+            },
+        },
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `falsy value`',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                    // source
+            null: {                                // code
+                Error: {                           // name
+                    'Expected `boolean`, got _': { // message
                         count: 3,
                     },
                 },
