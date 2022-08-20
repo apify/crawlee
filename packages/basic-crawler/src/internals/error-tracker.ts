@@ -50,12 +50,12 @@ export const createErrorTracker = ({
     };
 
     const getStackTraceGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
-        const stack = error.stack!.split('\n');
+        const stack = error.stack!.split('\n').map((line) => line.trim());
 
         let sliceAt = -1;
 
         for (let i = 0; i < stack.length; i++) {
-            if (stack[i].startsWith('\tat ') || stack[i].startsWith('    at ')) {
+            if (stack[i].startsWith('at ') || stack[i].startsWith('eval at ')) {
                 sliceAt = i;
                 break;
             }
