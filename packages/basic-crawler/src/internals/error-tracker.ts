@@ -50,20 +50,22 @@ export const createErrorTracker = ({
     };
 
     const getStackTraceGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
-        const stack = error.stack!.split('\n').map((line) => line.trim());
+        const stack = error.stack?.split('\n').map((line) => line.trim());
 
         let sliceAt = -1;
 
-        for (let i = 0; i < stack.length; i++) {
-            if (stack[i].startsWith('at ') || stack[i].startsWith('eval at ')) {
-                sliceAt = i;
-                break;
+        if (stack) {
+            for (let i = 0; i < stack.length; i++) {
+                if (stack[i].startsWith('at ') || stack[i].startsWith('eval at ')) {
+                    sliceAt = i;
+                    break;
+                }
             }
         }
 
         let normalizedStackTrace = null;
         if (sliceAt !== -1) {
-            normalizedStackTrace = showFullStack ? stack.slice(sliceAt).map((x) => x.trim()).join('\n') : getPathFromStackTrace(stack.slice(sliceAt));
+            normalizedStackTrace = showFullStack ? stack!.slice(sliceAt).map((x) => x.trim()).join('\n') : getPathFromStackTrace(stack!.slice(sliceAt));
         }
 
         if (!normalizedStackTrace) {
@@ -101,46 +103,9 @@ export const createErrorTracker = ({
         return storage[name] as Record<string, unknown>;
     };
 
-    const normalizeMessage = (message: string) => {
-        // Highest chance of being a placeholder
-        message = message.replace(/`.*?`/g, '_');
-        message = message.replace(/'.*?'/g, '_');
-        message = message.replace(/".*?"/g, '_');
-
-        // Can be present in a URL, don't enable for now.
-        // message = message.replace(/!.*?!/g, '_');
-        // message = message.replace(/@.*?@/g, '_');
-        // message = message.replace(/#.*?#/g, '_');
-        // message = message.replace(/\\$.*?\\$/g, '_');
-        // message = message.replace(/%.*?%/g, '_');
-        // message = message.replace(/^.*?^/g, '_');
-        // message = message.replace(/&.*?&/g, '_');
-        // message = message.replace(/\\*.*?\\*/g, '_');
-        // message = message.replace(/_.*?_/g, '_');
-        // message = message.replace(/-.*?-/g, '_');
-
-        // Unlikely to be present:
-        // message = message.replace(/<.*?>/g, '_');
-        // message = message.replace(/\\(.*?\\)/g, '_');
-        // message = message.replace(/\\[.*?\\]/g, '_');
-        // message = message.replace(/{.*?}/g, '_');
-        // message = message.replace(/\\|.*?\\|/g, '_');
-        // message = message.replace(/\\?.*?\\?/g, '_');
-        // message = message.replace(/\\..*?\\./g, '_');
-        // message = message.replace(/,.*?,/g, '_');
-        // message = message.replace(/:.*?:/g, '_');
-        // message = message.replace(/;.*?;/g, '_');
-        // message = message.replace(/~.*?~/g, '_');
-
-        return message;
-    };
-
     // A is the current one, B may already contain placeholders
     // This is just a precondition
     const isSimilarMessage = (a: string, b: string) => {
-        a = normalizeMessage(a);
-        b = normalizeMessage(b);
-
         if (a === b) {
             return true;
         }
@@ -149,9 +114,9 @@ export const createErrorTracker = ({
         const bParts = b.split(' ');
 
         // Usually the first word is the same
-        if (aParts[0] !== bParts[0]) {
-            return false;
-        }
+        // if (aParts[0] !== bParts[0]) {
+        //     return false;
+        // }
 
         // Insufficient words to compare
         if (aParts.length < 3 || bParts.length < 3) {
@@ -256,8 +221,8 @@ export const createErrorTracker = ({
     // Merge A (missing placeholders) into B (can contain placeholders but does not have to)
     const mergeMessages = (a: string, b: string, storage: Record<string, unknown>) => {
         const placeholder = calculatePlaceholder(
-            normalizeMessage(a).split(' '),
-            normalizeMessage(b).split(' '),
+            a.split(' '),
+            b.split(' '),
         ).join(' ');
 
         if (placeholder === '_') {

@@ -290,3 +290,225 @@ test('stack looks for user files first', () => {
         },
     });
 });
+
+test('placeholder #1', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected boolean, got number',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected boolean, got string',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected boolean, got undefined',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                  // source
+            null: {                              // code
+                Error: {                         // name
+                    'Expected boolean, got _': { // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #2', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `number`',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `string`',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `undefined`',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                    // source
+            null: {                                // code
+                Error: {                           // name
+                    'Expected `boolean`, got _': { // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #2', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 2 3',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 4 3',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 5 3',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                    // source
+            null: {                                // code
+                Error: {                           // name
+                    '1 _ 3': {                     // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #3', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 2 3',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 2 4',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 2 5',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                    // source
+            null: {                                // code
+                Error: {                           // name
+                    '1 2 _': {                     // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #3', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '1 2 3',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '4 2 3',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: '5 2 3',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                    // source
+            null: {                                // code
+                Error: {                           // name
+                    '_ 2 3': {                     // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #4', () => {
+    const tracker = createErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'The weather is sunny today, but the grass is wet.',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'The weather is rainy today, but the grass is still dry.',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'The weather is wild today, but the grass is yellow.',
+    });
+
+    expect(tracker.result).toMatchObject({
+        null: {                                                     // source
+            null: {                                                 // code
+                Error: {                                            // name
+                    'The weather is _ today, but the grass is _': { // message
+                        count: 3,
+                    },
+                },
+            },
+        },
+    });
+});

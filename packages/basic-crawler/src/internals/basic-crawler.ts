@@ -602,7 +602,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.errorTracker.total === 0) {
             this.log.info('There were no errors. Congrats!');
         } else {
-            this.log.info(`There were ${this.errorTracker.total} errors:\n${JSON.stringify(this.errorTracker.result, undefined, '\t')}`);
+            this.log.info([
+                `There were ${this.errorTracker.total} errors (_ is a placeholder):`,
+                JSON.stringify(this.errorTracker.result, undefined, '\t'),
+            ].join('\n'));
         }
 
         const client = this.config.getStorageClient();
