@@ -3,13 +3,20 @@
 # You can also use any other image from Docker Hub.
 FROM apify/actor-node:16 AS builder
 
-# Second, copy the source files using the user set
-# in the base image. We don't wanna run as root.
+# Copy just package.json and package-lock.json
+# to speed up the build using Docker layer cache.
+COPY package*.json ./
+
+# Install all dependencies. Don't audit to speed up the installation.
+RUN npm install --include=dev --audit=false
+
+# Next, copy the source files using the user set
+# in the base image.
 COPY . ./
 
 # Install all dependencies and build the project.
 # Don't audit to speed up the installation.
-RUN npm install --include=dev --audit=false && npm run build
+RUN npm run build
 
 # Create final image
 FROM apify/actor-node:16
