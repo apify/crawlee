@@ -479,7 +479,7 @@ const browserPool = new BrowserPool({
 | [options.postPageCloseHooks] | <code>Array.&lt;function()&gt;</code> |  | Post-page-close hooks allow you to do page related clean up.  The hooks are called with two arguments:  `pageId`: `string` and `browserController`: [BrowserController](#BrowserController) |
 | [options.useFingerprints] | <code>boolean</code> | <code>false</code> | If true the Browser pool will automatically generate and inject fingerprints to browsers. |
 | [options.fingerprintOptions] | <code>FingerprintOptions </code> |  | Fingerprints options that allows customizing the fingerprinting behavior. |
-| [options.fingerprintOptions.fingerprintGeneratorOptions] |  |  | See the [Fingerprint generator]("https://github.com/apify/fingerprint-generator#headergeneratoroptions") documentation. |
+| [options.fingerprintOptions.fingerprintGeneratorOptions] |  |  | See the [Fingerprint generator](https://github.com/apify/fingerprint-generator#headergeneratoroptions) documentation. |
 | [options.fingerprintOptions.useFingerprintCache] | <code>boolean</code> | <code>true</code> | Fingerprints are automatically assigned to an instance of a Session or proxy URL. You can disable this behavior by setting this property to `false`. |
 | [options.fingerprintOptions.fingerprintCacheSize] | <code>number</code> | <code>10000</code> | Maximum number of cached browser fingerprints. |
 * * *
@@ -505,7 +505,7 @@ or their page limits have been exceeded.
 <a name="BrowserPool+newPageInNewBrowser"></a>
 
 #### `browserPool.newPageInNewBrowser(options)` ⇒ <code>Promise.&lt;Page&gt;</code>
-Unlike [newPage](newPage), `newPageInNewBrowser` always launches a new
+Unlike [newPage](#BrowserPool+newPage), `newPageInNewBrowser` always launches a new
 browser to open the page in. Use the `launchOptions` option to
 configure the new browser.
 

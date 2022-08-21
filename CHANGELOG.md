@@ -299,7 +299,7 @@ const crawler = new BasicCrawler({
 
 #### How to use `sendRequest()`?
 
-See [the Got Scraping guide](../guides/got_scraping.mdx).
+See [the Got Scraping guide](https://crawlee.dev/docs/guides/got-scraping).
 
 #### Removed options
 
@@ -424,7 +424,7 @@ Previously, you were able to have a browser pool that would mix Puppeteer and Pl
 
 One small feature worth mentioning is the ability to handle requests with browser crawlers outside the browser. To do that, we can use a combination of `Request.skipNavigation` and `context.sendRequest()`.
 
-Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](../examples/skip-navigation) example!
+Take a look at how to achieve this by checking out the [Skipping navigation for certain requests](https://crawlee.dev/docs/examples/skip-navigation) example!
 
 ### Logging
 
