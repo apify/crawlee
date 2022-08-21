@@ -331,7 +331,7 @@ html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-cont
     position: relative;
 }
 
-h1#change-log {
+.apiItemContainer .tsd-readme h1:first-child {
     display: none;
 }
 
