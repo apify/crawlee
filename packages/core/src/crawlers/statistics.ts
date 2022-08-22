@@ -342,7 +342,7 @@ export class Statistics {
         // merge all the current state information that can be used from the outside
         // without the need to reconstruct for the sake of stats.calculate()
         // omit duplicated information
-        return {
+        const result = {
             ...this.state,
             crawlerLastStartTimestamp: this.instanceStart,
             crawlerFinishedAt: this.state.crawlerFinishedAt ? new Date(this.state.crawlerFinishedAt).toISOString() : null,
@@ -352,6 +352,19 @@ export class Statistics {
             statsPersistedAt: new Date().toISOString(),
             ...this.calculate(),
         };
+
+        // @ts-expect-error reorder
+        delete result.requestsWithStatusCode;
+        // @ts-expect-error reorder
+        delete result.errors;
+        // @ts-expect-error reorder
+        delete result.retryErrors;
+
+        result.requestsWithStatusCode = this.state.requestsWithStatusCode;
+        result.errors = this.state.errors;
+        result.retryErrors = this.state.retryErrors;
+
+        return result;
     }
 }
 
