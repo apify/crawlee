@@ -30,7 +30,7 @@
         },
         {
             "name": "puppeteer-js",
-            "description": "PlaywrightCrawler template project [JavaScript]"
+            "description": "PuppeteerCrawler template project [JavaScript]"
         }
     ]
 }
