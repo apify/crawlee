@@ -70,7 +70,7 @@
     },
     "peerDependencies": {
         "playwright": "^1.21.1",
-        "puppeteer": ">= 9.x <= 14.x"
+        "puppeteer": ">= 9.x <= 15.1"
     },
     "peerDependenciesMeta": {
         "playwright": {

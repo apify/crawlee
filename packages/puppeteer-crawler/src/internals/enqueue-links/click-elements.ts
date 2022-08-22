@@ -467,16 +467,17 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
 /**
  * This is an in browser function!
  */
-function updateElementCssToEnableMouseClick(el: HTMLElement, zIndex: number): void {
-    el.style.visibility = 'visible';
-    el.style.display = 'block';
-    el.style.position = 'fixed';
-    el.style.zIndex = String(zIndex);
-    el.style.left = '0';
-    el.style.top = '0';
-    const boundingRect = el.getBoundingClientRect();
-    if (!boundingRect.height) el.style.height = '10px';
-    if (!boundingRect.width) el.style.width = '10px';
+function updateElementCssToEnableMouseClick(el: Element, zIndex: number): void {
+    const casted = el as HTMLElement;
+    casted.style.visibility = 'visible';
+    casted.style.display = 'block';
+    casted.style.position = 'fixed';
+    casted.style.zIndex = String(zIndex);
+    casted.style.left = '0';
+    casted.style.top = '0';
+    const boundingRect = casted.getBoundingClientRect();
+    if (!boundingRect.height) casted.style.height = '10px';
+    if (!boundingRect.width) casted.style.width = '10px';
 }
 
 /**

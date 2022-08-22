@@ -93,7 +93,7 @@
         "playwright": "1.25.0",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "puppeteer": "14.4.1",
+        "puppeteer": "15.1.1",
         "ts-jest": "^28.0.4",
         "ts-node": "^10.8.1",
         "turbo": "1.4.3",
