@@ -10,10 +10,12 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
-import jsDockerSource from '!!raw-loader!./docker_images_js';
-import tsDockerSource from '!!raw-loader!./docker_images_ts';
+import jsNodeDocker from '!!raw-loader!./docker_node_js.txt';
+import tsNodeDocker from '!!raw-loader!./docker_node_ts.txt';
+import jsBrowserDocker from '!!raw-loader!./docker_browser_js.txt';
+import tsBrowserDocker from '!!raw-loader!./docker_browser_ts.txt';
 
-Running headless browsers in Docker requires a lot of setup to do it right. But there's no need to worry about that, because we already created base images that can now be freely used. We use them every day on the [Apify Platform](./apify-platform).
+Running headless browsers in Docker requires a lot of setup to do it right. But there's no need to worry about that, because we already created base images that you can freely use. We use them every day on the [Apify Platform](./apify-platform).
 
 All images can be found in their [GitHub repo](https://github.com/apify/apify-actor-docker) and in our [DockerHub](https://hub.docker.com/orgs/apify).
 
@@ -30,27 +32,22 @@ Browsers are pretty big, so we try to provide a wide variety of images to suit t
 
 ## Versioning
 
-Each image is tagged with up to 2 version tags, depending on the type of the image. One for Node.js version and second for pre-installed web automation library version. If we use the image name without a version tag, we'll always get the latest available version.
+Each image is tagged with up to 2 version tags, depending on the type of the image. One for Node.js version and second for pre-installed web automation library version. If you use the image name without a version tag, you'll always get the latest available version.
 
-> We recommend always using at least the Node.js version tag in the production Dockerfiles. It will ensure that a future update of Node.js will not break our automations.
+> We recommend always using at least the Node.js version tag in production Dockerfiles. It will ensure that a future update of Node.js will not break our automations.
 
 ### Node.js versioning
 
-Our images are built with multiple Node.js versions to ensure backwards compatibility. Currently, Node.js versions 14, 15 and 16 are supported. To select the preferred version, the appropriate number as the image tag should be used.
-
-```dockerfile
-# Use Node.js 14
-FROM apify/actor-node:14
-```
+Our images are built with multiple Node.js versions to ensure backwards compatibility. Currently, Node.js **versions 16 and 18 are supported** (legacy versions still exist, see DockerHub). To select the preferred version, use the appropriate number as the image tag.
 
 ```dockerfile
 # Use Node.js 16
-FROM apify/actor-node-playwright:16
+FROM apify/actor-node:16
 ```
 
 ### Automation library versioning
 
-Images that include a pre-installed automation library, which means all images that include `puppeteer` or `playwright` in their name, are also tagged with the pre-installed version of the library. For example, `apify/actor-node-puppeteer-chrome:16-13.7.0` comes with Node.js 16 and Puppeteer v13.7.0. If we try to install a different version of Puppeteer into this image, we may run into compatibility issues, because the Chromium version bundled with `puppeteer` will not match the version of Chrome we pre-installed.
+Images that include a pre-installed automation library, which means all images that include `puppeteer` or `playwright` in their name, are also tagged with the pre-installed version of the library. For example, `apify/actor-node-puppeteer-chrome:16-13.7.0` comes with Node.js 16 and Puppeteer v13.7.0. If you try to install a different version of Puppeteer into this image, you may run into compatibility issues, because the Chromium version bundled with `puppeteer` will not match the version of Chromium that's pre-installed.
 
 Similarly `apify/actor-node-playwright-firefox:14-1.21.1` runs on Node.js 14 and is pre-installed with the Firefox version that comes with v1.21.1.
 
@@ -58,7 +55,7 @@ Installing `apify/actor-node-puppeteer-chrome` (without a tag) will install the 
 
 ### Pre-release tags
 
-We also build pre-release versions of the images to test the changes we make. Those are typically denoted by a `beta` suffix, but it can vary depending on our needs. If we need to try a pre-release version, we can do it like this:
+We also build pre-release versions of the images to test the changes we make. Those are typically denoted by a `beta` suffix, but it can vary depending on our needs. If you need to try a pre-release version, you can do it like this:
 
 ```dockerfile
 # Without library version.
@@ -85,8 +82,7 @@ FROM apify/actor-node-playwright-chrome:16
 ```json
 {
     "dependencies": {
-        "apify": "^3.0.0",
-        "@crawlee/playwright": "^3.0.0",
+        "crawlee": "^3.0.0",
         "playwright": "*"
     }
 }
@@ -94,11 +90,11 @@ FROM apify/actor-node-playwright-chrome:16
 
 ### Warning about image size
 
-Browsers are huge. If we don't need them all in our image, it's better to use a smaller image with only the one browser we need.
+Browsers are huge. If you don't need them all in your image, it's better to use a smaller image with only the one browser you need.
 
-We should also be careful when installing new dependencies. Nothing prevents us from installing Playwright into the`actor-node-puppeteer-chrome` image, but the resulting image will be about 3 times larger and extremely slow to download and build.
+You should also be careful when installing new dependencies. Nothing prevents you from installing Playwright into the`actor-node-puppeteer-chrome` image, but the resulting image will be about 3 times larger and extremely slow to download and build.
 
-When we use only what we need, we'll be rewarded with reasonable build and start times.
+When you use only what you need, you'll be rewarded with reasonable build and start times.
 
 ## Apify Docker Images
 
@@ -116,7 +112,7 @@ FROM apify/actor-node:16
 
 This image includes Puppeteer (Chromium) and the Chrome browser. It can be used with <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>, but **NOT** with <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>.
 
-The image supports XVFB by default, so we can run both `headless` and `headful` browsers with it.
+The image supports XVFB by default, so you can run both `headless` and `headful` browsers with it.
 
 ```dockerfile
 FROM apify/actor-node-puppeteer-chrome:16
@@ -124,7 +120,7 @@ FROM apify/actor-node-puppeteer-chrome:16
 
 ### actor-node-playwright
 
-A very large and slow image that can run all Playwright browsers: Chromium, Chrome, Firefox, WebKit. Everything is installed. If we need to develop or test with multiple browsers, this is the image to choose, but in most cases, it's better to use the specialized images below.
+A very large and slow image that can run all Playwright browsers: Chromium, Chrome, Firefox, WebKit. Everything is installed. If you need to develop or test with multiple browsers, this is the image to choose, but in most cases, it's better to use the specialized images below.
 
 ```dockerfile
 FROM apify/actor-node-playwright:16
@@ -132,9 +128,9 @@ FROM apify/actor-node-playwright:16
 
 ### actor-node-playwright-chrome
 
-Similar to [`actor-node-puppeteer-chrome`](#actor-node-puppeteer-chrome), but for Playwright. We can run <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>, but **NOT** <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
+Similar to [`actor-node-puppeteer-chrome`](#actor-node-puppeteer-chrome), but for Playwright. You can run <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>, but **NOT** <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
 
-It uses the [`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`](https://playwright.dev/docs/api/environment-variables/) environment variable to block installation of more browsers into our images (to keep them small). If we want more browsers, either the [`actor-node-playwright`](#actor-node-playwright) image should be chosen or this env var should be overridden.
+It uses the [`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`](https://playwright.dev/docs/api/environment-variables/) environment variable to block installation of more browsers into the image to keep it small. If you want more browsers, either use the [`actor-node-playwright`](#actor-node-playwright) image override this env var.
 
 The image supports XVFB by default, so we can run both `headless` and `headful` browsers with it.
 
@@ -162,17 +158,31 @@ FROM apify/actor-node-playwright-webkit:16
 
 ## Example Dockerfile
 
-To use the above images, it's necessary to have a [`Dockerfile`](https://docs.docker.com/engine/reference/builder/). We can either use this example, or bootstrap our projects with the [Crawlee CLI](../introduction/setting-up) which automatically adds the correct Dockerfile into our project folder.
+To use the above images, it's necessary to have a [`Dockerfile`](https://docs.docker.com/engine/reference/builder/). You can either use this example, or bootstrap your projects with the [Crawlee CLI](../introduction/setting-up) which automatically adds the correct Dockerfile into our project folder.
 
 <Tabs>
-    <TabItem value="js" label="For JavaScript Projects">
+    <TabItem value="node+js" label="Node+JavaScript">
         <CodeBlock language="dockerfile">
-            {jsDockerSource}
+            {jsNodeDocker}
         </CodeBlock>
     </TabItem>
-    <TabItem value="ts" label="For TypeScript Projects">
+    <TabItem value="node+ts" label="Node+TypeScript">
         <CodeBlock language="dockerfile">
-            {tsDockerSource}
+            {tsNodeDocker}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="browser+js" label="Browser+JavaScript">
+        This example is for Playwright. If you want to use Puppeteer, simply replace <b>playwright</b>
+        with <b>puppeteer</b> in the <code>FROM</code> declaration.
+        <CodeBlock language="dockerfile">
+            {jsBrowserDocker}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="browser+ts" label="Browser+TypeScript">
+        This example is for Playwright. If you want to use Puppeteer, simply replace <b>playwright</b>
+        with <b>puppeteer</b> in both <code>FROM</code> declarations.
+        <CodeBlock language="dockerfile">
+            {tsBrowserDocker}
         </CodeBlock>
     </TabItem>
 </Tabs>
