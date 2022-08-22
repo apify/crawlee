@@ -139,7 +139,7 @@ const findBiggestWordIntersection = (a: string[], b: string[]) => {
     };
 };
 
-const count = (array: unknown[], target: unknown) => {
+const arrayCount = (array: unknown[], target: unknown) => {
     let result = 0;
 
     for (const item of array) {
@@ -176,7 +176,7 @@ const calculatePlaceholder = (a: string[], b: string[]) => {
     }
 
     // We can't be too general
-    if ((count(output, '_') / output.length) >= 0.5) {
+    if ((arrayCount(output, '_') / output.length) >= 0.5) {
         return ['_'];
     }
 
@@ -223,6 +223,9 @@ const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unk
             count: 0,
         };
 
+        // eslint-disable-next-line no-restricted-syntax
+        // eslint-disable-next-line guard-for-in
+        // This actually safe, since we Object.create(null) so no prototype pollution can happen.
         for (const existingMessage in storage) {
             const newMessage = mergeMessages(message, existingMessage, storage);
             if (newMessage) {
@@ -242,7 +245,7 @@ const increaseCount = (group: { count: number }) => {
     }
 
     group.count++;
-}
+};
 
 /**
  * This class tracks errors and computes a summary of information like:
@@ -250,12 +253,12 @@ const increaseCount = (group: { count: number }) => {
  * - what the error names are
  * - what the error codes are
  * - what is the general error message
- * 
+ *
  * This is extremely useful when there are dynamic error messages, such as argument validation.
- * 
+ *
  * Since the structure of the `tracker.result` object differs when using different options,
  * it's typed as `Record<string, unknown>`. The most deep object has a `count` property, which is a number.
- * 
+ *
  * It's possible to get the total amount of errors via the `tracker.total` property.
  */
 export class ErrorTracker {

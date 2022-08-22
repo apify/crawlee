@@ -1,7 +1,7 @@
 /* eslint-disable no-multi-spaces */
 import { ErrorTracker } from '../../packages/utils/src/internals/error_tracker';
 
-const g = (error: { name?: string; message?: string; code?: string; stack?: string; cause?: any; }) => {
+const g = (error: { name?: string; message?: string; code?: string; stack?: string; cause?: any }) => {
     return {
         name: Math.random().toString(36).slice(2),
         message: Math.random().toString(36).slice(2),
