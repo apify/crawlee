@@ -223,9 +223,8 @@ const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unk
             count: 0,
         };
 
-        // eslint-disable-next-line no-restricted-syntax
-        // eslint-disable-next-line guard-for-in
         // This actually safe, since we Object.create(null) so no prototype pollution can happen.
+        // eslint-disable-next-line no-restricted-syntax, guard-for-in
         for (const existingMessage in storage) {
             const newMessage = mergeMessages(message, existingMessage, storage);
             if (newMessage) {
