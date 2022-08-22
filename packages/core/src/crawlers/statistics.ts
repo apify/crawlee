@@ -353,11 +353,8 @@ export class Statistics {
             ...this.calculate(),
         };
 
-        // @ts-expect-error reorder
         delete result.requestsWithStatusCode;
-        // @ts-expect-error reorder
         delete result.errors;
-        // @ts-expect-error reorder
         delete result.retryErrors;
 
         result.requestsWithStatusCode = this.state.requestsWithStatusCode;
