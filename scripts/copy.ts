@@ -31,13 +31,17 @@ function getRootVersion(): string {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require
-    rootVersion = require(resolve(root, './packages/core/package.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
+    rootVersion = require(resolve(root, './packages/crawlee/package.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
+
+    const parts = rootVersion.split('.');
+    parts[2] = `${+parts[2] + 1}`;
+    rootVersion = parts.join('.');
 
     return rootVersion;
 }
 
 /**
- * Checks next dev version number based on the `@crawlee/core` package via `npm show`.
+ * Checks next dev version number based on the `crawlee` meta package via `npm show`.
  * We always use this package, so we ensure the version is the same for each package in the monorepo.
  */
 function getNextVersion() {
