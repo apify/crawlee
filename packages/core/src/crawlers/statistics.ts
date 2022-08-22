@@ -136,6 +136,7 @@ export class Statistics {
             crawlerFinishedAt: null,
             statsPersistedAt: null,
             crawlerRuntimeMillis: 0,
+            requestsWithStatusCode: {},
             errors: this.errorTracker.result,
             retryErrors: this.errorTrackerRetry.result,
         };
@@ -145,6 +146,19 @@ export class Statistics {
         this.instanceStart = Date.now();
 
         this._teardown();
+    }
+
+    /**
+     * Increments the status code counter.
+     */
+    registerStatusCode(code: number) {
+        const s = String(code);
+
+        if (this.state.requestsWithStatusCode[s] === undefined) {
+            this.state.requestsWithStatusCode[s] = 0;
+        }
+
+        this.state.requestsWithStatusCode[s]++;
     }
 
     /**
@@ -384,4 +398,5 @@ export interface StatisticState {
     statsPersistedAt: Date | string | null;
     errors: Record<string, unknown>;
     retryErrors: Record<string, unknown>;
+    requestsWithStatusCode: Record<string, number>;
 }

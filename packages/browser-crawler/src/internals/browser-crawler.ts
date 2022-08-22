@@ -582,6 +582,12 @@ export abstract class BrowserCrawler<
     protected async _responseHandler(crawlingContext: Context): Promise<void> {
         const { response, session, request, page } = crawlingContext;
 
+        if (typeof response === 'object' && typeof response.status === 'function') {
+            const status: number = response.status();
+
+            this.stats.registerStatusCode(status);
+        }
+
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
                 this._throwOnBlockedRequest(session, response.status());

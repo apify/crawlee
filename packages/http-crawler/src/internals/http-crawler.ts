@@ -570,6 +570,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         const { response, encoding } = this._encodeResponse(request, responseStream, charset);
         const contentType = { type, encoding };
 
+        if (statusCode! >= 400 && statusCode! <= 599) {
+            this.stats.registerStatusCode(statusCode!);
+        }
+
         if (statusCode! >= 500) {
             const body = await readStreamToString(response, encoding);
 
