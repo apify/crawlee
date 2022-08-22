@@ -1,6 +1,6 @@
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import ow from 'ow';
-import type { DatasetClient, DatasetInfo, PaginatedList, StorageClient, Dictionary } from '@crawlee/types';
+import type { DatasetClient, DatasetInfo, StorageClient, Dictionary } from '@crawlee/types';
 import { Configuration } from '../configuration';
 import { log } from '../log';
 import type { Awaitable } from '../typedefs';
@@ -270,7 +270,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
      */
-    async getData(options: DatasetDataOptions = {}): Promise<PaginatedList<Data>> {
+    async getData(options: DatasetDataOptions = {}): Promise<DatasetContent<Data>> {
         try {
             return await this.client.listItems(options);
         } catch (e) {
@@ -523,8 +523,8 @@ export interface DatasetContent<Data> {
     offset: number;
     /** Maximum number of dataset entries requested. */
     limit: number;
-    /** Should the results be in descending order. */
-    desc: boolean;
     /** Dataset entries based on chosen format parameter. */
     items: Data[];
+    /** Should the results be in descending order. */
+    desc?: boolean;
 }
