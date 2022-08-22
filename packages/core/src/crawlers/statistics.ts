@@ -29,6 +29,15 @@ class Job {
     }
 }
 
+const errorTrackerConfig = {
+    showErrorCode: true,
+    showErrorName: true,
+    showStackTrace: true,
+    showFullStack: false,
+    showErrorMessage: true,
+    showFullMessage: false,
+};
+
 /**
  * The statistics class provides an interface to collecting and logging run
  * statistics for requests.
@@ -42,14 +51,15 @@ class Job {
 export class Statistics {
     private static id = 0;
 
-    errorTracker = new ErrorTracker({
-        showErrorCode: true,
-        showErrorName: true,
-        showStackTrace: true,
-        showFullStack: false,
-        showErrorMessage: true,
-        showFullMessage: false,
-    });
+    /**
+     * An error tracker for final retry errors.
+     */
+    errorTracker = new ErrorTracker(errorTrackerConfig);
+
+    /**
+     * An error tracker for retry errors prior to the final retry.
+     */
+    errorTrackerRetry = new ErrorTracker(errorTrackerConfig);
 
     /**
      * Statistic instance id.
@@ -110,6 +120,7 @@ export class Statistics {
      */
     reset() {
         this.errorTracker.reset();
+        this.errorTrackerRetry.reset();
 
         this.state = {
             requestsFinished: 0,
@@ -126,6 +137,7 @@ export class Statistics {
             statsPersistedAt: null,
             crawlerRuntimeMillis: 0,
             errors: this.errorTracker.result,
+            retryErrors: this.errorTrackerRetry.result,
         };
 
         this.requestRetryHistogram.length = 0;
@@ -371,4 +383,5 @@ export interface StatisticState {
     crawlerRuntimeMillis: number;
     statsPersistedAt: Date | string | null;
     errors: Record<string, unknown>;
+    retryErrors: Record<string, unknown>;
 }

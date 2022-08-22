@@ -978,6 +978,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (shouldRetryRequest) {
             request.retryCount++;
 
+            this.stats.errorTrackerRetry.add(error);
+
             await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
 
             const { url, retryCount, id } = request;
@@ -992,6 +994,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             await source.reclaimRequest(request);
         } else {
+            this.stats.errorTracker.add(error);
+
             // If we get here, the request is either not retryable
             // or failed more than retryCount times and will not be retried anymore.
             // Mark the request as failed and do not retry.
@@ -1016,8 +1020,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
         const message = this._getMessageFromError(error, true);
-
-        this.stats.errorTracker.add(error);
 
         this.log.error(
             `Request failed and reached maximum retries. ${message}`,
