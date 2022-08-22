@@ -395,3 +395,17 @@ html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(6)::before {
     display: block;
     margin-top: 50px;
 }
+
+.video-container {
+    margin: 85px auto 0;
+    max-width: 560px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    border-radius: 10px;
+}
+
+.yt-lite > .lty-playbtn {
+    border: 0;
+    cursor: pointer;
+}

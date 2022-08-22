@@ -5,8 +5,10 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import CodeBlock from '@theme/CodeBlock';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import styles from './index.module.css';
 import Highlights from '../components/Highlights';
+import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
 
 function Hero() {
     return (
@@ -75,8 +77,16 @@ function Features() {
                         <a href="https://discord.com/invite/jyEM2PRvMU" target="_blank" rel="noreferrer"><b> Meet our community on Discord</b></a>.
                     </p>
                 </div>
-                <div className="col col--5 col--offset-1">
-                    <img src={require('../../static/img/logo-blur.png').default} className={clsx(styles.hideSmall)} />
+                <div className="col col--6">
+                    <div className="video-container">
+                        <LiteYouTubeEmbed
+                            id="g1Ll9OlFwEQ"
+                            params="autoplay=1&autohide=1&showinfo=0&rel=0"
+                            title="Crawlee, the web scraping and browser automation library"
+                            poster="maxresdefault"
+                            webp
+                        />
+                    </div>
                 </div>
             </div>
         </section>
@@ -147,8 +157,8 @@ export default function Home() {
             title={`${siteConfig.title} · ${siteConfig.tagline}`}
             description={siteConfig.description}>
             <Hero />
-            <Highlights />
             <Features />
+            <Highlights />
             <ActorExample />
             <div className="container">
                 <div className="row">
