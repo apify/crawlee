@@ -186,32 +186,33 @@ jobs:
                     GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
                     GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-# TODO uncomment before final release
-# The deploy job is long but there are only 2 important parts. NPM publish
-# and triggering of docker image builds in the apify-actor-docker repo.
-#            -   name: Collect Versions For Images
-#                id: versions
-#                run: |
-#                    apify=`node -p "require('./package.json').version"`
-#                    echo "::set-output name=apify::$apify"
-#                    puppeteer=`node -p "require('./package.json').devDependencies.puppeteer"`
-#                    echo "::set-output name=puppeteer::$puppeteer"
-#                    playwright=`node -p "require('./package.json').devDependencies.playwright"`
-#                    echo "::set-output name=playwright::$playwright"
-#                env:
-#                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-#                    GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
-#                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
-#            -   name: Trigger Docker Image Build
-#                uses: peter-evans/repository-dispatch@v2
-#                with:
-#                    token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
-#                    repository: apify/apify-actor-docker
-#                    event-type: build-node-images
-#                    client-payload: >
-#                        {
-#                          "release_tag": "${{ env.RELEASE_TAG }}",
-#                          "apify_version": "${{ steps.versions.outputs.apify }}",
-#                          "puppeteer_version": "${{ steps.versions.outputs.puppeteer }}",
-#                          "playwright_version": "${{ steps.versions.outputs.playwright }}"
-#                        }
+            # trigger of docker image builds in the apify-actor-docker repo.
+            -   name: Collect Versions For Images
+                id: versions
+                run: |
+                    crawlee=`node -p "require('./packages/crawlee/package.json').version"`
+                    echo "::set-output name=crawlee::$crawlee"
+                    apify=`node -p "require('./package.json').devDependencies.apify"`
+                    echo "::set-output name=apify::$apify"
+                    puppeteer=`node -p "require('./package.json').devDependencies.puppeteer"`
+                    echo "::set-output name=puppeteer::$puppeteer"
+                    playwright=`node -p "require('./package.json').devDependencies.playwright"`
+                    echo "::set-output name=playwright::$playwright"
+                env:
+                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                    GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+            -   name: Trigger Docker Image Build
+                uses: peter-evans/repository-dispatch@v2
+                with:
+                    token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
+                    repository: apify/apify-actor-docker
+                    event-type: build-node-images
+                    client-payload: >
+                        {
+                          "release_tag": "${{ env.RELEASE_TAG }}",
+                          "apify_version": "${{ steps.versions.outputs.apify }}",
+                          "crawlee_version": "${{ steps.versions.outputs.crawlee }}",
+                          "puppeteer_version": "${{ steps.versions.outputs.puppeteer }}",
+                          "playwright_version": "${{ steps.versions.outputs.playwright }}"
+                        }
