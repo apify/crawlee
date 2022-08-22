@@ -34,12 +34,11 @@ import {
     purgeDefaultStorages,
     validators,
     RetryRequestError,
-    ErrorTracker,
 } from '@crawlee/core';
 import type { Method, OptionsInit, Response as GotResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult } from '@crawlee/types';
-import { chunk, sleep } from '@crawlee/utils';
+import { chunk, sleep, ErrorTracker } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
