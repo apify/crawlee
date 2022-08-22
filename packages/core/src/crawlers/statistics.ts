@@ -353,9 +353,9 @@ export class Statistics {
             ...this.calculate(),
         };
 
-        delete result.requestsWithStatusCode;
-        delete result.errors;
-        delete result.retryErrors;
+        Reflect.deleteProperty(result, 'requestsWithStatusCode');
+        Reflect.deleteProperty(result, 'errors');
+        Reflect.deleteProperty(result, 'retryErrors');
 
         result.requestsWithStatusCode = this.state.requestsWithStatusCode;
         result.errors = this.state.errors;
