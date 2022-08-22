@@ -1,7 +1,7 @@
 /* eslint-disable no-multi-spaces */
-import { createErrorTracker } from '../../packages/basic-crawler/src/internals/error-tracker';
+import { ErrorTracker } from '../../packages/utils/src/internals/error_tracker';
 
-const g = (error: { name?: string; message?: string; code?: string; stack?: string }) => {
+const g = (error: { name?: string; message?: string; code?: string; stack?: string; cause?: any; }) => {
     return {
         name: Math.random().toString(36).slice(2),
         message: Math.random().toString(36).slice(2),
@@ -19,6 +19,8 @@ const s = (stack: string) => {
     return stack.slice(index).split('\n').map((line) => line.trim()).join('\n');
 };
 
+// A case for
+// https://github.com/microsoft/playwright/blob/99d1ad5a88c3e89360829eee92dbaa98d75beaa4/packages/playwright-core/src/server/dispatchers/dispatcher.ts#L329
 const multilineError = {
     name: 'TypeError',
     message: 'Invalid URL',
@@ -30,53 +32,61 @@ const multilineError = {
         '   eval at Foo.a (eval at Bar.z (myscript.js:10:3))',
         '   eval at Foo.a (eval at Bar.z (node:http))',
     ].join('\n'),
-};
+    cause: undefined as any,
+} as const;
 
 const error = {
     name: 'TypeError',
     message: 'Invalid URL',
     code: 'ERR_INVALID_URL',
     stack: 'eval at Foo.a (eval at Bar.z (myscript.js:10:3))',
-};
+    cause: undefined as any,
+} as const;
 
 const errorNoCode = {
     name: 'TypeError',
     message: 'Invalid URL',
     stack: 'eval at Foo.a (eval at Bar.z (myscript.js:10:3))',
     code: undefined as undefined,
-};
+    cause: undefined as any,
+} as const;
 
 const errorRandomCode = {
     name: 'TypeError',
     message: 'Invalid URL',
     stack: 'eval at Foo.a (eval at Bar.z (myscript.js:10:3))',
-};
+    cause: undefined as any,
+} as const;
 
 const errorRandomName = {
     message: 'Invalid URL',
     code: 'ERR_INVALID_URL',
     stack: 'eval at Foo.a (eval at Bar.z (myscript.js:10:3))',
-};
+    cause: undefined as any,
+} as const;
 
 const errorRandomMessage = {
     name: 'TypeError',
     code: 'ERR_INVALID_URL',
     stack: 'eval at Foo.a (eval at Bar.z (myscript.js:10:3))',
-};
+    cause: undefined as any,
+} as const;
 
 const errorRandomStack = {
     name: 'TypeError',
     message: 'Invalid URL',
     code: 'ERR_INVALID_URL',
-};
+    cause: undefined as any,
+} as const;
 
 test('works', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     const e = error;
@@ -113,12 +123,13 @@ test('works', () => {
 });
 
 test('no code is null code', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     const e = errorNoCode;
@@ -127,10 +138,10 @@ test('no code is null code', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            null: {                // code
-                [e.name]: {        // name
-                    [e.message]: { // message
+        'myscript.js:10:3': {       // source
+            'missing error code': { // code
+                [e.name]: {         // name
+                    [e.message]: {  // message
                         count: 2,
                     },
                 },
@@ -140,12 +151,13 @@ test('no code is null code', () => {
 });
 
 test('can hide error code', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: false,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     const e = errorRandomCode;
@@ -165,12 +177,13 @@ test('can hide error code', () => {
 });
 
 test('can hide error name', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: false,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     const e = errorRandomName;
@@ -190,12 +203,13 @@ test('can hide error name', () => {
 });
 
 test('can hide error message', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: false,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     const e = errorRandomMessage;
@@ -215,12 +229,13 @@ test('can hide error message', () => {
 });
 
 test('can hide error stack', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: false,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add(g(errorRandomStack));
@@ -238,12 +253,13 @@ test('can hide error stack', () => {
 });
 
 test('can display full stack', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: true,
+        showFullMessage: true,
     });
 
     const e = multilineError;
@@ -265,12 +281,13 @@ test('can display full stack', () => {
 });
 
 test('stack looks for user files first', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     const e = multilineError;
@@ -291,13 +308,72 @@ test('stack looks for user files first', () => {
     });
 });
 
-test('placeholder #1', () => {
-    const tracker = createErrorTracker({
+test('can shorten the message to the first line', () => {
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: false,
+    });
+
+    const e = g(multilineError);
+
+    tracker.add(e);
+
+    expect(tracker.result).toMatchObject({
+        'myscript.js:10:3': {                     // source
+            [e.code]: {                           // code
+                [e.name]: {                       // name
+                    [e.message.split('\n')[0]]: { // message
+                        count: 2,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('supports error.cause', () => {
+    const tracker = new ErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+        showFullMessage: false,
+    });
+
+    const e = g(multilineError);
+    e.cause = g(errorRandomMessage);
+
+    tracker.add(e);
+
+    expect(tracker.result).toMatchObject({
+        'myscript.js:10:3': {                     // source
+            [e.code]: {                           // code
+                [e.name]: {                       // name
+                    [e.message.split('\n')[0]]: { // message
+                        count: 1,
+                    },
+                    [e.cause.message]: {
+                        count: 1,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #1', () => {
+    const tracker = new ErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -316,8 +392,8 @@ test('placeholder #1', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                  // source
-            null: {                              // code
+        'missing stack trace': {                 // source
+            'missing error code': {              // code
                 Error: {                         // name
                     'Expected boolean, got _': { // message
                         count: 3,
@@ -329,12 +405,13 @@ test('placeholder #1', () => {
 });
 
 test('placeholder #2', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -353,8 +430,8 @@ test('placeholder #2', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                    // source
-            null: {                                // code
+        'missing stack trace': {                   // source
+            'missing error code': {                // code
                 Error: {                           // name
                     'Expected `boolean`, got _': { // message
                         count: 3,
@@ -366,12 +443,13 @@ test('placeholder #2', () => {
 });
 
 test('placeholder #3', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -390,8 +468,8 @@ test('placeholder #3', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                    // source
-            null: {                                // code
+        'missing stack trace': {                   // source
+            'missing error code': {                // code
                 Error: {                           // name
                     '1 _ 3': {                     // message
                         count: 3,
@@ -403,12 +481,13 @@ test('placeholder #3', () => {
 });
 
 test('placeholder #4', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -427,8 +506,8 @@ test('placeholder #4', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                    // source
-            null: {                                // code
+        'missing stack trace': {                   // source
+            'missing error code': {                // code
                 Error: {                           // name
                     '1 2 _': {                     // message
                         count: 3,
@@ -440,12 +519,13 @@ test('placeholder #4', () => {
 });
 
 test('placeholder #5', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -464,8 +544,8 @@ test('placeholder #5', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                    // source
-            null: {                                // code
+        'missing stack trace': {                   // source
+            'missing error code': {                // code
                 Error: {                           // name
                     '_ 2 3': {                     // message
                         count: 3,
@@ -477,12 +557,13 @@ test('placeholder #5', () => {
 });
 
 test('placeholder #6', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -501,8 +582,8 @@ test('placeholder #6', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                                     // source
-            null: {                                                 // code
+        'missing stack trace': {                                    // source
+            'missing error code': {                                 // code
                 Error: {                                            // name
                     'The weather is _ today, _ the grass is _': { // message
                         count: 3,
@@ -514,12 +595,13 @@ test('placeholder #6', () => {
 });
 
 test('placeholder #7', () => {
-    const tracker = createErrorTracker({
+    const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
         showErrorName: true,
         showStackTrace: true,
         showFullStack: false,
+        showFullMessage: true,
     });
 
     tracker.add({
@@ -533,8 +615,8 @@ test('placeholder #7', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                           // source
-            null: {                                       // code
+        'missing stack trace': {                          // source
+            'missing error code': {                       // code
                 Error: {                                  // name
                     'Expected `boolean`, got `number`': { // message
                         count: 2,
@@ -550,11 +632,83 @@ test('placeholder #7', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        null: {                                    // source
-            null: {                                // code
+        'missing stack trace': {                   // source
+            'missing error code': {                // code
                 Error: {                           // name
                     'Expected `boolean`, got _': { // message
                         count: 3,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #8', () => {
+    const tracker = new ErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+        showFullMessage: true,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `boolean`, got `number`',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Expected `string`, got `null`',
+    });
+
+    expect(tracker.result).toMatchObject({
+        'missing stack trace': {                          // source
+            'missing error code': {                       // code
+                Error: {                                  // name
+                    'Expected `boolean`, got `number`': { // message
+                        count: 1,
+                    },
+                    'Expected `string`, got `null`': {
+                        count: 1,
+                    },
+                },
+            },
+        },
+    });
+});
+
+test('placeholder #9', () => {
+    const tracker = new ErrorTracker({
+        showErrorCode: true,
+        showErrorMessage: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+        showFullMessage: true,
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Unexpected `show` property in `options` object',
+    });
+
+    tracker.add({
+        name: 'Error',
+        message: 'Missing `display` in style',
+    });
+
+    expect(tracker.result).toMatchObject({
+        'missing stack trace': {                          // source
+            'missing error code': {                       // code
+                Error: {                                  // name
+                    'Unexpected `show` property in `options` object`': { // message
+                        count: 1,
+                    },
+                    'Missing `display` in style': {
+                        count: 1,
                     },
                 },
             },

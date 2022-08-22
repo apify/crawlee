@@ -34,14 +34,13 @@ import {
     purgeDefaultStorages,
     validators,
     RetryRequestError,
+    ErrorTracker,
 } from '@crawlee/core';
 import type { Method, OptionsInit, Response as GotResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
-import type { ErrorTracker } from './error-tracker';
-import { createErrorTracker } from './error-tracker';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
     crawler: BasicCrawler;
@@ -496,7 +495,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
-        this.errorTracker = createErrorTracker();
+        this.errorTracker = new ErrorTracker({
+            showErrorCode: true,
+            showErrorName: true,
+            showStackTrace: true,
+            showFullStack: false,
+            showErrorMessage: true,
+            showFullMessage: false,
+        });
 
         const maxSignedInteger = 2 ** 31 - 1;
         if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
@@ -600,10 +606,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.log.info('Crawl finished. Final request statistics:', stats);
 
         if (this.errorTracker.total === 0) {
-            this.log.info('There were no errors. Congrats!');
+            this.log.info('Error tracker found no errors.');
         } else {
             this.log.info([
-                `There were ${this.errorTracker.total} errors (_ is a placeholder):`,
+                `Error tracker found ${this.errorTracker.total} errors (_ is a placeholder):`,
                 JSON.stringify(this.errorTracker.result, undefined, '\t'),
             ].join('\n'));
         }
