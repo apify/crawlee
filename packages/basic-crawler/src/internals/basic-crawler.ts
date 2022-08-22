@@ -594,12 +594,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
         this.log.info('Crawl finished. Final request statistics:', stats);
 
-        if (this.stats.errorTracker.total === 0) {
-            this.log.info('Error tracker found no errors.');
-        } else {
-            this.log.info([
-                `Error tracker saved ${this.stats.errorTracker.total} errors. See KV storage for more info.`,
-            ].join('\n'));
+        if (this.stats.errorTracker.total !== 0) {
+            this.log.info(`Error tracker saved ${this.stats.errorTracker.total} errors. See KV storage for more info.`);
         }
 
         const client = this.config.getStorageClient();
