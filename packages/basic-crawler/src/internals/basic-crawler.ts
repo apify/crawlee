@@ -38,7 +38,7 @@ import {
 import type { Method, OptionsInit, Response as GotResponse } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult } from '@crawlee/types';
-import { chunk, sleep, ErrorTracker } from '@crawlee/utils';
+import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
@@ -389,8 +389,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         log: ow.optional.object,
     };
 
-    errorTracker: ErrorTracker;
-
     /**
      * All `BasicCrawler` parameters are passed via an options object.
      */
@@ -494,14 +492,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
-        this.errorTracker = new ErrorTracker({
-            showErrorCode: true,
-            showErrorName: true,
-            showStackTrace: true,
-            showFullStack: false,
-            showErrorMessage: true,
-            showFullMessage: false,
-        });
 
         const maxSignedInteger = 2 ** 31 - 1;
         if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
@@ -604,12 +594,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
         this.log.info('Crawl finished. Final request statistics:', stats);
 
-        if (this.errorTracker.total === 0) {
+        if (this.stats.errorTracker.total === 0) {
             this.log.info('Error tracker found no errors.');
         } else {
             this.log.info([
-                `Error tracker found ${this.errorTracker.total} errors (_ is a placeholder):`,
-                JSON.stringify(this.errorTracker.result, undefined, '\t'),
+                `Error tracker saved ${this.stats.errorTracker.total} errors. See KV storage for more info.`,
             ].join('\n'));
         }
 
@@ -1032,7 +1021,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const { id, url, method, uniqueKey } = crawlingContext.request;
         const message = this._getMessageFromError(error, true);
 
-        this.errorTracker.add(error);
+        this.stats.errorTracker.add(error);
 
         this.log.error(
             `Request failed and reached maximum retries. ${message}`,

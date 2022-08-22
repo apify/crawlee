@@ -1,4 +1,5 @@
 import ow from 'ow';
+import { ErrorTracker } from '@crawlee/utils';
 import { log as defaultLog } from '../log';
 import { KeyValueStore } from '../storages/key_value_store';
 import type { EventManager } from '../events/event_manager';
@@ -40,6 +41,15 @@ class Job {
  */
 export class Statistics {
     private static id = 0;
+
+    errorTracker = new ErrorTracker({
+        showErrorCode: true,
+        showErrorName: true,
+        showStackTrace: true,
+        showFullStack: false,
+        showErrorMessage: true,
+        showFullMessage: false,
+    });
 
     /**
      * Statistic instance id.
@@ -99,6 +109,8 @@ export class Statistics {
      * Set the current statistic instance to pristine values
      */
     reset() {
+        this.errorTracker.reset();
+
         this.state = {
             requestsFinished: 0,
             requestsFailed: 0,
@@ -113,6 +125,7 @@ export class Statistics {
             crawlerFinishedAt: null,
             statsPersistedAt: null,
             crawlerRuntimeMillis: 0,
+            errors: this.errorTracker.result,
         };
 
         this.requestRetryHistogram.length = 0;
@@ -357,4 +370,5 @@ export interface StatisticState {
     crawlerFinishedAt: Date | string | null;
     crawlerRuntimeMillis: number;
     statsPersistedAt: Date | string | null;
+    errors: Record<string, unknown>;
 }

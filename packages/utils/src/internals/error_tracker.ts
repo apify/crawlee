@@ -315,4 +315,12 @@ export class ErrorTracker {
             this.add(error.cause);
         }
     }
+
+    reset() {
+        // This actually safe, since we Object.create(null) so no prototype pollution can happen.
+        // eslint-disable-next-line no-restricted-syntax, guard-for-in
+        for (const key in this.result) {
+            delete this.result[key];
+        }
+    }
 };
