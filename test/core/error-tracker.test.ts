@@ -4,7 +4,7 @@ import { ErrorTracker } from '../../packages/utils/src/internals/error_tracker';
 
 const random = () => Math.random().toString(36).slice(2);
 
-const g = (error: { name?: string; message?: string; code?: string; stack?: string; cause?: any }) => {
+const g = (error: { name?: string; message?: string; code?: string | number; stack?: string; cause?: any }) => {
     return {
         name: random(),
         message: random(),

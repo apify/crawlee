@@ -3,7 +3,7 @@
  */
  interface ErrnoException extends Error {
     errno?: number | undefined;
-    code?: string | undefined;
+    code?: string | number | undefined;
     path?: string | undefined;
     syscall?: string | undefined;
     cause?: any;
@@ -92,7 +92,7 @@ const getErrorCodeGroup = (error: ErrnoException, storage: Record<string, unknow
         storage[code] = Object.create(null);
     }
 
-    return storage[code] as Record<string, unknown>;
+    return storage[String(code)] as Record<string, unknown>;
 };
 
 const getErrorNameGroup = (error: ErrnoException, storage: Record<string, unknown>) => {
