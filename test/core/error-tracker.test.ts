@@ -1,12 +1,15 @@
 /* eslint-disable no-multi-spaces */
+import exp from 'node:constants';
 import { ErrorTracker } from '../../packages/utils/src/internals/error_tracker';
+
+const random = () => Math.random().toString(36).slice(2);
 
 const g = (error: { name?: string; message?: string; code?: string; stack?: string; cause?: any }) => {
     return {
-        name: Math.random().toString(36).slice(2),
-        message: Math.random().toString(36).slice(2),
-        code: 'code' in error ? error.code : Math.random().toString(36).slice(2),
-        stack: Math.random().toString(36).slice(2),
+        name: random(),
+        message: random(),
+        code: 'code' in error ? error.code : random(),
+        stack: random(),
         ...error,
     };
 };
@@ -327,7 +330,7 @@ test('can shorten the message to the first line', () => {
             [e.code]: {                           // code
                 [e.name]: {                       // name
                     [e.message.split('\n')[0]]: { // message
-                        count: 2,
+                        count: 1,
                     },
                 },
             },
@@ -582,9 +585,9 @@ test('placeholder #6', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                                    // source
-            'missing error code': {                                 // code
-                Error: {                                            // name
+        'missing stack trace': {                                  // source
+            'missing error code': {                               // code
+                Error: {                                          // name
                     'The weather is _ today, _ the grass is _': { // message
                         count: 3,
                     },
@@ -700,11 +703,11 @@ test('placeholder #9', () => {
         message: 'Missing `display` in style',
     });
 
-    expect(tracker.result).toMatchObject({
-        'missing stack trace': {                          // source
-            'missing error code': {                       // code
-                Error: {                                  // name
-                    'Unexpected `show` property in `options` object`': { // message
+    const expected = {
+        'missing stack trace': {                                         // source
+            'missing error code': {                                      // code
+                Error: {                                                 // name
+                    'Unexpected `show` property in `options` object': { // message
                         count: 1,
                     },
                     'Missing `display` in style': {
@@ -713,5 +716,7 @@ test('placeholder #9', () => {
                 },
             },
         },
-    });
+    };
+
+    expect(tracker.result).toMatchObject(expected);
 });

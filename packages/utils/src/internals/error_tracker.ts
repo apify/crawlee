@@ -175,6 +175,12 @@ const calculatePlaceholder = (a: string[], b: string[]) => {
         output.push(...calculatePlaceholder(rightA, rightB));
     }
 
+    return output;
+};
+
+const normalizedCalculatePlaceholder = (a: string[], b: string[]) => {
+    const output = calculatePlaceholder(a, b);
+
     // We can't be too general
     if ((arrayCount(output, '_') / output.length) >= 0.5) {
         return ['_'];
@@ -185,7 +191,7 @@ const calculatePlaceholder = (a: string[], b: string[]) => {
 
 // Merge A (missing placeholders) into B (can contain placeholders but does not have to)
 const mergeMessages = (a: string, b: string, storage: Record<string, unknown>) => {
-    const placeholder = calculatePlaceholder(
+    const placeholder = normalizedCalculatePlaceholder(
         a.split(' '),
         b.split(' '),
     ).join(' ');
@@ -305,7 +311,7 @@ export class ErrorTracker {
 
         increaseCount(group as { count: number });
 
-        if (error.cause instanceof Error) {
+        if (typeof error.cause === 'object' && error.cause !== null) {
             this.add(error.cause);
         }
     }
