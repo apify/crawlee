@@ -60,7 +60,7 @@ function Footer() {
                     <div className="col padding-vert--md col--6 text--right">
                         <span className={styles.builtBy}>
                             <span className={styles.alignMiddle}>Built by</span>
-                            <ApifyLogo className={styles.alignMiddle} />
+                            <a href="https://apify.com"><ApifyLogo className={styles.alignMiddle} /></a>
                         </span>
                     </div>
                 </div>
