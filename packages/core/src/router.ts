@@ -63,10 +63,6 @@ export interface RouterHandler<Context extends CrawlingContext = CrawlingContext
  * });
  */
 
-type ContextWithUserData<Context extends CrawlingContext, UserData extends Dictionary> = Context extends CrawlingContext
-    ? Context & CrawlingContext<UserData>
-    : never;
-
 export class Router<Context extends CrawlingContext> {
     private readonly routes: Map<string | symbol, (ctx: Context) => Awaitable<void>> = new Map();
     private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
