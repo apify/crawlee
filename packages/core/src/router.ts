@@ -1,5 +1,4 @@
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import type { Request } from './request';
 import type { CrawlingContext } from './crawlers/crawler_commons';
 import type { Awaitable } from './typedefs';
