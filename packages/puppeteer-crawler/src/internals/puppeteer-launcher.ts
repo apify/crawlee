@@ -125,8 +125,6 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
  * [Apify Actor documentation](https://docs.apify.com/actor/build#base-images)
  * for details.
  *
- * For an example of usage, see the [Puppeteer proxy Example](/docs/examples/puppeteer-with-proxy).
- *
  * @param [launchContext]
  *   All `PuppeteerLauncher` parameters are passed via an launchContext object.
  *   If you want to pass custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.

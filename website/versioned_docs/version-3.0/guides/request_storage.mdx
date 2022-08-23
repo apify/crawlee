@@ -102,8 +102,6 @@ const crawler = new PuppeteerCrawler({
 });
 ```
 
-To see more detailed example of how to use the request list with a crawler, see the [Puppeteer with proxy](/docs/examples/puppeteer-with-proxy) example.
-
 ## Which one to choose?
 
 When using Request queue - we would normally have several start URLs (e.g. category pages on e-commerce website) and then recursively add more (e.g. individual item pages) programmatically to the queue, it supports dynamic adding and removing of requests. No more URLs can be added to Request list after its initialization as it is immutable, URLs cannot be removed from the list either.
