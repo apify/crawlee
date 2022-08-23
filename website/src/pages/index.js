@@ -10,6 +10,10 @@ import Highlights from '../components/Highlights';
 import ProductHuntCard from '../components/ProductHuntCard';
 import styles from './index.module.css';
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
+import { default as GHLogo } from '../../static/img/logo-gh.svg';
+import { default as HNLogo } from '../../static/img/logo-hn.svg';
+import { default as PHLogo } from '../../static/img/logo-ph.svg';
+import { default as ZoomLogo } from '../../static/img/logo-zoom.svg';
 
 function Hero() {
     return (
@@ -59,26 +63,38 @@ function TopBanner() {
     const HNLogo = require('../../static/img/logo-hn.svg').default;
     const PHLogo = require('../../static/img/logo-ph.svg').default;
     const GHLogo = require('../../static/img/logo-gh.svg').default;
+    const ZoomLogo = require('../../static/img/logo-zoom.svg').default;
     return (
         <section className={clsx('container', styles.topBanner)}>
             <div className="row">
                 <div className="col col--8">
-                    <h1>🎉 Crawlee is out!</h1>
-                    <div className={styles.textRow}>
-                        Check Crawlee on{' '}
-                        <Link to="https://github.com/apify/crawlee">
-                            <GHLogo className={styles.ghLogoSmall} />
-                            GitHub
-                        </Link>,{' '}
-                        <Link to="https://news.ycombinator.com/item?id=32561127">
-                            <HNLogo className={styles.hnLogoSmall} />
-                            Hacker News
-                        </Link>{' '}
-                        and{' '}
-                        <Link to="https://www.producthunt.com/posts/crawlee">
-                            <PHLogo className={styles.phLogoSmall} />
-                            Product Hunt
-                        </Link>!
+                    <div className={clsx('container', styles.textRow)}>
+                        <div className="row">
+                            <h1>🎉 Crawlee is out!</h1>
+                        </div>
+                        <div className="row">
+                            Check Crawlee on{' '}
+                            <Link to="https://github.com/apify/crawlee">
+                                <GHLogo className={styles.ghLogoSmall} />
+                                GitHub
+                            </Link>,&nbsp;
+                            <Link to="https://news.ycombinator.com/item?id=32561127">
+                                <HNLogo className={styles.hnLogoSmall} />
+                                Hacker News
+                            </Link>
+                            &nbsp;and&nbsp;
+                            <Link to="https://www.producthunt.com/posts/crawlee">
+                                <PHLogo className={styles.phLogoSmall} />
+                                Product Hunt
+                            </Link>!
+                        </div>
+                        <div className="row">
+                            and join our
+                            <Link to="https://get.apify.com/crawlee-webinar">
+                                <ZoomLogo className={styles.zoomLogoSmall} /> webinar
+                            </Link>
+                            &nbsp;at 11:30 AM - 12:00 PM EST this Thursday (Aug 25, 2022).
+                        </div>
                     </div>
                 </div>
                 <div className={clsx('col col--4', styles.phcard)}>

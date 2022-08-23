@@ -227,6 +227,7 @@ html[data-theme='dark'] .features {
     padding: 24px 60px;
     border: 1px solid #cfd4eb;
     border-radius: 6px;
+    line-height: 40px;
 }
 
 .topBanner h1 {
@@ -245,6 +246,12 @@ html[data-theme='dark'] .features {
     text-decoration: none;
 }
 
+.textRow {
+    font-size: 16px;
+    line-height: 36px;
+    color: #41465d;
+}
+
 .textRow svg {
     margin: 0 5px;
     display: inline-block;
@@ -252,6 +259,7 @@ html[data-theme='dark'] .features {
     top: 4px;
 }
 
+html[data-theme='dark'] .textRow,
 html[data-theme='dark'] .topBanner h1,
 html[data-theme='dark'] .topBanner a {
     color: #f2f3fb;
@@ -268,6 +276,10 @@ html[data-theme='dark'] .hnLogoSmall {
 html[data-theme='dark'] .phLogoSmall {
     background: #f2f3fb;
     border-radius: 100%;
+}
+
+html[data-theme='dark'] .zoomLogoSmall path {
+    fill: #f2f3fb;
 }
 
 .phcard {
