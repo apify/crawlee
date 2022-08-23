@@ -1,3 +1,6 @@
+import type { Dictionary } from '@crawlee/types';
+import type { CheerioCrawlingContext } from '@crawlee/cheerio';
+import type { Request } from './request';
 import type { CrawlingContext } from './crawlers/crawler_commons';
 import type { Awaitable } from './typedefs';
 import { MissingRouteError } from './errors';
@@ -59,6 +62,11 @@ export interface RouterHandler<Context extends CrawlingContext = CrawlingContext
  *    ctx.log.info('...');
  * });
  */
+
+type ContextWithUserData<Context extends CrawlingContext, UserData extends Dictionary> = Context extends CrawlingContext
+    ? Context & CrawlingContext<UserData>
+    : never;
+
 export class Router<Context extends CrawlingContext> {
     private readonly routes: Map<string | symbol, (ctx: Context) => Awaitable<void>> = new Map();
     private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
@@ -72,7 +80,13 @@ export class Router<Context extends CrawlingContext> {
     /**
      * Registers new route handler for given label.
      */
-    addHandler(label: string | symbol, handler: (ctx: Context) => Awaitable<void>) {
+    // Accept a generic that allows overriding userData of the Context defined
+    // when instantiating the Router.
+    addHandler<UserData extends Dictionary = Context['request']['userData']>(
+        label: string | symbol,
+        // Omit is required, because if we don't exclude request, it can't properly be overridden.
+        handler: (ctx: Omit<Context, 'request'> & { request: Request<UserData> },
+    ) => Awaitable<void>) {
         this.validate(label);
         this.routes.set(label, handler);
     }
@@ -80,7 +94,9 @@ export class Router<Context extends CrawlingContext> {
     /**
      * Registers default route handler.
      */
-    addDefaultHandler(handler: (ctx: Context) => Awaitable<void>) {
+    addDefaultHandler<UserData extends Dictionary = Context['request']['userData']>(
+        handler: (ctx: Omit<Context, 'request'> & { request: Request<UserData> },
+    ) => Awaitable<void>) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
     }
