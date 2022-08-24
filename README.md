@@ -6,7 +6,7 @@
         </picture>
     </a>
     <br>
-    <small>The web scraping and browser automation library</small>
+    <small>A web scraping and browser automation library</small>
 </h1>
 
 <p align=center>
