@@ -90,7 +90,7 @@ export class Router<Context extends CrawlingContext> {
      * Registers default route handler.
      */
     addDefaultHandler<UserData extends Dictionary = Context['request']['userData']>(
-        handler: (ctx: Omit<Context, 'request'> & { request: Request<UserData> },
+        handler: (ctx: Context,
     ) => Awaitable<void>) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
