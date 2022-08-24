@@ -1,13 +1,13 @@
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { setTimeout } from 'node:timers/promises';
 import { execSync } from 'node:child_process';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
-import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
+import { URL_NO_COMMAS_REGEX } from '@crawlee/utils';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -205,6 +205,35 @@ export async function getDatasetItems(dirName) {
     }
 
     return datasetItems;
+}
+
+/**
+ * Gets all items in the key-value store, as a Buffer
+ * @param {string} dirName
+ * @param {string} storeName
+ */
+export async function getKeyValueStoreItems(dirName, storeName) {
+    const dir = getStorage(dirName);
+    const storePath = join(dir, `key_value_stores/${storeName}`);
+
+    if (!existsSync(storePath)) {
+        return [];
+    }
+
+    const dirents = await readdir(storePath, { withFileTypes: true });
+    const fileNames = dirents.filter((dirent) => dirent.isFile());
+    const keyValueStoreRecords = [];
+
+    for (const fileName of fileNames) {
+        if (fileName.name.includes('__metadata__')) continue;
+
+        const filePath = join(storePath, fileName.name);
+        const buffer = await readFile(filePath);
+
+        keyValueStoreRecords.push({ name: fileName.name.split('.').slice(0, -1).join('.'), raw: buffer });
+    }
+
+    return keyValueStoreRecords;
 }
 
 /**
