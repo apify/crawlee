@@ -58,6 +58,9 @@ export abstract class EventManager {
 
         // Emit final PERSIST_STATE event
         this.emit(EventType.PERSIST_STATE, { isMigrating: false });
+
+        // Wait for PERSIST_STATE to process
+        await this.waitForAllListenersToComplete();
     }
 
     on(event: EventTypeName, listener: (...args: any[]) => any): void {
