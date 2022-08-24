@@ -7,7 +7,8 @@ import { setTimeout } from 'node:timers/promises';
 import { execSync } from 'node:child_process';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
-import { URL_NO_COMMAS_REGEX } from '@crawlee/utils';
+// eslint-disable-next-line import/no-relative-packages
+import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
