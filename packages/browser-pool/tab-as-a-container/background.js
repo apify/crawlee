@@ -43,7 +43,7 @@ const getCookieURL = (cookie) => {
     return url;
 };
 
-// Rewrite cookies that were programatically set to tabId instead of openerId.
+// Rewrite cookies that were programmatically set to tabId instead of openerId.
 // This is requried because we cannot reliably get openerId inside Playwright.
 chrome.cookies.onChanged.addListener(async (changeInfo) => {
     if (!changeInfo.removed) {
