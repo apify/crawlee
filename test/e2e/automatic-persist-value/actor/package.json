@@ -1,7 +1,7 @@
 {
-	"name": "test-autoscaling-max-tasks-per-minute",
+	"name": "test-automatic-persist-value",
 	"version": "0.0.1",
-	"description": "Autoscaling Pool Test - Max Tasks per Minute",
+	"description": "Key-Value Store - Automatic Persist Value Test",
 	"dependencies": {
         "apify": "^3.0.0-beta.75",
         "@apify/storage-local": "^2.1.0",
