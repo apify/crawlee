@@ -1,15 +1,13 @@
-import { initialize, expect, getActorTestDir, runActor, getKeyValueStoreItems } from '../tools.mjs';
+import { initialize, expect, getActorTestDir, runActor } from '../tools.mjs';
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
 
-await runActor(testActorDirname);
+const { keyValueStoreItems } = await runActor(testActorDirname);
 
-const kvsItems = await getKeyValueStoreItems(testActorDirname, 'test');
+expect(keyValueStoreItems.length === 1, 'Key-value store automatically saved the value expected to be auto-saved');
 
-expect(kvsItems.length === 1, 'Key-value store automatically saved the value expected to be auto-saved');
-
-const [{ name, raw }] = kvsItems;
+const [{ name, raw }] = keyValueStoreItems;
 
 expect(name === 'crawlee', 'Key-value store auto-saved value is named "crawlee"');
 
