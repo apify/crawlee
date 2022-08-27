@@ -60,6 +60,7 @@ export function getActorTestDir(url) {
 export async function runActor(dirName, memory = 4096) {
     let stats;
     let datasetItems;
+    let keyValueStoreItems;
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         await copyPackages(dirName);
@@ -91,6 +92,21 @@ export async function runActor(dirName, memory = 4096) {
         stats = value;
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
+
+        try {
+            const { items: keyValueItems } = await client.keyValueStore('test').listKeys();
+
+            keyValueStoreItems = await Promise.all(keyValueItems.map(async ({ key }) => {
+                const record = await client.keyValueStore('test').getRecord(key, { buffer: true });
+
+                return {
+                    name: record.key,
+                    raw: record.value,
+                };
+            }));
+        } catch {
+            keyValueStoreItems = [];
+        }
     } else {
         if (dirName.split('/').at(-2).endsWith('-ts')) {
             execSync('tsc', { cwd: dirName });
@@ -101,9 +117,10 @@ export async function runActor(dirName, memory = 4096) {
         await setTimeout(50);
         stats = await getStats(dirName);
         datasetItems = await getDatasetItems(dirName);
+        keyValueStoreItems = await getKeyValueStoreItems(dirName);
     }
 
-    return { stats, datasetItems };
+    return { stats, datasetItems, keyValueStoreItems };
 }
 
 /**
@@ -211,11 +228,10 @@ export async function getDatasetItems(dirName) {
 /**
  * Gets all items in the key-value store, as a Buffer
  * @param {string} dirName
- * @param {string} storeName
  */
-export async function getKeyValueStoreItems(dirName, storeName) {
+export async function getKeyValueStoreItems(dirName) {
     const dir = getStorage(dirName);
-    const storePath = join(dir, `key_value_stores/${storeName}`);
+    const storePath = join(dir, `key_value_stores/test/`);
 
     if (!existsSync(storePath)) {
         return [];
