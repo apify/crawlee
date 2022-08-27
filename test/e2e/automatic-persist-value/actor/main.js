@@ -12,7 +12,7 @@ await Actor.main(async () => {
 
     const crawler = new BasicCrawler({
         async requestHandler() {
-            const automaticValue = await kv.getAutoSavedValue('hello');
+            const automaticValue = await kv.getAutoSavedValue('crawlee');
 
             automaticValue.crawlee = 'awesome!';
         },
