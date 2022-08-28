@@ -87,6 +87,7 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
      * ```
      * preNavigationHooks: [
      *     async (crawlingContext, gotoOptions) => {
+     *         const { page } = crawlingContext;
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
      *     },
      * ]
