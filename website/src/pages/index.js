@@ -63,7 +63,6 @@ function TopBanner() {
     const HNLogo = require('../../static/img/logo-hn.svg').default;
     const PHLogo = require('../../static/img/logo-ph.svg').default;
     const GHLogo = require('../../static/img/logo-gh.svg').default;
-    const ZoomLogo = require('../../static/img/logo-zoom.svg').default;
     return (
         <section className={clsx('container', styles.topBanner)}>
             <div className="row">
@@ -87,13 +86,6 @@ function TopBanner() {
                                 <PHLogo className={styles.phLogoSmall} />
                                 Product Hunt
                             </Link>!
-                        </div>
-                        <div className="row">
-                            and join our
-                            <Link to="https://get.apify.com/crawlee-webinar">
-                                <ZoomLogo className={styles.zoomLogoSmall} /> webinar
-                            </Link>
-                            &nbsp;at 11:30 AM - 12:00 PM EST this Thursday (Aug 25, 2022).
                         </div>
                     </div>
                 </div>
