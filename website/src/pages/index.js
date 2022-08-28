@@ -10,10 +10,6 @@ import Highlights from '../components/Highlights';
 import ProductHuntCard from '../components/ProductHuntCard';
 import styles from './index.module.css';
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
-import { default as GHLogo } from '../../static/img/logo-gh.svg';
-import { default as HNLogo } from '../../static/img/logo-hn.svg';
-import { default as PHLogo } from '../../static/img/logo-ph.svg';
-import { default as ZoomLogo } from '../../static/img/logo-zoom.svg';
 
 function Hero() {
     return (
