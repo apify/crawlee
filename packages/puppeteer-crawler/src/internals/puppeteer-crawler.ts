@@ -17,12 +17,10 @@ import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends
     BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
-// @ts-expect-error -- TSC vs Language Server issues
 export interface PuppeteerRequestHandler extends BrowserRequestHandler<PuppeteerCrawlingContext> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
 export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
-// @ts-expect-error -- TSC vs Language Server issues
     PuppeteerCrawlingContext,
     { browserPlugins: [PuppeteerPlugin] }
 > {
@@ -128,7 +126,6 @@ export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
  * ```
  * @category Crawlers
  */
-// @ts-expect-error -- TSC vs Language Server issues
 export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [PuppeteerPlugin] }, LaunchOptions, PuppeteerCrawlingContext> {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -156,14 +153,12 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
 
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
-            // @ts-expect-error -- TSC vs Language Server issues
             launchContext.launchOptions.headless = headless;
         }
 
         const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
 
         browserPoolOptions.browserPlugins = [
-            // @ts-expect-error -- TSC vs Language Server issues
             puppeteerLauncher.createBrowserPlugin(),
         ];
 
