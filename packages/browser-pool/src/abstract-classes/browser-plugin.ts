@@ -1,4 +1,5 @@
 import merge from 'lodash.merge';
+import type { Dictionary } from '@crawlee/types';
 import type { LaunchContextOptions } from '../launch-context';
 import { LaunchContext } from '../launch-context';
 import type { BrowserController } from './browser-controller';
@@ -24,7 +25,7 @@ export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/5
  */
 export interface CommonLibrary {
     product?: string;
-    launch(opts?: Record<PropertyKey, any>): Promise<CommonBrowser>;
+    launch(opts?: Dictionary): Promise<CommonBrowser>;
     name?: () => string;
 }
 
@@ -74,7 +75,7 @@ export interface BrowserPluginOptions<LibraryOptions> {
 
 export interface CreateLaunchContextOptions<
     Library extends CommonLibrary,
-    LibraryOptions extends Record<PropertyKey, any> | undefined = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -88,7 +89,7 @@ export interface CreateLaunchContextOptions<
  */
 export abstract class BrowserPlugin<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions extends Record<PropertyKey, any> | undefined = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
