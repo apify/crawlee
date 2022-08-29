@@ -99,7 +99,7 @@ const getErrorNameGroup = (error: ErrnoException, storage: Record<string, unknow
     const { name } = error;
 
     if (!(name in storage)) {
-        storage[name] = {};
+        storage[name] = Object.create(null);
     }
 
     return storage[name] as Record<string, unknown>;
