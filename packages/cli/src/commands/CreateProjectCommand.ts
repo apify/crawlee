@@ -33,7 +33,7 @@ function rewrite(path: string, replacer: (from: string) => string): void {
 export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectArgs> {
     command = 'create [project-name]';
     describe = 'Creates a new Crawlee project directory from a selected boilerplate template.';
-    builder = async (args: Argv) => {
+    builder = async (args: Argv<T>) => {
         const manifest = await fetchManifest();
         const choices = manifest.templates.map((t) => t.name);
 

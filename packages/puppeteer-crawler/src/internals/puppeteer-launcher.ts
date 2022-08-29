@@ -71,6 +71,7 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
  * `PuppeteerLauncher` is based on the `BrowserLauncher`. It launches `puppeteer` browser instance.
  * @ignore
  */
+// @ts-expect-error -- TSC vs Language Server issues
 export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,

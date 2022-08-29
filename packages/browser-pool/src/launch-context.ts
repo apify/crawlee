@@ -11,7 +11,7 @@ import type { UnwrapPromise } from './utils';
  */
 export interface LaunchContextOptions<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Record<PropertyKey, any> | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -52,7 +52,7 @@ export interface LaunchContextOptions<
 
 export class LaunchContext<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Record<PropertyKey, any> | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,

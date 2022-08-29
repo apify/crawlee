@@ -13,7 +13,7 @@ const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
 export interface BrowserControllerEvents<
     Library extends CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Record<PropertyKey, any> | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -32,7 +32,7 @@ export interface BrowserControllerEvents<
  */
 export abstract class BrowserController<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Record<PropertyKey, any> | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,

@@ -104,7 +104,7 @@ export class KeyValueStore {
     private persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
-    private readonly cache = new Map<string, unknown>();
+    private readonly cache = new Map<string, Dictionary>();
 
     /**
      * @internal
@@ -160,7 +160,7 @@ export class KeyValueStore {
         }
 
         const value = await this.getValue<T>(key, defaultValue);
-        this.cache.set(key, value);
+        this.cache.set(key, value!);
         this.ensurePersistStateEvent();
 
         return value!;
@@ -241,9 +241,9 @@ export class KeyValueStore {
         const optionsCopy = { ...options };
 
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
-        const cachedValue = this.cache.get(key) as T;
+        const cachedValue = this.cache.get(key);
 
-        if (this.cache.has(key) && cachedValue !== value) {
+        if (cachedValue && cachedValue !== value) {
             if (value === null) {
                 // Cached state can be only object, so a propagation of `null` means removing all its properties.
                 Object.keys(cachedValue).forEach((k) => this.cache.delete(k));
