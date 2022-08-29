@@ -21,7 +21,7 @@ export class RunProjectCommand<T> implements CommandModule<T, RunProjectArgs> {
             default: 'start',
             describe: 'Allows using different NPM script than `start`, e.g. `crawlee run --script=start:prod`.',
         });
-        return args as Argv<RunProjectArgs>;
+        return args as unknown as Argv<RunProjectArgs>;
     };
 
     /**
