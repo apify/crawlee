@@ -4,6 +4,7 @@ import log from '@apify/log';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
+    filterRequestsByPatterns,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
@@ -221,6 +222,8 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
         options.strategy ??= EnqueueStrategy.SameHostname;
     }
 
+    const enqueueStrategyPatterns: UrlPatternObject[] = [];
+
     if (options.baseUrl) {
         const url = new URL(options.baseUrl);
 
@@ -229,7 +232,7 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
                 // We need to get the origin of the passed in domain in the event someone sets baseUrl
                 // to an url like https://example.com/deep/default/path and one of the found urls is an
                 // absolute relative path (/path/to/page)
-                urlPatternObjects.push({ glob: `${url.origin}/**` });
+                enqueueStrategyPatterns.push({ glob: `${url.origin}/**` });
                 break;
             case EnqueueStrategy.SameDomain: {
                 // Get the actual hostname from the base url
@@ -238,14 +241,14 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
                 if (baseUrlHostname) {
                     // We have a hostname, so we can use it to match all links on the page that point to it and any subdomains of it
                     url.hostname = baseUrlHostname;
-                    urlPatternObjects.push(
+                    enqueueStrategyPatterns.push(
                         { glob: `${url.origin.replace(baseUrlHostname, `*.${baseUrlHostname}`)}/**` },
                         { glob: `${url.origin}/**` },
                     );
                 } else {
                     // We don't have a hostname (can happen for ips for instance), so reproduce the same behavior
                     // as SameDomainAndSubdomain
-                    urlPatternObjects.push({ glob: `${url.origin}/**` });
+                    enqueueStrategyPatterns.push({ glob: `${url.origin}/**` });
                 }
 
                 break;
@@ -262,7 +265,19 @@ export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchA
         requestOptions = requestOptions.map((request) => transformRequestFunction(request)).filter((r) => !!r) as RequestOptions[];
     }
 
-    let requests = createRequests(requestOptions, urlPatternObjects);
+    function createFilteredRequests() {
+        // No user provided patterns means we can skip an extra filtering step
+        if (urlPatternObjects.length === 0) {
+            return createRequests(requestOptions, enqueueStrategyPatterns);
+        }
+
+        // Generate requests based on the user patterns first
+        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects);
+        // ...then filter them by the enqueue links strategy (making this an AND check)
+        return filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns);
+    }
+
+    let requests = createFilteredRequests();
     if (limit) requests = requests.slice(0, limit);
 
     return requestQueue.addRequests(requests);
