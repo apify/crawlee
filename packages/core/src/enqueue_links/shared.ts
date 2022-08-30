@@ -153,6 +153,31 @@ export function createRequests(requestOptions: (string | RequestOptions)[], urlP
     return requests;
 }
 
+export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatternObject[]) {
+    if (!patterns?.length) {
+        return requests;
+    }
+
+    const filtered: Request[] = [];
+
+    for (const request of requests) {
+        for (const urlPatternObject of patterns) {
+            const { regexp, glob } = urlPatternObject;
+
+            if (
+                (regexp && request.url.match(regexp)) || // eslint-disable-line
+                (glob && minimatch(request.url, glob, { nocase: true }))
+            ) {
+                filtered.push(request);
+                // Break the pattern loop, as we already matched this request once
+                break;
+            }
+        }
+    }
+
+    return filtered;
+}
+
 /**
  * @ignore
  */
