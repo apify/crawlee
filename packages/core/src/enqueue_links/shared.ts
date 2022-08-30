@@ -160,15 +160,17 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
 
     const filtered: Request[] = [];
 
-    for (const urlPatternObject of patterns) {
-        const { regexp, glob } = urlPatternObject;
+    for (const request of requests) {
+        for (const urlPatternObject of patterns) {
+            const { regexp, glob } = urlPatternObject;
 
-        for (const request of requests) {
             if (
                 (regexp && request.url.match(regexp)) || // eslint-disable-line
                 (glob && minimatch(request.url, glob, { nocase: true }))
             ) {
                 filtered.push(request);
+                // Break the pattern loop, as we already matched this request once
+                break;
             }
         }
     }
