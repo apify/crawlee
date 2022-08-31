@@ -336,6 +336,26 @@ export class ErrorTracker {
         return count;
     }
 
+    getMostPopularErrors(count: number) {
+        const result: [number, string[]][] = [];
+
+        const goDeeper = (group: Record<string, unknown>, path: string[]): void => {
+            if ('count' in group) {
+                result.push([(group as any).count, path]);
+                return;
+            }
+
+            // eslint-disable-next-line guard-for-in, no-restricted-syntax
+            for (const key in group) {
+                goDeeper(group[key] as Record<string, unknown>, [...path, key]);
+            }
+        };
+
+        goDeeper(this.result, []);
+
+        return result.sort((a, b) => a[0] - b[0]).slice(0, count);
+    }
+
     reset() {
         // This actually safe, since we Object.create(null) so no prototype pollution can happen.
         // eslint-disable-next-line no-restricted-syntax, guard-for-in
