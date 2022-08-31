@@ -109,6 +109,7 @@ test('works', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 
     tracker.add(g(e));
 
@@ -123,6 +124,7 @@ test('works', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('no code is null code', () => {
@@ -151,6 +153,7 @@ test('no code is null code', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('can hide error code', () => {
@@ -177,6 +180,7 @@ test('can hide error code', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('can hide error name', () => {
@@ -203,6 +207,7 @@ test('can hide error name', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('can hide error message', () => {
@@ -229,6 +234,7 @@ test('can hide error message', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('can hide error stack', () => {
@@ -253,6 +259,7 @@ test('can hide error stack', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('can display full stack', () => {
@@ -281,6 +288,7 @@ test('can display full stack', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('stack looks for user files first', () => {
@@ -309,6 +317,7 @@ test('stack looks for user files first', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('can shorten the message to the first line', () => {
@@ -336,6 +345,7 @@ test('can shorten the message to the first line', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('supports error.cause', () => {
@@ -367,6 +377,7 @@ test('supports error.cause', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(2);
 });
 
 test('placeholder #1', () => {
@@ -405,6 +416,7 @@ test('placeholder #1', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #2', () => {
@@ -443,6 +455,7 @@ test('placeholder #2', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #3', () => {
@@ -481,6 +494,7 @@ test('placeholder #3', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #4', () => {
@@ -519,6 +533,7 @@ test('placeholder #4', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #5', () => {
@@ -557,6 +572,7 @@ test('placeholder #5', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #6', () => {
@@ -595,6 +611,7 @@ test('placeholder #6', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #7', () => {
@@ -628,6 +645,7 @@ test('placeholder #7', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 
     tracker.add({
         name: 'Error',
@@ -645,6 +663,7 @@ test('placeholder #7', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
 test('placeholder #8', () => {
@@ -681,6 +700,7 @@ test('placeholder #8', () => {
             },
         },
     });
+    expect(tracker.getUniqueErrorCount()).toBe(2);
 });
 
 test('placeholder #9', () => {
@@ -719,4 +739,5 @@ test('placeholder #9', () => {
     };
 
     expect(tracker.result).toMatchObject(expected);
+    expect(tracker.getUniqueErrorCount()).toBe(2);
 });
