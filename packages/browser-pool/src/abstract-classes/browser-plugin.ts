@@ -174,7 +174,7 @@ export abstract class BrowserPlugin<
 
         if (this._isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
-            (launchOptions as Record<string, any>).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
+            (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
             // it is better to use DEFAULT_USER_AGENT to reduce chance of detection,
             // as otherwise 'HeadlessChrome' is present in User-Agent string.
