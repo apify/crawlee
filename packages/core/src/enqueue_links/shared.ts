@@ -134,10 +134,11 @@ export function createRequests(requestOptions: (string | RequestOptions)[], urlP
 
     const requests: Request[] = [];
 
-    for (const urlPatternObject of urlPatternObjects) {
-        const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
-        for (const opts of requestOptions) {
-            const urlToMatch = typeof opts === 'string' ? opts : opts.url;
+    for (const opts of requestOptions) {
+        const urlToMatch = typeof opts === 'string' ? opts : opts.url;
+
+        for (const urlPatternObject of urlPatternObjects) {
+            const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
             if (
                 (regexp && urlToMatch.match(regexp)) || // eslint-disable-line
                 (glob && minimatch(urlToMatch, glob, { nocase: true }))
@@ -146,6 +147,9 @@ export function createRequests(requestOptions: (string | RequestOptions)[], urlP
                     ? { url: opts, ...requestRegExpOptions }
                     : { ...opts, ...requestRegExpOptions };
                 requests.push(new Request(request));
+
+                // Stop checking other patterns for this request option as it was already matched
+                break;
             }
         }
     }
