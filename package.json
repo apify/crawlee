@@ -100,5 +100,5 @@
         "typescript": "^4.8.2",
         "ws": "^7.5.9"
     },
-    "packageManager": "npm@8.18.0"
+    "packageManager": "npm@8.19.0"
 }
