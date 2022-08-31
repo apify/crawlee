@@ -1,4 +1,5 @@
 import merge from 'lodash.merge';
+import type { Dictionary } from '@crawlee/types';
 import type { LaunchContextOptions } from '../launch-context';
 import { LaunchContext } from '../launch-context';
 import type { BrowserController } from './browser-controller';
@@ -24,7 +25,7 @@ export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/5
  */
 export interface CommonLibrary {
     product?: string;
-    launch(...args: unknown[]): Promise<CommonBrowser>;
+    launch(opts?: Dictionary): Promise<CommonBrowser>;
     name?: () => string;
 }
 
@@ -74,7 +75,7 @@ export interface BrowserPluginOptions<LibraryOptions> {
 
 export interface CreateLaunchContextOptions<
     Library extends CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -88,7 +89,7 @@ export interface CreateLaunchContextOptions<
  */
 export abstract class BrowserPlugin<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -163,7 +164,9 @@ export abstract class BrowserPlugin<
     async launch(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> = this.createLaunchContext(),
     ): Promise<LaunchResult> {
-        const { proxyUrl, launchOptions }: { proxyUrl?: string; launchOptions: Record<string, any> } = launchContext;
+        launchContext.launchOptions ??= {} as LibraryOptions;
+
+        const { proxyUrl, launchOptions } = launchContext;
 
         if (proxyUrl) {
             await this._addProxyToLaunchOptions(launchContext);
@@ -171,20 +174,20 @@ export abstract class BrowserPlugin<
 
         if (this._isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
-            launchOptions.args = this._mergeArgsToHideWebdriver(launchOptions.args);
+            (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
             // it is better to use DEFAULT_USER_AGENT to reduce chance of detection,
             // as otherwise 'HeadlessChrome' is present in User-Agent string.
-            const userAgent = launchOptions.args.find((arg: string) => arg.startsWith('--user-agent'));
-            if (launchOptions.headless && !launchContext.fingerprint && !userAgent) {
-                launchOptions.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
+            const userAgent = launchOptions!.args.find((arg: string) => arg.startsWith('--user-agent'));
+            if (launchOptions!.headless && !launchContext.fingerprint && !userAgent) {
+                launchOptions!.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
             }
         }
 
         return this._launch(launchContext);
     }
 
-    private _mergeArgsToHideWebdriver(originalArgs: string[]): string[] {
+    private _mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
         if (!originalArgs?.length) {
             return ['--disable-blink-features=AutomationControlled'];
         }

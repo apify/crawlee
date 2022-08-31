@@ -69,7 +69,7 @@ export abstract class BrowserLauncher<
     Plugin extends BrowserPlugin,
     Launcher = Plugin['library'],
     T extends Constructor<Plugin> = Constructor<Plugin>,
-    LaunchOptions = Partial<Parameters<Plugin['launch']>[0]>,
+    LaunchOptions extends Dictionary<any> | undefined = Partial<Parameters<Plugin['launch']>[0]>,
     LaunchResult extends ReturnType<Plugin['launch']> = ReturnType<Plugin['launch']>,
 > {
     launcher: Launcher;

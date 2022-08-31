@@ -1,3 +1,4 @@
+import type { Dictionary } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './abstract-classes/browser-plugin';
 import type { UnwrapPromise } from './utils';
@@ -11,7 +12,7 @@ import type { UnwrapPromise } from './utils';
  */
 export interface LaunchContextOptions<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -52,7 +53,7 @@ export interface LaunchContextOptions<
 
 export class LaunchContext<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,

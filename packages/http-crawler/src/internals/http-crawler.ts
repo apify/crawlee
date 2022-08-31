@@ -25,7 +25,8 @@ import contentTypeParser from 'content-type';
 import mime from 'mime-types';
 import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
-import { extname } from 'path';
+import type { JsonValue } from 'type-fest';
+import { extname } from 'node:path';
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import iconv from 'iconv-lite';
 import ow from 'ow';
@@ -49,7 +50,7 @@ const HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS: AutoscaledPoolOptions = {
 
 export type HttpErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
 
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext> extends BasicCrawlerOptions<Context> {
@@ -155,7 +156,7 @@ export type InternalHttpHook<Context> = (
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
 
 /**
@@ -163,7 +164,7 @@ export type HttpHook<
  */
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Crawler = HttpCrawler<any>
     > extends CrawlingContext<UserData> {
     /**
@@ -188,12 +189,12 @@ export interface InternalHttpCrawlingContext<
     sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
-export interface HttpCrawlingContext<UserData = any, JSONData = any>
+export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
     extends InternalHttpCrawlingContext<UserData, JSONData, HttpCrawler<HttpCrawlingContext<UserData, JSONData>>> {}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = RequestHandler<HttpCrawlingContext<UserData, JSONData>>;
 
 /**

@@ -55,7 +55,7 @@ export interface BrowserCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpti
 
 export type BrowserHook<
     Context = BrowserCrawlingContext,
-    GoToOptions extends Record<PropertyKey, any> | undefined = Dictionary
+    GoToOptions extends Dictionary | undefined = Dictionary
 > = (crawlingContext: Context, gotoOptions: GoToOptions) => Awaitable<void>;
 
 export interface BrowserCrawlerOptions<
@@ -285,9 +285,9 @@ export interface BrowserCrawlerOptions<
  */
 export abstract class BrowserCrawler<
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
-    LaunchOptions = Dictionary,
+    LaunchOptions extends Dictionary | undefined = Dictionary,
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
-    GoToOptions extends Record<PropertyKey, any> = Dictionary
+    GoToOptions extends Dictionary = Dictionary
 > extends BasicCrawler<Context> {
     /**
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.

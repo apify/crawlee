@@ -9,7 +9,7 @@ interface RunProjectArgs {
 export class RunProjectCommand<T> implements CommandModule<T, RunProjectArgs> {
     command = 'run';
     describe = 'Run crawlee project';
-    builder = async (args: Argv) => {
+    builder = async (args: Argv<T>) => {
         args.option('purge', {
             alias: 't',
             default: true,

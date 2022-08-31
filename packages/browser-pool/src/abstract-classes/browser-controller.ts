@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { tryCancel } from '@apify/timeout';
-import type { Cookie } from '@crawlee/types';
+import type { Cookie, Dictionary } from '@crawlee/types';
 import { BROWSER_CONTROLLER_EVENTS } from '../events';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
@@ -13,7 +13,7 @@ const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
 export interface BrowserControllerEvents<
     Library extends CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -32,7 +32,7 @@ export interface BrowserControllerEvents<
  */
 export abstract class BrowserController<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions = Parameters<Library['launch']>[0],
+    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,

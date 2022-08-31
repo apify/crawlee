@@ -1,5 +1,4 @@
 import type { Dictionary } from '@crawlee/types';
-// eslint isn't compatible with `import type`
 import type Puppeteer from './puppeteer-proxy-per-page';
 import type { Browser, Target, BrowserContext } from './puppeteer-proxy-per-page';
 import type { BrowserController } from '../abstract-classes/browser-controller';
