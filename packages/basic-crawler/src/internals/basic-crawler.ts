@@ -595,7 +595,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.log.info('Crawl finished. Final request statistics:', stats);
 
         if (this.stats.errorTracker.total !== 0) {
-            this.log.info(`Error tracker saved ${this.stats.errorTracker.total} errors. See KV storage for more info.`);
+            this.log.info(`Error analysis:`, {
+                totalErrors: this.stats.errorTracker.total,
+                uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
+            });
         }
 
         const client = this.config.getStorageClient();

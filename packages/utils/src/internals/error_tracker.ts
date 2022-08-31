@@ -209,9 +209,9 @@ const mergeMessages = (a: string, b: string, storage: Record<string, unknown>) =
     delete storage[a];
     delete storage[b];
 
-    storage[placeholder] = {
+    storage[placeholder] = Object.assign(Object.create(null), {
         count,
-    };
+    });
 
     return placeholder;
 };
@@ -225,9 +225,9 @@ const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unk
     }
 
     if (!(message in storage)) {
-        storage[message] = {
+        storage[message] = Object.assign(Object.create(null), {
             count: 0,
-        };
+        });
 
         // This actually safe, since we Object.create(null) so no prototype pollution can happen.
         // eslint-disable-next-line no-restricted-syntax, guard-for-in
@@ -314,6 +314,26 @@ export class ErrorTracker {
         if (typeof error.cause === 'object' && error.cause !== null) {
             this.add(error.cause);
         }
+    }
+
+    getUniqueErrorCount() {
+        let count = 0;
+
+        const goDeeper = (group: Record<string, unknown>): void => {
+            if ('count' in group) {
+                count++;
+                return;
+            }
+
+            // eslint-disable-next-line guard-for-in, no-restricted-syntax
+            for (const key in group) {
+                goDeeper(group[key] as Record<string, unknown>);
+            }
+        };
+
+        goDeeper(this.result);
+
+        return count;
     }
 
     reset() {
