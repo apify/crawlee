@@ -36,7 +36,7 @@ const requestOptionalPredicates = {
  *
  * Each `Request` instance has the `uniqueKey` property, which can be either specified
  * manually in the constructor or generated automatically from the URL. Two requests with the same `uniqueKey`
- * are considered as pointing to the same web resource. This behavior applies to all Apify SDK classes,
+ * are considered as pointing to the same web resource. This behavior applies to all Crawlee classes,
  * such as {@apilink RequestList}, {@apilink RequestQueue}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler}.
  *
  * Example use:
