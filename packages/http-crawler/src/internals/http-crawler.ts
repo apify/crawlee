@@ -437,6 +437,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 this._throwOnBlockedRequest(session!, response.statusCode!);
             }
 
+            if (this.persistCookiesPerSession) {
+                session!.setCookiesFromResponse(response);
+            }
+
             request.loadedUrl = response.url;
 
             Object.assign(crawlingContext, parsed);
