@@ -238,6 +238,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
+    // We use CDP commands instead of request interception as the latter disables caching, which is not ideal
     await sendCDPCommand(page, 'Network.setBlockedURLs', { urls: patternsToBlock });
 }
 
@@ -252,7 +253,7 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     if (Reflect.has(page, '_client')) {
         const client = Reflect.get(page, '_client');
 
-        if (client instanceof Function) {
+        if (typeof client === 'function') {
             return client().send(command, ...args);
         }
 
