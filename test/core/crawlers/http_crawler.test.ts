@@ -22,6 +22,19 @@ router.set('/invalidContentType', (req, res) => {
     res.end(`<html><head><title>Example Domain</title></head></html>`);
 });
 
+router.set('/redirectAndCookies', (req, res) => {
+    res.setHeader('content-type', 'text/html');
+    res.setHeader('set-cookie', 'foo=bar');
+    res.setHeader('location', '/cookies');
+    res.statusCode = 302;
+    res.end();
+});
+
+router.set('/cookies', (req, res) => {
+    res.setHeader('content-type', 'text/html');
+    res.end(JSON.stringify(req.headers.cookie));
+});
+
 let server: http.Server;
 let url: string;
 
@@ -149,5 +162,24 @@ test('invalid content type defaults to octet-stream', async () => {
             type: 'application/octet-stream',
             encoding: 'utf-8',
         },
+    ]);
+});
+
+test('handles cookies from redirects', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        sessionPoolOptions: {
+            maxPoolSize: 1,
+        },
+        handlePageFunction: async ({ body }) => {
+            results.push(JSON.parse(body.toString()));
+        },
+    });
+
+    await crawler.run([`${url}/redirectAndCookies`]);
+
+    expect(results).toStrictEqual([
+        'foo=bar',
     ]);
 });
