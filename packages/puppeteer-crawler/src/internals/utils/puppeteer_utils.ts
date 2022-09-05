@@ -22,6 +22,7 @@ import { readFile } from 'fs/promises';
 import ow from 'ow';
 import vm from 'vm';
 import { LruCache } from '@apify/datastructures';
+import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/core';
@@ -237,12 +238,36 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
-    if (page._client instanceof Function) {
-        await page._client().send('Network.setBlockedURLs', { urls: patternsToBlock });
-    } else {
-        // @ts-expect-error for older puppeteer (<14.4)
-        await page._client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+    // We use CDP commands instead of request interception as the latter disables caching, which is not ideal
+    await sendCDPCommand(page, 'Network.setBlockedURLs', { urls: patternsToBlock });
+}
+
+/**
+ * @internal
+ */
+export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
+    page: Page,
+    command: T,
+    ...args: ProtocolMapping.Commands[T]['paramsType']
+): Promise<ProtocolMapping.Commands[T]['returnType']> {
+    // In puppeteer 16.x and 17.x, the `_client` method is completely omitted from the types. It's still there and works the same way, but it is hidden.
+
+    // Puppeteer <= 17
+    if (Reflect.has(page, '_client')) {
+        const client = Reflect.get(page, '_client');
+
+        if (typeof client === 'function') {
+            return client.call(page).send(command, ...args);
+        }
+
+        return client.send(command, ...args);
     }
+
+    const jsonPath = require.resolve('puppeteer/package.json');
+    const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
+
+    // eslint-disable-next-line max-len
+    throw new Error(`Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`);
 }
 
 /**

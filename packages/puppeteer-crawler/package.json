@@ -64,7 +64,7 @@
         "ow": "^0.28.1"
     },
     "peerDependencies": {
-        "puppeteer": ">= 9.x <= 15.1"
+        "puppeteer": ">= 9.x <= 17.0"
     },
     "peerDependenciesMeta": {
         "puppeteer": {
