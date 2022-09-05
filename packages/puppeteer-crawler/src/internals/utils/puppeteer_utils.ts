@@ -254,7 +254,7 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
         const client = Reflect.get(page, '_client');
 
         if (typeof client === 'function') {
-            return client().send(command, ...args);
+            return client.call(page).send(command, ...args);
         }
 
         return client.send(command, ...args);
