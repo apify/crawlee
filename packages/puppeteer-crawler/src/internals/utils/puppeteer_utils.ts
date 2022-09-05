@@ -242,6 +242,9 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
     await sendCDPCommand(page, 'Network.setBlockedURLs', { urls: patternsToBlock });
 }
 
+/**
+ * @internal
+ */
 export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     page: Page,
     command: T,
