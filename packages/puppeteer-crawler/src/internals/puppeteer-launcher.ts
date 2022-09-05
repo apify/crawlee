@@ -55,7 +55,7 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
      * wrappers such as `puppeteer-extra`.
      *
      * Take caution, because it can cause all kinds of unexpected errors and weird behavior.
-     * Apify SDK is not tested with any other library besides `puppeteer` itself.
+     * Crawlee is not tested with any other library besides `puppeteer` itself.
      */
     launcher?: unknown;
 
