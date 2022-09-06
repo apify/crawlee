@@ -3,7 +3,7 @@
 	"version": "0.0.1",
 	"description": "Cheerio Crawler Test - TypeScript",
 	"dependencies": {
-        "apify": "^3.0.0-beta.75",
+        "apify": "next",
         "@apify/storage-local": "^2.1.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",

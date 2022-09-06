@@ -117,6 +117,8 @@ export async function runActor(dirName, memory = 4096) {
                 } else {
                     console.log(e);
                 }
+
+                // TODO rethrow or not?
             }
         }
 
