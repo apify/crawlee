@@ -109,7 +109,15 @@ export async function runActor(dirName, memory = 4096) {
         }
     } else {
         if (dirName.split('/').at(-2).endsWith('-ts')) {
-            execSync('tsc', { cwd: dirName });
+            try {
+                execSync('tsc', { cwd: dirName });
+            } catch (/** @type {any} */ e) {
+                if ('stdout' in e) {
+                    console.error(e.stdout.toString());
+                } else {
+                    console.log(e);
+                }
+            }
         }
 
         await import(join(dirName, 'main.js'));
