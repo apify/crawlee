@@ -539,7 +539,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         gotOptions.headers ??= {};
         Reflect.deleteProperty(gotOptions.headers, 'Cookie');
         Reflect.deleteProperty(gotOptions.headers, 'cookie');
-        gotOptions.headers.Cookie = mergedCookie;
+
+        if (mergedCookie !== '') {
+            gotOptions.headers.Cookie = mergedCookie;
+        }
     }
 
     /**
