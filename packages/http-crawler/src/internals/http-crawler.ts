@@ -733,7 +733,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 if (this.persistCookiesPerSession) {
                     session!.setCookiesFromResponse(redirectResponse);
 
-                    updatedOptions.headers.Cookie = session!.getCookieString(updatedOptions.url!.toString());
+                    const cookieString = session!.getCookieString(updatedOptions.url!.toString());
+                    if (cookieString !== '') {
+                        updatedOptions.headers.Cookie = cookieString;
+                    }
                 }
             });
 
