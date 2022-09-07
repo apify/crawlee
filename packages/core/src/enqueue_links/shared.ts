@@ -157,7 +157,7 @@ export function createRequests(requestOptions: (string | RequestOptions)[], urlP
     return requests;
 }
 
-export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatternObject[]) {
+export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatternObject[]): Request[] {
     if (!patterns?.length) {
         return requests;
     }
