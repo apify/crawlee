@@ -1,4 +1,5 @@
 import ow from 'ow';
+import { ErrorTracker } from '@crawlee/utils';
 import { log as defaultLog } from '../log';
 import { KeyValueStore } from '../storages/key_value_store';
 import type { EventManager } from '../events/event_manager';
@@ -28,6 +29,15 @@ class Job {
     }
 }
 
+const errorTrackerConfig = {
+    showErrorCode: true,
+    showErrorName: true,
+    showStackTrace: true,
+    showFullStack: false,
+    showErrorMessage: true,
+    showFullMessage: false,
+};
+
 /**
  * The statistics class provides an interface to collecting and logging run
  * statistics for requests.
@@ -40,6 +50,16 @@ class Job {
  */
 export class Statistics {
     private static id = 0;
+
+    /**
+     * An error tracker for final retry errors.
+     */
+    errorTracker = new ErrorTracker(errorTrackerConfig);
+
+    /**
+     * An error tracker for retry errors prior to the final retry.
+     */
+    errorTrackerRetry = new ErrorTracker(errorTrackerConfig);
 
     /**
      * Statistic instance id.
@@ -99,6 +119,9 @@ export class Statistics {
      * Set the current statistic instance to pristine values
      */
     reset() {
+        this.errorTracker.reset();
+        this.errorTrackerRetry.reset();
+
         this.state = {
             requestsFinished: 0,
             requestsFailed: 0,
@@ -113,6 +136,9 @@ export class Statistics {
             crawlerFinishedAt: null,
             statsPersistedAt: null,
             crawlerRuntimeMillis: 0,
+            requestsWithStatusCode: {},
+            errors: this.errorTracker.result,
+            retryErrors: this.errorTrackerRetry.result,
         };
 
         this.requestRetryHistogram.length = 0;
@@ -120,6 +146,19 @@ export class Statistics {
         this.instanceStart = Date.now();
 
         this._teardown();
+    }
+
+    /**
+     * Increments the status code counter.
+     */
+    registerStatusCode(code: number) {
+        const s = String(code);
+
+        if (this.state.requestsWithStatusCode[s] === undefined) {
+            this.state.requestsWithStatusCode[s] = 0;
+        }
+
+        this.state.requestsWithStatusCode[s]++;
     }
 
     /**
@@ -303,7 +342,7 @@ export class Statistics {
         // merge all the current state information that can be used from the outside
         // without the need to reconstruct for the sake of stats.calculate()
         // omit duplicated information
-        return {
+        const result = {
             ...this.state,
             crawlerLastStartTimestamp: this.instanceStart,
             crawlerFinishedAt: this.state.crawlerFinishedAt ? new Date(this.state.crawlerFinishedAt).toISOString() : null,
@@ -313,6 +352,16 @@ export class Statistics {
             statsPersistedAt: new Date().toISOString(),
             ...this.calculate(),
         };
+
+        Reflect.deleteProperty(result, 'requestsWithStatusCode');
+        Reflect.deleteProperty(result, 'errors');
+        Reflect.deleteProperty(result, 'retryErrors');
+
+        result.requestsWithStatusCode = this.state.requestsWithStatusCode;
+        result.errors = this.state.errors;
+        result.retryErrors = this.state.retryErrors;
+
+        return result;
     }
 }
 
@@ -357,4 +406,7 @@ export interface StatisticState {
     crawlerFinishedAt: Date | string | null;
     crawlerRuntimeMillis: number;
     statsPersistedAt: Date | string | null;
+    errors: Record<string, unknown>;
+    retryErrors: Record<string, unknown>;
+    requestsWithStatusCode: Record<string, number>;
 }

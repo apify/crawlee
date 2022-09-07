@@ -594,6 +594,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
         this.log.info('Crawl finished. Final request statistics:', stats);
 
+        if (this.stats.errorTracker.total !== 0) {
+            this.log.info(`Error analysis:`, {
+                totalErrors: this.stats.errorTracker.total,
+                uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
+                mostCommonErrors: Object.fromEntries(this.stats.errorTracker.getMostPopularErrors(3)),
+            });
+        }
+
         const client = this.config.getStorageClient();
 
         if (client.teardown) {
@@ -974,6 +982,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (shouldRetryRequest) {
             request.retryCount++;
 
+            this.stats.errorTrackerRetry.add(error);
+
             await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
 
             const { url, retryCount, id } = request;
@@ -988,6 +998,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             await source.reclaimRequest(request);
         } else {
+            this.stats.errorTracker.add(error);
+
             // If we get here, the request is either not retryable
             // or failed more than retryCount times and will not be retried anymore.
             // Mark the request as failed and do not retry.
