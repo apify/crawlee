@@ -35,6 +35,12 @@ router.set('/cookies', (req, res) => {
     res.end(JSON.stringify(req.headers.cookie));
 });
 
+router.set('/redirectWithoutCookies', (req, res) => {
+    res.setHeader('location', '/cookies');
+    res.statusCode = 302;
+    res.end();
+});
+
 let server: http.Server;
 let url: string;
 
@@ -182,4 +188,46 @@ test('handles cookies from redirects', async () => {
     expect(results).toStrictEqual([
         'foo=bar',
     ]);
+});
+
+test('handles cookies from redirects - no empty cookie header', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        sessionPoolOptions: {
+            maxPoolSize: 1,
+        },
+        handlePageFunction: async ({ body }) => {
+            const str = body.toString();
+
+            if (str !== '') {
+                results.push(JSON.parse(str));
+            }
+        },
+    });
+
+    await crawler.run([`${url}/redirectWithoutCookies`]);
+
+    expect(results).toStrictEqual([]);
+});
+
+test('no empty cookie header', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        sessionPoolOptions: {
+            maxPoolSize: 1,
+        },
+        handlePageFunction: async ({ body }) => {
+            const str = body.toString();
+
+            if (str !== '') {
+                results.push(JSON.parse(str));
+            }
+        },
+    });
+
+    await crawler.run([`${url}/cookies`]);
+
+    expect(results).toStrictEqual([]);
 });
