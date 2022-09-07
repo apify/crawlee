@@ -18,8 +18,6 @@ for (const filepath of files) {
         } else if (
             // playwright/puppeteer import
             line.match(/^([^']+)'(playwright|puppeteer)'/) ||
-            // type import for CDP protocol mappings
-            line.match(/^([^']+)'devtools-protocol\/types\/protocol-mapping\.js'/) ||
             // proxy-per-page reexport of puppeteer
             line.match(/: Puppeteer\.\w+/) ||
             // don't ask me why, but this one is needed too ¯\_(ツ)_/¯
