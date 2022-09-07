@@ -224,6 +224,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         transformRequestFunction: ow.optional.function,
         waitForPageIdleSecs: ow.optional.number,
         maxWaitForPageIdleSecs: ow.optional.number,
+        label: ow.optional.string,
     }));
 
     const {
