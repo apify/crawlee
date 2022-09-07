@@ -20,7 +20,7 @@ A clear and concise description of what you expected to happen.
 **System information:**
  - OS: [e.g. MacOS]
  - Node.js version [e.g. 14.7]
- - Crawlee version [e.g. 0.20.4]
+ - Crawlee version [e.g. 3.0.4]
  - Apify platform [yes or no]
 
 **Additional context**
