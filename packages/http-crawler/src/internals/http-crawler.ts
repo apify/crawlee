@@ -23,7 +23,7 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
-import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit } from 'got-scraping';
+import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit, Options } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
 import type { JsonValue } from 'type-fest';
 import { extname } from 'node:path';
@@ -539,7 +539,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         gotOptions.headers ??= {};
         Reflect.deleteProperty(gotOptions.headers, 'Cookie');
         Reflect.deleteProperty(gotOptions.headers, 'cookie');
-        gotOptions.headers.Cookie = mergedCookie;
+
+        if (mergedCookie !== '') {
+            gotOptions.headers.Cookie = mergedCookie;
+        }
     }
 
     /**
@@ -551,7 +554,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         const opts = this._getRequestOptions(request, session, proxyUrl, gotOptions);
 
         try {
-            return await this._requestAsBrowser(opts);
+            return await this._requestAsBrowser(opts, session);
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
@@ -729,9 +732,20 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = (options: OptionsInit & { isStream: true }) => {
+    private _requestAsBrowser = (options: OptionsInit & { isStream: true }, session?: Session) => {
         return new Promise<IncomingMessage>((resolve, reject) => {
             const stream = gotScraping(options);
+
+            stream.on('redirect', (updatedOptions: Options, redirectResponse: IncomingMessage) => {
+                if (this.persistCookiesPerSession) {
+                    session!.setCookiesFromResponse(redirectResponse);
+
+                    const cookieString = session!.getCookieString(updatedOptions.url!.toString());
+                    if (cookieString !== '') {
+                        updatedOptions.headers.Cookie = cookieString;
+                    }
+                }
+            });
 
             stream.on('error', reject);
             stream.on('response', () => {
