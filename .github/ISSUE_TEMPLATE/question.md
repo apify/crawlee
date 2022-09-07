@@ -7,14 +7,10 @@ assignees: ''
 
 ---	
 
-Please submit new issues for new feature requests and bug reports only.
-For questions please join Apify Discord. You could get help from Apify team members and the community there.
+For questions and help, prefer using either [Discussions](https://github.com/apify/crawlee/discussions) or join [Crawlee Discord](https://discord.gg/jyEM2PRvMU). The Crawlee community and Apify team members are there to help you.
 
-- [Discord](https://discord.gg/jyEM2PRvMU)
+Please also make sure that you visit all the relevant information sources and search there for answers first.
 
-Please also make sure that you visit all the relevant information sources and use search there.
-
-- [SDK Documentation](https://sdk.apify.com)
-- [Our Stack Overflow](https://stackoverflow.com/tags/apify/)
+- [Crawlee Documentation](https://crawlee.dev/)
+- [Apify/Crawlee Academy](https://stackoverflow.com/tags/apify/) - A lot of tutorials there work with Crawlee-only setup (no Apify SDK or Apify platform required) 
 - [Apify Platform Docs](https://docs.apify.com)
-- [Apify Help](https://help.apify.com)
