@@ -465,6 +465,14 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const dataset = await this.open();
         return dataset.pushData(item);
     }
+
+    /**
+     * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
+     */
+    static async getData<Data extends Dictionary = Dictionary>(options: DatasetDataOptions = {}): Promise<DatasetContent<Data>> {
+        const dataset = await this.open();
+        return dataset.getData(options);
+    }
 }
 
 /**
