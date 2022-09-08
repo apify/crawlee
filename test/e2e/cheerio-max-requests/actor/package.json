@@ -1,8 +1,8 @@
 {
-	"name": "test-cheerio-max-requests",
-	"version": "0.0.1",
-	"description": "Cheerio Crawler Test - Max Requests Per Crawl",
-	"dependencies": {
+    "name": "test-cheerio-max-requests",
+    "version": "0.0.1",
+    "description": "Cheerio Crawler Test - Max Requests Per Crawl",
+    "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
@@ -14,7 +14,15 @@
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils"
     },
-    "scripts": { "start": "node main.js" },
-	"type": "module",
-	"license": "ISC"
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
 }

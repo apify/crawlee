@@ -5,7 +5,7 @@ COPY /package*.json ./
 RUN npm --quiet set progress=false \
     && npm install --only=prod --no-optional
 
-FROM apify/actor-node-playwright-firefox:16
+FROM apify/actor-node-playwright-firefox:16-beta
 
 RUN rm -r node_modules
 COPY --from=builder /node_modules ./node_modules

@@ -1,8 +1,8 @@
 {
-	"name": "test-puppeteer-default",
-	"version": "0.0.1",
-	"description": "Puppeteer Test - Default",
-	"dependencies": {
+    "name": "test-puppeteer-default",
+    "version": "0.0.1",
+    "description": "Puppeteer Test - Default",
+    "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
@@ -15,7 +15,15 @@
         "@crawlee/utils": "file:./packages/utils",
         "puppeteer": "*"
     },
-    "scripts": { "start": "node main.js" },
-	"type": "module",
-	"license": "ISC"
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
 }

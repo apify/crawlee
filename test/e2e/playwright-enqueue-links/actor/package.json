@@ -1,8 +1,8 @@
 {
-	"name": "test-playwright-enqueue-links",
-	"version": "0.0.1",
-	"description": "Playwright Test - Enqueue Links",
-	"dependencies": {
+    "name": "test-playwright-enqueue-links",
+    "version": "0.0.1",
+    "description": "Playwright Test - Enqueue Links",
+    "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
@@ -16,7 +16,15 @@
         "deep-equal": "^2.0.5",
         "playwright": "*"
     },
-    "scripts": { "start": "node main.js" },
-	"type": "module",
-	"license": "ISC"
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
 }
