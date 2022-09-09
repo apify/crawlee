@@ -14,4 +14,4 @@ export * from './storages';
 export * from './validators';
 export * from './cookie_utils';
 export { PseudoUrl } from '@apify/pseudo_url';
-export { Dictionary, Awaitable, Constructor, StorageClient } from '@crawlee/types';
+export { Dictionary, Awaitable, Constructor, StorageClient, Cookie } from '@crawlee/types';
