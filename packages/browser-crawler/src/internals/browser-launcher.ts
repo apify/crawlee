@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import ow from 'ow';
 import type { Dictionary, Constructor } from '@crawlee/utils';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import { Configuration } from '@crawlee/core';
+import { Configuration } from '@crawlee/basic';
 
 const DEFAULT_VIEWPORT = {
     width: 1366,

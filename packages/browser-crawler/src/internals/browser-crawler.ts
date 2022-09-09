@@ -6,7 +6,12 @@ import type {
     ProxyInfo,
     RequestQueue,
     Session,
-} from '@crawlee/core';
+    BasicCrawlerOptions,
+    Awaitable,
+    Dictionary,
+    RequestHandler,
+    ErrorHandler,
+} from '@crawlee/basic';
 import {
     cookieStringToToughCookie,
     enqueueLinks,
@@ -15,9 +20,9 @@ import {
     validators,
     resolveBaseUrlForEnqueueLinksFiltering,
     Configuration,
-} from '@crawlee/core';
-import type { BasicCrawlerOptions, Awaitable, Dictionary, RequestHandler, ErrorHandler } from '@crawlee/basic';
-import { BASIC_CRAWLER_TIMEOUT_BUFFER_SECS, BasicCrawler } from '@crawlee/basic';
+    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    BasicCrawler,
+} from '@crawlee/basic';
 import type {
     BrowserController,
     BrowserPlugin,
