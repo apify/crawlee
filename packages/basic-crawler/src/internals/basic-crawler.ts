@@ -1043,6 +1043,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @returns The message to be logged
      */
     protected _getMessageFromError(error: Error, forceStack = false) {
+        if ([TypeError, SyntaxError, ReferenceError].some((type) => error instanceof type)) {
+            forceStack = true;
+        }
+
         // For timeout errors we want to show the stack just in case the env variable is set
         if (error instanceof TimeoutError) {
             return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error;
