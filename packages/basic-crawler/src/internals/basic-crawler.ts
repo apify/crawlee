@@ -595,10 +595,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.log.info('Crawl finished. Final request statistics:', stats);
 
         if (this.stats.errorTracker.total !== 0) {
+            const prettify = ([count, info]: [number, string[]]) => `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
+
             this.log.info(`Error analysis:`, {
                 totalErrors: this.stats.errorTracker.total,
                 uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
-                mostCommonErrors: Object.fromEntries(this.stats.errorTracker.getMostPopularErrors(3)),
+                mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
             });
         }
 
