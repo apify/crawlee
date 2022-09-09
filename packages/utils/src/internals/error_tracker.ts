@@ -353,7 +353,7 @@ export class ErrorTracker {
 
         goDeeper(this.result, []);
 
-        return result.sort((a, b) => a[0] - b[0]).slice(0, count);
+        return result.sort((a, b) => b[0] - a[0]).slice(0, count);
     }
 
     reset() {
