@@ -2,35 +2,109 @@
     "templates": [
         {
             "name": "getting-started-ts",
-            "description": "Getting started example [TypeScript]"
+            "description": "Getting started example [TypeScript]",
+            "files": [
+                "src/main.ts",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md",
+                "tsconfig.json"
+            ]
         },
         {
             "name": "getting-started-js",
-            "description": "Getting started example [JavaScript]"
+            "description": "Getting started example [JavaScript]",
+            "files": [
+                "src/main.js",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md"
+            ]
         },
         {
             "name": "cheerio-ts",
-            "description": "CheerioCrawler template project [TypeScript]"
+            "description": "CheerioCrawler template project [TypeScript]",
+            "files": [
+                "src/main.ts",
+                "src/routes.ts",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md",
+                "tsconfig.json"
+            ]
         },
         {
             "name": "playwright-ts",
-            "description": "PlaywrightCrawler template project [TypeScript]"
+            "description": "PlaywrightCrawler template project [TypeScript]",
+            "files": [
+                "src/main.ts",
+                "src/routes.ts",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md",
+                "tsconfig.json"
+            ]
         },
         {
             "name": "puppeteer-ts",
-            "description": "PuppeteerCrawler template project [TypeScript]"
+            "description": "PuppeteerCrawler template project [TypeScript]",
+            "files": [
+                "src/main.ts",
+                "src/routes.ts",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md",
+                "tsconfig.json"
+            ]
         },
         {
             "name": "cheerio-js",
-            "description": "CheerioCrawler template project [JavaScript]"
+            "description": "CheerioCrawler template project [JavaScript]",
+            "files": [
+                "src/main.js",
+                "src/routes.js",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md"
+            ]
         },
         {
             "name": "playwright-js",
-            "description": "PlaywrightCrawler template project [JavaScript]"
+            "description": "PlaywrightCrawler template project [JavaScript]",
+            "files": [
+                "src/main.js",
+                "src/routes.js",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md"
+            ]
         },
         {
             "name": "puppeteer-js",
-            "description": "PuppeteerCrawler template project [JavaScript]"
+            "description": "PuppeteerCrawler template project [JavaScript]",
+            "files": [
+                "src/main.js",
+                "src/routes.js",
+                ".dockerignore",
+                ".gitignore",
+                "Dockerfile",
+                "package.json",
+                "README.md"
+            ]
         }
     ]
 }
