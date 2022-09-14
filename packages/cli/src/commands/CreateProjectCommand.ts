@@ -32,6 +32,42 @@ async function rewrite(path: string, replacer: (from: string) => string) {
     }
 }
 
+async function downloadTemplateFilesToDisk(template: Template, destinationDirectory: string) {
+    const promises: Promise<void>[] = [];
+
+    for (const file of template.files) {
+        const promise = downloadFile(file.url).then(async (buffer) => {
+            // Make sure the folder for the file exists
+            const fileDirName = dirname(file.path);
+            const fileFolder = resolve(destinationDirectory, fileDirName);
+            await ensureDir(fileFolder);
+
+            // Write the actual file
+            await writeFile(resolve(destinationDirectory, file.path), buffer);
+        });
+
+        promises.push(promise);
+    }
+
+    await Promise.all(promises);
+}
+
+async function downloadFile(url: string) {
+    return new Promise<Buffer>((promiseResolve, reject) => {
+        get(url, async (res) => {
+            const bytes: Buffer[] = [];
+
+            res.on('error', (err) => reject(err));
+
+            for await (const byte of res) {
+                bytes.push(byte);
+            }
+
+            promiseResolve(Buffer.concat(bytes));
+        }).on('error', (err) => reject(err));
+    });
+}
+
 export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectArgs> {
     command = 'create [project-name]';
     describe = 'Creates a new Crawlee project directory from a selected boilerplate template.';
@@ -109,7 +145,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
 
         const templateData = manifest.templates.find((item) => item.name === template)!;
 
-        await this.downloadTemplateFilesToDisk(templateData, projectDir);
+        await downloadTemplateFilesToDisk(templateData, projectDir);
         await rewrite(resolve(projectDir, 'package.json'), (pkg) => pkg.replace(/"name": "[\w-]+"/, `"name": "${projectName}"`));
 
         // // Run npm install in project dir.
@@ -118,41 +154,5 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
 
         // eslint-disable-next-line no-console
         console.log(colors.green(`Project ${projectName} was created. To run it, run "cd ${projectName}" and "npm start".`));
-    }
-
-    private async downloadTemplateFilesToDisk(template: Template, destinationDirectory: string) {
-        const promises: Promise<void>[] = [];
-
-        for (const file of template.files) {
-            const promise = this.downloadFile(file.url).then(async (buffer) => {
-                // Make sure the folder for the file exists
-                const fileDirName = dirname(file.path);
-                const fileFolder = resolve(destinationDirectory, fileDirName);
-                await ensureDir(fileFolder);
-
-                // Write the actual file
-                await writeFile(resolve(destinationDirectory, file.path), buffer);
-            });
-
-            promises.push(promise);
-        }
-
-        await Promise.all(promises);
-    }
-
-    private downloadFile(url: string) {
-        return new Promise<Buffer>((promiseResolve, reject) => {
-            get(url, async (res) => {
-                const bytes: Buffer[] = [];
-
-                res.on('error', (err) => reject(err));
-
-                for await (const byte of res) {
-                    bytes.push(byte);
-                }
-
-                promiseResolve(Buffer.concat(bytes));
-            }).on('error', (err) => reject(err));
-        });
     }
 }
