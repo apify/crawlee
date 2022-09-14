@@ -57,7 +57,7 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
             id: kvStoreInfo.name ?? kvStoreInfo.id,
             data: kvStoreInfo,
             writeMetadata: this.client.writeMetadata,
-            writeFilesToDisk: this.client.writeFilesToDisk,
+            persistStorage: this.client.persistStorage,
         });
 
         return kvStoreInfo;

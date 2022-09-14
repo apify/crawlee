@@ -148,10 +148,17 @@ export interface ConfigurationOptions {
     /**
      * Sets the log level to the given value.
      *
-     * Alternative to `CRAWLEE_LOG_LEVEL`.
+     * Alternative to `CRAWLEE_LOG_LEVEL` environment variable.
      * @default 'INFO'
      */
     logLevel?: LogLevel | LogLevel[keyof LogLevel];
+
+    /**
+     * Defines whether the storage client used should persist the data it stores.
+     *
+     * Alternative to `CRAWLEE_PERSIST_STORAGE` environment variable.
+     */
+    persistStorage?: boolean;
 }
 
 /**
@@ -203,7 +210,9 @@ export interface ConfigurationOptions {
  * `defaultDatasetId` | `CRAWLEE_DEFAULT_DATASET_ID` | `'default'`
  * `defaultKeyValueStoreId` | `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
  * `defaultRequestQueueId` | `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
- * `persistStateIntervalMillis` | `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` | `60e3`
+ * `persistStateIntervalMillis` | `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` | `60_000`
+ * `purgeOnStart` | `CRAWLEE_PURGE_ON_START` | `true`
+ * `persistStorage` | `CRAWLEE_PERSIST_STORAGE` | `true`
  *
  * ## Advanced Configuration Options
  *
@@ -213,6 +222,8 @@ export interface ConfigurationOptions {
  * `xvfb` | `CRAWLEE_XVFB` | -
  * `chromeExecutablePath` | `CRAWLEE_CHROME_EXECUTABLE_PATH` | -
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
+ * `disableBrowserSandbox` | `CRAWLEE_DISABLE_BROWSER_SANDBOX` | -
+ * `availableMemoryRatio` | `CRAWLEE_AVAILABLE_MEMORY_RATIO` | `0.25`
  */
 export class Configuration {
     /**
@@ -233,9 +244,10 @@ export class Configuration {
         CRAWLEE_DEFAULT_BROWSER_PATH: 'defaultBrowserPath',
         CRAWLEE_DISABLE_BROWSER_SANDBOX: 'disableBrowserSandbox',
         CRAWLEE_LOG_LEVEL: 'logLevel',
+        CRAWLEE_PERSIST_STORAGE: 'persistStorage',
     };
 
-    protected static BOOLEAN_VARS = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox'];
+    protected static BOOLEAN_VARS = ['purgeOnStart', 'headless', 'xvfb', 'disableBrowserSandbox', 'persistStorage'];
 
     protected static INTEGER_VARS = ['memoryMbytes', 'persistStateIntervalMillis', 'systemInfoIntervalMillis'];
 
@@ -251,6 +263,7 @@ export class Configuration {
         headless: true,
         persistStateIntervalMillis: 60_000,
         systemInfoIntervalMillis: 60_000,
+        persistStorage: true,
     };
 
     /**
@@ -380,7 +393,11 @@ export class Configuration {
             return this.services.get(cacheKey) as MemoryStorage;
         }
 
-        const storage = new MemoryStorage(options);
+        const storage = new MemoryStorage({
+            persistStorage: this.get('persistStorage'),
+            // Override persistStorage if user provides it via storageClientOptions
+            ...options,
+        });
         this.services.set(cacheKey, storage);
 
         return storage;

@@ -188,7 +188,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             entityDirectory: existingStoreById.datasetDirectory,
             id: existingStoreById.name ?? existingStoreById.id,
             writeMetadata: this.client.writeMetadata,
-            writeFilesToDisk: this.client.writeFilesToDisk,
+            persistStorage: this.client.persistStorage,
         });
     }
 
@@ -261,7 +261,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             entityDirectory: this.datasetDirectory,
             id: this.name ?? this.id,
             writeMetadata: this.client.writeMetadata,
-            writeFilesToDisk: this.client.writeFilesToDisk,
+            persistStorage: this.client.persistStorage,
         });
     }
 }

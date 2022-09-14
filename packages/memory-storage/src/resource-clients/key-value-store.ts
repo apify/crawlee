@@ -276,7 +276,7 @@ export class KeyValueStoreClient extends BaseClient {
             entityDirectory: existingStoreById.keyValueStoreDirectory,
             id: existingStoreById.name ?? existingStoreById.id,
             writeMetadata: this.client.writeMetadata,
-            writeFilesToDisk: this.client.writeFilesToDisk,
+            persistStorage: this.client.persistStorage,
         });
     }
 
@@ -305,7 +305,7 @@ export class KeyValueStoreClient extends BaseClient {
                 entityDirectory: existingStoreById.keyValueStoreDirectory,
                 id: existingStoreById.name ?? existingStoreById.id,
                 writeMetadata: this.client.writeMetadata,
-                writeFilesToDisk: this.client.writeFilesToDisk,
+                persistStorage: this.client.persistStorage,
             });
         }
     }
@@ -336,7 +336,7 @@ export class KeyValueStoreClient extends BaseClient {
             entityDirectory: this.keyValueStoreDirectory,
             id: this.name ?? this.id,
             writeMetadata: this.client.writeMetadata,
-            writeFilesToDisk: this.client.writeFilesToDisk,
+            persistStorage: this.client.persistStorage,
         });
     }
 }
