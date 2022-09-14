@@ -1,13 +1,15 @@
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { execSync } from 'node:child_process';
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 import { prompt } from 'inquirer';
 import colors from 'ansi-colors';
+import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';
-import { copy } from 'fs-extra';
-import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { readFile, writeFile } from 'node:fs/promises';
+import { get } from 'node:https';
+import { ensureDir } from 'fs-extra';
 
 interface CreateProjectArgs {
     projectName?: string;
@@ -20,14 +22,50 @@ function validateProjectName(name: string) {
     }
 }
 
-function rewrite(path: string, replacer: (from: string) => string): void {
+async function rewrite(path: string, replacer: (from: string) => string) {
     try {
-        const file = readFileSync(path).toString();
+        const file = await readFile(path, 'utf8');
         const replaced = replacer(file);
-        writeFileSync(path, replaced);
+        await writeFile(path, replaced);
     } catch {
         // not found
     }
+}
+
+async function downloadTemplateFilesToDisk(template: Template, destinationDirectory: string) {
+    const promises: Promise<void>[] = [];
+
+    for (const file of template.files) {
+        const promise = downloadFile(file.url).then(async (buffer) => {
+            // Make sure the folder for the file exists
+            const fileDirName = dirname(file.path);
+            const fileFolder = resolve(destinationDirectory, fileDirName);
+            await ensureDir(fileFolder);
+
+            // Write the actual file
+            await writeFile(resolve(destinationDirectory, file.path), buffer);
+        });
+
+        promises.push(promise);
+    }
+
+    await Promise.all(promises);
+}
+
+async function downloadFile(url: string) {
+    return new Promise<Buffer>((promiseResolve, reject) => {
+        get(url, async (res) => {
+            const bytes: Buffer[] = [];
+
+            res.on('error', (err) => reject(err));
+
+            for await (const byte of res) {
+                bytes.push(byte);
+            }
+
+            promiseResolve(Buffer.concat(bytes));
+        }).on('error', (err) => reject(err));
+    });
 }
 
 export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectArgs> {
@@ -105,8 +143,10 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
             throw err;
         }
 
-        await copy(require.resolve('@crawlee/templates').replace('index.js', `templates/${template}`), projectDir);
-        rewrite(resolve(projectDir, 'package.json'), (pkg) => pkg.replace(/"name": "[\w-]+"/, `"name": "${projectName}"`));
+        const templateData = manifest.templates.find((item) => item.name === template)!;
+
+        await downloadTemplateFilesToDisk(templateData, projectDir);
+        await rewrite(resolve(projectDir, 'package.json'), (pkg) => pkg.replace(/"name": "[\w-]+"/, `"name": "${projectName}"`));
 
         // Run npm install in project dir.
         const npm = /^win/.test(process.platform) ? 'npm.cmd' : 'npm';
