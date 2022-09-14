@@ -1,3 +1,4 @@
+import JSON5 from 'json5';
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { jsonStringifyExtended } from '@apify/utilities';
 import ow, { ArgumentError } from 'ow';
@@ -466,7 +467,7 @@ export class KeyValueStore {
 
             // Attempt to parse as JSON, or return the input as is otherwise
             try {
-                return JSON.parse(input.toString()) as T;
+                return JSON5.parse(input.toString()) as T;
             } catch {
                 return input as unknown as T;
             }

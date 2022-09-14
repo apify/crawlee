@@ -1,4 +1,5 @@
 import contentTypeParser from 'content-type';
+import JSON5 from 'json5';
 
 const CONTENT_TYPE_JSON = 'application/json';
 const STRINGIFIABLE_CONTENT_TYPE_RXS = [
@@ -35,7 +36,7 @@ export function maybeParseBody(body: Buffer | ArrayBuffer, contentTypeHeader: st
     const dataString = isomorphicBufferToString(body, charset);
 
     return contentType === CONTENT_TYPE_JSON
-        ? JSON.parse(dataString)
+        ? JSON5.parse(dataString)
         : dataString;
 }
 
