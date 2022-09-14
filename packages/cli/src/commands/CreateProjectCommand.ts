@@ -148,7 +148,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         await downloadTemplateFilesToDisk(templateData, projectDir);
         await rewrite(resolve(projectDir, 'package.json'), (pkg) => pkg.replace(/"name": "[\w-]+"/, `"name": "${projectName}"`));
 
-        // // Run npm install in project dir.
+        // Run npm install in project dir.
         const npm = /^win/.test(process.platform) ? 'npm.cmd' : 'npm';
         execSync(`${npm} install`, { cwd: projectDir, stdio: 'inherit' });
 
