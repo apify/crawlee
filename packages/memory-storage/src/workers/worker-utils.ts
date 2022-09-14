@@ -65,6 +65,11 @@ async function updateItems(message: WorkerUpdateEntriesMessage) {
     const dir = message.entityDirectory;
     await ensureDir(dir);
 
+    // Skip writing files to the disk if the client has the option set to false
+    if (!message.writeFilesToDisk) {
+        return;
+    }
+
     switch (message.entityType) {
         case 'requestQueues': {
             // Write the entry to the file

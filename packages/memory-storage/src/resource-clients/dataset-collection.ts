@@ -57,6 +57,7 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
             id: datasetInfo.name ?? datasetInfo.id,
             data: datasetInfo,
             writeMetadata: this.client.writeMetadata,
+            writeFilesToDisk: this.client.writeFilesToDisk,
         });
 
         return datasetInfo;

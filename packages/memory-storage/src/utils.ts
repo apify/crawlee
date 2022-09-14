@@ -90,6 +90,7 @@ interface MetadataUpdate<Type extends EntityType, DataType> {
     entityDirectory: string;
     data: DataType;
     writeMetadata: boolean;
+    writeFilesToDisk: boolean;
 }
 
 interface EntriesUpdate<Type extends EntityType, DataType> {
@@ -99,6 +100,7 @@ interface EntriesUpdate<Type extends EntityType, DataType> {
     entityDirectory: string;
     data: DataType;
     writeMetadata: boolean;
+    writeFilesToDisk: boolean;
 }
 
 interface EntryDelete<Type extends EntityType> {
@@ -107,6 +109,7 @@ interface EntryDelete<Type extends EntityType> {
     action: 'delete-entry';
     entityDirectory: string;
     writeMetadata: boolean;
+    writeFilesToDisk: boolean;
     data: {
         id: string;
     };
