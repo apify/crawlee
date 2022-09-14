@@ -53,7 +53,7 @@ describe('writeFilesToDisk option', () => {
             const directoryFiles = await readdir(storePath);
 
             expect(directoryFiles).toHaveLength(1);
-            expect(directoryFiles).toStrictEqual([
+            expect(directoryFiles).toEqual([
                 '__metadata__.json',
             ]);
         });
