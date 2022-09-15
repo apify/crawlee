@@ -1014,7 +1014,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         } else {
             this.stats.errorTracker.add(error);
 
-            // If we get here, the request is either not retryable
+            // If we get here, the request is either not retry-able
             // or failed more than retryCount times and will not be retried anymore.
             // Mark the request as failed and do not retry.
             this.handledRequestsCount++;
