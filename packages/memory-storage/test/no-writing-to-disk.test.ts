@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import { waitTillWrittenToDisk } from './__shared__';
 
-describe('writeFilesToDisk option', () => {
+describe('persistStorage option', () => {
     const tmpLocation = resolve(__dirname, './tmp/no-writing-to-disk');
 
     afterAll(async () => {
@@ -14,7 +14,7 @@ describe('writeFilesToDisk option', () => {
         const localDataDirectory = resolve(tmpLocation, './no-metadata');
         const storage = new MemoryStorage({
             localDataDirectory,
-            writeFilesToDisk: false,
+            persistStorage: false,
         });
 
         test('creating a key-value pair in a key-value store should not write data to the disk', async () => {
@@ -36,7 +36,7 @@ describe('writeFilesToDisk option', () => {
         const localDataDirectory = resolve(tmpLocation, './with-metadata');
         const storage = new MemoryStorage({
             localDataDirectory,
-            writeFilesToDisk: false,
+            persistStorage: false,
             writeMetadata: true,
         });
 
