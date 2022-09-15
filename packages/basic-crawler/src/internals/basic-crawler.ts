@@ -993,6 +993,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
             // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
             const message = this._getMessageFromError(error);
+
+            // The user might have set request.noRetry to true within their error handler. This is a common use case.
+            // We need to check if they have decided to not retry the request anymore. And if so, we run the same
+            // logic in the else statement below.
+            if (request.noRetry) {
+                this.handledRequestsCount++;
+                await source.markRequestHandled(request);
+                this.stats.failJob(request.id || request.uniqueKey);
+                await this._handleFailedRequestHandler(crawlingContext, error);
+                return;
+            }
+
             this.log.warning(
                 `Reclaiming failed request back to the list or queue. ${message}`,
                 { id, url, retryCount },
