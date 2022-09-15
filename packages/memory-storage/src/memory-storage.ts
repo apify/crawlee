@@ -26,6 +26,14 @@ export interface MemoryStorageOptions {
      * @default process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false
      */
     writeMetadata?: boolean;
+
+    /**
+     * Whether the memory storage should also write its stored content to the disk.
+     *
+     * You can also disable this by setting the `CRAWLEE_PERSIST_STORAGE` environment variable to `false`.
+     * @default true
+     */
+    persistStorage?: boolean;
 }
 
 export class MemoryStorage implements storage.StorageClient {
@@ -34,6 +42,7 @@ export class MemoryStorage implements storage.StorageClient {
     readonly keyValueStoresDirectory: string;
     readonly requestQueuesDirectory: string;
     readonly writeMetadata: boolean;
+    readonly persistStorage: boolean;
 
     readonly keyValueStoresHandled: KeyValueStoreClient[] = [];
     readonly datasetClientsHandled: DatasetClient[] = [];
@@ -43,6 +52,7 @@ export class MemoryStorage implements storage.StorageClient {
         s.object({
             localDataDirectory: s.string.optional,
             writeMetadata: s.boolean.optional,
+            persistStorage: s.boolean.optional,
         }).parse(options);
 
         // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
@@ -61,6 +71,8 @@ export class MemoryStorage implements storage.StorageClient {
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
         this.writeMetadata = options.writeMetadata ?? process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false;
+        this.persistStorage = options.persistStorage
+            ?? (process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true);
 
         initWorkerIfNeeded();
     }

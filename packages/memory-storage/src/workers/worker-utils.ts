@@ -33,14 +33,14 @@ export async function handleMessage(message: WorkerReceivedMessage & { messageId
 }
 
 async function updateMetadata(message: WorkerUpdateMetadataMessage) {
-    // Ensure the directory for the entity exists
-    const dir = message.entityDirectory;
-    await ensureDir(dir);
-
     // Skip writing the actual metadata file. This is done after ensuring the directory exists so we have the directory present
     if (!message.writeMetadata) {
         return;
     }
+
+    // Ensure the directory for the entity exists
+    const dir = message.entityDirectory;
+    await ensureDir(dir);
 
     // Write the metadata to the file
     const filePath = resolve(dir, '__metadata__.json');
@@ -61,6 +61,11 @@ async function lockAndWrite(filePath: string, data: unknown, stringify = true, r
 }
 
 async function updateItems(message: WorkerUpdateEntriesMessage) {
+    // Skip writing files to the disk if the client has the option set to false
+    if (!message.persistStorage) {
+        return;
+    }
+
     // Ensure the directory for the entity exists
     const dir = message.entityDirectory;
     await ensureDir(dir);

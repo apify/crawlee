@@ -57,6 +57,7 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
             id: queueInfo.name ?? queueInfo.id,
             data: queueInfo,
             writeMetadata: this.client.writeMetadata,
+            persistStorage: this.client.persistStorage,
         });
 
         return queueInfo;

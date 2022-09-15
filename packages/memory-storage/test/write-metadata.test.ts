@@ -1,16 +1,7 @@
 import { MemoryStorage } from '@crawlee/memory-storage';
-import { access, readdir, rm } from 'node:fs/promises';
+import { readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { setTimeout } from 'node:timers/promises';
-
-async function waitTillWrittenToDisk(path: string): Promise<void> {
-    try {
-        await access(path);
-    } catch {
-        await setTimeout(50);
-        return waitTillWrittenToDisk(path);
-    }
-}
+import { waitTillWrittenToDisk } from './__shared__';
 
 describe('writeMetadata option', () => {
     const tmpLocation = resolve(__dirname, './tmp/write-metadata-tests');
@@ -29,11 +20,9 @@ describe('writeMetadata option', () => {
         test('creating a data store should not write __metadata__.json file', async () => {
             const keyValueStore = await storage.keyValueStores().getOrCreate();
             const expectedPath = resolve(storage.keyValueStoresDirectory, `${keyValueStore.id}`);
-            await waitTillWrittenToDisk(expectedPath);
 
-            const directoryFiles = await readdir(expectedPath);
-
-            expect(directoryFiles).toHaveLength(0);
+            // We check that reading the directory for the store throws an error, which means it wasn't created on disk
+            await expect(() => readdir(expectedPath)).rejects.toThrow();
         });
 
         test('creating a key-value pair in a key-value store should not write __metadata__.json file for the value', async () => {

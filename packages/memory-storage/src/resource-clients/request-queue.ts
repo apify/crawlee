@@ -326,6 +326,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 entityDirectory: existingQueueById.requestQueueDirectory,
                 id: existingQueueById.name ?? existingQueueById.id,
                 writeMetadata: existingQueueById.client.writeMetadata,
+                persistStorage: existingQueueById.client.persistStorage,
             });
         }
     }
@@ -361,6 +362,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             entityDirectory: this.requestQueueDirectory,
             id: this.name ?? this.id,
             writeMetadata: this.client.writeMetadata,
+            persistStorage: this.client.persistStorage,
         });
     }
 
@@ -372,6 +374,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             entityDirectory: this.requestQueueDirectory,
             id: this.name ?? this.id,
             writeMetadata: this.client.writeMetadata,
+            persistStorage: this.client.persistStorage,
         });
     }
 
