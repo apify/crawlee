@@ -22,13 +22,9 @@ describe('persistStorage option', () => {
 
             const keyValueStore = storage.keyValueStore(keyValueStoreInfo.id);
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
-            const storePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}`);
 
-            await waitTillWrittenToDisk(storePath);
-
-            const directoryFiles = await readdir(storePath);
-
-            expect(directoryFiles).toHaveLength(0);
+            // We check that reading the directory for the store throws an error, which means it wasn't created on disk
+            await expect(() => readdir(localDataDirectory)).rejects.toThrow();
         });
     });
 

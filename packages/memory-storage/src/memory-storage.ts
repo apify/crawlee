@@ -72,7 +72,7 @@ export class MemoryStorage implements storage.StorageClient {
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
         this.writeMetadata = options.writeMetadata ?? process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false;
         this.persistStorage = options.persistStorage
-            ?? process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true;
+            ?? (process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true);
 
         initWorkerIfNeeded();
     }
