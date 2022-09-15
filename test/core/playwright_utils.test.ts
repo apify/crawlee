@@ -4,7 +4,7 @@ import log from '@apify/log';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import { Request, launchPlaywright, playwrightUtils } from '@crawlee/playwright';
-import type { Browser } from 'playwright';
+import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { startExpressAppPromise } from '../shared/_helper';
@@ -244,5 +244,59 @@ describe('playwrightUtils', () => {
                 await browser.close();
             }
         }, 60_000);
+
+        describe('infiniteScroll()', () => {
+            function isAtBottom() {
+                return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
+            }
+
+            let browser: Browser;
+            beforeAll(async () => {
+                browser = await chromium.launch({ headless: true });
+            });
+            afterAll(async () => {
+                await browser.close();
+            });
+
+            let page: Page;
+            beforeEach(async () => {
+                page = await browser.newPage();
+                let count = 0;
+                const content = Array(1000).fill(null).map(() => {
+                    return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+                });
+                const contentHTML = `<html><body>${content}</body></html>`;
+                await page.setContent(contentHTML);
+            });
+            afterEach(async () => {
+                await page.close();
+            });
+
+            test('works', async () => {
+                const before = await page.evaluate(isAtBottom);
+                expect(before).toBe(false);
+
+                await playwrightUtils.infiniteScroll(page, { waitForSecs: 0 });
+
+                const after = await page.evaluate(isAtBottom);
+                expect(after).toBe(true);
+            });
+
+            test('stopScrollCallback works', async () => {
+                const before = await page.evaluate(isAtBottom);
+                expect(before).toBe(false);
+
+                await playwrightUtils.infiniteScroll(page, {
+                    waitForSecs: Infinity,
+                    stopScrollCallback: async () => true,
+                });
+
+                const after = await page.evaluate(isAtBottom);
+                // It scrolls to the bottom in the first scroll so this is correct.
+                // The test passes because the Infinite waitForSecs is broken by the callback.
+                // If it didn't, the test would time out.
+                expect(after).toBe(true);
+            });
+        });
     });
 });
