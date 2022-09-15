@@ -20,11 +20,9 @@ describe('writeMetadata option', () => {
         test('creating a data store should not write __metadata__.json file', async () => {
             const keyValueStore = await storage.keyValueStores().getOrCreate();
             const expectedPath = resolve(storage.keyValueStoresDirectory, `${keyValueStore.id}`);
-            await waitTillWrittenToDisk(expectedPath);
 
-            const directoryFiles = await readdir(expectedPath);
-
-            expect(directoryFiles).toHaveLength(0);
+            // We check that reading the directory for the store throws an error, which means it wasn't created on disk
+            await expect(() => readdir(expectedPath)).rejects.toThrow();
         });
 
         test('creating a key-value pair in a key-value store should not write __metadata__.json file for the value', async () => {
