@@ -141,12 +141,76 @@ export class KeyValueStore {
      * @param key
      *   Unique key of the record. It can be at most 256 characters long and only consist
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     * @returns
+     *   Returns a promise that resolves to an object, string
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
+     *   on the MIME content type of the record.
+     */
+    async getValue<T = unknown>(key: string): Promise<T | null>
+    /**
+     * Gets a value from the key-value store.
+     *
+     * The function returns a `Promise` that resolves to the record value,
+     * whose JavaScript type depends on the MIME content type of the record.
+     * Records with the `application/json`
+     * content type are automatically parsed and returned as a JavaScript object.
+     * Similarly, records with `text/plain` content types are returned as a string.
+     * For all other content types, the value is returned as a raw
+     * [`Buffer`](https://nodejs.org/api/buffer.html) instance.
+     *
+     * If the record does not exist, the function resolves to `null`.
+     *
+     * To save or delete a value in the key-value store, use the
+     * {@apilink KeyValueStore.setValue} function.
+     *
+     * **Example usage:**
+     *
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const buffer = await store.getValue('screenshot1.png');
+     * ```
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      * @param defaultValue
      *   Fallback that will be returned if no value if present in the storage.
      * @returns
      *   Returns a promise that resolves to an object, string
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
-     *   on the MIME content type of the record.
+     *   on the MIME content type of the record, or the default value if the key is missing from the store.
+     */
+    async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>
+    /**
+     * Gets a value from the key-value store.
+     *
+     * The function returns a `Promise` that resolves to the record value,
+     * whose JavaScript type depends on the MIME content type of the record.
+     * Records with the `application/json`
+     * content type are automatically parsed and returned as a JavaScript object.
+     * Similarly, records with `text/plain` content types are returned as a string.
+     * For all other content types, the value is returned as a raw
+     * [`Buffer`](https://nodejs.org/api/buffer.html) instance.
+     *
+     * If the record does not exist, the function resolves to `null`.
+     *
+     * To save or delete a value in the key-value store, use the
+     * {@apilink KeyValueStore.setValue} function.
+     *
+     * **Example usage:**
+     *
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const buffer = await store.getValue('screenshot1.png');
+     * ```
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     * @param defaultValue
+     *   Fallback that will be returned if no value if present in the storage.
+     * @returns
+     *   Returns a promise that resolves to an object, string
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
+     *   on the MIME content type of the record, or `null` if the key is missing from the store.
      */
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         ow(key, ow.string.nonEmpty);
@@ -373,6 +437,64 @@ export class KeyValueStore {
      * and  {@apilink KeyValueStore.getValue}.
      *
      * @param key Unique record key.
+     * @returns
+     *   Returns a promise that resolves to an object, string
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
+     *   on the MIME content type of the record, or `null`
+     *   if the record is missing.
+     * @ignore
+     */
+    static async getValue<T = unknown>(key: string): Promise<T | null>
+    /**
+     * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
+     *
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getValue}.
+     * For example, calling the following code:
+     * ```javascript
+     * const value = await KeyValueStore.getValue('my-key');
+     * ```
+     *
+     * is equivalent to:
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const value = await store.getValue('my-key');
+     * ```
+     *
+     * To store the value to the default key-value store, you can use the {@apilink KeyValueStore.setValue} function.
+     *
+     * For more information, see  {@apilink KeyValueStore.open}
+     * and  {@apilink KeyValueStore.getValue}.
+     *
+     * @param key Unique record key.
+     * @param defaultValue Fallback that will be returned if no value if present in the storage.
+     * @returns
+     *   Returns a promise that resolves to an object, string
+     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
+     *   on the MIME content type of the record, or the provided default value.
+     * @ignore
+     */
+    static async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>
+    /**
+     * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
+     *
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getValue}.
+     * For example, calling the following code:
+     * ```javascript
+     * const value = await KeyValueStore.getValue('my-key');
+     * ```
+     *
+     * is equivalent to:
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const value = await store.getValue('my-key');
+     * ```
+     *
+     * To store the value to the default key-value store, you can use the {@apilink KeyValueStore.setValue} function.
+     *
+     * For more information, see  {@apilink KeyValueStore.open}
+     * and  {@apilink KeyValueStore.getValue}.
+     *
+     * @param key Unique record key.
      * @param defaultValue Fallback that will be returned if no value if present in the storage.
      * @returns
      *   Returns a promise that resolves to an object, string
@@ -383,7 +505,7 @@ export class KeyValueStore {
      */
     static async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         const store = await this.open();
-        return store.getValue<T>(key, defaultValue);
+        return store.getValue<T>(key, defaultValue as T);
     }
 
     static async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
