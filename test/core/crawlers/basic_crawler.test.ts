@@ -390,6 +390,29 @@ describe('BasicCrawler', () => {
         errors.forEach((error) => expect(error).toBeInstanceOf(NonRetryableError));
     });
 
+    test('noRetry after calling errorHandler', async () => {
+        const sources = [{ url: `http://example.com` }];
+        const requestList = await RequestList.open(null, sources);
+
+        let request: Request<Dictionary<any>>;
+
+        const crawler = new BasicCrawler({
+            requestList,
+            errorHandler: (context, error) => {
+                request = context.request;
+                context.request.noRetry = true;
+            },
+            maxRequestRetries: 3,
+            requestHandler: () => {
+                throw new Error('Failure');
+            },
+        });
+
+        await crawler.run();
+
+        expect(request.retryCount).toBe(0);
+    });
+
     test('should crash on CriticalError', async () => {
         const sources = [
             { url: 'http://example.com/1' },

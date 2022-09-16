@@ -982,35 +982,38 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const shouldRetryRequest = this._canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
-            request.retryCount++;
-
             this.stats.errorTrackerRetry.add(error);
 
             await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
 
-            const { url, retryCount, id } = request;
+            if (!request.noRetry) {
+                request.retryCount++;
 
-            // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
-            // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
-            const message = this._getMessageFromError(error);
-            this.log.warning(
-                `Reclaiming failed request back to the list or queue. ${message}`,
-                { id, url, retryCount },
-            );
+                const { url, retryCount, id } = request;
 
-            await source.reclaimRequest(request);
-        } else {
-            this.stats.errorTracker.add(error);
+                // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
+                // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
+                const message = this._getMessageFromError(error);
+                this.log.warning(
+                    `Reclaiming failed request back to the list or queue. ${message}`,
+                    { id, url, retryCount },
+                );
 
-            // If we get here, the request is either not retryable
-            // or failed more than retryCount times and will not be retried anymore.
-            // Mark the request as failed and do not retry.
-            this.handledRequestsCount++;
-            await source.markRequestHandled(request);
-            this.stats.failJob(request.id || request.uniqueKey);
-
-            await this._handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
+                await source.reclaimRequest(request);
+                return;
+            }
         }
+
+        this.stats.errorTracker.add(error);
+
+        // If we get here, the request is either not retryable
+        // or failed more than retryCount times and will not be retried anymore.
+        // Mark the request as failed and do not retry.
+        this.handledRequestsCount++;
+        await source.markRequestHandled(request);
+        this.stats.failJob(request.id || request.uniqueKey);
+
+        await this._handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
 
     protected async _tagUserHandlerError<T>(cb: () => unknown): Promise<T> {
