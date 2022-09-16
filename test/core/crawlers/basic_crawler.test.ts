@@ -39,6 +39,11 @@ describe('BasicCrawler', () => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
         });
 
+        app.get('/500', (req, res) => {
+            res.status(500);
+            res.send();
+        });
+
         server = await startExpressAppPromise(app, 0);
         port = (server.address() as AddressInfo).port;
     });
@@ -388,6 +393,24 @@ describe('BasicCrawler', () => {
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
         errors.forEach((error) => expect(error).toBeInstanceOf(NonRetryableError));
+    });
+
+    test('noRetry after calling errorHandler', async () => {
+        const sources = [{ url: `http://${HOSTNAME}:${port}/500` }];
+        const requestList = await RequestList.open(null, sources);
+
+        const crawler = new BasicCrawler({
+            requestList,
+            errorHandler: (context, error) => {
+                context.request.noRetry = true;
+            },
+            maxRequestRetries: 3,
+            requestHandler: () => {},
+        });
+
+        await crawler.run();
+
+        expect(crawler.stats.state.requestsRetries).toBe(0);
     });
 
     test('should crash on CriticalError', async () => {
