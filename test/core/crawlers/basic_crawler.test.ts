@@ -39,11 +39,6 @@ describe('BasicCrawler', () => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
         });
 
-        app.get('/500', (req, res) => {
-            res.status(500);
-            res.send();
-        });
-
         server = await startExpressAppPromise(app, 0);
         port = (server.address() as AddressInfo).port;
     });
@@ -396,21 +391,26 @@ describe('BasicCrawler', () => {
     });
 
     test('noRetry after calling errorHandler', async () => {
-        const sources = [{ url: `http://${HOSTNAME}:${port}/500` }];
+        const sources = [{ url: `http://example.com` }];
         const requestList = await RequestList.open(null, sources);
+
+        let request: Request<Dictionary<any>>;
 
         const crawler = new BasicCrawler({
             requestList,
             errorHandler: (context, error) => {
+                request = context.request;
                 context.request.noRetry = true;
             },
             maxRequestRetries: 3,
-            requestHandler: () => {},
+            requestHandler: () => {
+                throw new Error('Failure');
+            },
         });
 
         await crawler.run();
 
-        expect(crawler.stats.state.requestsRetries).toBe(0);
+        expect(request.retryCount).toBe(0);
     });
 
     test('should crash on CriticalError', async () => {
