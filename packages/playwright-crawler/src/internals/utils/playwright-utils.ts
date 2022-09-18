@@ -28,6 +28,7 @@ import { validators, KeyValueStore } from '@crawlee/browser';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
@@ -515,12 +516,15 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
     context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, options);
 }
 
+export { enqueueLinksByClickingElements };
+
 /** @internal */
 export const playwrightUtils = {
     injectFile,
     injectJQuery,
     gotoExtended,
     blockRequests,
+    enqueueLinksByClickingElements,
     parseWithCheerio,
     infiniteScroll,
     saveSnapshot,
