@@ -1,5 +1,8 @@
+import type { Dictionary } from '@crawlee/types';
 import type { CrawlingContext } from './crawlers/crawler_commons';
 import type { Awaitable } from './typedefs';
+import type { Request } from './request';
+import type { Except } from './except';
 import { MissingRouteError } from './errors';
 
 const defaultRoute = Symbol('default-route');
@@ -7,6 +10,8 @@ const defaultRoute = Symbol('default-route');
 export interface RouterHandler<Context extends CrawlingContext = CrawlingContext> extends Router<Context> {
     (ctx: Context): Awaitable<void>;
 }
+
+type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
 
 /**
  * Simple router that works based on request labels. This instance can then serve as a `requestHandler` of your crawler.
@@ -72,7 +77,10 @@ export class Router<Context extends CrawlingContext> {
     /**
      * Registers new route handler for given label.
      */
-    addHandler(label: string | symbol, handler: (ctx: Context) => Awaitable<void>) {
+    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
+        label: string | symbol,
+        handler: (ctx: Except<Context, 'request'> & {request: Request<UserData>}) => Awaitable<void>,
+    ) {
         this.validate(label);
         this.routes.set(label, handler);
     }
@@ -80,7 +88,9 @@ export class Router<Context extends CrawlingContext> {
     /**
      * Registers default route handler.
      */
-    addDefaultHandler(handler: (ctx: Context) => Awaitable<void>) {
+    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
+        handler: (ctx: Except<Context, 'request'> & {request: Request<UserData>}) => Awaitable<void>,
+    ) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
     }
