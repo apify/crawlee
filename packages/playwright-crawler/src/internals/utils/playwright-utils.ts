@@ -270,6 +270,142 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
     await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
 }
 
+export interface InfiniteScrollOptions {
+    /**
+     * How many seconds to scroll for. If 0, will scroll until bottom of page.
+     * @default 1
+     */
+    timeoutSecs?: number;
+
+    /**
+     * How many seconds to wait for no new content to load before exit.
+     * @default 4
+     */
+    waitForSecs?: number;
+
+    /**
+     * If true, it will scroll up a bit after each scroll down. This is required on some websites for the scroll to work.
+     * @default false
+     */
+    scrollDownAndUp?: boolean;
+
+    /**
+     * Optionally checks and clicks a button if it appears while scrolling. This is required on some websites for the scroll to work.
+     */
+    buttonSelector?: string;
+
+    /**
+     * This function is called after every scroll and stops the scrolling process if it returns `true`. The function can be `async`.
+     */
+    stopScrollCallback?: () => unknown | Promise<unknown>;
+}
+
+/**
+ * Scrolls to the bottom of a page, or until it times out.
+ * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+ * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param [options]
+ */
+export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
+    ow(page, ow.object.validate(validators.browserPage));
+    ow(options, ow.object.exactShape({
+        timeoutSecs: ow.optional.number,
+        waitForSecs: ow.optional.number,
+        scrollDownAndUp: ow.optional.boolean,
+        buttonSelector: ow.optional.string,
+        stopScrollCallback: ow.optional.function,
+    }));
+
+    const { timeoutSecs = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector, stopScrollCallback } = options;
+
+    let finished;
+    const startTime = Date.now();
+    const CHECK_INTERVAL_MILLIS = 1000;
+    const SCROLL_HEIGHT_IF_ZERO = 10000;
+    const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
+    const resourcesStats = {
+        newRequested: 0,
+        oldRequested: 0,
+        matchNumber: 0,
+    };
+
+    page.on('request', (msg) => {
+        if (maybeResourceTypesInfiniteScroll.includes(msg.resourceType())) {
+            resourcesStats.newRequested++;
+        }
+    });
+
+    // Move mouse to the center of the page, so we can scroll up-down
+    let body = await page.$('body');
+
+    for (let retry = 0; retry < 10; retry++) {
+        if (body) break;
+        await page.waitForTimeout(100);
+        body = await page.$('body');
+    }
+
+    if (!body) {
+        return;
+    }
+
+    const boundingBox = await body.boundingBox();
+    await page.mouse.move(
+        boundingBox!.x + boundingBox!.width / 2,
+        boundingBox!.y + boundingBox!.height / 2,
+    );
+
+    const checkFinished = setInterval(() => {
+        if (resourcesStats.oldRequested === resourcesStats.newRequested) {
+            resourcesStats.matchNumber++;
+            if (resourcesStats.matchNumber >= waitForSecs) {
+                clearInterval(checkFinished);
+                finished = true;
+                return;
+            }
+        } else {
+            resourcesStats.matchNumber = 0;
+            resourcesStats.oldRequested = resourcesStats.newRequested;
+        }
+        // check if timeout has been reached
+        if (timeoutSecs !== 0 && (Date.now() - startTime) / 1000 > timeoutSecs) {
+            clearInterval(checkFinished);
+            finished = true;
+        }
+    }, CHECK_INTERVAL_MILLIS);
+
+    const doScroll = async () => {
+        const bodyScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+        const delta = bodyScrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : bodyScrollHeight;
+
+        await page.mouse.wheel(0, delta);
+    };
+
+    const maybeClickButton = async () => {
+        const button = await page.$(buttonSelector!);
+        // Box model returns null if the button is not visible
+        if (button && await button.boundingBox()) {
+            await button.click({ delay: 10 });
+        }
+    };
+
+    while (!finished) {
+        await doScroll();
+        await page.waitForTimeout(250);
+        if (scrollDownAndUp) {
+            await page.mouse.wheel(0, -1000);
+        }
+        if (buttonSelector) {
+            await maybeClickButton();
+        }
+        if (stopScrollCallback) {
+            if (await stopScrollCallback()) {
+                clearInterval(checkFinished);
+                break;
+            }
+        }
+    }
+}
+
 /**
  * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
  *
@@ -292,6 +428,7 @@ export interface PlaywrightContextUtils {
     injectJQuery(): Promise<unknown>;
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
     parseWithCheerio(): Promise<CheerioRoot>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -299,6 +436,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
     context.injectJQuery = () => injectJQuery(context.page);
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
+    context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
 }
 
 /** @internal */
@@ -308,4 +446,5 @@ export const playwrightUtils = {
     gotoExtended,
     blockRequests,
     parseWithCheerio,
+    infiniteScroll,
 };
