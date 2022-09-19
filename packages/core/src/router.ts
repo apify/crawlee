@@ -2,6 +2,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { CrawlingContext } from './crawlers/crawler_commons';
 import type { Awaitable } from './typedefs';
 import type { Request } from './request';
+import type { Except } from './except';
 import { MissingRouteError } from './errors';
 
 const defaultRoute = Symbol('default-route');
@@ -78,7 +79,7 @@ export class Router<Context extends CrawlingContext> {
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: string | symbol,
-        handler: (ctx: Omit<Context, 'request'> & {request: Request<UserData>}) => Awaitable<void>,
+        handler: (ctx: Except<Context, 'request'> & {request: Request<UserData>}) => Awaitable<void>,
     ) {
         this.validate(label);
         this.routes.set(label, handler);
@@ -88,7 +89,7 @@ export class Router<Context extends CrawlingContext> {
      * Registers default route handler.
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        handler: (ctx: Omit<Context, 'request'> & {request: Request<UserData>}) => Awaitable<void>,
+        handler: (ctx: Except<Context, 'request'> & {request: Request<UserData>}) => Awaitable<void>,
     ) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
