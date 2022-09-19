@@ -428,6 +428,7 @@ export interface PlaywrightContextUtils {
     injectJQuery(): Promise<unknown>;
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
     parseWithCheerio(): Promise<CheerioRoot>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -435,6 +436,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
     context.injectJQuery = () => injectJQuery(context.page);
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
+    context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
 }
 
 /** @internal */
