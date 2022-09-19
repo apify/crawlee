@@ -1,3 +1,4 @@
+import type { CrawlingContext } from '@crawlee/core';
 import { MissingRouteError, Router } from '@crawlee/core';
 import { BasicCrawler } from '@crawlee/basic';
 
@@ -102,6 +103,31 @@ describe('Router', () => {
         const router = Router.create();
         const crawler = new BasicCrawler({
             requestHandler: router,
+        });
+    });
+
+    test('addHandler accepts userdata generic', async () => {
+        const testType = <T>(t: T): void => {};
+
+        const router: Router<CrawlingContext<{foo: 'foo'}>> = {
+            addHandler: () => {},
+            addDefaultHandler: () => {},
+        } as any;
+
+        router.addHandler('1', (ctx) => {
+            testType<'foo'>(ctx.request.userData.foo);
+        });
+
+        router.addHandler<{foo: 'bar'}>('2', (ctx) => {
+            testType<'bar'>(ctx.request.userData.foo);
+        });
+
+        router.addDefaultHandler((ctx) => {
+            testType<'foo'>(ctx.request.userData.foo);
+        });
+
+        router.addDefaultHandler<{foo: 'bar'}>((ctx) => {
+            testType<'bar'>(ctx.request.userData.foo);
         });
     });
 });
