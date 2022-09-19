@@ -799,6 +799,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
+     * Executed when `errorHandler` finishes or the request is successful.
+     * Can be used to clean up orphaned browser pages.
+     */
+    protected async _cleanupContext(
+        _crawlingContext: Context,
+    ) {}
+
+    /**
      * Wrapper around requestHandler that fetches requests from RequestList/RequestQueue
      * then retries them in a case of an error, etc.
      */
@@ -916,6 +924,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 throw secondaryError;
             }
         } finally {
+            await this._cleanupContext(crawlingContext);
+
             this.crawlingContexts.delete(crawlingContext.id);
         }
     }

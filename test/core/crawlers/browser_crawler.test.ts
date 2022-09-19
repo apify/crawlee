@@ -227,6 +227,35 @@ describe('BrowserCrawler', () => {
         expect(isEvaluated).toBeTruthy();
     });
 
+    test('errorHandler has open page', async () => {
+        const requestList = await RequestList.open({
+            sources: [
+                { url: 'http://example.com/?q=1' },
+            ],
+        });
+
+        const result: string[] = [];
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            requestHandler: async (ctx) => {
+                throw new Error('Test error');
+            },
+            maxRequestRetries: 1,
+            errorHandler: async (ctx, error) => {
+                result.push(await ctx.page.evaluate(() => window.location.origin));
+            },
+        });
+
+        await browserCrawler.run();
+
+        expect(result.length).toBe(1);
+        expect(result[0]).toBe('http://example.com');
+    });
+
     test('should allow modifying gotoOptions by pre navigation hooks', async () => {
         const requestList = await RequestList.open({
             sources: [
