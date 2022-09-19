@@ -24,7 +24,7 @@ import type { Page, Response, Route } from 'playwright';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { validators } from '@crawlee/browser';
+import { validators, KeyValueStore } from '@crawlee/browser';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
@@ -406,6 +406,80 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
     }
 }
 
+export interface SaveSnapshotOptions {
+    /**
+     * Key under which the screenshot and HTML will be saved. `.jpg` will be appended for screenshot and `.html` for HTML.
+     * @default 'SNAPSHOT'
+     */
+    key?: string;
+
+    /**
+     * The quality of the image, between 0-100. Higher quality images have bigger size and require more storage.
+     * @default 50
+     */
+    screenshotQuality?: number;
+
+    /**
+     * If true, it will save a full screenshot of the current page as a record with `key` appended by `.jpg`.
+     * @default true
+     */
+    saveScreenshot?: boolean;
+
+    /**
+     * If true, it will save a full HTML of the current page as a record with `key` appended by `.html`.
+     * @default true
+     */
+    saveHtml?: boolean;
+
+    /**
+     * Name or id of the Key-Value store where snapshot is saved. By default it is saved to default Key-Value store.
+     * @default null
+     */
+    keyValueStoreName?: string | null;
+}
+
+/**
+ * Saves a full screenshot and HTML of the current page into a Key-Value store.
+ * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param [options]
+ */
+export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
+    ow(page, ow.object.validate(validators.browserPage));
+    ow(options, ow.object.exactShape({
+        key: ow.optional.string.nonEmpty,
+        screenshotQuality: ow.optional.number,
+        saveScreenshot: ow.optional.boolean,
+        saveHtml: ow.optional.boolean,
+        keyValueStoreName: ow.optional.string,
+    }));
+
+    const {
+        key = 'SNAPSHOT',
+        screenshotQuality = 50,
+        saveScreenshot = true,
+        saveHtml = true,
+        keyValueStoreName,
+    } = options;
+
+    try {
+        const store = await KeyValueStore.open(keyValueStoreName);
+
+        if (saveScreenshot) {
+            const screenshotName = `${key}.jpg`;
+            const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg' });
+            await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
+        }
+
+        if (saveHtml) {
+            const htmlName = `${key}.html`;
+            const html = await page.content();
+            await store.setValue(htmlName, html, { contentType: 'text/html' });
+        }
+    } catch (err) {
+        throw new Error(`saveSnapshot with key ${key} failed.\nCause:${(err as Error).message}`);
+    }
+}
+
 /**
  * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
  *
@@ -429,6 +503,7 @@ export interface PlaywrightContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
     parseWithCheerio(): Promise<CheerioRoot>;
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+    saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -437,6 +512,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
+    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, options);
 }
 
 /** @internal */
@@ -447,4 +523,5 @@ export const playwrightUtils = {
     blockRequests,
     parseWithCheerio,
     infiniteScroll,
+    saveSnapshot,
 };

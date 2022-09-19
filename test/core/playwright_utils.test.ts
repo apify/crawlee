@@ -3,7 +3,7 @@ import path from 'path';
 import log from '@apify/log';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
-import { Request, launchPlaywright, playwrightUtils } from '@crawlee/playwright';
+import { KeyValueStore, Request, launchPlaywright, playwrightUtils } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -297,6 +297,38 @@ describe('playwrightUtils', () => {
                 // If it didn't, the test would time out.
                 expect(after).toBe(true);
             });
+        });
+
+        test('saveSnapshot() works', async () => {
+            const openKVSSpy = jest.spyOn(KeyValueStore, 'open');
+            const browser = await chromium.launch({ headless: true });
+
+            try {
+                const page = await browser.newPage();
+                const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
+                await page.setContent(contentHTML);
+
+                const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
+
+                // Test saving both image and html
+                const object = { setValue: jest.fn() };
+                openKVSSpy.mockResolvedValue(object as any);
+                await playwrightUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
+
+                expect(object.setValue).toBeCalledWith('TEST.jpg', screenshot, { contentType: 'image/jpeg' });
+                expect(object.setValue).toBeCalledWith('TEST.html', contentHTML, { contentType: 'text/html' });
+                object.setValue.mockReset();
+
+                // Test saving only image
+                await playwrightUtils.saveSnapshot(page, { saveHtml: false });
+
+                // Default quality is 50
+                const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 50 });
+                expect(object.setValue).toBeCalledWith('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' });
+            } finally {
+                openKVSSpy.mockRestore();
+                await browser.close();
+            }
         });
     });
 });
