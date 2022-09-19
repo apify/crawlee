@@ -426,6 +426,11 @@ export abstract class BrowserCrawler<
         });
     }
 
+    protected override async _cleanupContext(crawlingContext: Context): Promise<void> {
+        const { page } = crawlingContext;
+        await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+    }
+
     /**
      * Wrapper around requestHandler that opens and closes pages etc.
      */
@@ -466,34 +471,30 @@ export abstract class BrowserCrawler<
         // So we must not save the session prior to making sure it was used only once, otherwise we would use it twice.
         const { request, session } = crawlingContext;
 
-        try {
-            if (!request.skipNavigation) {
-                await this._handleNavigation(crawlingContext);
-                tryCancel();
-
-                await this._responseHandler(crawlingContext);
-                tryCancel();
-
-                // save cookies
-                // TODO: Should we save the cookies also after/only the handle page?
-                if (this.persistCookiesPerSession) {
-                    const cookies = await crawlingContext.browserController.getCookies(page);
-                    tryCancel();
-                    session?.setCookies(cookies, request.loadedUrl!);
-                }
-            }
-
-            await addTimeoutToPromise(
-                () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
-            );
+        if (!request.skipNavigation) {
+            await this._handleNavigation(crawlingContext);
             tryCancel();
 
-            if (session) session.markGood();
-        } finally {
-            await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+            await this._responseHandler(crawlingContext);
+            tryCancel();
+
+            // save cookies
+            // TODO: Should we save the cookies also after/only the handle page?
+            if (this.persistCookiesPerSession) {
+                const cookies = await crawlingContext.browserController.getCookies(page);
+                tryCancel();
+                session?.setCookies(cookies, request.loadedUrl!);
+            }
         }
+
+        await addTimeoutToPromise(
+            () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
+            this.requestHandlerTimeoutMillis,
+            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
+        );
+        tryCancel();
+
+        if (session) session.markGood();
     }
 
     protected _enhanceCrawlingContextWithPageInfo(crawlingContext: Context, page: CommonPage, createNewSession?: boolean): void {
