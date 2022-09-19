@@ -641,7 +641,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             };
         }
 
-        if (/PATCH|POST|PUT/.test(request.method)) requestOptions.body = request.payload;
+        if (/PATCH|POST|PUT/.test(request.method)) requestOptions.body = request.payload ?? '';
 
         return requestOptions;
     }

@@ -41,6 +41,11 @@ router.set('/redirectWithoutCookies', (req, res) => {
     res.end();
 });
 
+router.set('/echo', (req, res) => {
+    res.setHeader('content-type', 'text/html');
+    req.pipe(res);
+});
+
 let server: http.Server;
 let url: string;
 
@@ -230,4 +235,24 @@ test('no empty cookie header', async () => {
     await crawler.run([`${url}/cookies`]);
 
     expect(results).toStrictEqual([]);
+});
+
+test('POST with undefined (empty) payload', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        handlePageFunction: async ({ body }) => {
+            results.push(body.toString());
+        },
+    });
+
+    await crawler.run([
+        {
+            url: `${url}/echo`,
+            payload: undefined,
+            method: 'POST',
+        },
+    ]);
+
+    expect(results).toStrictEqual(['']);
 });
