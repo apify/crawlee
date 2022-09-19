@@ -5,8 +5,6 @@ import puppeteer from 'puppeteer';
 import log from '@apify/log';
 import type {
     BrowserCrawler,
-    BrowserCrawlingContext,
-    ProxyInfo,
     PuppeteerCrawlingContext,
     PuppeteerGoToOptions,
     PuppeteerRequestHandler,
@@ -722,9 +720,9 @@ describe('BrowserCrawler', () => {
         });
 
         test('uses correct crawling context', async () => {
-            let prepareCrawlingContext: BrowserCrawlingContext;
+            let prepareCrawlingContext: PuppeteerCrawlingContext;
 
-            const gotoFunction = async (crawlingContext: BrowserCrawlingContext) => {
+            const gotoFunction = async (crawlingContext: PuppeteerCrawlingContext) => {
                 prepareCrawlingContext = crawlingContext;
                 expect(crawlingContext.request).toBeInstanceOf(Request);
                 expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
@@ -732,7 +730,7 @@ describe('BrowserCrawler', () => {
                 expect(typeof crawlingContext.page).toBe('object');
             };
 
-            const requestHandler = async (crawlingContext: BrowserCrawlingContext) => {
+            const requestHandler = async (crawlingContext: PuppeteerCrawlingContext) => {
                 expect(crawlingContext === prepareCrawlingContext).toEqual(true);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
                 expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
@@ -744,14 +742,14 @@ describe('BrowserCrawler', () => {
                 throw new Error('some error');
             };
 
-            const failedRequestHandler = async (crawlingContext: BrowserCrawlingContext, error: Error) => {
+            const failedRequestHandler = async (crawlingContext: PuppeteerCrawlingContext, error: Error) => {
                 expect(crawlingContext).toBe(prepareCrawlingContext);
                 expect(crawlingContext.request).toBeInstanceOf(Request);
                 expect(crawlingContext.crawler.autoscaledPool).toBeInstanceOf(AutoscaledPool);
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
                 expect(crawlingContext.crawler).toBeInstanceOf(BrowserCrawlerTest);
-                expect((crawlingContext.crawler as BrowserCrawler).browserPool).toBeInstanceOf(BrowserPool);
+                expect((crawlingContext.crawler).browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
                 expect(crawlingContext.error).toBeInstanceOf(Error);

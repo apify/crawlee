@@ -500,11 +500,99 @@ export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
     return cheerio.load(pageContent);
 }
 
+/** @internal */
 export interface PlaywrightContextUtils {
+    /**
+     * Injects a JavaScript file into current `page`.
+     * Unlike Playwright's `addScriptTag` function, this function works on pages
+     * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
+     *
+     * File contents are cached for up to 10 files to limit file system access.
+     */
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+
+    /**
+     * Injects the [jQuery](https://jquery.com/) library into current `page`.
+     * jQuery is often useful for various web scraping and crawling tasks.
+     * For example, it can help extract text from HTML elements using CSS selectors.
+     *
+     * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
+     * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
+     * This can affect functionality of page's scripts.
+     *
+     * The injected jQuery will survive page navigations and reloads.
+     *
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ page, injectJQuery }) {
+     *     await injectJQuery();
+     *     const title = await page.evaluate(() => {
+     *         return $('head title').text();
+     *     });
+     * });
+     * ```
+     *
+     * Note that `injectJQuery()` does not affect the Playwright
+     * [`page.$()`](https://playwright.dev/docs/api/class-page#page-query-selector)
+     * function in any way.
+     */
     injectJQuery(): Promise<unknown>;
+
+    /**
+     * Forces the Playwright browser tab to block loading URLs that match a provided pattern.
+     * This is useful to speed up crawling of websites, since it reduces the amount
+     * of data that needs to be downloaded from the web, but it may break some websites
+     * or unexpectedly prevent loading of resources.
+     *
+     * By default, the function will block all URLs including the following patterns:
+     *
+     * ```json
+     * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
+     * ```
+     *
+     * If you want to extend this list further, use the `extraUrlPatterns` option,
+     * which will keep blocking the default patterns, as well as add your custom ones.
+     * If you would like to block only specific patterns, use the `urlPatterns` option,
+     * which will override the defaults and block only URLs with your custom patterns.
+     *
+     * This function does not use Playwright's request interception and therefore does not interfere
+     * with browser cache. It's also faster than blocking requests using interception,
+     * because the blocking happens directly in the browser without the round-trip to Node.js,
+     * but it does not provide the extra benefits of request interception.
+     *
+     * The function will never block main document loads and their respective redirects.
+     *
+     * **Example usage**
+     * ```javascript
+     * preNavigationHooks: [
+     *     async ({ blockRequests }) => {
+     *         // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
+     *         await blockRequests({
+     *             extraUrlPatterns: ['adsbygoogle.js'],
+     *         }),
+     *     }),
+     * ],
+     * ```
+     */
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     *
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ parseWithCheerio }) {
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
     parseWithCheerio(): Promise<CheerioRoot>;
+
+    /**
+     * Scrolls to the bottom of a page, or until it times out.
+     * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+     */
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;

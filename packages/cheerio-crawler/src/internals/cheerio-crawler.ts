@@ -9,7 +9,7 @@ import type {
     Configuration,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler } from 'htmlparser2';
@@ -40,15 +40,12 @@ export interface CheerioCrawlingContext<
      * Cheerio is available only for HTML and XML content types.
      */
     $: cheerio.CheerioAPI;
-
-    enqueueLinks: (options?: CheerioCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
 export type CheerioRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
-export interface CheerioCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -153,7 +150,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
             get body() {
                 return isXml ? $!.xml() : $!.html({ decodeEntities: false });
             },
-            enqueueLinks: async (enqueueOptions?: CheerioCrawlerEnqueueLinksOptions) => {
+            enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
                     $,
@@ -181,7 +178,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 }
 
 interface EnqueueLinksInternalOptions {
-    options?: CheerioCrawlerEnqueueLinksOptions;
+    options?: Partial<EnqueueLinksOptions>;
     $: cheerio.CheerioAPI | null;
     requestQueue: RequestQueue;
     originalRequestUrl: string;

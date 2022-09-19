@@ -1,7 +1,7 @@
 import log from '@apify/log';
 import type {
+    PuppeteerCrawlingContext,
     PuppeteerGoToOptions,
-    PuppeteerRequestHandler,
     Request,
 } from '@crawlee/puppeteer';
 import {
@@ -99,7 +99,7 @@ describe('PuppeteerCrawler', () => {
         const failed: Request[] = [];
         const asserts: boolean[] = [];
         const requestListLarge = await RequestList.open({ sources: sourcesLarge });
-        const requestHandler = async ({ page, request, response }: Parameters<PuppeteerRequestHandler>[0]) => {
+        const requestHandler = async ({ page, request, response }: PuppeteerCrawlingContext) => {
             await page.waitForSelector('title');
             asserts.push(response.status() === 200);
             request.userData.title = await page.title();
