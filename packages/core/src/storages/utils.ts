@@ -25,6 +25,15 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
     }
 }
 
+interface UseStateOptions {
+    storeManagerOptions?: StorageManagerOptions;
+    /**
+     * The name of the key-value store you'd like the state to be stored in.
+     * If not provided, the default store will be used.
+     */
+    keyValueStoreName?: string | null;
+}
+
 /**
  * Easily create and manage state values. All state values are automatically persisted.
  *
@@ -36,8 +45,8 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
 export async function useState<T extends Dictionary = Dictionary>(
     name: string,
     defaultValue = {} as T,
-    options: StorageManagerOptions = { config: Configuration.getGlobalConfig() },
+    options?: UseStateOptions,
 ) {
-    const kvStore = await KeyValueStore.open(null, options);
+    const kvStore = await KeyValueStore.open(options?.keyValueStoreName, options?.storeManagerOptions || { config: Configuration.getGlobalConfig() });
     return kvStore.getAutoSavedValue<T>(name?.toUpperCase() || 'CRAWLEE_STATE', defaultValue);
 }
