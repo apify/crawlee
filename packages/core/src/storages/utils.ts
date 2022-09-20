@@ -1,4 +1,5 @@
 import type { Dictionary, StorageClient } from '@crawlee/types';
+import type { StorageManagerOptions } from './storage_manager';
 import { Configuration } from '../configuration';
 import { KeyValueStore } from './key_value_store';
 
@@ -32,7 +33,11 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
  * @param name The name of the store to use.
  * @param defaultValue If the store does not yet have a value in it, the value will be initialized with the `defaultValue` you provide.
  */
-export async function useState<T extends Dictionary = Dictionary>(name: string, defaultValue = {} as T) {
-    const kvStore = await KeyValueStore.open(null, { config: Configuration.getGlobalConfig() });
+export async function useState<T extends Dictionary = Dictionary>(
+    name: string,
+    defaultValue = {} as T,
+    options: StorageManagerOptions = { config: Configuration.getGlobalConfig() },
+) {
+    const kvStore = await KeyValueStore.open(null, options);
     return kvStore.getAutoSavedValue<T>(name?.toUpperCase() || 'CRAWLEE_STATE', defaultValue);
 }
