@@ -6,7 +6,9 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 describe('useState', () => {
     const emulator = new MemoryStorageEmulator();
 
-    beforeAll(() => Configuration.globalConfig = Configuration.getGlobalConfig());
+    beforeAll(async () => {
+        Configuration.getGlobalConfig().set('persistStateIntervalMillis', 1e3);
+    });
 
     beforeEach(async () => {
         await emulator.init();
@@ -37,16 +39,28 @@ describe('useState', () => {
         expect(state2).toEqual({ hello: 'foo', foo: ['fizz', 'buzz'] });
     });
 
-    // it('Should save the value to the default key-value store', async () => {
-    //     await new Promise((resolve) => {
-    //         Configuration.getEventManager().on('persistState', () => {
-    //             resolve(true);
-    //         });
-    //     });
+    it('Should save the value to the default key-value store', async () => {
+        const state = await useState<Dictionary<any>>('my-state', { hello: 'world' });
+        expect(state).toEqual({ hello: 'world' });
 
-    //     const data = await KeyValueStore.getValue('my-state');
+        state.hello = 'foo';
+        state.foo = ['fizz'];
 
-    //     expect(data).toHaveProperty('hello');
-    //     expect(data).toHaveProperty('foo');
-    // });
+        const manager = Configuration.globalConfig.getEventManager();
+
+        await manager.init();
+
+        await new Promise((resolve) => {
+            manager.on('persistState', () => {
+                resolve(true);
+            });
+        });
+
+        const data = await KeyValueStore.getValue('my-state');
+
+        expect(data).toHaveProperty('hello');
+        expect(data).toHaveProperty('foo');
+
+        await manager.close();
+    });
 });
