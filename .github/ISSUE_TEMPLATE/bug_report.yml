@@ -10,10 +10,9 @@ body:
   - type: dropdown
     id: package
     attributes:
-      label: Which package is this bug report for? If unsure which one to select, select `crawlee`
+      label: Which package is this bug report for? If unsure which one to select, leave blank
       multiple: false
       options:
-        - "crawlee"
         - "@crawlee/core"
         - "@crawlee/cheerio (CheerioCrawler)"
         - "@crawlee/jsdom (JSDOMCrawler)"
@@ -26,7 +25,7 @@ body:
         - "@crawlee/browser-pool"
         - "@crawlee/memory-storage"
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: description
@@ -82,15 +81,13 @@ body:
       label: Operating system
       description: Which OS does your application run on?
 
-  - type: dropdown
+  - type: checkboxes
     id: apify
     attributes:
       label: Apify platform
-      description: Did you also encounter this issue when running your code on Apify's platform? (if unsure what that is, leave unfilled)
-      multiple: false
+      description: Did you also encounter this issue when running your code on Apify's platform? (if unsure what that is, leave unticked)
       options:
-        - "Yes"
-        - "No"
+        - label: Tick me if you encountered this issue on the Apify platform
 
   - type: dropdown
     id: priority
