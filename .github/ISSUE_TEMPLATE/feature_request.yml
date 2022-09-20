@@ -5,10 +5,9 @@ body:
   - type: dropdown
     id: package
     attributes:
-      label: Which package is the feature request for? If unsure which one to select, select `crawlee`
+      label: Which package is the feature request for? If unsure which one to select, leave blank
       multiple: false
       options:
-        - "crawlee"
         - "@crawlee/core"
         - "@crawlee/cheerio (CheerioCrawler)"
         - "@crawlee/jsdom (JSDOMCrawler)"
@@ -21,7 +20,7 @@ body:
         - "@crawlee/browser-pool"
         - "@crawlee/memory-storage"
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: description
