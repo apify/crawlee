@@ -14,16 +14,16 @@ body:
       multiple: false
       options:
         - "crawlee"
-        - "@crawlee/basic (BasicCrawler)"
-        - "@crawlee/cheerio (CheerioCrawler)"
-        - "@crawlee/puppeteer (PuppeteerCrawler)"
-        - "@crawlee/playwright (PlaywrightCrawler)"
-        - "@crawlee/jsdom (JSDOMCrawler)"
-        - "@crawlee/browser-pool"
         - "@crawlee/core"
+        - "@crawlee/cheerio (CheerioCrawler)"
+        - "@crawlee/jsdom (JSDOMCrawler)"
+        - "@crawlee/playwright (PlaywrightCrawler)"
+        - "@crawlee/puppeteer (PuppeteerCrawler)"
+        - "@crawlee/basic (BasicCrawler)"
         - "@crawlee/http (HttpCrawler)"
         - "@crawlee/browser (BrowserCrawler)"
         - "@crawlee/utils"
+        - "@crawlee/browser-pool"
         - "@crawlee/memory-storage"
     validations:
       required: true
