@@ -24,6 +24,14 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
     }
 }
 
+/**
+ * Easily create and manage state values. All state values are automatically persisted.
+ *
+ * Values can be modified by simply using the assignment operator.
+ *
+ * @param name The name of the store to use.
+ * @param defaultValue If the store does not yet have a value in it, the value will be initialized with the `defaultValue` you provide.
+ */
 export async function useState<T extends Dictionary = Dictionary>(name: string, defaultValue = {} as T) {
     const kvStore = await KeyValueStore.open(null, { config: Configuration.getGlobalConfig() });
     return kvStore.getAutoSavedValue<T>(name, defaultValue);
