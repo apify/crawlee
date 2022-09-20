@@ -9,17 +9,17 @@ body:
       multiple: false
       options:
         - "crawlee"
-        - "browser-pool"
-        - "@crawlee/core"
         - "@crawlee/basic (BasicCrawler)"
         - "@crawlee/cheerio (CheerioCrawler)"
         - "@crawlee/puppeteer (PuppeteerCrawler)"
         - "@crawlee/playwright (PlaywrightCrawler)"
         - "@crawlee/jsdom (JSDOMCrawler)"
+        - "@crawlee/browser-pool"
+        - "@crawlee/core"
         - "@crawlee/http (HttpCrawler)"
         - "@crawlee/browser (BrowserCrawler)"
         - "@crawlee/utils"
-        - "memory-storage"
+        - "@crawlee/memory-storage"
     validations:
       required: true
 
