@@ -7,6 +7,8 @@ import type { Awaitable } from '../typedefs';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
+import { KeyValueStore } from './key_value_store';
+import type { RecordOptions } from './key_value_store';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -280,6 +282,21 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             }
             throw e;
         }
+    }
+
+    /**
+     *
+     * Save the entirety of the dataset's contents into one file within a key-value store.
+     *
+     *
+     * @param key The name of the value to save the data in.
+     * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
+     */
+    async saveToValue(key: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
+        const { keyValueStoreName, ...recordOptions } = options;
+        const kvStore = keyValueStoreName ? await KeyValueStore.open(keyValueStoreName) : KeyValueStore;
+
+        await kvStore.setValue(key || 'OUTPUT', await this.client.listItems(), recordOptions);
     }
 
     /**
