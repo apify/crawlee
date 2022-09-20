@@ -25,7 +25,7 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
 }
 
 export interface UseStateOptions {
-    config: Configuration;
+    config?: Configuration;
     /**
      * The name of the key-value store you'd like the state to be stored in.
      * If not provided, the default store will be used.
