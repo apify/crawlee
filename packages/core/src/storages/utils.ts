@@ -34,5 +34,5 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
  */
 export async function useState<T extends Dictionary = Dictionary>(name: string, defaultValue = {} as T) {
     const kvStore = await KeyValueStore.open(null, { config: Configuration.getGlobalConfig() });
-    return kvStore.getAutoSavedValue<T>(name, defaultValue);
+    return kvStore.getAutoSavedValue<T>(name?.toUpperCase() || 'CRAWLEE_STATE', defaultValue);
 }
