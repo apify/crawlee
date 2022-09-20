@@ -67,5 +67,5 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * },
      * ```
      */
-    sendRequest(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<string>>;
+    sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
 }

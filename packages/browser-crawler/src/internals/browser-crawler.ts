@@ -51,7 +51,7 @@ export interface BrowserCrawlingContext<
 
 export type BrowserRequestHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = RequestHandler<Context>;
 
-export type BrowserErrorHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext>= ErrorHandler<Context>;
+export type BrowserErrorHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = ErrorHandler<Context>;
 
 export type BrowserHook<
     Context = BrowserCrawlingContext,
