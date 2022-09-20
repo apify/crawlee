@@ -292,7 +292,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param key The name of the value to save the data in.
      * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
      */
-    async saveToValue(key: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
+    async exportToValue(key: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
         const { keyValueStoreName, ...recordOptions } = options;
         const kvStore = keyValueStoreName ? await KeyValueStore.open(keyValueStoreName) : KeyValueStore;
 
