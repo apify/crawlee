@@ -43,7 +43,7 @@ export interface UseStateOptions {
  * @param options An optional object parameter where a custom `keyValueStoreName` and `config` can be passed in.
  */
 export async function useState<T extends Dictionary = Dictionary>(
-    name: string,
+    name?: string,
     defaultValue = {} as T,
     options?: UseStateOptions,
 ) {
