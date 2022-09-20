@@ -1,5 +1,4 @@
 import type { Dictionary, StorageClient } from '@crawlee/types';
-import type { StorageManagerOptions } from './storage_manager';
 import { Configuration } from '../configuration';
 import { KeyValueStore } from './key_value_store';
 
