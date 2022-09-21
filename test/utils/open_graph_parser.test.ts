@@ -18,19 +18,29 @@ describe('parseOpenGraph', () => {
 
     const case5 = load(`<meta property="og:custom:test" content="hello"/>`);
 
+    const case6 = `<meta property="og:title" content="My Website"/>
+    <meta property="og:type" content="website"/>`;
+
     it('Should scrape properties', () => {
-        expect(parseOpenGraph(case1)).toEqual({ title: 'Under Pressure', type: 'music.song' });
+        expect(parseOpenGraph(case1)).toEqual({
+            title: 'Under Pressure',
+            type: 'music.song',
+        });
     });
 
     it('Should return a property as an array if there are multiple attributes under the same property name', () => {
-        const parsed = parseOpenGraph(case2) as { videoInfo: { actor: { actorValue: string[] } } };
+        const parsed = parseOpenGraph(case2) as {
+            videoInfo: { actor: { actorValue: string[] } };
+        };
 
         expect(parsed).toHaveProperty('videoInfo');
         expect(parsed.videoInfo.actor.actorValue).toContain('foo');
         expect(parsed.videoInfo.actor.actorValue).toContain('bar');
         expect(parsed.videoInfo.actor.actorValue).toContain('baz');
 
-        const parsed2 = parseOpenGraph(case3) as { locale: { localeValue: string; alternate: string[] } };
+        const parsed2 = parseOpenGraph(case3) as {
+            locale: { localeValue: string; alternate: string[] };
+        };
 
         expect(parsed2).toHaveProperty('locale');
         expect(parsed2.locale.alternate).toContain('foo');
@@ -38,20 +48,33 @@ describe('parseOpenGraph', () => {
     });
 
     it('Should parse properties regardless of how deeply they are nested', () => {
-        expect(parseOpenGraph(case4)).toEqual({ musicInfo: { song: { disc: 'hello', track: 'world' } } });
+        expect(parseOpenGraph(case4)).toEqual({
+            musicInfo: { song: { disc: 'hello', track: 'world' } },
+        });
     });
 
     it('Should accept additional OpenGraphProperties', () => {
-        const parsed = parseOpenGraph(case5, [{
-            name: 'og:custom',
-            outputName: 'custom',
-            children: [{
-                name: 'og:custom:test',
-                outputName: 'test',
-                children: [],
-            }],
-        }]);
+        const parsed = parseOpenGraph(case5, [
+            {
+                name: 'og:custom',
+                outputName: 'custom',
+                children: [
+                    {
+                        name: 'og:custom:test',
+                        outputName: 'test',
+                        children: [],
+                    },
+                ],
+            },
+        ]);
 
         expect(parsed).toEqual({ custom: { test: 'hello' } });
+    });
+
+    it('Should accept strings as a substitute for CheerioAPI objects', () => {
+        expect(parseOpenGraph(case6)).toEqual({
+            title: 'My Website',
+            type: 'website',
+        });
     });
 });
