@@ -808,7 +808,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _runTaskFunction() {
         const source = this.requestQueue || this.requestList || await this.getRequestQueue();
 
-        let request: Request | null | undefined;
+        let request: Request & { requestHandlerTimeoutMillis?: number; requestTimeoutMillis?: number } | null | undefined;
         let session: Session | undefined;
 
         await this._timeoutAndRetry(
@@ -821,13 +821,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         tryCancel();
 
+        const requestTimeoutMillis = request?.requestTimeoutMillis ?? this.internalTimeoutMillis;
+        const requestHandlerTimeoutMillis = request?.requestHandlerTimeoutMillis ?? this.requestHandlerTimeoutMillis;
+
         if (this.useSessionPool) {
             await this._timeoutAndRetry(
                 async () => {
                     session = await this.sessionPool!.getSession();
                 },
-                this.internalTimeoutMillis,
-                `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                requestTimeoutMillis,
+                `Fetching session timed out after ${requestTimeoutMillis / 1e3} seconds.`,
             );
         }
 
@@ -888,14 +891,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await addTimeoutToPromise(
                 () => this._runRequestHandler(crawlingContext),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
+                requestHandlerTimeoutMillis,
+                `requestHandler timed out after ${requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
             );
 
             await this._timeoutAndRetry(
                 () => source.markRequestHandled(request!),
-                this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                requestTimeoutMillis,
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${requestTimeoutMillis / 1e3} seconds.`,
             );
 
             this.stats.finishJob(statisticsId);
@@ -907,8 +910,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             try {
                 await addTimeoutToPromise(
                     () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
-                    this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                    requestTimeoutMillis,
+                    `Handling request failure of ${request.url} (${request.id}) timed out after ${requestTimeoutMillis / 1e3} seconds.`,
                 );
             } catch (secondaryError: any) {
                 if (!secondaryError.triggeredFromUserHandler) {

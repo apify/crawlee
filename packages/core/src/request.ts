@@ -112,6 +112,16 @@ export class Request<UserData extends Dictionary = Dictionary> {
     handledAt?: string;
 
     /**
+     * The number of seconds to timeout after if the request hasn't succeeded yet.
+     */
+    requestTimeoutSecs?: number;
+
+    /**
+     * The number of seconds to timeout after if the `requestHandler` function runs for too long.
+     */
+    requestHandlerTimeoutSecs?: number;
+
+    /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options: RequestOptions) {
@@ -150,6 +160,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
             skipNavigation,
+            requestHandlerTimeoutSecs,
+            requestTimeoutSecs,
         } = options as RequestOptions & { loadedUrl?: string; retryCount?: number; errorMessages?: string[]; handledAt?: string | Date };
 
         let {
@@ -171,6 +183,21 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = handledAt as unknown instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
+
+        this.requestHandlerTimeoutSecs = requestHandlerTimeoutSecs;
+        this.requestTimeoutSecs = requestTimeoutSecs;
+
+        Object.defineProperty(
+            this,
+            'requestHandlerTimeoutMillis',
+            { enumerable: false, value: requestHandlerTimeoutSecs ? requestHandlerTimeoutSecs * 1e3 : null },
+        );
+
+        Object.defineProperty(
+            this,
+            'requestTimeoutMillis',
+            { enumerable: false, value: requestTimeoutSecs ? requestTimeoutSecs * 1e3 : null },
+        );
 
         if (label) {
             userData.label = label;
@@ -399,12 +426,23 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      */
     skipNavigation?: boolean;
 
+    /**
+     * Determines a request-specific number of seconds before the request times out.
+     * Overrides the default `navigationTimeoutSecs` provided to the crawler.
+     */
+    requestTimeoutSecs?: number;
+
+    /**
+     * Determines a request-specific number of seconds before the request handler times out.
+     * Overrides the default `requestHandlerTimeoutSecs` provided to the crawler.
+     */
+    requestHandlerTimeoutSecs?: number;
+
     /** @internal */
     id?: string;
 
     /** @internal */
     handledAt?: string;
-
 }
 
 export interface PushErrorMessageOptions {
