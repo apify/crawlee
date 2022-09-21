@@ -290,7 +290,7 @@ export type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<u
  *    request: Request,
  * }
  * ```
- * Where `page` is a Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page)
+ * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
  * and `request` is a {@apilink Request}.
  *
  * The function is compiled by using the `scriptString` parameter as the function's body,
@@ -693,6 +693,34 @@ export interface PlaywrightContextUtils {
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
+
+    /**
+    * Compiles a Playwright script into an async function that may be executed at any time
+    * by providing it with the following object:
+    * ```
+    * {
+    *    page: Page,
+    *    request: Request,
+    * }
+    * ```
+    * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
+    * and `request` is a {@apilink Request}.
+    *
+    * The function is compiled by using the `scriptString` parameter as the function's body,
+    * so any limitations to function bodies apply. Return value of the compiled function
+    * is the return value of the function body = the `scriptString` parameter.
+    *
+    * As a security measure, no globals such as `process` or `require` are accessible
+    * from within the function body. Note that the function does not provide a safe
+    * sandbox and even though globals are not easily accessible, malicious code may
+    * still execute in the main process via prototype manipulation. Therefore you
+    * should only use this function to execute sanitized or safe code.
+    *
+    * Custom context may also be provided using the `context` parameter. To improve security,
+    * make sure to only pass the really necessary objects to the context. Preferably making
+    * secured copies beforehand.
+    */
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -707,6 +735,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
         page: context.page,
         requestQueue: context.crawler.requestQueue!,
     });
+    context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
 }
 
 export { enqueueLinksByClickingElements };
@@ -721,4 +750,5 @@ export const playwrightUtils = {
     parseWithCheerio,
     infiniteScroll,
     saveSnapshot,
+    compileScript,
 };
