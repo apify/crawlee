@@ -1,4 +1,4 @@
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
@@ -150,7 +150,7 @@ async function getActorName(dirName) {
  * @internal
  */
 async function copyPackages(dirName) {
-    const srcPackagesDir = resolve('./', 'packages');
+    const srcPackagesDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'packages');
     const destPackagesDir = join(dirName, 'packages');
     await fs.remove(destPackagesDir);
 
