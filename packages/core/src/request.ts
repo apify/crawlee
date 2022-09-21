@@ -28,6 +28,8 @@ const requestOptionalPredicates = {
     keepUrlFragment: ow.optional.boolean,
     useExtendedUniqueKey: ow.optional.boolean,
     skipNavigation: ow.optional.boolean,
+    requestHandlerTimeoutSecs: ow.optional.number,
+    requestTimeoutSecs: ow.optional.number,
 };
 
 /**
