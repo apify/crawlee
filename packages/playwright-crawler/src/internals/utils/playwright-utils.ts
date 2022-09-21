@@ -27,7 +27,10 @@ import type { Request } from '@crawlee/browser';
 import { validators, KeyValueStore } from '@crawlee/browser';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
+import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
+import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
@@ -504,6 +507,7 @@ export interface PlaywrightContextUtils {
     parseWithCheerio(): Promise<CheerioRoot>;
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -513,7 +517,14 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, options);
+    context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
+        ...options,
+        page: context.page,
+        requestQueue: context.crawler.requestQueue!,
+    });
 }
+
+export { enqueueLinksByClickingElements };
 
 /** @internal */
 export const playwrightUtils = {
@@ -521,6 +532,7 @@ export const playwrightUtils = {
     injectJQuery,
     gotoExtended,
     blockRequests,
+    enqueueLinksByClickingElements,
     parseWithCheerio,
     infiniteScroll,
     saveSnapshot,
