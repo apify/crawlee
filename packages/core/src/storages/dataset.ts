@@ -285,9 +285,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     *
      * Save the entirety of the dataset's contents into one file within a key-value store.
-     *
      *
      * @param key The name of the value to save the data in.
      * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
