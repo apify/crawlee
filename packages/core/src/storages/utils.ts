@@ -1,5 +1,6 @@
-import type { StorageClient } from '@crawlee/types';
+import type { Dictionary, StorageClient } from '@crawlee/types';
 import { Configuration } from '../configuration';
+import { KeyValueStore } from './key_value_store';
 
 /**
  * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
@@ -21,4 +22,31 @@ export async function purgeDefaultStorages(config = Configuration.getGlobalConfi
         client.__purged = true;
         await client.purge?.();
     }
+}
+
+export interface UseStateOptions {
+    config?: Configuration;
+    /**
+     * The name of the key-value store you'd like the state to be stored in.
+     * If not provided, the default store will be used.
+     */
+    keyValueStoreName?: string | null;
+}
+
+/**
+ * Easily create and manage state values. All state values are automatically persisted.
+ *
+ * Values can be modified by simply using the assignment operator.
+ *
+ * @param name The name of the store to use.
+ * @param defaultValue If the store does not yet have a value in it, the value will be initialized with the `defaultValue` you provide.
+ * @param options An optional object parameter where a custom `keyValueStoreName` and `config` can be passed in.
+ */
+export async function useState<State extends Dictionary = Dictionary>(
+    name?: string,
+    defaultValue = {} as State,
+    options?: UseStateOptions,
+) {
+    const kvStore = await KeyValueStore.open(options?.keyValueStoreName, { config: options?.config || Configuration.getGlobalConfig() });
+    return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
 }

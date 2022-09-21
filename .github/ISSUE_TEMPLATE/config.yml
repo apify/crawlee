@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/apify/crawlee/discussions
+    about: Got a question? Want to leave some feedback for the Crawlee team? Make a post in GitHub Discussions about it!
+  - name: Discord
+    url: https://discord.gg/jyEM2PRvMU
+    about: Join our Discord server where you can talk with the Crawlee community, as well as the Apify team and get help if you have a question or are unsure of how to do something!
+  - name: Crawlee Documentation
+    url: https://crawlee.dev
+    about: Check out Crawlee's documentation, maybe you'll find your solution there!
+
