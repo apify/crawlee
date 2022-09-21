@@ -292,7 +292,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      */
     async exportToValue(key: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
         const { keyValueStoreName, ...recordOptions } = options;
-        const kvStore = keyValueStoreName ? await KeyValueStore.open(keyValueStoreName) : KeyValueStore;
+        const kvStore = await KeyValueStore.open(keyValueStoreName ?? null);
 
         await kvStore.setValue(key || 'OUTPUT', await this.client.listItems(), recordOptions);
     }
