@@ -6,7 +6,7 @@ export interface OpenGraphProperty {
     name: string;
     outputName: string;
     children: OpenGraphProperty[];
-}
+};
 
 type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
 
@@ -17,8 +17,7 @@ type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
  * @param item The item to assign to the key.
  * @returns Either an empty object or an object with the content provided.
  */
-const optionalSpread = (key: string, item: any) =>
-    item !== undefined && !!Object.values(item)?.length ? { [key]: item } : {};
+const optionalSpread = (key: string, item: any) => (item !== undefined && !!Object.values(item)?.length ? { [key]: item } : {});
 
 const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
     {
@@ -355,18 +354,12 @@ const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
 
 const makeOpenGraphSelector = (name: string) => `meta[property="${name}"]`;
 
-const parseOpenGraphProperty = (
-    property: OpenGraphProperty,
-    $: CheerioAPI
-): string | string[] | OpenGraphResult => {
+const parseOpenGraphProperty = (property: OpenGraphProperty, $: CheerioAPI): string | string[] | OpenGraphResult => {
     // Some OpenGraph properties can be added multiple times, such as with video:actor. We must handle this case.
-    const values = [...$(makeOpenGraphSelector(property.name))].map((elem) =>
-        $(elem).attr('content')
-    );
+    const values = [...$(makeOpenGraphSelector(property.name))].map((elem) => $(elem).attr('content'));
 
     // If there is more than 1 item, keep it a an array. Otherwise, return just the first value.
-    const content =
-        values.length <= 1 ? (values[0] as string) : (values as string[]);
+    const content = values.length <= 1 ? (values[0] as string) : (values as string[]);
 
     // If the property has no children, just return its value immediately.
     if (!property.children.length) return content;
@@ -384,10 +377,7 @@ const parseOpenGraphProperty = (
 
             return {
                 ...acc,
-                ...optionalSpread(
-                    curr.outputName,
-                    parseOpenGraphProperty(curr, $)
-                ),
+                ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
             };
         }, {} as Dictionary<string | Dictionary>),
     };
@@ -401,30 +391,15 @@ const parseOpenGraphProperty = (
  * Currently existing properties are kept up to date.
  * @returns Scraped OpenGraph properties as an object.
  */
-export function parseOpenGraph(
-    raw: string,
-    additionalProperties?: OpenGraphProperty[]
-): Dictionary<OpenGraphResult>;
-export function parseOpenGraph(
-    $: CheerioAPI,
-    additionalProperties?: OpenGraphProperty[]
-): Dictionary<OpenGraphResult>;
-export function parseOpenGraph(
-    item: CheerioAPI | string,
-    additionalProperties?: OpenGraphProperty[]
-) {
+export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
+export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
+export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
     const $ = typeof item === 'string' ? load(item) : item;
 
-    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce(
-        (acc, curr) => {
-            return {
-                ...acc,
-                ...optionalSpread(
-                    curr.outputName,
-                    parseOpenGraphProperty(curr, $)
-                ),
-            };
-        },
-        {} as Dictionary<OpenGraphResult>
-    );
-}
+    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce((acc, curr) => {
+        return {
+            ...acc,
+            ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
+        };
+    }, {} as Dictionary<OpenGraphResult>);
+};
