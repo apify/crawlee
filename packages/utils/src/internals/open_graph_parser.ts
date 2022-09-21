@@ -386,7 +386,7 @@ const parseOpenGraphProperty = (property: OpenGraphProperty, $: CheerioAPI): str
  * Easily parse all OpenGraph properties from a page with just a `CheerioAPI` object.
  *
  * @param $ A `CheerioAPI` object
- * @param additionalProperties Any potential additional `OpenGraphProperty` items you'd like to be scraped. Currently existing properties are kept up to date.
+ * @param additionalProperties Any potential additional {@apilink OpenGraphProperty} items you'd like to be scraped. Currently existing properties are kept up to date.
  * @returns Scraped OpenGraph properties as an object.
  */
 export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]) {
