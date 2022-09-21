@@ -1235,7 +1235,5 @@ describe('BasicCrawler', () => {
 
         // The run should most definitely take less than 10 seconds with the 2 second timeout.
         expect(performance.now() - timeStart).toBeLessThan(1e4);
-
-        await crawler.teardown();
     });
 });

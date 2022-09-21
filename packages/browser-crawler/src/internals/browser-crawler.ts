@@ -11,6 +11,7 @@ import type {
     RequestHandler,
     ErrorHandler,
     EnqueueLinksOptions,
+    Request,
 } from '@crawlee/basic';
 import {
     cookieStringToToughCookie,
@@ -522,7 +523,10 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        const gotoOptions = { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions;
+        const gotoOptions = {
+            timeout: (crawlingContext.request as Request & {
+                requestHandlerTimeoutMillis?: number;
+                requestTimeoutMillis?: number; }).requestTimeoutMillis ?? this.navigationTimeoutMillis } as unknown as GoToOptions;
 
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 

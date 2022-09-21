@@ -1340,8 +1340,6 @@ describe('CheerioCrawler', () => {
 
         // The run should most definitely take less than 10 seconds with the 2 second timeout.
         expect(performance.now() - timeStart).toBeLessThan(1e4);
-
-        await crawler.teardown();
     });
 
     it('Should use the requestTimeoutSecs provided within the request instead of the crawler one', async () => {
@@ -1365,8 +1363,6 @@ describe('CheerioCrawler', () => {
 
         // The run should most definitely take less than 10 seconds with the 0.00001 second timeout.
         expect(performance.now() - timeStart).toBeLessThan(1e4);
-
-        await crawler.teardown();
     });
 });
 
