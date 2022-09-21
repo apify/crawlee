@@ -190,6 +190,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         Object.defineProperty(
             this,
             'requestHandlerTimeoutMillis',
+            // If zero was provided, this will still return null.
             { enumerable: false, value: requestHandlerTimeoutSecs ? requestHandlerTimeoutSecs * 1e3 : null },
         );
 

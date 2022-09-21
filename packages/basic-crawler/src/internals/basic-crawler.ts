@@ -821,6 +821,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         tryCancel();
 
+        // A request can have some request-specific timeouts defined. We check if they have been defined, and if so,
+        // use those timeouts instead. However; if they aren't present, the defaults will be used.
         const requestTimeoutMillis = request?.requestTimeoutMillis ?? this.internalTimeoutMillis;
         const requestHandlerTimeoutMillis = request?.requestHandlerTimeoutMillis ?? this.requestHandlerTimeoutMillis;
 
