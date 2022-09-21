@@ -42,11 +42,11 @@ export interface UseStateOptions {
  * @param defaultValue If the store does not yet have a value in it, the value will be initialized with the `defaultValue` you provide.
  * @param options An optional object parameter where a custom `keyValueStoreName` and `config` can be passed in.
  */
-export async function useState<T extends Dictionary = Dictionary>(
+export async function useState<State extends Dictionary = Dictionary>(
     name?: string,
-    defaultValue = {} as T,
+    defaultValue = {} as State,
     options?: UseStateOptions,
 ) {
     const kvStore = await KeyValueStore.open(options?.keyValueStoreName, { config: options?.config || Configuration.getGlobalConfig() });
-    return kvStore.getAutoSavedValue<T>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
+    return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
 }
