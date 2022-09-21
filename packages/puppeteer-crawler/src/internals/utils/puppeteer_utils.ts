@@ -736,11 +736,11 @@ export interface PuppeteerContextUtils {
      * ```javascript
      * async requestHandler({ enqueueLinksByClickingElements }) {
      *     await enqueueLinksByClickingElements({
-     *       selector: 'a.product-detail',
-     *       globs: [
-     *           'https://www.example.com/handbags/**'
-     *           'https://www.example.com/purses/**'
-     *       ],
+     *         selector: 'a.product-detail',
+     *         globs: [
+     *             'https://www.example.com/handbags/**'
+     *             'https://www.example.com/purses/**'
+     *         ],
      *     });
      * });
      * ```

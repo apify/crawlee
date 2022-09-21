@@ -594,7 +594,54 @@ export interface PlaywrightContextUtils {
      * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
      */
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+
+    /**
+     * Saves a full screenshot and HTML of the current page into a Key-Value store.
+     * @param [options]
+     */
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+
+    /**
+     * The function finds elements matching a specific CSS selector in a Playwright page,
+     * clicks all those elements using a mouse move and a left mouse button click and intercepts
+     * all the navigation requests that are subsequently produced by the page. The intercepted
+     * requests, including their methods, headers and payloads are then enqueued to a provided
+     * {@apilink RequestQueue}. This is useful to crawl JavaScript heavy pages where links are not available
+     * in `href` elements, but rather navigations are triggered in click handlers.
+     * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
+     *
+     * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
+     * and override settings of the enqueued {@apilink Request} objects.
+     *
+     * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
+     * such as changing the Z-index of elements being clicked and their visibility. Therefore,
+     * it is recommended to only use this function as the last operation in the page.
+     *
+     * **USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements
+     * in the focused tab, effectively limiting concurrency to 1. In headless mode, full concurrency can be achieved.
+     *
+     * **PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation
+     * that takes nanoseconds. It's not very CPU intensive, but it takes time. We strongly recommend limiting
+     * the scope of the clicking as much as possible by using a specific selector that targets only the elements
+     * that you assume or know will produce a navigation. You can certainly click everything by using
+     * the `*` selector, but be prepared to wait minutes to get results on a large and complex page.
+     *
+     * **Example usage**
+     *
+     * ```javascript
+     * async requestHandler({ enqueueLinksByClickingElements }) {
+     *     await enqueueLinksByClickingElements({
+     *         selector: 'a.product-detail',
+     *         globs: [
+     *             'https://www.example.com/handbags/**'
+     *             'https://www.example.com/purses/**'
+     *         ],
+     *     });
+     * });
+     * ```
+     *
+     * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
+     */
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
 }
 
