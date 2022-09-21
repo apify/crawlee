@@ -5,7 +5,7 @@
  * **Example usage:**
  *
  * ```javascript
- * import { launchPuppeteer, puppeteerUtils } from 'crawlee';
+ * import { launchPuppeteer, utils } from 'crawlee';
  *
  * // Open https://www.example.com in Puppeteer
  * const browser = await launchPuppeteer();
@@ -13,7 +13,7 @@
  * await page.goto('https://www.example.com');
  *
  * // Inject jQuery into a page
- * await puppeteerUtils.injectJQuery(page);
+ * await utils.puppeteer.injectJQuery(page);
  * ```
  * @module puppeteerUtils
  */
@@ -148,7 +148,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  *
  * **Example usage:**
  * ```javascript
- * await puppeteerUtils.injectJQuery(page);
+ * await utils.puppeteer.injectJQuery(page);
  * const title = await page.evaluate(() => {
  *   return $('head title').text();
  * });
@@ -170,7 +170,7 @@ export function injectJQuery(page: Page): Promise<unknown> {
  *
  * **Example usage:**
  * ```javascript
- * const $ = await puppeteerUtils.parseWithCheerio(page);
+ * const $ = await utils.puppeteer.parseWithCheerio(page);
  * const title = $('title').text();
  * ```
  *
@@ -208,13 +208,13 @@ export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
  *
  * **Example usage**
  * ```javascript
- * import { launchPuppeteer, puppeteerUtils } from 'crawlee';
+ * import { launchPuppeteer, utils } from 'crawlee';
  *
  * const browser = await launchPuppeteer();
  * const page = await browser.newPage();
  *
  * // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
- * await puppeteerUtils.blockRequests(page, {
+ * await utils.puppeteer.blockRequests(page, {
  *     extraUrlPatterns: ['adsbygoogle.js'],
  * });
  *
@@ -372,7 +372,6 @@ export async function cacheResponses(page: Page, cache: Dictionary<Partial<Respo
  * Custom context may also be provided using the `context` parameter. To improve security,
  * make sure to only pass the really necessary objects to the context. Preferably making
  * secured copies beforehand.
- *
  */
 export function compileScript(scriptString: string, context: Dictionary = Object.create(null)): CompiledScriptFunction {
     const funcString = `async ({ page, request }) => {${scriptString}}`;
@@ -656,18 +655,256 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     }
 }
 
+/** @internal */
 export interface PuppeteerContextUtils {
+    /**
+     * Injects a JavaScript file into current `page`.
+     * Unlike Puppeteer's `addScriptTag` function, this function works on pages
+     * with arbitrary Cross-Origin Resource Sharing (CORS) policies.
+     *
+     * File contents are cached for up to 10 files to limit file system access.
+     */
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+
+    /**
+     * Injects the [jQuery](https://jquery.com/) library into current `page`.
+     * jQuery is often useful for various web scraping and crawling tasks.
+     * For example, it can help extract text from HTML elements using CSS selectors.
+     *
+     * Beware that the injected jQuery object will be set to the `window.$` variable and thus it might cause conflicts with
+     * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
+     * This can affect functionality of page's scripts.
+     *
+     * The injected jQuery will survive page navigations and reloads.
+     *
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ page, injectJQuery }) {
+     *     await injectJQuery();
+     *     const title = await page.evaluate(() => {
+     *         return $('head title').text();
+     *     });
+     * });
+     * ```
+     *
+     * Note that `injectJQuery()` does not affect the Puppeteer's
+     * [`page.$()`](https://pptr.dev/api/puppeteer.page._/)
+     * function in any way.
+     */
     injectJQuery(): Promise<unknown>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     *
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ parseWithCheerio }) {
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
     parseWithCheerio(): Promise<CheerioRoot>;
+
+    /**
+     * The function finds elements matching a specific CSS selector in a Puppeteer page,
+     * clicks all those elements using a mouse move and a left mouse button click and intercepts
+     * all the navigation requests that are subsequently produced by the page. The intercepted
+     * requests, including their methods, headers and payloads are then enqueued to a provided
+     * {@apilink RequestQueue}. This is useful to crawl JavaScript heavy pages where links are not available
+     * in `href` elements, but rather navigations are triggered in click handlers.
+     * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
+     *
+     * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
+     * and override settings of the enqueued {@apilink Request} objects.
+     *
+     * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
+     * such as changing the Z-index of elements being clicked and their visibility. Therefore,
+     * it is recommended to only use this function as the last operation in the page.
+     *
+     * **USING HEADFUL BROWSER**: When using a headful browser, this function will only be able to click elements
+     * in the focused tab, effectively limiting concurrency to 1. In headless mode, full concurrency can be achieved.
+     *
+     * **PERFORMANCE**: Clicking elements with a mouse and intercepting requests is not a low level operation
+     * that takes nanoseconds. It's not very CPU intensive, but it takes time. We strongly recommend limiting
+     * the scope of the clicking as much as possible by using a specific selector that targets only the elements
+     * that you assume or know will produce a navigation. You can certainly click everything by using
+     * the `*` selector, but be prepared to wait minutes to get results on a large and complex page.
+     *
+     * **Example usage**
+     *
+     * ```javascript
+     * async requestHandler({ enqueueLinksByClickingElements }) {
+     *     await enqueueLinksByClickingElements({
+     *         selector: 'a.product-detail',
+     *         globs: [
+     *             'https://www.example.com/handbags/**'
+     *             'https://www.example.com/purses/**'
+     *         ],
+     *     });
+     * });
+     * ```
+     *
+     * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
+     */
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
+
+    /**
+     * Forces the Puppeteer browser tab to block loading URLs that match a provided pattern.
+     * This is useful to speed up crawling of websites, since it reduces the amount
+     * of data that needs to be downloaded from the web, but it may break some websites
+     * or unexpectedly prevent loading of resources.
+     *
+     * By default, the function will block all URLs including the following patterns:
+     *
+     * ```json
+     * [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
+     * ```
+     *
+     * If you want to extend this list further, use the `extraUrlPatterns` option,
+     * which will keep blocking the default patterns, as well as add your custom ones.
+     * If you would like to block only specific patterns, use the `urlPatterns` option,
+     * which will override the defaults and block only URLs with your custom patterns.
+     *
+     * This function does not use Puppeteer's request interception and therefore does not interfere
+     * with browser cache. It's also faster than blocking requests using interception,
+     * because the blocking happens directly in the browser without the round-trip to Node.js,
+     * but it does not provide the extra benefits of request interception.
+     *
+     * The function will never block main document loads and their respective redirects.
+     *
+     * **Example usage**
+     * ```javascript
+     * preNavigationHooks: [
+     *     async ({ blockRequests }) => {
+     *         // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
+     *         await blockRequests({
+     *             extraUrlPatterns: ['adsbygoogle.js'],
+     *         }),
+     *     }),
+     * ],
+     * ```
+     */
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
+
+    /**
+     * `blockResources()` has a high impact on performance in recent versions of Puppeteer.
+     * Until this resolves, please use `utils.puppeteer.blockRequests()`.
+     * @deprecated
+     */
     blockResources(resourceTypes?: string[]): Promise<void>;
+
+    /**
+     * *NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
+     * performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
+     *
+     * Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
+     * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
+     *   This issue should be resolved or atleast mitigated in future iterations of this feature.
+     * @param cache
+     *   Object in which responses are stored
+     * @param responseUrlRules
+     *   List of rules that are used to check if the response should be cached.
+     *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
+     * @deprecated
+     */
     cacheResponses(cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
+
+    /**
+     * Compiles a Puppeteer script into an async function that may be executed at any time
+     * by providing it with the following object:
+     * ```
+     * {
+     *    page: Page,
+     *    request: Request,
+     * }
+     * ```
+     * Where `page` is a Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page)
+     * and `request` is a {@apilink Request}.
+     *
+     * The function is compiled by using the `scriptString` parameter as the function's body,
+     * so any limitations to function bodies apply. Return value of the compiled function
+     * is the return value of the function body = the `scriptString` parameter.
+     *
+     * As a security measure, no globals such as `process` or `require` are accessible
+     * from within the function body. Note that the function does not provide a safe
+     * sandbox and even though globals are not easily accessible, malicious code may
+     * still execute in the main process via prototype manipulation. Therefore you
+     * should only use this function to execute sanitized or safe code.
+     *
+     * Custom context may also be provided using the `context` parameter. To improve security,
+     * make sure to only pass the really necessary objects to the context. Preferably making
+     * secured copies beforehand.
+     */
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+
+    /**
+     * Adds request interception handler in similar to `page.on('request', handler);` but in addition to that
+     * supports multiple parallel handlers.
+     *
+     * All the handlers are executed sequentially in the order as they were added.
+     * Each of the handlers must call one of `request.continue()`, `request.abort()` and `request.respond()`.
+     * In addition to that any of the handlers may modify the request object (method, postData, headers)
+     * by passing its overrides to `request.continue()`.
+     * If multiple handlers modify same property then the last one wins. Headers are merged separately so you can
+     * override only a value of specific header.
+     *
+     * If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
+     * to any of the remaining handlers.
+     *
+     *
+     * **Example usage:**
+     *
+     * ```javascript
+     * preNavigationHooks: [
+     *     async ({ addInterceptRequestHandler }) => {
+     *         // Replace images with placeholder.
+     *         await addInterceptRequestHandler((request) => {
+     *             if (request.resourceType() === 'image') {
+     *                 return request.respond({
+     *                     statusCode: 200,
+     *                     contentType: 'image/jpeg',
+     *                     body: placeholderImageBuffer,
+     *                 });
+     *             }
+     *             return request.continue();
+     *         });
+     *
+     *         // Abort all the scripts.
+     *         await addInterceptRequestHandler((request) => {
+     *             if (request.resourceType() === 'script') return request.abort();
+     *             return request.continue();
+     *         });
+     *
+     *         // Change requests to post.
+     *         await addInterceptRequestHandler((request) => {
+     *             return request.continue({
+     *                  method: 'POST',
+     *             });
+     *         });
+     *     }),
+     * ],
+     * ```
+     * @param handler Request interception handler.
+     */
     addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+
+    /**
+     * Removes request interception handler for given page.
+     *
+     * @param handler Request interception handler.
+     */
     removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+
+    /**
+     * Scrolls to the bottom of a page, or until it times out.
+     * Loads dynamic content when it hits the bottom of a page, and then continues scrolling.
+     */
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+
+    /**
+     * Saves a full screenshot and HTML of the current page into a Key-Value store.
+     */
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
 }
 

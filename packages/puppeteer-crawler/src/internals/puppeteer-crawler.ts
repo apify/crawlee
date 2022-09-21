@@ -15,7 +15,7 @@ import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/pup
 import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
 
 export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends
-    BrowserCrawlingContext<Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
+    BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
 export interface PuppeteerRequestHandler extends BrowserRequestHandler<PuppeteerCrawlingContext> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];

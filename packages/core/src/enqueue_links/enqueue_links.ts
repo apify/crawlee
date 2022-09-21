@@ -19,7 +19,7 @@ export interface EnqueueLinksOptions {
     limit?: number;
 
     /** An array of URLs to enqueue. */
-    urls: string[];
+    urls?: string[];
 
     /** A request queue to which the URLs will be enqueued. */
     requestQueue: RequestQueue;

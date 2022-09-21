@@ -23,7 +23,7 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
-import type { OptionsInit, Method, Request as GotRequest, Response as GotResponse, GotOptionsInit, Options } from 'got-scraping';
+import type { OptionsInit, Method, Request as GotRequest, Options } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
 import type { JsonValue } from 'type-fest';
 import { extname } from 'node:path';
@@ -166,7 +166,7 @@ export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Crawler = HttpCrawler<any>
-    > extends CrawlingContext<UserData> {
+    > extends CrawlingContext<Crawler, UserData> {
     /**
      * The request body of the web page.
      * The type depends on the `Content-Type` header of the web page:
@@ -184,9 +184,7 @@ export interface InternalHttpCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    crawler: Crawler;
     response: IncomingMessage;
-    sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
