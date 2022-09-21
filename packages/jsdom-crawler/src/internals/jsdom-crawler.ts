@@ -35,14 +35,13 @@ export interface JSDOMCrawlingContext<
     > extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
     window: DOMWindow;
 
-    enqueueLinks: (options?: JSDOMCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
 export type JSDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = RequestHandler<JSDOMCrawlingContext<UserData, JSONData>>;
-export interface JSDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -125,7 +124,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             get body() {
                 return window.document.documentElement.outerHTML;
             },
-            enqueueLinks: async (enqueueOptions?: JSDOMCrawlerEnqueueLinksOptions) => {
+            enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({
                     options: enqueueOptions,
                     window,
@@ -139,7 +138,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 }
 
 interface EnqueueLinksInternalOptions {
-    options?: JSDOMCrawlerEnqueueLinksOptions;
+    options?: Partial<EnqueueLinksOptions>;
     window: DOMWindow | null;
     requestQueue: RequestQueue;
     originalRequestUrl: string;

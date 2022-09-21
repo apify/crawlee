@@ -1,6 +1,5 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type {
-    EnqueueLinksOptions,
     CrawlingContext,
     ProxyConfiguration,
     ProxyInfo,
@@ -11,6 +10,7 @@ import type {
     Dictionary,
     RequestHandler,
     ErrorHandler,
+    EnqueueLinksOptions,
 } from '@crawlee/basic';
 import {
     cookieStringToToughCookie,
@@ -33,30 +33,25 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import type { GotOptionsInit, Response as GotResponse } from 'got-scraping';
 import ow from 'ow';
-import type { BatchAddRequestsResult, Cookie as CookieObject } from '@crawlee/types';
+import type { Cookie as CookieObject } from '@crawlee/types';
 import type { BrowserLaunchContext } from './browser-launcher';
 
 export interface BrowserCrawlingContext<
+    Crawler = unknown,
     Page extends CommonPage = CommonPage,
     Response = Dictionary,
     ProvidedController = BrowserController,
     UserData extends Dictionary = Dictionary,
-> extends CrawlingContext<UserData> {
+> extends CrawlingContext<Crawler, UserData> {
     browserController: ProvidedController;
     page: Page;
     response?: Response;
-    crawler: BrowserCrawler;
-    enqueueLinks: (options?: BrowserCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
-    sendRequest: (overrideOptions?: Partial<GotOptionsInit>) => Promise<GotResponse<string>>;
 }
 
 export type BrowserRequestHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = RequestHandler<Context>;
 
-export type BrowserErrorHandler<Context extends BrowserCrawlingContext= BrowserCrawlingContext>= ErrorHandler<Context>;
-
-export interface BrowserCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'requestQueue' | 'urls'> {}
+export type BrowserErrorHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = ErrorHandler<Context>;
 
 export type BrowserHook<
     Context = BrowserCrawlingContext,
@@ -660,7 +655,7 @@ export abstract class BrowserCrawler<
 
 /** @internal */
 interface EnqueueLinksInternalOptions {
-    options?: BrowserCrawlerEnqueueLinksOptions;
+    options?: Partial<EnqueueLinksOptions>;
     page: CommonPage;
     requestQueue: RequestQueue;
     originalRequestUrl: string;

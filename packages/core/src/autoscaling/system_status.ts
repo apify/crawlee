@@ -251,6 +251,14 @@ export class SystemStatus {
      * set to true if at least the ratio of snapshots in the sample are overloaded.
      */
     protected _isSampleOverloaded<T extends { createdAt: Date; isOverloaded: boolean }>(sample: T[], ratio: number): ClientInfo {
+        if (sample.length === 0) {
+            return {
+                isOverloaded: false,
+                limitRatio: ratio,
+                actualRatio: 0,
+            };
+        }
+
         const weights: number[] = [];
         const values: number[] = [];
 
@@ -262,7 +270,7 @@ export class SystemStatus {
             values.push(+current.isOverloaded);
         }
 
-        const wAvg = weightedAvg(values, weights);
+        const wAvg = sample.length === 1 ? +sample[0].isOverloaded : weightedAvg(values, weights);
 
         return {
             isOverloaded: wAvg > ratio,

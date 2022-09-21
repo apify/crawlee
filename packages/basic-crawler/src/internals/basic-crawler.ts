@@ -35,20 +35,15 @@ import {
     validators,
     RetryRequestError,
 } from '@crawlee/core';
-import type { Method, OptionsInit, Response as GotResponse } from 'got-scraping';
+import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult } from '@crawlee/types';
+import type { ProcessedRequest, Dictionary, Awaitable } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
-export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
-    crawler: BasicCrawler;
-    enqueueLinks: (options: BasicCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
-    sendRequest: (overrideOptions?: Partial<OptionsInit>) => Promise<GotResponse<string>>;
-}
-
-/** @internal */
-export interface BasicCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'requestQueue'> {}
+export interface BasicCrawlingContext<
+    UserData extends Dictionary = Dictionary,
+> extends CrawlingContext<BasicCrawler, UserData> {}
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -856,10 +851,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log: this.log,
             request,
             session,
-            enqueueLinks: async (enqueueOptions: BasicCrawlerEnqueueLinksOptions) => {
+            enqueueLinks: async (enqueueOptions: Partial<EnqueueLinksOptions>) => {
                 return enqueueLinks({
-                    ...enqueueOptions,
+                    // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
+                    ...enqueueOptions,
                 });
             },
             sendRequest: async (overrideOptions?: OptionsInit) => {
