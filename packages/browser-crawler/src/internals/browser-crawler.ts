@@ -483,10 +483,12 @@ export abstract class BrowserCrawler<
             }
         }
 
+        request.requestHandlerTimeoutSecs ??= this.requestHandlerTimeoutMillis / 1e3;
+
         await addTimeoutToPromise(
             () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
-            this.requestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
+            request.requestHandlerTimeoutSecs * 1e3,
+            `requestHandler timed out after ${request.requestHandlerTimeoutSecs} seconds.`,
         );
         tryCancel();
 
@@ -523,10 +525,9 @@ export abstract class BrowserCrawler<
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
-        const gotoOptions = {
-            timeout: (crawlingContext.request as Request & {
-                requestHandlerTimeoutMillis?: number;
-                requestTimeoutMillis?: number; }).requestTimeoutMillis ?? this.navigationTimeoutMillis } as unknown as GoToOptions;
+        crawlingContext.request.requestTimeoutSecs ??= this.navigationTimeoutMillis / 1e3;
+
+        const gotoOptions = { timeout: crawlingContext.request.requestTimeoutSecs * 1e3 } as unknown as GoToOptions;
 
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 

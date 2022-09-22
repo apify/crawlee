@@ -185,22 +185,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = handledAt as unknown instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
-
         this.requestHandlerTimeoutSecs = requestHandlerTimeoutSecs;
         this.requestTimeoutSecs = requestTimeoutSecs;
-
-        Object.defineProperty(
-            this,
-            'requestHandlerTimeoutMillis',
-            // If zero was provided, this will still return null.
-            { enumerable: false, value: requestHandlerTimeoutSecs ? requestHandlerTimeoutSecs * 1e3 : null },
-        );
-
-        Object.defineProperty(
-            this,
-            'requestTimeoutMillis',
-            { enumerable: false, value: requestTimeoutSecs ? requestTimeoutSecs * 1e3 : null },
-        );
 
         if (label) {
             userData.label = label;

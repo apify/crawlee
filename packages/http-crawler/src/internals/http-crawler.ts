@@ -452,10 +452,12 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             });
         }
 
+        crawlingContext.request.requestTimeoutSecs ??= this.userRequestHandlerTimeoutMillis / 1e3;
+
         return addTimeoutToPromise(
             () => Promise.resolve(this.requestHandler(crawlingContext)),
-            this.userRequestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
+            crawlingContext.request.requestTimeoutSecs * 1e3,
+            `requestHandler timed out after ${crawlingContext.request.requestTimeoutSecs} seconds.`,
         );
     }
 
@@ -475,10 +477,12 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
 
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
+        crawlingContext.request.requestTimeoutSecs ??= this.navigationTimeoutMillis / 1e3;
+
         crawlingContext.response = await addTimeoutToPromise(
             () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
-            this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+            crawlingContext.request.requestTimeoutSecs * 1e3,
+            `request timed out after ${crawlingContext.request.requestTimeoutSecs} seconds.`,
         );
         tryCancel();
 

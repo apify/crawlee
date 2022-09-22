@@ -1319,7 +1319,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    it('Should use the requestHandlerTimeoutSecs provided within the request instead of the crawler one', async () => {
+    test('Should use the requestHandlerTimeoutSecs provided within the request instead of the crawler one', async () => {
         const timeStart = performance.now();
 
         const crawler = new CheerioCrawler({
@@ -1342,7 +1342,7 @@ describe('CheerioCrawler', () => {
         expect(performance.now() - timeStart).toBeLessThan(1e4);
     });
 
-    it('Should use the requestTimeoutSecs provided within the request instead of the crawler one', async () => {
+    test('Should use the requestTimeoutSecs provided within the request instead of the crawler one', async () => {
         const timeStart = performance.now();
 
         const crawler = new CheerioCrawler({
@@ -1352,17 +1352,19 @@ describe('CheerioCrawler', () => {
                 log.info('Hey');
             },
             errorHandler: (_, error) => {
-                expect(error.message.includes('timed out after 2 seconds')).toBeTruthy();
+                expect(error.message.includes('timed out after 1 seconds')).toBeTruthy();
             },
         });
 
         await crawler.run([{
-            url: 'https://google.com',
-            requestTimeoutSecs: 0.00001,
+            // https://deelay.me/
+            // Google with a huge delay
+            url: 'https://deelay.me/200000/https://google.com',
+            requestTimeoutSecs: 1,
         }]);
 
-        // The run should most definitely take less than 10 seconds with the 0.00001 second timeout.
-        expect(performance.now() - timeStart).toBeLessThan(1e4);
+        // The run should most definitely take less than 15 seconds with the 0.00001 second timeout.
+        expect(performance.now() - timeStart).toBeLessThan(15e3);
     });
 });
 
