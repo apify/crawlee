@@ -162,7 +162,11 @@ async function copyPackages(dirName) {
     const destPackagesDir = join(dirName, 'packages');
     await fs.remove(destPackagesDir);
 
-    const { dependencies } = await fs.readJSON(join(dirName, 'package.json'));
+    const { dependencies, overrides } = await fs.readJSON(join(dirName, 'package.json'));
+
+    if (overrides?.apify) {
+        Object.assign(dependencies, overrides.apify);
+    }
 
     // We don't need to copy the following packages
     delete dependencies['@apify/storage-local'];
