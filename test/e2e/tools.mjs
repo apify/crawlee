@@ -62,6 +62,10 @@ export async function runActor(dirName, memory = 4096) {
     let datasetItems;
     let keyValueStoreItems;
 
+    const inputPath = join(dirName, '..', 'INPUT');
+    const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath) : null;
+    const contentType = input ? 'application/json' : undefined;
+
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
         await copyPackages(dirName);
         execSync('npx -y apify-cli push', { cwd: dirName });
@@ -78,7 +82,7 @@ export async function runActor(dirName, memory = 4096) {
             finishedAt: runFinishedAt,
             id: runId,
             buildId,
-        } = await client.actor(id).call(null, { memory });
+        } = await client.actor(id).call(input, { memory, contentType });
         const {
             startedAt: buildStartedAt,
             finishedAt: buildFinishedAt,
@@ -120,6 +124,10 @@ export async function runActor(dirName, memory = 4096) {
 
                 // TODO rethrow or not?
             }
+        }
+
+        if (input) {
+            await Actor.setValue('INPUT', input, { contentType });
         }
 
         await import(join(dirName, 'main.js'));

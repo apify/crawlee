@@ -131,9 +131,5 @@ if (isMainThread) {
     // We want to exit with non-zero code if any of the tests failed
     if (failure) process.exit(1);
 } else {
-    // Mimic CWD for proper INPUT loading
-    // See packages/core/src/storages/key_value_store.ts
-    process.cwd = () => join(basePath, workerData);
-
     await import(`${basePath}/${workerData}/test.mjs`);
 }
