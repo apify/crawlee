@@ -20,6 +20,7 @@
 
 import { readFile } from 'node:fs/promises';
 import ow from 'ow';
+import vm from 'vm';
 import type { Page, Response, Route } from 'playwright';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
@@ -271,6 +272,55 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
     await client.send('Network.enable');
     await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+}
+
+export interface CompiledScriptParams {
+    page: Page;
+    request: Request;
+}
+
+export type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
+
+/**
+ * Compiles a Playwright script into an async function that may be executed at any time
+ * by providing it with the following object:
+ * ```
+ * {
+ *    page: Page,
+ *    request: Request,
+ * }
+ * ```
+ * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
+ * and `request` is a {@apilink Request}.
+ *
+ * The function is compiled by using the `scriptString` parameter as the function's body,
+ * so any limitations to function bodies apply. Return value of the compiled function
+ * is the return value of the function body = the `scriptString` parameter.
+ *
+ * As a security measure, no globals such as `process` or `require` are accessible
+ * from within the function body. Note that the function does not provide a safe
+ * sandbox and even though globals are not easily accessible, malicious code may
+ * still execute in the main process via prototype manipulation. Therefore you
+ * should only use this function to execute sanitized or safe code.
+ *
+ * Custom context may also be provided using the `context` parameter. To improve security,
+ * make sure to only pass the really necessary objects to the context. Preferably making
+ * secured copies beforehand.
+ */
+export function compileScript(scriptString: string, context: Dictionary = Object.create(null)): CompiledScriptFunction {
+    const funcString = `async ({ page, request }) => {${scriptString}}`;
+
+    let func;
+    try {
+        func = vm.runInNewContext(funcString, context); // "Secure" the context by removing prototypes, unless custom context is provided.
+    } catch (err) {
+        log.exception(err as Error, 'Cannot compile script!');
+        throw err;
+    }
+
+    if (typeof func !== 'function') throw new Error('Compilation result is not a function!'); // This should not happen...
+
+    return func;
 }
 
 export interface InfiniteScrollOptions {
@@ -643,6 +693,34 @@ export interface PlaywrightContextUtils {
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
+
+    /**
+    * Compiles a Playwright script into an async function that may be executed at any time
+    * by providing it with the following object:
+    * ```
+    * {
+    *    page: Page,
+    *    request: Request,
+    * }
+    * ```
+    * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
+    * and `request` is a {@apilink Request}.
+    *
+    * The function is compiled by using the `scriptString` parameter as the function's body,
+    * so any limitations to function bodies apply. Return value of the compiled function
+    * is the return value of the function body = the `scriptString` parameter.
+    *
+    * As a security measure, no globals such as `process` or `require` are accessible
+    * from within the function body. Note that the function does not provide a safe
+    * sandbox and even though globals are not easily accessible, malicious code may
+    * still execute in the main process via prototype manipulation. Therefore you
+    * should only use this function to execute sanitized or safe code.
+    *
+    * Custom context may also be provided using the `context` parameter. To improve security,
+    * make sure to only pass the really necessary objects to the context. Preferably making
+    * secured copies beforehand.
+    */
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -657,6 +735,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
         page: context.page,
         requestQueue: context.crawler.requestQueue!,
     });
+    context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
 }
 
 export { enqueueLinksByClickingElements };
@@ -671,4 +750,5 @@ export const playwrightUtils = {
     parseWithCheerio,
     infiniteScroll,
     saveSnapshot,
+    compileScript,
 };
