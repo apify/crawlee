@@ -290,7 +290,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Save the entirety of the dataset's contents into one file within a key-value store.
      *
-     * @param key The name of the value to save the data in.
+     * @param key The name of the value to save the data in, defaults to `OUTPUT`.
      * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
      */
     async exportToValue(key?: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
