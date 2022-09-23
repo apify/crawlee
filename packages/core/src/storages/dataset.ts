@@ -206,6 +206,9 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
  *   { foo: 'bar2', col2: 'val2' },
  *   { col3: 123 },
  * ]);
+ *
+ * // Export the entirety of the dataset to one file in the key-value store
+ * await dataset.exportToValue('MY-DATA', { contentType: 'text/csv' });
  * ```
  * @category Result Stores
  */
