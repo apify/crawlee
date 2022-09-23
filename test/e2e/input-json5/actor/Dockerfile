@@ -11,5 +11,7 @@ RUN npm --quiet set progress=false \
  && node --version \
  && echo "NPM version:" \
  && npm --version
+ && echo "apify tags:" \
+ && npm dist-tag apify
 
 COPY . ./
