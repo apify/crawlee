@@ -5,6 +5,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { setTimeout } from 'node:timers/promises';
 import { execSync } from 'node:child_process';
+import { got } from 'got';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
 // eslint-disable-next-line import/no-relative-packages
@@ -75,25 +76,58 @@ export async function runActor(dirName, memory = 4096) {
         const { items: actors } = await client.actors().list();
         const { id } = actors.find((actor) => actor.name === actorName);
 
+        const gotClient = got.extend({
+            retry: {
+                limit: 0,
+            },
+            headers: {
+                'user-agent': 'crawlee e2e tests (got)',
+            },
+            timeout: {
+                request: 10000,
+            },
+        });
+
+        // Do NOT use Apify Client yet!
+        // See https://github.com/apify/apify-client-js/issues/277
+        const { data: { id: runId } } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
+            method: 'POST',
+            searchParams: {
+                token: client.token,
+                memory,
+            },
+            headers: {
+                'content-type': contentType,
+            },
+            body: input,
+            retry: {
+                limit: 0,
+            },
+        }).json();
+
         const {
             defaultKeyValueStoreId,
             defaultDatasetId,
             startedAt: runStartedAt,
             finishedAt: runFinishedAt,
-            id: runId,
+            // id: runId,
             buildId,
-        } = await client.actor(id).call(input, { memory, contentType });
+        } = await client.run(runId).waitForFinish();
+
         const {
             startedAt: buildStartedAt,
             finishedAt: buildFinishedAt,
         } = await client.build(buildId).get();
+
         const buildTook = (buildFinishedAt.getTime() - buildStartedAt.getTime()) / 1000;
         console.log(`[build] View build log: https://api.apify.com/v2/logs/${buildId} [build took ${buildTook}s]`);
+
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const { value } = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
-        stats = value;
+        const record = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
+        stats = record?.value;
+
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
 
