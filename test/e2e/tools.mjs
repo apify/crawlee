@@ -64,7 +64,7 @@ export async function runActor(dirName, memory = 4096) {
     let keyValueStoreItems;
 
     const inputPath = join(dirName, '..', 'INPUT');
-    const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath) : null;
+    const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath) : undefined;
     const contentType = input ? 'application/json' : undefined;
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
