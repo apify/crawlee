@@ -473,20 +473,35 @@ describe('dataset', () => {
             expect(chunkBySize([...triple, ...triple], (2 * size) + 3)).toEqual([`[${json},${json}]`, `[${json},${json}]`, `[${json},${json}]`]);
         });
 
-        test('exportToValue', async () => {
-            const dataset = await Dataset.open('test-123-abc-123');
+        describe('exportToValue', () => {
+            const dataToPush = [
+                {
+                    hello: 'world',
+                },
+                {
+                    foo: 'bar',
+                },
+            ];
 
-            const dataToPush = [{
-                hello: 'world',
-            }, {
-                foo: 'bar',
-            }];
+            it('Should work', async () => {
+                const dataset = await Dataset.open(Math.random().toString(36));
+                await dataset.pushData(dataToPush);
+                await dataset.exportToValue('HELLO');
 
-            await dataset.pushData(dataToPush);
-            await dataset.exportToValue('HELLO');
+                const kvData = await KeyValueStore.getValue<{ items: [] }>('HELLO');
 
-            const kvData = await KeyValueStore.getValue<{ items: [] }>('HELLO');
-            expect(kvData.items).toEqual(dataToPush);
+                expect(kvData.items).toEqual(dataToPush);
+            });
+
+            it('Should work as a static method for the default dataset', async () => {
+                await Dataset.pushData(dataToPush);
+
+                await Dataset.exportToValue('TEST-123-123');
+
+                const kvData = await KeyValueStore.getValue<{ items: [] }>('TEST-123-123');
+
+                expect(kvData.items).toEqual(dataToPush);
+            });
         });
     });
 });
