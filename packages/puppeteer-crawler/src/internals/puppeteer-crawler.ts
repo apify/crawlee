@@ -151,6 +151,10 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
                 + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
         }
 
+        if (browserPoolOptions.browserPlugins) {
+            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        }
+
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
             launchContext.launchOptions.headless = headless;

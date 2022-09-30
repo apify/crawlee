@@ -201,6 +201,10 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
                 + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
         }
 
+        if (browserPoolOptions.browserPlugins) {
+            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        }
+
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
             launchContext.launchOptions.headless = headless;
