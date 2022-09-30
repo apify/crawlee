@@ -48,7 +48,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * @param options All `enqueueLinks()` parameters are passed via an options object.
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
-    enqueueLinks(options: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
+    enqueueLinks(options: Partial<EnqueueLinksOptions>): Promise<BatchAddRequestsResult>;
 
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/docs/guides/got-scraping), allowing to override the request
