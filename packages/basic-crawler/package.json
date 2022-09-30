@@ -52,6 +52,7 @@
         "@crawlee/types": "^3.0.4",
         "@crawlee/utils": "^3.0.4",
         "got-scraping": "^3.2.9",
-        "ow": "^0.28.1"
+        "ow": "^0.28.1",
+        "type-fest": "^2.19.0"
     }
 }

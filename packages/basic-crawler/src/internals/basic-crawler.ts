@@ -2,6 +2,7 @@ import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
+import type { SetRequired } from 'type-fest';
 import type {
     AutoscaledPoolOptions,
     EnqueueLinksOptions,
@@ -37,13 +38,38 @@ import {
 } from '@crawlee/core';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type { ProcessedRequest, Dictionary, Awaitable } from '@crawlee/types';
+import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
 export interface BasicCrawlingContext<
     UserData extends Dictionary = Dictionary,
-> extends CrawlingContext<BasicCrawler, UserData> {}
+> extends CrawlingContext<BasicCrawler, UserData> {
+    /**
+     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
+     * currently used by the crawler.
+     *
+     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
+     * and override settings of the enqueued {@apilink Request} objects.
+     *
+     * Check out the [Crawl a website with relative links](https://crawlee.dev/docs/examples/crawl-relative-links) example
+     * for more details regarding its usage.
+     *
+     * **Example usage**
+     *
+     * ```ts
+     * async requestHandler({ enqueueLinks }) {
+     *     await enqueueLinks({
+     *       urls: [...],
+     *     });
+     * },
+     * ```
+     *
+     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
+     * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
+     */
+    enqueueLinks(options?: SetRequired<EnqueueLinksOptions, 'urls'>): Promise<BatchAddRequestsResult>;
+}
 
 /**
  * Since there's no set number of seconds before the container is terminated after
@@ -851,11 +877,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log: this.log,
             request,
             session,
-            enqueueLinks: async (enqueueOptions: Partial<EnqueueLinksOptions>) => {
+            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
-                    ...enqueueOptions,
+                    ...options,
                 });
             },
             sendRequest: async (overrideOptions?: OptionsInit) => {

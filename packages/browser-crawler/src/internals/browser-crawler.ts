@@ -655,7 +655,7 @@ export abstract class BrowserCrawler<
 
 /** @internal */
 interface EnqueueLinksInternalOptions {
-    options?: Partial<EnqueueLinksOptions>;
+    options?: EnqueueLinksOptions;
     page: CommonPage;
     requestQueue: RequestQueue;
     originalRequestUrl: string;

@@ -138,7 +138,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 }
 
 interface EnqueueLinksInternalOptions {
-    options?: Partial<EnqueueLinksOptions>;
+    options?: EnqueueLinksOptions;
     window: DOMWindow | null;
     requestQueue: RequestQueue;
     originalRequestUrl: string;
