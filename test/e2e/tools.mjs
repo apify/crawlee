@@ -135,6 +135,10 @@ export async function runActor(dirName, memory = 4096) {
             const { id: kvId } = await client.keyValueStores().getOrCreate('test');
             const { items: keyValueItems } = await client.keyValueStore(kvId).listKeys();
 
+            if (keyValueItems.length) {
+                console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvId}`);
+            }
+
             keyValueStoreItems = await Promise.all(keyValueItems.map(async ({ key }) => {
                 const record = await client.keyValueStore(kvId).getRecord(key, { buffer: true });
 

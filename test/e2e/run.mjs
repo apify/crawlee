@@ -81,8 +81,8 @@ async function run() {
                 return;
             }
 
-            if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' && (str.startsWith('[build]') || str.startsWith('[run]'))) {
-                const platformStatsMessage = str.match(/\[(?:run|build)] (.*)/);
+            if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' && (str.startsWith('[build]') || str.startsWith('[run]') || str.startsWith('[kv]'))) {
+                const platformStatsMessage = str.match(/\[(?:run|build|kv)] (.*)/);
                 if (platformStatsMessage) {
                     console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
                 }
