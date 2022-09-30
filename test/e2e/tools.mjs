@@ -125,17 +125,18 @@ export async function runActor(dirName, memory = 4096) {
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const record = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
-        stats = record?.value;
+        const statsRecord = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
+        stats = statsRecord?.value;
 
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
 
         try {
-            const { items: keyValueItems } = await client.keyValueStore('test').listKeys();
+            const { id: kvId } = await client.keyValueStores().getOrCreate('test');
+            const { items: keyValueItems } = await client.keyValueStore(kvId).listKeys();
 
             keyValueStoreItems = await Promise.all(keyValueItems.map(async ({ key }) => {
-                const record = await client.keyValueStore('test').getRecord(key, { buffer: true });
+                const record = await client.keyValueStore(kvId).getRecord(key, { buffer: true });
 
                 return {
                     name: record.key,
