@@ -1,5 +1,5 @@
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
-import { Dataset, checkAndSerialize, chunkBySize, Configuration } from '@crawlee/core';
+import { Dataset, checkAndSerialize, chunkBySize, Configuration, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 
 describe('dataset', () => {
@@ -471,6 +471,22 @@ describe('dataset', () => {
             // Chunks smaller items together
             expect(chunkBySize(triple, (2 * size) + 3)).toEqual([`[${json},${json}]`, chunk]);
             expect(chunkBySize([...triple, ...triple], (2 * size) + 3)).toEqual([`[${json},${json}]`, `[${json},${json}]`, `[${json},${json}]`]);
+        });
+
+        test('exportToValue', async () => {
+            const dataset = await Dataset.open('test-123-abc-123');
+
+            const dataToPush = [{
+                hello: 'world',
+            }, {
+                foo: 'bar',
+            }];
+
+            await dataset.pushData(dataToPush);
+            await dataset.exportToValue('HELLO');
+
+            const kvData = await KeyValueStore.getValue<{ items: [] }>('HELLO');
+            expect(kvData.items).toEqual(dataToPush);
         });
     });
 });

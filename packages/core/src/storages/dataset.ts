@@ -7,6 +7,8 @@ import type { Awaitable } from '../typedefs';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
+import { KeyValueStore } from './key_value_store';
+import type { RecordOptions } from './key_value_store';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -204,6 +206,9 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
  *   { foo: 'bar2', col2: 'val2' },
  *   { col3: 123 },
  * ]);
+ *
+ * // Export the entirety of the dataset to one file in the key-value store
+ * await dataset.exportToValue('MY-DATA', { contentType: 'text/csv' });
  * ```
  * @category Result Stores
  */
@@ -280,6 +285,19 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             }
             throw e;
         }
+    }
+
+    /**
+     * Save the entirety of the dataset's contents into one file within a key-value store.
+     *
+     * @param key The name of the value to save the data in, defaults to `OUTPUT`.
+     * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
+     */
+    async exportToValue(key?: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
+        const { keyValueStoreName, ...recordOptions } = options;
+        const kvStore = await KeyValueStore.open(keyValueStoreName ?? null);
+
+        await kvStore.setValue(key || 'OUTPUT', await this.client.listItems(), recordOptions);
     }
 
     /**
