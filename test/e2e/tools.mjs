@@ -175,7 +175,7 @@ export async function runActor(dirName, memory = 4096) {
         await setTimeout(50);
         stats = await getStats(dirName);
         datasetItems = await getDatasetItems(dirName);
-        keyValueStoreItems = await getKeyValueStoreItems(dirName);
+        keyValueStoreItems = await getKeyValueStoreItems(dirName, workerData);
     }
 
     return { stats, datasetItems, keyValueStoreItems };
@@ -290,10 +290,11 @@ export async function getDatasetItems(dirName) {
 /**
  * Gets all items in the key-value store, as a Buffer
  * @param {string} dirName
+ * @param {string} kvName
  */
-export async function getKeyValueStoreItems(dirName) {
+export async function getKeyValueStoreItems(dirName, kvName) {
     const dir = getStorage(dirName);
-    const storePath = join(dir, `key_value_stores/test/`);
+    const storePath = join(dir, 'key_value_stores', kvName);
 
     if (!existsSync(storePath)) {
         return [];
