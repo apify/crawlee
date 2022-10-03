@@ -178,7 +178,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 }
 
 interface EnqueueLinksInternalOptions {
-    options?: Partial<EnqueueLinksOptions>;
+    options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
     requestQueue: RequestQueue;
     originalRequestUrl: string;

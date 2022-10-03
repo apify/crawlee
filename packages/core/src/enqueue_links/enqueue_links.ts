@@ -1,6 +1,7 @@
 import { getDomain } from 'tldts';
 import ow from 'ow';
 import log from '@apify/log';
+import type { SetRequired } from 'type-fest';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
@@ -22,7 +23,7 @@ export interface EnqueueLinksOptions {
     urls?: string[];
 
     /** A request queue to which the URLs will be enqueued. */
-    requestQueue: RequestQueue;
+    requestQueue?: RequestQueue;
 
     /** A CSS selector matching links to be enqueued. */
     selector?: string;
@@ -164,7 +165,7 @@ export enum EnqueueStrategy {
  * @param options All `enqueueLinks()` parameters are passed via an options object.
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
-export async function enqueueLinks(options: EnqueueLinksOptions): Promise<BatchAddRequestsResult> {
+export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 'requestQueue' | 'urls'>): Promise<BatchAddRequestsResult> {
     ow(options, ow.object.exactShape({
         urls: ow.array.ofType(ow.string),
         requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
