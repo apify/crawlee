@@ -62,7 +62,8 @@ export function getActorTestDir(url) {
 export async function runActor(dirName, memory = 4096) {
     let stats;
     let datasetItems;
-    let keyValueStoreItems;
+    let getKeyValueStoreItems;
+    let defaultKeyValueStoreItems;
 
     const inputPath = join(dirName, '..', 'INPUT');
     const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath) : undefined;
@@ -117,6 +118,33 @@ export async function runActor(dirName, memory = 4096) {
             userId,
         } = await client.run(runId).waitForFinish();
 
+        getKeyValueStoreItems = async (name) => {
+            const kvResult = await client.keyValueStore(`${userId}/${name ?? defaultKeyValueStoreId}`).get();
+
+            if (kvResult) {
+                const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
+
+                if (keyValueItems.length) {
+                    console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvResult.id}`);
+                }
+
+                const entries = await Promise.all(keyValueItems.map(async ({ key }) => {
+                    const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
+
+                    return {
+                        name: record.key,
+                        raw: record.value,
+                    };
+                }));
+
+                const isPrivateEntry = (e) => e.name === 'SDK_CRAWLER_STATISTICS_0' || e.name === 'SDK_SESSION_POOL_STATE';
+
+                return entries.filter((e) => !isPrivateEntry(e));
+            }
+
+            return undefined;
+        };
+
         const {
             startedAt: buildStartedAt,
             finishedAt: buildFinishedAt,
@@ -134,25 +162,7 @@ export async function runActor(dirName, memory = 4096) {
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
 
-        keyValueStoreItems = [];
-        const kvResult = await client.keyValueStore(`${userId}/${workerData}`).get();
-
-        if (kvResult) {
-            const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
-
-            if (keyValueItems.length) {
-                console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvResult.id}`);
-            }
-
-            keyValueStoreItems = await Promise.all(keyValueItems.map(async ({ key }) => {
-                const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
-
-                return {
-                    name: record.key,
-                    raw: record.value,
-                };
-            }));
-        }
+        defaultKeyValueStoreItems = await getKeyValueStoreItems();
     } else {
         if (dirName.split('/').at(-2).endsWith('-ts')) {
             try {
@@ -177,10 +187,17 @@ export async function runActor(dirName, memory = 4096) {
         await setTimeout(50);
         stats = await getStats(dirName);
         datasetItems = await getDatasetItems(dirName);
-        keyValueStoreItems = await getKeyValueStoreItems(dirName, workerData);
+
+        getKeyValueStoreItems = (name) => getLocalKeyValueStoreItems(dirName, name ?? 'default');
+        defaultKeyValueStoreItems = await getKeyValueStoreItems();
     }
 
-    return { stats, datasetItems, keyValueStoreItems };
+    return {
+        stats,
+        datasetItems,
+        defaultKeyValueStoreItems,
+        getKeyValueStoreItems,
+    };
 }
 
 /**
@@ -290,16 +307,16 @@ export async function getDatasetItems(dirName) {
 }
 
 /**
- * Gets all items in the key-value store, as a Buffer
+ * Gets all items in the local key-value store
  * @param {string} dirName
  * @param {string} kvName
  */
-export async function getKeyValueStoreItems(dirName, kvName) {
+export async function getLocalKeyValueStoreItems(dirName, kvName) {
     const dir = getStorage(dirName);
     const storePath = join(dir, 'key_value_stores', kvName);
 
     if (!existsSync(storePath)) {
-        return [];
+        return undefined;
     }
 
     const dirents = await readdir(storePath, { withFileTypes: true });
@@ -312,7 +329,13 @@ export async function getKeyValueStoreItems(dirName, kvName) {
         const filePath = join(storePath, fileName.name);
         const buffer = await readFile(filePath);
 
-        keyValueStoreRecords.push({ name: fileName.name.split('.').slice(0, -1).join('.'), raw: buffer });
+        const name = fileName.name.split('.').slice(0, -1).join('.');
+
+        if (name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE') {
+            continue;
+        }
+
+        keyValueStoreRecords.push({ name, raw: buffer });
     }
 
     return keyValueStoreRecords;
