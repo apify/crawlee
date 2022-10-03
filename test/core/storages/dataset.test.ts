@@ -488,19 +488,16 @@ describe('dataset', () => {
                 await dataset.pushData(dataToPush);
                 await dataset.exportToValue('HELLO');
 
-                const kvData = await KeyValueStore.getValue<{ items: [] }>('HELLO');
-
-                expect(kvData.items).toEqual(dataToPush);
+                const kvData = await KeyValueStore.getValue('HELLO');
+                expect(kvData).toEqual(dataToPush);
             });
 
             it('Should work as a static method for the default dataset', async () => {
                 await Dataset.pushData(dataToPush);
-
                 await Dataset.exportToValue('TEST-123-123');
 
-                const kvData = await KeyValueStore.getValue<{ items: [] }>('TEST-123-123');
-
-                expect(kvData.items).toEqual(dataToPush);
+                const kvData = await KeyValueStore.getValue('TEST-123-123');
+                expect(kvData).toEqual(dataToPush);
             });
         });
     });
