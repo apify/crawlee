@@ -8,6 +8,7 @@ import { execSync } from 'node:child_process';
 import { got } from 'got';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
+import { workerData } from 'node:worker_threads';
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
@@ -131,24 +132,24 @@ export async function runActor(dirName, memory = 4096) {
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
 
-        try {
-            const { id: kvId } = await client.keyValueStores().getOrCreate('test');
-            const { items: keyValueItems } = await client.keyValueStore(kvId).listKeys();
+        keyValueStoreItems = [];
+
+        const kvResult = await client.keyValueStore(workerData).get();
+        if (kvResult) {
+            const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
 
             if (keyValueItems.length) {
-                console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvId}`);
+                console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvResult.id}`);
             }
 
             keyValueStoreItems = await Promise.all(keyValueItems.map(async ({ key }) => {
-                const record = await client.keyValueStore(kvId).getRecord(key, { buffer: true });
+                const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
 
                 return {
                     name: record.key,
                     raw: record.value,
                 };
             }));
-        } catch {
-            keyValueStoreItems = [];
         }
     } else {
         if (dirName.split('/').at(-2).endsWith('-ts')) {
