@@ -851,7 +851,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log: this.log,
             request,
             session,
-            enqueueLinks: async (enqueueOptions?: Partial<EnqueueLinksOptions>) => {
+            enqueueLinks: async (enqueueOptions: Partial<EnqueueLinksOptions>) => {
                 return enqueueLinks({
                     // specify the RQ first to allow overriding it
                     requestQueue: await this.getRequestQueue(),
