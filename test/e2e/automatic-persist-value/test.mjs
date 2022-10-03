@@ -5,8 +5,7 @@ await initialize(testActorDirname);
 
 const { keyValueStoreItems } = await runActor(testActorDirname);
 
-// TODO: reenable this at some point
-// await expect(keyValueStoreItems.length === 1, 'Key-value store automatically saved the value expected to be auto-saved');
+await expect(keyValueStoreItems.length === 1, 'Key-value store automatically saved the value expected to be auto-saved');
 
 const item = keyValueStoreItems.find((kvItem) => kvItem.name === 'crawlee');
 

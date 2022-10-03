@@ -8,7 +8,7 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const kv = await KeyValueStore.open('test');
+    const kv = await KeyValueStore.open('automatic-persist-value');
 
     const crawler = new BasicCrawler({
         async requestHandler() {
