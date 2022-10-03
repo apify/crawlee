@@ -69,11 +69,12 @@ export async function runActor(dirName, memory = 4096) {
     const contentType = input ? 'application/json' : undefined;
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
+        const client = Actor.newClient();
+
         await copyPackages(dirName);
         execSync('npx -y apify-cli push', { cwd: dirName });
 
         const actorName = await getActorName(dirName);
-        const client = Actor.newClient();
         const { items: actors } = await client.actors().list();
         const { id } = actors.find((actor) => actor.name === actorName);
 
@@ -113,6 +114,7 @@ export async function runActor(dirName, memory = 4096) {
             finishedAt: runFinishedAt,
             // id: runId,
             buildId,
+            userId,
         } = await client.run(runId).waitForFinish();
 
         const {
@@ -133,8 +135,8 @@ export async function runActor(dirName, memory = 4096) {
         datasetItems = items;
 
         keyValueStoreItems = [];
+        const kvResult = await client.keyValueStore(`${userId}/${workerData}`).get();
 
-        const kvResult = await client.keyValueStore(workerData).get();
         if (kvResult) {
             const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
 

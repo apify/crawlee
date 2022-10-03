@@ -1,7 +1,6 @@
 import { Actor, KeyValueStore } from 'apify';
 import { ApifyStorageLocal } from '@apify/storage-local';
 import { BasicCrawler } from '@crawlee/basic';
-import { workerData } from 'worker_threads';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -9,7 +8,7 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const kv = await KeyValueStore.open(workerData);
+    const kv = await KeyValueStore.open('automatic-persist-value' /* the name of this test */);
 
     const crawler = new BasicCrawler({
         async requestHandler() {
