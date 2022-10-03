@@ -71,6 +71,6 @@
         "stream-json": "^1.7.4",
         "tldts": "^5.7.80",
         "tough-cookie": "^4.0.0",
-        "type-fest": "^2.19.0"
+        "type-fest": "^3.0.0"
     }
 }
