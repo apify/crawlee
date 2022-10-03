@@ -8,9 +8,10 @@ import { execSync } from 'node:child_process';
 import { got } from 'got';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
-import { workerData } from 'node:worker_threads';
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
+
+const isPrivateEntry = (e) => e.name === 'SDK_CRAWLER_STATISTICS_0' || e.name === 'SDK_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -136,8 +137,6 @@ export async function runActor(dirName, memory = 4096) {
                         raw: record.value,
                     };
                 }));
-
-                const isPrivateEntry = (e) => e.name === 'SDK_CRAWLER_STATISTICS_0' || e.name === 'SDK_SESSION_POOL_STATE';
 
                 return entries.filter((e) => !isPrivateEntry(e));
             }
@@ -331,7 +330,7 @@ export async function getLocalKeyValueStoreItems(dirName, kvName) {
 
         const name = fileName.name.split('.').slice(0, -1).join('.');
 
-        if (name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE') {
+        if (isPrivateEntry(name)) {
             continue;
         }
 
