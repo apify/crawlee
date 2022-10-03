@@ -185,7 +185,7 @@ describe('launchPlaywright()', () => {
             });
             const plugin = launcher.createBrowserPlugin();
 
-            expect(plugin.launchOptions.executablePath).toEqual(target);
+            expect(plugin!.launchOptions.executablePath).toEqual(target);
         });
 
         test('does not use default when using chrome', () => {

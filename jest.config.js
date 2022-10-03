@@ -1,12 +1,13 @@
 module.exports = {
     testTimeout: 60e3,
     maxWorkers: 3,
-    preset: 'ts-jest',
     testEnvironment: 'node',
     collectCoverage: false,
     testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
     transform: {
-        '^.+\\.ts$': 'ts-jest',
+        '^.+\\.ts$': ['ts-jest', {
+            tsconfig: 'test/tsconfig.json',
+        }],
     },
     collectCoverageFrom: [
         '<rootDir>/packages/*/src/**/*.[jt]s',
@@ -28,9 +29,4 @@ module.exports = {
         '<rootDir>/(.*)/dist',
         '<rootDir>/package.json',
     ],
-    globals: {
-        'ts-jest': {
-            tsconfig: 'test/tsconfig.json',
-        },
-    },
 };
