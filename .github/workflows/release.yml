@@ -107,7 +107,27 @@ jobs:
       - name: Build packages
         run: npm run ci:build
 
-      - name: Setup git user
+      - name: Setup git user and npm
         run: |
           git config --global user.name "Apify Release Bot"
           git config --global user.email "noreply@apify.com"
+
+          echo "access=public" > .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
+
+      - name: Bump version to custom version
+        if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
+        run: npx lerna version ${{ github.event.inputs.custom_version}}
+
+      - name: Bump version to ${{ github.event.inputs.version }} version
+        if: ${{ github.event.inputs.version != 'custom' }}
+        run: npx lerna version ${{ github.event.inputs.version}}
+
+      - name: Publish packages
+        run: npx lerna publish from-package --contents dist --force-publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # TODO: Do we have to push a git commit for this?
