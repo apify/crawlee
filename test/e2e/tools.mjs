@@ -11,7 +11,10 @@ import { Actor } from 'apify';
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
-const isPrivateEntry = (e) => e.name === 'SDK_CRAWLER_STATISTICS_0' || e.name === 'SDK_SESSION_POOL_STATE';
+/**
+ * @param {string} name
+ */
+const isPrivateEntry = (name) => name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -119,8 +122,8 @@ export async function runActor(dirName, memory = 4096) {
             userId,
         } = await client.run(runId).waitForFinish();
 
-        getKeyValueStoreItems = async (name = defaultKeyValueStoreId) => {
-            const kvResult = await client.keyValueStore(`${userId}/${name}`).get();
+        getKeyValueStoreItems = async (name) => {
+            const kvResult = await client.keyValueStore(name ? `${userId}/${name}` : defaultKeyValueStoreId).get();
 
             if (kvResult) {
                 const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
@@ -138,7 +141,7 @@ export async function runActor(dirName, memory = 4096) {
                     };
                 }));
 
-                return entries.filter((e) => !isPrivateEntry(e));
+                return entries.filter(({ name }) => !isPrivateEntry(name));
             }
 
             return undefined;
