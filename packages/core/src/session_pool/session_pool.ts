@@ -114,6 +114,13 @@ export interface SessionPoolOptions {
  * session3.retire()
  *
  * ```
+ *
+ * **Default session allocation flow:*
+ * 1. Until the `SessionPool` reaches `maxPoolSize`, new sessions are created, provided to the user and added to the pool
+ * 2. Blocked/retired sessions stay in the pool but are never provided to the user
+ * 3. Once the pool is full (live plus blocked session count reaches `maxPoolSize`), a random session from the pool is provided.
+ * 4. If a blocked session would be picked, instead all blocked sessions are evicted from the pool and a new session is created and provided
+ *
  * @category Scaling
  */
 export class SessionPool extends EventEmitter {
