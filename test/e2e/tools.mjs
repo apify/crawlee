@@ -119,8 +119,8 @@ export async function runActor(dirName, memory = 4096) {
             userId,
         } = await client.run(runId).waitForFinish();
 
-        getKeyValueStoreItems = async (name) => {
-            const kvResult = await client.keyValueStore(`${userId}/${name ?? defaultKeyValueStoreId}`).get();
+        getKeyValueStoreItems = async (name = defaultKeyValueStoreId) => {
+            const kvResult = await client.keyValueStore(`${userId}/${name}`).get();
 
             if (kvResult) {
                 const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
@@ -187,7 +187,7 @@ export async function runActor(dirName, memory = 4096) {
         stats = await getStats(dirName);
         datasetItems = await getDatasetItems(dirName);
 
-        getKeyValueStoreItems = (name) => getLocalKeyValueStoreItems(dirName, name ?? 'default');
+        getKeyValueStoreItems = (name = 'default') => getLocalKeyValueStoreItems(dirName, name);
         defaultKeyValueStoreItems = await getKeyValueStoreItems();
     }
 
