@@ -45,7 +45,7 @@ const FeatureList = [
     },
     {
         title: 'Queue and Storage',
-        Svg: require('../../static/img/features/fingerprints.svg').default,
+        Svg: require('../../static/img/features/storage.svg').default,
         description: (
             <>
                 You can save files, screenshots and JSON results to disk with one line of code or plug an adapter
