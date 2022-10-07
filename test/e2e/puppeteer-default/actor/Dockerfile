@@ -3,7 +3,8 @@ FROM node:16 AS builder
 COPY /packages ./packages
 COPY /package*.json ./
 RUN npm --quiet set progress=false \
-    && npm install --only=prod --no-optional
+    && npm install --only=prod --no-optional \
+    && npm update
 
 FROM apify/actor-node-puppeteer-chrome:16-beta
 

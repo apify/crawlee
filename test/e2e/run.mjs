@@ -1,4 +1,4 @@
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
 import { readdir } from 'node:fs/promises';
@@ -81,8 +81,8 @@ async function run() {
                 return;
             }
 
-            if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' && (str.startsWith('[build]') || str.startsWith('[run]'))) {
-                const platformStatsMessage = str.match(/\[(?:run|build)] (.*)/);
+            if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' && (str.startsWith('[build]') || str.startsWith('[run]') || str.startsWith('[kv]'))) {
+                const platformStatsMessage = str.match(/\[(?:run|build|kv)] (.*)/);
                 if (platformStatsMessage) {
                     console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
                 }
@@ -131,9 +131,5 @@ if (isMainThread) {
     // We want to exit with non-zero code if any of the tests failed
     if (failure) process.exit(1);
 } else {
-    // Mimic CWD for proper INPUT loading
-    // See packages/core/src/storages/key_value_store.ts
-    process.cwd = () => join(basePath, workerData);
-
     await import(`${basePath}/${workerData}/test.mjs`);
 }

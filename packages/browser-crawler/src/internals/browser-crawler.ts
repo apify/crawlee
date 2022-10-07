@@ -423,7 +423,11 @@ export abstract class BrowserCrawler<
 
     protected override async _cleanupContext(crawlingContext: Context): Promise<void> {
         const { page } = crawlingContext;
-        await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+
+        // Page creation may be aborted
+        if (page) {
+            await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+        }
     }
 
     /**

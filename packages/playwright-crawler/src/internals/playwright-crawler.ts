@@ -201,6 +201,12 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
                 + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
         }
 
+        // `browserPlugins` is working when it's not overriden by `launchContext`,
+        // which for crawlers it is always overriden. Hence the error to use the other option.
+        if (browserPoolOptions.browserPlugins) {
+            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        }
+
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
             launchContext.launchOptions.headless = headless;

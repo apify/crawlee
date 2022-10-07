@@ -1,14 +1,20 @@
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { setTimeout } from 'node:timers/promises';
 import { execSync } from 'node:child_process';
+import { got } from 'got';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
+
+/**
+ * @param {string} name
+ */
+const isPrivateEntry = (name) => name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -60,53 +66,105 @@ export function getActorTestDir(url) {
 export async function runActor(dirName, memory = 4096) {
     let stats;
     let datasetItems;
-    let keyValueStoreItems;
+    let getKeyValueStoreItems;
+    let defaultKeyValueStoreItems;
+
+    const inputPath = join(dirName, '..', 'INPUT');
+    const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath) : undefined;
+    const contentType = input ? 'application/json' : undefined;
 
     if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
+        const client = Actor.newClient();
+
         await copyPackages(dirName);
         execSync('npx -y apify-cli push', { cwd: dirName });
 
         const actorName = await getActorName(dirName);
-        const client = Actor.newClient();
         const { items: actors } = await client.actors().list();
         const { id } = actors.find((actor) => actor.name === actorName);
+
+        const gotClient = got.extend({
+            retry: {
+                limit: 0,
+            },
+            headers: {
+                'user-agent': 'crawlee e2e tests (got)',
+            },
+            timeout: {
+                request: 10000,
+            },
+        });
+
+        // Do NOT use Apify Client yet!
+        // See https://github.com/apify/apify-client-js/issues/277
+        const { data: { id: runId } } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
+            method: 'POST',
+            searchParams: {
+                token: client.token,
+                memory,
+            },
+            headers: {
+                'content-type': contentType,
+            },
+            body: input,
+            retry: {
+                limit: 0,
+            },
+        }).json();
 
         const {
             defaultKeyValueStoreId,
             defaultDatasetId,
             startedAt: runStartedAt,
             finishedAt: runFinishedAt,
-            id: runId,
+            // id: runId,
             buildId,
-        } = await client.actor(id).call(null, { memory });
+            userId,
+        } = await client.run(runId).waitForFinish();
+
+        getKeyValueStoreItems = async (name) => {
+            const kvResult = await client.keyValueStore(name ? `${userId}/${name}` : defaultKeyValueStoreId).get();
+
+            if (kvResult) {
+                const { items: keyValueItems } = await client.keyValueStore(kvResult.id).listKeys();
+
+                if (keyValueItems.length) {
+                    console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvResult.id}`);
+                }
+
+                const entries = await Promise.all(keyValueItems.map(async ({ key }) => {
+                    const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
+
+                    return {
+                        name: record.key,
+                        raw: record.value,
+                    };
+                }));
+
+                return entries.filter(({ name }) => !isPrivateEntry(name));
+            }
+
+            return undefined;
+        };
+
         const {
             startedAt: buildStartedAt,
             finishedAt: buildFinishedAt,
         } = await client.build(buildId).get();
+
         const buildTook = (buildFinishedAt.getTime() - buildStartedAt.getTime()) / 1000;
         console.log(`[build] View build log: https://api.apify.com/v2/logs/${buildId} [build took ${buildTook}s]`);
+
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const { value } = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
-        stats = value;
+        const statsRecord = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
+        stats = statsRecord?.value;
+
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
 
-        try {
-            const { items: keyValueItems } = await client.keyValueStore('test').listKeys();
-
-            keyValueStoreItems = await Promise.all(keyValueItems.map(async ({ key }) => {
-                const record = await client.keyValueStore('test').getRecord(key, { buffer: true });
-
-                return {
-                    name: record.key,
-                    raw: record.value,
-                };
-            }));
-        } catch {
-            keyValueStoreItems = [];
-        }
+        defaultKeyValueStoreItems = await getKeyValueStoreItems();
     } else {
         if (dirName.split('/').at(-2).endsWith('-ts')) {
             try {
@@ -122,15 +180,26 @@ export async function runActor(dirName, memory = 4096) {
             }
         }
 
+        if (input) {
+            await Actor.setValue('INPUT', input, { contentType });
+        }
+
         await import(join(dirName, 'main.js'));
 
         await setTimeout(50);
         stats = await getStats(dirName);
         datasetItems = await getDatasetItems(dirName);
-        keyValueStoreItems = await getKeyValueStoreItems(dirName);
+
+        getKeyValueStoreItems = (name = 'default') => getLocalKeyValueStoreItems(dirName, name);
+        defaultKeyValueStoreItems = await getKeyValueStoreItems();
     }
 
-    return { stats, datasetItems, keyValueStoreItems };
+    return {
+        stats,
+        datasetItems,
+        defaultKeyValueStoreItems,
+        getKeyValueStoreItems,
+    };
 }
 
 /**
@@ -150,11 +219,15 @@ async function getActorName(dirName) {
  * @internal
  */
 async function copyPackages(dirName) {
-    const srcPackagesDir = resolve('./', 'packages');
+    const srcPackagesDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'packages');
     const destPackagesDir = join(dirName, 'packages');
     await fs.remove(destPackagesDir);
 
-    const { dependencies } = await fs.readJSON(join(dirName, 'package.json'));
+    const { dependencies, overrides } = await fs.readJSON(join(dirName, 'package.json'));
+
+    if (overrides?.apify) {
+        Object.assign(dependencies, overrides.apify);
+    }
 
     // We don't need to copy the following packages
     delete dependencies['@apify/storage-local'];
@@ -236,15 +309,16 @@ export async function getDatasetItems(dirName) {
 }
 
 /**
- * Gets all items in the key-value store, as a Buffer
+ * Gets all items in the local key-value store
  * @param {string} dirName
+ * @param {string} kvName
  */
-export async function getKeyValueStoreItems(dirName) {
+export async function getLocalKeyValueStoreItems(dirName, kvName) {
     const dir = getStorage(dirName);
-    const storePath = join(dir, `key_value_stores/test/`);
+    const storePath = join(dir, 'key_value_stores', kvName);
 
     if (!existsSync(storePath)) {
-        return [];
+        return undefined;
     }
 
     const dirents = await readdir(storePath, { withFileTypes: true });
@@ -257,7 +331,13 @@ export async function getKeyValueStoreItems(dirName) {
         const filePath = join(storePath, fileName.name);
         const buffer = await readFile(filePath);
 
-        keyValueStoreRecords.push({ name: fileName.name.split('.').slice(0, -1).join('.'), raw: buffer });
+        const name = fileName.name.split('.').slice(0, -1).join('.');
+
+        if (isPrivateEntry(name)) {
+            continue;
+        }
+
+        keyValueStoreRecords.push({ name, raw: buffer });
     }
 
     return keyValueStoreRecords;
