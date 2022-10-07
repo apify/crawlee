@@ -50,8 +50,10 @@ module.exports = {
             type: 'category',
             label: 'Examples',
             link: {
-                type: 'doc',
-                id: 'examples/examples',
+                type: 'generated-index',
+                title: 'Examples',
+                slug: '/examples',
+                keywords: ['examples'],
             },
             items: [
                 {
