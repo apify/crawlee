@@ -147,7 +147,7 @@ module.exports = {
                 },
                 {
                     type: 'doc',
-                    docId: 'examples/examples',
+                    docId: '/examples',
                     label: 'Examples',
                     position: 'left',
                 },
