@@ -1,0 +1,131 @@
+name: Release a new Crawlee version
+
+on:
+  # Manual call from UI / automations(?)
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to bump (if you choose custom, please include it under custom version)
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - "patch"
+          - "minor"
+          - "major"
+          - "custom"
+      custom_version:
+        description: The custom version to bump to (only for "custom" type)
+        required: false
+        type: string
+        default: ''
+  # Eventually this will run on new releases too
+  # release:
+  #   types:
+  #     - published
+
+jobs:
+  # Test before releasing to ensure we don't release a broken version
+  build_and_test:
+    name: Build & Test
+    if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
+    strategy:
+      fail-fast: true
+      matrix:
+        # We don't test on Windows as the tests are flaky
+        os: [ubuntu-latest]
+        node-version: [16, 18]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Cancel Workflow Action
+        uses: styfle/cancel-workflow-action@0.10.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Setup Playwright
+        uses: microsoft/playwright-github-action@v1
+
+      - name: Turbo cache
+        id: turbo-cache
+        uses: actions/cache@v3
+        with:
+          path: .turbo
+          key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ github.job }}-${{ github.ref_name }}-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run ci:build
+
+      - name: Tests
+        run: npm test
+
+  release:
+    name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
+    if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
+    needs: build_and_test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Turbo cache
+        id: turbo-cache
+        uses: actions/cache@v3
+        with:
+          path: .turbo
+          key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ github.job }}-${{ github.ref_name }}-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run ci:build
+
+      - name: Setup git user and npm
+        run: |
+          git config --global user.name "Apify Release Bot"
+          git config --global user.email "noreply@apify.com"
+
+          echo "access=public" > .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
+
+      - name: Bump version to custom version
+        if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
+        run: npx lerna version ${{ github.event.inputs.custom_version}}
+
+      - name: Bump version to ${{ github.event.inputs.version }} version
+        if: ${{ github.event.inputs.version != 'custom' }}
+        run: npx lerna version ${{ github.event.inputs.version}}
+
+      - name: Publish packages
+        run: npx lerna publish from-package --contents dist --force-publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}

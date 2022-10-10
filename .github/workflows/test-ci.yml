@@ -1,0 +1,121 @@
+name: Check
+
+on:
+    push:
+        branches: [ master, renovate/** ]
+    pull_request:
+        branches: [ master ]
+
+jobs:
+    # NPM install is done in a separate job and cached to speed up the following jobs.
+    build_and_test:
+        name: Build & Test
+        if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
+        runs-on: ${{ matrix.os }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                # tests on windows are extremely unstable
+                # os: [ ubuntu-latest, windows-2019 ]
+                os: [ ubuntu-latest ]
+                node-version: [ 16, 18 ]
+
+        steps:
+            -   name: Cancel Workflow Action
+                uses: styfle/cancel-workflow-action@0.10.1
+                with:
+                    access_token: ${{ github.token }}
+
+            -   name: Checkout repository
+                uses: actions/checkout@v3
+
+            -   name: Use Node.js ${{ matrix.node-version }}
+                uses: actions/setup-node@v3
+                with:
+                    node-version: ${{ matrix.node-version }}
+                    cache: 'npm'
+                    cache-dependency-path: 'package-lock.json'
+
+            -   uses: microsoft/playwright-github-action@v1
+
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v3
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   name: Install Dependencies
+                run: npm ci
+
+            -   name: Build
+                run: npm run ci:build
+
+            -   name: Tests
+                run: npm test
+
+    docs:
+        name: Docs build
+        if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout Source code
+                uses: actions/checkout@v3
+
+            -   name: Use Node.js 18
+                uses: actions/setup-node@v3
+                with:
+                    node-version: 18
+                    cache: 'npm'
+                    cache-dependency-path: 'package-lock.json'
+
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v3
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   name: Install Dependencies
+                run: npm ci
+
+            -   name: Build & deploy docs
+                run: |
+                    cd website
+                    npm ci
+                    npm run build
+
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@v3
+
+            -   name: Use Node.js 18
+                uses: actions/setup-node@v3
+                with:
+                    node-version: 18
+                    cache: 'npm'
+                    cache-dependency-path: 'package-lock.json'
+
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v3
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   name: Install Dependencies
+                run: npm ci
+
+            -   name: ESLint
+                run: npm run lint
