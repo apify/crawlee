@@ -247,10 +247,6 @@ module.exports = {
                             label: 'Twitter',
                             href: 'https://twitter.com/apify',
                         },
-                        {
-                            label: 'Facebook',
-                            href: 'https://www.facebook.com/apifytech',
-                        },
                     ],
                 },
                 {
