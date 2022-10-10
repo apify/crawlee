@@ -129,5 +129,3 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      # TODO: Do we have to push a git commit for this?
