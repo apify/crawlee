@@ -256,6 +256,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const dispatch = (payload: string) => this.client.pushItems(payload);
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
+        log.error(`Calling dataset from ${new Error().stack}`);
+
         // Handle singular Objects
         if (!Array.isArray(data)) {
             const payload = checkAndSerialize(data, limit);
@@ -265,8 +267,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         // Handle Arrays
         const payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
         const chunks = chunkBySize(payloads, limit);
-
-        log.error(`Calling dataset from ${new Error().stack}`);
 
         // Invoke client in series to preserve order of data
         for (const chunk of chunks) {
