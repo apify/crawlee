@@ -266,6 +266,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const payloads = data.map((item, index) => checkAndSerialize(item, limit, index));
         const chunks = chunkBySize(payloads, limit);
 
+        log.error(`Calling dataset from ${new Error().stack}`);
+
         // Invoke client in series to preserve order of data
         for (const chunk of chunks) {
             await dispatch(chunk);
