@@ -1,4 +1,4 @@
-/* eslint-disable no-console -- a cli without console logging */
+/* eslint-disable no-console */
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
