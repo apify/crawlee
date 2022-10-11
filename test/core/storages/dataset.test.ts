@@ -1,6 +1,17 @@
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import { Dataset, checkAndSerialize, chunkBySize, Configuration, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+const localStorageEmulator = new MemoryStorageEmulator();
+
+beforeEach(async () => {
+    await localStorageEmulator.init();
+});
+
+afterAll(async () => {
+    await localStorageEmulator.destroy();
+});
 
 describe('dataset', () => {
     const storageClient = Configuration.getStorageClient();
@@ -473,7 +484,7 @@ describe('dataset', () => {
             expect(chunkBySize([...triple, ...triple], (2 * size) + 3)).toEqual([`[${json},${json}]`, `[${json},${json}]`, `[${json},${json}]`]);
         });
 
-        describe('exportToValue', () => {
+        describe('exportToJSON', () => {
             const dataToPush = [
                 {
                     hello: 'world',
@@ -486,7 +497,7 @@ describe('dataset', () => {
             it('Should work', async () => {
                 const dataset = await Dataset.open(Math.random().toString(36));
                 await dataset.pushData(dataToPush);
-                await dataset.exportToValue('HELLO');
+                await dataset.exportToJSON('HELLO');
 
                 const kvData = await KeyValueStore.getValue('HELLO');
                 expect(kvData).toEqual(dataToPush);
@@ -494,10 +505,40 @@ describe('dataset', () => {
 
             it('Should work as a static method for the default dataset', async () => {
                 await Dataset.pushData(dataToPush);
-                await Dataset.exportToValue('TEST-123-123');
+                await Dataset.exportToJSON('TEST-123-123');
 
                 const kvData = await KeyValueStore.getValue('TEST-123-123');
                 expect(kvData).toEqual(dataToPush);
+            });
+        });
+
+        describe('exportToCSV', () => {
+            const dataToPush = [
+                {
+                    hello: 'world 1',
+                    foo: 'bar 1',
+                },
+                {
+                    hello: 'world 2',
+                    foo: 'bar 2',
+                },
+            ];
+
+            it('Should work', async () => {
+                const dataset = await Dataset.open(Math.random().toString(36));
+                await dataset.pushData(dataToPush);
+                await dataset.exportToCSV('HELLO-csv');
+
+                const kvData = await KeyValueStore.getValue('HELLO-csv');
+                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\n');
+            });
+
+            it('Should work as a static method for the default dataset', async () => {
+                await Dataset.pushData(dataToPush);
+                await Dataset.exportToCSV('TEST-123-123-csv');
+
+                const kvData = await KeyValueStore.getValue('TEST-123-123-csv');
+                expect(kvData).toEqual('hello,foo\nworld 1,bar 1\nworld 2,bar 2\n');
             });
         });
     });

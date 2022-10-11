@@ -1,6 +1,7 @@
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 import ow from 'ow';
-import type { DatasetClient, DatasetInfo, StorageClient, Dictionary } from '@crawlee/types';
+import { stringify } from 'csv-stringify/sync';
+import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@crawlee/types';
 import { Configuration } from '../configuration';
 import { log } from '../log';
 import type { Awaitable } from '../typedefs';
@@ -8,7 +9,6 @@ import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
 import { KeyValueStore } from './key_value_store';
-import type { RecordOptions } from './key_value_store';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -161,6 +161,11 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
     format?: string;
 }
 
+export interface ExportOptions {
+    fromDataset?: string;
+    toKVS?: string;
+}
+
 /**
  * The `Dataset` class represents a store for structured data where each object stored has the same attributes,
  * such as online store products or real estate offers. You can imagine it as a table,
@@ -208,7 +213,7 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
  * ]);
  *
  * // Export the entirety of the dataset to one file in the key-value store
- * await dataset.exportToValue('MY-DATA', { contentType: 'text/csv' });
+ * await dataset.exportToCSV('MY-DATA');
  * ```
  * @category Result Stores
  */
@@ -290,25 +295,86 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Save the entirety of the dataset's contents into one file within a key-value store.
      *
-     * @param key The name of the value to save the data in, defaults to `OUTPUT`.
-     * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
      */
-    async exportToValue(key?: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
-        const { keyValueStoreName, ...recordOptions } = options;
-        const kvStore = await KeyValueStore.open(keyValueStoreName ?? null);
-        const value = await this.client.listItems();
-        await kvStore.setValue(key ?? 'OUTPUT', value.items, recordOptions);
+    async exportTo(key: string, options?: ExportOptions, contentType?: string): Promise<void> {
+        const kvStore = await KeyValueStore.open(options?.toKVS ?? null);
+        const items: Data[] = [];
+
+        const fetchNextChunk = async (offset = 0): Promise<void> => {
+            const limit = 1000;
+            const value = await this.client.listItems({ offset, limit });
+
+            if (value.count === 0) {
+                return;
+            }
+
+            items.push(...value.items);
+
+            if (value.total > offset + value.count) {
+                return fetchNextChunk(offset + value.count);
+            }
+        };
+
+        await fetchNextChunk();
+
+        if (contentType === 'text/csv') {
+            const value = stringify([
+                Object.keys(items[0]),
+                ...items.map((item) => Object.values(item)),
+            ]);
+            return kvStore.setValue(key, value, { contentType });
+        }
+
+        if (contentType === 'application/json') {
+            return kvStore.setValue(key, items);
+        }
+
+        throw new Error(`Unsupported content type: ${contentType}`);
     }
 
     /**
-     * Save the entirety of the default dataset's contents into one file within a key-value store.
+     * Save entire default dataset's contents into one JSON file within a key-value store.
      *
-     * @param key The name of the value to save the data in, defaults to `OUTPUT`.
-     * @param options An optional options object where you can provide a `keyValueStoreName` and a `contentType` for the output.
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the target KVS name.
      */
-    static async exportToValue(key?: string, options: RecordOptions & { keyValueStoreName?: string } = {}) {
-        const dataset = await this.open();
-        await dataset.exportToValue(key, options);
+    async exportToJSON(key: string, options?: Omit<ExportOptions, 'fromDataset'>) {
+        await this.exportTo(key, options, 'application/json');
+    }
+
+    /**
+     * Save entire default dataset's contents into one CSV file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the target KVS name.
+     */
+    async exportToCSV(key: string, options?: Omit<ExportOptions, 'fromDataset'>) {
+        await this.exportTo(key, options, 'text/csv');
+    }
+
+    /**
+     * Save entire default dataset's contents into one JSON file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     */
+    static async exportToJSON(key: string, options?: ExportOptions) {
+        const dataset = await this.open(options?.fromDataset);
+        await dataset.exportToJSON(key, options);
+    }
+
+    /**
+     * Save entire default dataset's contents into one CSV file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     */
+    static async exportToCSV(key: string, options?: ExportOptions) {
+        const dataset = await this.open(options?.fromDataset);
+        await dataset.exportToCSV(key, options);
     }
 
     /**
