@@ -37,7 +37,6 @@ describe('PuppeteerCrawler', () => {
         prevEnvHeadless = process.env.CRAWLEE_HEADLESS;
         process.env.CRAWLEE_HEADLESS = '1';
         logLevel = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
 
         target = createServer((request, response) => {
             response.write(`<html><head><title>Example Domain</title></head></html>`);
@@ -68,6 +67,8 @@ describe('PuppeteerCrawler', () => {
 
     beforeEach(async () => {
         await localStorageEmulator.init();
+        log.setLevel(log.LEVELS.DEBUG);
+        global.console = require('console');
 
         const sources = [serverUrl];
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);
