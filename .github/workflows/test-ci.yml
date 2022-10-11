@@ -2,7 +2,7 @@ name: Check
 
 on:
     push:
-        branches: [ master, renovate/** ]
+        branches: [ master, renovate/**, fix/flakyTests ]
     pull_request:
         branches: [ master ]
 
@@ -57,65 +57,65 @@ jobs:
             -   name: Tests
                 run: npm test
 
-    docs:
-        name: Docs build
-        if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-        runs-on: ubuntu-latest
-        steps:
-            -   name: Checkout Source code
-                uses: actions/checkout@v3
+    # docs:
+    #     name: Docs build
+    #     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         -   name: Checkout Source code
+    #             uses: actions/checkout@v3
 
-            -   name: Use Node.js 18
-                uses: actions/setup-node@v3
-                with:
-                    node-version: 18
-                    cache: 'npm'
-                    cache-dependency-path: 'package-lock.json'
+    #         -   name: Use Node.js 18
+    #             uses: actions/setup-node@v3
+    #             with:
+    #                 node-version: 18
+    #                 cache: 'npm'
+    #                 cache-dependency-path: 'package-lock.json'
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+    #         -   name: Turbo cache
+    #             id: turbo-cache
+    #             uses: actions/cache@v3
+    #             with:
+    #                 path: .turbo
+    #                 key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+    #                 restore-keys: |
+    #                     turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: npm ci
+    #         -   name: Install Dependencies
+    #             run: npm ci
 
-            -   name: Build & deploy docs
-                run: |
-                    cd website
-                    npm ci
-                    npm run build
+    #         -   name: Build & deploy docs
+    #             run: |
+    #                 cd website
+    #                 npm ci
+    #                 npm run build
 
-    lint:
-        name: Lint
-        runs-on: ubuntu-latest
+    # lint:
+    #     name: Lint
+    #     runs-on: ubuntu-latest
 
-        steps:
-            -   name: Checkout repository
-                uses: actions/checkout@v3
+    #     steps:
+    #         -   name: Checkout repository
+    #             uses: actions/checkout@v3
 
-            -   name: Use Node.js 18
-                uses: actions/setup-node@v3
-                with:
-                    node-version: 18
-                    cache: 'npm'
-                    cache-dependency-path: 'package-lock.json'
+    #         -   name: Use Node.js 18
+    #             uses: actions/setup-node@v3
+    #             with:
+    #                 node-version: 18
+    #                 cache: 'npm'
+    #                 cache-dependency-path: 'package-lock.json'
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+    #         -   name: Turbo cache
+    #             id: turbo-cache
+    #             uses: actions/cache@v3
+    #             with:
+    #                 path: .turbo
+    #                 key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+    #                 restore-keys: |
+    #                     turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: npm ci
+    #         -   name: Install Dependencies
+    #             run: npm ci
 
-            -   name: ESLint
-                run: npm run lint
+    #         -   name: ESLint
+    #             run: npm run lint
