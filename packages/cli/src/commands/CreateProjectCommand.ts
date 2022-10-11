@@ -1,5 +1,7 @@
+/* eslint-disable no-console */
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { setTimeout } from 'node:timers/promises';
 import { execSync } from 'node:child_process';
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 import { prompt } from 'inquirer';
@@ -32,11 +34,34 @@ async function rewrite(path: string, replacer: (from: string) => string) {
     }
 }
 
+async function withRetries<F extends (...args: unknown[]) => unknown>(func: F, retries: number, label: string): Promise<Awaited<ReturnType<F>>> {
+    let attempt = 0;
+    let lastError: any;
+
+    while (attempt < retries) {
+        try {
+            return await func() as Awaited<ReturnType<F>>;
+        } catch (error: any) {
+            attempt++;
+            lastError = error;
+
+            if (attempt < retries) {
+                console.warn(`${colors.yellow(`[${label}]`)}: Attempt ${attempt + 1} of ${retries} failed, and will be retried`, error.message || error);
+            }
+
+            // Wait 2500ms + (2500 * retries) before giving up to give it some time between retries
+            await setTimeout(2500 + (2500 * attempt));
+        }
+    }
+
+    throw new Error(`${colors.red(`[${label}]`)}: All ${retries} attempts failed, and will not be retried\n\n${lastError.stack || lastError}`);
+}
+
 async function downloadTemplateFilesToDisk(template: Template, destinationDirectory: string) {
     const promises: Promise<void>[] = [];
 
     for (const file of template.files) {
-        const promise = downloadFile(file.url).then(async (buffer) => {
+        const promise = () => downloadFile(file.url).then(async (buffer) => {
             // Make sure the folder for the file exists
             const fileDirName = dirname(file.path);
             const fileFolder = resolve(destinationDirectory, fileDirName);
@@ -46,7 +71,7 @@ async function downloadTemplateFilesToDisk(template: Template, destinationDirect
             await writeFile(resolve(destinationDirectory, file.path), buffer);
         });
 
-        promises.push(promise);
+        promises.push(withRetries(promise, 3, `Template: ${template.name}, file: ${file.path}`));
     }
 
     await Promise.all(promises);
@@ -63,7 +88,14 @@ async function downloadFile(url: string) {
                 bytes.push(byte);
             }
 
-            promiseResolve(Buffer.concat(bytes));
+            const buff = Buffer.concat(bytes);
+
+            if (res.statusCode !== 200) {
+                reject(new Error(`Received ${res.statusCode} ${res.statusMessage}: ${buff.toString('utf8')}`));
+                return;
+            }
+
+            promiseResolve(buff);
         }).on('error', (err) => reject(err));
     });
 }
@@ -112,7 +144,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
             validateProjectName(projectName);
         }
 
-        const manifest = await fetchManifest();
+        const manifest = await withRetries(fetchManifest, 5, 'Template Manifest');
         const choices = manifest.templates.map((t) => ({
             value: t.name,
             name: t.description,
@@ -136,7 +168,6 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
             mkdirSync(projectDir);
         } catch (err: any) {
             if (err.code && err.code === 'EEXIST') {
-                // eslint-disable-next-line no-console
                 console.error(`Cannot create new Crawlee project, directory '${projectName}' already exists.`);
                 return;
             }
@@ -152,7 +183,6 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         const npm = /^win/.test(process.platform) ? 'npm.cmd' : 'npm';
         execSync(`${npm} install`, { cwd: projectDir, stdio: 'inherit' });
 
-        // eslint-disable-next-line no-console
         console.log(colors.green(`Project ${projectName} was created. To run it, run "cd ${projectName}" and "npm start".`));
     }
 }
