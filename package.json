@@ -89,7 +89,7 @@
         "lerna": "^5.5.4",
         "lint-staged": "^13.0.3",
         "node-gyp": "^9.1.0",
-        "playwright": "1.27.0",
+        "playwright": "1.27.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "puppeteer": "18.0.5",
