@@ -63,6 +63,7 @@
         "@crawlee/utils": "^3.0.4",
         "@types/tough-cookie": "^4.0.2",
         "@vladfrangu/async_event_emitter": "^2.0.0",
+        "csv-stringify": "^6.2.0",
         "fs-extra": "^10.1.0",
         "json5": "^2.2.1",
         "minimatch": "^5.1.0",

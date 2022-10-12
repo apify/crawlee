@@ -25,7 +25,9 @@ export abstract class EventManager {
     protected intervals: Intervals = {};
     protected log = log.child({ prefix: 'Events' });
 
-    constructor(readonly config = Configuration.getGlobalConfig()) {}
+    constructor(readonly config = Configuration.getGlobalConfig()) {
+        this.events.setMaxListeners(50);
+    }
 
     /**
      * Initializes the event manager by creating the `persistState` event interval.

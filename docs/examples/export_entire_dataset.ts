@@ -8,7 +8,7 @@ const data = [
     },
     {
         id: 456,
-        name: 'bar'
+        name: 'bar',
     },
 ];
 
@@ -17,4 +17,4 @@ await Dataset.pushData(data);
 
 // Export the entirety of the dataset to a single file in
 // a key-value store named "my-data" under the key "OUTPUT"
-await Dataset.exportToValue('OUTPUT', { contentType: 'text/csv', keyValueStoreName: 'my-data' });
+await Dataset.exportToCSV('OUTPUT', { toKVS: 'my-data' });
