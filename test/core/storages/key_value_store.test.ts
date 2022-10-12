@@ -1,7 +1,17 @@
-import { ENV_VARS } from '@apify/consts';
 import { maybeStringify, Configuration, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { PassThrough } from 'stream';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+const localStorageEmulator = new MemoryStorageEmulator();
+
+beforeEach(async () => {
+    await localStorageEmulator.init();
+});
+
+afterAll(async () => {
+    await localStorageEmulator.destroy();
+});
 
 describe('KeyValueStore', () => {
     const client = Configuration.getStorageClient();
