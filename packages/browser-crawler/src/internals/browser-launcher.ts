@@ -58,6 +58,10 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
      */
     userAgent?: string;
 
+    /**
+     * The type of browser to be launched.
+     * By default, `chromium` is used. Other browsers like `webkit` or `firefox` can be used.
+     */
     launcher?: Launcher;
 }
 
