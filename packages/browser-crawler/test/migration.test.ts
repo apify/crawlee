@@ -2,7 +2,18 @@ import type { Log } from '@apify/log';
 import log from '@apify/log';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
 import puppeteer from 'puppeteer';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { BrowserCrawler, RequestList } from '../src/index';
+
+const localStorageEmulator = new MemoryStorageEmulator();
+
+beforeEach(async () => {
+    await localStorageEmulator.init();
+});
+
+afterAll(async () => {
+    await localStorageEmulator.destroy();
+});
 
 const plugin = new PuppeteerPlugin(puppeteer);
 

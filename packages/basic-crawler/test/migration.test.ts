@@ -1,6 +1,17 @@
 import type { Log } from '@apify/log';
 import log from '@apify/log';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { BasicCrawler, RequestList } from '../src/index';
+
+const localStorageEmulator = new MemoryStorageEmulator();
+
+beforeEach(async () => {
+    await localStorageEmulator.init();
+});
+
+afterAll(async () => {
+    await localStorageEmulator.destroy();
+});
 
 describe('Moving from handleRequest* to requestHandler*', () => {
     let requestList: RequestList;
