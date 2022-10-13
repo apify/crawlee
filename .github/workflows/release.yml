@@ -1,4 +1,4 @@
-name: Release a new Crawlee version
+name: Release @latest
 
 on:
   # Manual call from UI / automations(?)
@@ -118,11 +118,11 @@ jobs:
 
       - name: Bump version to custom version
         if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-        run: npm run version ${{ github.event.inputs.custom_version}} -- --yes --no-verify-access
+        run: npm run version ${{ github.event.inputs.custom_version}} -- --yes
 
       - name: Bump version to ${{ github.event.inputs.version }} version
         if: ${{ github.event.inputs.version != 'custom' }}
-        run: npm run version ${{ github.event.inputs.version}} -- --yes --no-verify-access
+        run: npm run version ${{ github.event.inputs.version}} -- --yes
 
       - name: Publish packages
         run: npm run publish -- --yes --no-verify-access
