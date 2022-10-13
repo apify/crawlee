@@ -785,7 +785,7 @@ export class RequestQueue {
         }));
 
         await purgeDefaultStorages();
-        const manager = StorageManager.getManager(RequestQueue, options.config);
+        const manager = StorageManager.getManager(this, options.config);
 
         return manager.openStorage(queueIdOrName);
     }

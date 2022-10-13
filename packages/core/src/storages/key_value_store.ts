@@ -411,7 +411,7 @@ export class KeyValueStore {
             config: ow.optional.object.instanceOf(Configuration),
         }));
         await purgeDefaultStorages();
-        const manager = StorageManager.getManager(KeyValueStore, options.config);
+        const manager = StorageManager.getManager(this, options.config);
 
         return manager.openStorage(storeIdOrName);
     }
