@@ -47,6 +47,7 @@
         "publish:next": "lerna publish from-package --contents dist --dist-tag next --force-publish",
         "release:next": "npm run build && npm run publish:next",
         "version": "lerna version",
+        "postversion": "turbo copy --force",
         "publish": "lerna publish from-package --contents dist --force-publish",
         "lint": "eslint packages/browser-pool/tab-as-a-container packages/*/src packages/*/test test",
         "lint:fix": "eslint packages/browser-pool/tab-as-a-container packages/*/src packages/*/test test --fix"
