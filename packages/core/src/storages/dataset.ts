@@ -527,7 +527,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         }));
         options.config ??= Configuration.getGlobalConfig();
         await purgeDefaultStorages();
-        const manager = StorageManager.getManager<Dataset<Data>>(Dataset, options.config);
+        const manager = StorageManager.getManager<Dataset<Data>>(this, options.config);
 
         return manager.openStorage(datasetIdOrName, options.config.getStorageClient());
     }
