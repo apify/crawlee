@@ -125,7 +125,7 @@ jobs:
         run: npm run version ${{ github.event.inputs.version}} -- --yes --no-verify-access
 
       - name: Publish packages
-        run: npx run publish -- --yes --no-verify-access
+        run: npm run publish -- --yes --no-verify-access
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
