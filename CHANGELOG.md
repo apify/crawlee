@@ -3,11 +3,49 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# 3.1.0 (2022-10-13)
 
-**Note:** Version bump only for package crawlee
+# [3.1.0](https://github.com/apify/crawlee/compare/v3.0.4...v3.1.0) (2022-10-13)
 
 
+### Bug Fixes
+
+* add overload for `KeyValueStore.getValue` with defaultValue ([#1541](https://github.com/apify/crawlee/issues/1541)) ([e3cb509](https://github.com/apify/crawlee/commit/e3cb509cb433e72e058b08a323dc7564e858f547))
+* add retry attempts to methods in CLI ([#1588](https://github.com/apify/crawlee/issues/1588)) ([9142e59](https://github.com/apify/crawlee/commit/9142e598de68cc86d82825823c87b82a52c7b305))
+* allow `label` in `enqueueLinksByClickingElements` options ([#1525](https://github.com/apify/crawlee/issues/1525)) ([18b7c25](https://github.com/apify/crawlee/commit/18b7c25592eaaa4a9f97cacc6e7154528ce54bf6))
+* **basic-crawler:** handle `request.noRetry` after `errorHandler` ([#1542](https://github.com/apify/crawlee/issues/1542)) ([2a2040e](https://github.com/apify/crawlee/commit/2a2040e13209aff5e64ee47194940182b686b3a7))
+* build storage classes by using `this` instead of the class ([#1596](https://github.com/apify/crawlee/issues/1596)) ([2b14eb7](https://github.com/apify/crawlee/commit/2b14eb7240d10760518e047095766084a3d255e3))
+* correct some typing exports ([#1527](https://github.com/apify/crawlee/issues/1527)) ([4a136e5](https://github.com/apify/crawlee/commit/4a136e59e128f0a80ad4a1b98b87449647f23f43))
+* do not hide stack trace of (retried) Type/Syntax/ReferenceErrors ([469b4b5](https://github.com/apify/crawlee/commit/469b4b58f1c19699d05da84f5f09a95d682421f0))
+* **enqueueLinks:** ensure the enqueue strategy is respected alongside user patterns ([#1509](https://github.com/apify/crawlee/issues/1509)) ([2b0eeed](https://github.com/apify/crawlee/commit/2b0eeed3c5b0a69265f7d0567028e5707af4835b))
+* **enqueueLinks:** prevent useless request creations when filtering by user patterns ([#1510](https://github.com/apify/crawlee/issues/1510)) ([cb8fe36](https://github.com/apify/crawlee/commit/cb8fe3664db1bd4cba9c2b2185e96bceddabb333))
+* export `Cookie` from `crawlee` metapackage ([7b02ceb](https://github.com/apify/crawlee/commit/7b02cebc6920da9bd36d63802df0f7d6abec3887))
+* handle redirect cookies ([#1521](https://github.com/apify/crawlee/issues/1521)) ([2f7fc7c](https://github.com/apify/crawlee/commit/2f7fc7cc1d27553d94a915667f0e6d2af599a80c))
+* **http-crawler:** do not hang on POST without payload ([#1546](https://github.com/apify/crawlee/issues/1546)) ([8c87390](https://github.com/apify/crawlee/commit/8c87390e0db1924f463019cc55dfc265b12db2a9))
+* remove undeclared dependency on core package from puppeteer utils ([827ae60](https://github.com/apify/crawlee/commit/827ae60d6c77e8c7271408493c3750a67ef8a9b4))
+* support TypeScript 4.8 ([#1507](https://github.com/apify/crawlee/issues/1507)) ([4c3a504](https://github.com/apify/crawlee/commit/4c3a5045931a7f270bf8eda8a6417466b32fc99b))
+* wait for persist state listeners to run when event manager closes ([#1481](https://github.com/apify/crawlee/issues/1481)) ([aa550ed](https://github.com/apify/crawlee/commit/aa550edf7e016497e8e0323e18b14bf32b416155))
+
+
+### Features
+
+* add `Dataset.exportToValue` ([#1553](https://github.com/apify/crawlee/issues/1553)) ([acc6344](https://github.com/apify/crawlee/commit/acc6344f0e52854b4c4c833dbf7aede2547c111e))
+* add `Dataset.getData()` shortcut ([522ed6e](https://github.com/apify/crawlee/commit/522ed6e209aea4aa8285ddbb336f027a36cfb6bc))
+* add `utils.downloadListOfUrls` to crawlee metapackage ([7b33b0a](https://github.com/apify/crawlee/commit/7b33b0a582a75758cfca53e3ed92d6d3e392b601))
+* add `utils.parseOpenGraph()` ([#1555](https://github.com/apify/crawlee/issues/1555)) ([059f85e](https://github.com/apify/crawlee/commit/059f85ebe577888d448b196f89d0f4ec1dff371e))
+* add `utils.playwright.compileScript` ([#1559](https://github.com/apify/crawlee/issues/1559)) ([2e14162](https://github.com/apify/crawlee/commit/2e141625f27aa58e2195ab37ed2e31691b58f4c0))
+* add `utils.playwright.infiniteScroll` ([#1543](https://github.com/apify/crawlee/issues/1543)) ([60c8289](https://github.com/apify/crawlee/commit/60c8289571f3b6bce908ef7d1636b59faebdbf87)), closes [#1528](https://github.com/apify/crawlee/issues/1528)
+* add `utils.playwright.saveSnapshot` ([#1544](https://github.com/apify/crawlee/issues/1544)) ([a4ceef0](https://github.com/apify/crawlee/commit/a4ceef044f0c5afdfd964dd1163a260463a60f52))
+* add global `useState` helper ([#1551](https://github.com/apify/crawlee/issues/1551)) ([2b03177](https://github.com/apify/crawlee/commit/2b0317772a2bb0d29b73ff86719caf9db394d507))
+* add static `Dataset.exportToValue` ([#1564](https://github.com/apify/crawlee/issues/1564)) ([a7c17d4](https://github.com/apify/crawlee/commit/a7c17d434559785d66c1220d22ea79961bda2eec))
+* allow disabling storage persistence ([#1539](https://github.com/apify/crawlee/issues/1539)) ([f65e3c6](https://github.com/apify/crawlee/commit/f65e3c6a7e1efc02fac5f32046bb27da5a1c8e78))
+* bump puppeteer support to 17.x ([#1519](https://github.com/apify/crawlee/issues/1519)) ([b97a852](https://github.com/apify/crawlee/commit/b97a85282b64cfb6d48b0aa71f5cc79525a80295))
+* **core:** add `forefront` option to `enqueueLinks` helper ([f8755b6](https://github.com/apify/crawlee/commit/f8755b633212138671a76a8d5e0af17c12d46e10)), closes [#1595](https://github.com/apify/crawlee/issues/1595)
+* don't close page before calling errorHandler ([#1548](https://github.com/apify/crawlee/issues/1548)) ([1c8cd82](https://github.com/apify/crawlee/commit/1c8cd82611e93e4991b49b8ba2f1842457875680))
+* enqueue links by clicking for Playwright ([#1545](https://github.com/apify/crawlee/issues/1545)) ([3d25ade](https://github.com/apify/crawlee/commit/3d25adefa7570433a9fa636941684bc2701b8ddd))
+* error tracker ([#1467](https://github.com/apify/crawlee/issues/1467)) ([6bfe1ce](https://github.com/apify/crawlee/commit/6bfe1ce0161f1e26f97e2b8e5c02ec9ca608fe30))
+* make the CLI download directly from GitHub ([#1540](https://github.com/apify/crawlee/issues/1540)) ([3ff398a](https://github.com/apify/crawlee/commit/3ff398a2f114760d33c43b5bc0c2447e2e48a72e))
+* **router:** add userdata generic to addHandler ([#1547](https://github.com/apify/crawlee/issues/1547)) ([19cdf13](https://github.com/apify/crawlee/commit/19cdf1380abdf9aa8f337a96a4666f8f650bad69))
+* use JSON5 for `INPUT.json` to support comments ([#1538](https://github.com/apify/crawlee/issues/1538)) ([09133ff](https://github.com/apify/crawlee/commit/09133ffa744436b60fc452b4f97caf1a18ebfced))
 
 
 
