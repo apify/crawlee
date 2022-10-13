@@ -1,0 +1,157 @@
+---
+id: quick-start
+title: Quick Start
+description: With this short tutorial you can start scraping with Crawlee in a minute or two. To learn more, read the Introduction.
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import CheerioSource from '!!raw-loader!./quick_start_cheerio.ts';
+import PlaywrightSource from '!!raw-loader!./quick_start_playwright.ts';
+import PlaywrightHeadful from '!!raw-loader!./headful_playwright.ts';
+import PuppeteerSource from '!!raw-loader!./quick_start_puppeteer.ts';
+import PuppeteerHeadful from '!!raw-loader!./headful_puppeteer.ts';
+
+import CheerioLog from '!!raw-loader!./quick_start_cheerio.txt';
+
+With this short tutorial you can start scraping with Crawlee in a minute or two. To learn in-depth how Crawlee works, read the [Introduction](./introduction), which is a comprehensive step-by-step guide for creating your first scraper.
+
+## Choose your crawler
+
+Crawlee comes with three main crawler classes: <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. All classes share the same interface for maximum flexibility when switching between them.
+
+### CheerioCrawler
+This is a plain HTTP crawler. It parses HTML using the [Cheerio](https://github.com/cheeriojs/cheerio) library and crawls the web using the specialized [got-scraping](https://github.com/apify/got-scraping) HTTP client which masks as a browser. It's very fast and efficient, but can't handle JavaScript rendering.
+
+### PuppeteerCrawler
+This crawler uses a headless browser to crawl, controlled by the [Puppeteer](https://github.com/puppeteer/puppeteer) library. It can control Chromium or Chrome. Puppeteer is the de-facto standard in headless browser automation.
+
+### PlaywrightCrawler
+[Playwright](https://github.com/microsoft/playwright) is a more powerful and full-featured successor to Puppeteer. It can control Chromium, Chrome, Firefox, Webkit and many other browsers. If you're not familiar with Puppeteer already, and you need a headless browser, go with Playwright.
+
+:::caution before you start
+
+Crawlee requires [Node.js 16 or later](https://nodejs.org/en/).
+
+:::
+
+## Installation with Crawlee CLI
+
+The fastest way to try Crawlee out is to use the **Crawlee CLI** and choose the **Getting started example**.
+The CLI will install all the necessary dependencies and add boilerplate code for you to play with.
+
+```bash
+npx crawlee create my-crawler
+```
+
+After the installation is complete you can start the crawler like this:
+
+```bash
+cd my-crawler && npm start
+```
+
+## Manual installation
+
+You can add Crawlee to any Node.js project by running:
+
+<Tabs groupId="quick_start">
+<TabItem value="cheerio" label="CheerioCrawler" default>
+<CodeBlock language="bash">npm install crawlee</CodeBlock>
+</TabItem>
+<TabItem value="playwright" label="PlaywrightCrawler">
+
+:::caution
+
+`playwright` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM. 👇
+
+:::
+
+<CodeBlock language="bash">npm install crawlee playwright</CodeBlock>
+</TabItem>
+<TabItem value="puppeteer" label="PuppeteerCrawler">
+
+:::caution
+
+`puppeteer` is not bundled with Crawlee to reduce install size and allow greater flexibility. You need to explicitly install it with NPM. 👇
+
+:::
+
+<CodeBlock language="bash">npm install crawlee puppeteer</CodeBlock>
+</TabItem>
+</Tabs>
+
+## Crawling
+
+Run the following example to perform a recursive crawl of the Crawlee website using the selected crawler.
+
+<Admonition type="caution" title="Don't forget about module imports">
+    To run the example, add a <code>"type": "module"</code> clause into your <code>package.json</code> or
+    copy it into a file with an <code>.mjs</code> suffix. This enables <code>import</code> statements in Node.js.
+    See <a href="https://nodejs.org/dist/latest-v16.x/docs/api/esm.html#enabling" target="_blank" rel="noreferrer">Node.js docs</a> for
+    more information.
+</Admonition>
+
+<Tabs groupId="quick_start">
+    <TabItem value="cheerio" label="CheerioCrawler" default>
+        <CodeBlock language="js">{CheerioSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js">{PlaywrightSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js">{PuppeteerSource}</CodeBlock>
+    </TabItem>
+</Tabs>
+
+When you run the example, you will see Crawlee automating the data extraction process in your terminal.
+
+<CodeBlock language="log">{CheerioLog}</CodeBlock>
+
+
+### Running headful browsers
+
+Browsers controlled by Puppeteer and Playwright run headless (without a visible window). You can switch to headful by adding the `headless: false` option to the crawlers' constructor. This is useful in the development phase when you want to see what's going on in the browser.
+
+<Tabs groupId="quick_start">
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js">{PlaywrightHeadful}</CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js">{PuppeteerHeadful}</CodeBlock>
+    </TabItem>
+</Tabs>
+
+When you run the example code, you'll see an automated browser blaze through the Crawlee website.
+
+![Chrome Scrape](/img/chrome_scrape.gif)
+
+## Results
+
+Crawlee stores data to the `./storage` directory in your current working directory. The results of your crawl will be available under `./storage/datasets/default/*.json` as JSON files.
+
+```json title="./storage/datasets/default/000000001.json"
+{
+    "url": "https://crawlee.dev/",
+    "title": "Crawlee · The scalable web crawling, scraping and automation library for JavaScript/Node.js | Crawlee"
+}
+```
+
+:::tip
+
+You can override the storage directory by setting the `CRAWLEE_STORAGE_DIR` environment variable.
+
+:::
+
+## Examples and further reading
+You can find more examples showcasing various features of Crawlee in the [Examples](./examples) section of the documentation. To better understand Crawlee and its components you should read the [Introduction](./introduction) step-by-step guide.
+
+**Related links**
+
+- [Configuration](./guides/configuration)
+- [Request storage](./guides/request-storage)
+- [Result storage](./guides/result-storage)
