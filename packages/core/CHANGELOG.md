@@ -5,12 +5,4 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # 3.1.0 (2022-10-13)
 
-**Note:** Version bump only for package crawlee
-
-
-
-
-
-## [3.0.4](https://github.com/apify/crawlee/compare/v3.0.3...v3.0.4) (2022-08-22)
-
-**Note:** Version bump only for package crawlee
+**Note:** Version bump only for package @crawlee/core
