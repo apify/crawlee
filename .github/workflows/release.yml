@@ -119,10 +119,18 @@ jobs:
       - name: Bump version to custom version
         if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
         run: npm run version ${{ github.event.inputs.custom_version}} -- --yes
+        env:
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
+            GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Bump version to ${{ github.event.inputs.version }} version
         if: ${{ github.event.inputs.version != 'custom' }}
         run: npm run version ${{ github.event.inputs.version}} -- --yes
+        env:
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
+            GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Publish packages
         run: npm run publish -- --yes --no-verify-access
