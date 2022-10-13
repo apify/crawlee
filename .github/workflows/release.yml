@@ -69,11 +69,12 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run ci:build
-
-      - name: Tests
-        run: npm test
+# TODO uncomment once releasing works as expected
+#      - name: Build
+#        run: npm run ci:build
+#
+#      - name: Tests
+#        run: npm test
 
   release:
     name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
