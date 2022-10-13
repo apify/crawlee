@@ -117,14 +117,14 @@ jobs:
 
       - name: Bump version to custom version
         if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-        run: npx lerna version ${{ github.event.inputs.custom_version}}
+        run: npx lerna version ${{ github.event.inputs.custom_version}} -y
 
       - name: Bump version to ${{ github.event.inputs.version }} version
         if: ${{ github.event.inputs.version != 'custom' }}
-        run: npx lerna version ${{ github.event.inputs.version}}
+        run: npx lerna version ${{ github.event.inputs.version}} -y
 
       - name: Publish packages
-        run: npx lerna publish from-package --contents dist --force-publish
+        run: npx lerna publish from-package --contents dist --force-publish -y
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
