@@ -12,10 +12,10 @@ import {
     createRequestOptions,
     createRequests,
 } from './shared';
-import type { RequestQueue } from '../storages/request_queue';
+import type { RequestQueue, RequestQueueOperationOptions } from '../storages/request_queue';
 import type { RequestOptions } from '../request';
 
-export interface EnqueueLinksOptions {
+export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
     limit?: number;
 
@@ -169,6 +169,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     ow(options, ow.object.exactShape({
         urls: ow.array.ofType(ow.string),
         requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+        forefront: ow.optional.boolean,
         limit: ow.optional.number,
         selector: ow.optional.string,
         baseUrl: ow.optional.string,
@@ -202,6 +203,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         globs,
         regexps,
         transformRequestFunction,
+        forefront,
     } = options;
 
     const urlPatternObjects: UrlPatternObject[] = [];
@@ -281,7 +283,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     let requests = createFilteredRequests();
     if (limit) requests = requests.slice(0, limit);
 
-    return requestQueue.addRequests(requests);
+    return requestQueue.addRequests(requests, { forefront });
 }
 
 /**
