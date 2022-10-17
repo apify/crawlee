@@ -519,7 +519,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
 
         if (saveScreenshot) {
             const screenshotName = `${key}.jpg`;
-            const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg' });
+            const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg', animations: 'disabled' });
             await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
 
