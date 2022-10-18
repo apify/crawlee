@@ -5,31 +5,16 @@ import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawle
 import type { Dictionary } from '@crawlee/utils';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import type { Server } from 'http';
-import type { AddressInfo } from 'net';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-import { startExpressAppPromise } from '../shared/_helper';
+import { runExampleComServer } from 'test/shared/_helper';
 
-const HOSTNAME = '127.0.0.1';
 let port: number;
 let server: Server;
+let serverAddress = 'http://localhost:';
 
 beforeAll(async () => {
-    const app = express();
-
-    app.get('/getRawHeaders', (req, res) => {
-        res.send(JSON.stringify(req.rawHeaders));
-    });
-
-    app.all('/foo', (req, res) => {
-        res.json({
-            headers: req.headers,
-            method: req.method,
-            bodyLength: +req.headers['content-length'] || 0,
-        });
-    });
-
-    server = await startExpressAppPromise(app, 0);
-    port = (server.address() as AddressInfo).port; //eslint-disable-line
+    [server, port] = await runExampleComServer();
+    serverAddress += port;
 });
 
 afterAll(() => {
@@ -73,7 +58,7 @@ describe('puppeteerUtils', () => {
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable);
                 expect(result).toBe(42);
-                await page.goto('https://www.example.com');
+                await page.goto(serverAddress);
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable);
                 expect(result).toBe(42);
@@ -92,7 +77,7 @@ describe('puppeteerUtils', () => {
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable);
                 expect(result).toBe(42);
-                await page.goto('https://www.example.com');
+                await page.goto(serverAddress);
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable === 42);
                 expect(result).toBe(false);
@@ -162,7 +147,7 @@ describe('puppeteerUtils', () => {
 
             try {
                 const page = await browser.newPage();
-                await page.goto('https://www.example.com');
+                await page.goto(serverAddress);
 
                 const $ = await puppeteerUtils.parseWithCheerio(page);
 
@@ -189,12 +174,12 @@ describe('puppeteerUtils', () => {
                 await puppeteerUtils.blockRequests(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-                <img src="https://example.com/image.png">
-                <img src="https://example.com/image.gif">
-                <script src="https://example.com/script.js" defer="defer">></script>
+                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
+                <img src="${serverAddress}/image.png">
+                <img src="${serverAddress}/image.gif">
+                <script src="${serverAddress}/script.js" defer="defer">></script>
             </body></html>`, { waitUntil: 'load' });
-                expect(loadedUrls).toEqual(['https://example.com/script.js']);
+                expect(loadedUrls).toEqual([`${serverAddress}/script.js`]);
             });
 
             test('works with overridden values', async () => {
@@ -206,15 +191,15 @@ describe('puppeteerUtils', () => {
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-                <img src="https://example.com/image.png">
-                <img src="https://example.com/image.gif">
-                <script src="https://example.com/script.js" defer="defer">></script>
+                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
+                <img src="${serverAddress}/image.png">
+                <img src="${serverAddress}/image.gif">
+                <script src="${serverAddress}/script.js" defer="defer">></script>
             </body></html>`, { waitUntil: 'load' });
                 expect(loadedUrls).toEqual(expect.arrayContaining([
-                    'https://example.com/image.png',
-                    'https://example.com/script.js',
-                    'https://example.com/image.gif',
+                    `${serverAddress}/image.png`,
+                    `${serverAddress}/script.js`,
+                    `${serverAddress}/image.gif`,
                 ]));
             });
 
@@ -225,13 +210,13 @@ describe('puppeteerUtils', () => {
                 await puppeteerUtils.blockResources(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-                <img src="https://example.com/image.png" />
-                <script src="https://example.com/script.js" defer="defer">></script>
+                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
+                <img src="${serverAddress}/image.png" />
+                <script src="${serverAddress}/script.js" defer="defer">></script>
             </body></html>`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
-                    'https://example.com/script.js',
+                    `${serverAddress}/script.js`,
                 ]));
             });
 
@@ -242,14 +227,14 @@ describe('puppeteerUtils', () => {
                 await puppeteerUtils.blockResources(page, ['script']);
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-                <img src="https://example.com/image.png" />
-                <script src="https://example.com/script.js" defer="defer">></script>
+                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
+                <img src="${serverAddress}/image.png" />
+                <script src="${serverAddress}/script.js" defer="defer">></script>
             </body></html>`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
-                    'https://example.com/style.css',
-                    'https://example.com/image.png',
+                    `${serverAddress}/style.css`,
+                    `${serverAddress}/image.png`,
                 ]));
             });
         });
@@ -273,7 +258,7 @@ describe('puppeteerUtils', () => {
                     // do nothing
                     }
                 });
-                await page.goto('https://www.wikipedia.org/', { waitUntil: 'networkidle0', timeout: 60e3 });
+                await page.goto(`${serverAddress}/cacheable`, { waitUntil: 'networkidle0', timeout: 60e3 });
                 await page.close();
                 return downloadedBytes;
             };
@@ -350,7 +335,7 @@ describe('puppeteerUtils', () => {
             try {
                 const page = await browser.newPage();
                 const request = new Request({
-                    url: `http://${HOSTNAME}:${port}/foo`,
+                    url: `${serverAddress}/special/getDebug`,
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json; charset=utf-8',

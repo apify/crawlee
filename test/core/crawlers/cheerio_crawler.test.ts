@@ -1,9 +1,8 @@
 import log, { Log } from '@apify/log';
 import type { Dictionary } from '@crawlee/utils';
-import { entries, sleep } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import bodyParser from 'body-parser';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
@@ -21,130 +20,11 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import express from 'express';
-import fs from 'fs';
 import type { IncomingHttpHeaders, Server } from 'http';
 import iconv from 'iconv-lite';
-import type { AddressInfo } from 'net';
-import path from 'path';
 import { Readable } from 'stream';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-
-const HOST = '127.0.0.1';
-
-const responseSamples = {
-    json: { foo: 'bar' },
-    xml: '<?xml version="1.0" encoding="UTF-8"?>\n'
-        + '<items>\n'
-        + '<item>\n'
-        + '    <url>https://apify.com</url>\n'
-        + '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n'
-        + '</item>\n'
-        + '</items>',
-    image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
-    html: '<!doctype html>\n'
-        + '<html>\n'
-        + '<head>\n'
-        + '    <title>Example Domain</title>\n'
-        + '\n'
-        + '    <meta charset="utf-8">\n'
-        + '    <meta http-equiv="Content-type" content="text/html; charset=utf-8">\n'
-        + '    <meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        + '    <style type="text/css">\n'
-        + '    body {\n'
-        + '        background-color: #f0f0f2;\n'
-        + '        margin: 0;\n'
-        + '        padding: 0;\n'
-        + '        font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;\n'
-        + '        \n'
-        + '    }\n'
-        + '    div {\n'
-        + '        width: 600px;\n'
-        + '        margin: 5em auto;\n'
-        + '        padding: 2em;\n'
-        + '        background-color: #fdfdff;\n'
-        + '        border-radius: 0.5em;\n'
-        + '        box-shadow: 2px 3px 7px 2px rgba(0,0,0,0.02);\n'
-        + '    }\n'
-        + '    a:link, a:visited {\n'
-        + '        color: #38488f;\n'
-        + '        text-decoration: none;\n'
-        + '    }\n'
-        + '    @media (max-width: 700px) {\n'
-        + '        div {\n'
-        + '            margin: 0 auto;\n'
-        + '            width: auto;\n'
-        + '        }\n'
-        + '    }\n'
-        + '    </style>    \n'
-        + '</head>\n'
-        + '\n'
-        + '<body>\n'
-        + '<div>\n'
-        + '    <h1>Example Domain</h1>\n'
-        + '    <p>This domain is for use in illustrative examples in documents. You may use this\n'
-        + '    domain in literature without prior coordination or asking for permission.</p>\n'
-        + '    <p><a href="https://www.iana.org/domains/example">More information...</a></p>\n'
-        + '</div>\n'
-        + '</body>\n'
-        + '</html>\n',
-};
-
-const app = express();
-app.use(bodyParser.urlencoded({
-    extended: true,
-}));
-app.use(bodyParser.json());
-app.post('/mock', (req, res) => {
-    const { headers, statusCode, error = false, body } = req.body;
-
-    if (error) {
-        throw new Error(error);
-    }
-
-    entries(headers as Record<string, string>).forEach(([key, value]) => res.setHeader(key, value));
-
-    res.status(statusCode).send(body);
-});
-
-app.get('/headers', (req, res) => {
-    res.status(200).json({ headers: req.headers });
-});
-
-app.get('/invalidContentType', (_req, res) => {
-    res.send({ some: 'json' });
-});
-
-app.post('/jsonError', (_req, res) => {
-    res
-        .status(500)
-        .json({ message: 'CUSTOM_ERROR' });
-});
-
-app.get('/mirror', (_req, res) => {
-    res.send('<html><head><title>Title</title></head><body>DATA</body></html>');
-});
-
-app.get('/html-type', (_req, res) => {
-    res.type('html').send(responseSamples.html);
-});
-
-app.get('/json-type', (_req, res) => {
-    res.json(responseSamples.json);
-});
-app.get('/xml-type', (_req, res) => {
-    res.type('application/xml');
-    res.send(responseSamples.xml);
-});
-app.get('/image-type', (_req, res) => {
-    res.type('image/png');
-    res.send(responseSamples.image);
-});
-
-app.get('/timeout', async (_req, res) => {
-    await sleep(32000);
-    res.type('html').send('<div>TEST</div>');
-});
+import { runExampleComServer, responseSamples } from 'test/shared/_helper';
 
 jest.mock('got-scraping', () => {
     const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
@@ -154,11 +34,21 @@ jest.mock('got-scraping', () => {
     };
 });
 
+let server: Server;
+let port: number;
+let serverAddress = 'http://localhost:';
+
 const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
 const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
 
+beforeAll(async () => {
+    [server, port] = await runExampleComServer();
+    serverAddress += port;
+});
+
 afterAll(() => {
     jest.unmock('got-scraping');
+    server.close();
 });
 
 afterEach(() => {
@@ -169,27 +59,11 @@ afterEach(() => {
 /* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
     let logLevel: number;
-    let server: Server;
-    let port: number;
     const localStorageEmulator = new MemoryStorageEmulator();
 
     beforeAll(async () => {
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
-        server = await startExpressAppPromise(app, 0);
-        port = (server.address() as AddressInfo).port;
-
-        server.on('connect', (_request, socket) => {
-            socket.write(`HTTP/1.1 200 Connection Established\r\n\r\n`);
-
-            socket.resume();
-
-            setTimeout(() => {
-                const body = 'from proxy';
-
-                socket.end(`HTTP/1.1 200 OK\r\ncontent-type: text/html\r\ncontent-length: ${body.length}\r\n\r\n${body}`);
-            }, 100);
-        });
     });
 
     beforeEach(async () => {
@@ -202,11 +76,10 @@ describe('CheerioCrawler', () => {
 
     afterAll(async () => {
         log.setLevel(logLevel);
-        server.close();
     });
 
     test('should work', async () => {
-        const requestList = await getRequestListForMirror(port);
+        const requestList = await getRequestListForMirror();
         const processed: Request[] = [];
         const failed: Request[] = [];
         const requestHandler: CheerioRequestHandler = ({ $, body, request }) => {
@@ -239,7 +112,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should work with implicit router', async () => {
-        const requestList = await getRequestListForMirror(port);
+        const requestList = await getRequestListForMirror();
         const processed: Request[] = [];
         const failed: Request[] = [];
 
@@ -272,7 +145,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should work with explcit router', async () => {
-        const requestList = await getRequestListForMirror(port);
+        const requestList = await getRequestListForMirror();
         const processed: Request[] = [];
         const failed: Request[] = [];
 
@@ -308,7 +181,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should throw when no requestHandler nor default route provided', async () => {
-        const requestList = await getRequestListForMirror(port);
+        const requestList = await getRequestListForMirror();
 
         const cheerioCrawler = new CheerioCrawler({
             requestList,
@@ -341,9 +214,9 @@ describe('CheerioCrawler', () => {
 
     test('should work with not encoded urls', async () => {
         const sources = [
-            { url: `http://${HOST}:${port}/mirror?q=abc` },
-            { url: `http://${HOST}:${port}/mirror?q=%` },
-            { url: `http://${HOST}:${port}/mirror?q=%cf` },
+            { url: `${serverAddress}/mirror?q=abc` },
+            { url: `${serverAddress}/mirror?q=%` },
+            { url: `${serverAddress}/mirror?q=%cf` },
         ];
         const requestList = await RequestList.open(null, sources);
         const processed: Request[] = [];
@@ -369,14 +242,14 @@ describe('CheerioCrawler', () => {
         expect(processed).toHaveLength(3);
         expect(failed).toHaveLength(0);
 
-        expect(processed[0].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=abc`);
-        expect(processed[1].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%`);
-        expect(processed[2].loadedUrl).toBe(`http://${HOST}:${port}/mirror?q=%cf`);
+        expect(processed[0].loadedUrl).toBe(`${serverAddress}/mirror?q=abc`);
+        expect(processed[1].loadedUrl).toBe(`${serverAddress}/mirror?q=%`);
+        expect(processed[2].loadedUrl).toBe(`${serverAddress}/mirror?q=%cf`);
     });
 
     test('should serialize body and html', async () => {
         expect.assertions(2);
-        const sources = [`http://${HOST}:${port}/html-type`];
+        const sources = [`${serverAddress}/special/html-type`];
         const requestList = await RequestList.open(null, sources);
 
         const cheerioCrawler = new CheerioCrawler({
@@ -448,7 +321,7 @@ describe('CheerioCrawler', () => {
 
         test('after requestHandlerTimeoutSecs', async () => {
             const failed: Request[] = [];
-            const requestList = await getRequestListForMirror(port);
+            const requestList = await getRequestListForMirror();
             const requestHandler = async () => {
                 await sleep(2000);
             };
@@ -484,8 +357,8 @@ describe('CheerioCrawler', () => {
     describe('should not timeout by the default httpRequest timeoutSecs', () => {
         it('when navigationTimeoutSecs is greater than 30', async () => {
             const sources = [
-                { url: `http://${HOST}:${port}/timeout?a=12` },
-                { url: `http://${HOST}:${port}/timeout?a=23` },
+                { url: `${serverAddress}/timeout?a=12` },
+                { url: `${serverAddress}/timeout?a=23` },
             ];
             const processed: Request[] = [];
             const failed: Request[] = [];
@@ -516,7 +389,7 @@ describe('CheerioCrawler', () => {
     describe('should ensure text/html Content-Type', () => {
         test('by setting a correct Accept header', async () => {
             const headers: IncomingHttpHeaders[] = [];
-            const requestList = await getRequestListForMirror(port);
+            const requestList = await getRequestListForMirror();
             const crawler = new CheerioCrawler({
                 requestList,
                 requestHandler: ({ response }) => {
@@ -554,7 +427,7 @@ describe('CheerioCrawler', () => {
                 // Mock Request to inject invalid response headers.
 
                 crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock(port, {
+                    requestList: await getRequestListForMock({
                         headers: {
                             'content-type': 'text/plain',
                         },
@@ -582,7 +455,7 @@ describe('CheerioCrawler', () => {
             test('when statusCode >= 500 and text/html is received', async () => {
                 // sometimes if you get blocked you can get 500+ with some html inside
                 crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock(port, {
+                    requestList: await getRequestListForMock({
                         statusCode: 508,
                         headers: {
                             'content-type': 'text/html',
@@ -606,7 +479,7 @@ describe('CheerioCrawler', () => {
 
             test('when statusCode >= 500 and application/json is received', async () => {
                 crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock(port, {}, 'jsonError'),
+                    requestList: await getRequestListForMock({}, 'special/jsonError'),
                     maxRequestRetries: 1,
                     requestHandler: () => {
                         handlePageInvocationCount++;
@@ -625,7 +498,7 @@ describe('CheerioCrawler', () => {
             test('when 406 is received', async () => {
                 // Mock Request to respond with a 406.
                 crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock(port, {
+                    requestList: await getRequestListForMock({
                         headers: {
                             'content-type': 'text/plain',
                         },
@@ -654,7 +527,7 @@ describe('CheerioCrawler', () => {
         let handledRequests = 0;
         const contentTypes = ['text/html', 'application/xhtml+xml', 'text/xml', 'application/xml', 'application/json'];
         const sources: Source[] = contentTypes.map((contentType) => ({
-            url: `http://${HOST}:${port}/mock?ct=${contentType}`,
+            url: `${serverAddress}/mock?ct=${contentType}`,
             payload: JSON.stringify({ headers: { 'Content-Type': contentType }, statusCode: 200 }),
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -693,7 +566,7 @@ describe('CheerioCrawler', () => {
         };
 
         test('when response is application/json', async () => {
-            const url = `http://${HOST}:${port}/json-type`;
+            const url = `${serverAddress}/special/json-type`;
             await runCrawler(url);
             expect(handlePageInvocationParams.json).toBeInstanceOf(Object);
             expect(handlePageInvocationParams.body).toEqual(Buffer.from(JSON.stringify(responseSamples.json)));
@@ -701,7 +574,7 @@ describe('CheerioCrawler', () => {
             expect(handleFailedInvoked).toBe(false);
         });
         test('when response is application/xml', async () => {
-            const url = `http://${HOST}:${port}/xml-type`;
+            const url = `${serverAddress}/special/xml-type`;
             await runCrawler(url);
             expect(typeof handlePageInvocationParams.body).toBe('string');
             expect(handlePageInvocationParams.body).toEqual(responseSamples.xml);
@@ -709,7 +582,7 @@ describe('CheerioCrawler', () => {
             expect(handlePageInvocationParams.contentType.type).toBe('application/xml');
         });
         test('when response is image/png', async () => {
-            const url = `http://${HOST}:${port}/image-type`;
+            const url = `${serverAddress}/special/image-type`;
             await runCrawler(url);
             expect(handlePageInvocationParams.body).toBeInstanceOf(Buffer);
             expect(handlePageInvocationParams.body).toEqual(responseSamples.image);
@@ -780,12 +653,12 @@ describe('CheerioCrawler', () => {
         });
 
         test('should work with Apify Proxy configuration', async () => {
-            const proxyUrl = `http://${HOST}:${port}/`;
+            const proxyUrl = serverAddress;
             const proxyConfiguration = new ProxyConfiguration({
                 proxyUrls: [proxyUrl],
             });
 
-            const requestList = await getRequestListForMirror(port);
+            const requestList = await getRequestListForMirror();
 
             const proxies: string[] = [];
             const crawler = new CheerioCrawler({
@@ -805,7 +678,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('requestHandler should expose the proxyInfo object with sessions correctly', async () => {
-            const proxyUrls = [0, 1, 2, 3].map((n) => `http://${HOST}:${port}/proxy?x=${n}`);
+            const proxyUrls = [0, 1, 2, 3].map((n) => `${serverAddress}/proxy?x=${n}`);
             const proxyConfiguration = new ProxyConfiguration({
                 proxyUrls,
             });
@@ -817,7 +690,7 @@ describe('CheerioCrawler', () => {
                 sessions.push(session);
             };
 
-            const requestList = await getRequestListForMirror(port);
+            const requestList = await getRequestListForMirror();
 
             const crawler = new CheerioCrawler({
                 requestList,
@@ -840,14 +713,14 @@ describe('CheerioCrawler', () => {
     });
 
     describe('SessionPool', () => {
-        const sources = ['http://example.com/'];
         let requestList: RequestList;
 
         beforeEach(async () => {
-            requestList = await RequestList.open(null, sources.slice());
+            requestList = await RequestList.open(null, [serverAddress]);
         });
 
         test('should work', async () => {
+            expect.assertions(1);
             const crawler = new CheerioCrawler({
                 requestList,
                 useSessionPool: true,
@@ -857,7 +730,6 @@ describe('CheerioCrawler', () => {
                 },
             });
             await crawler.run();
-            expect.assertions(1);
         });
 
         test('should correctly set session pool options', async () => {
@@ -883,8 +755,8 @@ describe('CheerioCrawler', () => {
             // log.setLevel(log.LEVELS.OFF);
             const cheerioCrawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [
-                    `http://${HOST}:${port}/timeout?a=12`,
-                    `http://${HOST}:${port}/timeout?a=23`,
+                    `${serverAddress}/special/timeout?a=12`,
+                    `${serverAddress}/special/timeout?a=23`,
                 ]),
                 maxRequestRetries: 1,
                 navigationTimeoutSecs: 1,
@@ -922,7 +794,7 @@ describe('CheerioCrawler', () => {
                 const failed: Request[] = [];
                 const sessions: Session[] = [];
                 const crawler = new CheerioCrawler({
-                    requestList: await getRequestListForMock(port, {
+                    requestList: await getRequestListForMock({
                         statusCode: code,
                         error: false,
                         headers: { 'Content-type': 'text/html' },
@@ -960,7 +832,7 @@ describe('CheerioCrawler', () => {
             try {
                 // eslint-disable-next-line no-new
                 new CheerioCrawler({
-                    requestList: await getRequestListForMock(port, {}),
+                    requestList: await getRequestListForMock({}),
                     useSessionPool: false,
                     persistCookiesPerSession: true,
                     maxRequestRetries: 0,
@@ -976,7 +848,7 @@ describe('CheerioCrawler', () => {
             const cookie = 'SESSID=abcd123';
             const requests: Request[] = [];
             const crawler = new CheerioCrawler({
-                requestList: await getRequestListForMock(port, {
+                requestList: await getRequestListForMock({
                     headers: { 'set-cookie': cookie, 'content-type': 'text/html' },
                     statusCode: 200,
                 }),
@@ -1007,7 +879,7 @@ describe('CheerioCrawler', () => {
             const gotOptions: OptionsInit[] = [];
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [{
-                    url: `http://${HOST}:${port}/headers`,
+                    url: `${serverAddress}/special/headers`,
                     headers: { cookie: 'foo=bar2; baz=123' },
                 }]),
                 useSessionPool: true,
@@ -1044,7 +916,7 @@ describe('CheerioCrawler', () => {
             const responses: unknown[] = [];
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [{
-                    url: `http://${HOST}:${port}/headers`,
+                    url: `${serverAddress}/special/headers`,
                     headers: { cookie: 'foo=bar2; baz=123' },
                 }]),
                 useSessionPool: true,
@@ -1074,7 +946,7 @@ describe('CheerioCrawler', () => {
             const responses: unknown[] = [];
             const crawler = new CheerioCrawler({
                 requestList: await RequestList.open(null, [{
-                    url: `http://${HOST}:${port}/headers`,
+                    url: `${serverAddress}/special/headers`,
                 }]),
                 useSessionPool: true,
                 requestHandler: async ({ json, request }) => {
@@ -1162,13 +1034,12 @@ describe('CheerioCrawler', () => {
     });
 
     describe('Crawling context', () => {
-        const sources = ['http://example.com/'];
         let requestList: RequestList;
         let actualLogLevel: number;
         beforeEach(async () => {
             actualLogLevel = log.getLevel();
             log.setLevel(log.LEVELS.OFF);
-            requestList = await RequestList.open(null, sources.slice());
+            requestList = await RequestList.open(null, [serverAddress]);
         });
 
         afterAll(() => {
@@ -1320,10 +1191,10 @@ describe('CheerioCrawler', () => {
     });
 });
 
-async function getRequestListForMock(port: number, mockData: Dictionary, pathName = 'mock') {
+async function getRequestListForMock(mockData: Dictionary, pathName = 'special/mock') {
     const sources: Source[] = [1, 2, 3, 4].map((num) => {
         return {
-            url: `http://${HOST}:${port}/${pathName}?a=${num}`,
+            url: `${serverAddress}/${pathName}?a=${num}`,
             payload: JSON.stringify(mockData),
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1333,19 +1204,13 @@ async function getRequestListForMock(port: number, mockData: Dictionary, pathNam
     return requestList;
 }
 
-async function getRequestListForMirror(port: number) {
+async function getRequestListForMirror() {
     const sources = [
-        { url: `http://${HOST}:${port}/mirror?a=12` },
-        { url: `http://${HOST}:${port}/mirror?a=23` },
-        { url: `http://${HOST}:${port}/mirror?a=33` },
-        { url: `http://${HOST}:${port}/mirror?a=43` },
+        { url: `${serverAddress}/special/mirror?a=12` },
+        { url: `${serverAddress}/special/mirror?a=23` },
+        { url: `${serverAddress}/special/mirror?a=33` },
+        { url: `${serverAddress}/special/mirror?a=43` },
     ];
     const requestList = await RequestList.open(null, sources);
     return requestList;
-}
-
-async function startExpressAppPromise(expressApp: express.Application, port: number) {
-    return new Promise<Server>((resolve) => {
-        const server = expressApp.listen(port, () => resolve(server));
-    });
 }

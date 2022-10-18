@@ -13,6 +13,7 @@ import { BrowserLauncher, Configuration, launchPlaywright, PlaywrightLauncher } 
 
 import type { AddressInfo } from 'net';
 import type { Browser, BrowserType } from 'playwright';
+import { runExampleComServer } from 'test/shared/_helper';
 
 let prevEnvHeadless: boolean;
 let proxyServer: Server;
@@ -20,11 +21,18 @@ let proxyPort: number;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
 let wasProxyCalled = false;
 
+let port: number;
+let server: Server;
+let serverAddress = 'http://localhost:';
+
 // Setup local proxy server for the tests
-beforeAll(() => {
+beforeAll(async () => {
     const config = Configuration.getGlobalConfig();
     prevEnvHeadless = config.get('headless');
     config.set('headless', true);
+
+    [server, port] = await runExampleComServer();
+    serverAddress += port;
 
     // Find free port for the proxy
     return portastic.find({ min: 50000, max: 50099 }).then((ports: number[]) => {
@@ -61,6 +69,7 @@ beforeAll(() => {
 afterAll(async () => {
     Configuration.getGlobalConfig().set('headless', prevEnvHeadless);
 
+    server.close();
     if (proxyServer) await util.promisify(proxyServer.close).bind(proxyServer)();
 }, 5000);
 
@@ -98,11 +107,11 @@ describe('launchPlaywright()', () => {
         await Promise.all(closePromises);
     });
 
-    test('opens https://www.example.com', async () => {
+    test('opens a webpage', async () => {
         const browser = await launchPlaywright();
         const page = await browser.newPage();
 
-        await page.goto('https://www.example.com');
+        await page.goto(serverAddress);
         const html = await page.content();
         expect(html).toMatch('<h1>Example Domain</h1>');
         await browser.close();
@@ -130,10 +139,10 @@ describe('launchPlaywright()', () => {
             Configuration.getGlobalConfig().set('headless', true);
         });
 
-        test('opens https://www.example.com via proxy with authentication', async () => {
+        test('opens a webpage via proxy with authentication', async () => {
             const page = await browser.newPage();
 
-            await page.goto('https://example.com');
+            await page.goto(serverAddress);
             expect(wasProxyCalled).toBe(true);
 
             const html = await page.content();
@@ -155,7 +164,7 @@ describe('launchPlaywright()', () => {
 
             // Add a test to go to an actual domain because we've seen issues
             // where pages would not load at all with Chrome.
-            await page.goto('https://example.com');
+            await page.goto(serverAddress);
             const title = await page.title();
             const version = await browser.version();
 
@@ -221,7 +230,7 @@ describe('launchPlaywright()', () => {
                 browser = await launchPlaywright();
                 const page = await browser.newPage();
 
-                await page.goto('https://example.com');
+                await page.goto(serverAddress);
                 const title = await page.title();
 
                 expect(title).toBe('Example Domain');

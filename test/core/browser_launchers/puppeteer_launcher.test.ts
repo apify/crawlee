@@ -9,13 +9,12 @@ import util from 'util';
 import portastic from 'portastic';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
-import { ENV_VARS } from '@apify/consts';
 import express from 'express';
 import { BrowserLauncher, launchPuppeteer } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
 import type { AddressInfo } from 'net';
 import type { Browser, Page } from 'puppeteer';
-import { startExpressAppPromise } from '../../shared/_helper';
+import { runExampleComServer, startExpressAppPromise } from '../../shared/_helper';
 
 let prevEnvHeadless: string;
 let proxyServer: Server;
@@ -23,31 +22,12 @@ let proxyPort: number;
 const proxyAuth = { scheme: 'Basic', username: 'username', password: 'password' };
 let wasProxyCalled = false;
 
-const HOSTNAME = '127.0.0.1';
+let serverAddress = 'http://localhost:';
 let port: number;
 let server: Server;
 beforeAll(async () => {
-    const app = express();
-
-    app.get('/getRawHeaders', (req, res) => {
-        res.send(JSON.stringify(req.rawHeaders));
-    });
-
-    app.get('/example', (req, res) => {
-        res.send(`<html><head><title>Example Domain</title></head></html>`);
-        res.status(200);
-    });
-
-    app.all('/foo', (req, res) => {
-        res.json({
-            headers: req.headers,
-            method: req.method,
-            bodyLength: +req.headers['content-length'] || 0,
-        });
-    });
-
-    server = await startExpressAppPromise(app, 0);
-    port = (server.address() as AddressInfo).port;
+    [server, port] = await runExampleComServer();
+    serverAddress += port;
 });
 
 afterAll(() => {
@@ -136,7 +116,7 @@ describe('launchPuppeteer()', () => {
         await Promise.all(closePromises);
     });
 
-    test('opens https://www.example.com', () => {
+    test('opens a webpage', () => {
         let browser: Browser;
         let page: Page;
 
@@ -149,14 +129,14 @@ describe('launchPuppeteer()', () => {
             .then((openedPage) => {
                 page = openedPage;
 
-                return page.goto('https://www.example.com');
+                return page.goto(serverAddress);
             })
             .then(() => page.content())
             .then((html) => expect(html).toMatch('<h1>Example Domain</h1>'))
             .then(() => browser.close());
     });
 
-    test.skip('opens https://www.example.com via proxy with authentication', () => {
+    test.skip('opens a webpage via proxy with authentication', () => {
         let browser: Browser;
         let page: Page;
 
@@ -175,7 +155,7 @@ describe('launchPuppeteer()', () => {
             .then((openedPage) => {
                 page = openedPage;
 
-                return page.goto('https://example.com');
+                return page.goto(serverAddress);
             })
             .then(() => {
                 expect(wasProxyCalled).toBe(true);
@@ -205,7 +185,7 @@ describe('launchPuppeteer()', () => {
             })
             .then((result) => {
                 page = result;
-                return page.goto(`http://${HOSTNAME}:${port}/foo`);
+                return page.goto(`${serverAddress}/special/getDebug`);
             })
             .then(() => {
                 return page.content();
@@ -233,7 +213,7 @@ describe('launchPuppeteer()', () => {
 
             // Add a test to go to an actual domain because we've seen issues
             // where pages would not load at all with Chrome.
-            await page.goto(`http://${HOSTNAME}:${port}/example`);
+            await page.goto(`${serverAddress}/example`);
             const title = await page.title();
             const version = await browser.version();
 
