@@ -120,7 +120,7 @@ const runPluginTest = <
             browserController.activate();
 
             const page = await browserController.newPage();
-            await browserController.setCookies(page as never, [{ name: 'TEST', value: 'TESTER-COOKIE', url: serverAddress}]);
+            await browserController.setCookies(page as never, [{ name: 'TEST', value: 'TESTER-COOKIE', url: serverAddress }]);
             await page.goto(serverAddress, { waitUntil: 'domcontentloaded' });
 
             const cookies = await browserController.getCookies(page as never);
