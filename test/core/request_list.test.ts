@@ -213,7 +213,7 @@ describe('RequestList', () => {
         ];
         const correctUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
 
-        gotScrapingSpy.mockResolvedValueOnce({ body: JSON.stringify(list) } as any);
+        gotScrapingSpy.mockResolvedValue({ body: JSON.stringify(list) } as any);
 
         const requestList = await RequestList.open({
             sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),

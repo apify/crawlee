@@ -4,44 +4,30 @@ import express from 'express';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 import type { HTTPRequest } from 'puppeteer';
-import { startExpressAppPromise } from '../shared/_helper';
+import { runExampleComServer } from '../shared/_helper';
 
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = utils.puppeteer;
 
 // Simple page with image, script and stylesheet links.
-const HTML_PAGE = `<html><body>
-    <link rel="stylesheet" type="text/css" href="https://example.com/style.css">
-    <img src="https://example.com/image.png" />
-    <script src="https://example.com/script.js" defer="defer">></script>
-</body></html>`;
+let HTML_PAGE = '';
 
-const HOSTNAME = '127.0.0.1';
+let serverAddress = 'http://localhost:';
 let port: number;
 let server: Server;
 
 beforeAll(async () => {
-    const app = express();
-
-    app.get('/getRawHeaders', (req, res) => {
-        res.send(JSON.stringify(req.rawHeaders));
-    });
-
-    app.all('/foo', (req, res) => {
-        res.json({
-            headers: req.headers,
-            method: req.method,
-            bodyLength: +req.headers['content-length'] || 0,
-        });
-    });
-
-    server = await startExpressAppPromise(app, 0);
-    port = (server.address() as AddressInfo).port; //eslint-disable-line
+    [server, port] = await runExampleComServer();
+    serverAddress += port;
+    HTML_PAGE = `<html><body>
+    <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
+    <img src="${serverAddress}/image.png" />
+    <script src="${serverAddress}/script.js" defer="defer">></script>
+</body></html>`;
 });
 
 afterAll(() => {
     server.close();
 });
-
 describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandler()', () => {
     test('should allow multiple handlers', async () => {
         const browser = await launchPuppeteer({ launchOptions: { headless: true } });
@@ -79,13 +65,13 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
         }
 
         expect(allUrls).toEqual(expect.arrayContaining([
-            'https://example.com/script.js',
-            'https://example.com/style.css',
-            'https://example.com/image.png',
+            `${serverAddress}/script.js`,
+            `${serverAddress}/style.css`,
+            `${serverAddress}/image.png`,
         ]));
 
         expect(loadedUrls).toEqual(expect.arrayContaining([
-            'https://example.com/style.css',
+            `${serverAddress}/style.css`,
         ]));
     });
 
@@ -123,7 +109,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
         }
 
         expect(propagatedUrls).toEqual(expect.arrayContaining([
-            'https://example.com/style.css',
+            `${serverAddress}/style.css`,
         ]));
     });
 
@@ -154,7 +140,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             });
 
             // Check response that it's correct.
-            const response = await page.goto(`http://${HOSTNAME}:${port}/foo`, { waitUntil: 'networkidle0' });
+            const response = await page.goto(`${serverAddress}/special/getDebug`, { waitUntil: 'networkidle0' });
             const { method, headers, bodyLength } = JSON.parse(await response.text());
             expect(method).toBe('POST');
             expect(bodyLength).toBe(16);
@@ -178,7 +164,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             });
 
             // Check response that it's correct.
-            const response = await page.goto(`http://${HOSTNAME}:${port}/foo`, { waitUntil: 'networkidle0' });
+            const response = await page.goto(`${serverAddress}/special/getDebug`, { waitUntil: 'networkidle0' });
             const { method } = JSON.parse(await response.text());
             expect(method).toBe('POST');
         } finally {
@@ -204,7 +190,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                     return request.continue({ headers });
                 });
 
-                const response = await page.goto(`http://${HOSTNAME}:${port}/getRawHeaders`);
+                const response = await page.goto(`${serverAddress}/special/getRawHeaders`);
                 const rawHeadersArr = JSON.parse(await response.text()) as string[];
 
                 const acceptIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Accept');
@@ -257,15 +243,15 @@ describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
             await page.setContent('<html><body></body></html>');
             await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
             expect(loadedUrls).toEqual(expect.arrayContaining([
-                'https://example.com/style.css',
+                `${serverAddress}/style.css`,
             ]));
 
             // Try it once again.
             await page.setContent('<html><body></body></html>');
             await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
             expect(loadedUrls).toEqual(expect.arrayContaining([
-                'https://example.com/style.css',
-                'https://example.com/style.css',
+                `${serverAddress}/style.css`,
+                `${serverAddress}/style.css`,
             ]));
 
             // Enable images.
@@ -275,10 +261,10 @@ describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
             await page.setContent('<html><body></body></html>');
             await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
             expect(loadedUrls).toEqual(expect.arrayContaining([
-                'https://example.com/style.css',
-                'https://example.com/style.css',
-                'https://example.com/style.css',
-                'https://example.com/image.png',
+                `${serverAddress}/style.css`,
+                `${serverAddress}/style.css`,
+                `${serverAddress}/style.css`,
+                `${serverAddress}/image.png`,
             ]));
         } finally {
             await browser.close();

@@ -4,7 +4,6 @@ import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
 import log from '@apify/log';
 import type {
-    BrowserCrawler,
     PuppeteerCrawlingContext,
     PuppeteerGoToOptions,
     PuppeteerRequestHandler,
@@ -19,6 +18,8 @@ import {
 import { gotScraping } from 'got-scraping';
 import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { runExampleComServer } from 'test/shared/_helper';
+import type { Server } from 'http';
 import { BrowserCrawlerTest } from './basic_browser_crawler';
 
 jest.mock('got-scraping', () => {
@@ -41,11 +42,18 @@ describe('BrowserCrawler', () => {
     const localStorageEmulator = new MemoryStorageEmulator();
     let puppeteerPlugin: PuppeteerPlugin;
 
+    let serverAddress = 'http://localhost:';
+    let port: number;
+    let server: Server;
+
     beforeAll(async () => {
         prevEnvHeadless = process.env.CRAWLEE_HEADLESS;
         process.env.CRAWLEE_HEADLESS = '1';
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
+
+        [server, port] = await runExampleComServer();
+        serverAddress += port;
     });
 
     beforeEach(async () => {
@@ -59,21 +67,19 @@ describe('BrowserCrawler', () => {
 
     afterAll(async () => {
         await localStorageEmulator.destroy();
-    });
-
-    afterAll(async () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
+        server.close();
     });
 
     test('should work', async () => {
         const sources = [
-            { url: 'http://example.com/?q=1' },
-            { url: 'http://example.com/?q=2' },
-            { url: 'http://example.com/?q=3' },
-            { url: 'http://example.com/?q=4' },
-            { url: 'http://example.com/?q=5' },
-            { url: 'http://example.com/?q=6' },
+            { url: `${serverAddress}/?q=1` },
+            { url: `${serverAddress}/?q=2` },
+            { url: `${serverAddress}/?q=3` },
+            { url: `${serverAddress}/?q=4` },
+            { url: `${serverAddress}/?q=5` },
+            { url: `${serverAddress}/?q=6` },
         ];
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
         const processed: Request[] = [];
@@ -197,7 +203,7 @@ describe('BrowserCrawler', () => {
     test('should evaluate postNavigationHooks', async () => {
         const requestList = await RequestList.open({
             sources: [
-                { url: 'http://example.com/?q=1' },
+                { url: `${serverAddress}/?q=1` },
             ],
         });
         let isEvaluated = false;
@@ -228,7 +234,7 @@ describe('BrowserCrawler', () => {
     test('errorHandler has open page', async () => {
         const requestList = await RequestList.open({
             sources: [
-                { url: 'http://example.com/?q=1' },
+                { url: `${serverAddress}/?q=1` },
             ],
         });
 
@@ -251,13 +257,13 @@ describe('BrowserCrawler', () => {
         await browserCrawler.run();
 
         expect(result.length).toBe(1);
-        expect(result[0]).toBe('http://example.com');
+        expect(result[0]).toBe(serverAddress);
     });
 
     test('should allow modifying gotoOptions by pre navigation hooks', async () => {
         const requestList = await RequestList.open({
             sources: [
-                { url: 'http://example.com/?q=1' },
+                { url: `${serverAddress}/?q=1` },
             ],
         });
         let optionsGoto: PuppeteerGoToOptions;
@@ -290,7 +296,7 @@ describe('BrowserCrawler', () => {
         for (let i = 0; i < 2; i++) {
             const requestList = await RequestList.open({
                 sources: [
-                    { url: 'http://example.com/?q=1' },
+                    { url: `${serverAddress}/?q=1` },
                 ],
             });
             let failedCalled = false;
@@ -544,7 +550,7 @@ describe('BrowserCrawler', () => {
     test('should allow using fingerprints from browser pool', async () => {
         const requestList = await RequestList.open({
             sources: [
-                { url: 'http://example.com/?q=1' },
+                { url: `${serverAddress}/?q=1` },
             ],
         });
         const browserCrawler = new BrowserCrawlerTest({

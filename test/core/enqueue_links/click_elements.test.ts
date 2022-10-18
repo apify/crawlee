@@ -11,6 +11,9 @@ import {
 import type { Browser as PPBrowser, Target } from 'puppeteer';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 
+import { runExampleComServer } from 'test/shared/_helper';
+import type { Server } from 'http';
+
 function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowser {
     return (browser as PPBrowser).targets !== undefined;
 }
@@ -42,14 +45,21 @@ testCases.forEach(({
 }) => {
     describe(`${caseName}: enqueueLinksByClickingElements()`, () => {
         let browser: PPBrowser | PWBrowser;
+        let server: Server;
+
+        let serverAddress = 'http://localhost:';
+        let serverPort: number;
         let page: any;
 
         beforeAll(async () => {
+            [server, serverPort] = await runExampleComServer();
+            serverAddress += serverPort;
             browser = await launchBrowser({ launchOptions: { headless: true } });
         });
 
         afterAll(async () => {
             await browser.close();
+            await server.close();
         });
 
         beforeEach(async () => {
@@ -67,7 +77,7 @@ testCases.forEach(({
             const html = `
 <html>
     <body>
-        <a href="https://example.com">link</div>
+        <a href="${serverAddress}">link</div>
     </body>
 </html>
             `;
@@ -85,7 +95,7 @@ testCases.forEach(({
                 maxWaitForPageIdleSecs: 0.250,
             });
             expect(addedRequests).toHaveLength(1);
-            expect(addedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
+            expect(addedRequests[0].url).toMatch(`${serverAddress}/`);
             expect(addedRequests[0].uniqueKey).toBe('key');
             expect(page.url()).toBe('about:blank');
         });
@@ -306,7 +316,7 @@ testCases.forEach(({
                 const html = `
 <html>
     <body>
-        <a href="https://example.com">link</div>
+        <a href="${serverAddress}">link</div>
     </body>
 </html>
             `;
@@ -315,7 +325,7 @@ testCases.forEach(({
                     selector: 'a',
                 }));
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
+                expect(interceptedRequests[0].url).toMatch(`${serverAddress}/`);
                 expect(page.url()).toBe('about:blank');
             });
 
@@ -323,15 +333,15 @@ testCases.forEach(({
                 const html = `
 <html>
     <body>
-        <div onclick="return window.location = 'https://example.com'">div</div>
+        <div onclick="return window.location = '${serverAddress}'">div</div>
     </body>
 </html>
             `;
-                await page.goto('https://example.com');
+                await page.goto(serverAddress);
                 await page.setContent(html);
                 const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts());
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
+                expect(interceptedRequests[0].url).toMatch(`${serverAddress}/`);
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.location = ');
             });
@@ -344,11 +354,11 @@ testCases.forEach(({
     </body>
 </html>
                 `;
-                await page.goto('https://example.com');
+                await page.goto(serverAddress);
                 await page.setContent(html);
                 const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts());
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toBe('https://example.com/#foo');
+                expect(interceptedRequests[0].url).toBe(`${serverAddress}/#foo`);
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.location = ');
             });
@@ -361,11 +371,11 @@ testCases.forEach(({
     </body>
 </html>
             `;
-                await page.goto('https://example.com');
+                await page.goto(serverAddress);
                 await page.setContent(html);
                 const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts());
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
+                expect(interceptedRequests[0].url).toMatch(`${serverAddress}/`);
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.location.reload()');
             });
@@ -378,11 +388,11 @@ testCases.forEach(({
     </body>
 </html>
             `;
-                await page.goto('https://example.com');
+                await page.goto(serverAddress);
                 await page.setContent(html);
                 const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts());
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toMatch(/https:\/\/example\.com\/?$/);
+                expect(interceptedRequests[0].url).toMatch(`${serverAddress}/`);
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.location.reload(true)');
             });
@@ -405,7 +415,7 @@ testCases.forEach(({
     </body>
 </html>
             `;
-                await page.goto('https://example.com');
+                await page.goto(serverAddress);
                 await page.setContent(html);
                 const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts());
                 expect(interceptedRequests).toHaveLength(0);
@@ -421,11 +431,11 @@ testCases.forEach(({
     </body>
 </html>
             `;
-                await page.goto('https://example.com/bar/');
+                await page.goto(`${serverAddress}/bar/`);
                 await page.setContent(html);
                 const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts());
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toBe('https://example.com/bar/foo');
+                expect(interceptedRequests[0].url).toBe(`${serverAddress}/bar/foo`);
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.history.pushState');
             });
@@ -434,7 +444,7 @@ testCases.forEach(({
                 const html = `
 <html>
     <body>
-        <div onclick="return window.open('https://example.com');">div</div>
+        <div onclick="return window.open('${serverAddress}');">div</div>
     </body>
 </html>
             `;
@@ -486,7 +496,7 @@ testCases.forEach(({
                 const html = `
 <html>
     <body>
-        <div onclick="return window.open('https://example.com');">div</div>
+        <div onclick="return window.open('${serverAddress}');">div</div>
     </body>
 </html>
             `;
@@ -497,7 +507,7 @@ testCases.forEach(({
                 }));
                 await new Promise((r) => setTimeout(r, 1000));
                 expect(interceptedRequests).toHaveLength(1);
-                expect(interceptedRequests[0].url).toBe('https://example.com/');
+                expect(interceptedRequests[0].url).toBe(`${serverAddress}/`);
                 const pageContent = await page.content();
                 expect(pageContent).toMatch('onclick="return window.open(');
             });

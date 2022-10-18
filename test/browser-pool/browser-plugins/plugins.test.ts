@@ -1,4 +1,5 @@
 import type { AddressInfo } from 'net';
+import type { Server } from 'http';
 import http from 'http';
 import { promisify } from 'util';
 
@@ -9,9 +10,23 @@ import playwright from 'playwright';
 import { PuppeteerPlugin, PlaywrightPlugin, PuppeteerController, PlaywrightController, PlaywrightBrowser, LaunchContext } from '@crawlee/browser-pool';
 import type { UnwrapPromise, CommonLibrary } from '@crawlee/browser-pool';
 
+import { runExampleComServer } from 'test/shared/_helper';
 import { createProxyServer } from './create-proxy-server';
 
 jest.setTimeout(120000);
+
+let port: number;
+let server: Server;
+let serverAddress = 'http://localhost:';
+
+beforeAll(async () => {
+    [server, port] = await runExampleComServer();
+    serverAddress += port;
+});
+
+afterAll(() => {
+    server.close();
+});
 
 const runPluginTest = <
     P extends typeof PlaywrightPlugin | typeof PuppeteerPlugin,
@@ -105,8 +120,8 @@ const runPluginTest = <
             browserController.activate();
 
             const page = await browserController.newPage();
-            await browserController.setCookies(page as never, [{ name: 'TEST', value: 'TESTER-COOKIE', url: 'https://example.com' }]);
-            await page.goto('https://example.com', { waitUntil: 'domcontentloaded' });
+            await browserController.setCookies(page as never, [{ name: 'TEST', value: 'TESTER-COOKIE', url: serverAddress }]);
+            await page.goto(serverAddress, { waitUntil: 'domcontentloaded' });
 
             const cookies = await browserController.getCookies(page as never);
             expect(cookies[0].name).toBe('TEST');
