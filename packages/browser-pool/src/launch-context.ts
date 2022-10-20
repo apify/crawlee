@@ -1,4 +1,3 @@
-import type { Dictionary } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './abstract-classes/browser-plugin';
 import type { UnwrapPromise } from './utils';
@@ -6,13 +5,12 @@ import type { UnwrapPromise } from './utils';
 /**
  * `LaunchContext` holds information about the launched browser. It's useful
  * to retrieve the `launchOptions`, the proxy the browser was launched with
- * or any other information user chose to add to the `LaunchContext` by calling
  * its `extend` function. This is very useful to keep track of browser-scoped
  * values, such as session IDs.
  */
 export interface LaunchContextOptions<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
+    LibraryOptions = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -53,7 +51,7 @@ export interface LaunchContextOptions<
 
 export class LaunchContext<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
+    LibraryOptions = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,

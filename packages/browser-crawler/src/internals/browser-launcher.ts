@@ -69,13 +69,13 @@ export abstract class BrowserLauncher<
     Plugin extends BrowserPlugin,
     Launcher = Plugin['library'],
     T extends Constructor<Plugin> = Constructor<Plugin>,
-    LaunchOptions extends Dictionary<any> | undefined = Partial<Parameters<Plugin['launch']>[0]>,
+    LaunchOptions extends Dictionary | undefined = Partial<Parameters<Plugin['launch']>[0]>,
     LaunchResult extends ReturnType<Plugin['launch']> = ReturnType<Plugin['launch']>,
 > {
     launcher: Launcher;
     proxyUrl?: string;
     useChrome?: boolean;
-    launchOptions: Dictionary;
+    launchOptions: LaunchOptions;
     otherLaunchContextProps: Dictionary;
     // to be provided by child classes;
     Plugin!: T;

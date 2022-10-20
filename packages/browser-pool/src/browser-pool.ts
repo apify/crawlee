@@ -89,7 +89,7 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
  * The hooks are called with two arguments:
  * `pageId`: `string` and `launchContext`: {@apilink LaunchContext}
  */
-export type PreLaunchHook<LC extends LaunchContext> = (pageId: string, launchContext: LC) => void | Promise<void>;
+export type PreLaunchHook<LC extends LaunchContext<any>> = (pageId: string, launchContext: LC) => void | Promise<void>;
 
 /**
  * Post-launch hooks are executed as soon as a browser is launched.
@@ -150,7 +150,7 @@ export type PostPageCloseHook<BC extends BrowserController> = (pageId: string, b
 
 export interface BrowserPoolHooks<
     BC extends BrowserController,
-    LC extends LaunchContext,
+    LC extends LaunchContext<any>,
     PR extends UnwrapPromise<ReturnType<BC['newPage']>> = UnwrapPromise<ReturnType<BC['newPage']>>,
 > {
     /**
@@ -256,7 +256,7 @@ export class BrowserPool<
     Options extends BrowserPoolOptions = BrowserPoolOptions,
     BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<Options['browserPlugins']>,
     BrowserControllerReturn extends BrowserController = ReturnType<BrowserPlugins[number]['createController']>,
-    LaunchContextReturn extends LaunchContext = ReturnType<BrowserPlugins[number]['createLaunchContext']>,
+    LaunchContextReturn extends LaunchContext<any> = ReturnType<BrowserPlugins[number]['createLaunchContext']>,
     PageOptions = Parameters<BrowserControllerReturn['newPage']>[0],
     PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>>,
 > extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> {
@@ -768,7 +768,7 @@ export class BrowserPool<
             ...this.preLaunchHooks,
             // This is flipped because of the fingerprint cache.
             // It is usual to generate proxy per browser and we want to know the proxyUrl for the caching.
-            createFingerprintPreLaunchHook(this),
+            createFingerprintPreLaunchHook(this as unknown as BrowserPool<any>),
         ];
         this.prePageCreateHooks = [
             createPrePageCreateHook(),

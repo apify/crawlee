@@ -75,7 +75,7 @@ export interface BrowserPluginOptions<LibraryOptions> {
 
 export interface CreateLaunchContextOptions<
     Library extends CommonLibrary,
-    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
+    LibraryOptions = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -89,7 +89,7 @@ export interface CreateLaunchContextOptions<
  */
 export abstract class BrowserPlugin<
     Library extends CommonLibrary = CommonLibrary,
-    LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
+    LibraryOptions = Parameters<Library['launch']>[0],
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
@@ -173,14 +173,15 @@ export abstract class BrowserPlugin<
         }
 
         if (this._isChromiumBasedBrowser(launchContext)) {
+            const opts = launchOptions as Dictionary;
             // This will set the args for chromium based browsers to hide the webdriver.
-            (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
+            opts.args = this._mergeArgsToHideWebdriver(opts.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
             // it is better to use DEFAULT_USER_AGENT to reduce chance of detection,
             // as otherwise 'HeadlessChrome' is present in User-Agent string.
-            const userAgent = launchOptions!.args.find((arg: string) => arg.startsWith('--user-agent'));
-            if (launchOptions!.headless && !launchContext.fingerprint && !userAgent) {
-                launchOptions!.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
+            const userAgent = opts.args.find((arg: string) => arg.startsWith('--user-agent'));
+            if (opts.headless && !launchContext.fingerprint && !userAgent) {
+                opts.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
             }
         }
 

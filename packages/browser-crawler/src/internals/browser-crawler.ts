@@ -41,7 +41,7 @@ export interface BrowserCrawlingContext<
     Crawler = unknown,
     Page extends CommonPage = CommonPage,
     Response = Dictionary,
-    ProvidedController = BrowserController,
+    ProvidedController = BrowserController<any>,
     UserData extends Dictionary = Dictionary,
 > extends CrawlingContext<Crawler, UserData> {
     browserController: ProvidedController;
@@ -55,7 +55,7 @@ export type BrowserErrorHandler<Context extends BrowserCrawlingContext = Browser
 
 export type BrowserHook<
     Context = BrowserCrawlingContext,
-    GoToOptions extends Dictionary | undefined = Dictionary
+    GoToOptions = Dictionary
 > = (crawlingContext: Context, gotoOptions: GoToOptions) => Awaitable<void>;
 
 export interface BrowserCrawlerOptions<
@@ -63,7 +63,7 @@ export interface BrowserCrawlerOptions<
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
-    __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>
+    __LaunchContextReturn extends LaunchContext<any> = ReturnType<__BrowserPlugins[number]['createLaunchContext']>
 > extends Omit<
     BasicCrawlerOptions,
     // Overridden with browser context
@@ -285,7 +285,7 @@ export interface BrowserCrawlerOptions<
  */
 export abstract class BrowserCrawler<
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
-    LaunchOptions extends Dictionary | undefined = Dictionary,
+    LaunchOptions = Dictionary,
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
     GoToOptions extends Dictionary = Dictionary
 > extends BasicCrawler<Context> {

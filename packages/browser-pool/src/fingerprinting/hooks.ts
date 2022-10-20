@@ -1,6 +1,6 @@
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { FingerprintInjector } from 'fingerprint-injector';
-import type { BrowserPool } from '..';
+import type { BrowserPool, PreLaunchHook } from '../browser-pool';
 import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin';
 import { PlaywrightPlugin } from '../playwright/playwright-plugin';
 import type { BrowserController } from '../abstract-classes/browser-controller';
@@ -10,7 +10,7 @@ import { getGeneratorDefaultOptions } from './utils';
 /**
  * @internal
  */
-export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any, any, any, any>) {
+export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any>): PreLaunchHook<any> {
     const {
         fingerprintGenerator,
         fingerprintCache,
