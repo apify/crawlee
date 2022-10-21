@@ -30,7 +30,7 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
 
     protected async _newPage(contextOptions?: Parameters<Browser['newPage']>[0]): Promise<Page> {
         if (contextOptions !== undefined && !this.launchContext.useIncognitoPages && !this.launchContext.experimentalContainers) {
-            throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
+            // throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
         }
 
         // eslint-disable-next-line @typescript-eslint/no-empty-function

@@ -500,7 +500,7 @@ export class BrowserPool<
 
         const finalPageOptions = (browserController.launchContext.useIncognitoPages || browserController.launchContext.experimentalContainers)
             ? pageOptions
-            : undefined;
+            : {};
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
