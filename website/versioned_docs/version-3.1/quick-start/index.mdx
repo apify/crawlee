@@ -10,6 +10,7 @@ import Admonition from '@theme/Admonition';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
+import ThemedImage from '@theme/ThemedImage';
 
 import CheerioSource from '!!raw-loader!./quick_start_cheerio.ts';
 import PlaywrightSource from '!!raw-loader!./quick_start_playwright.ts';
@@ -128,7 +129,19 @@ Browsers controlled by Puppeteer and Playwright run headless (without a visible 
 
 When you run the example code, you'll see an automated browser blaze through the Crawlee website.
 
-![Chrome Scrape](/img/chrome_scrape.gif)
+:::note
+
+For the sake of this show off, we've slowed down the crawler, but rest assured, it's blazing fast in real world usage.
+
+:::
+
+<ThemedImage
+  alt="An image showing off Crawlee scraping the Crawlee website using Puppeteer/Playwright and Chromium"
+  sources={{
+    light: '/img/chrome-scrape-light-compressed.gif',
+    dark: '/img/chrome-scrape-dark-compressed.gif',
+  }}
+/>;
 
 ## Results
 

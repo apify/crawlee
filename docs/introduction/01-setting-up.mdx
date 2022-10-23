@@ -4,6 +4,8 @@ title: "Setting up"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
+import ThemedImage from '@theme/ThemedImage';
+
 import ApiLink from '@site/src/components/ApiLink';
 
 To run Crawlee on your own computer, you need to meet the following pre-requisites first:
@@ -71,7 +73,19 @@ headless: false
 
 When you run the example again, after a second a Chromium browser window will open. In the window, you'll see quickly changing pages as the crawler does its job.
 
-![Chrome Scrape](/img/chrome_scrape.gif)
+:::note
+
+For the sake of this show off, we've slowed down the crawler, but rest assured, it's blazing fast in real world usage.
+
+:::
+
+<ThemedImage
+  alt="An image showing off Crawlee scraping the Crawlee website using Puppeteer/Playwright and Chromium"
+  sources={{
+    light: '/img/chrome-scrape-light-compressed.gif',
+    dark: '/img/chrome-scrape-dark-compressed.gif',
+  }}
+/>;
 
 ## Next lesson
 
