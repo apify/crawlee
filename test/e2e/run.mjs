@@ -1,7 +1,7 @@
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { isMainThread, Worker, workerData } from 'node:worker_threads';
 import { execSync } from 'node:child_process';
 import { colors, getApifyToken, clearPackages, clearStorage, SKIPPED_TEST_CLOSE_CODE } from './tools.mjs';
@@ -40,9 +40,19 @@ async function run() {
     const paths = await readdir(basePath, { withFileTypes: true });
     const dirs = paths.filter((dirent) => dirent.isDirectory());
 
+    const { puppeteer } = JSON.parse(await readFile(join(basePath, '..', '..', 'package.json'), 'utf8')).devDependencies;
+
     for (const dir of dirs) {
         if (process.argv.length === 3 && dir.name !== process.argv[2]) {
             continue;
+        }
+
+        const pkgPath = join(basePath, dir.name, 'actor', 'package.json');
+        const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+
+        if (pkg.dependencies.puppeteer) {
+            pkg.dependencies.puppeteer = puppeteer;
+            await writeFile(pkgPath, `${JSON.stringify(pkg, undefined, '    ')}\n`, 'utf8');
         }
 
         const now = Date.now();

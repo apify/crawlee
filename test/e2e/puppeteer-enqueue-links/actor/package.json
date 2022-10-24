@@ -14,7 +14,7 @@
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
         "deep-equal": "^2.0.5",
-        "puppeteer": "*"
+        "puppeteer": "18.2.1"
     },
     "overrides": {
         "apify": {
