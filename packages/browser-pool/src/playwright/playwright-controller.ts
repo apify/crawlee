@@ -4,11 +4,12 @@ import type { Cookie } from '@crawlee/types';
 import { BrowserController } from '../abstract-classes/browser-controller';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import type { PlaywrightPlugin } from './playwright-plugin';
+import type { SafeParameters } from '../utils';
 
 const tabIds = new WeakMap<Page, number>();
 const keyFromTabId = (tabId: string | number) => `.${tabId}.`;
 
-export class PlaywrightController extends BrowserController<BrowserType, Parameters<BrowserType['launch']>[0], Browser> {
+export class PlaywrightController extends BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], Browser> {
     normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown> {
         if (!proxyUrl) {
             return {};
@@ -28,7 +29,7 @@ export class PlaywrightController extends BrowserController<BrowserType, Paramet
         };
     }
 
-    protected async _newPage(contextOptions?: Parameters<Browser['newPage']>[0]): Promise<Page> {
+    protected async _newPage(contextOptions?: SafeParameters<Browser['newPage']>[0]): Promise<Page> {
         if (contextOptions !== undefined && !this.launchContext.useIncognitoPages && !this.launchContext.experimentalContainers) {
             throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
         }
