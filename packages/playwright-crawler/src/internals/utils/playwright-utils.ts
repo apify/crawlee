@@ -266,12 +266,6 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
         extraUrlPatterns: ow.optional.array.ofType(ow.string),
     }));
 
-    const browserName = page.context().browser()?.browserType().name();
-    if (browserName !== 'chromium') {
-        log.warning(`blockRequests() helper is incompatible with non-Chromium browsers. Currently using: ${browserName}`);
-        return;
-    }
-
     const {
         urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
         extraUrlPatterns = [],
@@ -279,10 +273,14 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
-    const client = await page.context().newCDPSession(page);
+    try {
+        const client = await page.context().newCDPSession(page);
 
-    await client.send('Network.enable');
-    await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+        await client.send('Network.enable');
+        await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+    } catch (error) {
+        log.warning('blockRequests() helper is incompatible with non-Chromium browsers.');
+    }
 }
 
 export interface CompiledScriptParams {
