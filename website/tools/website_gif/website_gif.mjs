@@ -7,7 +7,7 @@
  * 4. Resume, record, ???, profit!
  */
 
-import { PuppeteerCrawler, RequestQueue, sleep } from 'crawlee';
+import { PuppeteerCrawler, sleep } from 'crawlee';
 
 const crawler = new PuppeteerCrawler({
     headless: false,
@@ -20,10 +20,10 @@ const crawler = new PuppeteerCrawler({
     },
     async requestHandler({ request }) {
         if (request.userData.label === 'start') {
-            console.log('Waiting 10s, prepare recording!');
-            await sleep(10000); // <--- Set breakpoint here
+            console.log('Waiting 5s, prepare recording!');
+            await sleep(5000); // <--- Set breakpoint here
         } else {
-            await sleep(2500); // <--- Set breakpoint here for initial request, remove after
+            await sleep(250);
         }
     },
 });
