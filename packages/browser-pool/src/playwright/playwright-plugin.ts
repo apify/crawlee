@@ -13,6 +13,7 @@ import { getLocalProxyAddress } from '../proxy-server';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import { createProxyServerForContainers } from '../container-proxy-server';
 import { loadFirefoxAddon } from './load-firefox-addon';
+import type { SafeParameters } from '../utils';
 
 const getFreePort = async () => {
     return new Promise<number>((resolve, reject) => {
@@ -27,7 +28,7 @@ const getFreePort = async () => {
 //  taacPath = browser-pool/dist/tab-as-a-container
 const taacPath = path.join(__dirname, '..', 'tab-as-a-container');
 
-export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<BrowserType['launch']>[0], PlaywrightBrowser> {
+export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {
     private _browserVersion?: string;
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
@@ -171,7 +172,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, Parameters<Brow
         return browser;
     }
 
-    protected _createController(): BrowserController<BrowserType, Parameters<BrowserType['launch']>[0], PlaywrightBrowser> {
+    protected _createController(): BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {
         return new PlaywrightController(this);
     }
 
