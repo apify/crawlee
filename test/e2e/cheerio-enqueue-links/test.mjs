@@ -1,4 +1,6 @@
-import { initialize, getActorTestDir, runActor, expect } from '../tools.mjs';
+import { initialize, getActorTestDir, runActor, expect, skipTest } from '../tools.mjs';
+
+skipTest('flaky and need be rewritten');
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
