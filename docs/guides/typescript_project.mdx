@@ -13,7 +13,7 @@ To use TypeScript in our projects, we'll need the following prerequisites:
 1. TypeScript compiler `tsc` installed somewhere:
 
     ```shell script
-    npm install --dev typescript
+    npm install --save-dev typescript
     ```
 
     TypeScript can be a development dependency in our project, as shown above. There's no need to pollute the production environment or the system's global repository with TypeScript.
@@ -32,7 +32,7 @@ To use TypeScript in our projects, we'll need the following prerequisites:
 3. Type declarations for NodeJS, so we can take advantage of type-checking in all the features we'll use:
 
     ```shell script
-    npm install --dev @types/node
+    npm install --save-dev @types/node
     ```
 
 4. TypeScript configuration file allowing `tsc` to understand the project layout and the features used in the project:
@@ -61,12 +61,18 @@ To use TypeScript in our projects, we'll need the following prerequisites:
 
     > If we want to use one of the browser crawlers, we will also need to add `"lib": ["DOM"]` to the compiler options.
 
+    Ensure that you have installed `@apify/tsconfig`
+
+    ```shell script
+    npm install --save-dev @apify/tsconfig
+    ```
+
 ### Running the project with `ts-node`
 
 During development, it's handy to run the project directly instead of compiling the TypeScript code to JavaScript every time. We can use `ts-node` for that, just install it as a dev dependency and add a new NPM script:
 
 ```shell script
-npm install --dev ts-node
+npm install --save-dev ts-node
 ```
 
 > As mentioned above, our project will be compiled to use ES Modules. Because of this, we need to use the `ts-node-esm` binary.
