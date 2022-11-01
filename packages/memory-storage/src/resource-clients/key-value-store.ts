@@ -103,7 +103,7 @@ export class KeyValueStoreClient extends BaseClient {
             const [oldClient] = this.client.keyValueStoresHandled.splice(storeIndex, 1);
             oldClient.keyValueEntries.clear();
 
-            await rm(oldClient.keyValueStoreDirectory, { recursive: true });
+            await rm(oldClient.keyValueStoreDirectory, { recursive: true, force: true });
         }
     }
 

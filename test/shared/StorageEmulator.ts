@@ -4,7 +4,7 @@ import { StorageManager } from '@crawlee/core';
 export abstract class StorageEmulator {
     protected localStorageDirectories: string[] = [];
 
-    async init(dirName?: string): Promise<void> {
+    async init(options?: Record<PropertyKey, any>): Promise<void> {
         StorageManager.clearCache();
     }
 

@@ -106,7 +106,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             oldClient.itemCount = 0;
             oldClient.datasetEntries.clear();
 
-            await rm(oldClient.datasetDirectory, { recursive: true });
+            await rm(oldClient.datasetDirectory, { recursive: true, force: true });
         }
     }
 
