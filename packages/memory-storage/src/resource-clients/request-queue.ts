@@ -122,7 +122,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             oldClient.pendingRequestCount = 0;
             oldClient.requests.clear();
 
-            await rm(oldClient.requestQueueDirectory, { recursive: true });
+            await rm(oldClient.requestQueueDirectory, { recursive: true, force: true });
         }
     }
 
