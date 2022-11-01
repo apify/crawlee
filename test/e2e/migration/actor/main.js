@@ -1,4 +1,4 @@
-import { Worker, isMainThread } from 'worker_threads';
+import { Worker, workerData } from 'worker_threads';
 import { URL } from 'url';
 import { once } from 'events';
 import { Actor } from 'apify';
@@ -14,16 +14,20 @@ const mainOptions = {
 
 const thisFile = new URL(import.meta.url);
 
-if (isMainThread) {
-    const firstRun = new Worker(thisFile);
+if (workerData !== '#actor') {
+    const firstRun = new Worker(thisFile, {
+        workerData: '#actor',
+    });
 
     const [firstExitCode] = await once(firstRun, 'exit');
 
-    const secondRun = new Worker(thisFile);
+    const secondRun = new Worker(thisFile, {
+        workerData: '#actor',
+    });
 
     const [secondExitCode] = await once(secondRun, 'exit');
 
-    if (firstRun !== 0 || secondRun !== 0) {
+    if (firstExitCode !== 0 || secondExitCode !== 0) {
         throw new Error(`Unexpected exit code:\nfirst run: ${firstExitCode}\nsecond run: ${secondExitCode}`);
     }
 } else {
