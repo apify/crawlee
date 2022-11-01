@@ -646,7 +646,7 @@ describe('BasicCrawler', () => {
 
         setTimeout(() => queue.push(request0), 10);
         setTimeout(() => queue.push(request1), 100);
-        setTimeout(() => { void basicCrawler.teardown(); }, 150);
+        setTimeout(() => { void basicCrawler.teardown(); }, 300);
 
         await basicCrawler.run();
 

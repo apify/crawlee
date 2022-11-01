@@ -19,7 +19,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-latest, windows-2019 ]
                 os: [ ubuntu-latest ]
-                node-version: [ 16, 18 ]
+                node-version: [ 16, 18, 19 ]
 
         steps:
             -   name: Cancel Workflow Action
