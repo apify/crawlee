@@ -5,6 +5,12 @@ export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R>
 
 export function noop(..._args: unknown[]): void {}
 
+/**
+ * This is required when using optional dependencies.
+ * Importing a type gives `any`, but `Parameters<any>` gives `unknown[]` instead of `any`
+ */
+export type SafeParameters<T extends (...args: any) => any> = unknown[] extends Parameters<T> ? any : Parameters<T>;
+
 export type InferBrowserPluginArray<
     // The original array input
     Input extends readonly unknown[],

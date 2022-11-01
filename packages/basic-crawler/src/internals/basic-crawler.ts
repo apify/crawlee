@@ -598,6 +598,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._init();
         await this.stats.startCapturing();
 
+        process.once('SIGINT', async () => {
+            this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm run start');
+            await this._pauseOnMigration();
+            await this.autoscaledPool!.abort();
+        });
+
         try {
             this.log.info('Starting the crawl');
             await this.autoscaledPool!.run();

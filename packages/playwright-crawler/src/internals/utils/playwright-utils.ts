@@ -213,6 +213,11 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
 }
 
 /**
+ * > This is a **Chromium-only feature.**
+ * >
+ * > Using this option with Firefox and WebKit browsers doesn't have any effect.
+ * > To set up request blocking for these browsers, use `page.route()` instead.
+ *
  * Forces the Playwright browser tab to block loading URLs that match a provided pattern.
  * This is useful to speed up crawling of websites, since it reduces the amount
  * of data that needs to be downloaded from the web, but it may break some websites
@@ -268,10 +273,14 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
-    const client = await page.context().newCDPSession(page);
+    try {
+        const client = await page.context().newCDPSession(page);
 
-    await client.send('Network.enable');
-    await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+        await client.send('Network.enable');
+        await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
+    } catch (error) {
+        log.warning('blockRequests() helper is incompatible with non-Chromium browsers.');
+    }
 }
 
 export interface CompiledScriptParams {
