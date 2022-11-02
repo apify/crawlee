@@ -219,6 +219,10 @@ const mergeMessages = (a: string, b: string, storage: Record<string, unknown>) =
 const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unknown>, showFullMessage: boolean) => {
     let { message } = error;
 
+    if (!message) {
+        message = typeof error === 'string' ? error : `Unknown error message. Received non-error object: ${JSON.stringify(error)}`;
+    }
+
     if (!showFullMessage) {
         const newLineIndex = message.indexOf('\n');
         message = message.slice(0, newLineIndex === -1 ? undefined : newLineIndex);
