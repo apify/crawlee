@@ -951,6 +951,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 }
                 throw secondaryError;
             }
+            // eslint-disable-next-line dot-notation
+            if (session) session['usageCount']++;
         } finally {
             await this._cleanupContext(crawlingContext);
 
