@@ -951,6 +951,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 }
                 throw secondaryError;
             }
+            // decrease the session score if the request fails (but the error handler did not throw)
+            session?.markBad();
         } finally {
             await this._cleanupContext(crawlingContext);
 
