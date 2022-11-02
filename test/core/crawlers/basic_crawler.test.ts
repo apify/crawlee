@@ -91,6 +91,62 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
+    test('should correctly combine shorthand and full length options', async () => {
+        const shorthandOptions = {
+            options: {
+                minConcurrency: 123,
+                maxConcurrency: 456,
+                maxRequestsPerMinute: 789,
+            },
+            compare: {
+                _minConcurrency: 123,
+                _maxConcurrency: 456,
+                maxTasksPerMinute: 789,
+            },
+        };
+
+        const autoscaledPoolOptions = {
+            options: {
+                minConcurrency: 16,
+                maxConcurrency: 32,
+                maxTasksPerMinute: 64,
+            },
+            compare: {
+                _minConcurrency: 16,
+                _maxConcurrency: 32,
+                maxTasksPerMinute: 64,
+            },
+        };
+
+        const requestList = await RequestList.open(null, []);
+        const requestHandler = async () => {};
+
+        let crawler = new BasicCrawler({
+            requestList,
+            requestHandler,
+            ...shorthandOptions.options,
+        });
+        await crawler.run();
+        expect(crawler.autoscaledPool).toMatchObject(shorthandOptions.compare);
+
+        crawler = new BasicCrawler({
+            requestList,
+            requestHandler,
+            autoscaledPoolOptions: autoscaledPoolOptions.options,
+        });
+        await crawler.run();
+        expect(crawler.autoscaledPool).toMatchObject(autoscaledPoolOptions.compare);
+
+        crawler = new BasicCrawler({
+            requestList,
+            requestHandler,
+            ...shorthandOptions.options,
+            autoscaledPoolOptions: autoscaledPoolOptions.options,
+        });
+        await crawler.run();
+        expect(crawler.autoscaledPool).toMatchObject(shorthandOptions.compare);
+    });
+
     test('auto-saved state object', async () => {
         const sources = [...Array(50).keys()].map((index) => ({ url: `https://example.com/${index}` }));
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
