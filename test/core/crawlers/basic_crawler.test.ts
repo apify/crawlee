@@ -18,11 +18,23 @@ import {
     CriticalError,
     MissingRouteError,
 } from '@crawlee/basic';
+import {
+    AutoscaledPool,
+} from '@crawlee/core';
 import express from 'express';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { startExpressAppPromise } from '../../shared/_helper';
+
+jest.mock('@crawlee/core', () => {
+    const originalModule = jest.requireActual('@crawlee/core');
+    const AutoscaledPoolMockConstructor = jest.fn((...args) => new originalModule.AutoscaledPool(...args));
+    return {
+        ...originalModule,
+        AutoscaledPool: AutoscaledPoolMockConstructor,
+    };
+});
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -99,52 +111,45 @@ describe('BasicCrawler', () => {
                 maxRequestsPerMinute: 789,
             },
             compare: {
-                _minConcurrency: 123,
-                _maxConcurrency: 456,
+                minConcurrency: 123,
+                maxConcurrency: 456,
                 maxTasksPerMinute: 789,
             },
         };
 
         const autoscaledPoolOptions = {
-            options: {
-                minConcurrency: 16,
-                maxConcurrency: 32,
-                maxTasksPerMinute: 64,
-            },
-            compare: {
-                _minConcurrency: 16,
-                _maxConcurrency: 32,
-                maxTasksPerMinute: 64,
-            },
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            maxTasksPerMinute: 64,
         };
 
         const requestList = await RequestList.open(null, []);
         const requestHandler = async () => {};
 
-        let crawler = new BasicCrawler({
+        await (new BasicCrawler({
             requestList,
             requestHandler,
             ...shorthandOptions.options,
-        });
-        await crawler.run();
-        expect(crawler.autoscaledPool).toMatchObject(shorthandOptions.compare);
+        })).run();
 
-        crawler = new BasicCrawler({
+        expect((AutoscaledPool as any).mock.calls[0][0]).toMatchObject(shorthandOptions.compare);
+
+        await (new BasicCrawler({
             requestList,
             requestHandler,
-            autoscaledPoolOptions: autoscaledPoolOptions.options,
-        });
-        await crawler.run();
-        expect(crawler.autoscaledPool).toMatchObject(autoscaledPoolOptions.compare);
+            autoscaledPoolOptions,
+        })).run();
 
-        crawler = new BasicCrawler({
+        expect((AutoscaledPool as any).mock.calls[1][0]).toMatchObject(autoscaledPoolOptions);
+
+        await (new BasicCrawler({
             requestList,
             requestHandler,
             ...shorthandOptions.options,
-            autoscaledPoolOptions: autoscaledPoolOptions.options,
-        });
-        await crawler.run();
-        expect(crawler.autoscaledPool).toMatchObject(shorthandOptions.compare);
+            autoscaledPoolOptions,
+        })).run();
+
+        expect((AutoscaledPool as any).mock.calls[2][0]).toMatchObject(shorthandOptions.compare);
     });
 
     test('auto-saved state object', async () => {
