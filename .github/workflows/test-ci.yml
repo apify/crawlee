@@ -122,7 +122,7 @@ jobs:
 
     release_next:
         name: Release @next
-        if: "!github.event.pull_request && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))"
+        if: "github.event_name == 'push' && contains(github.event.ref, 'master') && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))"
         needs: build_and_test
         runs-on: ubuntu-latest
 
