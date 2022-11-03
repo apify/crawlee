@@ -350,6 +350,14 @@ export class Configuration {
     }
 
     /**
+     * Sets value for given option. Only affects the global `Configuration` instance, the value will not be propagated down to the env var.
+     * To reset a value, we can omit the `value` argument or pass `undefined` there.
+     */
+    static set(key: keyof ConfigurationOptions, value?: any): void {
+        this.getGlobalConfig().set(key, value);
+    }
+
+    /**
      * Returns cached instance of {@apilink StorageClient} using options as defined in the environment variables or in
      * this {@apilink Configuration} instance. Only first call of this method will create the client, following calls will
      * return the same client instance.
@@ -405,6 +413,10 @@ export class Configuration {
 
     useStorageClient(client: StorageClient): void {
         this.options.set('storageClient', client);
+    }
+
+    static useStorageClient(client: StorageClient): void {
+        this.getGlobalConfig().useStorageClient(client);
     }
 
     useEventManager(events: EventManager): void {
