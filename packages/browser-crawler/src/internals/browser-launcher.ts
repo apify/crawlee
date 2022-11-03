@@ -58,6 +58,18 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
      */
     userAgent?: string;
 
+    /**
+     * The type of browser to be launched.
+     * By default, `chromium` is used. Other browsers like `webkit` or `firefox` can be used.
+     *
+     * @example
+     * ```ts
+     * // import the browser from the library first
+     * import { firefox } from 'playwright';
+     * ```
+     *
+     * For more details, check out the [example](https://crawlee.dev/docs/examples/playwright-crawler-firefox).
+     */
     launcher?: Launcher;
 }
 
