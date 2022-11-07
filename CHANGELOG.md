@@ -1,14 +1,25 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+All notable changes to this project will be documented in this file. See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## 3.1.1 (2022-11-07)
+## [3.1.1](https://github.com/apify/crawlee/compare/v3.1.0...v3.1.1) (2022-11-07)
 
-**Note:** Version bump only for package crawlee
+### Bug Fixes
+
+* `utils.playwright.blockRequests` warning message ([#1632](https://github.com/apify/crawlee/issues/1632)) ([76549eb](https://github.com/apify/crawlee/commit/76549eb250a39e961b7f567ad0610af136d1c79f))
+* concurrency option override order ([#1649](https://github.com/apify/crawlee/issues/1649)) ([7bbad03](https://github.com/apify/crawlee/commit/7bbad0380cd6de3fdca79ba57e1fef1d22bd56f8))
+* handle non-error objects thrown gracefully ([#1652](https://github.com/apify/crawlee/issues/1652)) ([c3a4e1a](https://github.com/apify/crawlee/commit/c3a4e1a9b7d0b80a8e889bdcb394fc0be3905c6f))
+* mark session as bad on failed requests ([#1647](https://github.com/apify/crawlee/issues/1647)) ([445ae43](https://github.com/apify/crawlee/commit/445ae4321816bc418a83c02fb52e64df96bfb0a9))
+* support reloading of sessions with lots of retries ([ebc89d2](https://github.com/apify/crawlee/commit/ebc89d2d69d5a2da6eb4e37de59ea39daf81f8f8))
+* fix type errors when `playwright` is not installed ([#1637](https://github.com/apify/crawlee/issues/1637)) ([de9db0c](https://github.com/apify/crawlee/commit/de9db0c2b24019d2e1dd43206dd7f149ecdc679a))
+* upgrade to puppeteer@19.x ([#1623](https://github.com/apify/crawlee/issues/1623)) ([ce36d6b](https://github.com/apify/crawlee/commit/ce36d6bd60c7adb113759126b3cb15ca222e94d0))
 
 
+### Features
 
+* add static `set` and `useStorageClient` shortcuts to `Configuration` ([2e66fa2](https://github.com/apify/crawlee/commit/2e66fa2fad84aee2dca08b386916b465a0c012a3))
+* enable migration testing ([#1583](https://github.com/apify/crawlee/issues/1583)) ([ee3a68f](https://github.com/apify/crawlee/commit/ee3a68fff1fcdf941c9a1d3734107635e9a12049))
+* **playwright:** disable animations when taking screenshots ([#1601](https://github.com/apify/crawlee/issues/1601)) ([4e63034](https://github.com/apify/crawlee/commit/4e63034c7b87de405edbd84f9b1803aa101f5c78))
 
 
 
