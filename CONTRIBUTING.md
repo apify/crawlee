@@ -16,6 +16,18 @@ Please note we have a code of conduct, please follow it in all your interactions
 4. You may merge the Pull Request in once you have the sign-off of two other developers, or if you
    do not have permission to do that, you may request the second reviewer to merge it for you.
 
+### macOS
+
+Our proxy tests use different loopback addresses to ensure traffic correctness.
+In contrary to Windows and Linux, macOS comes with only one loopback address - `127.0.0.1`.
+Therefore it is necessary to run the following once per system startup:
+
+```
+sudo ifconfig lo0 alias 127.0.0.2 up
+sudo ifconfig lo0 alias 127.0.0.3 up
+sudo ifconfig lo0 alias 127.0.0.4 up
+```
+
 ## Code of Conduct
 
 ### Our Pledge
