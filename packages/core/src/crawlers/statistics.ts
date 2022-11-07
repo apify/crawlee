@@ -305,7 +305,9 @@ export class Statistics {
 
         this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.persistStateKey });
 
-        this.requestRetryHistogram.push(...savedState.requestRetryHistogram);
+        // the `requestRetryHistogram` array might be very large, we could end up with
+        // `RangeError: Maximum call stack size exceeded` if we use `a.push(...b)`
+        savedState.requestRetryHistogram.forEach((idx) => this.requestRetryHistogram.push(idx));
         this.state.requestsFinished = savedState.requestsFinished;
         this.state.requestsFailed = savedState.requestsFailed;
         this.state.requestsRetries = savedState.requestsRetries;
