@@ -853,13 +853,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         tryCancel();
 
+        // A request can have some request-specific timeouts defined. We check if they have been defined, and if so,
+        // use those timeouts instead. However; if they aren't present, the defaults will be used.
+        request!.requestTimeoutSecs ??= this.internalTimeoutMillis / 1e3;
+        request!.requestHandlerTimeoutSecs ??= this.requestHandlerTimeoutMillis / 1e3;
+
         if (this.useSessionPool) {
             await this._timeoutAndRetry(
                 async () => {
                     session = await this.sessionPool!.getSession();
                 },
-                this.internalTimeoutMillis,
-                `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                request!.requestTimeoutSecs * 1e3,
+                `Fetching session timed out after ${request!.requestTimeoutSecs} seconds.`,
             );
         }
 
@@ -920,14 +925,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await addTimeoutToPromise(
                 () => this._runRequestHandler(crawlingContext),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
+                request.requestHandlerTimeoutSecs * 1e3,
+                `requestHandler timed out after ${request.requestHandlerTimeoutSecs} seconds (${request.id}).`,
             );
 
             await this._timeoutAndRetry(
                 () => source.markRequestHandled(request!),
-                this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                request.requestTimeoutSecs * 1e3,
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${request.requestTimeoutSecs} seconds.`,
             );
 
             this.stats.finishJob(statisticsId);
@@ -939,8 +944,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             try {
                 await addTimeoutToPromise(
                     () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
-                    this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                    request.requestTimeoutSecs * 1e3,
+                    `Handling request failure of ${request.url} (${request.id}) timed out after ${request.requestTimeoutSecs} seconds.`,
                 );
             } catch (secondaryError: any) {
                 if (!secondaryError.triggeredFromUserHandler) {

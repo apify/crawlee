@@ -1189,6 +1189,54 @@ describe('CheerioCrawler', () => {
             expect(cheerioCrawler.requestHandler).toBeUndefined();
         });
     });
+
+    test('Should use the requestHandlerTimeoutSecs provided within the request instead of the crawler one', async () => {
+        const timeStart = performance.now();
+
+        const crawler = new CheerioCrawler({
+            requestHandlerTimeoutSecs: 99999,
+            maxRequestRetries: 1,
+            requestHandler: async () => {
+                await new Promise((resolve) => setTimeout(resolve, 5e4));
+            },
+            errorHandler: (_, error) => {
+                expect(error.message.includes('timed out after 2 seconds')).toBeTruthy();
+            },
+        });
+
+        await crawler.run([{
+            url: 'https://google.com',
+            requestHandlerTimeoutSecs: 2,
+        }]);
+
+        // The run should most definitely take less than 10 seconds with the 2 second timeout.
+        expect(performance.now() - timeStart).toBeLessThan(1e4);
+    });
+
+    test('Should use the requestTimeoutSecs provided within the request instead of the crawler one', async () => {
+        const timeStart = performance.now();
+
+        const crawler = new CheerioCrawler({
+            navigationTimeoutSecs: 99999,
+            maxRequestRetries: 1,
+            requestHandler: async () => {
+                log.info('Hey');
+            },
+            errorHandler: (_, error) => {
+                expect(error.message.includes('timed out after 1 seconds')).toBeTruthy();
+            },
+        });
+
+        await crawler.run([{
+            // https://deelay.me/
+            // Google with a huge delay
+            url: 'https://deelay.me/200000/https://google.com',
+            requestTimeoutSecs: 1,
+        }]);
+
+        // The run should most definitely take less than 15 seconds with the 0.00001 second timeout.
+        expect(performance.now() - timeStart).toBeLessThan(15e3);
+    });
 });
 
 async function getRequestListForMock(mockData: Dictionary, pathName = 'special/mock') {
