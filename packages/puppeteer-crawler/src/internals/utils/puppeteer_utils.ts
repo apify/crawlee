@@ -144,7 +144,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
  * This can affect functionality of page's scripts.
  *
- * The injected jQuery will survive page navigations and reloads.
+ * The injected jQuery will survive page navigations and reloads by default.
  *
  * **Example usage:**
  * ```javascript
@@ -159,10 +159,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * function in any way.
  *
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
+ * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
-export function injectJQuery(page: Page): Promise<unknown> {
+export function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
-    return injectFile(page, jqueryPath, { surviveNavigations: true });
+    return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
 /**
@@ -911,7 +912,7 @@ export interface PuppeteerContextUtils {
 /** @internal */
 export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = () => injectJQuery(context.page);
+    context.injectJQuery = () => injectJQuery(context.page, { surviveNavigations: false });
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         page: context.page,

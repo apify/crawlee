@@ -112,7 +112,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
  * This can affect functionality of page's scripts.
  *
- * The injected jQuery will survive page navigations and reloads.
+ * The injected jQuery will survive page navigations and reloads by default.
  *
  * **Example usage:**
  * ```javascript
@@ -127,10 +127,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * function in any way.
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
-export function injectJQuery(page: Page): Promise<unknown> {
+export function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
-    return injectFile(page, jqueryPath, { surviveNavigations: true });
+    return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
 export interface DirectNavigationOptions {
@@ -734,7 +735,7 @@ export interface PlaywrightContextUtils {
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = () => injectJQuery(context.page);
+    context.injectJQuery = () => injectJQuery(context.page, { surviveNavigations: false });
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
