@@ -399,6 +399,18 @@ describe('PuppeteerCrawler', () => {
         expect(sessions.size).toBe(3); // 3 different sessions used
     });
 
+    test('shallow clones browserPoolOptions before normalization', () => {
+        const options = {
+            browserPoolOptions: {},
+            requestHandler: async () => {},
+        };
+
+        void new PuppeteerCrawler(options);
+        void new PuppeteerCrawler(options);
+
+        expect(Object.keys(options.browserPoolOptions).length).toBe(0);
+    });
+
     if (os.platform() !== 'darwin') {
         test('proxy per page', async () => {
             const requestListLarge = await RequestList.open({
