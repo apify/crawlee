@@ -20,12 +20,12 @@ await Actor.main(async () => {
 
             // Wait for the actor cards to render,
             // otherwise enqueueLinks wouldn't enqueue anything.
-            await page.waitForSelector('.ActorStorePagination-pages a');
+            await page.waitForSelector('.ActorStorePagination-buttons a');
 
             // Add links to the queue, but only from
             // elements matching the provided selector.
             await enqueueLinks({
-                selector: '.ActorStorePagination-pages a',
+                selector: '.ActorStorePagination-buttons a',
             });
         },
     });
