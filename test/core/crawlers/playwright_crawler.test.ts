@@ -133,4 +133,16 @@ describe('PlaywrightCrawler', () => {
         await playwrightCrawler.run();
         expect(options.timeout).toEqual(timeoutSecs * 1000);
     });
+
+    test('shallow clones browserPoolOptions before normalization', () => {
+        const options = {
+            browserPoolOptions: {},
+            requestHandler: async () => {},
+        };
+
+        void new PlaywrightCrawler(options);
+        void new PlaywrightCrawler(options);
+
+        expect(Object.keys(options.browserPoolOptions).length).toBe(0);
+    });
 });

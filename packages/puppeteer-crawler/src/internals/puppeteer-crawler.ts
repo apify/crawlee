@@ -141,10 +141,13 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
         const {
             launchContext = {},
             headless,
-            browserPoolOptions = {} as BrowserPoolOptions,
             proxyConfiguration,
             ...browserCrawlerOptions
         } = options;
+
+        const browserPoolOptions = {
+            ...options.browserPoolOptions,
+        } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.'
