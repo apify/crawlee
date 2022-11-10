@@ -132,7 +132,10 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             this.throwOnNonExisting(StorageTypes.Dataset);
         }
 
-        const [start, end] = existingStoreById.getStartAndEndIndexes(offset, limit);
+        const [start, end] = existingStoreById.getStartAndEndIndexes(
+            desc ? Math.max(existingStoreById.itemCount - offset - limit, 0) : offset,
+            limit,
+        );
 
         const items: Data[] = [];
 
