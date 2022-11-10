@@ -26,5 +26,5 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run(['https://apify.com/about']);
+    await crawler.run(['https://apify.com/press-kit', 'https://apify.com/about']);
 }, mainOptions);
