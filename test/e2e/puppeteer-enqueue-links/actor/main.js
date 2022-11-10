@@ -17,7 +17,7 @@ await Actor.main(async () => {
             const pageTitle = await page.title();
             log.info(`URL: ${url}; LOADED_URL: ${loadedUrl}; TITLE: ${pageTitle}`);
 
-            const results = await enqueueLinks({ selector: '[class^=CustomRebass__Box] a' });
+            const results = await enqueueLinks();
 
             if (loadedUrl.startsWith('https://drive')) {
                 const isEqual = deepEqual(results, { processedRequests: [], unprocessedRequests: [] });
