@@ -18,6 +18,7 @@ import {
     Router,
     validators,
     Configuration,
+    RequestState,
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
@@ -452,11 +453,18 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             });
         }
 
-        return addTimeoutToPromise(
-            () => Promise.resolve(this.requestHandler(crawlingContext)),
-            this.userRequestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
-        );
+        request.state = RequestState.REQUEST_HANDLER;
+        try {
+            await addTimeoutToPromise(
+                () => Promise.resolve(this.requestHandler(crawlingContext)),
+                this.userRequestHandlerTimeoutMillis,
+                `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
+            );
+            request.state = RequestState.DONE;
+        } catch (e: any) {
+            request.state = RequestState.ERROR;
+            throw e;
+        }
     }
 
     protected async _handleNavigation(crawlingContext: Context) {
@@ -464,6 +472,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         const { request, session } = crawlingContext;
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
 
+        request.state = RequestState.BEFORE_NAV;
         // Execute pre navigation hooks before applying session pool cookies,
         // as they may also set cookies in the session
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
@@ -482,6 +491,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         );
         tryCancel();
 
+        request.state = RequestState.AFTER_NAV;
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
         tryCancel();
     }

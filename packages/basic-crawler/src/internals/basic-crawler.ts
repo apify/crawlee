@@ -29,6 +29,7 @@ import {
     CriticalError,
     NonRetryableError,
     RequestQueue,
+    RequestState,
     Router,
     SessionPool,
     Statistics,
@@ -918,6 +919,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.crawlingContexts.set(crawlingContext.id, crawlingContext);
 
         try {
+            request.state = RequestState.REQUEST_HANDLER;
             await addTimeoutToPromise(
                 () => this._runRequestHandler(crawlingContext),
                 this.requestHandlerTimeoutMillis,
@@ -934,14 +936,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.handledRequestsCount++;
 
             // reclaim session if request finishes successfully
+            request.state = RequestState.DONE;
             session?.markGood();
         } catch (err) {
             try {
+                request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
                     () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
                 );
+                request.state = RequestState.DONE;
             } catch (secondaryError: any) {
                 if (!secondaryError.triggeredFromUserHandler) {
                     const apifySpecific = process.env.APIFY_IS_AT_HOME
@@ -949,6 +954,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     this.log.exception(secondaryError as Error, 'An exception occurred during handling of failed request. '
                         + `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`);
                 }
+                request.state = RequestState.ERROR;
                 throw secondaryError;
             }
             // decrease the session score if the request fails (but the error handler did not throw)

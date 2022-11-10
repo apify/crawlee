@@ -25,7 +25,7 @@ import type { Page, Response, Route } from 'playwright';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { validators, KeyValueStore } from '@crawlee/browser';
+import { validators, KeyValueStore, RequestState } from '@crawlee/browser';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { BatchAddRequestsResult } from '@crawlee/types';
@@ -735,7 +735,14 @@ export interface PlaywrightContextUtils {
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = () => injectJQuery(context.page, { surviveNavigations: false });
+    context.injectJQuery = (async () => {
+        if (context.request.state === RequestState.BEFORE_NAV) {
+            log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
+            await injectJQuery(context.page);
+            return;
+        }
+        await injectJQuery(context.page, { surviveNavigations: false });
+    });
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);

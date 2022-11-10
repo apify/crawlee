@@ -28,7 +28,18 @@ const requestOptionalPredicates = {
     keepUrlFragment: ow.optional.boolean,
     useExtendedUniqueKey: ow.optional.boolean,
     skipNavigation: ow.optional.boolean,
+    state: ow.optional.number.greaterThanOrEqual(0).lessThanOrEqual(6),
 };
+
+export enum RequestState {
+    UNPROCESSED,
+    BEFORE_NAV,
+    AFTER_NAV,
+    REQUEST_HANDLER,
+    DONE,
+    ERROR_HANDLER,
+    ERROR,
+}
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -110,6 +121,9 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * Is `null` if the request has not been crawled yet.
      */
     handledAt?: string;
+
+    /** Describes the request's current lifecycle stage. */
+    state: RequestState = RequestState.UNPROCESSED;
 
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.

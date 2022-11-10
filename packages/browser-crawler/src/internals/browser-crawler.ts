@@ -22,6 +22,7 @@ import {
     Configuration,
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
+    RequestState,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -486,11 +487,19 @@ export abstract class BrowserCrawler<
             }
         }
 
-        await addTimeoutToPromise(
-            () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
-            this.requestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
-        );
+        request.state = RequestState.REQUEST_HANDLER;
+        try {
+            await addTimeoutToPromise(
+                () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
+                this.requestHandlerTimeoutMillis,
+                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
+            );
+
+            request.state = RequestState.DONE;
+        } catch (e: any) {
+            request.state = RequestState.ERROR;
+            throw e;
+        }
         tryCancel();
 
         if (session) session.markGood();
@@ -530,6 +539,7 @@ export abstract class BrowserCrawler<
 
         const preNavigationHooksCookies = this._getCookieHeaderFromRequest(crawlingContext.request);
 
+        crawlingContext.request.state = RequestState.BEFORE_NAV;
         await this._executeHooks(this.preNavigationHooks, crawlingContext, gotoOptions);
         tryCancel();
 
@@ -542,10 +552,12 @@ export abstract class BrowserCrawler<
         } catch (error) {
             await this._handleNavigationTimeout(crawlingContext, error as Error);
 
+            crawlingContext.request.state = RequestState.ERROR;
             throw error;
         }
-
         tryCancel();
+
+        crawlingContext.request.state = RequestState.AFTER_NAV;
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
     }
 
