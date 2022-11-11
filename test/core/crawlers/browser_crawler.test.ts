@@ -261,7 +261,7 @@ describe('BrowserCrawler', () => {
         expect(result[0]).toBe(serverAddress);
     });
 
-    test.only('should correctly track request.state', async () => {
+    test('should correctly track request.state', async () => {
         const sources = [
             { url: `${serverAddress}/?q=1` },
         ];

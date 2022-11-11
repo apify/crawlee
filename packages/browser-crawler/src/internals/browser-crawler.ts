@@ -489,11 +489,19 @@ export abstract class BrowserCrawler<
             }
         }
 
-        await addTimeoutToPromise(
-            () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
-            this.requestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
-        );
+        request.state = RequestState.REQUEST_HANDLER;
+        try {
+            await addTimeoutToPromise(
+                () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
+                this.requestHandlerTimeoutInnerMillis,
+                `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
+            );
+
+            request.state = RequestState.DONE;
+        } catch (e: any) {
+            request.state = RequestState.ERROR;
+            throw e;
+        }
         tryCancel();
 
         if (session) session.markGood();
