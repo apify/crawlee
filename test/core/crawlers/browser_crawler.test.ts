@@ -261,7 +261,7 @@ describe('BrowserCrawler', () => {
         expect(result[0]).toBe(serverAddress);
     });
 
-    test.only('should correctly track request.state', async () => {
+    test('should correctly track request.state', async () => {
         const sources = [
             { url: `${serverAddress}/?q=1` },
         ];
@@ -369,6 +369,34 @@ describe('BrowserCrawler', () => {
             await browserCrawler.run();
             expect(failedCalled).toBe(false);
         }
+    });
+
+    test('should respect the requestHandlerTimeoutSecs option', async () => {
+        const requestList = await RequestList.open({
+            sources: [
+                { url: `${serverAddress}/?q=1` },
+            ],
+        });
+
+        const callSpy = jest.fn();
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            requestHandler: async () => {
+                setTimeout(() => callSpy('good'), 300);
+                setTimeout(() => callSpy('bad'), 1500);
+                await new Promise(() => {});
+            },
+            requestHandlerTimeoutSecs: 0.5,
+            maxRequestRetries: 0,
+        });
+        await browserCrawler.run();
+
+        expect(callSpy).toBeCalledTimes(1);
+        expect(callSpy).toBeCalledWith('good');
     });
 
     test('should not throw without SessionPool', async () => {

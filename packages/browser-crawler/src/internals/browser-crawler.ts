@@ -305,6 +305,7 @@ export abstract class BrowserCrawler<
 
     protected userProvidedRequestHandler!: BrowserRequestHandler<Context>;
     protected navigationTimeoutMillis: number;
+    protected requestHandlerTimeoutInnerMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
     protected persistCookiesPerSession: boolean;
@@ -387,6 +388,7 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
+        this.requestHandlerTimeoutInnerMillis = requestHandlerTimeoutSecs * 1000;
         this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
@@ -491,8 +493,8 @@ export abstract class BrowserCrawler<
         try {
             await addTimeoutToPromise(
                 () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
-                this.requestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`,
+                this.requestHandlerTimeoutInnerMillis,
+                `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
             );
 
             request.state = RequestState.DONE;
