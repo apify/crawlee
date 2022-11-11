@@ -140,7 +140,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     }
 
     protected override async _cleanupContext(context: JSDOMCrawlingContext) {
-        context.window.close();
+        context.window?.close();
     }
 
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: JSDOMCrawlingContext) {
