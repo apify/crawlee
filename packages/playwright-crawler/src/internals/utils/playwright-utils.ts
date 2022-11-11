@@ -25,7 +25,7 @@ import type { Page, Response, Route } from 'playwright';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { validators, KeyValueStore } from '@crawlee/browser';
+import { validators, KeyValueStore, RequestState } from '@crawlee/browser';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { BatchAddRequestsResult } from '@crawlee/types';
@@ -112,7 +112,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
  * This can affect functionality of page's scripts.
  *
- * The injected jQuery will survive page navigations and reloads.
+ * The injected jQuery will survive page navigations and reloads by default.
  *
  * **Example usage:**
  * ```javascript
@@ -127,10 +127,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * function in any way.
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
-export function injectJQuery(page: Page): Promise<unknown> {
+export function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
-    return injectFile(page, jqueryPath, { surviveNavigations: true });
+    return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
 export interface DirectNavigationOptions {
@@ -734,7 +735,14 @@ export interface PlaywrightContextUtils {
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = () => injectJQuery(context.page);
+    context.injectJQuery = (async () => {
+        if (context.request.state === RequestState.BEFORE_NAV) {
+            log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
+            await injectJQuery(context.page);
+            return;
+        }
+        await injectJQuery(context.page, { surviveNavigations: false });
+    });
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);

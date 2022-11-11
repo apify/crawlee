@@ -26,7 +26,7 @@ import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.j
 import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { KeyValueStore, validators } from '@crawlee/browser';
+import { KeyValueStore, RequestState, validators } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -144,7 +144,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * other libraries included by the page that use the same variable name (e.g. another version of jQuery).
  * This can affect functionality of page's scripts.
  *
- * The injected jQuery will survive page navigations and reloads.
+ * The injected jQuery will survive page navigations and reloads by default.
  *
  * **Example usage:**
  * ```javascript
@@ -159,10 +159,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * function in any way.
  *
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
+ * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
-export function injectJQuery(page: Page): Promise<unknown> {
+export function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
-    return injectFile(page, jqueryPath, { surviveNavigations: true });
+    return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
 /**
@@ -911,7 +912,14 @@ export interface PuppeteerContextUtils {
 /** @internal */
 export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
     context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = () => injectJQuery(context.page);
+    context.injectJQuery = (async () => {
+        if (context.request.state === RequestState.BEFORE_NAV) {
+            log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
+            await injectJQuery(context.page);
+            return;
+        }
+        await injectJQuery(context.page, { surviveNavigations: false });
+    });
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         page: context.page,

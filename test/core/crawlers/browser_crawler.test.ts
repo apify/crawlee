@@ -13,6 +13,7 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
+    RequestState,
     Session,
 } from '@crawlee/puppeteer';
 import { gotScraping } from 'got-scraping';
@@ -258,6 +259,51 @@ describe('BrowserCrawler', () => {
 
         expect(result.length).toBe(1);
         expect(result[0]).toBe(serverAddress);
+    });
+
+    test.only('should correctly track request.state', async () => {
+        const sources = [
+            { url: `${serverAddress}/?q=1` },
+        ];
+        const requestList = await RequestList.open(null, sources);
+        const requestStates: RequestState[] = [];
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            preNavigationHooks: [
+                async ({ request }) => {
+                    requestStates.push(request.state);
+                },
+            ],
+            postNavigationHooks: [
+                async ({ request }) => {
+                    requestStates.push(request.state);
+                },
+            ],
+            requestHandler: async ({ request }) => {
+                requestStates.push(request.state);
+                throw new Error('Error');
+            },
+            maxRequestRetries: 1,
+            errorHandler: async ({ request }) => {
+                requestStates.push(request.state);
+            },
+        });
+
+        await browserCrawler.run();
+
+        expect(requestStates).toEqual([
+            RequestState.BEFORE_NAV,
+            RequestState.AFTER_NAV,
+            RequestState.REQUEST_HANDLER,
+            RequestState.ERROR_HANDLER,
+            RequestState.BEFORE_NAV,
+            RequestState.AFTER_NAV,
+            RequestState.REQUEST_HANDLER,
+        ]);
     });
 
     test('should allow modifying gotoOptions by pre navigation hooks', async () => {

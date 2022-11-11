@@ -19,7 +19,7 @@ import {
     MissingRouteError,
 } from '@crawlee/basic';
 import {
-    AutoscaledPool,
+    AutoscaledPool, RequestState,
 } from '@crawlee/core';
 import express from 'express';
 import type { Dictionary } from '@crawlee/utils';
@@ -326,6 +326,35 @@ describe('BasicCrawler', () => {
 
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
+    });
+
+    test('should correctly track request.state', async () => {
+        const sources = [
+            { url: 'http://example.com/1' },
+        ];
+        const requestList = await RequestList.open(null, sources);
+        const requestStates: RequestState[] = [];
+
+        const requestHandler: RequestHandler = async ({ request }) => {
+            requestStates.push(request.state);
+            throw new Error('Error');
+        };
+
+        const errorHandler: RequestHandler = async ({ request }) => {
+            requestStates.push(request.state);
+        };
+
+        const basicCrawler = new BasicCrawler({
+            requestList,
+            maxConcurrency: 1,
+            maxRequestRetries: 1,
+            requestHandler,
+            errorHandler,
+        });
+
+        await basicCrawler.run();
+
+        expect(requestStates).toEqual([RequestState.REQUEST_HANDLER, RequestState.ERROR_HANDLER, RequestState.REQUEST_HANDLER]);
     });
 
     test('should use errorHandler', async () => {
