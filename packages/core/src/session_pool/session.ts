@@ -77,7 +77,7 @@ export interface SessionOptions {
     maxUsageCount?: number;
 
     /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
-    sessionPool?: import('./session_pool').SessionPool;
+    sessionPool: import('./session_pool').SessionPool;
 
     log?: Log;
     errorScore?: number;
