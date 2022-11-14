@@ -92,6 +92,9 @@ export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
      *     },
      * ]
      * ```
+     *
+     * Modyfing `pageOptions` is supported only in Playwright incognito.
+     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: PlaywrightHook[];
 

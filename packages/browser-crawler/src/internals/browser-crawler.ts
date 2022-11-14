@@ -205,6 +205,9 @@ export interface BrowserCrawlerOptions<
      *     },
      * ]
      * ```
+     *
+     * Modyfing `pageOptions` is supported only in Playwright incognito.
+     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: BrowserHook<Context>[];
 
