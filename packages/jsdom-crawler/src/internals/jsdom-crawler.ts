@@ -126,7 +126,7 @@ export type JSDOMRequestHandler<
 const resources = new ResourceLoader({
     // Copy from /packages/browser-pool/src/abstract-classes/browser-plugin.ts:17
     // in order not to include the entire package here
-    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
 });
 
 export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
