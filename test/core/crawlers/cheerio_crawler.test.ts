@@ -190,7 +190,7 @@ describe('CheerioCrawler', () => {
         });
 
         // eslint-disable-next-line max-len
-        await expect(cheerioCrawler.run()).rejects.toThrow(`No default route set up. Please specify 'requestHandler' option or provide default route via 'crawler.router.addDefaultRoute()'.`);
+        await expect(cheerioCrawler.run()).rejects.toThrow("Route not found for label 'undefined'. You must set up a route for this label or a default route. Use `requestHandler`, `router.addHandler` or `router.addDefaultHandler`.");
     });
 
     test('should ignore ssl by default', async () => {
