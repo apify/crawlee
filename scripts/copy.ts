@@ -31,7 +31,7 @@ function getRootVersion(): string {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require
-    rootVersion = require(resolve(root, './packages/crawlee/package.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
+    rootVersion = require(resolve(root, './packages/core/package.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
 
     const parts = rootVersion.split('.');
     parts[2] = `${+parts[2] + 1}`;
@@ -48,7 +48,7 @@ function getNextVersion() {
     const versions: string[] = [];
 
     try {
-        const versionString = execSync(`npm show crawlee versions --json`, { encoding: 'utf8', stdio: 'pipe' });
+        const versionString = execSync(`npm show core versions --json`, { encoding: 'utf8', stdio: 'pipe' });
         const parsed = JSON.parse(versionString) as string[];
         versions.push(...parsed);
     } catch {
