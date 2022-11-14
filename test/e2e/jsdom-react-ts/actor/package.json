@@ -1,7 +1,7 @@
 {
-    "name": "test-jsdom-default-ts",
+    "name": "test-jsdom-react-ts",
     "version": "0.0.1",
-    "description": "JSDOM Crawler Test - TypeScript",
+    "description": "JSDOM Crawler Test - React - TypeScript",
     "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.0",

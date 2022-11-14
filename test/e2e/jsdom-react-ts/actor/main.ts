@@ -8,20 +8,24 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     await Actor.init();
 }
 
-const crawler = new JSDOMCrawler();
+const crawler = new JSDOMCrawler({
+    runScripts: true,
+    requestHandler: async ({ window }) => {
+        const { document } = window;
+        document.querySelectorAll('button')[12].click(); // 1
+        document.querySelectorAll('button')[15].click(); // +
+        document.querySelectorAll('button')[12].click(); // 1
+        document.querySelectorAll('button')[18].click(); // =
 
-crawler.router.addDefaultHandler(async ({ window, enqueueLinks, request, log }) => {
-    const { url } = request;
-    await enqueueLinks({
-        globs: ['https://crawlee.dev/docs/**'],
-    });
+        // 2
+        const { innerHTML } = document.querySelectorAll('.component-display')[0].childNodes[0] as Element;
 
-    const pageTitle = window.document.title;
-    log.info(`URL: ${url} TITLE: ${pageTitle}`);
-
-    await Dataset.pushData({ url, pageTitle });
+        await Dataset.pushData({ result: innerHTML });
+    },
 });
 
-await crawler.run(['https://crawlee.dev/docs/quick-start']);
+await crawler.run([
+    'https://ahfarmer.github.io/calculator/',
+]);
 
 await Actor.exit({ exit: Actor.isAtHome() });
