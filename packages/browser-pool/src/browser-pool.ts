@@ -108,7 +108,7 @@ export type PostLaunchHook<BC extends BrowserController> = (pageId: string, brow
  * The hooks are called with three arguments:
  * `pageId`: `string`, `browserController`: {@apilink BrowserController} and
  * `pageOptions`: `object|undefined` - This only works if the underlying `BrowserController` supports new page options.
- * So far, new page options are only supported by `PlaywrightController`.
+ * So far, new page options are only supported by `PlaywrightController` in incognito contexts.
  * If the page options are not supported by `BrowserController` the `pageOptions` argument is `undefined`.
  */
 export type PrePageCreateHook<
@@ -176,7 +176,7 @@ export interface BrowserPoolHooks<
      * The hooks are called with three arguments:
      * `pageId`: `string`, `browserController`: {@apilink BrowserController} and
      * `pageOptions`: `object|undefined` - This only works if the underlying `BrowserController` supports new page options.
-     * So far, new page options are only supported by `PlaywrightController`.
+     * So far, new page options are only supported by `PlaywrightController` in incognito contexts.
      * If the page options are not supported by `BrowserController` the `pageOptions` argument is `undefined`.
      */
     prePageCreateHooks?: PrePageCreateHook<BC>[];

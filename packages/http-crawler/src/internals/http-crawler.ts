@@ -91,6 +91,9 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      *     },
      * ]
      * ```
+     *
+     * Modyfing `pageOptions` is supported only in Playwright incognito.
+     * See {@apilink PrePageCreateHook}
      */
     preNavigationHooks?: InternalHttpHook<Context>[];
 
