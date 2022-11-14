@@ -1,3 +1,4 @@
+import ow from 'ow';
 import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
@@ -6,12 +7,13 @@ import type {
     RequestHandler,
     EnqueueLinksOptions,
     RequestQueue,
+    Configuration,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type { DOMWindow } from 'jsdom';
-import { JSDOM } from 'jsdom';
+import { JSDOM, ResourceLoader } from 'jsdom';
 import type { IncomingMessage } from 'http';
 
 export type JSDOMErrorHandler<
@@ -22,7 +24,12 @@ export type JSDOMErrorHandler<
 export interface JSDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {}
+    > extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
+    /**
+     * Download and run scripts.
+     */
+    runScripts?: boolean;
+}
 
 export type JSDOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -53,6 +60,12 @@ export type JSDOMRequestHandler<
  * it is very fast and efficient on data bandwidth. However, if the target website requires JavaScript
  * to display the content, you might need to use {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead,
  * because it loads the pages using full-featured headless Chrome browser.
+ *
+ * Alternatively, you can use {@apilink JSDOMCrawlerOptions.runScripts} to run website scripts in Node.
+ * JSDOM does not implement all the standards, so websites can break.
+ *
+ * **Limitation**:
+ * This crawler does not support proxies and cookies yet (each open starts with empty cookie store), and the user agent is always set to `Chrome`.
  *
  * `JSDOMCrawler` downloads each URL using a plain HTTP request,
  * parses the HTML content using [JSDOM](https://www.npmjs.com/package/jsdom)
@@ -110,14 +123,52 @@ export type JSDOMRequestHandler<
  * ```
  * @category Crawlers
  */
+const resources = new ResourceLoader({
+    // Copy from /packages/browser-pool/src/abstract-classes/browser-plugin.ts:17
+    // in order not to include the entire package here
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36',
+});
+
 export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
+    protected static override optionsShape = {
+        ...HttpCrawler.optionsShape,
+        runScripts: ow.optional.boolean,
+    };
+
+    protected runScripts: boolean;
+
+    constructor(options: JSDOMCrawlerOptions = {}, config?: Configuration) {
+        const {
+            runScripts = false,
+            ...httpOptions
+        } = options;
+
+        super(httpOptions, config);
+
+        this.runScripts = runScripts;
+    }
+
+    protected override async _cleanupContext(context: JSDOMCrawlingContext) {
+        context.window?.close();
+    }
+
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: JSDOMCrawlingContext) {
         const body = await concatStreamToBuffer(response);
 
         const { window } = new JSDOM(body, {
             url: response.url,
             contentType: isXml ? 'text/xml' : 'text/html',
+            runScripts: this.runScripts ? 'dangerously' : undefined,
+            resources,
         });
+
+        if (this.runScripts) {
+            await new Promise<void>((resolve) => {
+                window.addEventListener('load', () => {
+                    resolve();
+                });
+            });
+        }
 
         return {
             window,
