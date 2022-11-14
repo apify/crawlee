@@ -14,7 +14,9 @@ export class CriticalError extends NonRetryableError {}
 export class MissingRouteError extends CriticalError {}
 
 /**
- * Indicates that the request should be retried (while still respecting the maximum number of retries).
+ * Errors of `RetryRequestError` type will always be retried by the crawler.
+ *
+ * *This error overrides the `maxRequestRetries` option, i.e. the request can be retried indefinitely until it succeeds.*
  */
 export class RetryRequestError extends Error {
     constructor(message?: string) {
