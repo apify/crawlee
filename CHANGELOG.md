@@ -3,12 +3,21 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## 3.1.2 (2022-11-15)
+## [3.1.2](https://github.com/apify/crawlee/compare/v3.1.1...v3.1.2) (2022-11-15)
 
-**Note:** Version bump only for package crawlee
+### Bug Fixes
 
+* injectJQuery in context does not survive navs ([#1661](https://github.com/apify/crawlee/issues/1661)) ([493a7cf](https://github.com/apify/crawlee/commit/493a7cff569cb12cfd9aa5e0f4fcb9de686eb41f))
+* make router error message more helpful for undefined routes ([#1678](https://github.com/apify/crawlee/issues/1678)) ([ab359d8](https://github.com/apify/crawlee/commit/ab359d84f2ebdac69441ae84dcade1bca7714390))
+* **MemoryStorage:** correctly respect the desc option ([#1666](https://github.com/apify/crawlee/issues/1666)) ([b5f37f6](https://github.com/apify/crawlee/commit/b5f37f66a50b2d546eca24a699cf92cb683b7026))
+* requestHandlerTimeout timing ([#1660](https://github.com/apify/crawlee/issues/1660)) ([493ea0c](https://github.com/apify/crawlee/commit/493ea0ce80e55ece5a8881a6aea6674918873b35))
+* shallow clone browserPoolOptions before normalization ([#1665](https://github.com/apify/crawlee/issues/1665)) ([22467ca](https://github.com/apify/crawlee/commit/22467ca81ad9464d528495333f62a60f2ea0487c))
+* support headfull mode in playwright js project template ([ea2e61b](https://github.com/apify/crawlee/commit/ea2e61bc3bfcc9a895a89ad6db415a398bd3b7db))
+* support headfull mode in puppeteer js project template ([e6aceb8](https://github.com/apify/crawlee/commit/e6aceb81ed0762f25dde66ff94ccdf8c1a619f7d))
 
+### Features
 
+* **jsdom-crawler:** add runScripts option ([#1668](https://github.com/apify/crawlee/issues/1668)) ([8ef90bc](https://github.com/apify/crawlee/commit/8ef90bc1c020ddee334dd9a9267f6b6298a27024))
 
 
 ## [3.1.1](https://github.com/apify/crawlee/compare/v3.1.0...v3.1.1) (2022-11-07)
@@ -31,9 +40,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 * **playwright:** disable animations when taking screenshots ([#1601](https://github.com/apify/crawlee/issues/1601)) ([4e63034](https://github.com/apify/crawlee/commit/4e63034c7b87de405edbd84f9b1803aa101f5c78))
 
 
-
 # [3.1.0](https://github.com/apify/crawlee/compare/v3.0.4...v3.1.0) (2022-10-13)
-
 
 ### Bug Fixes
 
