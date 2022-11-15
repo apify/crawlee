@@ -122,9 +122,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
      */
     handledAt?: string;
 
-    /** Describes the request's current lifecycle stage. */
-    state: RequestState = RequestState.UNPROCESSED;
-
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
@@ -201,13 +198,11 @@ export class Request<UserData extends Dictionary = Dictionary> {
                 set: (value: Record<string, any>) => {
                     Object.defineProperties(value, {
                         __crawlee: {
-                            // eslint-disable-next-line no-underscore-dangle
                             value: this._userData.__crawlee,
                             enumerable: false,
                             writable: true,
                         },
                         toJSON: {
-                            // eslint-disable-next-line no-underscore-dangle
                             value: () => {
                                 if (Object.keys(this._userData.__crawlee).length > 0) {
                                     return ({
@@ -236,14 +231,12 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
     get skipNavigation(): boolean {
-        // eslint-disable-next-line no-underscore-dangle
         return this.userData.__crawlee?.skipNavigation ?? false;
     }
 
+    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
     set skipNavigation(value: boolean) {
-        // eslint-disable-next-line no-underscore-dangle
         if (!this.userData.__crawlee) (this.userData as Dictionary).__crawlee = { skipNavigation: value };
-        // eslint-disable-next-line no-underscore-dangle
         else this.userData.__crawlee.skipNavigation = value;
     }
 
@@ -255,6 +248,17 @@ export class Request<UserData extends Dictionary = Dictionary> {
     /** shortcut for setting `request.userData.label` */
     set label(value: string | undefined) {
         (this.userData as Dictionary).label = value;
+    }
+
+    /** Describes the request's current lifecycle state. */
+    get state(): RequestState {
+        return this.userData.__crawlee?.state ?? RequestState.UNPROCESSED;
+    }
+
+    /** Describes the request's current lifecycle state. */
+    set state(value: RequestState) {
+        if (!this.userData.__crawlee) (this.userData as Dictionary).__crawlee = { state: value };
+        else this.userData.__crawlee.state = value;
     }
 
     /**
