@@ -77,6 +77,20 @@ describe('BasicCrawler', () => {
         server.close();
     });
 
+    test('does not leak sigint events', async () => {
+        let count = 0;
+
+        const crawler = new BasicCrawler({
+            requestHandler: () => {
+                count = process.listenerCount('SIGINT');
+            },
+        });
+
+        await crawler.run(['https://example.com']);
+
+        expect(process.listenerCount('SIGINT')).toBe(count - 1);
+    });
+
     test('should run in parallel thru all the requests', async () => {
         const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index}` }));
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
