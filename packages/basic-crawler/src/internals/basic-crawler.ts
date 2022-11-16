@@ -1096,12 +1096,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             forceStack = true;
         }
 
-        const baseDir = process.cwd();
         const stackLines = error?.stack ? error.stack.split('\n') : new Error().stack!.split('\n').slice(2);
+
+        const baseDir = process.cwd();
         const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
 
         return (process.env.CRAWLEE_VERBOSE_LOG || forceStack)
-            ? error.stack ?? (error.message || error)
+            ? error.stack ?? ([error.message || error, ...stackLines].join('\n'))
             : [error.message || error, userLine].join('\n');
     }
 
