@@ -1,6 +1,6 @@
 import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
 import type {
@@ -1096,27 +1096,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             forceStack = true;
         }
 
-        // For ow errors, we want to provide an user friendly message, pointing directly to the problem.
-        if (error instanceof ArgumentError) {
-            if (error.stack?.includes('at ow')) {
-                const stackLines = error.stack?.split('\n') ?? [];
-                const userCodeIndex = stackLines.findIndex((line) => line.trim().startsWith('at') && !line.includes('/node_modules/'));
-                return [
-                    error.message,
-                    stackLines[userCodeIndex - 1], // called library function
-                    stackLines[userCodeIndex], // from where it was called
-                ].join('\n');
-            }
-        }
-
-        // For timeout errors we want to show the stack just in case the env variable is set
-        if (error instanceof TimeoutError) {
-            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error;
-        }
+        const baseDir = process.cwd();
+        const stackLines = error?.stack ? error.stack.split('\n') : new Error().stack!.split('\n').slice(2);
+        const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
 
         return (process.env.CRAWLEE_VERBOSE_LOG || forceStack)
             ? error.stack ?? (error.message || error)
-            : error.message || error;
+            : [error.message || error, userLine].join('\n');
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
