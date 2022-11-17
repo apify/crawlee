@@ -1,6 +1,6 @@
 import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
 import type {
@@ -1100,6 +1100,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const baseDir = process.cwd();
         const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
+
+        if (error instanceof TimeoutError) {
+            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error; // stack in timeout errors does not really help
+        }
 
         return (process.env.CRAWLEE_VERBOSE_LOG || forceStack)
             ? error.stack ?? ([error.message || error, ...stackLines].join('\n'))

@@ -246,7 +246,7 @@ describe('PuppeteerCrawler', () => {
         await requestQueue.drop();
 
         expect(requestHandler).not.toBeCalled();
-        const warnings = logWarningSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
+        const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1].retryCount]);
         expect(warnings).toEqual([
             [
                 'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
@@ -305,7 +305,7 @@ describe('PuppeteerCrawler', () => {
         await requestQueue.drop();
 
         expect(requestHandler).not.toBeCalled();
-        const warnings = logWarningSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
+        const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1].retryCount]);
         expect(warnings).toEqual([
             [
                 'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',

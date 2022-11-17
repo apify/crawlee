@@ -981,7 +981,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(false);
+            expect(args[0].split('\n').length).toBeLessThanOrEqual(2);
             expect(args[1]).toBeDefined();
         }
 
