@@ -89,19 +89,6 @@ body:
       options:
         - label: Tick me if you encountered this issue on the Apify platform
 
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority this issue should have
-      description: Make sure you choose something that makes sense! If you need to elaborate on your reasoning, please do so in the Issue description section.
-      multiple: false
-      options:
-        - "Low (slightly annoying)"
-        - "Medium (should be fixed soon)"
-        - "High (immediate attention needed)"
-    validations:
-      required: true
-
   - type: input
     id: next-release
     attributes:
