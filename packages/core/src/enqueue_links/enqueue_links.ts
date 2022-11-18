@@ -166,6 +166,13 @@ export enum EnqueueStrategy {
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
 export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 'requestQueue' | 'urls'>): Promise<BatchAddRequestsResult> {
+    if (!options || Object.keys(options).length === 0) {
+        throw new RangeError([
+            `enqueueLinks() was called without the required options. You might have imported it from "crawlee" instead of using the context-aware method.`,
+            'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/docs/examples/crawl-relative-links',
+        ].join('\n'));
+    }
+
     ow(options, ow.object.exactShape({
         urls: ow.array.ofType(ow.string),
         requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
