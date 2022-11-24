@@ -71,19 +71,19 @@ FROM apify/actor-node-playwright-chrome:16-1.10.0-beta
 
 - Node.js version tag should **always** be used.
 - The automation library version tag should be used for **added security**.
-- Asterisk `*` should be used as the automation library version in our `package.json` files.
+- The automation library version should always match the image tag to avoid **compatibility issues**.
 
-It makes sure the pre-installed version of Puppeteer or Playwright is not re-installed on build. This is important, because those libraries are only guaranteed to work with specific versions of browsers, and those browsers come pre-installed in the image.
+This is important, because those libraries are only guaranteed to work with specific versions of browsers, and those browsers come pre-installed in the image. If not specified, package managers (`yarn`, `npm`) can resolve the package versions differently, which can lead to compatibility issues. 
 
 ```dockerfile
-FROM apify/actor-node-playwright-chrome:16
+FROM apify/actor-node-playwright-chrome:16-1.25.0
 ```
 
 ```json
 {
     "dependencies": {
         "crawlee": "^3.0.0",
-        "playwright": "*"
+        "playwright": "1.25.0"
     }
 }
 ```

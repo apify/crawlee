@@ -5,7 +5,7 @@
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
         "crawlee": "^3.0.0",
-        "playwright": "*"
+        "playwright": "1.25.0"
     },
     "devDependencies": {
         "@apify/tsconfig": "^0.1.0",
