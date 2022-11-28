@@ -5,8 +5,8 @@ import { Dataset, JSDOMCrawler, log, LogLevel } from 'crawlee';
 // This functionality is optional!
 log.setLevel(LogLevel.DEBUG);
 
-// Create an instance of the CheerioCrawler class - a crawler
-// that automatically loads the URLs and parses their HTML using the cheerio library.
+// Create an instance of the JSDOMCrawler class - a crawler
+// that automatically loads the URLs and parses their HTML using the jsdom library.
 const crawler = new JSDOMCrawler({
     // The crawler downloads and processes the web pages in parallel, with a concurrency
     // automatically managed based on the available system memory and CPU (see AutoscaledPool class).
@@ -25,17 +25,17 @@ const crawler = new JSDOMCrawler({
 
     // This function will be called for each URL to crawl.
     // It accepts a single parameter, which is an object with options as:
-    // https://crawlee.dev/api/cheerio-crawler/interface/CheerioCrawlerOptions#requestHandler
+    // https://crawlee.dev/api/jsdom-crawler/interface/JSDOMCrawlerOptions#requestHandler
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
-    // - $: the cheerio object containing parsed HTML
+    // - window: the JSDOM window object
     async requestHandler({ request, window }) {
         log.debug(`Processing ${request.url}...`);
 
         // Extract data from the page
         const title = window.document.title;
         const h1texts: { text: string }[] = [];
-        document.querySelectorAll('h1').forEach((element) => {
+        window.document.querySelectorAll('h1').forEach((element) => {
             h1texts.push({
                 text: element.textContent!,
             });
