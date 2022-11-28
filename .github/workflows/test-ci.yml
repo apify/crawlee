@@ -155,7 +155,7 @@ jobs:
           - name: Generate changed packages list
             id: changed-packages
             run: |
-              echo "::set-output name=changed_packages::$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)"
+              echo "changed_packages=$(node ./node_modules/.bin/lerna changed -p | wc -l | xargs)" >> $GITHUB_OUTPUT
 
           - name: Report nothing to release
             if: steps.changed-packages.outputs.changed_packages == '0'
@@ -181,13 +181,13 @@ jobs:
             id:  versions
             run: |
               crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-              echo "::set-output name=crawlee::$crawlee"
+              echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
               apify=`node -p "require('./package.json').devDependencies.apify"`
-              echo "::set-output name=apify::$apify"
+              echo "apify=$apify" >> $GITHUB_OUTPUT
               puppeteer=`node -p "require('./package.json').devDependencies.puppeteer"`
-              echo "::set-output name=puppeteer::$puppeteer"
+              echo "puppeteer=$puppeteer" >> $GITHUB_OUTPUT
               playwright=`node -p "require('./package.json').devDependencies.playwright"`
-              echo "::set-output name=playwright::$playwright"
+              echo "playwright=$playwright" >> $GITHUB_OUTPUT
 
           - name: Trigger Docker image builds
             uses: peter-evans/repository-dispatch@v2
