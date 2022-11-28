@@ -1,6 +1,6 @@
 import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
 import type {
@@ -1096,14 +1096,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             forceStack = true;
         }
 
-        // For timeout errors we want to show the stack just in case the env variable is set
+        const stackLines = error?.stack ? error.stack.split('\n') : new Error().stack!.split('\n').slice(2);
+
+        const baseDir = process.cwd();
+        const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
+
         if (error instanceof TimeoutError) {
-            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error;
+            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error; // stack in timeout errors does not really help
         }
 
         return (process.env.CRAWLEE_VERBOSE_LOG || forceStack)
-            ? error.stack ?? (error.message || error)
-            : error.message || error;
+            ? error.stack ?? ([error.message || error, ...stackLines].join('\n'))
+            : [error.message || error, userLine].join('\n');
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
