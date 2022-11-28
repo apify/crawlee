@@ -64,7 +64,7 @@
         "ow": "^0.28.1"
     },
     "peerDependencies": {
-        "playwright": "^1.21.1"
+        "playwright": ">= 1.21.x <= 1.27.x"
     },
     "peerDependenciesMeta": {
         "playwright": {
