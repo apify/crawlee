@@ -148,8 +148,6 @@ jobs:
 
       - name: Trigger Docker image builds
         uses: peter-evans/repository-dispatch@v2
-        # Trigger images only if we have something new pushed
-        if: steps.changed-packages.outputs.changed_packages != '0'
         with:
           token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
           repository: apify/apify-actor-docker
