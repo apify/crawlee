@@ -5,7 +5,7 @@ import { Dataset, JSDOMCrawler, log, LogLevel } from 'crawlee';
 // This functionality is optional!
 log.setLevel(LogLevel.DEBUG);
 
-// Create an instance of the JSDOM class - a crawler
+// Create an instance of the JSDOMCrawler class - a crawler
 // that automatically loads the URLs and parses their HTML using the jsdom library.
 const crawler = new JSDOMCrawler({
     // The crawler downloads and processes the web pages in parallel, with a concurrency
