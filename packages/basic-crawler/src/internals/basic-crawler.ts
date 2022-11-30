@@ -575,10 +575,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
-
-        // Attach a listener to handle migration and aborting events gracefully.
-        this.events.on(EventType.MIGRATING, this._pauseOnMigration.bind(this));
-        this.events.on(EventType.ABORTING, this._pauseOnMigration.bind(this));
     }
 
     /**
@@ -599,11 +595,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._init();
         await this.stats.startCapturing();
 
-        process.once('SIGINT', async () => {
+        const sigintHandler = async () => {
             this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm run start');
             await this._pauseOnMigration();
             await this.autoscaledPool!.abort();
-        });
+        };
+
+        // Attach a listener to handle migration and aborting events gracefully.
+        const boundPauseOnMigration = this._pauseOnMigration.bind(this);
+        process.once('SIGINT', sigintHandler);
+        this.events.on(EventType.MIGRATING, boundPauseOnMigration);
+        this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
         try {
             this.log.info('Starting the crawl');
@@ -611,6 +613,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         } finally {
             await this.teardown();
             await this.stats.stopCapturing();
+
+            process.off('SIGINT', sigintHandler);
+            this.events.off(EventType.MIGRATING, boundPauseOnMigration);
+            this.events.off(EventType.ABORTING, boundPauseOnMigration);
         }
 
         const finalStats = this.stats.calculate();
