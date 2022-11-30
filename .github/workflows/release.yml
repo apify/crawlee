@@ -138,18 +138,16 @@ jobs:
         id:  versions
         run: |
           crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-          echo "::set-output name=crawlee::$crawlee"
+          echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
           apify=`node -p "require('./package.json').devDependencies.apify"`
-          echo "::set-output name=apify::$apify"
+          echo "apify=$apify" >> $GITHUB_OUTPUT
           puppeteer=`node -p "require('./package.json').devDependencies.puppeteer"`
-          echo "::set-output name=puppeteer::$puppeteer"
+          echo "puppeteer=$puppeteer" >> $GITHUB_OUTPUT
           playwright=`node -p "require('./package.json').devDependencies.playwright"`
-          echo "::set-output name=playwright::$playwright"
+          echo "playwright=$playwright" >> $GITHUB_OUTPUT
 
       - name: Trigger Docker image builds
         uses: peter-evans/repository-dispatch@v2
-        # Trigger images only if we have something new pushed
-        if: steps.changed-packages.outputs.changed_packages != '0'
         with:
           token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
           repository: apify/apify-actor-docker
