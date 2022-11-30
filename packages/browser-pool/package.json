@@ -51,7 +51,7 @@
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
-        "playwright": "^1.21.1",
+        "playwright": ">= 1.21.x <= 1.27.x",
         "puppeteer": "<= 19.x"
     },
     "peerDependenciesMeta": {
