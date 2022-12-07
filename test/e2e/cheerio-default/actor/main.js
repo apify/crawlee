@@ -11,7 +11,9 @@ await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         async requestHandler({ $, enqueueLinks, request, log }) {
             const { url } = request;
-            await enqueueLinks({ pseudoUrls: ['https://apify.com[(/[\\w-]+)?]'] });
+            await enqueueLinks({
+                globs: ['https://crawlee.dev/docs/**'],
+            });
 
             const pageTitle = $('title').first().text();
             log.info(`URL: ${url} TITLE: ${pageTitle}`);
@@ -20,5 +22,5 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run(['https://apify.com']);
+    await crawler.run(['https://crawlee.dev/docs/quick-start']);
 }, mainOptions);
