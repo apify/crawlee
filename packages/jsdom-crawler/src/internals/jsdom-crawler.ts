@@ -13,7 +13,7 @@ import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFilteri
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type { DOMWindow } from 'jsdom';
-import { JSDOM, ResourceLoader } from 'jsdom';
+import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import type { IncomingMessage } from 'http';
 
 export type JSDOMErrorHandler<
@@ -29,6 +29,10 @@ export interface JSDOMCrawlerOptions<
      * Download and run scripts.
      */
     runScripts?: boolean;
+    /**
+     * Supress the logs from JSDOM internal console.
+     */
+    hideInternalConsole?: boolean;
 }
 
 export type JSDOMHook<
@@ -133,19 +137,48 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: ow.optional.boolean,
+        hideInternalConsole: ow.optional.boolean,
     };
 
     protected runScripts: boolean;
+    protected hideInternalConsole: boolean;
+    protected virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions = {}, config?: Configuration) {
         const {
             runScripts = false,
+            hideInternalConsole = false,
             ...httpOptions
         } = options;
 
         super(httpOptions, config);
 
         this.runScripts = runScripts;
+        this.hideInternalConsole = hideInternalConsole;
+    }
+
+    /**
+     * Returns the currently used `VirtualConsole` instance. Can be used to listen for the JSDOM's internal console messages.
+     *
+     * If the `hideInternalConsole` option is set to `true`, the messages aren't logged to the console by default,
+     * but the virtual console can still be listened to.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const console = crawler.getVirtualConsole();
+     * console.on('error', (e) => {
+     *     log.error(e);
+     * });
+     * ```
+     */
+    getVirtualConsole() {
+        if (!this.virtualConsole) {
+            this.virtualConsole = new VirtualConsole();
+            if (!this.hideInternalConsole) {
+                this.virtualConsole.sendTo(console);
+            }
+        }
+        return this.virtualConsole;
     }
 
     protected override async _cleanupContext(context: JSDOMCrawlingContext) {
@@ -160,6 +193,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             contentType: isXml ? 'text/xml' : 'text/html',
             runScripts: this.runScripts ? 'dangerously' : undefined,
             resources,
+            virtualConsole: this.getVirtualConsole(),
         });
 
         if (this.runScripts) {
