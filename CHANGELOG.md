@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.1.3](https://github.com/apify/crawlee/compare/v3.1.2...v3.1.3) (2022-12-07)
+
+
+### Bug Fixes
+
+* remove memory leaks from migration event handling ([#1679](https://github.com/apify/crawlee/issues/1679)) ([49bba25](https://github.com/apify/crawlee/commit/49bba252ebc348b61eac3895155361f7d394db36)), closes [#1670](https://github.com/apify/crawlee/issues/1670)
+
+
+### Features
+
+* always show error origin if inside the userland ([#1677](https://github.com/apify/crawlee/issues/1677)) ([bbe9045](https://github.com/apify/crawlee/commit/bbe9045d550f95138d570522f6f469eae2d146d0))
+* hideInternalConsole in JSDOMCrawler ([#1707](https://github.com/apify/crawlee/issues/1707)) ([8975f90](https://github.com/apify/crawlee/commit/8975f9088cf4dd38629c21e21061616fc1e7b003))
+
+
+
+
+
 ## [3.1.2](https://github.com/apify/crawlee/compare/v3.1.1...v3.1.2) (2022-11-15)
 
 ### Bug Fixes
