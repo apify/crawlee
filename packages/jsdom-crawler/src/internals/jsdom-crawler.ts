@@ -157,7 +157,23 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
         this.hideInternalConsole = hideInternalConsole;
     }
 
-    private getVirtualConsole() {
+    /**
+     * Returns the currently used `VirtualConsole` instance. Can be used to listen for the JSDOM's internal console messages.
+     *
+     * If the `hideInternalConsole` option is set to `true`, the messages aren't logged to the console by default,
+     * but the virtual console can still be listened to.
+     *
+     * **Example usage:**
+     * ```javascript
+     *   const console = crawler.getVirtualConsole();
+     *   console.on('error', (e) => {
+     *       log.error(e);
+     *   });
+     *
+     * ```
+     *
+     */
+    getVirtualConsole() {
         if (!this.virtualConsole) {
             this.virtualConsole = new VirtualConsole();
             if (!this.hideInternalConsole) {
