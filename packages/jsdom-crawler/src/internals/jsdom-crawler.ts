@@ -165,13 +165,11 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
      *
      * **Example usage:**
      * ```javascript
-     *   const console = crawler.getVirtualConsole();
-     *   console.on('error', (e) => {
-     *       log.error(e);
-     *   });
-     *
+     * const console = crawler.getVirtualConsole();
+     * console.on('error', (e) => {
+     *     log.error(e);
+     * });
      * ```
-     *
      */
     getVirtualConsole() {
         if (!this.virtualConsole) {
