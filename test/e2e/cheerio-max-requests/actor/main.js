@@ -15,7 +15,7 @@ await Actor.main(async () => {
             const { url, userData: { label } } = request;
 
             if (label === 'START') {
-                const links = $('.ActorStoreItem').toArray().map((item) => $(item).attr('href'));
+                const links = $('[data-test="actorCard"] > a').toArray().map((item) => $(item).attr('href'));
                 for (const link of links) {
                     const actorDetailUrl = `https://apify.com${link}`;
                     await crawler.addRequests([{
