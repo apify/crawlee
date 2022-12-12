@@ -1,4 +1,5 @@
 {
+	"actorSpecification": 1,
 	"name": "test-autoscaling-max-tasks-per-minute",
 	"version": "0.0",
 	"buildTag": "latest",

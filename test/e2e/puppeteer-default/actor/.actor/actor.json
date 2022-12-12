@@ -1,4 +1,5 @@
 {
+	"actorSpecification": 1,
 	"name": "test-puppeteer-default",
 	"version": "0.0",
 	"buildTag": "latest",

@@ -1,4 +1,5 @@
 {
+	"actorSpecification": 1,
 	"name": "test-jsdom-react-ts",
 	"version": "0.0",
 	"buildTag": "latest",
