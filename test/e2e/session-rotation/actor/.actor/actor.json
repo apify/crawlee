@@ -1,4 +1,5 @@
 {
+	"actorSpecification": 1,
 	"name": "test-session-rotation",
 	"version": "0.0",
 	"buildTag": "latest",

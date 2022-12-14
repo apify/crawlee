@@ -17,7 +17,7 @@ await Actor.main(async () => {
         },
         requestHandler: async ({ session }) => {
             const { id, usageCount, errorScore } = session;
-            Actor.pushData({ id, usageCount, errorScore });
+            await Actor.pushData({ id, usageCount, errorScore });
             throw new Error('retry');
         },
     });
