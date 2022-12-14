@@ -37,7 +37,7 @@ if (workerData !== '#actor') {
             maxRequestsPerCrawl: 5,
             async requestHandler({ enqueueLinks, request }) {
                 const { url } = request;
-                await enqueueLinks({ pseudoUrls: ['https://apify.com[(/[\\w-]+)?]'] });
+                await enqueueLinks();
 
                 await Dataset.pushData({ url });
 
@@ -48,6 +48,6 @@ if (workerData !== '#actor') {
         // eslint-disable-next-line no-underscore-dangle
         Configuration.getGlobalConfig().getStorageClient().__purged = false;
 
-        await crawler.run(['https://apify.com']);
+        await crawler.run(['https://crawlee.dev']);
     }, mainOptions);
 }

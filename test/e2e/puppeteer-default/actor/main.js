@@ -16,9 +16,11 @@ await Actor.main(async () => {
             const { url } = request;
             const pageTitle = await page.title();
             await Dataset.pushData({ url, pageTitle });
-            await enqueueLinks({ regexps: [/^https:\/\/apify\.com(\/[\w-]+)?$/i] });
+            await enqueueLinks({
+                globs: ['**/3.0/examples/*'],
+            });
         },
     });
 
-    await crawler.run(['https://apify.com']);
+    await crawler.run(['https://crawlee.dev/docs/3.0/examples/']);
 }, mainOptions);

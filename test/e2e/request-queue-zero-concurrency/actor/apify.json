@@ -1,6 +1,0 @@
-{
-	"name": "test-request-queue-zero-concurrency",
-	"version": "0.0",
-	"buildTag": "latest",
-	"env": null
-}

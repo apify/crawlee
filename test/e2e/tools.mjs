@@ -4,12 +4,16 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { setTimeout } from 'node:timers/promises';
-import { execSync } from 'node:child_process';
+import { execSync as execSyncOriginal } from 'node:child_process';
 import { got } from 'got';
 import fs from 'fs-extra';
 import { Actor } from 'apify';
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
+
+function execSync(command, options) {
+    return execSyncOriginal(command, { ...options, encoding: 'utf-8' });
+}
 
 /**
  * @param {string} name

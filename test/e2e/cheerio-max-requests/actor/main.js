@@ -15,9 +15,9 @@ await Actor.main(async () => {
             const { url, userData: { label } } = request;
 
             if (label === 'START') {
-                const links = $('.ActorStoreItem').toArray().map((item) => $(item).attr('href'));
+                const links = $('a.card').toArray().map((item) => $(item).attr('href'));
                 for (const link of links) {
-                    const actorDetailUrl = `https://apify.com${link}`;
+                    const actorDetailUrl = `https://crawlee.dev${link}`;
                     await crawler.addRequests([{
                         url: actorDetailUrl,
                         userData: { label: 'DETAIL' },
@@ -26,21 +26,19 @@ await Actor.main(async () => {
             } else if (label === 'DETAIL') {
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');
                 const title = $('header h1').text();
-                const description = $('header span.actor-description').text();
-                const modifiedDate = $('ul.ActorHeader-stats time').attr('datetime');
-                const runCount = $('ul.ActorHeader-stats > li:nth-of-type(3)').text().match(/[\d,]+/)[0].replace(/,/g, '');
+                const firstParagraph = $('header + p').text();
+                const modifiedDate = $('.theme-last-updated time').attr('datetime');
 
                 await Dataset.pushData({
                     url,
                     uniqueIdentifier,
                     title,
-                    description,
-                    modifiedDate: new Date(Number(modifiedDate)),
-                    runCount: Number(runCount),
+                    firstParagraph,
+                    modifiedDate,
                 });
             }
         },
     });
 
-    await crawler.run([{ url: 'https://apify.com/apify', userData: { label: 'START' } }]);
+    await crawler.run([{ url: 'https://crawlee.dev/docs/examples', userData: { label: 'START' } }]);
 }, mainOptions);

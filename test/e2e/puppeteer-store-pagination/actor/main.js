@@ -21,7 +21,7 @@ crawler.router.addHandler('START', async ({ log, enqueueLinks, page }) => {
         await page.waitForNetworkIdle();
         // Enqueue all loaded links
         await enqueueLinks({
-            selector: 'a.ActorStoreItem',
+            selector: '[data-test="actorCard"] > a',
             label: 'DETAIL',
             globs: ['https://apify.com/*/*'],
         });

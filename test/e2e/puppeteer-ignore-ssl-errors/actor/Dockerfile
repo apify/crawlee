@@ -12,7 +12,7 @@ RUN rm -r node_modules
 COPY --from=builder /node_modules ./node_modules
 COPY --from=builder /packages ./packages
 COPY --from=builder /package*.json ./
-COPY /apify.json ./
+COPY /.actor ./.actor
 COPY /main.js ./
 
 RUN echo "Installed NPM packages:" \

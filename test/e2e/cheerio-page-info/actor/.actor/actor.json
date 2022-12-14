@@ -1,0 +1,7 @@
+{
+	"actorSpecification": 1,
+	"name": "test-cheerio-page-info",
+	"version": "0.0",
+	"buildTag": "latest",
+	"env": null
+}

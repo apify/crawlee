@@ -1,0 +1,7 @@
+{
+	"actorSpecification": 1,
+	"name": "test-puppeteer-ignore-ssl-errors",
+	"version": "0.0",
+	"buildTag": "latest",
+	"env": null
+}

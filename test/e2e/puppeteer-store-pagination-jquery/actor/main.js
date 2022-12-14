@@ -26,7 +26,7 @@ await Actor.main(async () => {
                     await page.waitForNetworkIdle();
                     // Enqueue all loaded links
                     await enqueueLinks({
-                        selector: 'a.ActorStoreItem',
+                        selector: '[data-test="actorCard"] > a',
                         globs: [{ glob: 'https://apify.com/*/*', userData: { label: 'DETAIL' } }],
                     });
                     log.info(`Enqueued actors for page ${pageNo}`);

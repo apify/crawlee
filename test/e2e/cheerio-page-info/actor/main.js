@@ -12,7 +12,7 @@ const router = createCheerioRouter();
 router.addHandler('START', async ({ enqueueLinks }) => {
     await enqueueLinks({
         label: 'DETAIL',
-        globs: ['https://apify.com/apify/web-scraper'],
+        globs: ['**/examples/accept-user-input'],
     });
 });
 
@@ -21,17 +21,15 @@ router.addHandler('DETAIL', async ({ request, $ }) => {
 
     const uniqueIdentifier = url.split('/').slice(-2).join('/');
     const title = $('header h1').text();
-    const description = $('header span.actor-description').text();
-    const modifiedDate = $('ul.ActorHeader-stats time').attr('datetime');
-    const runCount = $('ul.ActorHeader-stats > li:nth-of-type(3)').text().match(/[\d,]+/)[0].replace(/,/g, '');
+    const firstParagraph = $('header + p').text();
+    const modifiedDate = $('.theme-last-updated time').attr('datetime');
 
     await Dataset.pushData({
         url,
         uniqueIdentifier,
         title,
-        description,
-        modifiedDate: new Date(Number(modifiedDate)),
-        runCount: Number(runCount),
+        firstParagraph,
+        modifiedDate,
     });
 });
 
@@ -40,5 +38,5 @@ await Actor.main(async () => {
         requestHandler: router,
     });
 
-    await crawler.run([{ url: 'https://apify.com/apify', userData: { label: 'START' } }]);
+    await crawler.run([{ url: 'https://crawlee.dev/docs/3.0/examples', userData: { label: 'START' } }]);
 }, mainOptions);

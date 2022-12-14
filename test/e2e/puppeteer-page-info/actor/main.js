@@ -17,7 +17,7 @@ await Actor.main(async () => {
 
             if (label === 'START') {
                 await enqueueLinks({
-                    globs: [{ glob: 'https://apify.com/apify/web-scraper', userData: { label: 'DETAIL' } }],
+                    globs: ['**/examples/accept-user-input'], userData: { label: 'DETAIL' },
                 });
             }
 
@@ -27,28 +27,22 @@ await Actor.main(async () => {
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');
 
                 const titleP = page.$eval('header h1', ((el) => el.textContent));
-                const descriptionP = page.$eval('header span.actor-description', ((el) => el.textContent));
-                const modifiedTimestampP = page.$eval('ul.ActorHeader-stats time', (el) => el.getAttribute('datetime'));
-                const runCountTextP = page.$eval('ul.ActorHeader-stats > li:nth-of-type(3)', ((el) => el.textContent));
+                const firstParagraphP = page.$eval('header + p', ((el) => el.textContent));
+                const modifiedDateP = page.$eval('.theme-last-updated time', (el) => el.getAttribute('datetime'));
                 const [
                     title,
                     description,
-                    modifiedTimestamp,
-                    runCountText,
+                    modifiedDate,
                 ] = await Promise.all([
                     titleP,
-                    descriptionP,
-                    modifiedTimestampP,
-                    runCountTextP,
+                    firstParagraphP,
+                    modifiedDateP,
                 ]);
 
-                const modifiedDate = new Date(Number(modifiedTimestamp));
-                const runCount = Number(runCountText.match(/[\d,]+/)[0].replace(/,/g, ''));
-
-                await Dataset.pushData({ url, uniqueIdentifier, title, description, modifiedDate, runCount });
+                await Dataset.pushData({ url, uniqueIdentifier, title, description, modifiedDate });
             }
         },
     });
 
-    await crawler.run([{ url: 'https://apify.com/store', userData: { label: 'START' } }]);
+    await crawler.run([{ url: 'https://crawlee.dev/docs/3.0/examples', userData: { label: 'START' } }]);
 }, mainOptions);
