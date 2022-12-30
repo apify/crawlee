@@ -565,7 +565,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 if (isFinished) {
                     const reason = isFinishedFunction
                         ? 'Crawler\'s custom isFinishedFunction() returned true, the crawler will shut down.'
-                        : 'All the requests from request list and/or request queue have been processed, the crawler will shut down.';
+                        : 'All requests from the queue have been processed, the crawler will shut down.';
                     log.info(reason);
                 }
 
