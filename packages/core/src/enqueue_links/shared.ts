@@ -200,7 +200,13 @@ export function createRequestOptions(
         })
         .map((requestOptions) => {
             requestOptions.userData ??= options.userData ?? {};
-            requestOptions.userData!.label ??= options.label;
+            if (typeof options.label === 'string') {
+                requestOptions.userData = {
+                    ...requestOptions.userData,
+                    label: options.label,
+                };
+            }
+
             return requestOptions;
         });
 }
