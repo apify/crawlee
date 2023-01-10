@@ -69,7 +69,7 @@
         "import-local": "^3.1.0"
     },
     "peerDependencies": {
-        "playwright": ">= 1.21.x <= 1.27.x",
+        "playwright": "<= 2.x",
         "puppeteer": "<= 19.x"
     },
     "peerDependenciesMeta": {
