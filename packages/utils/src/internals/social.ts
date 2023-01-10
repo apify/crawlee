@@ -123,7 +123,7 @@ const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
 export function phonesFromText(text: string): string[] {
     if (typeof text as unknown !== 'string') return [];
 
-    let phones = text.match(PHONE_REGEX_GLOBAL) || [];
+    let phones = text.match(PHONE_REGEX_GLOBAL) as string[] || [];
     phones = phones.filter((phone) => {
         if (!phone) return false;
 

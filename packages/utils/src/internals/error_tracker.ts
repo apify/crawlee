@@ -247,13 +247,13 @@ const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unk
     return storage[message] as Record<string, unknown>;
 };
 
-const increaseCount = (group: { count: number }) => {
+const increaseCount = (group: { count?: number }) => {
     if (!('count' in group)) {
         // In case users don't want to display error message
         group.count = 0;
     }
 
-    group.count++;
+    group.count!++;
 };
 
 /**

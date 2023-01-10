@@ -315,7 +315,7 @@ export class KeyValueStore {
             } else if (typeof value === 'object') {
                 // We need to remove the keys that are no longer present in the new value.
                 Object.keys(cachedValue)
-                    .filter((k) => !(k in value!))
+                    .filter((k) => !(k in (value as Dictionary)))
                     .forEach((k) => this.cache.delete(k));
                 // And update the existing ones + add new ones.
                 Object.assign(cachedValue, value);
