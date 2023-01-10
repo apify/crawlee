@@ -242,9 +242,12 @@ describe('CheerioCrawler', () => {
         expect(processed).toHaveLength(3);
         expect(failed).toHaveLength(0);
 
-        expect(processed[0].loadedUrl).toBe(`${serverAddress}/mirror?q=abc`);
-        expect(processed[1].loadedUrl).toBe(`${serverAddress}/mirror?q=%`);
-        expect(processed[2].loadedUrl).toBe(`${serverAddress}/mirror?q=%cf`);
+        const sorted = processed.map((r) => r.loadedUrl).sort();
+        expect(sorted).toEqual([
+            `${serverAddress}/mirror?q=%`,
+            `${serverAddress}/mirror?q=%cf`,
+            `${serverAddress}/mirror?q=abc`,
+        ]);
     });
 
     test('should serialize body and html', async () => {
