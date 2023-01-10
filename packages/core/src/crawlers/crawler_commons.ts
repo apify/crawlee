@@ -7,7 +7,8 @@ import type { ProxyInfo } from '../proxy_configuration';
 import type { Request } from '../request';
 import type { Session } from '../session_pool/session';
 
-export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends Record<PropertyKey, unknown> {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
     id: string;
     /**
      * The original {@apilink Request} object.

@@ -125,9 +125,9 @@ describe('CheerioCrawler', () => {
             },
         });
 
-        cheerioCrawler.router.addDefaultHandler(({ $, body, request }) => {
+        cheerioCrawler.router.addDefaultHandler<{ title: string; body: string }>(({ $, body, request }) => {
             request.userData.title = $('title').text();
-            request.userData.body = body;
+            request.userData.body = body.toString();
             processed.push(request);
         });
 
