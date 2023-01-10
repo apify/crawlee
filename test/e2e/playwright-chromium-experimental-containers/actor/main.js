@@ -1,9 +1,9 @@
 import { Actor } from 'apify';
 import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
-import { skipTest } from '../../tools.mjs';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
-skipTest('fails after update to playwright 1.29.0, looks like issue the chromium extension, maybe the manifest_version 2 vs 3?');
+// fails after update to playwright 1.29.0, looks like issue the chromium extension, maybe the manifest_version 2 vs 3?
+process.exit(404);
 
 const mainOptions = {
     exit: Actor.isAtHome(),
