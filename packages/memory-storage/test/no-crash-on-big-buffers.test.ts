@@ -26,9 +26,15 @@ describe('MemoryStorage should not crash when saving a big buffer', () => {
     });
 
     test('should not crash when saving a big buffer', async () => {
-        const numbers = Array.from(([...Array(18_100_000).keys()]).map((i) => i * 3_000_000));
+        let zip: Buffer;
 
-        const zip = Buffer.from([...numbers]);
+        if (process.env.CRAWLEE_DIFFICULT_TESTS) {
+            const numbers = Array.from(([...Array(18_100_000).keys()]).map((i) => i * 3_000_000));
+
+            zip = Buffer.from([...numbers]);
+        } else {
+            zip = Buffer.from([...Array(100_000)].map((i) => i * 8));
+        }
 
         try {
             await store.setRecord({ key: 'owo.zip', value: zip });
