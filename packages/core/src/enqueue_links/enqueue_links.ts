@@ -131,7 +131,7 @@ export enum EnqueueStrategy {
      * For example, `https://wow.example.com/hello` will be matched for a base url of `https://wow.example.com/`, but
      * `https://example.com/hello` will not be matched.
      *
-     * @remark This mode will match `http` and `https` URLs, even if the base URL is `http` or `https`.
+     * > This strategy will match both `http` and `https` protocols regardless of the base URL protocol.
      */
     SameHostname = 'same-hostname',
 
@@ -140,7 +140,7 @@ export enum EnqueueStrategy {
      * For example, `https://wow.an.example.com` and `https://example.com` will both be matched for a base url of
      * `https://example.com`.
      *
-     * @remark This mode will match `http` and `https` URLs, even if the base URL is `http` or `https`.
+     * > This strategy will match both `http` and `https` protocols regardless of the base URL protocol.
      */
     SameDomain = 'same-domain',
 
@@ -149,7 +149,7 @@ export enum EnqueueStrategy {
      * For example, `https://wow.example.com/hello` will be matched for a base url of `https://wow.example.com/`, but
      * `http://wow.example.com/hello` will not be matched.
      *
-     * @remark This mode will ensure the protocol of the base URL is the same as the protocol of the URL to be enqueued.
+     * > This strategy will ensure the protocol of the base URL is the same as the protocol of the URL to be enqueued.
      */
     SameOrigin = 'same-origin',
 }
