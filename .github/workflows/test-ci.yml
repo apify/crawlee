@@ -39,14 +39,14 @@ jobs:
 
             -   uses: microsoft/playwright-github-action@v1
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+#            -   name: Turbo cache
+#                id: turbo-cache
+#                uses: actions/cache@v3
+#                with:
+#                    path: .turbo
+#                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+#                    restore-keys: |
+#                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
                 run: npm ci
@@ -72,14 +72,14 @@ jobs:
                     cache: 'npm'
                     cache-dependency-path: 'package-lock.json'
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+#            -   name: Turbo cache
+#                id: turbo-cache
+#                uses: actions/cache@v3
+#                with:
+#                    path: .turbo
+#                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+#                    restore-keys: |
+#                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
                 run: npm ci
@@ -105,14 +105,14 @@ jobs:
                     cache: 'npm'
                     cache-dependency-path: 'package-lock.json'
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+#            -   name: Turbo cache
+#                id: turbo-cache
+#                uses: actions/cache@v3
+#                with:
+#                    path: .turbo
+#                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+#                    restore-keys: |
+#                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
                 run: npm ci
@@ -137,14 +137,14 @@ jobs:
               cache: 'npm'
               cache-dependency-path: 'package-lock.json'
 
-          - name: Turbo cache
-            id: turbo-cache
-            uses: actions/cache@v3
-            with:
-              path: .turbo
-              key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-              restore-keys: |
-                turbo-${{ github.job }}-${{ github.ref_name }}-
+#          - name: Turbo cache
+#            id: turbo-cache
+#            uses: actions/cache@v3
+#            with:
+#              path: .turbo
+#              key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+#              restore-keys: |
+#                turbo-${{ github.job }}-${{ github.ref_name }}-
 
           - name: Install Dependencies
             run: npm ci
@@ -166,7 +166,7 @@ jobs:
             run: |
               git config --global user.name 'Apify Release Bot'
               git config --global user.email 'noreply@apify.com'
-              npx turbo copy --force -- -- --canary --preid=beta
+              npx lerna run copy --force -- -- --canary --preid=beta
               git commit -am "chore: bump canary versions [skip ci]"
 
               echo "access=public" > .npmrc
