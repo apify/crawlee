@@ -16,6 +16,14 @@ Please note we have a code of conduct, please follow it in all your interactions
 4. You may merge the Pull Request in once you have the sign-off of two other developers, or if you
    do not have permission to do that, you may request the second reviewer to merge it for you.
 
+### Yarn
+
+This project now uses yarn v3 to manage dependencies. You will need to install it, the easies way is by using `corepack`:
+
+```shell
+corepack enable
+```
+
 ### macOS
 
 Our proxy tests use different loopback addresses to ensure traffic correctness.

@@ -30,8 +30,13 @@ jobs:
                 uses: actions/setup-node@v3
                 with:
                     node-version: 18
-                    cache: 'npm'
-                    cache-dependency-path: 'package-lock.json'
+                    cache: 'yarn'
+                    cache-dependency-path: 'yarn.lock'
+
+            -   name: Enable corepack
+                run: |
+                    corepack enable
+                    corepack prepare yarn@stable --activate
 
             -   uses: microsoft/playwright-github-action@v1
 
@@ -48,12 +53,12 @@ jobs:
                 run: npx -y apify-cli login -t ${{ secrets.APIFY_TOKEN }}
 
             -   name: Install Dependencies
-                run: npm ci
+                run: yarn
 
             -   name: Build
-                run: npm run ci:build
+                run: yarn ci:build
 
             -   name: Test with storage ${{ matrix.storage }}
-                run: npm run test:e2e
+                run: yarn test:e2e
                 env:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}

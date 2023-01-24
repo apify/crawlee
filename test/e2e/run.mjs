@@ -33,8 +33,6 @@ async function run() {
         throw new Error(`Unknown storage provided: '${process.env.STORAGE_IMPLEMENTATION}'`);
     }
 
-    execSync(`npm install --no-save @apify/storage-local`, { stdio: 'inherit' });
-
     console.log(`Running E2E tests with storage implementation '${process.env.STORAGE_IMPLEMENTATION}'`);
 
     const paths = await readdir(basePath, { withFileTypes: true });
@@ -127,7 +125,17 @@ async function run() {
 }
 
 if (isMainThread) {
-    await run();
+    try {
+        console.log('Temporary installing @apify/storage-local');
+        execSync(`yarn add -D @apify/storage-local > /dev/null`, { stdio: 'inherit' });
+        await run();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        console.log('Removing temporary installation of @apify/storage-local');
+        execSync(`yarn remove @apify/storage-local > /dev/null`, { stdio: 'inherit' });
+    }
+
     // We want to exit with non-zero code if any of the tests failed
     if (failure) process.exit(1);
 } else {
