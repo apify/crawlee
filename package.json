@@ -103,5 +103,8 @@
         "turbo": "1.7.0",
         "typescript": "^4.9.4"
     },
+    "optionalDependencies": {
+        "fsevents": "*"
+    },
     "packageManager": "npm@9.3.1"
 }
