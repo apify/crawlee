@@ -399,7 +399,7 @@ describe('enqueueLinks()', () => {
             expect(enqueued[1].userData).toEqual({});
         });
 
-        test('correctly resolves relative URLs with the strategy of same-hostname', async () => {
+        test('correctly resolves relative URLs with the strategy of same-domain', async () => {
             const enqueued: (Request | RequestOptions)[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
@@ -874,7 +874,7 @@ describe('enqueueLinks()', () => {
             expect(enqueued[1].userData).toEqual({});
         });
 
-        test('correctly resolves relative URLs with the strategy of same-hostname', async () => {
+        test('correctly resolves relative URLs with the strategy of same-domain', async () => {
             const enqueued: (Request | RequestOptions)[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
