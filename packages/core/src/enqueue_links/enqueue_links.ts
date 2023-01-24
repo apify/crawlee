@@ -115,11 +115,42 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
 
     /**
      * The strategy to use when enqueueing the urls.
+     *
+     * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
+     *
+     * `Protocol`          `Domain`
+     * ┌────┐          ┌─────────┐
+     * https://example.crawlee.dev/...
+     * │       └─────────────────┤
+     * │             `Hostname`    │
+     * │                         │
+     * └─────────────────────────┘
+     *          `Origin`
+     *
      * @default EnqueueStrategy.SameHostname
      */
     strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
 }
 
+/**
+ * The different enqueueing strategies available.
+ *
+ * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
+ *
+ * `Protocol`          `Domain`
+ * ┌────┐          ┌─────────┐
+ * https://example.crawlee.dev/...
+ * │       └─────────────────┤
+ * │             `Hostname`    │
+ * │                         │
+ * └─────────────────────────┘
+ *          `Origin`
+ *
+ * - The `Protocol` is usually `http` or `https`
+ * - The `Domain` represents the path without any possible subdomains to a website. For example, `crawlee.dev` is the domain of `https://example.crawlee.dev/`
+ * - The `Hostname` is the full path to a website, including any subdomains. For example, `example.crawlee.dev` is the hostname of `https://example.crawlee.dev/`
+ * - The `Origin` is the combination of the `Protocol` and `Hostname`. For example, `https://example.crawlee.dev` is the origin of `https://example.crawlee.dev/`
+ */
 export enum EnqueueStrategy {
     /**
      * Matches any URLs found
