@@ -118,7 +118,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
      *
-     * ```
+     * ```md
      * Protocol          Domain
      * ┌────┐          ┌─────────┐
      * https://example.crawlee.dev/...
@@ -139,7 +139,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
  *
  * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
  *
- * ```
+ * ```md
  * Protocol          Domain
  * ┌────┐          ┌─────────┐
  * https://example.crawlee.dev/...
