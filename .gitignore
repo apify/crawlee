@@ -13,7 +13,7 @@ logs
 pids
 .idea
 .vscode
-yarn.lock
+package-lock.json
 tmp
 jsconfig.json
 docs/api
@@ -25,3 +25,6 @@ apify_storage
 crawlee_storage
 storage
 .turbo
+
+# we use corepack, no need to commit yarn binary
+.yarn

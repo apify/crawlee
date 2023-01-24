@@ -16,7 +16,7 @@ COPY . ./
 
 # Install all dependencies and build the project.
 # Don't audit to speed up the installation.
-RUN npm run build
+RUN yarnbuild
 
 # Create final image
 FROM apify/actor-node:16
@@ -47,4 +47,4 @@ COPY . ./
 
 
 # Run the image.
-CMD npm run start:prod --silent
+CMD yarnstart:prod --silent

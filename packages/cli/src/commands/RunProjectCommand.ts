@@ -34,7 +34,7 @@ export class RunProjectCommand<T> implements CommandModule<T, RunProjectArgs> {
             cmd += 'CRAWLEE_PURGE_ON_START=0 ';
         }
 
-        cmd += `npm run ${args.script}`;
+        cmd += `yarn${args.script}`;
 
         execSync(cmd, { stdio: 'inherit' });
     }

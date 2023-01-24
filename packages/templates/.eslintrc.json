@@ -1,10 +1,6 @@
 {
     "root": true,
     "extends": "../../.eslintrc.json",
-    "parserOptions": {
-        "project": "../../tsconfig.eslint.json",
-        "ecmaVersion": 2022
-    },
     "rules": {
         "no-console": 0,
         "@typescript-eslint/no-shadow": 0,

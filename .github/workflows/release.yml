@@ -47,8 +47,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
+          cache: 'yarn'
+          cache-dependency-path: 'yarn.lock'
+
+      -   name: Enable corepack
+          run: |
+              corepack enable
+              corepack prepare yarn@stable --activate
 
       - name: Setup Playwright
         uses: microsoft/playwright-github-action@v1
@@ -63,13 +68,13 @@ jobs:
             turbo-${{ github.job }}-${{ github.ref_name }}-
 
       - name: Install Dependencies
-        run: npm ci
+        run: yarn
 
       - name: Build
-        run: npm run ci:build
+        run: yarn ci:build
 
       - name: Tests
-        run: npm test
+        run: yarn test
 
   release:
     name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
@@ -87,8 +92,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
+          cache: 'yarn'
+          cache-dependency-path: 'yarn.lock'
 
       - name: Turbo cache
         id: turbo-cache
@@ -100,10 +105,10 @@ jobs:
             turbo-${{ github.job }}-${{ github.ref_name }}-
 
       - name: Install Dependencies
-        run: npm ci
+        run: yarn
 
       - name: Build packages
-        run: npm run build
+        run: yarn build
 
       - name: Setup git user and npm
         run: |
@@ -115,7 +120,7 @@ jobs:
 
       - name: Bump version to custom version
         if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-        run: npm run version ${{ github.event.inputs.custom_version}} -- --force-publish --yes
+        run: yarn version ${{ github.event.inputs.custom_version}} -- --force-publish --yes
         env:
             NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
             GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
@@ -123,14 +128,14 @@ jobs:
 
       - name: Bump version to ${{ github.event.inputs.version }} version
         if: ${{ github.event.inputs.version != 'custom' }}
-        run: npm run version ${{ github.event.inputs.version}} -- --force-publish --yes
+        run: yarn version ${{ github.event.inputs.version}} -- --force-publish --yes
         env:
             NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
             GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Publish packages
-        run: npm run publish -- --yes --no-verify-access
+        run: yarn publish -- --yes --no-verify-access
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
