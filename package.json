@@ -1,7 +1,6 @@
 {
-    "name": "crawlee",
+    "name": "@crawlee/root",
     "private": true,
-    "version": "3.0.4",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "workspaces": [
         "packages/*"
@@ -46,7 +45,7 @@
         "test:full": "cross-env CRAWLEE_DIFFICULT_TESTS=1 jest --silent",
         "coverage": "jest --coverage",
         "publish:next": "lerna publish from-package --contents dist --dist-tag next --force-publish",
-        "release:next": "npm run build && npm run publish:next",
+        "release:next": "yarn build && yarn publish:next",
         "version": "lerna version",
         "postversion": "lerna run copy --force",
         "publish": "lerna publish from-package --contents dist --force-publish",
@@ -105,5 +104,5 @@
     "optionalDependencies": {
         "fsevents": "*"
     },
-    "packageManager": "npm@9.3.1"
+    "packageManager": "yarn@3.3.1"
 }

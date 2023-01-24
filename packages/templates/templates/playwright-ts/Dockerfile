@@ -16,7 +16,7 @@ COPY --chown=myuser . ./
 
 # Install all dependencies and build the project.
 # Don't audit to speed up the installation.
-RUN npm run build
+RUN yarnbuild
 
 # Create final image
 FROM apify/actor-node-playwright-chrome:16
@@ -48,4 +48,4 @@ COPY --chown=myuser . ./
 
 # Run the image. If you know you won't need headful browsers,
 # you can remove the XVFB start script for a micro perf gain.
-CMD ./start_xvfb_and_run_cmd.sh && npm run start:prod --silent
+CMD ./start_xvfb_and_run_cmd.sh && yarnstart:prod --silent

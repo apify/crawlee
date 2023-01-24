@@ -7,7 +7,7 @@ on:
         branches: [ master ]
 
 jobs:
-    # NPM install is done in a separate job and cached to speed up the following jobs.
+    # `yarn install` is done in a separate job and cached to speed up the following jobs.
     build_and_test:
         name: Build & Test
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
@@ -34,8 +34,8 @@ jobs:
                 uses: actions/setup-node@v3
                 with:
                     node-version: ${{ matrix.node-version }}
-                    cache: 'npm'
-                    cache-dependency-path: 'package-lock.json'
+                    cache: 'yarn'
+                    cache-dependency-path: 'yarn.lock'
 
             -   uses: microsoft/playwright-github-action@v1
 
@@ -49,13 +49,13 @@ jobs:
 #                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
-                run: npm ci
+                run: yarn
 
             -   name: Build
-                run: npm run ci:build
+                run: yarn ci:build
 
             -   name: Tests
-                run: npm test
+                run: yarn test
 
     docs:
         name: Docs build
@@ -69,8 +69,8 @@ jobs:
                 uses: actions/setup-node@v3
                 with:
                     node-version: 18
-                    cache: 'npm'
-                    cache-dependency-path: 'package-lock.json'
+                    cache: 'yarn'
+                    cache-dependency-path: 'yarn.lock'
 
 #            -   name: Turbo cache
 #                id: turbo-cache
@@ -82,13 +82,13 @@ jobs:
 #                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
-                run: npm ci
+                run: yarn
 
             -   name: Build & deploy docs
                 run: |
                     cd website
-                    npm ci
-                    npm run build
+                    yarn
+                    yarn build
 
     lint:
         name: Lint
@@ -102,8 +102,8 @@ jobs:
                 uses: actions/setup-node@v3
                 with:
                     node-version: 18
-                    cache: 'npm'
-                    cache-dependency-path: 'package-lock.json'
+                    cache: 'yarn'
+                    cache-dependency-path: 'yarn.lock'
 
 #            -   name: Turbo cache
 #                id: turbo-cache
@@ -115,10 +115,10 @@ jobs:
 #                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
-                run: npm ci
+                run: yarn
 
             -   name: ESLint
-                run: npm run lint
+                run: yarn lint
 
     release_next:
         name: Release @next
@@ -134,8 +134,8 @@ jobs:
             uses: actions/setup-node@v3
             with:
               node-version: 18
-              cache: 'npm'
-              cache-dependency-path: 'package-lock.json'
+              cache: 'yarn'
+              cache-dependency-path: 'yarn.lock'
 
 #          - name: Turbo cache
 #            id: turbo-cache
@@ -147,10 +147,10 @@ jobs:
 #                turbo-${{ github.job }}-${{ github.ref_name }}-
 
           - name: Install Dependencies
-            run: npm ci
+            run: yarn
 
           - name: Build
-            run: npm run ci:build
+            run: yarn ci:build
 
           - name: Generate changed packages list
             id: changed-packages
@@ -171,7 +171,7 @@ jobs:
 
               echo "access=public" > .npmrc
               echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc
-              npm run publish:next -- --yes --no-verify-access
+              yarn publish:next -- --yes --no-verify-access
             env:
               NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
               GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
