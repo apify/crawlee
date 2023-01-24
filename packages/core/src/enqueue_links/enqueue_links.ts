@@ -118,14 +118,16 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
      *
-     * `Protocol`          `Domain`
+     * ```
+     * Protocol          Domain
      * ┌────┐          ┌─────────┐
      * https://example.crawlee.dev/...
      * │       └─────────────────┤
-     * │             `Hostname`    │
+     * │             Hostname    │
      * │                         │
      * └─────────────────────────┘
-     *          `Origin`
+     *          Origin
+     *```
      *
      * @default EnqueueStrategy.SameHostname
      */
@@ -137,14 +139,16 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
  *
  * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
  *
- * `Protocol`          `Domain`
+ * ```
+ * Protocol          Domain
  * ┌────┐          ┌─────────┐
  * https://example.crawlee.dev/...
  * │       └─────────────────┤
- * │             `Hostname`    │
+ * │             Hostname    │
  * │                         │
  * └─────────────────────────┘
- *          `Origin`
+ *          Origin
+ *```
  *
  * - The `Protocol` is usually `http` or `https`
  * - The `Domain` represents the path without any possible subdomains to a website. For example, `crawlee.dev` is the domain of `https://example.crawlee.dev/`
