@@ -208,6 +208,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         page: ow.object.hasKeys('goto', 'evaluate'),
         requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
         selector: ow.string,
+        userData: ow.optional.object,
         clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
         pseudoUrls: ow.optional.array.ofType(ow.any(
             ow.string,
