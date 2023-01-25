@@ -5,6 +5,7 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
 import type {
     AutoscaledPoolOptions,
+    CrawlingContext,
     EnqueueLinksOptions,
     EventManager,
     FinalStatistics,
@@ -21,7 +22,6 @@ import {
     mergeCookies,
     AutoscaledPool,
     Configuration,
-    type CrawlingContext,
     createRequests,
     enqueueLinks,
     EventType,
@@ -596,7 +596,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this.stats.startCapturing();
 
         const sigintHandler = async () => {
-            this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm run start');
+            this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 yarnstart');
             await this._pauseOnMigration();
             await this.autoscaledPool!.abort();
         };

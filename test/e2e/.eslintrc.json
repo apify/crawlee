@@ -1,9 +1,15 @@
 {
 	"root": true,
-	"extends": "@apify",
+	"extends": "@apify/eslint-config-ts",
 	"parserOptions": {
+        "project": null,
 		"ecmaVersion": 2022
 	},
+    "ignorePatterns": [
+        "node_modules",
+        "dist",
+        "**/*.d.ts"
+    ],
 	"rules": {
 		"import/extensions": 0,
 		"import/no-extraneous-dependencies": 0

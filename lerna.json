@@ -10,6 +10,7 @@
             "message": "chore(release): %s"
         }
     },
+    "npmClient": "yarn",
     "useWorkspaces": true,
     "useNx": false,
     "ignoreChanges": [

@@ -1,4 +1,4 @@
-import { Actor, Dataset, KeyValueStore } from 'apify';
+import { Actor, Dataset, KeyValueStore, log } from 'apify';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
@@ -9,7 +9,7 @@ const mainOptions = {
 await Actor.main(async () => {
     const a = await KeyValueStore.getInput();
 
-    console.log(a);
+    log.info('val', a);
 
     await Dataset.pushData(a);
 }, mainOptions);

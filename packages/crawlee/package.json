@@ -5,9 +5,7 @@
     "engines": {
         "node": ">=16.0.0"
     },
-    "bin": {
-        "crawlee": "./src/cli.ts"
-    },
+    "bin": "./src/cli.ts",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
@@ -47,7 +45,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "npm run clean && npm run compile && npm run copy",
+        "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy": "ts-node -T ../../scripts/copy.ts"

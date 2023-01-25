@@ -5,9 +5,7 @@
         "es2020": true,
         "node": true
     },
-    "extends": [
-        "@apify/eslint-config-ts"
-    ],
+    "extends": "@apify/eslint-config-ts",
     "parserOptions": {
         "project": "./tsconfig.eslint.json",
         "ecmaVersion": 2020
