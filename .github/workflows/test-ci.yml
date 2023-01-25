@@ -35,7 +35,6 @@ jobs:
                 with:
                     node-version: ${{ matrix.node-version }}
                     cache: 'yarn'
-                    cache-dependency-path: 'yarn.lock'
 
             -   name: Enable corepack
                 run: |
@@ -75,7 +74,6 @@ jobs:
                 with:
                     node-version: 18
                     cache: 'yarn'
-                    cache-dependency-path: 'yarn.lock'
 
             -   name: Enable corepack
                 run: |
@@ -113,7 +111,6 @@ jobs:
                 with:
                     node-version: 18
                     cache: 'yarn'
-                    cache-dependency-path: 'yarn.lock'
 
             -   name: Enable corepack
                 run: |
@@ -150,7 +147,6 @@ jobs:
                 with:
                     node-version: 18
                     cache: 'yarn'
-                    cache-dependency-path: 'yarn.lock'
 
             -   name: Enable corepack
                 run: |
