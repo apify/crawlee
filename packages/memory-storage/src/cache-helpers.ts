@@ -45,7 +45,10 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
                 hasSeenMetadataFile = true;
 
                 // we have found the store metadata file, build out information based on it
-                const metadata = JSON.parse(await readFile(resolve(datasetDir, entry.name), 'utf8')) as storage.DatasetInfo;
+                const fileContent = await readFile(resolve(datasetDir, entry.name), 'utf8');
+                if (!fileContent) continue;
+
+                const metadata = JSON.parse(fileContent) as storage.DatasetInfo;
                 id = metadata.id;
                 name = metadata.name;
                 itemCount = metadata.itemCount;
@@ -56,7 +59,10 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
                 continue;
             }
 
-            const entryContent = JSON.parse(await readFile(resolve(datasetDir, entry.name), 'utf8')) as storage.Dictionary;
+            const fileContent = await readFile(resolve(datasetDir, entry.name), 'utf8');
+            if (!fileContent) continue;
+
+            const entryContent = JSON.parse(fileContent) as storage.Dictionary;
             const entryName = entry.name.split('.')[0];
 
             entries.set(entryName, entryContent);
@@ -131,7 +137,10 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
         if (entry.isFile()) {
             if (entry.name === '__metadata__.json') {
                 // we have found the store metadata file, build out information based on it
-                const metadata = JSON.parse(await readFile(resolve(keyValueStoreDir, entry.name), 'utf8')) as storage.KeyValueStoreInfo;
+                const fileContent = await readFile(resolve(keyValueStoreDir, entry.name), 'utf8');
+                if (!fileContent) continue;
+
+                const metadata = JSON.parse(fileContent) as storage.KeyValueStoreInfo;
                 id = metadata.id;
                 name = metadata.name;
                 createdAt = new Date(metadata.createdAt);
@@ -143,7 +152,10 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
 
             if (entry.name.includes('.__metadata__.')) {
                 // This is an entry's metadata file, we can use it to create/extend the record
-                const metadata = JSON.parse(await readFile(resolve(keyValueStoreDir, entry.name), 'utf8')) as Omit<InternalKeyRecord, 'value'>;
+                const fileContent = await readFile(resolve(keyValueStoreDir, entry.name), 'utf8');
+                if (!fileContent) continue;
+
+                const metadata = JSON.parse(fileContent) as Omit<InternalKeyRecord, 'value'>;
 
                 const newRecord = {
                     ...internalRecords.get(metadata.key),
@@ -270,7 +282,10 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
             switch (entry.name) {
                 case '__metadata__.json': {
                     // we have found the store metadata file, build out information based on it
-                    const metadata = JSON.parse(await readFile(resolve(requestQueueDir, entry.name), 'utf8')) as storage.RequestQueueInfo;
+                    const fileContent = await readFile(resolve(requestQueueDir, entry.name), 'utf8');
+                    if (!fileContent) continue;
+
+                    const metadata = JSON.parse(fileContent) as storage.RequestQueueInfo;
 
                     id = metadata.id;
                     name = metadata.name;
@@ -283,7 +298,10 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                     break;
                 }
                 default: {
-                    const request = JSON.parse(await readFile(resolve(requestQueueDir, entry.name), 'utf8')) as InternalRequest;
+                    const fileContent = await readFile(resolve(requestQueueDir, entry.name), 'utf8');
+                    if (!fileContent) continue;
+
+                    const request = JSON.parse(fileContent) as InternalRequest;
                     entries.push(request);
                 }
             }

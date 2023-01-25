@@ -42,7 +42,7 @@
     },
     "homepage": "https://crawlee.dev",
     "scripts": {
-        "build": "npm run clean && npm run compile && npm run copy",
+        "build": "yarn clean && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json",
         "copy": "ts-node -T ../../scripts/copy.ts"

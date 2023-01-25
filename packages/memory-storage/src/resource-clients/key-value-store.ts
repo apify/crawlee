@@ -211,7 +211,7 @@ export class KeyValueStoreClient extends BaseClient {
     async setRecord(record: storage.KeyValueStoreRecord): Promise<void> {
         s.object({
             key: s.string.lengthGreaterThan(0),
-            value: s.union(s.null, s.string, s.number, s.object({}).passthrough),
+            value: s.union(s.null, s.string, s.number, s.instance(Buffer), s.object({}).passthrough),
             contentType: s.string.lengthGreaterThan(0).optional,
         }).parse(record);
 

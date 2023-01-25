@@ -16,6 +16,11 @@ jobs:
                 with:
                     node-version: 16
 
+            -   name: Enable corepack
+                run: |
+                    corepack enable
+                    corepack prepare yarn@stable --activate
+
             -   name: Set git identity
                 run: |
                     git config --global user.name "Martin Adámek"
@@ -24,13 +29,13 @@ jobs:
             -   name: Build & deploy docs
                 run: |
                     # install project deps
-                    npm install --force
+                    yarn
                     # go to website dir
                     cd website
                     # install website deps
-                    npm install --force
+                    yarn
                     # build and deploy the docs
-                    npm run deploy
+                    yarn deploy
                 env:
                     GIT_USER: "B4nan:${{ secrets.GH_TOKEN }}"
                     GH_TOKEN: ${{ secrets.GH_TOKEN }}

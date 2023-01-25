@@ -30,7 +30,7 @@
         "url": "https://github.com/apify/crawlee/issues"
     },
     "scripts": {
-        "build": "npm run clean && npm run compile && node copy-definitions.mjs && npm run copy",
+        "build": "yarn clean && yarn compile && node copy-definitions.mjs && yarn copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
         "copy": "ts-node -T ../../scripts/copy.ts"
