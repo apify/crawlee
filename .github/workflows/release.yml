@@ -120,7 +120,7 @@ jobs:
 
       - name: Bump version to custom version
         if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-        run: yarn version ${{ github.event.inputs.custom_version}} -- --force-publish --yes
+        run: yarn version ${{ github.event.inputs.custom_version}} --force-publish --yes
         env:
             NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
             GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
@@ -128,14 +128,14 @@ jobs:
 
       - name: Bump version to ${{ github.event.inputs.version }} version
         if: ${{ github.event.inputs.version != 'custom' }}
-        run: yarn version ${{ github.event.inputs.version}} -- --force-publish --yes
+        run: yarn version ${{ github.event.inputs.version}} --force-publish --yes
         env:
             NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
             GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Publish packages
-        run: yarn publish -- --yes --no-verify-access
+        run: yarn publish --yes --no-verify-access
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
