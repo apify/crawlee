@@ -10675,6 +10675,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"rimraf@npm:^4.0.0":
+  version: 4.1.2
+  resolution: "rimraf@npm:4.1.2"
+  bin:
+    rimraf: dist/cjs/src/bin.js
+  checksum: 480b8147fd9bcbef3ac118f88a7b1169c3872977a3411a0c84df838bfc30e175a394c0db6f9619fc8b8a886a18c6d779d5e74f380a0075ecc710afaf81b3f50c
+  languageName: node
+  linkType: hard
+
 "root-workspace-0b6124@workspace:.":
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
@@ -10703,7 +10712,7 @@ __metadata:
     react: ^17.0.2
     react-dom: ^17.0.2
     react-lite-youtube-embed: ^2.3.1
-    rimraf: ^3.0.2
+    rimraf: ^4.0.0
     typescript: ^4.8.2
     unist-util-visit: ^4.1.0
   languageName: unknown
