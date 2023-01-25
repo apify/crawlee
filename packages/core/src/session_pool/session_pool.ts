@@ -1,6 +1,5 @@
 import type { Log } from '@apify/log';
 import { EventEmitter } from 'node:events';
-import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import { Configuration } from '../configuration';
 import { log as defaultLog } from '../log';
@@ -178,7 +177,7 @@ export class SessionPool extends EventEmitter {
             // the log needs to propagate to createSessionFunction as in "new Session({ ...sessionPool.sessionOptions })"
             // and can't go inside _defaultCreateSessionFunction
             log: this.log,
-        };
+        } as SessionOptions;
 
         // Session keyValueStore
         this.persistStateKeyValueStoreId = persistStateKeyValueStoreId;
@@ -225,7 +224,7 @@ export class SessionPool extends EventEmitter {
      * This also allows you to add session with overridden session options (e.g. with specific session id).
      * @param [options] The configuration options for the session being added to the session pool.
      */
-    async addSession(options: Session | SessionOptions = {}): Promise<void> {
+    async addSession(options: Session | SessionOptions = {} as SessionOptions): Promise<void> {
         this._throwIfNotInitialized();
         const { id } = options;
         if (id) {
@@ -407,7 +406,7 @@ export class SessionPool extends EventEmitter {
      * If the state was persisted it loads the `SessionPool` from the persisted state.
      */
     protected async _maybeLoadSessionPool(): Promise<void> {
-        const loadedSessionPool = await this.keyValueStore.getValue<{ sessions: Dictionary[] }>(this.persistStateKey);
+        const loadedSessionPool = await this.keyValueStore.getValue<{ sessions: SessionOptions[] }>(this.persistStateKey);
 
         if (!loadedSessionPool) return;
 
@@ -419,8 +418,8 @@ export class SessionPool extends EventEmitter {
 
         for (const sessionObject of loadedSessionPool.sessions) {
             sessionObject.sessionPool = this;
-            sessionObject.createdAt = new Date(sessionObject.createdAt as string);
-            sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
+            sessionObject.createdAt = sessionObject.createdAt ? new Date(sessionObject.createdAt.toISOString()) : new Date();
+            sessionObject.expiresAt = sessionObject.expiresAt ? new Date(sessionObject.expiresAt.toISOString()) : new Date();
             const recreatedSession = new Session(sessionObject);
 
             if (recreatedSession.isUsable()) {
