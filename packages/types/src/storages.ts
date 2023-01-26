@@ -215,11 +215,6 @@ export interface RequestQueueStats {
     storageBytes?: number;
 }
 
-export interface RequestQueueClientOptions {
-    name: string;
-    storageDir: string;
-}
-
 export interface ListOptions {
     /**
      * @default 100

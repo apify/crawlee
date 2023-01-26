@@ -4,7 +4,14 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 import crypto from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 import ow from 'ow';
-import type { BatchAddRequestsResult, Dictionary, RequestQueueClient, RequestQueueInfo, StorageClient } from '@crawlee/types';
+import type {
+    BatchAddRequestsResult,
+    Dictionary,
+    QueueOperationInfo,
+    RequestQueueClient,
+    RequestQueueInfo,
+    StorageClient,
+} from '@crawlee/types';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { log } from '../log';
@@ -71,10 +78,9 @@ export function getRequestId(uniqueKey: string) {
 }
 
 /**
- * A helper class that is used to report results from various
- * {@apilink RequestQueue} functions as well as {@apilink enqueueLinks}.
+ * @internal
  */
-export interface QueueOperationInfo {
+interface RequestQueueOperationInfo extends QueueOperationInfo {
 
     /** Indicates if request was already present in the queue. */
     wasAlreadyPresent: boolean;
@@ -192,7 +198,7 @@ export class RequestQueue {
     // Caching requests to avoid redundant addRequest() calls.
     // Key is computed using getRequestId() and value is { id, isHandled }.
     requestsCache = new LruCache<
-        Pick<QueueOperationInfo, 'uniqueKey' | 'wasAlreadyHandled'> & { isHandled: boolean; id: string }
+        { uniqueKey: string; wasAlreadyHandled: boolean; isHandled: boolean; id: string }
     >({ maxLength: MAX_CACHED_REQUESTS });
 
     /**
@@ -228,7 +234,7 @@ export class RequestQueue {
      * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
      * @param [options] Request queue operation options.
      */
-    async addRequest(requestLike: Request | RequestOptions, options: RequestQueueOperationOptions = {}): Promise<QueueOperationInfo> {
+    async addRequest(requestLike: Request | RequestOptions, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo> {
         ow(requestLike, ow.object.partialShape({
             url: ow.string,
             id: ow.undefined,
@@ -259,7 +265,7 @@ export class RequestQueue {
             };
         }
 
-        const queueOperationInfo = await this.client.addRequest(request, { forefront }) as QueueOperationInfo;
+        const queueOperationInfo = await this.client.addRequest(request, { forefront }) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
@@ -471,7 +477,7 @@ export class RequestQueue {
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
-    async markRequestHandled(request: Request): Promise<QueueOperationInfo | null> {
+    async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
         this.lastActivity = new Date();
         ow(request, ow.object.partialShape({
             id: ow.string,
@@ -485,7 +491,7 @@ export class RequestQueue {
         }
 
         const handledAt = request.handledAt ?? new Date().toISOString();
-        const queueOperationInfo = await this.client.updateRequest({ ...request, handledAt }) as QueueOperationInfo;
+        const queueOperationInfo = await this.client.updateRequest({ ...request, handledAt }) as RequestQueueOperationInfo;
         request.handledAt = handledAt;
         queueOperationInfo.uniqueKey = request.uniqueKey;
 
@@ -507,7 +513,7 @@ export class RequestQueue {
      * The request record in the queue is updated using the provided `request` parameter.
      * For example, this lets you store the number of retries or error messages for the request.
      */
-    async reclaimRequest(request: Request, options: RequestQueueOperationOptions = {}): Promise<QueueOperationInfo | null> {
+    async reclaimRequest(request: Request, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo | null> {
         this.lastActivity = new Date();
         ow(request, ow.object.partialShape({
             id: ow.string,
@@ -526,7 +532,7 @@ export class RequestQueue {
 
         // TODO: If request hasn't been changed since the last getRequest(),
         //   we don't need to call updateRequest() and thus improve performance.
-        const queueOperationInfo = await this.client.updateRequest(request, { forefront }) as QueueOperationInfo;
+        const queueOperationInfo = await this.client.updateRequest(request, { forefront }) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
@@ -591,7 +597,7 @@ export class RequestQueue {
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
-    protected _cacheRequest(cacheKey: string, queueOperationInfo: QueueOperationInfo): void {
+    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         this.requestsCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
@@ -795,9 +801,4 @@ export interface RequestQueueOptions {
     id: string;
     name?: string;
     client: StorageClient;
-}
-
-export interface QueueOperationInfoOptions {
-    requestId: string;
-    wasAlreadyHandled: boolean;
 }
