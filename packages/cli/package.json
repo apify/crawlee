@@ -55,6 +55,7 @@
         "ansi-colors": "^4.1.3",
         "fs-extra": "^11.0.0",
         "inquirer": "^8.2.4",
+        "tslib": "^2.4.0",
         "yargonaut": "^1.1.4",
         "yargs": "^17.5.1"
     }

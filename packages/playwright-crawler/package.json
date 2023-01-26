@@ -61,7 +61,8 @@
         "@crawlee/utils": "^3.1.2",
         "cheerio": "1.0.0-rc.12",
         "jquery": "^3.6.0",
-        "ow": "^0.28.1"
+        "ow": "^0.28.1",
+        "tslib": "^2.4.0"
     },
     "peerDependencies": {
         "playwright": "<= 2.x"

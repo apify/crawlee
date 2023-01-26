@@ -64,7 +64,8 @@
         "@crawlee/playwright": "^3.1.4",
         "@crawlee/puppeteer": "^3.1.4",
         "@crawlee/utils": "^3.1.2",
-        "import-local": "^3.1.0"
+        "import-local": "^3.1.0",
+        "tslib": "^2.4.0"
     },
     "peerDependencies": {
         "playwright": "<= 2.x",

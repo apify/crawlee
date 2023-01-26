@@ -62,7 +62,8 @@
         "cheerio": "1.0.0-rc.12",
         "devtools-protocol": "*",
         "jquery": "^3.6.0",
-        "ow": "^0.28.1"
+        "ow": "^0.28.1",
+        "tslib": "^2.4.0"
     },
     "peerDependencies": {
         "puppeteer": "<= 19.x"
