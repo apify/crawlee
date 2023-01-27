@@ -155,6 +155,16 @@ export interface EnqueueLinksByClickingElementsOptions {
      * @default 5
      */
     maxWaitForPageIdleSecs?: number;
+
+    /**
+     * If set to `true`:
+     *   - while adding the request to the queue: the request will be added to the foremost position in the queue.
+     *   - while reclaiming the request: the request will be placed to the beginning of the queue, so that it's returned
+     *   in the next call to {@apilink RequestQueue.fetchNextRequest}.
+     * By default, it's put to the end of the queue.
+     * @default false
+     */
+    forefront?: boolean;
 }
 
 /**
@@ -221,6 +231,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         waitForPageIdleSecs: ow.optional.number,
         maxWaitForPageIdleSecs: ow.optional.number,
         label: ow.optional.string,
+        forefront: ow.optional.boolean,
     }));
 
     const {
@@ -234,6 +245,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         transformRequestFunction,
         waitForPageIdleSecs = 1,
         maxWaitForPageIdleSecs = 5,
+        forefront,
     } = options;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
@@ -266,7 +278,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
     }
     const requests = createRequests(requestOptions, urlPatternObjects);
-    return requestQueue.addRequests(requests);
+    return requestQueue.addRequests(requests, { forefront });
 }
 
 interface WaitForPageIdleOptions {
