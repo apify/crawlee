@@ -22,7 +22,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
     }
 
     async get(): Promise<InternalKeyRecord> {
-        let file: Buffer;
+        let file: Buffer | string;
 
         try {
             file = await readFile(this.filePath);
@@ -34,6 +34,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                     `Key-value entry "${this.rawRecord.key}" for store ${basename(this.storeDirectory)} does not have a file extension, assuming it as text.`,
                     'If you want to have correct interpretation of the file, you should add a file extension to the entry.',
                 ].join('\n'));
+                file = file.toString('utf-8');
             } catch {
                 // This is impossible to happen, but just in case
                 throw new Error(`Could not find file at ${this.filePath}`);
