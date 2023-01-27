@@ -34,7 +34,7 @@ export interface DatasetCollectionData {
  */
 export interface DatasetCollectionClient {
     list(): Promise<PaginatedList<Dataset>>;
-    getOrCreate(name: string): Promise<DatasetCollectionData>;
+    getOrCreate(name?: string): Promise<DatasetCollectionData>;
 }
 
 export interface Dataset extends DatasetCollectionData {

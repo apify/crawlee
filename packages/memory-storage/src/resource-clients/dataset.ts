@@ -11,6 +11,8 @@ import { StorageTypes } from '../consts';
 import { BaseClient } from './common/base-client';
 import { sendWorkerMessage } from '../workers/instance';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
+import type { StorageImplementation } from '../fs/common';
+import { createDatasetStorageImplementation } from '../fs/dataset';
 
 /**
  * This is what API returns in the x-apify-pagination-limit
@@ -39,7 +41,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
     itemCount = 0;
     datasetDirectory: string;
 
-    private readonly datasetEntries = new Map<string, Data>();
+    private readonly datasetEntries = new Map<string, StorageImplementation<Data>>();
     private readonly client: MemoryStorage;
 
     constructor(options: DatasetClientOptions) {
@@ -141,7 +143,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
 
         for (let idx = start; idx < end; idx++) {
             const entryNumber = this.generateLocalEntryName(idx);
-            items.push(existingStoreById.datasetEntries.get(entryNumber)!);
+            items.push(await existingStoreById.datasetEntries.get(entryNumber)!.get());
         }
 
         existingStoreById.updateTimestamps(false);
@@ -176,23 +178,19 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
 
         for (const entry of normalized) {
             const idx = this.generateLocalEntryName(++existingStoreById.itemCount);
+            const storageEntry = createDatasetStorageImplementation({
+                entityId: idx,
+                persistStorage: this.client.persistStorage,
+                storeDirectory: existingStoreById.datasetDirectory,
+            });
 
-            existingStoreById.datasetEntries.set(idx, entry);
+            await storageEntry.update(entry);
+
+            existingStoreById.datasetEntries.set(idx, storageEntry);
             addedIds.push(idx);
         }
 
-        const dataEntries: [string, Dictionary][] = addedIds.map((id) => [id, existingStoreById.datasetEntries.get(id)!]);
-
         existingStoreById.updateTimestamps(true);
-        sendWorkerMessage({
-            data: dataEntries,
-            action: 'update-entries',
-            entityType: 'datasets',
-            entityDirectory: existingStoreById.datasetDirectory,
-            id: existingStoreById.name ?? existingStoreById.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
     }
 
     toDatasetInfo(): storage.DatasetInfo {
