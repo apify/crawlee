@@ -1,5 +1,6 @@
-import type { Request, RequestOptions } from 'crawlee';
+import type { Request, RequestOptions, RequestQueueOperationOptions } from 'crawlee';
 import {
+    Configuration,
     RequestQueue,
     puppeteerClickElements,
     launchPuppeteer,
@@ -98,6 +99,37 @@ testCases.forEach(({
             expect(addedRequests[0].url).toMatch(`${serverAddress}/`);
             expect(addedRequests[0].uniqueKey).toBe('key');
             expect(page.url()).toBe('about:blank');
+        });
+
+        test('accepts forefront option', async () => {
+            const addedRequests: {request: (Request | RequestOptions); options: RequestQueueOperationOptions}[] = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
+            requestQueue.addRequests = async (requests, options) => {
+                addedRequests.push(...requests.map((request) => ({ request, options })));
+                return { processedRequests: [], unprocessedRequests: [] };
+            };
+
+            const html = `
+<html>
+    <body>
+        <a href="https://www.example.com/link1">link1</div>
+        <a href="https://www.example.com/link2">link2</div>
+    </body>
+</html>
+            `;
+
+            await page.setContent(html);
+            await utils.enqueueLinksByClickingElements({
+                page,
+                requestQueue,
+                selector: 'a',
+                waitForPageIdleSecs: 0.025,
+                maxWaitForPageIdleSecs: 0.250,
+                forefront: true,
+            });
+            expect(addedRequests).toHaveLength(2);
+            expect(addedRequests[0].options.forefront).toBe(true);
+            expect(addedRequests[1].options.forefront).toBe(true);
         });
 
         describe('clickElements()', () => {

@@ -1,7 +1,7 @@
 import log from '@apify/log';
 import type { CheerioRoot } from '@crawlee/utils';
 import cheerio from 'cheerio';
-import type { Request, RequestOptions } from '@crawlee/puppeteer';
+import type { Request, RequestOptions, RequestQueueOperationOptions } from '@crawlee/puppeteer';
 import {
     browserCrawlerEnqueueLinks,
     Configuration,
@@ -949,6 +949,33 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].url).toBe('http://cool.com/');
             expect(enqueued[2].method).toBe('GET');
             expect(enqueued[2].userData.foo).toBe('bar');
+        });
+
+        test('accepts forefront option', async () => {
+            const enqueued: { request: (Request | RequestOptions); options: RequestQueueOperationOptions }[] = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+            requestQueue.addRequests = async (requests, options) => {
+                // copy the requests to the enqueued list, along with options that were passed to addRequests,
+                // so that it doesn't matter how many calls were made
+                enqueued.push(...requests.map((request) => ({ request, options })));
+                return { processedRequests: [], unprocessedRequests: [] };
+            };
+
+            await cheerioCrawlerEnqueueLinks({
+                options: {
+                    forefront: true,
+                },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(5);
+
+            for (let i = 0; i < 5; i++) {
+                expect(enqueued[i].options.forefront).toBe(true);
+            }
         });
     });
 });
