@@ -198,7 +198,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await newEntry.update(requestModel);
 
         existingQueueById.requests.set(requestModel.id, newEntry);
-        existingQueueById.pendingRequestCount += requestModel.orderNo === null ? 1 : 0;
+        // We add 1 to pending requests if the request was not handled yet
+        existingQueueById.pendingRequestCount += requestModel.orderNo !== null ? 1 : 0;
         existingQueueById.updateTimestamps(true);
 
         return {
@@ -252,7 +253,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             await newEntry.update(requestModel);
 
             existingQueueById.requests.set(requestModel.id, newEntry);
-            existingQueueById.pendingRequestCount += requestModel.orderNo === null ? 1 : 0;
+            // We add 1 to pending requests if the request was not handled yet
+            existingQueueById.pendingRequestCount += requestModel.orderNo !== null ? 1 : 0;
             result.processedRequests.push({
                 requestId: requestModel.id,
                 uniqueKey: requestModel.uniqueKey,
@@ -319,14 +321,12 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // the handled counts are updated correctly in all cases.
         existingQueueById.requests.set(requestModel.id, newEntry);
 
-        let handledCountAdjustment = 0;
         const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
         const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
 
-        if (isRequestHandledStateChanging) handledCountAdjustment += 1;
-        if (requestWasHandledBeforeUpdate) handledCountAdjustment = -handledCountAdjustment;
-
-        existingQueueById.pendingRequestCount += handledCountAdjustment;
+        if (isRequestHandledStateChanging) {
+            existingQueueById.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
+        }
         existingQueueById.updateTimestamps(true);
 
         return {
