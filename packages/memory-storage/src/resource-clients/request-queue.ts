@@ -10,6 +10,8 @@ import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
 import { BaseClient } from './common/base-client';
 import { sendWorkerMessage } from '../workers/instance';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
+import type { StorageImplementation } from '../fs/common';
+import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 
 const requestShape = s.object({
     id: s.string,
@@ -54,7 +56,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     pendingRequestCount = 0;
     requestQueueDirectory: string;
 
-    private readonly requests = new Map<string, InternalRequest>();
+    private readonly requests = new Map<string, StorageImplementation<InternalRequest>>();
     private readonly client: MemoryStorage;
 
     constructor(options: RequestQueueClientOptions) {
@@ -141,10 +143,12 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
-        for (const request of existingQueueById.requests.values()) {
+        for (const storageEntry of existingQueueById.requests.values()) {
             if (items.length === limit) {
                 break;
             }
+
+            const request = await storageEntry.get();
 
             if (request.orderNo) {
                 items.push(request);
@@ -171,10 +175,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const requestModel = this._createInternalRequest(request, options.forefront);
 
-        const existingRequestWithId = existingQueueById.requests.get(requestModel.id);
+        const existingRequestWithIdEntry = existingQueueById.requests.get(requestModel.id);
 
         // We already have the request present, so we return information about it
-        if (existingRequestWithId) {
+        if (existingRequestWithIdEntry) {
+            const existingRequestWithId = await existingRequestWithIdEntry.get();
             existingQueueById.updateTimestamps(false);
 
             return {
@@ -184,11 +189,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             };
         }
 
-        existingQueueById.requests.set(requestModel.id, requestModel);
+        const newEntry = createRequestQueueStorageImplementation({
+            persistStorage: existingQueueById.client.persistStorage,
+            requestId: requestModel.id,
+            storeDirectory: existingQueueById.client.requestQueuesDirectory,
+        });
+
+        await newEntry.update(requestModel);
+
+        existingQueueById.requests.set(requestModel.id, newEntry);
         // We add 1 to pending requests if the request was not handled yet
         existingQueueById.pendingRequestCount += requestModel.orderNo !== null ? 1 : 0;
         existingQueueById.updateTimestamps(true);
-        existingQueueById.updateItem(requestModel);
 
         return {
             requestId: requestModel.id,
@@ -217,9 +229,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         for (const model of requests) {
             const requestModel = this._createInternalRequest(model, options.forefront);
 
-            const existingRequestWithId = existingQueueById.requests.get(requestModel.id);
+            const existingRequestWithIdEntry = existingQueueById.requests.get(requestModel.id);
 
-            if (existingRequestWithId) {
+            if (existingRequestWithIdEntry) {
+                const existingRequestWithId = await existingRequestWithIdEntry.get();
+
                 result.processedRequests.push({
                     requestId: existingRequestWithId.id,
                     uniqueKey: existingRequestWithId.uniqueKey,
@@ -230,7 +244,15 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 continue;
             }
 
-            existingQueueById.requests.set(requestModel.id, requestModel);
+            const newEntry = createRequestQueueStorageImplementation({
+                persistStorage: existingQueueById.client.persistStorage,
+                requestId: requestModel.id,
+                storeDirectory: existingQueueById.client.requestQueuesDirectory,
+            });
+
+            await newEntry.update(requestModel);
+
+            existingQueueById.requests.set(requestModel.id, newEntry);
             // We add 1 to pending requests if the request was not handled yet
             existingQueueById.pendingRequestCount += requestModel.orderNo !== null ? 1 : 0;
             result.processedRequests.push({
@@ -241,7 +263,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 wasAlreadyHandled: false,
                 wasAlreadyPresent: false,
             });
-            existingQueueById.updateItem(requestModel);
         }
 
         existingQueueById.updateTimestamps(true);
@@ -259,7 +280,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         existingQueueById.updateTimestamps(false);
 
-        const json = existingQueueById.requests.get(id)?.json;
+        const json = (await existingQueueById.requests.get(id)?.get())?.json;
         return this._jsonToRequest(json);
     }
 
@@ -278,17 +299,27 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         // First we need to check the existing request to be
         // able to return information about its handled state.
 
-        const existingRequest = existingQueueById.requests.get(requestModel.id);
+        const existingRequestEntry = existingQueueById.requests.get(requestModel.id);
 
         // Undefined means that the request is not present in the queue.
         // We need to insert it, to behave the same as API.
-        if (!existingRequest) {
+        if (!existingRequestEntry) {
             return this.addRequest(request, options);
         }
 
+        const existingRequest = await existingRequestEntry.get();
+
+        const newEntry = createRequestQueueStorageImplementation({
+            persistStorage: existingQueueById.client.persistStorage,
+            requestId: requestModel.id,
+            storeDirectory: existingQueueById.client.requestQueuesDirectory,
+        });
+
+        await newEntry.update(requestModel);
+
         // When updating the request, we need to make sure that
         // the handled counts are updated correctly in all cases.
-        existingQueueById.requests.set(requestModel.id, requestModel);
+        existingQueueById.requests.set(requestModel.id, newEntry);
 
         const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
         const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
@@ -297,7 +328,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             existingQueueById.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
         }
         existingQueueById.updateTimestamps(true);
-        existingQueueById.updateItem(requestModel);
 
         return {
             requestId: requestModel.id,
@@ -313,21 +343,15 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             this.throwOnNonExisting(StorageTypes.RequestQueue);
         }
 
-        const request = existingQueueById.requests.get(id);
+        const entry = existingQueueById.requests.get(id);
 
-        if (request) {
+        if (entry) {
+            const request = await entry.get();
+
             existingQueueById.requests.delete(id);
             existingQueueById.pendingRequestCount -= request.orderNo ? 1 : 0;
             existingQueueById.updateTimestamps(true);
-            sendWorkerMessage({
-                action: 'delete-entry',
-                data: { id },
-                entityType: 'requestQueues',
-                entityDirectory: existingQueueById.requestQueueDirectory,
-                id: existingQueueById.name ?? existingQueueById.id,
-                writeMetadata: existingQueueById.client.writeMetadata,
-                persistStorage: existingQueueById.client.persistStorage,
-            });
+            await entry.delete();
         }
     }
 
@@ -358,18 +382,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         sendWorkerMessage({
             action: 'update-metadata',
             data,
-            entityType: 'requestQueues',
-            entityDirectory: this.requestQueueDirectory,
-            id: this.name ?? this.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
-    }
-
-    private updateItem(item: InternalRequest) {
-        sendWorkerMessage({
-            action: 'update-entries',
-            data: item,
             entityType: 'requestQueues',
             entityDirectory: this.requestQueueDirectory,
             id: this.name ?? this.id,

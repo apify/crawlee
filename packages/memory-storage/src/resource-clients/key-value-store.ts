@@ -13,6 +13,8 @@ import { isBuffer, isStream } from '../utils';
 import { BaseClient } from './common/base-client';
 import { sendWorkerMessage } from '../workers/instance';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
+import type { StorageImplementation } from '../fs/common';
+import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
@@ -37,7 +39,7 @@ export class KeyValueStoreClient extends BaseClient {
     modifiedAt = new Date();
     keyValueStoreDirectory: string;
 
-    private readonly keyValueEntries = new Map<string, InternalKeyRecord>();
+    private readonly keyValueEntries = new Map<string, StorageImplementation<InternalKeyRecord>>();
     private readonly client: MemoryStorage;
 
     constructor(options: KeyValueStoreClientOptions) {
@@ -125,7 +127,9 @@ export class KeyValueStoreClient extends BaseClient {
 
         const items = [];
 
-        for (const record of existingStoreById.keyValueEntries.values()) {
+        for (const storageEntry of existingStoreById.keyValueEntries.values()) {
+            const record = await storageEntry.get();
+
             const size = Buffer.byteLength(record.value);
             items.push({
                 key: record.key,
@@ -183,11 +187,13 @@ export class KeyValueStoreClient extends BaseClient {
             this.throwOnNonExisting(StorageTypes.KeyValueStore);
         }
 
-        const entry = existingStoreById.keyValueEntries.get(key);
+        const storageEntry = existingStoreById.keyValueEntries.get(key);
 
-        if (!entry) {
+        if (!storageEntry) {
             return undefined;
         }
+
+        const entry = await storageEntry.get();
 
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
@@ -256,28 +262,24 @@ export class KeyValueStoreClient extends BaseClient {
             value = Buffer.concat(chunks);
         }
 
-        const entry = {
+        const _record = {
             extension,
             key,
             value,
             contentType,
-        };
+        } satisfies InternalKeyRecord;
+
+        const entry = createKeyValueStorageImplementation({
+            persistStorage: this.client.persistStorage,
+            storeDirectory: existingStoreById.keyValueStoreDirectory,
+            writeMetadata: existingStoreById.client.writeMetadata,
+        });
+
+        await entry.update(_record);
 
         existingStoreById.keyValueEntries.set(key, entry);
 
         existingStoreById.updateTimestamps(true);
-        sendWorkerMessage({
-            action: 'update-entries',
-            data: {
-                action: 'set',
-                record: entry,
-            },
-            entityType: 'keyValueStores',
-            entityDirectory: existingStoreById.keyValueStoreDirectory,
-            id: existingStoreById.name ?? existingStoreById.id,
-            writeMetadata: this.client.writeMetadata,
-            persistStorage: this.client.persistStorage,
-        });
     }
 
     async deleteRecord(key: string): Promise<void> {
@@ -295,18 +297,7 @@ export class KeyValueStoreClient extends BaseClient {
         if (entry) {
             existingStoreById.keyValueEntries.delete(key);
             existingStoreById.updateTimestamps(true);
-            sendWorkerMessage({
-                action: 'update-entries',
-                data: {
-                    action: 'delete',
-                    record: entry,
-                },
-                entityType: 'keyValueStores',
-                entityDirectory: existingStoreById.keyValueStoreDirectory,
-                id: existingStoreById.name ?? existingStoreById.id,
-                writeMetadata: this.client.writeMetadata,
-                persistStorage: this.client.persistStorage,
-            });
+            await entry.delete();
         }
     }
 

@@ -3,8 +3,6 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { createHash } from 'node:crypto';
 import { REQUEST_ID_LENGTH } from './consts';
-import type { InternalKeyRecord } from './resource-clients/key-value-store';
-import type { InternalRequest } from './resource-clients/request-queue';
 
 /**
  * Removes all properties with a null value
@@ -67,19 +65,12 @@ export interface WorkerData {
     requestQueuesDirectory: string;
 }
 
-export type WorkerReceivedMessage = WorkerUpdateMetadataMessage | WorkerUpdateEntriesMessage | WorkerDeleteEntryMessage;
+export type WorkerReceivedMessage = WorkerUpdateMetadataMessage;
 
 export type WorkerUpdateMetadataMessage =
     | MetadataUpdate<'datasets', storage.DatasetInfo>
     | MetadataUpdate<'keyValueStores', storage.KeyValueStoreInfo>
     | MetadataUpdate<'requestQueues', storage.RequestQueueInfo>;
-
-export type WorkerUpdateEntriesMessage =
-    | EntriesUpdate<'datasets', [string, storage.Dictionary][]>
-    | EntriesUpdate<'keyValueStores', KeyValueStoreItemData>
-    | EntriesUpdate<'requestQueues', InternalRequest>;
-
-export type WorkerDeleteEntryMessage = EntryDelete<'requestQueues'>;
 
 type EntityType = 'datasets' | 'keyValueStores' | 'requestQueues';
 
@@ -91,31 +82,4 @@ interface MetadataUpdate<Type extends EntityType, DataType> {
     data: DataType;
     writeMetadata: boolean;
     persistStorage: boolean;
-}
-
-interface EntriesUpdate<Type extends EntityType, DataType> {
-    entityType: Type;
-    id: string;
-    action: 'update-entries';
-    entityDirectory: string;
-    data: DataType;
-    writeMetadata: boolean;
-    persistStorage: boolean;
-}
-
-interface EntryDelete<Type extends EntityType> {
-    entityType: Type;
-    id: string;
-    action: 'delete-entry';
-    entityDirectory: string;
-    writeMetadata: boolean;
-    persistStorage: boolean;
-    data: {
-        id: string;
-    };
-}
-
-interface KeyValueStoreItemData {
-    action: 'set' | 'delete';
-    record: InternalKeyRecord;
 }
