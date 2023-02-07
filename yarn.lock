@@ -880,7 +880,7 @@ __metadata:
     "@apify/utilities": ^2.1.4
     "@crawlee/http": ^3.2.1
     "@crawlee/types": ^3.2.1
-    "@types/jsdom": ^20.0.0
+    "@types/jsdom": ^21.0.0
     jsdom: ^21.0.0
     ow: ^0.28.2
     tslib: ^2.4.0
@@ -2918,14 +2918,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/jsdom@npm:^20.0.0":
-  version: 20.0.1
-  resolution: "@types/jsdom@npm:20.0.1"
+"@types/jsdom@npm:^21.0.0":
+  version: 21.1.0
+  resolution: "@types/jsdom@npm:21.1.0"
   dependencies:
     "@types/node": "*"
     "@types/tough-cookie": "*"
     parse5: ^7.0.0
-  checksum: d55402c5256ef451f93a6e3d3881f98339fe73a5ac2030588df056d6835df8367b5a857b48d27528289057e26dcdd3f502edc00cb877c79174cb3a4c7f2198c1
+  checksum: 39d3c580283cb7cc3b2729738fd2cd64344e44c815d08f7b6ee7d9c973f7512eff7e7187408649c9da69b76ec81c118868e8b8787d50320f3e2f9cbbd0b000d4
   languageName: node
   linkType: hard
 

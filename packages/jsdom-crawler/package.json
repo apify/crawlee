@@ -56,7 +56,7 @@
         "@apify/utilities": "^2.1.4",
         "@crawlee/http": "^3.2.1",
         "@crawlee/types": "^3.2.1",
-        "@types/jsdom": "^20.0.0",
+        "@types/jsdom": "^21.0.0",
         "jsdom": "^21.0.0",
         "ow": "^0.28.2",
         "tslib": "^2.4.0"
