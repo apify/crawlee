@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.2.0](https://github.com/apify/crawlee/compare/v3.1.4...v3.2.0) (2023-02-07)
+
+
+### Bug Fixes
+
+* declare missing dependency on `tslib` ([27e96c8](https://github.com/apify/crawlee/commit/27e96c80c26e7fc31809a4b518d699573cb8c662)), closes [#1747](https://github.com/apify/crawlee/issues/1747)
+* update playwright to 1.29.2 and make peer dep. less strict ([#1735](https://github.com/apify/crawlee/issues/1735)) ([c654fcd](https://github.com/apify/crawlee/commit/c654fcdea06fb203b7952ed97650190cc0e74394)), closes [#1723](https://github.com/apify/crawlee/issues/1723)
+
+
+
+
+
 ## [3.1.4](https://github.com/apify/crawlee/compare/v3.1.3...v3.1.4) (2022-12-14)
 
 **Note:** Version bump only for package crawlee

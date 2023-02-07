@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/memory-storage",
-    "version": "3.1.2",
+    "version": "3.2.0",
     "description": "A simple in-memory storage implementation of the Apify API",
     "engines": {
         "node": ">= 16"
@@ -49,8 +49,8 @@
     },
     "dependencies": {
         "@apify/log": "^2.0.0",
-        "@crawlee/types": "^3.1.2",
-        "@crawlee/utils": "^3.1.2",
+        "@crawlee/types": "^3.2.0",
+        "@crawlee/utils": "^3.2.0",
         "@sapphire/shapeshift": "^3.0.0",
         "content-type": "^1.0.4",
         "fs-extra": "^11.0.0",

@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.2.0](https://github.com/apify/crawlee/compare/v3.1.4...v3.2.0) (2023-02-07)
+
+
+### Bug Fixes
+
+* allow `userData` option in `enqueueLinksByClickingElements` ([#1749](https://github.com/apify/crawlee/issues/1749)) ([736f85d](https://github.com/apify/crawlee/commit/736f85d4a3b99a06d0f99f91e33e71976a9458a3)), closes [#1617](https://github.com/apify/crawlee/issues/1617)
+* clone `request.userData` when creating new request object ([#1728](https://github.com/apify/crawlee/issues/1728)) ([222ef59](https://github.com/apify/crawlee/commit/222ef59b646740ae46be011ea0bc3d11c51a553e)), closes [#1725](https://github.com/apify/crawlee/issues/1725)
+* Correctly compute `pendingRequestCount` in request queue ([#1765](https://github.com/apify/crawlee/issues/1765)) ([946535f](https://github.com/apify/crawlee/commit/946535f2338086e13c71ff70129e7a1f6bfd275d)), closes [/github.com/apify/crawlee/blob/master/packages/memory-storage/src/resource-clients/request-queue.ts#L291-L298](https://github.com//github.com/apify/crawlee/blob/master/packages/memory-storage/src/resource-clients/request-queue.ts/issues/L291-L298)
+* declare missing dependency on `tslib` ([27e96c8](https://github.com/apify/crawlee/commit/27e96c80c26e7fc31809a4b518d699573cb8c662)), closes [#1747](https://github.com/apify/crawlee/issues/1747)
+* ensure CrawlingContext interface is inferred correctly in route handlers ([aa84633](https://github.com/apify/crawlee/commit/aa84633b1a2007c2e91bf012e944433b21243f2e))
+* **KeyValueStore:** big buffers should not crash ([#1734](https://github.com/apify/crawlee/issues/1734)) ([2f682f7](https://github.com/apify/crawlee/commit/2f682f7ddd189cad11a3f5e7655ac6243444ff74)), closes [#1732](https://github.com/apify/crawlee/issues/1732) [#1710](https://github.com/apify/crawlee/issues/1710)
+* **memory-storage:** dont fail when storage already purged ([#1737](https://github.com/apify/crawlee/issues/1737)) ([8694027](https://github.com/apify/crawlee/commit/86940273dbac2d13294140962f816f66582684ff)), closes [#1736](https://github.com/apify/crawlee/issues/1736)
+* update playwright to 1.29.2 and make peer dep. less strict ([#1735](https://github.com/apify/crawlee/issues/1735)) ([c654fcd](https://github.com/apify/crawlee/commit/c654fcdea06fb203b7952ed97650190cc0e74394)), closes [#1723](https://github.com/apify/crawlee/issues/1723)
+* **utils:** add missing dependency on `ow` ([bf0e03c](https://github.com/apify/crawlee/commit/bf0e03cc6ddc103c9337de5cd8dce9bc86c369a3)), closes [#1716](https://github.com/apify/crawlee/issues/1716)
+
+
+### Features
+
+* add `forefront` option to all `enqueueLinks` variants ([#1760](https://github.com/apify/crawlee/issues/1760)) ([a01459d](https://github.com/apify/crawlee/commit/a01459dffb51162e676354f0aa4811a1d36affa9)), closes [#1483](https://github.com/apify/crawlee/issues/1483)
+* **enqueueLinks:** add SameOrigin strategy and relax protocol matching for the other strategies ([#1748](https://github.com/apify/crawlee/issues/1748)) ([4ba982a](https://github.com/apify/crawlee/commit/4ba982a909a3c16004b24ef90c3da3ee4e075be0))
+* **MemoryStorage:** read from fs if persistStorage is enabled, ram only otherwise ([#1761](https://github.com/apify/crawlee/issues/1761)) ([e903980](https://github.com/apify/crawlee/commit/e9039809a0c0af0bc086be1f1400d18aa45ae490))
+
+
+
+
+
 ## [3.1.4](https://github.com/apify/crawlee/compare/v3.1.3...v3.1.4) (2022-12-14)
 
 

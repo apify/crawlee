@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.2.0](https://github.com/apify/crawlee/compare/v3.1.4...v3.2.0) (2023-02-07)
+
+
+### Bug Fixes
+
+* clone `request.userData` when creating new request object ([#1728](https://github.com/apify/crawlee/issues/1728)) ([222ef59](https://github.com/apify/crawlee/commit/222ef59b646740ae46be011ea0bc3d11c51a553e)), closes [#1725](https://github.com/apify/crawlee/issues/1725)
+* declare missing dependency on `tslib` ([27e96c8](https://github.com/apify/crawlee/commit/27e96c80c26e7fc31809a4b518d699573cb8c662)), closes [#1747](https://github.com/apify/crawlee/issues/1747)
+* ensure CrawlingContext interface is inferred correctly in route handlers ([aa84633](https://github.com/apify/crawlee/commit/aa84633b1a2007c2e91bf012e944433b21243f2e))
+* **utils:** add missing dependency on `ow` ([bf0e03c](https://github.com/apify/crawlee/commit/bf0e03cc6ddc103c9337de5cd8dce9bc86c369a3)), closes [#1716](https://github.com/apify/crawlee/issues/1716)
+
+
+### Features
+
+* **enqueueLinks:** add SameOrigin strategy and relax protocol matching for the other strategies ([#1748](https://github.com/apify/crawlee/issues/1748)) ([4ba982a](https://github.com/apify/crawlee/commit/4ba982a909a3c16004b24ef90c3da3ee4e075be0))
+
+
+
+
+
 ## [3.1.3](https://github.com/apify/crawlee/compare/v3.1.2...v3.1.3) (2022-12-07)
 
 **Note:** Version bump only for package @crawlee/core

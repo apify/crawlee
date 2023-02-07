@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.2.0](https://github.com/apify/crawlee/compare/v3.1.4...v3.2.0) (2023-02-07)
+
+
+### Bug Fixes
+
+* Correctly compute `pendingRequestCount` in request queue ([#1765](https://github.com/apify/crawlee/issues/1765)) ([946535f](https://github.com/apify/crawlee/commit/946535f2338086e13c71ff70129e7a1f6bfd275d)), closes [/github.com/apify/crawlee/blob/master/packages/memory-storage/src/resource-clients/request-queue.ts#L291-L298](https://github.com//github.com/apify/crawlee/blob/master/packages/memory-storage/src/resource-clients/request-queue.ts/issues/L291-L298)
+* **KeyValueStore:** big buffers should not crash ([#1734](https://github.com/apify/crawlee/issues/1734)) ([2f682f7](https://github.com/apify/crawlee/commit/2f682f7ddd189cad11a3f5e7655ac6243444ff74)), closes [#1732](https://github.com/apify/crawlee/issues/1732) [#1710](https://github.com/apify/crawlee/issues/1710)
+* **memory-storage:** dont fail when storage already purged ([#1737](https://github.com/apify/crawlee/issues/1737)) ([8694027](https://github.com/apify/crawlee/commit/86940273dbac2d13294140962f816f66582684ff)), closes [#1736](https://github.com/apify/crawlee/issues/1736)
+* **utils:** add missing dependency on `ow` ([bf0e03c](https://github.com/apify/crawlee/commit/bf0e03cc6ddc103c9337de5cd8dce9bc86c369a3)), closes [#1716](https://github.com/apify/crawlee/issues/1716)
+
+
+### Features
+
+* **MemoryStorage:** read from fs if persistStorage is enabled, ram only otherwise ([#1761](https://github.com/apify/crawlee/issues/1761)) ([e903980](https://github.com/apify/crawlee/commit/e9039809a0c0af0bc086be1f1400d18aa45ae490))
+
+
+
+
+
 ## 3.1.2 (2022-11-15)
 
 **Note:** Version bump only for package @crawlee/memory-storage
