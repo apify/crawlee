@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.2.1](https://github.com/apify/crawlee/compare/v3.2.0...v3.2.1) (2023-02-07)
+
+
+### Bug Fixes
+
+* add `QueueOperationInfo` export to the core package ([5ec6c24](https://github.com/apify/crawlee/commit/5ec6c24ba31c11c0ff4db49a6461f112a70071b3))
+
+
+
+
+
 # [3.2.0](https://github.com/apify/crawlee/compare/v3.1.4...v3.2.0) (2023-02-07)
 
 
