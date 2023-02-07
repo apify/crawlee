@@ -25,6 +25,7 @@ apify_storage
 crawlee_storage
 storage
 .turbo
+.npmrc
 
 # we use corepack, no need to commit yarn binary
 .yarn

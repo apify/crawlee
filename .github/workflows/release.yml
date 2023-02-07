@@ -137,6 +137,13 @@ jobs:
                     GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
                     GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
+            -   name: Update lockfile
+                run: |
+                    yarn install --no-immutable
+                    git add .
+                    git commit -m 'chore(release): update internal dependencies [skip ci]'
+                    git push
+
             -   name: Publish packages
                 run: yarn publish:prod --yes --no-verify-access
                 env:
