@@ -192,7 +192,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const newEntry = createRequestQueueStorageImplementation({
             persistStorage: existingQueueById.client.persistStorage,
             requestId: requestModel.id,
-            storeDirectory: existingQueueById.client.requestQueuesDirectory,
+            storeDirectory: existingQueueById.requestQueueDirectory,
         });
 
         await newEntry.update(requestModel);
@@ -247,7 +247,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             const newEntry = createRequestQueueStorageImplementation({
                 persistStorage: existingQueueById.client.persistStorage,
                 requestId: requestModel.id,
-                storeDirectory: existingQueueById.client.requestQueuesDirectory,
+                storeDirectory: existingQueueById.requestQueueDirectory,
             });
 
             await newEntry.update(requestModel);
@@ -312,7 +312,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const newEntry = createRequestQueueStorageImplementation({
             persistStorage: existingQueueById.client.persistStorage,
             requestId: requestModel.id,
-            storeDirectory: existingQueueById.client.requestQueuesDirectory,
+            storeDirectory: existingQueueById.requestQueueDirectory,
         });
 
         await newEntry.update(requestModel);
