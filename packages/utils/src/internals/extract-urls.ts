@@ -20,6 +20,9 @@ export interface DownloadListOfUrlsOptions {
      * @default URL_NO_COMMAS_REGEX
      */
     urlRegExp?: RegExp;
+
+    /** Allows to use a proxy for the download request. */
+    proxyUrl?: string;
 }
 
 /**
