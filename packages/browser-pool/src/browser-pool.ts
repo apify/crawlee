@@ -14,6 +14,7 @@ import type { LaunchContext } from './launch-context';
 import { log } from './logger';
 import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
 import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
+import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
@@ -25,13 +26,26 @@ export interface BrowserPoolEvents<BC extends BrowserController, Page> {
     [BROWSER_POOL_EVENTS.BROWSER_LAUNCHED]: (browserController: BC) => void | Promise<void>;
 }
 
+/**
+ * Settings for the fingerprint generator and virtual session management system.
+ *
+ * > To set the specific fingerprint generation options (operating system, device type, screen dimensions), use the `fingerprintGeneratorOptions` property.
+ */
 export interface FingerprintOptions {
-    fingerprintGeneratorOptions?: ConstructorParameters<typeof FingerprintGenerator>[0];
     /**
+     * Customizes the fingerprint generation by setting e.g. the device type, operating system or screen size.
+     */
+    fingerprintGeneratorOptions?: FingerprintGeneratorOptions;
+    /**
+     * Enables the virtual session management system. This ties every Crawlee session with a specific browser fingerprint,
+     * so your scraping activity seems more natural to the target website.
      * @default true
      */
     useFingerprintCache?: boolean;
     /**
+    * The maximum number of fingerprints that can be stored in the cache.
+    *
+    * Only relevant if `useFingerprintCache` is set to `true`.
     * @default 10000
     */
     fingerprintCacheSize?: number;
