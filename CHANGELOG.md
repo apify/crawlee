@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.2.2](https://github.com/apify/crawlee/compare/v3.2.1...v3.2.2) (2023-02-08)
+
+
+### Bug Fixes
+
+* **MemoryStorage:** request queues saved in the wrong place ([#1779](https://github.com/apify/crawlee/issues/1779)) ([19409db](https://github.com/apify/crawlee/commit/19409dbd614560a73c97ef6e00997e482573d2ff))
+
+
+
+
+
 ## [3.2.1](https://github.com/apify/crawlee/compare/v3.2.0...v3.2.1) (2023-02-07)
 
 
