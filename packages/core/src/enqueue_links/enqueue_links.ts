@@ -251,6 +251,10 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
             ow.string,
             ow.object.hasKeys('glob'),
         )),
+        blacklist: ow.optional.array.ofType(ow.any(
+            ow.string,
+            ow.object.hasKeys('glob'),
+        )),
         regexps: ow.optional.array.ofType(ow.any(
             ow.regExp,
             ow.object.hasKeys('regexp'),
@@ -264,13 +268,19 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         limit,
         urls,
         pseudoUrls,
+        blacklist,
         globs,
         regexps,
         transformRequestFunction,
         forefront,
     } = options;
 
+    const urlBlacklistPatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
+
+    if (blacklist?.length) {
+        urlBlacklistPatternObjects.push(...constructGlobObjectsFromGlobs(blacklist));
+    }
 
     if (pseudoUrls?.length) {
         log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
@@ -344,7 +354,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         }
 
         // Generate requests based on the user patterns first
-        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects);
+        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects, urlBlacklistPatternObjects);
         // ...then filter them by the enqueue links strategy (making this an AND check)
         return filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns);
     }

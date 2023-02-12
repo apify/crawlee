@@ -126,16 +126,40 @@ export function constructRegExpObjectsFromRegExps(regexps: RegExpInput[]): RegEx
 /**
  * @ignore
  */
-export function createRequests(requestOptions: (string | RequestOptions)[], urlPatternObjects?: UrlPatternObject[]): Request[] {
+export function createRequests(
+    requestOptions: (string | RequestOptions)[],
+    urlPatternObjects?: UrlPatternObject[],
+    blacklistPatternObjects?: UrlPatternObject[],
+): Request[] {
     if (!urlPatternObjects || !urlPatternObjects.length) {
         return requestOptions
             .map((opts) => new Request(typeof opts === 'string' ? { url: opts } : opts));
+    }
+
+    if (!blacklistPatternObjects || !blacklistPatternObjects.length) {
+        blacklistPatternObjects = [];
     }
 
     const requests: Request[] = [];
 
     for (const opts of requestOptions) {
         const urlToMatch = typeof opts === 'string' ? opts : opts.url;
+
+        let isBlacklisted = false;
+        for (const blacklistPatternObject of blacklistPatternObjects) {
+            const { regexp, glob } = blacklistPatternObject;
+
+            if (
+                (regexp && urlToMatch.match(regexp)) || // eslint-disable-line
+                (glob && minimatch(urlToMatch, glob, { nocase: true }))
+            ) {
+                // Skip this request as it's blacklisted
+                isBlacklisted = true;
+                break;
+            }
+        }
+
+        if (isBlacklisted) continue;
 
         for (const urlPatternObject of urlPatternObjects) {
             const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
