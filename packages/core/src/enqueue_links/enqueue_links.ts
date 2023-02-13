@@ -350,7 +350,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     function createFilteredRequests() {
         // No user provided patterns means we can skip an extra filtering step
         if (urlPatternObjects.length === 0) {
-            return createRequests(requestOptions, enqueueStrategyPatterns);
+            return createRequests(requestOptions, enqueueStrategyPatterns, urlExcludePatternObjects);
         }
 
         // Generate requests based on the user patterns first
