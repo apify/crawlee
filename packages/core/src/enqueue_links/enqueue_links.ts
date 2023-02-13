@@ -56,14 +56,14 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     globs?: GlobInput[];
 
     /**
-     * An array of glob pattern strings or plain objects
-     * containing glob pattern strings matching URLs that will **never** be enqueued.
+     * An array of glob pattern strings, regexp patterns or plain objects
+     * containing patterns matching URLs that will **never** be enqueued.
      *
-     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
+     * The plain objects must include either the `glob` property or the `regexp` property.
      * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
      *
-     * The matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, provide a regexp.
      */
     exclude?: (GlobInput | RegExpInput)[];
 
