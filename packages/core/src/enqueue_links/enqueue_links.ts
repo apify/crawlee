@@ -65,7 +65,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * The matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
      */
-    exclude?: GlobInput[];
+    exclude?: (GlobInput | RegExpInput)[];
 
     /**
      * An array of regular expressions or plain objects
@@ -253,7 +253,9 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         )),
         exclude: ow.optional.array.ofType(ow.any(
             ow.string,
+            ow.regExp,
             ow.object.hasKeys('glob'),
+            ow.object.hasKeys('regexp'),
         )),
         regexps: ow.optional.array.ofType(ow.any(
             ow.regExp,
@@ -279,7 +281,13 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     const urlPatternObjects: UrlPatternObject[] = [];
 
     if (exclude?.length) {
-        urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs(exclude));
+        for (const excl of exclude) {
+            if (typeof excl === 'string' || 'glob' in excl) {
+                urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
+            } else if (typeof excl === typeof /$/ || 'regexp' in excl) {
+                urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
+            }
+        }
     }
 
     if (pseudoUrls?.length) {
