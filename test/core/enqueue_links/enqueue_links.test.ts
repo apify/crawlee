@@ -207,7 +207,7 @@ describe('enqueueLinks()', () => {
                 { glob: '?(http|https)://cool.com/', method: 'POST' as const },
             ];
 
-            const blacklist = ["**/first"]
+            const blacklist = ['**/first'];
 
             await browserCrawlerEnqueueLinks({
                 options: {
