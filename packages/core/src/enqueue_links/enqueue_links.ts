@@ -284,7 +284,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         for (const excl of exclude) {
             if (typeof excl === 'string' || 'glob' in excl) {
                 urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
-            } else if (typeof excl === typeof /$/ || 'regexp' in excl) {
+            } else if (excl instanceof RegExp || 'regexp' in excl) {
                 urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
             }
         }
