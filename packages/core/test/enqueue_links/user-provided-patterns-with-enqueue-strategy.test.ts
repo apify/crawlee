@@ -121,17 +121,17 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         expect(enqueued[1].url).toBe('https://example.com/a/b/third');
     });
 
-    test('works with globs and blacklist', async () => {
+    test('works with globs and exclude', async () => {
         const { enqueued, requestQueue } = getMockRequestQueue();
 
         const globs = ['**/first'];
-        const blacklist = ['**/first'];
+        const exclude = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
                 globs,
-                blacklist,
+                exclude,
             },
             $,
             requestQueue,

@@ -129,15 +129,11 @@ export function constructRegExpObjectsFromRegExps(regexps: RegExpInput[]): RegEx
 export function createRequests(
     requestOptions: (string | RequestOptions)[],
     urlPatternObjects?: UrlPatternObject[],
-    blacklistPatternObjects?: UrlPatternObject[],
+    excludePatternObjects: UrlPatternObject[] = [],
 ): Request[] {
     if (!urlPatternObjects || !urlPatternObjects.length) {
         return requestOptions
             .map((opts) => new Request(typeof opts === 'string' ? { url: opts } : opts));
-    }
-
-    if (!blacklistPatternObjects || !blacklistPatternObjects.length) {
-        blacklistPatternObjects = [];
     }
 
     const requests: Request[] = [];
@@ -145,21 +141,20 @@ export function createRequests(
     for (const opts of requestOptions) {
         const urlToMatch = typeof opts === 'string' ? opts : opts.url;
 
-        let isBlacklisted = false;
-        for (const blacklistPatternObject of blacklistPatternObjects) {
-            const { regexp, glob } = blacklistPatternObject;
+        let isExcluded = false;
+        for (const excludePatternObject of excludePatternObjects) {
+            const { regexp, glob } = excludePatternObject;
 
             if (
                 (regexp && urlToMatch.match(regexp)) || // eslint-disable-line
                 (glob && minimatch(urlToMatch, glob, { nocase: true }))
             ) {
-                // Skip this request as it's blacklisted
-                isBlacklisted = true;
+                isExcluded = true;
                 break;
             }
         }
 
-        if (isBlacklisted) continue;
+        if (isExcluded) continue;
 
         for (const urlPatternObject of urlPatternObjects) {
             const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;

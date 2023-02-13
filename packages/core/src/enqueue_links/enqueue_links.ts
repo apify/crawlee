@@ -65,7 +65,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * The matching is always case-insensitive.
      * If you need case-sensitive matching, use `regexps` property directly.
      */
-    blacklist?: GlobInput[];
+    exclude?: GlobInput[];
 
     /**
      * An array of regular expressions or plain objects
@@ -251,7 +251,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
             ow.string,
             ow.object.hasKeys('glob'),
         )),
-        blacklist: ow.optional.array.ofType(ow.any(
+        exclude: ow.optional.array.ofType(ow.any(
             ow.string,
             ow.object.hasKeys('glob'),
         )),
@@ -268,18 +268,18 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         limit,
         urls,
         pseudoUrls,
-        blacklist,
+        exclude,
         globs,
         regexps,
         transformRequestFunction,
         forefront,
     } = options;
 
-    const urlBlacklistPatternObjects: UrlPatternObject[] = [];
+    const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
 
-    if (blacklist?.length) {
-        urlBlacklistPatternObjects.push(...constructGlobObjectsFromGlobs(blacklist));
+    if (exclude?.length) {
+        urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs(exclude));
     }
 
     if (pseudoUrls?.length) {
@@ -354,7 +354,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         }
 
         // Generate requests based on the user patterns first
-        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects, urlBlacklistPatternObjects);
+        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
         // ...then filter them by the enqueue links strategy (making this an AND check)
         return filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns);
     }

@@ -194,7 +194,7 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({ label: 'COOL' });
         });
 
-        test('works with blacklist', async () => {
+        test('works with exclude', async () => {
             const enqueued: (Request | RequestOptions)[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
@@ -207,14 +207,14 @@ describe('enqueueLinks()', () => {
                 { glob: '?(http|https)://cool.com/', method: 'POST' as const },
             ];
 
-            const blacklist = ["**/first"]
+            const exclude = ['**/first'];
 
             await browserCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
                     label: 'COOL',
                     globs,
-                    blacklist,
+                    exclude,
                     transformRequestFunction: (request) => {
                         if (request.url.match(/example\.com\/a\/b\/third/)) {
                             request.method = 'OPTIONS';
@@ -229,8 +229,8 @@ describe('enqueueLinks()', () => {
 
             expect(enqueued).toHaveLength(2);
 
-            expect(enqueued[0].url).not.toBe('https://example.com/a/b/first')
-            expect(enqueued[1].url).not.toBe('https://example.com/a/b/first')
+            expect(enqueued[0].url).not.toBe('https://example.com/a/b/first');
+            expect(enqueued[1].url).not.toBe('https://example.com/a/b/first');
 
             expect(enqueued[0].url).toBe('https://example.com/a/b/third');
             expect(enqueued[0].method).toBe('OPTIONS');
