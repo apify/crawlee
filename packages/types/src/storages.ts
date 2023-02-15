@@ -281,6 +281,10 @@ export interface RequestQueueOptions {
     timeoutSecs?: number;
 }
 
+export interface SetStatusMessageOptions {
+    isStatusMessageTerminal?: boolean;
+}
+
 /**
  * Represents a storage capable of working with datasets, KV stores and request queues.
  */
@@ -293,5 +297,6 @@ export interface StorageClient {
     requestQueue(id: string, options?: RequestQueueOptions): RequestQueueClient;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
+    setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;
     stats?: { rateLimitErrors: number[] };
 }
