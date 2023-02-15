@@ -577,6 +577,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
+    private getPeriodicLogger() {
+        const loggingInterval = 60e3;
+        const client = this.config.getStorageClient();
+
+        const log = async () => {
+            const currentStats = this.stats.calculate();
+            await client.setStatusMessage?.(`Crawled ${this.handledRequestsCount}/${currentStats.requestsTotal} pages.`);
+        };
+
+        const interval = setInterval(log, loggingInterval);
+        return { log, stop: () => clearInterval(interval) };
+    }
+
     /**
      * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
      * We can use the `requests` parameter to enqueue the initial requests - it is a shortcut for
@@ -594,6 +607,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         await this._init();
         await this.stats.startCapturing();
+        const periodicLogger = this.getPeriodicLogger();
+        await periodicLogger.log();
 
         const sigintHandler = async () => {
             this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 yarnstart');
@@ -651,6 +666,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             finished = true;
         }
 
+        await periodicLogger.log();
+        periodicLogger.stop();
         return stats;
     }
 
