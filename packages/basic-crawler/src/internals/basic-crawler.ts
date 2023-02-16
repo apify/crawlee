@@ -254,6 +254,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     sessionPoolOptions?: SessionPoolOptions;
 
+    /**
+     * Defines the length of the interval for calling the `setStatusMessage` in seconds.
+     */
+    loggingInterval?: number;
+
     /** @internal */
     log?: Log;
 }
@@ -372,6 +377,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
     protected handledRequestsCount: number;
+    protected loggingInterval: number;
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected crawlingContexts = new Map<string, Context>();
@@ -400,6 +406,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
+        loggingInterval: ow.optional.number,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -446,11 +453,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             handleFailedRequestFunction,
             failedRequestHandler,
+
+            loggingInterval = 60,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.log = log;
+        this.loggingInterval = loggingInterval;
         this.events = config.getEventManager();
 
         this._handlePropertyNameChange({
@@ -578,15 +588,34 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private getPeriodicLogger() {
-        const loggingInterval = 60e3;
         const client = this.config.getStorageClient();
+        let previousState = { ...this.stats.state };
 
-        const log = async () => {
-            const currentStats = this.stats.calculate();
-            await client.setStatusMessage?.(`Crawled ${this.handledRequestsCount}/${currentStats.requestsTotal} pages.`);
+        const getOperationMode = () => {
+            const { requestsFailed } = this.stats.state;
+            const { requestsFailed: previousRequestsFailed } = previousState;
+
+            previousState = { ...this.stats.state };
+
+            if (requestsFailed - previousRequestsFailed > 0) {
+                return 'ERROR';
+            }
+
+            return 'REGULAR';
         };
 
-        const interval = setInterval(log, loggingInterval);
+        const log = async () => {
+            const operationMode = getOperationMode();
+            if (operationMode === 'ERROR') {
+                // eslint-disable-next-line max-len
+                await client.setStatusMessage?.(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`);
+            } else {
+                // eslint-disable-next-line max-len
+                await client.setStatusMessage?.(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length()} pages, ${this.stats.state.requestsFailed} errors.`);
+            }
+        };
+
+        const interval = setInterval(log, this.loggingInterval * 1e3);
         return { log, stop: () => clearInterval(interval) };
     }
 
