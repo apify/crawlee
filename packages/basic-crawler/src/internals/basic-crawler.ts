@@ -695,8 +695,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             finished = true;
         }
 
-        await periodicLogger.log();
         periodicLogger.stop();
+        // eslint-disable-next-line max-len
+        await client.setStatusMessage?.(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
         return stats;
     }
 
