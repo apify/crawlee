@@ -723,8 +723,14 @@ async function extractUrlsFromPage(page: { $$eval: Function }, selector: string,
             throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
                     + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
         }
-        return baseUrl
-            ? (new URL(href, baseUrl)).href
-            : href;
+        if (baseUrl) {
+            try {
+                return new URL(href, baseUrl).href;
+            } catch {
+                // Ignore invalid URLs
+            }
+        }
+
+        return href;
     });
 }
