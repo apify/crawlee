@@ -254,6 +254,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     sessionPoolOptions?: SessionPoolOptions;
 
+    /**
+     * Defines the length of the interval for calling the `setStatusMessage` in seconds.
+     */
+    loggingInterval?: number;
+
     /** @internal */
     log?: Log;
 }
@@ -372,6 +377,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
     protected handledRequestsCount: number;
+    protected loggingInterval: number;
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected crawlingContexts = new Map<string, Context>();
@@ -400,6 +406,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
+        loggingInterval: ow.optional.number,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -446,11 +453,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             handleFailedRequestFunction,
             failedRequestHandler,
+
+            loggingInterval = 60,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.log = log;
+        this.loggingInterval = loggingInterval;
         this.events = config.getEventManager();
 
         this._handlePropertyNameChange({
@@ -577,6 +587,38 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
+    private getPeriodicLogger() {
+        const client = this.config.getStorageClient();
+        let previousState = { ...this.stats.state };
+
+        const getOperationMode = () => {
+            const { requestsFailed } = this.stats.state;
+            const { requestsFailed: previousRequestsFailed } = previousState;
+
+            previousState = { ...this.stats.state };
+
+            if (requestsFailed - previousRequestsFailed > 0) {
+                return 'ERROR';
+            }
+
+            return 'REGULAR';
+        };
+
+        const log = async () => {
+            const operationMode = getOperationMode();
+            if (operationMode === 'ERROR') {
+                // eslint-disable-next-line max-len
+                await client.setStatusMessage?.(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`);
+            } else {
+                // eslint-disable-next-line max-len
+                await client.setStatusMessage?.(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length()} pages, ${this.stats.state.requestsFailed} errors.`);
+            }
+        };
+
+        const interval = setInterval(log, this.loggingInterval * 1e3);
+        return { log, stop: () => clearInterval(interval) };
+    }
+
     /**
      * Runs the crawler. Returns a promise that gets resolved once all the requests are processed.
      * We can use the `requests` parameter to enqueue the initial requests - it is a shortcut for
@@ -594,6 +636,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         await this._init();
         await this.stats.startCapturing();
+        const periodicLogger = this.getPeriodicLogger();
+        await periodicLogger.log();
 
         const sigintHandler = async () => {
             this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 yarnstart');
@@ -651,6 +695,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             finished = true;
         }
 
+        periodicLogger.stop();
+        // eslint-disable-next-line max-len
+        await client.setStatusMessage?.(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
         return stats;
     }
 
