@@ -134,7 +134,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
     }
 
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: CheerioCrawlingContext) {
-        const dom = await this._parseHtmlToDom(response);
+        const dom = await this._parseHtmlToDom(response, isXml);
 
         const $ = cheerio.load(dom as string, {
             xmlMode: isXml,
@@ -162,13 +162,13 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         };
     }
 
-    protected async _parseHtmlToDom(response: IncomingMessage) {
+    protected async _parseHtmlToDom(response: IncomingMessage, isXml: boolean) {
         return new Promise((resolve, reject) => {
             const domHandler = new DomHandler((err, dom) => {
                 if (err) reject(err);
                 else resolve(dom);
-            });
-            const parser = new WritableStream(domHandler, { decodeEntities: true });
+            }, { xmlMode: isXml });
+            const parser = new WritableStream(domHandler, { decodeEntities: true, xmlMode: isXml });
             parser.on('error', reject);
             response
                 .on('error', reject)
