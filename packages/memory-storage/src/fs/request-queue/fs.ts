@@ -1,4 +1,3 @@
-import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
 import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -9,29 +8,18 @@ import type { StorageImplementation } from '../common';
 
 export class RequestQueueFileSystemEntry implements StorageImplementation<InternalRequest> {
     private filePath: string;
-    private fsQueue = new AsyncQueue();
 
     constructor(options: CreateStorageImplementationOptions) {
         this.filePath = resolve(options.storeDirectory, `${options.requestId}.json`);
     }
 
     async get() {
-        try {
-            await this.fsQueue.wait();
-            return JSON.parse(await readFile(this.filePath, 'utf-8'));
-        } finally {
-            this.fsQueue.shift();
-        }
+        return JSON.parse(await readFile(this.filePath, 'utf-8'));
     }
 
     async update(data: InternalRequest) {
-        try {
-            await this.fsQueue.wait();
-            await ensureDir(dirname(this.filePath));
-            await lockAndWrite(this.filePath, data);
-        } finally {
-            this.fsQueue.shift();
-        }
+        await ensureDir(dirname(this.filePath));
+        await lockAndWrite(this.filePath, data);
     }
 
     async delete() {
