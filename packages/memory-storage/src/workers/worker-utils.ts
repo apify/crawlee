@@ -1,10 +1,11 @@
 import log from '@apify/log';
 import { ensureDir } from 'fs-extra';
-import { writeFile } from 'node:fs/promises';
+import { writeFile as writeFileP } from 'node:fs/promises';
 import { setTimeout } from 'node:timers/promises';
 import { resolve } from 'node:path';
 import { parentPort } from 'node:worker_threads';
 import { lock } from 'proper-lockfile';
+import { writeFile } from 'node:fs';
 import type { WorkerReceivedMessage, WorkerUpdateMetadataMessage } from '../utils';
 
 const workerLog = log.child({ prefix: 'MemoryStorageWorker' });
@@ -38,13 +39,21 @@ async function updateMetadata(message: WorkerUpdateMetadataMessage) {
 
     // Write the metadata to the file
     const filePath = resolve(dir, '__metadata__.json');
-    await writeFile(filePath, JSON.stringify(message.data, null, '\t'));
+    await writeFileP(filePath, JSON.stringify(message.data, null, '\t'));
 }
 
 export async function lockAndWrite(filePath: string, data: unknown, stringify = true, retry = 10, timeout = 10): Promise<void> {
     try {
         const release = await lock(filePath, { realpath: false });
-        await writeFile(filePath, stringify ? JSON.stringify(data, null, '\t') : data as Buffer);
+        await new Promise<void>((pResolve, reject) => {
+            writeFile(filePath, stringify ? JSON.stringify(data, null, '\t') : data as Buffer, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    pResolve();
+                }
+            });
+        });
         await release();
     } catch (e: any) {
         if (e.code === 'ELOCKED' && retry > 0) {
