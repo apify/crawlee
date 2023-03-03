@@ -18,7 +18,7 @@ Please note we have a code of conduct, please follow it in all your interactions
 
 ### Yarn
 
-This project now uses yarn v3 to manage dependencies. You will need to install it, the easies way is by using `corepack`:
+This project now uses yarn v3 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
 
 ```shell
 corepack enable
