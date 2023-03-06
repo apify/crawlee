@@ -38,6 +38,7 @@ const HTML = `
         <a href="/x/absolutepath">This is a relative link.</a>
         <a href="y/relativepath">This is a relative link.</a>
         <a href="//example.absolute.com/hello">This is a link to a different subdomain</a>
+        <a href="http://">Invalid URL link, this needs to be ignored</a>
     </body>
 </html>
 `;

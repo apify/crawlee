@@ -23,6 +23,7 @@ import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
     RequestState,
+    tryAbsoluteURL,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -723,8 +724,10 @@ async function extractUrlsFromPage(page: { $$eval: Function }, selector: string,
             throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
                     + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
         }
+
         return baseUrl
-            ? (new URL(href, baseUrl)).href
+            ? tryAbsoluteURL(href, baseUrl)
             : href;
-    });
+    })
+        .filter((href: string | undefined) => !!href);
 }
