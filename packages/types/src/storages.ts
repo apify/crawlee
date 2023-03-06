@@ -1,3 +1,4 @@
+import type { LogLevel } from '@apify/log';
 import type { AllowedHttpMethods, Dictionary } from './utility-types';
 
 /**
@@ -283,6 +284,7 @@ export interface RequestQueueOptions {
 
 export interface SetStatusMessageOptions {
     isStatusMessageTerminal?: boolean;
+    level?: LogLevel.DEBUG | LogLevel.INFO | LogLevel.WARNING | LogLevel.ERROR;
 }
 
 /**

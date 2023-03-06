@@ -1,5 +1,5 @@
 import type { Log } from '@apify/log';
-import defaultLog from '@apify/log';
+import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
@@ -39,7 +39,7 @@ import {
 } from '@crawlee/core';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult } from '@crawlee/types';
+import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
@@ -587,8 +587,29 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
-    private getPeriodicLogger() {
+    private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
+        let {
+            level = LogLevel.INFO,
+        } = options;
+
+        const levelNames = {
+            [LogLevel.DEBUG]: 'debug',
+            [LogLevel.INFO]: 'info',
+            [LogLevel.WARNING]: 'warning',
+            [LogLevel.ERROR]: 'error',
+        } as const;
+
+        if (!(level in levelNames)) {
+            level = LogLevel.INFO;
+        }
+
+        this.log[levelNames[level]](`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
+
         const client = this.config.getStorageClient();
+        return client.setStatusMessage?.(message, options);
+    }
+
+    private getPeriodicLogger() {
         let previousState = { ...this.stats.state };
 
         const getOperationMode = () => {
@@ -608,10 +629,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             const operationMode = getOperationMode();
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                await client.setStatusMessage?.(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`);
+                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`,
+                    { level: LogLevel.WARNING },
+                );
             } else {
                 // eslint-disable-next-line max-len
-                await client.setStatusMessage?.(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length()} pages, ${this.stats.state.requestsFailed} errors.`);
+                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length()} pages, ${this.stats.state.requestsFailed} errors.`);
             }
         };
 
@@ -697,7 +720,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         periodicLogger.stop();
         // eslint-disable-next-line max-len
-        await client.setStatusMessage?.(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
+        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
         return stats;
     }
 

@@ -6,7 +6,6 @@ import { ensureDirSync, pathExistsSync } from 'fs-extra';
 import { renameSync } from 'node:fs';
 import { rm, rename, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import log from '@apify/log';
 import { DatasetClient } from './resource-clients/dataset';
 import { DatasetCollectionClient } from './resource-clients/dataset-collection';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';
@@ -126,8 +125,6 @@ export class MemoryStorage implements storage.StorageClient {
         s.object({
             isStatusMessageTerminal: s.boolean.optional,
         }).parse(options);
-
-        log.info(`Setting${options.isStatusMessageTerminal ? ' terminal' : ''} status message: ${message}`);
 
         return Promise.resolve();
     }
