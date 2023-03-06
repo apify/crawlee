@@ -1,9 +1,9 @@
 import { URL } from 'url';
 import { purlToRegExp } from '@apify/pseudo_url';
 import minimatch from 'minimatch';
+import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { RequestOptions } from '../request';
 import { Request } from '../request';
-import type { EnqueueLinksOptions } from './enqueue_links';
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
@@ -209,6 +209,17 @@ export function createRequestOptions(
 
             return requestOptions;
         });
+}
+
+/**
+ * Helper function used to validate URLs used when extracting URLs from a page
+ */
+export function tryAbsoluteURL(href: string, baseUrl: string): string | undefined {
+    try {
+        return (new URL(href, baseUrl)).href;
+    } catch {
+        return undefined;
+    }
 }
 
 /**

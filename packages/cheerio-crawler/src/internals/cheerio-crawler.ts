@@ -8,7 +8,7 @@ import type {
     RequestQueue,
     Configuration,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
+import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
@@ -224,15 +224,8 @@ function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl
                 throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
                     + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
             }
-            const tryAbsolute = () => {
-                try {
-                    return (new URL(href, baseUrl)).href;
-                } catch {
-                    return undefined;
-                }
-            };
             return baseUrl
-                ? tryAbsolute()
+                ? tryAbsoluteURL(href, baseUrl)
                 : href;
         })
         .filter((href) => !!href) as string[];

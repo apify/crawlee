@@ -9,7 +9,7 @@ import type {
     RequestQueue,
     Configuration,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
+import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type { DOMWindow } from 'jsdom';
@@ -265,12 +265,7 @@ function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: str
             if (href === undefined) {
                 return undefined;
             }
-
-            try {
-                return (new URL(href, baseUrl)).href;
-            } catch {
-                return undefined;
-            }
+            return tryAbsoluteURL(href, baseUrl);
         })
         .filter((href) => href !== undefined && href !== '') as string[];
 }
