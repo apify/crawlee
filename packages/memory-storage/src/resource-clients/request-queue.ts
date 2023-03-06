@@ -323,10 +323,16 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
         const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
+        const requestIsHandledAfterUpdate = requestModel.orderNo === null;
 
         if (isRequestHandledStateChanging) {
             existingQueueById.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
         }
+
+        if (requestIsHandledAfterUpdate) {
+            existingQueueById.handledRequestCount += 1;
+        }
+
         existingQueueById.updateTimestamps(true);
 
         return {
