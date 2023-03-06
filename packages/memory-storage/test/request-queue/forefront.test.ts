@@ -1,5 +1,6 @@
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 describe('RequestQueue forefront should be respected when listing head', () => {
     const storage = new MemoryStorage({
@@ -19,6 +20,8 @@ describe('RequestQueue forefront should be respected when listing head', () => {
 
     test('adding two requests without one being in the forefront should be added in sequential order', async () => {
         await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        // Waiting a few ms is required since we use Date.now() to compute orderNo
+        await sleep(2);
         await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
 
         const { items } = await requestQueue.listHead();
@@ -30,6 +33,8 @@ describe('RequestQueue forefront should be respected when listing head', () => {
 
     test('adding two requests with one being in the forefront should ensure the forefront request is first', async () => {
         await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        // Waiting a few ms is required since we use Date.now() to compute orderNo
+        await sleep(2);
         await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
 
         const { items } = await requestQueue.listHead();
@@ -41,6 +46,8 @@ describe('RequestQueue forefront should be respected when listing head', () => {
 
     test('adding two requests where both are in the forefront should ensure the latest one is added first', async () => {
         await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
+        // Waiting a few ms is required since we use Date.now() to compute orderNo
+        await sleep(2);
         await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
 
         const { items } = await requestQueue.listHead();
