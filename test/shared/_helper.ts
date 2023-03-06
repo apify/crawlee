@@ -23,6 +23,7 @@ export const responseSamples = {
         + '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n'
         + '</item>\n'
         + '</items>',
+    complexXml: fs.readFileSync(path.join(__dirname, 'data/complex.xml'), 'utf-8'),
     image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
     html: `<!doctype html>
     <html>
@@ -37,7 +38,7 @@ export const responseSamples = {
             margin: 0;
             padding: 0;
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            
+
         }
         div {
             width: 600px;
@@ -57,9 +58,9 @@ export const responseSamples = {
                 width: auto;
             }
         }
-        </style>    
+        </style>
     </head>
-    
+
     <body>
     <div>
         <h1>Example Domain</h1>
@@ -79,7 +80,7 @@ export const responseSamples = {
         <meta http-equiv="Content-type" content="text/html; charset=utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="cacheable/style.css">
-        <script src="cacheable/script.js"></script> 
+        <script src="cacheable/script.js"></script>
     </body>
     </html>
 `,
@@ -162,6 +163,10 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         special.get('/xml-type', (_req, res) => {
             res.type('application/xml');
             res.send(responseSamples.xml);
+        });
+        special.get('/complex-xml', (_req, res) => {
+            res.type('application/xml');
+            res.send(responseSamples.complexXml);
         });
         special.get('/image-type', (_req, res) => {
             res.type('image/png');
