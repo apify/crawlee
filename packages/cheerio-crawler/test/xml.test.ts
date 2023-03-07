@@ -18,9 +18,10 @@ afterAll(() => {
 
 describe('CheerioCrawler - XML should be parsed correctly', () => {
     test('should parse XML', async () => {
+        let value!: string;
+
         function handler({ $ }: CheerioCrawlingContext) {
-            const value = $('item').first().find('link').text();
-            expect(value).toBeTruthy();
+            value = $('item').first().find('link').text();
         }
 
         const crawler = new CheerioCrawler({
@@ -28,5 +29,7 @@ describe('CheerioCrawler - XML should be parsed correctly', () => {
         });
 
         await crawler.run([`${serverAddress}/special/complex-xml`]);
+
+        expect(value).toBeTruthy();
     });
 });
