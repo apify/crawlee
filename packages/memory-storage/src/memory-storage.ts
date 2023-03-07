@@ -240,7 +240,7 @@ export class MemoryStorage implements storage.StorageClient {
         const folderExists = pathExistsSync(folder);
 
         if (folderExists) {
-            const temporaryFolder = folder.startsWith('__CRAWLEE_TEMPORARY_') ? folder : resolve(folder, `../__CRAWLEE_TEMPORARY_${counter}__`);
+            const temporaryFolder = resolve(folder, `../__CRAWLEE_TEMPORARY_${counter}__`);
 
             try {
                 // Rename the old folder to the new one to allow background deletions
