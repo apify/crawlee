@@ -159,7 +159,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             limit,
             hadMultipleClients: false,
             queueModifiedAt: existingQueueById.modifiedAt,
-            items: items.map(({ json }) => this._jsonToRequest(json)!),
+            items: items.sort((a, b) => a.orderNo! - b.orderNo!).map(({ json }) => this._jsonToRequest(json)!),
         };
     }
 
