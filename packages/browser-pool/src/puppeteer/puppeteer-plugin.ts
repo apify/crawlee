@@ -6,13 +6,21 @@ import { BrowserPlugin } from '../abstract-classes/browser-plugin';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { noop } from '../utils';
+import type { PuppeteerNewPageOptions } from './puppeteer-controller';
 import { PuppeteerController } from './puppeteer-controller';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
 
-export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
-    protected async _launch(launchContext: LaunchContext<typeof Puppeteer>): Promise<PuppeteerTypes.Browser> {
+export class PuppeteerPlugin extends BrowserPlugin<
+    typeof Puppeteer,
+    PuppeteerTypes.PuppeteerLaunchOptions,
+    PuppeteerTypes.Browser,
+    PuppeteerNewPageOptions
+> {
+    protected async _launch(
+        launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
+    ): Promise<PuppeteerTypes.Browser> {
         const {
             launchOptions,
             userDataDir,
@@ -148,15 +156,13 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
         return browser;
     }
 
-    protected _createController(): BrowserController<typeof Puppeteer> {
+    protected _createController(): BrowserController<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
         return new PuppeteerController(this);
     }
 
     protected async _addProxyToLaunchOptions(
-        launchContext: LaunchContext<typeof Puppeteer>,
+        _launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
     ): Promise<void> {
-        launchContext as unknown;
-
         /*
         // DO NOT USE YET! DOING SO DISABLES CACHE WHICH IS 50% PERFORMANCE HIT!
         launchContext.launchOptions ??= {};
@@ -184,7 +190,9 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
         */
     }
 
-    protected _isChromiumBasedBrowser(_launchContext: LaunchContext<typeof Puppeteer>): boolean {
+    protected _isChromiumBasedBrowser(
+        _launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
+    ): boolean {
         return true;
     }
 }
