@@ -1,6 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
-import type Puppeteer from './puppeteer-proxy-per-page';
-import type { Browser, Target, BrowserContext } from './puppeteer-proxy-per-page';
+import type Puppeteer from 'puppeteer';
+import type * as PuppeteerTypes from 'puppeteer';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin';
 import type { LaunchContext } from '../launch-context';
@@ -12,7 +12,7 @@ import { anonymizeProxySugar } from '../anonymize-proxy';
 const PROXY_SERVER_ARG = '--proxy-server=';
 
 export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
-    protected async _launch(launchContext: LaunchContext<typeof Puppeteer>): Promise<Browser> {
+    protected async _launch(launchContext: LaunchContext<typeof Puppeteer>): Promise<PuppeteerTypes.Browser> {
         const {
             launchOptions,
             userDataDir,
@@ -35,7 +35,7 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
             }
         }
 
-        let browser: Puppeteer.Browser;
+        let browser: PuppeteerTypes.Browser;
 
         {
             const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
@@ -65,7 +65,7 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
             }
         }
 
-        browser.on('targetcreated', async (target: Target) => {
+        browser.on('targetcreated', async (target: PuppeteerTypes.Target) => {
             try {
                 const page = await target.page();
 
@@ -89,8 +89,8 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer> {
         browser = new Proxy(browser, {
             get: (target, property: keyof typeof browser, receiver) => {
                 if (property === 'newPage') {
-                    return (async (...args: Parameters<BrowserContext['newPage']>) => {
-                        let page: Puppeteer.Page;
+                    return (async (...args: Parameters<PuppeteerTypes.BrowserContext['newPage']>) => {
+                        let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
                             const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);

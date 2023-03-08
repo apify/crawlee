@@ -1,6 +1,8 @@
 import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
-import type Puppeteer from './puppeteer-proxy-per-page';
+import type Puppeteer from 'puppeteer';
+import type * as PuppeteerTypes from 'puppeteer';
+import type { ContextOptions } from './puppeteer-proxy-per-page';
 import { BrowserController } from '../abstract-classes/browser-controller';
 import { log } from '../logger';
 import { anonymizeProxySugar } from '../anonymize-proxy';
@@ -25,7 +27,7 @@ export class PuppeteerController extends BrowserController<typeof Puppeteer> {
         };
     }
 
-    protected async _newPage(contextOptions?: Puppeteer.ContextOptions): Promise<Puppeteer.Page> {
+    protected async _newPage(contextOptions?: ContextOptions): Promise<PuppeteerTypes.Page> {
         if (contextOptions !== undefined) {
             if (!this.launchContext.useIncognitoPages) {
                 throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
@@ -123,11 +125,11 @@ export class PuppeteerController extends BrowserController<typeof Puppeteer> {
         }
     }
 
-    protected _getCookies(page: Puppeteer.Page): Promise<Cookie[]> {
+    protected _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
         return page.cookies();
     }
 
-    protected _setCookies(page: Puppeteer.Page, cookies: Cookie[]): Promise<void> {
+    protected _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
         return page.setCookie(...cookies);
     }
 }

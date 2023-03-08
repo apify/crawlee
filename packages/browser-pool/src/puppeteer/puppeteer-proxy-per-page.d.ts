@@ -1,8 +1,6 @@
 // do not break this line, otherwise the `typescript_fixes.mjs` won't work correctly
 import type { BrowserContextOptions, Browser as PuppeteerBrowser, Page, LaunchOptions, BrowserLaunchArgumentOptions, BrowserConnectOptions, Product } from 'puppeteer';
 
-export * from 'puppeteer';
-
 export interface ContextOptions extends BrowserContextOptions {
     proxyUsername?: string;
     proxyPassword?: string;
