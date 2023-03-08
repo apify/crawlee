@@ -2,7 +2,6 @@ import log, { Log } from '@apify/log';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
-import { gotScraping } from 'got-scraping';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
@@ -26,20 +25,9 @@ import { Readable } from 'stream';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { runExampleComServer, responseSamples } from 'test/shared/_helper';
 
-// jest.mock('got-scraping', () => {
-//     const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
-//     return {
-//         ...original,
-//         gotScraping: jest.fn(original.gotScraping),
-//     };
-// });
-
 let server: Server;
 let port: number;
 let serverAddress = 'http://localhost:';
-
-// const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
-// const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
 
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
@@ -47,13 +35,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-    jest.unmock('got-scraping');
     server.close();
-});
-
-afterEach(() => {
-    // gotScrapingSpy.mockReset();
-    // gotScrapingSpy.mockImplementation(originalGotScraping);
 });
 
 /* eslint-disable no-underscore-dangle */
