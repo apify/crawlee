@@ -27,15 +27,6 @@ import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { startExpressAppPromise } from '../../shared/_helper';
 
-jest.mock('@crawlee/core', () => {
-    const originalModule = jest.requireActual('@crawlee/core');
-    const AutoscaledPoolMockConstructor = jest.fn((...args) => new originalModule.AutoscaledPool(...args));
-    return {
-        ...originalModule,
-        AutoscaledPool: AutoscaledPoolMockConstructor,
-    };
-});
-
 describe('BasicCrawler', () => {
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();
@@ -119,16 +110,9 @@ describe('BasicCrawler', () => {
 
     test('should correctly combine shorthand and full length options', async () => {
         const shorthandOptions = {
-            options: {
-                minConcurrency: 123,
-                maxConcurrency: 456,
-                maxRequestsPerMinute: 789,
-            },
-            compare: {
-                minConcurrency: 123,
-                maxConcurrency: 456,
-                maxTasksPerMinute: 789,
-            },
+            minConcurrency: 123,
+            maxConcurrency: 456,
+            maxRequestsPerMinute: 789,
         };
 
         const autoscaledPoolOptions = {
@@ -137,33 +121,53 @@ describe('BasicCrawler', () => {
             maxTasksPerMinute: 64,
         };
 
+        const collectResults = (crawler: BasicCrawler): typeof shorthandOptions | typeof autoscaledPoolOptions => {
+            return {
+                minConcurrency: crawler.autoscaledPool.minConcurrency,
+                maxConcurrency: crawler.autoscaledPool.maxConcurrency,
+                // eslint-disable-next-line dot-notation -- accessing a private member
+                maxRequestsPerMinute: crawler.autoscaledPool['maxTasksPerMinute'],
+                // eslint-disable-next-line dot-notation
+                maxTasksPerMinute: crawler.autoscaledPool['maxTasksPerMinute'],
+            };
+        };
+
         const requestList = await RequestList.open(null, []);
         const requestHandler = async () => {};
 
-        await (new BasicCrawler({
-            requestList,
-            requestHandler,
-            ...shorthandOptions.options,
-        })).run();
+        const results = await Promise.all([
+            new BasicCrawler({
+                requestList,
+                requestHandler,
+                ...shorthandOptions,
+            }),
+            new BasicCrawler({
+                requestList,
+                requestHandler,
+                autoscaledPoolOptions,
+            }),
+            new BasicCrawler({
+                requestList,
+                requestHandler,
+                ...shorthandOptions,
+                autoscaledPoolOptions,
+            }),
+        ].map(async (c) => {
+            await c.run();
+            return collectResults(c);
+        }));
 
-        expect((AutoscaledPool as any).mock.calls[0][0]).toMatchObject(shorthandOptions.compare);
+        expect(results[0]).toEqual(
+            expect.objectContaining(shorthandOptions),
+        );
 
-        await (new BasicCrawler({
-            requestList,
-            requestHandler,
-            autoscaledPoolOptions,
-        })).run();
+        expect(results[1]).toEqual(
+            expect.objectContaining(autoscaledPoolOptions),
+        );
 
-        expect((AutoscaledPool as any).mock.calls[1][0]).toMatchObject(autoscaledPoolOptions);
-
-        await (new BasicCrawler({
-            requestList,
-            requestHandler,
-            ...shorthandOptions.options,
-            autoscaledPoolOptions,
-        })).run();
-
-        expect((AutoscaledPool as any).mock.calls[2][0]).toMatchObject(shorthandOptions.compare);
+        expect(results[2]).toEqual(
+            expect.objectContaining(shorthandOptions),
+        );
     });
 
     test('auto-saved state object', async () => {
