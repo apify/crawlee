@@ -274,7 +274,7 @@ export interface RequestQueueClient {
     batchAddRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
     getRequest(id: string): Promise<RequestOptions | undefined>;
     updateRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
-    deleteRequest(_id: string): Promise<unknown>;
+    deleteRequest(id: string): Promise<unknown>;
 }
 
 export interface RequestQueueOptions {

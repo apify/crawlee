@@ -198,9 +198,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await newEntry.update(requestModel);
 
         existingQueueById.requests.set(requestModel.id, newEntry);
-        // We add 1 to pending requests if the request was not handled yet
-        existingQueueById.pendingRequestCount += requestModel.orderNo !== null ? 1 : 0;
         existingQueueById.updateTimestamps(true);
+
+        if (requestModel.orderNo) {
+            existingQueueById.pendingRequestCount += 1;
+        } else {
+            existingQueueById.handledRequestCount += 1;
+        }
 
         return {
             requestId: requestModel.id,
@@ -253,8 +257,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             await newEntry.update(requestModel);
 
             existingQueueById.requests.set(requestModel.id, newEntry);
-            // We add 1 to pending requests if the request was not handled yet
-            existingQueueById.pendingRequestCount += requestModel.orderNo !== null ? 1 : 0;
+
+            if (requestModel.orderNo) {
+                existingQueueById.pendingRequestCount += 1;
+            } else {
+                existingQueueById.handledRequestCount += 1;
+            }
+
             result.processedRequests.push({
                 requestId: requestModel.id,
                 uniqueKey: requestModel.uniqueKey,
@@ -323,10 +332,16 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const isRequestHandledStateChanging = typeof existingRequest.orderNo !== typeof requestModel.orderNo;
         const requestWasHandledBeforeUpdate = existingRequest.orderNo === null;
+        const requestIsHandledAfterUpdate = requestModel.orderNo === null;
 
         if (isRequestHandledStateChanging) {
             existingQueueById.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
         }
+
+        if (requestIsHandledAfterUpdate) {
+            existingQueueById.handledRequestCount += 1;
+        }
+
         existingQueueById.updateTimestamps(true);
 
         return {
@@ -349,8 +364,14 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             const request = await entry.get();
 
             existingQueueById.requests.delete(id);
-            existingQueueById.pendingRequestCount -= request.orderNo ? 1 : 0;
             existingQueueById.updateTimestamps(true);
+
+            if (request.orderNo) {
+                existingQueueById.pendingRequestCount -= 1;
+            } else {
+                existingQueueById.handledRequestCount -= 1;
+            }
+
             await entry.delete();
         }
     }
