@@ -22,10 +22,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.0.0, @apify/consts@npm:^2.4.1, @apify/consts@npm:^2.9.0":
-  version: 2.9.0
-  resolution: "@apify/consts@npm:2.9.0"
-  checksum: 517c3b899e593a6d984d12e15dfea7c08b0a032094b9f04ce624acdc7a6f46352c74a5f2ea7d35e3c0e4caa35ca31171d3f8bac856892e08cf2732e186e082bc
+"@apify/consts@npm:^2.0.0, @apify/consts@npm:^2.10.0, @apify/consts@npm:^2.4.1":
+  version: 2.10.0
+  resolution: "@apify/consts@npm:2.10.0"
+  checksum: 05dc7e135a18b356161fa3a1f63f6bafb313ff8cc47f4b232b7039e36829589d3ae4b1dd94100ffbef30b0024bc8f5d820b2dfb5fbcf4b144f22f1dbab6552f3
   languageName: node
   linkType: hard
 
@@ -73,23 +73,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.0":
-  version: 1.1.8
-  resolution: "@apify/input_secrets@npm:1.1.8"
+  version: 1.1.9
+  resolution: "@apify/input_secrets@npm:1.1.9"
   dependencies:
-    "@apify/log": ^2.2.6
-    "@apify/utilities": ^2.3.0
+    "@apify/log": ^2.2.7
+    "@apify/utilities": ^2.3.1
     ow: ^0.28.2
-  checksum: 68aa99562c0ceb7423f061df885a2b2a47c49a3ac4e6959c3f103eb6372bd49c38dc86d05a175297a1ce468ca6e73241eb333e891f6b1fa966a3acc67431d2b1
+  checksum: 1ca2956b72cb91702b2f6549668c50ed398b60c42079a232f5589aef6036e41b5c969fa10250047bd70e621a7461e54b30f4a4fe59949731886a38aa2f6e46b8
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.0.0, @apify/log@npm:^2.1.0, @apify/log@npm:^2.1.3, @apify/log@npm:^2.1.4, @apify/log@npm:^2.2.6":
-  version: 2.2.6
-  resolution: "@apify/log@npm:2.2.6"
+"@apify/log@npm:^2.0.0, @apify/log@npm:^2.1.0, @apify/log@npm:^2.1.3, @apify/log@npm:^2.1.4, @apify/log@npm:^2.2.7":
+  version: 2.2.7
+  resolution: "@apify/log@npm:2.2.7"
   dependencies:
-    "@apify/consts": ^2.9.0
+    "@apify/consts": ^2.10.0
     ansi-colors: ^4.1.1
-  checksum: e2bc672eeca5650b5923fd711894f0c1b8c1d99d41c9a87f85dfadd148982b660608542dfc75364e733f3d39421f5b650a8d6c0239d8c14bb5d4841aa2d1dda0
+  checksum: 52ed99def3409a79c0b995febe0b94f15eb405f4c4f4959322067646d48a1c4d8d763d3544a9513b338427487ed5173392045d1f7e0550b84c075f4bb633cf64
   languageName: node
   linkType: hard
 
@@ -105,12 +105,12 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.0":
-  version: 2.0.12
-  resolution: "@apify/pseudo_url@npm:2.0.12"
+  version: 2.0.13
+  resolution: "@apify/pseudo_url@npm:2.0.13"
   dependencies:
-    "@apify/log": ^2.2.6
+    "@apify/log": ^2.2.7
     "@sapphire/shapeshift": ^3.6.0
-  checksum: fded0f185e4e6158b081e72ca7a8fb16ae3fa3a7e4c98039312857e76eefb416ff463b242eca2271ee99784408ffd33c54144eec52b9eb802453cec14a26ac1e
+  checksum: 51f416206d91c80e6527889bafe102402236b5b1e9c69b3d9e127859c1e0200ad3abe2869d05017b743da644b3ae06693b4122683ef0e3d8e2613fec8a1a4090
   languageName: node
   linkType: hard
 
@@ -128,13 +128,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.0.0, @apify/utilities@npm:^2.1.4, @apify/utilities@npm:^2.2.2, @apify/utilities@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "@apify/utilities@npm:2.3.0"
+"@apify/utilities@npm:^2.0.0, @apify/utilities@npm:^2.1.4, @apify/utilities@npm:^2.2.2, @apify/utilities@npm:^2.3.1":
+  version: 2.3.1
+  resolution: "@apify/utilities@npm:2.3.1"
   dependencies:
-    "@apify/consts": ^2.9.0
-    "@apify/log": ^2.2.6
-  checksum: 65ed345e0200ba1a708a19839864d5939595dbaf65dd3464eeb2ab0fb06c43a370980f76ee265bdadf8e5b4ece34fb04354033433853d98a27df1d45382bd8cd
+    "@apify/consts": ^2.10.0
+    "@apify/log": ^2.2.7
+  checksum: 1ddcbc200a531acf1875b241350677cbb252f79197dd5d0c17516b218d309542b7d5a7e5129e5c56ae9f57c73802579883d9057895241a26ba6d3fe59393355e
   languageName: node
   linkType: hard
 
@@ -3645,9 +3645,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001449":
-  version: 1.0.30001462
-  resolution: "caniuse-lite@npm:1.0.30001462"
-  checksum: e4a57d7851eec65e7c9b6c11c4bbcecdc49d87b1b01bff3c15ea27efb05f959891b4c70ac169842067c134d6fa126d9ad5a91d0f85c7387c5bd912eaf41ea647
+  version: 1.0.30001464
+  resolution: "caniuse-lite@npm:1.0.30001464"
+  checksum: 67cdee102c1660d62d7b9dbd4740bb7af096236618f2509fd2e0039d50db5f02fb87c21d90b6d573fdcf50deaf3c84503d009e871502b5c221d0ba1dec18ba11
   languageName: node
   linkType: hard
 
@@ -4649,9 +4649,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1113774
-  resolution: "devtools-protocol@npm:0.0.1113774"
-  checksum: b1026b0ec1490ab5990ca3b5c6fd8c4c7bf345b7d9f8fc7016071c5d1c8cf49b268b4a6e1799504e2dea45dbed4118b5db37c7f6df0c5586c4781df6b82fe61d
+  version: 0.0.1114954
+  resolution: "devtools-protocol@npm:0.0.1114954"
+  checksum: a0bfb4093aee9968ffe7e21cc77308a0544281772b0917067d46d49dbded643cf94a62f84bfe91c1012acf140ba1cdd16e1e34f1a9064ac9224947376e8bb59a
   languageName: node
   linkType: hard
 
@@ -4834,9 +4834,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.284":
-  version: 1.4.322
-  resolution: "electron-to-chromium@npm:1.4.322"
-  checksum: 195796a25f28b315d4e2ee17f8aac9d8f7a98c8aaad1b9633113cf6ea8394094b45132e2a7f4e191ec1492303e54fb23667c9ce7794a5a57c961a37aaccaa6cd
+  version: 1.4.325
+  resolution: "electron-to-chromium@npm:1.4.325"
+  checksum: 25c05fd7c9cde12fcc620504edb252413658081f0b0d2598751f5d84573414781688c9793515d58398d96581538982010a97210cd816b65e1db57036315234e8
   languageName: node
   linkType: hard
 
@@ -7717,9 +7717,9 @@ __metadata:
   linkType: hard
 
 "jquery@npm:^3.6.0":
-  version: 3.6.3
-  resolution: "jquery@npm:3.6.3"
-  checksum: 0fd366bdcaa0c84a7a8751ce20f8192290141913978b5059574426d9b01f4365daa675f95aab3eec94fd794d27b08d32078a2236bef404b8ba78073009988ce6
+  version: 3.6.4
+  resolution: "jquery@npm:3.6.4"
+  checksum: 8354f7bd0a0424aa714ee1b6b1ef74b410f834eb5c8501682289b358bc151f11677f11188b544f3bb49309d6ec4d15d1a5de175661250c206b06185a252f706f
   languageName: node
   linkType: hard
 
@@ -10723,13 +10723,13 @@ __metadata:
   linkType: hard
 
 "rimraf@npm:^4.1.2":
-  version: 4.3.1
-  resolution: "rimraf@npm:4.3.1"
+  version: 4.4.0
+  resolution: "rimraf@npm:4.4.0"
   dependencies:
     glob: ^9.2.0
   bin:
     rimraf: dist/cjs/src/bin.js
-  checksum: d5893862a1e96cde610599ae76e338a709252667408d38bffa07cd24891a840a95957c4bb7178a9b0d3b6141e3b1bea20b9ba4b4f99d8c9edc492723e7b125ec
+  checksum: 0cedaf9d138589d1bb0ab851f05804c6d30827aa66563472b04ab76245f83537e23e7b94f1f79ea6c368c0d84a18fcde6a756fca3a44c967e08792671b3a0a6e
   languageName: node
   linkType: hard
 
@@ -11515,21 +11515,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^5.7.110":
-  version: 5.7.110
-  resolution: "tldts-core@npm:5.7.110"
-  checksum: 67b928dbf1117fb07da1c765b7e37b6753efb77d16287a4a887e31b31f0fb210cd7d3c7f25bd8155a37fd25c7bf7ad7643031d2de1778073b5c0150ef1fcfc03
+"tldts-core@npm:^5.7.111":
+  version: 5.7.111
+  resolution: "tldts-core@npm:5.7.111"
+  checksum: 3bee3ba065144a0fedc8f06176831924f7c1bf12ce4e16cc0498e5a76ebabc8954c72701b5c13a1e21340519158ee2b57fb0fd7d6aaab4b74c34b8d68b8b2e4a
   languageName: node
   linkType: hard
 
 "tldts@npm:^5.7.80":
-  version: 5.7.110
-  resolution: "tldts@npm:5.7.110"
+  version: 5.7.111
+  resolution: "tldts@npm:5.7.111"
   dependencies:
-    tldts-core: ^5.7.110
+    tldts-core: ^5.7.111
   bin:
     tldts: bin/cli.js
-  checksum: 3acc0aea4aece1059d7ebd68574227a14c6a919c35bdfeb792eb2791e58d4df14912e834258bf7429534e29a421edfc272ec15c19f9d44758464c4dca2722716
+  checksum: 2ed12d5b5d30604f1abc4fc86d7045927276455e9c43c87da4cf066ad9dfe7d233fef231c9ba7093cfa5e853615fb7c3f01e1bff2a9adaa5edf7d8da44916be3
   languageName: node
   linkType: hard
 
