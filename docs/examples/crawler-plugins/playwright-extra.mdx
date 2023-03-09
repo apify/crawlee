@@ -1,0 +1,44 @@
+---
+id: playwright-extra
+title: Using playwright-extra with Playwright crawler
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import PlaywrightExtraSource from '!!raw-loader!./playwright-extra.ts';
+
+[`playwright-extra`](https://www.npmjs.com/package/playwright-extra) is a community-built plugin system for [`playwright`](https://www.npmjs.com/package/playwright) that
+adds the ability to use plugins that implement certain functionality (like stealth for example by using the
+[`puppeteer-extra-plugin-stealth`](https://www.npmjs.com/package/puppeteer-extra-plugin-stealth) plugin).
+
+:::tip Available plugins
+
+You can see a list of available plugins on the [`playwright-extra`s plugin list](https://www.npmjs.com/package/playwright-extra#plugins).
+
+:::
+
+Using it with Crawlee is super easy - all you have to do is provide the [`playwright-extra`](https://www.npmjs.com/package/playwright-extra)
+launcher in your crawler's <ApiLink to="playwright-crawler/interface/PlaywrightLaunchContext#launcher">`launchContext`</ApiLink>.
+
+In this example, we'll show you how to use the [`puppeteer-extra-plugin-stealth`](https://www.npmjs.com/package/puppeteer-extra-plugin-stealth) plugin
+to help you avoid bot detections when crawling your target website.
+
+:::info Before you begin
+
+Make sure you've installed the `playwright-extra` and `puppeteer-extra-plugin-stealth` packages via your preferred package manager
+
+```bash
+npm install playwright-extra puppeteer-extra-plugin-stealth
+```
+
+:::
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<CodeBlock className="language-js" title="src/crawler.ts">
+    {PlaywrightExtraSource}
+</CodeBlock>
