@@ -1,0 +1,88 @@
+---
+id: crawl-relative-links
+title: Crawl a website with relative links
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+
+import AllLinksSource from '!!raw-loader!./crawl_relative_links_all.ts';
+import SameDomainSource from '!!raw-loader!./crawl_relative_links_same_domain.ts';
+import SameHostnameSource from '!!raw-loader!./crawl_relative_links_same_hostname.ts';
+
+When crawling a website, you may encounter different types of links present that you may want to crawl.
+To facilitate the easy crawling of such links, we provide the `enqueueLinks()` method on the crawler context, which will
+automatically find links and add them to the crawler's <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>.
+
+We provide 3 different strategies for crawling relative links:
+
+- <ApiLink to="core/enum/EnqueueStrategy#All"><inlineCode>All</inlineCode> (or the string <inlineCode>"all"</inlineCode>)</ApiLink> which will
+enqueue all links found, regardless of the domain they point to.
+- <ApiLink to="core/enum/EnqueueStrategy#SameHostname"><inlineCode>SameHostname</inlineCode> (or the string <inlineCode>"same-hostname"</inlineCode>)</ApiLink> which
+will enqueue all links found for the same hostname. This is the default strategy.
+- <ApiLink to="core/enum/EnqueueStrategy#SameDomain"><inlineCode>SameDomain</inlineCode> (or the string <inlineCode>"same-domain"</inlineCode>)</ApiLink> which
+will enqueue all links found that have the same domain name, including links from any possible subdomain.
+
+:::note
+
+For these examples, we are using the <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, however
+the same method is available for both the <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>
+and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>, and you use it
+the exact same way.
+
+:::
+
+<Tabs groupId="enqueue_strategy">
+
+<TabItem value="all" label="All Links">
+
+:::note Example domains
+
+Any urls found will be matched by this strategy, even if they go off of the site you are currently crawling.
+
+:::
+
+<CodeBlock className="language-js">
+	{AllLinksSource}
+</CodeBlock>
+
+</TabItem>
+
+<TabItem value="same_hostname" label="Same Hostname">
+
+:::note Example domains
+
+For a url of `https://example.com`, `enqueueLinks()` will match relative urls and urls that point to the same
+hostname.
+
+> This is the default strategy when calling `enqueueLinks()`, so you don't have to specify it.
+
+For instance, hyperlinks like `https://example.com/some/path`, `/absolute/example` or `./relative/example` will all be matched by this strategy. But links to any subdomain like `https://subdomain.example.com/some/path` won't.
+
+:::
+
+<CodeBlock className="language-js">
+    {SameHostnameSource}
+</CodeBlock>
+
+</TabItem>
+
+<TabItem value="same-subdomain" label="Same Subdomain" default>
+
+:::note Example domains
+
+For a url of `https://subdomain.example.com`, `enqueueLinks()` will match relative urls or urls that point to the same domain name, regardless of their subdomain.
+
+For instance, hyperlinks like `https://subdomain.example.com/some/path`, `/absolute/example` or `./relative/example` will all be matched by this strategy, as well as links to other subdomains or to the naked domain, like `https://other-subdomain.example.com` or `https://example.com` will work too.
+
+:::
+
+<CodeBlock className="language-js">
+    {SameDomainSource}
+</CodeBlock>
+
+</TabItem>
+
+</Tabs>

@@ -1,0 +1,21 @@
+---
+id: add-data-to-dataset
+title: Add data to dataset
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import AddDataToDatasetSource from '!!raw-loader!./add_data_to_dataset.ts';
+
+This example saves data to the default dataset. If the dataset doesn't exist, it will be created.
+You can save data to custom datasets by using <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink>
+
+<CodeBlock className="language-js">
+	{AddDataToDatasetSource}
+</CodeBlock>
+
+Each item in this dataset will be saved to its own file in the following directory:
+
+```bash
+{PROJECT_FOLDER}/storage/datasets/default/
+```

@@ -1,0 +1,24 @@
+---
+id: forms
+title: Forms
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import CrawlSource from '!!raw-loader!./forms.ts';
+
+This example demonstrates how to use <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> to
+automatically fill and submit a search form to look up repositories on [GitHub](https://github.com) using headless Chrome / Puppeteer.
+The crawler first fills in the search term, repository owner, start date and language of the repository, then submits the form
+and prints out the results. Finally, the results are saved either on the Apify platform to the
+default <ApiLink to="core/class/Dataset">`dataset`</ApiLink> or on the local machine as JSON files in `./storage/datasets/default`.
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<CodeBlock className="language-js">
+	{CrawlSource}
+</CodeBlock>

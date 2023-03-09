@@ -1,0 +1,55 @@
+---
+id: crawl-sitemap
+title: Crawl a sitemap
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+
+import CheerioSource from '!!raw-loader!./crawl_sitemap_cheerio.ts';
+import PuppeteerSource from '!!raw-loader!./crawl_sitemap_puppeteer.ts';
+import PlaywrightSource from '!!raw-loader!./crawl_sitemap_playwright.ts';
+
+This example downloads and crawls the URLs from a sitemap, by using the <ApiLink to="utils/function/downloadListOfUrls">`downloadListOfUrls`</ApiLink> utility method provided by the <ApiLink to="utils">`@crawlee/utils`</ApiLink> module.
+
+<Tabs groupId="crawler-type">
+
+<TabItem value="cheerio_crawler" label="Cheerio Crawler" default>
+
+<CodeBlock className="language-js">
+	{CheerioSource}
+</CodeBlock>
+
+</TabItem>
+
+<TabItem value="puppeteer_crawler" label="Puppeteer Crawler">
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<CodeBlock className="language-js">
+	{PuppeteerSource}
+</CodeBlock>
+
+</TabItem>
+
+<TabItem value="playwright_crawler" label="Playwright Crawler">
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-playwright-chrome` image for your Dockerfile.
+
+:::
+
+<CodeBlock className="language-js">
+	{PlaywrightSource}
+</CodeBlock>
+
+</TabItem>
+
+</Tabs>

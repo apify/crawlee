@@ -1,0 +1,92 @@
+---
+id: crawling
+title: "Crawling the Store"
+sidebar_label: "Crawling"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+To crawl the whole [Apify Store](https://apify.com/store) and find all the data, you first need to visit all the pages with actors - listing pages and also all the actor detail pages.
+
+## Crawling the listing pages
+
+In previous lessons, you used the `enqueueLinks()` function like this:
+
+```js
+await enqueueLinks();
+```
+
+While useful in that scenario, you need something different now. Instead of finding all the `<a href="..">` elements with links to the same hostname, you need to find only the specific ones that will take your crawler to the next page of results. Otherwise, the crawler will visit a lot of other pages that you're not interested in. Using the power of DevTools and yet another `enqueueLinks()` parameter, this becomes fairly easy.
+
+```ts
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    requestHandler: async ({ page, request, enqueueLinks }) => {
+        console.log(`Processing: ${request.url}`)
+        // Wait for the actor cards to render,
+        // otherwise enqueueLinks wouldn't enqueue anything.
+        await page.waitForSelector('.ActorStorePagination-pages a');
+
+        // Add links to the queue, but only from
+        // elements matching the provided selector.
+        await enqueueLinks({
+            selector: '.ActorStorePagination-pages > a',
+            label: 'LIST',
+        })
+    },
+});
+
+await crawler.run(['https://apify.com/store']);
+```
+
+The code should look pretty familiar to you. It's a very simple `requestHandler` where we log the currently processed URL to the console and enqueue more links. But there are also a few new, interesting additions. Let's break it down.
+
+### The `selector` parameter of `enqueueLinks()`
+
+When you previously used `enqueueLinks()`, you were not providing any `selector` parameter, and it was fine, because you wanted to use the default value, which is `a` - finds all `<a>` elements. But now, you need to be more specific. There are multiple `<a>` links on the Store results page, and you're only interested in those that will take your crawler to the next page of results. Using the DevTools, you'll find that you can select the links you need using the `.ActorStorePagination-pages a` selector, which selects all the `<a>` elements that are direct children of an element with `class=ActorStorePagination-pages`.
+
+### The `label` of `enqueueLinks()`
+
+You will see `label` used often throughout Crawlee, as it's a convenient way of labelling a `Request` instance for quick identification later. You can access it with `request.label` and it's a `string`. You can name your requests any way you want. Here, we used the label `LIST` to note that we're enqueueing pages with lists of results. The `enqueueLinks()` function will add this label to all requests before enqueueing them to the `RequestQueue`. Why this is useful will become obvious in a minute.
+
+## Crawling the detail pages
+
+In a similar fashion, you need to collect all the URLs to the actor detail pages, because only from there you can scrape all the data you need. The following code only repeats the concepts you already know for another set of links.
+
+```ts
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    requestHandler: async ({ page, request, enqueueLinks }) => {
+        console.log(`Processing: ${request.url}`)
+        if (request.label === 'DETAIL') {
+            // We're not doing anything with the details yet.
+        } else {
+            // This means we're either on the start page, with no label,
+            // or on a list page, with LIST label.
+
+            await page.waitForSelector('.ActorStorePagination-pages a');
+            await enqueueLinks({
+                selector: '.ActorStorePagination-pages > a',
+                label: 'LIST',
+            })
+
+            // In addition to adding the listing URLs, we now also
+            // add the detail URLs from all the listing pages.
+            await page.waitForSelector('.ActorStoreItem');
+            await enqueueLinks({
+                selector: '.ActorStoreItem',
+                label: 'DETAIL', // <= note the different label
+            })
+        }
+    },
+});
+
+await crawler.run(['https://apify.com/store']);
+```
+
+The crawling code is now complete. When you run the code, you'll see the crawler visit all the listing URLs and all the detail URLs.
+
+## Next lesson
+
+This concludes the Crawling lesson, because you have taught the crawler to visit all the pages it needs. Let's continue with scraping data.
