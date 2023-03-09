@@ -126,7 +126,11 @@ export function constructRegExpObjectsFromRegExps(regexps: RegExpInput[]): RegEx
 /**
  * @ignore
  */
-export function createRequests(requestOptions: (string | RequestOptions)[], urlPatternObjects?: UrlPatternObject[]): Request[] {
+export function createRequests(
+    requestOptions: (string | RequestOptions)[],
+    urlPatternObjects?: UrlPatternObject[],
+    excludePatternObjects: UrlPatternObject[] = [],
+): Request[] {
     if (!urlPatternObjects || !urlPatternObjects.length) {
         return requestOptions
             .map((opts) => new Request(typeof opts === 'string' ? { url: opts } : opts));
@@ -136,6 +140,21 @@ export function createRequests(requestOptions: (string | RequestOptions)[], urlP
 
     for (const opts of requestOptions) {
         const urlToMatch = typeof opts === 'string' ? opts : opts.url;
+
+        let isExcluded = false;
+        for (const excludePatternObject of excludePatternObjects) {
+            const { regexp, glob } = excludePatternObject;
+
+            if (
+                (regexp && urlToMatch.match(regexp)) || // eslint-disable-line
+                (glob && minimatch(urlToMatch, glob, { nocase: true }))
+            ) {
+                isExcluded = true;
+                break;
+            }
+        }
+
+        if (isExcluded) continue;
 
         for (const urlPatternObject of urlPatternObjects) {
             const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;

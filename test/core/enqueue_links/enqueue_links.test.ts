@@ -195,6 +195,100 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({ label: 'COOL' });
         });
 
+        test('works with exclude glob', async () => {
+            const enqueued: (Request | RequestOptions)[] = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+            // @ts-expect-error Override method for testing
+            requestQueue.addRequests = async (request) => {
+                enqueued.push(...request);
+            };
+            const globs = [
+                'https://example.com/**/*',
+                { glob: '?(http|https)://cool.com/', method: 'POST' as const },
+            ];
+
+            const exclude = ['**/first'];
+
+            await browserCrawlerEnqueueLinks({
+                options: {
+                    selector: '.click',
+                    label: 'COOL',
+                    globs,
+                    exclude,
+                    transformRequestFunction: (request) => {
+                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                            request.method = 'OPTIONS';
+                        }
+                        return request;
+                    },
+                },
+                page,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(2);
+
+            expect(enqueued[0].url).not.toBe('https://example.com/a/b/first');
+            expect(enqueued[1].url).not.toBe('https://example.com/a/b/first');
+
+            expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+            expect(enqueued[0].method).toBe('OPTIONS');
+            expect(enqueued[0].userData).toEqual({ label: 'COOL' });
+
+            expect(enqueued[1].url).toBe('http://cool.com/');
+            expect(enqueued[1].method).toBe('POST');
+            expect(enqueued[1].userData).toEqual({ label: 'COOL' });
+        });
+
+        test('works with exclude regexp', async () => {
+            const enqueued: (Request | RequestOptions)[] = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+            // @ts-expect-error Override method for testing
+            requestQueue.addRequests = async (request) => {
+                enqueued.push(...request);
+            };
+            const globs = [
+                'https://example.com/**/*',
+                { glob: '?(http|https)://cool.com/', method: 'POST' as const },
+            ];
+
+            const exclude = [/first/];
+
+            await browserCrawlerEnqueueLinks({
+                options: {
+                    selector: '.click',
+                    label: 'COOL',
+                    globs,
+                    exclude,
+                    transformRequestFunction: (request) => {
+                        if (request.url.match(/example\.com\/a\/b\/third/)) {
+                            request.method = 'OPTIONS';
+                        }
+                        return request;
+                    },
+                },
+                page,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(2);
+
+            expect(enqueued[0].url).not.toBe('https://example.com/a/b/first');
+            expect(enqueued[1].url).not.toBe('https://example.com/a/b/first');
+
+            expect(enqueued[0].url).toBe('https://example.com/a/b/third');
+            expect(enqueued[0].method).toBe('OPTIONS');
+            expect(enqueued[0].userData).toEqual({ label: 'COOL' });
+
+            expect(enqueued[1].url).toBe('http://cool.com/');
+            expect(enqueued[1].method).toBe('POST');
+            expect(enqueued[1].userData).toEqual({ label: 'COOL' });
+        });
+
         test('works with pseudoUrls', async () => {
             const enqueued: (Request | RequestOptions)[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });

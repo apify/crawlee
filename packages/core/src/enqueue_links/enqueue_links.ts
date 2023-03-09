@@ -56,6 +56,18 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     globs?: GlobInput[];
 
     /**
+     * An array of glob pattern strings, regexp patterns or plain objects
+     * containing patterns matching URLs that will **never** be enqueued.
+     *
+     * The plain objects must include either the `glob` property or the `regexp` property.
+     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
+     *
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, provide a regexp.
+     */
+    exclude?: (GlobInput | RegExpInput)[];
+
+    /**
      * An array of regular expressions or plain objects
      * containing regular expressions matching the URLs to be enqueued.
      *
@@ -239,6 +251,12 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
             ow.string,
             ow.object.hasKeys('glob'),
         )),
+        exclude: ow.optional.array.ofType(ow.any(
+            ow.string,
+            ow.regExp,
+            ow.object.hasKeys('glob'),
+            ow.object.hasKeys('regexp'),
+        )),
         regexps: ow.optional.array.ofType(ow.any(
             ow.regExp,
             ow.object.hasKeys('regexp'),
@@ -252,13 +270,25 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         limit,
         urls,
         pseudoUrls,
+        exclude,
         globs,
         regexps,
         transformRequestFunction,
         forefront,
     } = options;
 
+    const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
+
+    if (exclude?.length) {
+        for (const excl of exclude) {
+            if (typeof excl === 'string' || 'glob' in excl) {
+                urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
+            } else if (excl instanceof RegExp || 'regexp' in excl) {
+                urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
+            }
+        }
+    }
 
     if (pseudoUrls?.length) {
         log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
@@ -328,11 +358,11 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     function createFilteredRequests() {
         // No user provided patterns means we can skip an extra filtering step
         if (urlPatternObjects.length === 0) {
-            return createRequests(requestOptions, enqueueStrategyPatterns);
+            return createRequests(requestOptions, enqueueStrategyPatterns, urlExcludePatternObjects);
         }
 
         // Generate requests based on the user patterns first
-        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects);
+        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
         // ...then filter them by the enqueue links strategy (making this an AND check)
         return filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns);
     }
