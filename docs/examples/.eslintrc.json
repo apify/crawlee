@@ -1,7 +1,8 @@
 {
     "root": true,
-    "extends": "@apify",
+    "extends": "@apify/ts",
     "parserOptions": {
+        "project": "./tsconfig.eslint.json",
         "ecmaVersion": 2022
     },
     "rules": {
