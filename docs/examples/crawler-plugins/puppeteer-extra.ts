@@ -10,7 +10,7 @@ puppeteerExtra.use(stealthPlugin());
 // that automatically loads the URLs in headless Chrome / Puppeteer.
 const crawler = new PuppeteerCrawler({
     launchContext: {
-        // You need to specify this option to tell Crawlee to use puppeteer-extra as the launcher
+        // !!! You need to specify this option to tell Crawlee to use puppeteer-extra as the launcher !!!
         launcher: puppeteerExtra,
         launchOptions: {
             // Other puppeteer options work as usual

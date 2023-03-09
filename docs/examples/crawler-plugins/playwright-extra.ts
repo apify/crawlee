@@ -13,7 +13,7 @@ chromium.use(stealthPlugin());
 // that automatically loads the URLs in headless Chrome / Playwright.
 const crawler = new PlaywrightCrawler({
     launchContext: {
-        // You need to specify this option to tell Crawlee to use playwright-extra as the launcher
+        // !!! You need to specify this option to tell Crawlee to use playwright-extra as the launcher !!!
         launcher: chromium,
         launchOptions: {
             // Other playwright options work as usual
