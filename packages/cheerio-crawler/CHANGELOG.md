@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
+
+
+### Bug Fixes
+
+* **CheerioCrawler:** pass ixXml down to response parser ([#1807](https://github.com/apify/crawlee/issues/1807)) ([af7a5c4](https://github.com/apify/crawlee/commit/af7a5c4efa94a53e5bdfeca340a9d7223d7dfda4)), closes [#1794](https://github.com/apify/crawlee/issues/1794)
+* ignore invalid URLs in `enqueueLinks` in browser crawlers ([#1803](https://github.com/apify/crawlee/issues/1803)) ([5ac336c](https://github.com/apify/crawlee/commit/5ac336c5b83b212fd6281659b8ceee091e259ff1))
+
+
+
+
+
 ## [3.2.2](https://github.com/apify/crawlee/compare/v3.2.1...v3.2.2) (2023-02-08)
 
 **Note:** Version bump only for package @crawlee/cheerio

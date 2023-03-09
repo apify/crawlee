@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
+
+
+### Bug Fixes
+
+* add `proxyUrl` to `DownloadListOfUrlsOptions` ([779be1e](https://github.com/apify/crawlee/commit/779be1e4f29dff191d02e623eefb1bd5650c14ad)), closes [#1780](https://github.com/apify/crawlee/issues/1780)
+* **CheerioCrawler:** pass ixXml down to response parser ([#1807](https://github.com/apify/crawlee/issues/1807)) ([af7a5c4](https://github.com/apify/crawlee/commit/af7a5c4efa94a53e5bdfeca340a9d7223d7dfda4)), closes [#1794](https://github.com/apify/crawlee/issues/1794)
+* ignore invalid URLs in `enqueueLinks` in browser crawlers ([#1803](https://github.com/apify/crawlee/issues/1803)) ([5ac336c](https://github.com/apify/crawlee/commit/5ac336c5b83b212fd6281659b8ceee091e259ff1))
+* **MemoryStorage:** request queues race conditions causing crashes ([#1806](https://github.com/apify/crawlee/issues/1806)) ([083a9db](https://github.com/apify/crawlee/commit/083a9db9ebcddd3fa886631234c790d4c5bcdf86)), closes [#1792](https://github.com/apify/crawlee/issues/1792)
+* **MemoryStorage:** RequestQueue should respect `forefront` ([#1816](https://github.com/apify/crawlee/issues/1816)) ([b68e86a](https://github.com/apify/crawlee/commit/b68e86a97954bcbe30fde802fed5f263016fffe2)), closes [#1787](https://github.com/apify/crawlee/issues/1787)
+* **MemoryStorage:** RequestQueue#handledRequestCount should update ([#1817](https://github.com/apify/crawlee/issues/1817)) ([a775e4a](https://github.com/apify/crawlee/commit/a775e4afea20d0b31492f44b90f61b6a903491b6)), closes [#1764](https://github.com/apify/crawlee/issues/1764)
+
+
+### Features
+
+* add basic support for `setStatusMessage` ([#1790](https://github.com/apify/crawlee/issues/1790)) ([c318980](https://github.com/apify/crawlee/commit/c318980ec11d211b1a5c9e6bdbe76198c5d895be))
+* **core:** add `exclude` option to `enqueueLinks` ([#1786](https://github.com/apify/crawlee/issues/1786)) ([2e833dc](https://github.com/apify/crawlee/commit/2e833dc4b0b82bb6741aa683f3fcba05244427df)), closes [#1785](https://github.com/apify/crawlee/issues/1785)
+* move the status message implementation to Crawlee, noop in storage ([#1808](https://github.com/apify/crawlee/issues/1808)) ([99c3fdc](https://github.com/apify/crawlee/commit/99c3fdc18030b7898e6b6d149d6d94fab7881f09))
+
+
+
+
+
 ## [3.2.2](https://github.com/apify/crawlee/compare/v3.2.1...v3.2.2) (2023-02-08)
 
 

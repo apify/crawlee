@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
+
+
+### Bug Fixes
+
+* ignore invalid URLs in `enqueueLinks` in browser crawlers ([#1803](https://github.com/apify/crawlee/issues/1803)) ([5ac336c](https://github.com/apify/crawlee/commit/5ac336c5b83b212fd6281659b8ceee091e259ff1))
+
+
+### Features
+
+* **core:** add `exclude` option to `enqueueLinks` ([#1786](https://github.com/apify/crawlee/issues/1786)) ([2e833dc](https://github.com/apify/crawlee/commit/2e833dc4b0b82bb6741aa683f3fcba05244427df)), closes [#1785](https://github.com/apify/crawlee/issues/1785)
+
+
+
+
+
 ## [3.2.2](https://github.com/apify/crawlee/compare/v3.2.1...v3.2.2) (2023-02-08)
 
 **Note:** Version bump only for package @crawlee/core
