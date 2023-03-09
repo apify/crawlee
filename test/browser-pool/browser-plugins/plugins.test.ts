@@ -4,6 +4,7 @@ import http from 'http';
 import { promisify } from 'util';
 
 import type { Server as ProxyChainServer } from 'proxy-chain';
+import type { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer';
 import playwright from 'playwright';
 
@@ -177,7 +178,7 @@ describe('Plugins', () => {
     });
 
     describe('Puppeteer specifics', () => {
-        let browser: puppeteer.Browser;
+        let browser: Browser;
 
         afterEach(async () => {
             await browser.close();
