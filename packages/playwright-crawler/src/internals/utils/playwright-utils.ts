@@ -398,25 +398,6 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
         }
     });
 
-    // Move mouse to the center of the page, so we can scroll up-down
-    let body = await page.$('body');
-
-    for (let retry = 0; retry < 10; retry++) {
-        if (body) break;
-        await page.waitForTimeout(100);
-        body = await page.$('body');
-    }
-
-    if (!body) {
-        return;
-    }
-
-    const boundingBox = await body.boundingBox();
-    await page.mouse.move(
-        boundingBox!.x + boundingBox!.width / 2,
-        boundingBox!.y + boundingBox!.height / 2,
-    );
-
     const checkFinished = setInterval(() => {
         if (resourcesStats.oldRequested === resourcesStats.newRequested) {
             resourcesStats.matchNumber++;
@@ -455,7 +436,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
         await doScroll();
         await page.waitForTimeout(250);
         if (scrollDownAndUp) {
-            await page.mouse.wheel(0, -1000);
+            await page.mouse.wheel(0, -100);
         }
         if (buttonSelector) {
             await maybeClickButton();
