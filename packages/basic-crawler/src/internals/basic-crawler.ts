@@ -663,7 +663,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await periodicLogger.log();
 
         const sigintHandler = async () => {
-            this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 yarnstart');
+            this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start');
             await this._pauseOnMigration();
             await this.autoscaledPool!.abort();
         };
