@@ -228,8 +228,16 @@ nav.navbar .dropdown__menu {
     height: 3rem;
 }
 
+.main-wrapper {
+    align-items: center;
+}
+
 .main-wrapper a[class*='sidebarLogo'] img {
     height: 3rem;
+}
+
+.main-wrapper a[class*='sidebarLogo'] b {
+    display: none;
 }
 
 html.plugin-pages {
