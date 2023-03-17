@@ -46,7 +46,6 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
         fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
     }
 
-    // @ts-expect-error https://github.com/apify/got-scraping/issues/66
     const { body: string } = await gotScraping({ url: fixedUrl, encoding, proxyUrl });
 
     return extractUrls({ string, urlRegExp });

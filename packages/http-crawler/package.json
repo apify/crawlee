@@ -59,7 +59,7 @@
         "@crawlee/types": "^3.3.0",
         "@types/content-type": "^1.1.5",
         "content-type": "^1.0.4",
-        "got-scraping": "^3.2.9",
+        "got-scraping": "^3.2.13-beta.0",
         "iconv-lite": "^0.6.3",
         "mime-types": "^2.1.35",
         "ow": "^0.28.1",
