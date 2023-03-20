@@ -571,7 +571,7 @@ export class RequestQueue {
      * but it will never return a false positive.
      */
     async isFinished(): Promise<boolean> {
-        if (this.inProgressCount() > 0 && (Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
+        if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();
