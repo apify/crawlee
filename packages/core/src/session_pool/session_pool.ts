@@ -271,7 +271,7 @@ export class SessionPool extends EventEmitter {
         this._throwIfNotInitialized();
         if (sessionId) {
             const session = this.sessionMap.get(sessionId);
-            if (session && session.isUsable()) return session;
+            if (session && session.isUsable() && !session.isLocked()) return session.lockSession();
             return undefined;
         }
 
@@ -280,8 +280,8 @@ export class SessionPool extends EventEmitter {
         }
 
         const pickedSession = this._pickSession();
-        if (pickedSession.isUsable()) {
-            return pickedSession;
+        if (pickedSession?.isUsable()) {
+            return pickedSession?.lockSession();
         }
 
         this._removeRetiredSessions();
@@ -333,7 +333,7 @@ export class SessionPool extends EventEmitter {
      */
     protected _removeRetiredSessions() {
         this.sessions = this.sessions.filter((storedSession) => {
-            if (storedSession.isUsable()) return true;
+            if (storedSession.isUsable() || storedSession.isLocked()) return true;
 
             this.sessionMap.delete(storedSession.id);
             this.log.debug(`Removed Session - ${storedSession.id}`);
@@ -384,7 +384,7 @@ export class SessionPool extends EventEmitter {
         this._addSession(newSession);
         this.log.debug(`Created new Session - ${newSession.id}`);
 
-        return newSession;
+        return newSession.lockSession();
     }
 
     /**
@@ -398,8 +398,12 @@ export class SessionPool extends EventEmitter {
      * Picks random session from the `SessionPool`.
      * @returns Picked `Session`.
      */
-    protected _pickSession(): Session {
-        return this.sessions[this._getRandomIndex()]; // Or maybe we should let the developer to customize the picking algorithm
+    protected _pickSession(): Session | undefined {
+        const availableSessions = this.sessions.filter((session) => {
+            return session.isUsable() && !session.isLocked();
+        });
+
+        return availableSessions[0];
     }
 
     /**

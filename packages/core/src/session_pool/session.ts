@@ -93,6 +93,7 @@ export interface SessionOptions {
  */
 export class Session {
     readonly id: string;
+    private _isLocked = false;
     private maxAgeSecs: number;
     userData: Dictionary;
     private maxErrorScore: number;
@@ -161,6 +162,10 @@ export class Session {
         this.sessionPool = sessionPool;
     }
 
+    isLocked(): boolean {
+        return this._isLocked;
+    }
+
     /**
      * Indicates whether the session is blocked.
      * Session is blocked once it reaches the `maxErrorScore`.
@@ -192,6 +197,23 @@ export class Session {
      */
     isUsable(): boolean {
         return !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
+    }
+
+    lockSession() {
+        if (this.isLocked()) {
+            throw new Error(`Session ${this.id} is already locked.`);
+        }
+        this._isLocked = true;
+        return this;
+    }
+
+    unlockSession() {
+        if (!this.isLocked()) {
+            throw new Error(`Session ${this.id} is not locked.`);
+        }
+
+        this._isLocked = false;
+        return this;
     }
 
     /**
