@@ -634,7 +634,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 );
             } else {
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length()} pages, ${this.stats.state.requestsFailed} errors.`);
+                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length() || this.stats.state.requestsFinished} pages, ${this.stats.state.requestsFailed} errors.`);
             }
         };
 
