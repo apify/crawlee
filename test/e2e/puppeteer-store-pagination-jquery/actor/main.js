@@ -19,7 +19,7 @@ await Actor.main(async () => {
 
             if (label === 'START') {
                 log.info('Store opened');
-                const nextButtonSelector = '[data-test="pagination-button-next"]:not([disabled])';
+                const nextButtonSelector = '.data-tracking-actor-pagination-button-load-more:not([disabled])';
                 // enqueue actor details from the first three pages of the store
                 for (let pageNo = 1; pageNo <= 3; pageNo++) {
                     // Wait for network events to finish
@@ -39,9 +39,9 @@ await Actor.main(async () => {
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');
                 const results = await page.evaluate(() => ({
                     title: $('header h1').text(), // eslint-disable-line
-                    description: $('header span.actor-description').text(), // eslint-disable-line
-                    modifiedDate: new Date(Number($('ul.ActorHeader-stats time').attr('datetime'))).toISOString(), // eslint-disable-line
-                    runCount: Number($('ul.ActorHeader-stats > li:nth-of-type(3)').text().match(/[\d,]+/)[0].replace(/,/g, '')), // eslint-disable-line
+                    description: $('p.ActorHeader-description').text(), // eslint-disable-line
+                    modifiedDate: new Date(Number($('ul.ActorHeader-userMedallion time').attr('datetime'))).toISOString(), // eslint-disable-line
+                    runCount: Number($('ul.ActorHeader-userMedallion li:nth-of-type(4)').text().match(/[\d,]+/)[0].replace(/,/g, '')), // eslint-disable-line
                 }));
 
                 await Dataset.pushData({ url, uniqueIdentifier, ...results });

@@ -14,7 +14,7 @@ const crawler = new PuppeteerCrawler({
 
 crawler.router.addHandler('START', async ({ log, enqueueLinks, page }) => {
     log.info('Store opened');
-    const nextButtonSelector = '[data-test="pagination-button-next"]:not([disabled])';
+    const nextButtonSelector = '.data-tracking-actor-pagination-button-load-more:not([disabled])';
     // enqueue actor details from the first three pages of the store
     for (let pageNo = 1; pageNo <= 3; pageNo++) {
         // Wait for network events to finish
@@ -36,9 +36,9 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
 
     const uniqueIdentifier = url.split('/').slice(-2).join('/');
     const titleP = page.$eval('header h1', ((el) => el.textContent));
-    const descriptionP = page.$eval('header span.actor-description', ((el) => el.textContent));
-    const modifiedTimestampP = page.$eval('ul.ActorHeader-stats time', (el) => el.getAttribute('datetime'));
-    const runCountTextP = page.$eval('ul.ActorHeader-stats li:nth-of-type(3)', ((el) => el.textContent));
+    const descriptionP = page.$eval('header p.ActorHeader-description', ((el) => el.textContent));
+    const modifiedTimestampP = page.$eval('ul.ActorHeader-userMedallion time', (el) => el.getAttribute('datetime'));
+    const runCountTextP = page.$eval('ul.ActorHeader-userMedallion li:nth-of-type(4)', ((el) => el.textContent));
     const [
         title,
         description,

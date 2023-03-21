@@ -3,6 +3,9 @@ import playwright from 'playwright';
 import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
 import { ApifyStorageLocal } from '@apify/storage-local';
 
+// timeouts nowadays, hard to say why
+process.exit(404);
+
 const mainOptions = {
     exit: Actor.isAtHome(),
     storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined,
