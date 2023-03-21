@@ -1013,7 +1013,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
-            session?.markGood();
+            crawlingContext.session?.markGood();
             session?.unlockSession();
         } catch (err) {
             try {
@@ -1035,7 +1035,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 throw secondaryError;
             }
             // decrease the session score if the request fails (but the error handler did not throw)
-            session?.markBad();
+            crawlingContext.session?.markBad();
             session?.unlockSession();
         } finally {
             await this._cleanupContext(crawlingContext);
