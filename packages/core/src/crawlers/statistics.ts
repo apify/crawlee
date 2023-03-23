@@ -148,6 +148,15 @@ export class Statistics {
         this._teardown();
     }
 
+    async resetStore() {
+        if (!this.keyValueStore) {
+            return;
+        }
+
+        await this.keyValueStore.drop();
+        delete this.keyValueStore;
+    }
+
     /**
      * Increments the status code counter.
      */

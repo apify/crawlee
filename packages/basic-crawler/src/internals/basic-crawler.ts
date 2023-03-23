@@ -369,6 +369,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
+    running?: boolean;
+
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
     protected errorHandler?: ErrorHandler<Context>;
@@ -652,6 +654,20 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @param [options] Options for the request queue
      */
     async run(requests?: (string | Request | RequestOptions)[], options?: CrawlerAddRequestsOptions): Promise<FinalStatistics> {
+        if (this.running) {
+            throw new Error('This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.');
+        }
+
+        // executing the run method for the second time explicitly, we need to purge the default RQ
+        if (this.running === false && this.requestQueue?.name === 'default') {
+            await this.requestQueue.drop();
+            this.requestQueue = await RequestQueue.open();
+        }
+
+        this.running = true;
+        this.stats.reset();
+        await this.stats.resetStore();
+
         await purgeDefaultStorages();
 
         if (requests) {
@@ -676,6 +692,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         try {
             this.log.info('Starting the crawl');
+            await periodicLogger.log();
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
@@ -721,6 +738,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         periodicLogger.stop();
         // eslint-disable-next-line max-len
         await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
+        this.running = false;
+
         return stats;
     }
 
