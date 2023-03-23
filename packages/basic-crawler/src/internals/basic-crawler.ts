@@ -633,8 +633,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     { level: LogLevel.WARNING },
                 );
             } else {
+                const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}/${this.requestQueue?.assumedTotalCount || this.requestList?.length()} pages, ${this.stats.state.requestsFailed} errors.`);
+                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} errors.`);
             }
         };
 
