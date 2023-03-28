@@ -153,8 +153,7 @@ export class Statistics {
             return;
         }
 
-        await this.keyValueStore.drop();
-        delete this.keyValueStore;
+        await this.keyValueStore.setValue(this.persistStateKey, null);
     }
 
     /**

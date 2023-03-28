@@ -692,7 +692,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         try {
             this.log.info('Starting the crawl');
-            await periodicLogger.log();
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
