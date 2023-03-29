@@ -990,11 +990,11 @@ __metadata:
     playwright: 1.32.1
     portastic: ^1.0.1
     proxy: ^1.0.2
-    puppeteer: 19.8.0
+    puppeteer: 19.8.2
     rimraf: ^4.1.2
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
-    turbo: 1.8.6
+    turbo: 1.8.8
     typescript: ^5.0.0
   languageName: unknown
   linkType: soft
@@ -1964,6 +1964,29 @@ __metadata:
   peerDependencies:
     typescript: ^3 || ^4
   checksum: 64eb6d90aafa889f62fe73d128b7be2b3295dffde4d5dff63bad75d512b6bc1d8419d8fc784a1a60b45aba4cda2eaf6e233bf59797a1d91b26fac27d99dae047
+  languageName: node
+  linkType: hard
+
+"@puppeteer/browsers@npm:0.3.1":
+  version: 0.3.1
+  resolution: "@puppeteer/browsers@npm:0.3.1"
+  dependencies:
+    debug: 4.3.4
+    extract-zip: 2.0.1
+    https-proxy-agent: 5.0.1
+    progress: 2.0.3
+    proxy-from-env: 1.1.0
+    tar-fs: 2.1.1
+    unbzip2-stream: 1.4.3
+    yargs: 17.7.1
+  peerDependencies:
+    typescript: ">= 4.7.4"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  bin:
+    browsers: lib/cjs/main-cli.js
+  checksum: cd080ccf36653ea29566a0754f1365e4bc6a08488b3bc9ddfee38ddedab6fa2511e67c9ac7770f81201a5616b5a0c05731deac1ca4021f463dddbad9a726eba9
   languageName: node
   linkType: hard
 
@@ -3781,14 +3804,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chromium-bidi@npm:0.4.5":
-  version: 0.4.5
-  resolution: "chromium-bidi@npm:0.4.5"
+"chromium-bidi@npm:0.4.6":
+  version: 0.4.6
+  resolution: "chromium-bidi@npm:0.4.6"
   dependencies:
     mitt: 3.0.0
   peerDependencies:
     devtools-protocol: "*"
-  checksum: 82935d25faad4c4718ba699df884e2719911bfbf99b5eaf42eceb92b1b91f5c251d087641ebb5a93f4bc82a679a6aaaa310d2f8b201443df81ed160cb9e1bee7
+  checksum: 1d6365896bca4592ddd95233a784e4743d2c8c692d065327a416a09acddc3d05e300c360b859d7049f91924be326d801e6fe9860ace4541325b25f4ec6b94b97
   languageName: node
   linkType: hard
 
@@ -10224,11 +10247,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:19.8.0":
-  version: 19.8.0
-  resolution: "puppeteer-core@npm:19.8.0"
+"puppeteer-core@npm:19.8.1":
+  version: 19.8.1
+  resolution: "puppeteer-core@npm:19.8.1"
   dependencies:
-    chromium-bidi: 0.4.5
+    chromium-bidi: 0.4.6
     cross-fetch: 3.1.5
     debug: 4.3.4
     devtools-protocol: 0.0.1107588
@@ -10243,20 +10266,21 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: a696ae2f8c3a8d0ca25141d22e2a49221d99a27e539d5776dbe153d1f8c00f04686a2cee6df43c3a20eb1b41f4077c339babf59e39fff26d8f34d08d726f1c96
+  checksum: 83575735c35b2d7bc2e657c1ab5aa5e290b5bf4820163896d472d8eed49e11e0f0a9f7e218d7b673432b7d5fdbadda0e3fe2ffc163f744885c31265c05e1915a
   languageName: node
   linkType: hard
 
-"puppeteer@npm:19.8.0":
-  version: 19.8.0
-  resolution: "puppeteer@npm:19.8.0"
+"puppeteer@npm:19.8.2":
+  version: 19.8.2
+  resolution: "puppeteer@npm:19.8.2"
   dependencies:
+    "@puppeteer/browsers": 0.3.1
     cosmiconfig: 8.1.3
     https-proxy-agent: 5.0.1
     progress: 2.0.3
     proxy-from-env: 1.1.0
-    puppeteer-core: 19.8.0
-  checksum: 174b66c6904f3cc386b72124150d0b677a7bc6b36f5cab7ee66851eebeea71776facf864ce7bcfd9d257535b4fa2e9c8b6b59feeabb28b730a418a18029f9f0d
+    puppeteer-core: 19.8.1
+  checksum: db2c832b5b92acc656ba3fb0702277a3606a9eb7c43a30dde57e71ea623af14919a52b726323bff44578d36d41ade397009533a1c538c459e9fde96c3e473d53
   languageName: node
   linkType: hard
 
@@ -11759,58 +11783,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo-darwin-64@npm:1.8.6"
+"turbo-darwin-64@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo-darwin-64@npm:1.8.8"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo-darwin-arm64@npm:1.8.6"
+"turbo-darwin-arm64@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo-darwin-arm64@npm:1.8.8"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo-linux-64@npm:1.8.6"
+"turbo-linux-64@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo-linux-64@npm:1.8.8"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo-linux-arm64@npm:1.8.6"
+"turbo-linux-arm64@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo-linux-arm64@npm:1.8.8"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo-windows-64@npm:1.8.6"
+"turbo-windows-64@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo-windows-64@npm:1.8.8"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo-windows-arm64@npm:1.8.6"
+"turbo-windows-arm64@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo-windows-arm64@npm:1.8.8"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:1.8.6":
-  version: 1.8.6
-  resolution: "turbo@npm:1.8.6"
+"turbo@npm:1.8.8":
+  version: 1.8.8
+  resolution: "turbo@npm:1.8.8"
   dependencies:
-    turbo-darwin-64: 1.8.6
-    turbo-darwin-arm64: 1.8.6
-    turbo-linux-64: 1.8.6
-    turbo-linux-arm64: 1.8.6
-    turbo-windows-64: 1.8.6
-    turbo-windows-arm64: 1.8.6
+    turbo-darwin-64: 1.8.8
+    turbo-darwin-arm64: 1.8.8
+    turbo-linux-64: 1.8.8
+    turbo-linux-arm64: 1.8.8
+    turbo-windows-64: 1.8.8
+    turbo-windows-arm64: 1.8.8
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -11826,7 +11850,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: f20983be69ac689eb8193adff5838fbc1248dc987fbecfa7433996ee50934dc5574c98f2b09e552bfae48386f2077ce810e203a8a9961819106098384bf4e806
+  checksum: 6dcfd7b38e2dd9abe279bda54e474be3463df51428f0b91c5e0539e9fd8c9b1efec562df629946f5ca92ede05f0aba35027481065d054249334e11692085ddb7
   languageName: node
   linkType: hard
 
@@ -12574,7 +12598,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^17.0.0, yargs@npm:^17.3.1, yargs@npm:^17.5.1, yargs@npm:^17.6.2":
+"yargs@npm:17.7.1, yargs@npm:^17.0.0, yargs@npm:^17.3.1, yargs@npm:^17.5.1, yargs@npm:^17.6.2":
   version: 17.7.1
   resolution: "yargs@npm:17.7.1"
   dependencies:
