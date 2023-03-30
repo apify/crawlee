@@ -45,7 +45,7 @@ export function isBuffer(value: unknown): boolean {
 }
 
 export function isStream(value: any): boolean {
-    return ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function');
+    return typeof value === 'object' && value && ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function');
 }
 
 export const memoryStorageLog = defaultLog.child({ prefix: 'MemoryStorage' });
