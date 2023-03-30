@@ -40,6 +40,21 @@ export interface CheerioCrawlingContext<
      * Cheerio is available only for HTML and XML content types.
      */
     $: cheerio.CheerioAPI;
+
+    /**
+     * Returns Cheerio handle, this is here to unify the crawler API, so they all have this handy method.
+     * It has the same return type as the `$` context property, use it only if you are abstracting your workflow to
+     * support different context types in one handler.
+     *
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ parseWithCheerio }) {
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
 }
 
 export type CheerioRequestHandler<
@@ -174,6 +189,11 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
                 .on('error', reject)
                 .pipe(parser);
         });
+    }
+
+    protected override async _runRequestHandler(context: CheerioCrawlingContext) {
+        context.parseWithCheerio = () => Promise.resolve(context.$);
+        await super._runRequestHandler(context);
     }
 }
 
