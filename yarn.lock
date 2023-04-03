@@ -841,7 +841,7 @@ __metadata:
     ow: ^0.28.1
     stream-chain: ^2.2.5
     stream-json: ^1.7.4
-    tldts: ^5.7.80
+    tldts: ^6.0.0
     tough-cookie: ^4.0.0
     tslib: ^2.4.0
     type-fest: ^3.0.0
@@ -11556,21 +11556,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^5.7.112":
-  version: 5.7.112
-  resolution: "tldts-core@npm:5.7.112"
-  checksum: e86b1dd29a5fdb18b33b3fb49fc11778c11229adf83cc73d360ef0481d52309b91c8daa9aa6e5cf56540391a49b13c02326eb5311e869bdc66bb952e86b1e2be
+"tldts-core@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "tldts-core@npm:6.0.1"
+  checksum: 0dbe73ebfeb097b5fc7adff9d6256cf78d832a09e638c8dde228ca2a4df05449287907d6f60dd76543812cc268c24cf1acb596ea1ab32badedd3d9439d401b8a
   languageName: node
   linkType: hard
 
-"tldts@npm:^5.7.80":
-  version: 5.7.112
-  resolution: "tldts@npm:5.7.112"
+"tldts@npm:^6.0.0":
+  version: 6.0.1
+  resolution: "tldts@npm:6.0.1"
   dependencies:
-    tldts-core: ^5.7.112
+    tldts-core: ^6.0.1
   bin:
     tldts: bin/cli.js
-  checksum: 10832dab1cf4c32d1eac589ee7f301fff954b4419c1b8854599a08516b341fe22b16dd9a4d37b14446475a8812223413a76f9b7f61de6ba24df128891d62a136
+  checksum: c57b68b4efea0cf184e47fe0137d7a96425720779cd23e023274f6057102227a1f20918bc5004eb6bc8d58a870ff60071d1c48f77afab7c1b13b42bd7af3a0bb
   languageName: node
   linkType: hard
 
