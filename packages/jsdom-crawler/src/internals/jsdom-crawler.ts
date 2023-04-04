@@ -1,4 +1,5 @@
 import ow from 'ow';
+import * as cheerio from 'cheerio';
 import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
@@ -10,7 +11,7 @@ import type {
     Configuration,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
@@ -46,7 +47,18 @@ export interface JSDOMCrawlingContext<
     > extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
     window: DOMWindow;
 
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    /**
+     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     *
+     * **Example usage:**
+     * ```javascript
+     * async requestHandler({ parseWithCheerio }) {
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
 }
 
 export type JSDOMRequestHandler<
@@ -219,6 +231,13 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                 });
             },
         };
+    }
+
+    override async _runRequestHandler(context: JSDOMCrawlingContext) {
+        context.parseWithCheerio = async () => {
+            return cheerio.load(context.body);
+        };
+        await super._runRequestHandler(context);
     }
 }
 

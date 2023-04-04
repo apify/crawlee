@@ -797,7 +797,7 @@ __metadata:
   dependencies:
     "@crawlee/http": ^3.3.0
     "@crawlee/types": ^3.3.0
-    cheerio: 1.0.0-rc.12
+    cheerio: ^1.0.0-rc.12
     htmlparser2: ^8.0.1
     tslib: ^2.4.0
   languageName: unknown
@@ -875,6 +875,7 @@ __metadata:
     "@crawlee/http": ^3.3.0
     "@crawlee/types": ^3.3.0
     "@types/jsdom": ^21.0.0
+    cheerio: ^1.0.0-rc.12
     jsdom: ^21.0.0
     ow: ^0.28.2
     tslib: ^2.4.0
@@ -3775,7 +3776,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cheerio@npm:1.0.0-rc.12":
+"cheerio@npm:1.0.0-rc.12, cheerio@npm:^1.0.0-rc.12":
   version: 1.0.0-rc.12
   resolution: "cheerio@npm:1.0.0-rc.12"
   dependencies:
