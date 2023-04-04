@@ -50,7 +50,7 @@
         "@apify/log": "^2.0.0",
         "@apify/ps-tree": "^1.1.4",
         "@crawlee/types": "^3.3.0",
-        "cheerio": "1.0.0-rc.12",
+        "cheerio": "^1.0.0-rc.12",
         "got-scraping": "^3.2.9",
         "ow": "^0.28.1",
         "tslib": "^2.4.0"
