@@ -71,7 +71,7 @@
         "ow": "^0.28.1",
         "stream-chain": "^2.2.5",
         "stream-json": "^1.7.4",
-        "tldts": "^5.7.80",
+        "tldts": "^6.0.0",
         "tough-cookie": "^4.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^3.0.0"
