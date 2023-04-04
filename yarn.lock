@@ -909,7 +909,7 @@ __metadata:
     "@crawlee/browser-pool": ^3.3.0
     "@crawlee/types": ^3.3.0
     "@crawlee/utils": ^3.3.0
-    cheerio: 1.0.0-rc.12
+    cheerio: ^1.0.0-rc.12
     jquery: ^3.6.0
     ow: ^0.28.1
     tslib: ^2.4.0
@@ -931,7 +931,7 @@ __metadata:
     "@crawlee/browser-pool": ^3.3.0
     "@crawlee/types": ^3.3.0
     "@crawlee/utils": ^3.3.0
-    cheerio: 1.0.0-rc.12
+    cheerio: ^1.0.0-rc.12
     devtools-protocol: "*"
     jquery: ^3.6.0
     ow: ^0.28.1
@@ -1027,7 +1027,7 @@ __metadata:
     "@apify/log": ^2.0.0
     "@apify/ps-tree": ^1.1.4
     "@crawlee/types": ^3.3.0
-    cheerio: 1.0.0-rc.12
+    cheerio: ^1.0.0-rc.12
     got-scraping: ^3.2.9
     ow: ^0.28.1
     tslib: ^2.4.0
@@ -3776,7 +3776,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cheerio@npm:1.0.0-rc.12, cheerio@npm:^1.0.0-rc.12":
+"cheerio@npm:^1.0.0-rc.12":
   version: 1.0.0-rc.12
   resolution: "cheerio@npm:1.0.0-rc.12"
   dependencies:

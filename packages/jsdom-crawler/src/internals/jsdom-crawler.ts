@@ -194,7 +194,9 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     }
 
     protected override async _cleanupContext(context: JSDOMCrawlingContext) {
-        context.window?.close();
+        setTimeout(() => {
+            context.window?.close();
+        }, 5_000);
     }
 
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: JSDOMCrawlingContext) {
@@ -207,6 +209,23 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             resources,
             virtualConsole: this.getVirtualConsole(),
         });
+
+        // add some stubs in place of missing API so processing won't fail
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: (query: unknown): any => ({
+                matches: false,
+                media: query,
+                onchange: null,
+                addListener: () => {},
+                removeListener: () => {},
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                dispatchEvent: () => {},
+            }),
+        });
+        window.requestAnimationFrame = (cb) => window.setTimeout(cb, 1000 / 60);
+        window.cancelAnimationFrame = window.clearTimeout;
 
         if (this.runScripts) {
             await new Promise<void>((resolve) => {
