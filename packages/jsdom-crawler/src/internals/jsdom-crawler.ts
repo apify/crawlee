@@ -16,6 +16,7 @@ import { concatStreamToBuffer } from '@apify/utilities';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import type { IncomingMessage } from 'http';
+import { addTimeoutToPromise } from '@apify/timeout';
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -240,11 +241,17 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
         };
 
         if (this.runScripts) {
-            await new Promise<void>((resolve) => {
-                window.addEventListener('load', () => {
-                    resolve();
-                });
-            });
+            try {
+                await addTimeoutToPromise(() => {
+                    return new Promise<void>((resolve) => {
+                        window.addEventListener('load', () => {
+                            resolve();
+                        }, false);
+                    }).catch();
+                }, 10_000, 'Window.load event not fired after 10 seconds.').catch();
+            } catch (e) {
+                this.log.debug((e as Error).message);
+            }
         }
 
         return {
