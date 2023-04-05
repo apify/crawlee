@@ -190,13 +190,17 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                 this.virtualConsole.sendTo(console);
             }
         }
+
+        this.virtualConsole.on('jsdomError', this.jsdomErrorHandler);
+
         return this.virtualConsole;
     }
 
+    private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', error);
+
     protected override async _cleanupContext(context: JSDOMCrawlingContext) {
-        setTimeout(() => {
-            context.window?.close();
-        }, 5_000);
+        this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
+        context.window?.close();
     }
 
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: JSDOMCrawlingContext) {
