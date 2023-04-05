@@ -53,8 +53,8 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/utilities": "^2.1.4",
         "@apify/timeout": "^0.3.0",
+        "@apify/utilities": "^2.1.4",
         "@crawlee/http": "^3.3.0",
         "@crawlee/types": "^3.3.0",
         "@types/jsdom": "^21.0.0",
