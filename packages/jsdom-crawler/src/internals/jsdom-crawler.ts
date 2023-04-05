@@ -191,7 +191,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
         this.virtualConsole = new VirtualConsole();
 
         if (!this.hideInternalConsole) {
-            this.virtualConsole.sendTo(console);
+            this.virtualConsole.sendTo(console, { omitJSDOMErrors: true });
         }
 
         this.virtualConsole.on('jsdomError', this.jsdomErrorHandler);
@@ -215,6 +215,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             runScripts: this.runScripts ? 'dangerously' : undefined,
             resources,
             virtualConsole: this.getVirtualConsole(),
+            pretendToBeVisual: true,
         });
 
         // add some stubs in place of missing API so processing won't fail
@@ -231,8 +232,12 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
                 dispatchEvent: () => {},
             }),
         });
-        window.requestAnimationFrame = (cb) => window.setTimeout(cb, 1000 / 60);
-        window.cancelAnimationFrame = window.clearTimeout;
+        window.document.createRange = () => {
+            const range = new Range();
+            range.getBoundingClientRect = () => ({} as any);
+            range.getClientRects = () => ({ item: () => null, length: 0 }) as any;
+            return range;
+        };
 
         if (this.runScripts) {
             await new Promise<void>((resolve) => {
