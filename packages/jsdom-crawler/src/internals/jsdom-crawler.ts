@@ -235,7 +235,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
         window.document.createRange = () => {
             const range = new Range();
             range.getBoundingClientRect = () => ({} as any);
-            range.getClientRects = () => ({ item: () => null, length: 0 }) as any;
+            range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
             return range;
         };
 
