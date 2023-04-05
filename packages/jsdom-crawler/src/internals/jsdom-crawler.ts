@@ -184,11 +184,14 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
      * ```
      */
     getVirtualConsole() {
-        if (!this.virtualConsole) {
-            this.virtualConsole = new VirtualConsole();
-            if (!this.hideInternalConsole) {
-                this.virtualConsole.sendTo(console);
-            }
+        if (this.virtualConsole) {
+            return this.virtualConsole;
+        }
+
+        this.virtualConsole = new VirtualConsole();
+
+        if (!this.hideInternalConsole) {
+            this.virtualConsole.sendTo(console);
         }
 
         this.virtualConsole.on('jsdomError', this.jsdomErrorHandler);
