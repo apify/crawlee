@@ -609,7 +609,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             return { ...parsed, isXml, response, contentType };
         } else {
             const body = await concatStreamToBuffer(response);
-            return { body, response, contentType };
+            return { body, response, contentType, enqueueLinks: () => Promise.resolve({ processedRequests: [], unprocessedRequests: [] }) };
         }
     }
 

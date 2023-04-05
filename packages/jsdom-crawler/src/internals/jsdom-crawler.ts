@@ -285,7 +285,7 @@ export async function domCrawlerEnqueueLinks({ options, window, requestQueue, or
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = extractUrlsFromWindow(window, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl) ?? [];
+    const urls = extractUrlsFromWindow(window, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
 
     return enqueueLinks({
         requestQueue,
