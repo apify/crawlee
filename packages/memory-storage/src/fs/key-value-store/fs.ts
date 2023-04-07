@@ -2,6 +2,7 @@ import { ensureDir } from 'fs-extra';
 import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { basename } from 'node:path/win32';
+import { AsyncQueue } from '@sapphire/async-queue';
 import type { CreateStorageImplementationOptions } from '.';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import { memoryStorageLog } from '../../utils';
@@ -15,6 +16,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
     private filePath!: string;
     private fileMetadataPath!: string;
     private rawRecord!: Omit<InternalKeyRecord, 'value'>;
+    private fsQueue = new AsyncQueue();
 
     constructor(options: CreateStorageImplementationOptions) {
         this.storeDirectory = options.storeDirectory;
@@ -22,6 +24,7 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
     }
 
     async get(): Promise<InternalKeyRecord> {
+        await this.fsQueue.wait();
         let file: Buffer | string;
 
         try {
@@ -39,6 +42,8 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
                 // This is impossible to happen, but just in case
                 throw new Error(`Could not find file at ${this.filePath}`);
             }
+        } finally {
+            this.fsQueue.shift();
         }
 
         return {
@@ -48,22 +53,29 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
     }
 
     async update(data: InternalKeyRecord) {
+        await this.fsQueue.wait();
         this.filePath ??= resolve(this.storeDirectory, `${data.key}.${data.extension}`);
         this.fileMetadataPath ??= resolve(this.storeDirectory, `${data.key}.__metadata__.json`);
 
         const { value, ...rest } = data;
         this.rawRecord = rest;
 
-        await ensureDir(dirname(this.filePath));
-        await lockAndWrite(this.filePath, value, false);
+        try {
+            await ensureDir(dirname(this.filePath));
+            await lockAndWrite(this.filePath, value, false);
 
-        if (this.writeMetadata) {
-            await lockAndWrite(this.fileMetadataPath, JSON.stringify(rest), true);
+            if (this.writeMetadata) {
+                await lockAndWrite(this.fileMetadataPath, JSON.stringify(rest), true);
+            }
+        } finally {
+            this.fsQueue.shift();
         }
     }
 
     async delete() {
+        await this.fsQueue.wait();
         await rm(this.filePath, { force: true });
         await rm(this.fileMetadataPath, { force: true });
+        this.fsQueue.shift();
     }
 }
