@@ -1,4 +1,5 @@
 import type { Dictionary, StorageClient } from '@crawlee/types';
+import { AsyncQueue } from '@sapphire/async-queue';
 import { Configuration } from '../configuration';
 import type { Constructor } from '../typedefs';
 
@@ -22,6 +23,7 @@ export class StorageManager<T extends IStorage = IStorage> {
     private readonly name: 'Dataset' | 'KeyValueStore' | 'RequestQueue';
     private readonly StorageConstructor: Constructor<T> & { name: string };
     private readonly cache = new Map<string, T>();
+    private readonly storageOpenQueue = new AsyncQueue();
 
     constructor(
         StorageConstructor: Constructor<T>,
@@ -65,6 +67,8 @@ export class StorageManager<T extends IStorage = IStorage> {
     }
 
     async openStorage(idOrName?: string | null, client?: StorageClient): Promise<T> {
+        await this.storageOpenQueue.wait();
+
         if (!idOrName) {
             const defaultIdConfigKey = DEFAULT_ID_CONFIG_KEYS[this.name];
             idOrName = this.config.get(defaultIdConfigKey) as string;
@@ -83,6 +87,8 @@ export class StorageManager<T extends IStorage = IStorage> {
             });
             this._addStorageToCache(storage);
         }
+
+        this.storageOpenQueue.shift();
 
         return storage;
     }

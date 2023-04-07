@@ -62,6 +62,7 @@
         "@crawlee/memory-storage": "^3.3.0",
         "@crawlee/types": "^3.3.0",
         "@crawlee/utils": "^3.3.0",
+        "@sapphire/async-queue": "^1.5.0",
         "@types/tough-cookie": "^4.0.2",
         "@vladfrangu/async_event_emitter": "^2.0.0",
         "csv-stringify": "^6.2.0",
