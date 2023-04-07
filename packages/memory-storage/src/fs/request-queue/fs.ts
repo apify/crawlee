@@ -9,32 +9,34 @@ import type { StorageImplementation } from '../common';
 
 export class RequestQueueFileSystemEntry implements StorageImplementation<InternalRequest> {
     private filePath: string;
-    private queue = new AsyncQueue();
+    private fsQueue = new AsyncQueue();
 
     constructor(options: CreateStorageImplementationOptions) {
         this.filePath = resolve(options.storeDirectory, `${options.requestId}.json`);
     }
 
     async get() {
+        await this.fsQueue.wait();
         try {
-            await this.queue.wait();
             return JSON.parse(await readFile(this.filePath, 'utf-8'));
         } finally {
-            this.queue.shift();
+            this.fsQueue.shift();
         }
     }
 
     async update(data: InternalRequest) {
+        await this.fsQueue.wait();
         try {
-            await this.queue.wait();
             await ensureDir(dirname(this.filePath));
             await lockAndWrite(this.filePath, data);
         } finally {
-            this.queue.shift();
+            this.fsQueue.shift();
         }
     }
 
     async delete() {
+        await this.fsQueue.wait();
         await rm(this.filePath, { force: true });
+        this.fsQueue.shift();
     }
 }
