@@ -141,7 +141,7 @@ jobs:
                 run: |
                     yarn install --no-immutable
                     git add .
-                    git commit -m 'chore(release): update internal dependencies [skip ci]'
+                    git diff-index --quiet HEAD || git commit -m 'chore(release): update internal dependencies [skip ci]'
                     git push
 
             -   name: Publish packages
