@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* **Storage:** queue up opening storages to prevent issues in concurrent calls ([#1865](https://github.com/apify/crawlee/issues/1865)) ([044c740](https://github.com/apify/crawlee/commit/044c740101dd0acd2248dee3702aec769ce0c892))
+* try to detect stuck request queue and fix its state ([#1837](https://github.com/apify/crawlee/issues/1837)) ([95a9f94](https://github.com/apify/crawlee/commit/95a9f941836c020a3223fd309f11cff58bc50624))
+
+
+
+
+
 # [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
 
 

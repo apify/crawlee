@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* infiniteScroll() not working in Firefox ([#1826](https://github.com/apify/crawlee/issues/1826)) ([4286c5d](https://github.com/apify/crawlee/commit/4286c5d29b94aec3f4d3835bbf36b7fafcaec8f0)), closes [#1821](https://github.com/apify/crawlee/issues/1821)
+* **jsdom:** delay closing of the window and add some polyfills ([2e81618](https://github.com/apify/crawlee/commit/2e81618afb5f3890495e3e5fcfa037eb3319edc9))
+
+
+
+
+
 # [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
 
 **Note:** Version bump only for package @crawlee/playwright

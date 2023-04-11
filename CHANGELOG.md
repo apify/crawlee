@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* infiniteScroll() not working in Firefox ([#1826](https://github.com/apify/crawlee/issues/1826)) ([4286c5d](https://github.com/apify/crawlee/commit/4286c5d29b94aec3f4d3835bbf36b7fafcaec8f0)), closes [#1821](https://github.com/apify/crawlee/issues/1821)
+* **jsdom:** add timeout to the window.load wait when `runScripts` are enabled ([806de31](https://github.com/apify/crawlee/commit/806de31222e138ef2d8e2706536a7288423be3d4))
+* **jsdom:** delay closing of the window and add some polyfills ([2e81618](https://github.com/apify/crawlee/commit/2e81618afb5f3890495e3e5fcfa037eb3319edc9))
+* **jsdom:** use no-op `enqueueLinks` in http crawlers when parsing fails ([fd35270](https://github.com/apify/crawlee/commit/fd35270e7da67a77eb60108e19294f0fd2016706))
+* **MemoryStorage:** handling of readable streams for key-value stores when setting records ([#1852](https://github.com/apify/crawlee/issues/1852)) ([a5ee37d](https://github.com/apify/crawlee/commit/a5ee37d7e245f004785fc03220e37aeafdfa0e81)), closes [#1843](https://github.com/apify/crawlee/issues/1843)
+* start status message logger after the crawl actually starts ([5d1df7a](https://github.com/apify/crawlee/commit/5d1df7aae00d0d6ca29338723f92b77cff667354))
+* status message - total requests ([#1842](https://github.com/apify/crawlee/issues/1842)) ([710f734](https://github.com/apify/crawlee/commit/710f7347623619057e99abf539f0ccf78de41bbc))
+* **Storage:** queue up opening storages to prevent issues in concurrent calls ([#1865](https://github.com/apify/crawlee/issues/1865)) ([044c740](https://github.com/apify/crawlee/commit/044c740101dd0acd2248dee3702aec769ce0c892))
+* **templates:** added missing '@types/node' peer dependency ([#1860](https://github.com/apify/crawlee/issues/1860)) ([d37a7e2](https://github.com/apify/crawlee/commit/d37a7e2a068809df877dfd239f2500bce788eaf4))
+* try to detect stuck request queue and fix its state ([#1837](https://github.com/apify/crawlee/issues/1837)) ([95a9f94](https://github.com/apify/crawlee/commit/95a9f941836c020a3223fd309f11cff58bc50624))
+
+
+### Features
+
+* add `parseWithCheerio` context helper to cheerio crawler ([b336a73](https://github.com/apify/crawlee/commit/b336a739117a6e4180492ec9915ddce128376a2c))
+* **jsdom:** add `parseWithCheerio` context helper ([c8f0796](https://github.com/apify/crawlee/commit/c8f0796aebc0dfa6e6d04740a0bb7d8ddd5b2d96))
+
+
+
+
+
 # [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* **MemoryStorage:** handling of readable streams for key-value stores when setting records ([#1852](https://github.com/apify/crawlee/issues/1852)) ([a5ee37d](https://github.com/apify/crawlee/commit/a5ee37d7e245f004785fc03220e37aeafdfa0e81)), closes [#1843](https://github.com/apify/crawlee/issues/1843)
+
+
+
+
+
 # [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
 
 

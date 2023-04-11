@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
+
+
+### Features
+
+* add `parseWithCheerio` context helper to cheerio crawler ([b336a73](https://github.com/apify/crawlee/commit/b336a739117a6e4180492ec9915ddce128376a2c))
+* **jsdom:** add `parseWithCheerio` context helper ([c8f0796](https://github.com/apify/crawlee/commit/c8f0796aebc0dfa6e6d04740a0bb7d8ddd5b2d96))
+
+
+
+
+
 # [3.3.0](https://github.com/apify/crawlee/compare/v3.2.2...v3.3.0) (2023-03-09)
 
 
