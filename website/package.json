@@ -25,7 +25,7 @@
         "got": "^11.8.6",
         "path-browserify": "^1.0.1",
         "prettier": "^2.8.4",
-        "rimraf": "^4.4.0",
+        "rimraf": "^5.0.0",
         "typescript": "^5.0.0"
     },
     "dependencies": {
