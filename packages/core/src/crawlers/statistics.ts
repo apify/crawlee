@@ -126,6 +126,7 @@ export class Statistics {
             requestsFinished: 0,
             requestsFailed: 0,
             requestsRetries: 0,
+            requestsEnqueued: 0,
             requestsFailedPerMinute: 0,
             requestsFinishedPerMinute: 0,
             requestMinDurationMillis: Infinity,
@@ -411,4 +412,5 @@ export interface StatisticState {
     errors: Record<string, unknown>;
     retryErrors: Record<string, unknown>;
     requestsWithStatusCode: Record<string, number>;
+    requestsEnqueued: number;
 }
