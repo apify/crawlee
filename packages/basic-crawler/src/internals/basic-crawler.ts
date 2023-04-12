@@ -627,15 +627,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const log = async () => {
             const operationMode = getOperationMode();
+            const { requestsFinished, requestsEnqueued, requestsFailed } = this.stats.state;
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`,
+                await this.setStatusMessage(`Experiencing problems, ${requestsFailed - previousState.requestsFailed || requestsFailed} errors in the past ${this.loggingInterval} seconds.`,
                     { level: LogLevel.WARNING },
                 );
             } else {
-                const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} errors.`);
+                await this.setStatusMessage(`Crawled ${requestsFinished}/${requestsEnqueued} pages, ${requestsFailed} errors.`);
             }
         };
 
@@ -725,9 +725,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     async getRequestQueue() {
-        this.requestQueue ??= await RequestQueue.open();
+        if (!this.requestQueue) {
+            this.requestQueue = await RequestQueue.open();
 
-        return this.requestQueue!;
+            const originalAddRequests = this.requestQueue.addRequests.bind(this.requestQueue);
+            this.requestQueue.addRequests = async (...args) => {
+                const response = await originalAddRequests(...args);
+                this.stats.state.requestsEnqueued += response.processedRequests.filter((x) => !x.wasAlreadyPresent).length;
+                return response;
+            };
+        }
+
+        return this.requestQueue;
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
