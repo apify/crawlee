@@ -223,6 +223,27 @@ export interface ListOptions {
     limit?: number;
 }
 
+export interface ListAndLockOptions extends ListOptions {
+    lockSecs: number;
+}
+
+export interface ListAndLockHeadResult extends QueueHead {
+    lockSecs: number;
+}
+
+export interface ProlongRequestLockOptions {
+    lockSecs: number;
+    forefront?: boolean;
+}
+
+export interface ProlongRequestLockResult {
+    lockExpiresAt: Date;
+}
+
+export interface DeleteRequestLockOptions {
+    forefront?: boolean;
+}
+
 export interface RequestOptions {
     forefront?: boolean;
     [k: string]: unknown;

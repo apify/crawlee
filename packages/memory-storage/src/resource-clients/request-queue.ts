@@ -66,6 +66,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         this.client = options.client;
     }
 
+    private async getQueue() : Promise<RequestQueueClient> {
+        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
+
+        if (!existingQueueById) {
+            this.throwOnNonExisting(StorageTypes.RequestQueue);
+        }
+
+        existingQueueById.updateTimestamps(false);
+
+        return existingQueueById;
+    }
+
     async get(): Promise<storage.RequestQueueInfo | undefined> {
         const found = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
@@ -161,6 +173,98 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             queueModifiedAt: existingQueueById.modifiedAt,
             items: items.sort((a, b) => a.orderNo! - b.orderNo!).map(({ json }) => this._jsonToRequest(json)!),
         };
+    }
+
+    async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
+        const { limit, lockSecs } = s.object({
+            limit: s.number.optional.default(100),
+            lockSecs: s.number,
+        }).parse(options);
+
+        const queue = await this.getQueue();
+
+        const start = Date.now();
+        const isLocked = (request: InternalRequest) => !request.orderNo || request.orderNo > start || request.orderNo < -start;
+
+        const items = [];
+        for (const storageEntry of queue.requests.values()) {
+            if (items.length === limit) {
+                break;
+            }
+
+            const request = await storageEntry.get();
+
+            if (isLocked(request)) {
+                continue;
+            }
+
+            request.orderNo = (start + lockSecs * 1000) * (request.orderNo! > 0 ? 1 : -1);
+            await storageEntry.update(request);
+
+            items.push(request);
+        }
+
+        return {
+            limit,
+            lockSecs,
+            hadMultipleClients: false,
+            queueModifiedAt: queue.modifiedAt,
+            items: items.map(({ json }) => this._jsonToRequest(json)!),
+        };
+    }
+
+    async prolongRequestLock(id: string, options: storage.ProlongRequestLockOptions) : Promise<storage.ProlongRequestLockResult> {
+        s.string.parse(id);
+        const { lockSecs, forefront } = s.object({
+            lockSecs: s.number,
+            forefront: s.boolean.optional.default(false),
+        }).parse(options);
+
+        const queue = await this.getQueue();
+        const request = await queue.requests.get(id)?.get();
+
+        if (!request) {
+            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
+        }
+
+        const currentTimestamp = Date.now();
+        const canProlong = (r: InternalRequest) => !r.orderNo || r.orderNo > currentTimestamp || r.orderNo < -currentTimestamp;
+
+        if (!canProlong(request)) {
+            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
+        }
+
+        const unlockTimestamp = Math.abs(request.orderNo!) + lockSecs * 1000;
+        request.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
+
+        await queue.requests.get(id)?.update(request);
+
+        return {
+            lockExpiresAt: new Date(unlockTimestamp),
+        };
+    }
+
+    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions) : Promise<void> {
+        s.string.parse(id);
+        const { forefront } = s.object({
+            forefront: s.boolean.optional.default(false),
+        }).parse(options);
+
+        const queue = await this.getQueue();
+        const request = await queue.requests.get(id)?.get();
+
+        if (!request) {
+            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
+        }
+
+        if (!request.orderNo) {
+            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
+        }
+
+        const timestamp = Date.now();
+        request.orderNo = forefront ? -timestamp : timestamp;
+
+        await queue.requests.get(id)?.update(request);
     }
 
     async addRequest(request: storage.RequestSchema, options: storage.RequestOptions = {}): Promise<storage.QueueOperationInfo> {
@@ -281,15 +385,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     async getRequest(id: string): Promise<storage.RequestOptions | undefined> {
         s.string.parse(id);
-        const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
-
-        if (!existingQueueById) {
-            this.throwOnNonExisting(StorageTypes.RequestQueue);
-        }
-
-        existingQueueById.updateTimestamps(false);
-
-        const json = (await existingQueueById.requests.get(id)?.get())?.json;
+        const queue = await this.getQueue();
+        const json = (await queue.requests.get(id)?.get())?.json;
         return this._jsonToRequest(json);
     }
 
