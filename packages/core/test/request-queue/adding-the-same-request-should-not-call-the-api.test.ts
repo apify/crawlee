@@ -37,15 +37,15 @@ describe('RequestQueue#addRequests should not call the API if the request is alr
     test('should not call the API if the request is already in the queue', async () => {
         const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
 
-        const clientSpy = jest.spyOn(requestQueue.client, 'addRequest');
+        const clientSpy = jest.spyOn(requestQueue.client, 'batchAddRequests');
 
-        const requestData = await requestQueue.addRequest({ url: 'https://example.com' });
+        const requestData = await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({ id: requestData.requestId, uniqueKey: requestData.uniqueKey } as any);
+        await requestQueue.markRequestHandled({ id: requestData.processedRequests[0].requestId, uniqueKey: requestData.processedRequests[0].uniqueKey } as any);
 
-        await requestQueue.addRequests([{ url: 'https://example.com' }]);
+        await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
     });
