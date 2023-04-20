@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, RouterRoutes } from '@crawlee/types';
 import type { CrawlingContext } from './crawlers/crawler_commons';
 import type { Awaitable } from './typedefs';
 import type { Request } from './request';
@@ -153,7 +153,12 @@ export class Router<Context extends CrawlingContext> {
      * await crawler.run();
      * ```
      */
-    static create<Context extends CrawlingContext = CrawlingContext>(): RouterHandler<Context> {
+    static create<
+        Context extends CrawlingContext = CrawlingContext,
+        UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
+    >(
+        routes?: RouterRoutes<Context, UserData>,
+    ): RouterHandler<Context> {
         const router = new Router<Context>();
         const obj = Object.create(Function.prototype);
 
@@ -161,6 +166,10 @@ export class Router<Context extends CrawlingContext> {
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
         obj.getHandler = router.getHandler.bind(router);
         obj.use = router.use.bind(router);
+
+        for (const [label, handler] of Object.entries(routes ?? {})) {
+            router.addHandler(label, handler);
+        }
 
         const func = async function (context: Context) {
             const { url, loadedUrl, label } = context.request;

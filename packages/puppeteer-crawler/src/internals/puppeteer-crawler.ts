@@ -6,7 +6,7 @@ import type {
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher';
@@ -212,6 +212,11 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
  * await crawler.run();
  * ```
  */
-export function createPuppeteerRouter<Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext>() {
-    return Router.create<Context>();
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
+>(
+    routes?: RouterRoutes<Context, UserData>,
+) {
+    return Router.create<Context>(routes);
 }

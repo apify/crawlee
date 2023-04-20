@@ -20,7 +20,7 @@ import {
     Configuration,
     RequestState,
 } from '@crawlee/basic';
-import type { Awaitable, Dictionary } from '@crawlee/types';
+import type { Awaitable, Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
@@ -870,6 +870,11 @@ function parseContentTypeFromResponse(response: IncomingMessage): { type: string
  * await crawler.run();
  * ```
  */
-export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext>() {
-    return Router.create<Context>();
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']> // quick&dirty copy-paste
+>(
+    routes?: RouterRoutes<Context, UserData>,
+) {
+    return Router.create<Context>(routes);
 }

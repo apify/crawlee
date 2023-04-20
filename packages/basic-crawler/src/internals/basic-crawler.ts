@@ -39,7 +39,15 @@ import {
 } from '@crawlee/core';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
+import type {
+    ProcessedRequest,
+    Dictionary,
+    Awaitable,
+    BatchAddRequestsResult,
+    SetStatusMessageOptions,
+    GetUserDataFromRequest,
+    RouterRoutes,
+} from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
@@ -1367,6 +1375,11 @@ interface HandlePropertyNameChangeData<New, Old> {
  * await crawler.run();
  * ```
  */
-export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext>() {
-    return Router.create<Context>();
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
+>(
+    routes?: RouterRoutes<Context, UserData>,
+) {
+    return Router.create<Context>(routes);
 }

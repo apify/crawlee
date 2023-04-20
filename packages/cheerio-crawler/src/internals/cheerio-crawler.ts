@@ -9,7 +9,7 @@ import type {
     Configuration,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler } from 'htmlparser2';
@@ -275,6 +275,11 @@ function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl
  * await crawler.run();
  * ```
  */
-export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext>() {
-    return Router.create<Context>();
+export function createCheerioRouter<
+    Context extends CheerioCrawlingContext = CheerioCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
+>(
+    routes?: RouterRoutes<Context, UserData>,
+) {
+    return Router.create<Context>(routes);
 }
