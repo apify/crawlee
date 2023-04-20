@@ -296,6 +296,9 @@ export interface RequestQueueClient {
     getRequest(id: string): Promise<RequestOptions | undefined>;
     updateRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
     deleteRequest(id: string): Promise<unknown>;
+    listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult>;
+    prolongRequestLock(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult>;
+    deleteRequestLock(id: string, options: DeleteRequestLockOptions): Promise<void>;
 }
 
 export interface RequestQueueOptions {
