@@ -221,23 +221,25 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }).parse(options);
 
         const queue = await this.getQueue();
-        const request = await queue.requests.get(id)?.get();
+        const request = await queue.requests.get(id);
 
-        if (!request) {
-            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
+        const internalRequest = await request?.get();
+
+        if (!internalRequest) {
+            throw new Error(`Request with ID ${id} not found in queue ${queue.name ?? queue.id}`);
         }
 
         const currentTimestamp = Date.now();
         const canProlong = (r: InternalRequest) => !r.orderNo || r.orderNo > currentTimestamp || r.orderNo < -currentTimestamp;
 
-        if (!canProlong(request)) {
-            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
+        if (!canProlong(internalRequest)) {
+            throw new Error(`Request with ID ${id} is not locked in queue ${queue.name ?? queue.id}`);
         }
 
-        const unlockTimestamp = Math.abs(request.orderNo!) + lockSecs * 1000;
-        request.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
+        const unlockTimestamp = Math.abs(internalRequest.orderNo!) + lockSecs * 1000;
+        internalRequest.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
 
-        await queue.requests.get(id)?.update(request);
+        await request?.update(internalRequest);
 
         return {
             lockExpiresAt: new Date(unlockTimestamp),
@@ -251,20 +253,22 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }).parse(options);
 
         const queue = await this.getQueue();
-        const request = await queue.requests.get(id)?.get();
+        const request = await queue.requests.get(id);
 
-        if (!request) {
-            throw new Error(`Request with ID ${id} not found in queue ${this.name ?? this.id}`);
+        const internalRequest = await request?.get();
+
+        if (!internalRequest) {
+            throw new Error(`Request with ID ${id} not found in queue ${queue.name ?? queue.id}`);
         }
 
-        if (!request.orderNo) {
-            throw new Error(`Request with ID ${id} is not locked in queue ${this.name ?? this.id}`);
+        if (!internalRequest.orderNo) {
+            throw new Error(`Request with ID ${id} is not locked in queue ${queue.name ?? queue.id}`);
         }
 
         const timestamp = Date.now();
-        request.orderNo = forefront ? -timestamp : timestamp;
+        internalRequest.orderNo = forefront ? -timestamp : timestamp;
 
-        await queue.requests.get(id)?.update(request);
+        await request?.update(internalRequest);
     }
 
     async addRequest(request: storage.RequestSchema, options: storage.RequestOptions = {}): Promise<storage.QueueOperationInfo> {
