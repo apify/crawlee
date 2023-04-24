@@ -1,0 +1,6 @@
+node_modules
+src
+test
+coverage
+apify_storage
+tsconfig.*

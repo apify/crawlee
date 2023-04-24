@@ -7,6 +7,7 @@
             "@crawlee/basic": ["packages/basic-crawler/src"],
             "@crawlee/browser": ["packages/browser-crawler/src"],
             "@crawlee/http": ["packages/http-crawler/src"],
+            "@crawlee/linkedom": ["packages/linkedom-crawler/src"],
             "@crawlee/jsdom": ["packages/jsdom-crawler/src"],
             "@crawlee/cheerio": ["packages/cheerio-crawler/src"],
             "@crawlee/playwright": ["packages/playwright-crawler/src"],
