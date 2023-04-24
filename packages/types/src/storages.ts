@@ -298,7 +298,7 @@ export interface RequestQueueClient {
     deleteRequest(id: string): Promise<unknown>;
     listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult>;
     prolongRequestLock(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult>;
-    deleteRequestLock(id: string, options: DeleteRequestLockOptions): Promise<void>;
+    deleteRequestLock(id: string, options?: DeleteRequestLockOptions): Promise<void>;
 }
 
 export interface RequestQueueOptions {

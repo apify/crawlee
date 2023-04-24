@@ -47,6 +47,31 @@ export interface InternalRequest {
     json: string;
 }
 
+class Mutex {
+    private locked = false;
+    private waitingTasks: any[] = [];
+
+    async release() {
+        this.locked = false;
+
+        if (this.waitingTasks.length > 0) {
+            const task = this.waitingTasks.shift();
+            task();
+        }
+    }
+
+    async lock() {
+        if (!this.locked) {
+            this.locked = true;
+            return;
+        }
+
+        await new Promise((r) => {
+            this.waitingTasks.push(r);
+        });
+    }
+}
+
 export class RequestQueueClient extends BaseClient implements storage.RequestQueueClient {
     name?: string;
     createdAt = new Date();
@@ -55,6 +80,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     handledRequestCount = 0;
     pendingRequestCount = 0;
     requestQueueDirectory: string;
+    private readonly mutex = new Mutex();
 
     private readonly requests = new Map<string, StorageImplementation<InternalRequest>>();
     private readonly client: MemoryStorage;
@@ -187,6 +213,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const isLocked = (request: InternalRequest) => !request.orderNo || request.orderNo > start || request.orderNo < -start;
 
         const items = [];
+
+        await this.mutex.lock();
         for (const storageEntry of queue.requests.values()) {
             if (items.length === limit) {
                 break;
@@ -203,6 +231,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
             items.push(request);
         }
+        await this.mutex.release();
 
         return {
             limit,
@@ -246,7 +275,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions) : Promise<void> {
+    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}) : Promise<void> {
         s.string.parse(id);
         const { forefront } = s.object({
             forefront: s.boolean.optional.default(false),
@@ -261,12 +290,14 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             throw new Error(`Request with ID ${id} not found in queue ${queue.name ?? queue.id}`);
         }
 
-        if (!internalRequest.orderNo) {
+        const start = Date.now();
+
+        const isLocked = (r: InternalRequest) => !r.orderNo || r.orderNo > start || r.orderNo < -start;
+        if (!isLocked(internalRequest)) {
             throw new Error(`Request with ID ${id} is not locked in queue ${queue.name ?? queue.id}`);
         }
 
-        const timestamp = Date.now();
-        internalRequest.orderNo = forefront ? -timestamp : timestamp;
+        internalRequest.orderNo = forefront ? -start : start;
 
         await request?.update(internalRequest);
     }
