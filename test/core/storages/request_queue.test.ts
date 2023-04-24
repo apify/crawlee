@@ -685,3 +685,89 @@ describe('RequestQueue remote', () => {
         expect(r3.userData.__crawlee).toEqual({});
     });
 });
+
+describe('RequestQueue v2', () => {
+    const totalRequestsPerTest = 100;
+
+    function calculateHistogram(requests: { uniqueKey: string }[]) : number[] {
+        const histogram: number[] = [];
+        for (const item of requests) {
+            const key = item.uniqueKey;
+            const index = parseInt(key, 10);
+            histogram[index] = histogram[index] ? histogram[index] + 1 : 1;
+        }
+
+        return histogram;
+    }
+
+    async function getEmptyQueue(name: string) {
+        const queue = await RequestQueue.open(name);
+        await queue.drop();
+        return RequestQueue.open(name);
+    }
+
+    function getUniqueRequests(count: number) {
+        return new Array(count).fill(0).map((_, i) => new Request({ url: `http://example.com/${i}`, uniqueKey: String(i) }));
+    }
+
+    test('listAndLockHead works as expected', async () => {
+        const queue = await getEmptyQueue('list-and-lock-head');
+        await queue.addRequests(getUniqueRequests(totalRequestsPerTest));
+
+        const [{ items: firstFetch }, { items: secondFetch }] = await Promise.all([
+            queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 }),
+            queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 }),
+        ]);
+
+        const histogram = calculateHistogram([...firstFetch, ...secondFetch]);
+        expect(histogram).toEqual(Array(totalRequestsPerTest).fill(1));
+    });
+
+    test('lock timers work as expected (timeout unlocks)', async () => {
+        jest.useFakeTimers();
+        const queue = await getEmptyQueue('lock-timers');
+        await queue.addRequests(getUniqueRequests(totalRequestsPerTest));
+
+        const { items: firstFetch } = await queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 });
+
+        jest.advanceTimersByTime(65000);
+
+        const { items: secondFetch } = await queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 });
+
+        const histogram = calculateHistogram([...firstFetch, ...secondFetch]);
+        expect(histogram).toEqual(Array(totalRequestsPerTest / 2).fill(2));
+        jest.useRealTimers();
+    });
+
+    test('prolongRequestLock works as expected ', async () => {
+        jest.useFakeTimers();
+        const queue = await getEmptyQueue('prolong-request-lock');
+        await queue.addRequests(getUniqueRequests(1));
+
+        const { items: firstFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
+        await queue.client.prolongRequestLock(firstFetch[0].id, { lockSecs: 60 });
+        expect(firstFetch).toHaveLength(1);
+
+        jest.advanceTimersByTime(65000);
+        const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
+        expect(secondFetch).toHaveLength(0);
+
+        jest.advanceTimersByTime(65000);
+        const { items: thirdFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
+
+        expect(thirdFetch).toHaveLength(1);
+        jest.useRealTimers();
+    });
+
+    test('deleteRequestLock works as expected', async () => {
+        const queue = await getEmptyQueue('delete-request-lock');
+        await queue.addRequests(getUniqueRequests(1));
+
+        const { items: firstFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
+        await queue.client.deleteRequestLock(firstFetch[0].id);
+
+        const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
+
+        expect(secondFetch[0]).toEqual(firstFetch[0]);
+    });
+});
