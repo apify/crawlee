@@ -1,0 +1,62 @@
+{
+    "name": "@crawlee/memory-storage",
+    "version": "3.3.1",
+    "description": "A simple in-memory storage implementation of the Apify API",
+    "engines": {
+        "node": ">= 16"
+    },
+    "main": "./index.js",
+    "module": "./index.mjs",
+    "types": "./index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./index.mjs",
+            "require": "./index.js",
+            "types": "./index.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "api",
+        "memory"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Vlad Frangu <kingdgrizzle@gmail.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "yarn clean && yarn compile && yarn copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./index.js ./index.mjs",
+        "copy": "ts-node -T ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@apify/log": "^2.0.0",
+        "@crawlee/types": "^3.3.1",
+        "@sapphire/async-queue": "^1.5.0",
+        "@sapphire/shapeshift": "^3.0.0",
+        "content-type": "^1.0.4",
+        "fs-extra": "^11.0.0",
+        "json5": "^2.2.3",
+        "mime-types": "^2.1.35",
+        "proper-lockfile": "^4.1.2",
+        "tslib": "^2.4.0"
+    }
+}

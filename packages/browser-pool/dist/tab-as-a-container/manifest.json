@@ -1,0 +1,25 @@
+{
+	"manifest_version": 2,
+	"name": "Tab as a Container",
+	"version": "1.0.0",
+	"background": {
+		"scripts": [
+			"background.js"
+		],
+		"persistent": true
+	},
+	"permissions": [
+		"webRequest",
+		"webRequestBlocking",
+		"webNavigation",
+		"tabs",
+		"cookies",
+		"privacy",
+		"proxy",
+		"<all_urls>"
+	],
+	"web_accessible_resources": [
+		"content.js"
+	],
+	"incognito": "not_allowed"
+}

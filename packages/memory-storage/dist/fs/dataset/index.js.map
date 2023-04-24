@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/fs/dataset/index.ts"],"names":[],"mappings":";;;AAEA,6BAA8C;AAC9C,qCAA8C;AAE9C,SAAgB,kCAAkC,CAA0B,OAA2C;IACnH,IAAI,OAAO,CAAC,cAAc,EAAE;QACxB,OAAO,IAAI,2BAAsB,CAAO,OAAO,CAAC,CAAC;KACpD;IAED,OAAO,IAAI,2BAAkB,EAAQ,CAAC;AAC1C,CAAC;AAND,gFAMC"}

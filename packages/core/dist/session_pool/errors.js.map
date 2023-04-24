@@ -1,0 +1,1 @@
+{"version":3,"file":"errors.js","sourceRoot":"","sources":["../../src/session_pool/errors.ts"],"names":[],"mappings":";;;AAAA;;GAEG;AACH,MAAa,gBAAiB,SAAQ,KAAK;IACvC,YAAqB,kBAA2B;QAC5C,KAAK,CAAC,yCAAyC,kBAAkB,EAAE,CAAC,CAAC;QAD7D;;;;mBAAS,kBAAkB;WAAS;QAE5C,KAAK,CAAC,iBAAiB,CAAC,IAAI,EAAE,gBAAgB,CAAC,CAAC;IACpD,CAAC;CACJ;AALD,4CAKC"}

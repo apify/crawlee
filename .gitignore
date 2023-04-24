@@ -1,5 +1,5 @@
 build
-dist
+# dist # add compiled code to my fork for easy consumption
 build-docs
 node_modules
 *.log

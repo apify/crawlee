@@ -1,0 +1,1 @@
+{"version":3,"file":"file-storage-worker-emulator.d.ts","sourceRoot":"","sources":["../../src/workers/file-storage-worker-emulator.ts"],"names":[],"mappings":"AAGA,qBAAa,yBAAyB;IAC5B,WAAW,CAAC,KAAK,EAAE,GAAG,GAAG,OAAO,CAAC,IAAI,CAAC;IAO5C,SAAS,IAAI,IAAI;IAEjB,KAAK,IAAI,IAAI;CAChB"}

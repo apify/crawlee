@@ -1,0 +1,1 @@
+{"version":3,"file":"instance.d.ts","sourceRoot":"","sources":["../../src/workers/instance.ts"],"names":[],"mappings":"AAGA,OAAO,KAAK,EAAE,qBAAqB,EAAE,MAAM,UAAU,CAAC;AAOtD,eAAO,MAAM,UAAU,EAAE,GAAG,CAAC,MAAM,EAAE;IACjC,OAAO,EAAE,OAAO,CAAC,IAAI,CAAC,CAAC;IACvB,OAAO,EAAE,MAAM,IAAI,CAAC;CACvB,CAAa,CAAC;AAEf,wBAAgB,iBAAiB,CAAC,OAAO,EAAE,qBAAqB,QAiB/D;AAED,wBAAgB,kBAAkB,SAkCjC"}

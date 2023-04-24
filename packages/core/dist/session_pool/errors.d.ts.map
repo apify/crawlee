@@ -1,0 +1,1 @@
+{"version":3,"file":"errors.d.ts","sourceRoot":"","sources":["../../src/session_pool/errors.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,qBAAa,gBAAiB,SAAQ,KAAK;IAC3B,QAAQ,CAAC,kBAAkB,EAAE,OAAO;gBAA3B,kBAAkB,EAAE,OAAO;CAInD"}

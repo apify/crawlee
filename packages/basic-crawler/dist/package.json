@@ -1,0 +1,59 @@
+{
+    "name": "@crawlee/basic",
+    "version": "3.3.1",
+    "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "main": "./index.js",
+    "module": "./index.mjs",
+    "types": "./index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./index.mjs",
+            "require": "./index.js",
+            "types": "./index.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Jan Curn <jan@apify.com>",
+        "Marek Trunkat <marek@apify.com>",
+        "Ondra Urban <ondra@apify.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "yarn clean && yarn compile && yarn copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./index.js ./index.mjs",
+        "copy": "ts-node -T ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@apify/log": "^2.0.0",
+        "@apify/timeout": "^0.3.0",
+        "@apify/utilities": "^2.0.0",
+        "@crawlee/core": "^3.3.1",
+        "@crawlee/types": "^3.3.1",
+        "@crawlee/utils": "^3.3.1",
+        "got-scraping": "^3.2.9",
+        "ow": "^0.28.1",
+        "tslib": "^2.4.0",
+        "type-fest": "^3.0.0"
+    }
+}

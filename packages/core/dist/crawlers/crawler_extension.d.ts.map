@@ -1,0 +1,1 @@
+{"version":3,"file":"crawler_extension.d.ts","sourceRoot":"","sources":["../../src/crawlers/crawler_extension.ts"],"names":[],"mappings":"AAEA;;;;GAIG;AACH,8BAAsB,gBAAgB;IAClC,IAAI,SAAyB;IAC7B,GAAG,+BAA2C;IAE9C,iBAAiB,IAAI,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC;CAG/C"}

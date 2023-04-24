@@ -1,0 +1,1 @@
+{"version":3,"file":"memory.d.ts","sourceRoot":"","sources":["../../../src/fs/request-queue/memory.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,eAAe,EAAE,MAAM,sCAAsC,CAAC;AAC5E,OAAO,KAAK,EAAE,qBAAqB,EAAE,MAAM,WAAW,CAAC;AAEvD,qBAAa,uBAAwB,YAAW,qBAAqB,CAAC,eAAe,CAAC;IAClF,OAAO,CAAC,IAAI,CAAmB;IAEzB,GAAG;IAIT,MAAM,CAAC,IAAI,EAAE,eAAe;IAI5B,MAAM;CAGT"}

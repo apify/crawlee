@@ -1,0 +1,1 @@
+{"version":3,"file":"memory.d.ts","sourceRoot":"","sources":["../../../src/fs/key-value-store/memory.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,iBAAiB,EAAE,MAAM,wCAAwC,CAAC;AAChF,OAAO,KAAK,EAAE,qBAAqB,EAAE,MAAM,WAAW,CAAC;AAEvD,qBAAa,mBAAoB,YAAW,qBAAqB,CAAC,iBAAiB,CAAC;IAChF,OAAO,CAAC,IAAI,CAAqB;IAE3B,GAAG;IAIT,MAAM,CAAC,IAAI,EAAE,iBAAiB;IAI9B,MAAM;CAGT"}

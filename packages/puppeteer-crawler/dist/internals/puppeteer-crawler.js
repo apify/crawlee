@@ -1,0 +1,154 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createPuppeteerRouter = exports.PuppeteerCrawler = void 0;
+const tslib_1 = require("tslib");
+const browser_1 = require("@crawlee/browser");
+const ow_1 = tslib_1.__importDefault(require("ow"));
+const puppeteer_launcher_1 = require("./puppeteer-launcher");
+const puppeteer_utils_1 = require("./utils/puppeteer_utils");
+/**
+ * Provides a simple framework for parallel crawling of web pages
+ * using headless Chrome with [Puppeteer](https://github.com/puppeteer/puppeteer).
+ * The URLs to crawl are fed either from a static list of URLs
+ * or from a dynamic queue of URLs enabling recursive crawling of websites.
+ *
+ * Since `PuppeteerCrawler` uses headless Chrome to download web pages and extract data,
+ * it is useful for crawling of websites that require to execute JavaScript.
+ * If the target website doesn't need JavaScript, consider using {@apilink CheerioCrawler},
+ * which downloads the pages using raw HTTP requests and is about 10x faster.
+ *
+ * The source URLs are represented using {@apilink Request} objects that are fed from
+ * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink PuppeteerCrawlerOptions.requestList}
+ * or {@apilink PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
+ *
+ * If both {@apilink PuppeteerCrawlerOptions.requestList} and {@apilink PuppeteerCrawlerOptions.requestQueue} are used,
+ * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
+ * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ *
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
+ *
+ * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
+ * and then calls the function provided by user as the {@apilink PuppeteerCrawlerOptions.requestHandler} option.
+ *
+ * New pages are only opened when there is enough free CPU and memory available,
+ * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PuppeteerCrawlerOptions.autoscaledPoolOptions}
+ * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
+ * {@apilink AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ *
+ * Note that the pool of Puppeteer instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * const crawler = new PuppeteerCrawler({
+ *     async requestHandler({ page, request }) {
+ *         // This function is called to extract data from a single web page
+ *         // 'page' is an instance of Puppeteer.Page with page.goto(request.url) already called
+ *         // 'request' is an instance of Request class with information about the page to load
+ *         await Dataset.pushData({
+ *             title: await page.title(),
+ *             url: request.url,
+ *             succeeded: true,
+ *         })
+ *     },
+ *     async failedRequestHandler({ request }) {
+ *         // This function is called when the crawling of a request failed too many times
+ *         await Dataset.pushData({
+ *             url: request.url,
+ *             succeeded: false,
+ *             errors: request.errorMessages,
+ *         })
+ *     },
+ * });
+ *
+ * await crawler.run([
+ *     'http://www.example.com/page-1',
+ *     'http://www.example.com/page-2',
+ * ]);
+ * ```
+ * @category Crawlers
+ */
+class PuppeteerCrawler extends browser_1.BrowserCrawler {
+    /**
+     * All `PuppeteerCrawler` parameters are passed via an options object.
+     */
+    constructor(options = {}, config = browser_1.Configuration.getGlobalConfig()) {
+        (0, ow_1.default)(options, 'PuppeteerCrawlerOptions', ow_1.default.object.exactShape(PuppeteerCrawler.optionsShape));
+        const { launchContext = {}, headless, proxyConfiguration, ...browserCrawlerOptions } = options;
+        const browserPoolOptions = {
+            ...options.browserPoolOptions,
+        };
+        if (launchContext.proxyUrl) {
+            throw new Error('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.'
+                + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
+        }
+        // `browserPlugins` is working when it's not overriden by `launchContext`,
+        // which for crawlers it is always overriden. Hence the error to use the other option.
+        if (browserPoolOptions.browserPlugins) {
+            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        }
+        if (headless != null) {
+            launchContext.launchOptions ?? (launchContext.launchOptions = {});
+            launchContext.launchOptions.headless = headless;
+        }
+        const puppeteerLauncher = new puppeteer_launcher_1.PuppeteerLauncher(launchContext, config);
+        browserPoolOptions.browserPlugins = [
+            puppeteerLauncher.createBrowserPlugin(),
+        ];
+        super({ ...browserCrawlerOptions, launchContext, proxyConfiguration, browserPoolOptions }, config);
+        Object.defineProperty(this, "config", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: config
+        });
+    }
+    async _runRequestHandler(context) {
+        (0, puppeteer_utils_1.registerUtilsToContext)(context);
+        // eslint-disable-next-line no-underscore-dangle
+        await super._runRequestHandler(context);
+    }
+    async _navigationHandler(crawlingContext, gotoOptions) {
+        return (0, puppeteer_utils_1.gotoExtended)(crawlingContext.page, crawlingContext.request, gotoOptions);
+    }
+}
+Object.defineProperty(PuppeteerCrawler, "optionsShape", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: {
+        ...browser_1.BrowserCrawler.optionsShape,
+        browserPoolOptions: ow_1.default.optional.object,
+    }
+});
+exports.PuppeteerCrawler = PuppeteerCrawler;
+/**
+ * Creates new {@apilink Router} instance that works based on request labels.
+ * This instance can then serve as a `requestHandler` of your {@apilink PuppeteerCrawler}.
+ * Defaults to the {@apilink PuppeteerCrawlingContext}.
+ *
+ * > Serves as a shortcut for using `Router.create<PuppeteerCrawlingContext>()`.
+ *
+ * ```ts
+ * import { PuppeteerCrawler, createPuppeteerRouter } from 'crawlee';
+ *
+ * const router = createPuppeteerRouter();
+ * router.addHandler('label-a', async (ctx) => {
+ *    ctx.log.info('...');
+ * });
+ * router.addDefaultHandler(async (ctx) => {
+ *    ctx.log.info('...');
+ * });
+ *
+ * const crawler = new PuppeteerCrawler({
+ *     requestHandler: router,
+ * });
+ * await crawler.run();
+ * ```
+ */
+function createPuppeteerRouter(routes) {
+    return browser_1.Router.create(routes);
+}
+exports.createPuppeteerRouter = createPuppeteerRouter;
+//# sourceMappingURL=puppeteer-crawler.js.map
