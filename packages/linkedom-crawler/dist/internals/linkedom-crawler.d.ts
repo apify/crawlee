@@ -1,9 +1,9 @@
 /// <reference types="node" />
-import type * as cheerio from 'cheerio';
-import type { HttpCrawlerOptions, InternalHttpCrawlingContext, InternalHttpHook, ErrorHandler, RequestHandler, EnqueueLinksOptions, RequestQueue } from '@crawlee/http';
+import type { HttpCrawlerOptions, InternalHttpCrawlingContext, InternalHttpHook, ErrorHandler, RequestHandler, EnqueueLinksOptions, RequestQueue, Configuration } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
 import type { IncomingMessage } from 'http';
+import type { HTMLDocument } from 'linkedom/types/html/document';
 export type LinkeDOMErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any> = ErrorHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
 export interface LinkeDOMCrawlerOptions<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -16,6 +16,10 @@ JSONData extends Dictionary = any> extends HttpCrawlerOptions<LinkeDOMCrawlingCo
      * Suppress the logs from LinkeDOM internal console.
      */
     hideInternalConsole?: boolean;
+    /**
+     * FIXME https://github.com/WebReflection/linkedom/blob/main/esm/interface/document.js#L79
+     */
+    lazyInitialization?: boolean;
 }
 export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {
 }
@@ -23,19 +27,7 @@ export type LinkeDOMHook<UserData extends Dictionary = any, // with default to D
 JSONData extends Dictionary = any> = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
 export interface LinkeDOMCrawlingContext<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
-    window: Window;
-    /**
-     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     *
-     * **Example usage:**
-     * ```javascript
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    window: Window | null;
 }
 export type LinkeDOMRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any> = RequestHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
@@ -115,21 +107,27 @@ JSONData extends Dictionary = any> = RequestHandler<LinkeDOMCrawlingContext<User
  */
 export declare class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
     private static parser;
+    protected runScripts: boolean;
+    protected hideInternalConsole: boolean;
+    protected lazyInitialization: boolean;
+    constructor(options?: LinkeDOMCrawlerOptions, config?: Configuration);
     protected _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: LinkeDOMCrawlingContext): Promise<{
-        window: Window & typeof globalThis;
+        readonly window: (Window & typeof globalThis) | null;
+        initWindow: () => void;
+        readonly document: import("linkedom/types/esm/html/document").HTMLDocument;
         readonly body: string;
         enqueueLinks: (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => Promise<import("@crawlee/types").BatchAddRequestsResult>;
     }>;
 }
 interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
-    window: Window | null;
+    document: HTMLDocument;
     requestQueue: RequestQueue;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
 /** @internal */
-export declare function linkedomCrawlerEnqueueLinks({ options, window, requestQueue, originalRequestUrl, finalRequestUrl }: EnqueueLinksInternalOptions): Promise<import("@crawlee/types").BatchAddRequestsResult>;
+export declare function linkedomCrawlerEnqueueLinks({ options, document, requestQueue, originalRequestUrl, finalRequestUrl }: EnqueueLinksInternalOptions): Promise<import("@crawlee/types").BatchAddRequestsResult>;
 /**
  * Creates new {@apilink Router} instance that works based on request labels.
  * This instance can then serve as a `requestHandler` of your {@apilink LinkeDOMCrawler}.

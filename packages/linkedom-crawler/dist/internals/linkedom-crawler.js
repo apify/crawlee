@@ -79,18 +79,59 @@ const cached_1 = require("linkedom/cached");
  * @category Crawlers
  */
 class LinkeDOMCrawler extends http_1.HttpCrawler {
+    // protected virtualConsole: VirtualConsole | null = null; // FIXME
+    constructor(options = {}, config) {
+        const { runScripts = false, // TODO
+        hideInternalConsole = false, // TODO
+        lazyInitialization = false, ...httpOptions } = options;
+        super(httpOptions, config);
+        Object.defineProperty(this, "runScripts", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "hideInternalConsole", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        Object.defineProperty(this, "lazyInitialization", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: void 0
+        });
+        this.runScripts = runScripts;
+        this.hideInternalConsole = hideInternalConsole;
+        this.lazyInitialization = lazyInitialization;
+    }
     async _parseHTML(response, isXml, crawlingContext) {
         const body = await (0, utilities_1.concatStreamToBuffer)(response);
         const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/html' : 'text/html');
+        let window = this.lazyInitialization ? null : document.defaultView;
         return {
-            window: document.defaultView,
+            get window() {
+                return window;
+            },
+            initWindow: () => {
+                // TODO: Throwing is maybe to harsh
+                if (!this.lazyInitialization)
+                    throw new Error('Window already initialized, calling initWindow() is not needed in non-lazy mode.');
+                window = document.defaultView;
+            },
+            get document() {
+                return document;
+            },
             get body() {
                 return document.documentElement.outerHTML;
             },
             enqueueLinks: async (enqueueOptions) => {
                 return linkedomCrawlerEnqueueLinks({
                     options: enqueueOptions,
-                    window: document.defaultView,
+                    // @ts-ignore TODO: Fighting with TS :/
+                    document,
                     requestQueue: await this.getRequestQueue(),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
@@ -107,8 +148,8 @@ Object.defineProperty(LinkeDOMCrawler, "parser", {
 });
 exports.LinkeDOMCrawler = LinkeDOMCrawler;
 /** @internal */
-async function linkedomCrawlerEnqueueLinks({ options, window, requestQueue, originalRequestUrl, finalRequestUrl }) {
-    if (!window) {
+async function linkedomCrawlerEnqueueLinks({ options, document, requestQueue, originalRequestUrl, finalRequestUrl }) {
+    if (!document) {
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
     const baseUrl = (0, http_1.resolveBaseUrlForEnqueueLinksFiltering)({
@@ -117,7 +158,7 @@ async function linkedomCrawlerEnqueueLinks({ options, window, requestQueue, orig
         originalRequestUrl,
         userProvidedBaseUrl: options?.baseUrl,
     });
-    const urls = extractUrlsFromWindow(window, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
+    const urls = extractUrlsFromDocument(document, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
     return (0, http_1.enqueueLinks)({
         requestQueue,
         urls,
@@ -130,8 +171,8 @@ exports.linkedomCrawlerEnqueueLinks = linkedomCrawlerEnqueueLinks;
  * Extracts URLs from a given Window object.
  * @ignore
  */
-function extractUrlsFromWindow(window, selector, baseUrl) {
-    return Array.from(window.document.querySelectorAll(selector))
+function extractUrlsFromDocument(document, selector, baseUrl) {
+    return Array.from(document.querySelectorAll(selector))
         .map((e) => e.href)
         .filter((href) => href !== undefined && href !== '')
         .map((href) => {

@@ -1,5 +1,4 @@
 // TODO: Properly merge with https://github.com/apify/crawlee/pull/1451/commits
-import type * as cheerio from 'cheerio';
 import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
@@ -8,12 +7,14 @@ import type {
     RequestHandler,
     EnqueueLinksOptions,
     RequestQueue,
+    Configuration,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
 import { concatStreamToBuffer } from '@apify/utilities';
 import { DOMParser } from 'linkedom/cached';
 import type { IncomingMessage } from 'http';
+import type { HTMLDocument } from 'linkedom/types/html/document';
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -32,6 +33,10 @@ export interface LinkeDOMCrawlerOptions<
      * Suppress the logs from LinkeDOM internal console.
      */
     hideInternalConsole?: boolean;
+    /**
+     * FIXME https://github.com/WebReflection/linkedom/blob/main/esm/interface/document.js#L79
+     */
+    lazyInitialization?: boolean;
 }
 
 export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
@@ -45,20 +50,7 @@ export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
-    window: Window;
-
-    /**
-     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     *
-     * **Example usage:**
-     * ```javascript
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    window: Window | null;
 }
 
 export type LinkeDOMRequestHandler<
@@ -144,20 +136,52 @@ export type LinkeDOMRequestHandler<
 export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
     private static parser = new DOMParser();
 
+    protected runScripts: boolean;
+    protected hideInternalConsole: boolean;
+    protected lazyInitialization: boolean;
+    // protected virtualConsole: VirtualConsole | null = null; // FIXME
+
+    constructor(options: LinkeDOMCrawlerOptions = {}, config?: Configuration) {
+        const {
+            runScripts = false, // TODO
+            hideInternalConsole = false, // TODO
+            lazyInitialization = false,
+            ...httpOptions
+        } = options;
+
+        super(httpOptions, config);
+
+        this.runScripts = runScripts;
+        this.hideInternalConsole = hideInternalConsole;
+        this.lazyInitialization = lazyInitialization;
+    }
+
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: LinkeDOMCrawlingContext) {
         const body = await concatStreamToBuffer(response);
 
         const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/html' : 'text/html');
+        let window = this.lazyInitialization ? null : document.defaultView;
 
         return {
-            window: document.defaultView,
+            get window() {
+                return window;
+            },
+            initWindow: () => {
+                // TODO: Throwing is maybe to harsh
+                if (!this.lazyInitialization) throw new Error('Window already initialized, calling initWindow() is not needed in non-lazy mode.');
+                window = document.defaultView;
+            },
+            get document() {
+                return document;
+            },
             get body() {
                 return document.documentElement.outerHTML;
             },
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
                     options: enqueueOptions,
-                    window: document.defaultView,
+                    // @ts-ignore TODO: Fighting with TS :/
+                    document,
                     requestQueue: await this.getRequestQueue(),
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
@@ -169,15 +193,15 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
 
 interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
-    window: Window | null;
+    document: HTMLDocument;
     requestQueue: RequestQueue;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
 
 /** @internal */
-export async function linkedomCrawlerEnqueueLinks({ options, window, requestQueue, originalRequestUrl, finalRequestUrl }: EnqueueLinksInternalOptions) {
-    if (!window) {
+export async function linkedomCrawlerEnqueueLinks({ options, document, requestQueue, originalRequestUrl, finalRequestUrl }: EnqueueLinksInternalOptions) {
+    if (!document) {
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
 
@@ -188,7 +212,7 @@ export async function linkedomCrawlerEnqueueLinks({ options, window, requestQueu
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = extractUrlsFromWindow(window, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
+    const urls = extractUrlsFromDocument(document, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
 
     return enqueueLinks({
         requestQueue,
@@ -202,8 +226,8 @@ export async function linkedomCrawlerEnqueueLinks({ options, window, requestQueu
  * Extracts URLs from a given Window object.
  * @ignore
  */
-function extractUrlsFromWindow(window: Window, selector: string, baseUrl: string): string[] {
-    return Array.from(window.document.querySelectorAll(selector))
+function extractUrlsFromDocument(document: HTMLDocument, selector: string, baseUrl: string): string[] {
+    return Array.from(document.querySelectorAll(selector))
         .map((e: any) => e.href)
         .filter((href) => href !== undefined && href !== '')
         .map((href: string | undefined) => {

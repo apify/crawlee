@@ -122,33 +122,41 @@ async function prep() {
 }
 
 const suite = {
-    JSDOMCrawler: () => new JSDOMCrawler({
+    // JSDOMCrawler: () => new JSDOMCrawler({
+    //     maxRequestRetries: 0,
+    //     requestHandler: async ({ request, window, enqueueLinks }) => {
+    //         console.log(Math.round(performance.now() / 1000), window.document.title, request.url);
+    //         await enqueueLinks();
+    //     }
+    // }),
+    LinkeDOMCrawlerEager: () => new LinkeDOMCrawler({
         maxRequestRetries: 0,
         requestHandler: async ({ request, window, enqueueLinks }) => {
             console.log(Math.round(performance.now() / 1000), window.document.title, request.url);
             await enqueueLinks();
-        }
+        },
     }),
-    LinkeDOMCrawler: () => new LinkeDOMCrawler({
+    LinkeDOMCrawlerLazy: () => new LinkeDOMCrawler({
+        lazyInitialization: true,
         maxRequestRetries: 0,
-        requestHandler: async ({ request, window, enqueueLinks }) => {
-            console.log(Math.round(performance.now() / 1000), window.document.title, request.url);
+        requestHandler: async ({ request, document, enqueueLinks }) => {
+            console.log(Math.round(performance.now() / 1000), document.title, request.url);
             await enqueueLinks();
         },
     }),
-    CheerioCrawler: () => new CheerioCrawler({
-        maxRequestRetries: 0,
-        requestHandler: async ({ request, $, enqueueLinks }) => {
-            console.log(Math.round(performance.now() / 1000), $('title').text(), request.url);
-            await enqueueLinks();
-        },
-    }),
-    HttpCrawler: () => new HttpCrawler({
-        maxRequestRetries: 0,
-        requestHandler: async ({ request, body }) => {
-            console.log(Math.round(performance.now() / 1000), body.toString().match(/<title(?:.*?)>(.*?)<\/title>/)?.[1], request.url);
-        },
-    }),
+    // CheerioCrawler: () => new CheerioCrawler({
+    //     maxRequestRetries: 0,
+    //     requestHandler: async ({ request, $, enqueueLinks }) => {
+    //         console.log(Math.round(performance.now() / 1000), $('title').text(), request.url);
+    //         await enqueueLinks();
+    //     },
+    // }),
+    // HttpCrawler: () => new HttpCrawler({
+    //     maxRequestRetries: 0,
+    //     requestHandler: async ({ request, body }) => {
+    //         console.log(Math.round(performance.now() / 1000), body.toString().match(/<title(?:.*?)>(.*?)<\/title>/)?.[1], request.url);
+    //     },
+    // }),
 }
 
 
@@ -161,7 +169,7 @@ for (const [name, crawler] of Object.entries(suite)) {
     const endTime = performance.now();
     const seconds = Math.round((endTime - startTime) / 1000);
     console.log(`${name} >> Finished in ${seconds} seconds, ${requestsFinished} requests finished, ${requestsTotal} requests total`);
-    fs.appendFileSync('simple-benchmark-results.csv', `${name},${seconds},${requestsFinished},${requestsTotal}`);
+    fs.appendFileSync('simple-benchmark-results.csv', `${name},${seconds},${requestsFinished},${requestsTotal}\n`);
     await new Promise(resolve => setTimeout(resolve, 1000)); // wait for 1s, just to be sure
 }
 
