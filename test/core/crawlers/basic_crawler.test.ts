@@ -108,6 +108,29 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
+    test('should allow using run method multiple times', async () => {
+        const sources = [...Array(100).keys()].map((index) => `https://example.com/${index}`);
+        const sourcesCopy = JSON.parse(JSON.stringify(sources));
+
+        const processed: { url: string }[] = [];
+        const requestHandler: RequestHandler = async ({ request }) => {
+            await sleep(10);
+            processed.push({ url: request.url });
+        };
+
+        const basicCrawler = new BasicCrawler({
+            minConcurrency: 25,
+            maxConcurrency: 25,
+            requestHandler,
+        });
+
+        await basicCrawler.run(sources);
+        await basicCrawler.run(sources);
+        await basicCrawler.run(sources);
+
+        expect(processed).toHaveLength(sourcesCopy.length * 3);
+    });
+
     test('should correctly combine shorthand and full length options', async () => {
         const shorthandOptions = {
             minConcurrency: 123,

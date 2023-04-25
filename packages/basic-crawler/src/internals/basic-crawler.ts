@@ -369,6 +369,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
+    running?: boolean;
+
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
     protected errorHandler?: ErrorHandler<Context>;
@@ -651,7 +653,26 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * @param [requests] The requests to add
      * @param [options] Options for the request queue
      */
-    async run(requests?: (string | Request | RequestOptions)[], options?: CrawlerAddRequestsOptions): Promise<FinalStatistics> {
+    async run(requests?: (string | Request | RequestOptions)[], options?: CrawlerRunOptions): Promise<FinalStatistics> {
+        if (this.running) {
+            throw new Error('This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.');
+        }
+
+        const purgeRequestQueue = options?.purgeRequestQueue ?? true;
+
+        // When executing the run method for the second time explicitly (the first time `this.running` is `undefined`),
+        // we need to purge the default RQ to allow processing the same requests again - this is important so users can
+        // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
+        // ignored - as a failed requests is still handled.
+        if (this.running === false && this.requestQueue?.name === 'default' && purgeRequestQueue) {
+            await this.requestQueue.drop();
+            this.requestQueue = await RequestQueue.open();
+        }
+
+        this.running = true;
+        this.stats.reset();
+        await this.stats.resetStore();
+
         await purgeDefaultStorages();
 
         if (requests) {
@@ -721,6 +742,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         periodicLogger.stop();
         // eslint-disable-next-line max-len
         await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
+        this.running = false;
+
         return stats;
     }
 
@@ -1308,9 +1331,18 @@ export interface CreateContextOptions {
 export interface CrawlerAddRequestsOptions extends RequestQueueOperationOptions {
     /**
      * Whether to wait for all the provided requests to be added, instead of waiting just for the initial batch of up to 1000.
-     @default false
+     * @default false
      */
     waitForAllRequestsToBeAdded?: boolean;
+}
+
+export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
+    /**
+     * Whether to purge the RequestQueue before running the crawler again. Defaults to true, so it is possible to reprocess failed requests.
+     * When disabled, only new requests will be considered. Note that even a failed request is considered as handled.
+     * @default true
+     */
+    purgeRequestQueue?: boolean;
 }
 
 export interface CrawlerAddRequestsResult {
