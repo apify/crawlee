@@ -437,8 +437,8 @@ export class SessionPool extends EventEmitter {
      *
      * For more details and code examples, see the {@apilink SessionPool} class.
      */
-    static async open(options?: SessionPoolOptions): Promise<SessionPool> {
-        const sessionPool = new SessionPool(options);
+    static async open(options?: SessionPoolOptions, config?: Configuration): Promise<SessionPool> {
+        const sessionPool = new SessionPool(options, config);
         await sessionPool.initialize();
         return sessionPool;
     }
