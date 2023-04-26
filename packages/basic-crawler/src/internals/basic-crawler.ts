@@ -842,7 +842,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
 
         if (this.useSessionPool) {
-            this.sessionPool = await SessionPool.open(this.sessionPoolOptions);
+            this.sessionPool = await SessionPool.open(this.sessionPoolOptions, this.config);
             // Assuming there are not more than 20 browsers running at once;
             this.sessionPool.setMaxListeners(20);
         }
