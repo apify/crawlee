@@ -7,7 +7,7 @@ const crawler = new CheerioCrawler({
         console.log(`The title of "${request.url}" is: ${title}.`);
         // The default behavior of enqueueLinks is to stay on the same hostname,
         // so it does not require any parameters.
-        // This does not include subdomains.
+        // This will ensure the subdomain stays the same.
         await enqueueLinks();
     },
 });
