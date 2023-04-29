@@ -1,9 +1,16 @@
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
-import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserRequestHandler, BrowserHook } from '@crawlee/browser';
+import type {
+    BrowserCrawlerOptions,
+    BrowserCrawlingContext,
+    BrowserHook,
+    BrowserRequestHandler,
+    GetUserDataFromRequest,
+    RouterRoutes,
+} from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
-import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { PlaywrightLaunchContext } from './playwright-launcher';
 import { PlaywrightLauncher } from './playwright-launcher';
 import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
@@ -264,9 +271,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
  */
 export function createPlaywrightRouter<
     Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
->(
-    routes?: RouterRoutes<Context, UserData>,
-) {
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
     return Router.create<Context>(routes);
 }

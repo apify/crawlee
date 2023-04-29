@@ -9,12 +9,14 @@ import type {
     EnqueueLinksOptions,
     EventManager,
     FinalStatistics,
+    GetUserDataFromRequest,
     ProxyInfo,
     Request,
     RequestList,
     RequestOptions,
     RequestQueueOperationOptions,
     RouterHandler,
+    RouterRoutes,
     Session,
     SessionPoolOptions,
 } from '@crawlee/core';
@@ -45,8 +47,6 @@ import type {
     Awaitable,
     BatchAddRequestsResult,
     SetStatusMessageOptions,
-    GetUserDataFromRequest,
-    RouterRoutes,
 } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
@@ -1377,9 +1377,7 @@ interface HandlePropertyNameChangeData<New, Old> {
  */
 export function createBasicRouter<
     Context extends BasicCrawlingContext = BasicCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
->(
-    routes?: RouterRoutes<Context, UserData>,
-) {
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
     return Router.create<Context>(routes);
 }

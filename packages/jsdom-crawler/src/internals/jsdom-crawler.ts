@@ -1,17 +1,19 @@
 import ow from 'ow';
 import * as cheerio from 'cheerio';
 import type {
+    Configuration,
+    EnqueueLinksOptions,
+    ErrorHandler,
+    GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    ErrorHandler,
     RequestHandler,
-    EnqueueLinksOptions,
     RequestQueue,
-    Configuration,
+    RouterRoutes,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
-import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
@@ -353,9 +355,7 @@ function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: str
  */
 export function createJSDOMRouter<
     Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
->(
-    routes?: RouterRoutes<Context, UserData>,
-) {
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
     return Router.create<Context>(routes);
 }

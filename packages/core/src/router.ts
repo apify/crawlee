@@ -1,4 +1,4 @@
-import type { Dictionary, RouterRoutes } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { CrawlingContext } from './crawlers/crawler_commons';
 import type { Awaitable } from './typedefs';
 import type { Request } from './request';
@@ -10,7 +10,11 @@ export interface RouterHandler<Context extends CrawlingContext = CrawlingContext
     (ctx: Context): Awaitable<void>;
 }
 
-type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
+export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
+
+export type RouterRoutes<Context, UserData extends Dictionary> = {
+    [label in string | symbol]: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>;
+}
 
 /**
  * Simple router that works based on request labels. This instance can then serve as a `requestHandler` of your crawler.
@@ -155,10 +159,8 @@ export class Router<Context extends CrawlingContext> {
      */
     static create<
         Context extends CrawlingContext = CrawlingContext,
-        UserData extends Dictionary = GetUserDataFromRequest<Context['request']>
-    >(
-        routes?: RouterRoutes<Context, UserData>,
-    ): RouterHandler<Context> {
+        UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+    >(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context> {
         const router = new Router<Context>();
         const obj = Object.create(Function.prototype);
 

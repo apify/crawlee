@@ -3,11 +3,13 @@ import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
-    ErrorHandler,
-    RequestHandler,
     CrawlingContext,
+    ErrorHandler,
+    GetUserDataFromRequest,
     ProxyConfiguration,
     Request,
+    RequestHandler,
+    RouterRoutes,
     Session,
 } from '@crawlee/basic';
 import {
@@ -20,7 +22,7 @@ import {
     Configuration,
     RequestState,
 } from '@crawlee/basic';
-import type { Awaitable, Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/types';
+import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
@@ -169,7 +171,7 @@ export type HttpHook<
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    Crawler = HttpCrawler<any>
+    Crawler = HttpCrawler<any>,
     > extends CrawlingContext<Crawler, UserData> {
     /**
      * The request body of the web page.
@@ -872,9 +874,7 @@ function parseContentTypeFromResponse(response: IncomingMessage): { type: string
  */
 export function createHttpRouter<
     Context extends HttpCrawlingContext = HttpCrawlingContext,
-    UserData extends Dictionary = GetUserDataFromRequest<Context['request']> // quick&dirty copy-paste
->(
-    routes?: RouterRoutes<Context, UserData>,
-) {
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
     return Router.create<Context>(routes);
 }
