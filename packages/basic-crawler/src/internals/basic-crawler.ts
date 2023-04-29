@@ -41,13 +41,7 @@ import {
 } from '@crawlee/core';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type {
-    ProcessedRequest,
-    Dictionary,
-    Awaitable,
-    BatchAddRequestsResult,
-    SetStatusMessageOptions,
-} from '@crawlee/types';
+import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
