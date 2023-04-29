@@ -127,7 +127,7 @@ export type PostLaunchHook<BC extends BrowserController> = (pageId: string, brow
  */
 export type PrePageCreateHook<
     BC extends BrowserController,
-    PO = Parameters<BC['newPage']>[0]
+    PO = Parameters<BC['newPage']>[0],
 > = (pageId: string, browserController: BC, pageOptions?: PO) => void | Promise<void>;
 
 /**

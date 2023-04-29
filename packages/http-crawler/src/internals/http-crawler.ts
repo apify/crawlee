@@ -169,7 +169,7 @@ export type HttpHook<
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    Crawler = HttpCrawler<any>
+    Crawler = HttpCrawler<any>,
     > extends CrawlingContext<Crawler, UserData> {
     /**
      * The request body of the web page.
