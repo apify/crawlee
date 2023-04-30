@@ -15,7 +15,7 @@ export type InferBrowserPluginArray<
     // The original array input
     Input extends readonly unknown[],
     // The results of this type
-    Result extends BrowserPlugin[] = []
+    Result extends BrowserPlugin[] = [],
 > =
     // If the input is a tuple or a readonly array (`[] as const`), get the first and the rest of the values
     Input extends readonly [infer FirstValue, ...infer Rest] | [infer FirstValue, ...infer Rest]

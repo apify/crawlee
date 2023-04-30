@@ -57,7 +57,7 @@ export type BrowserErrorHandler<Context extends BrowserCrawlingContext = Browser
 
 export type BrowserHook<
     Context = BrowserCrawlingContext,
-    GoToOptions extends Dictionary | undefined = Dictionary
+    GoToOptions extends Dictionary | undefined = Dictionary,
 > = (crawlingContext: Context, gotoOptions: GoToOptions) => Awaitable<void>;
 
 export interface BrowserCrawlerOptions<
@@ -65,7 +65,7 @@ export interface BrowserCrawlerOptions<
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
-    __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>
+    __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
     BasicCrawlerOptions,
     // Overridden with browser context
@@ -292,7 +292,7 @@ export abstract class BrowserCrawler<
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     LaunchOptions extends Dictionary | undefined = Dictionary,
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
-    GoToOptions extends Dictionary = Dictionary
+    GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context> {
     /**
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
