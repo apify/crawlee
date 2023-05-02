@@ -59,6 +59,7 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  * ```
  *
  * For convenience, we can also define the routes right when creating the router:
+ *
  * ```ts
  * import { CheerioCrawler, createCheerioRouter } from 'crawlee';
  * const crawler = new CheerioCrawler({
