@@ -58,6 +58,18 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  * await crawler.run();
  * ```
  *
+ * For convenience, we can also define the routes right when creating the router:
+ * ```ts
+ * import { CheerioCrawler, createCheerioRouter } from 'crawlee';
+ * const crawler = new CheerioCrawler({
+ *     requestHandler: createCheerioRouter({
+ *         'label-a': async (ctx) => { ... },
+ *         'label-b': async (ctx) => { ... },
+ *     })},
+ * });
+ * await crawler.run();
+ * ```
+ *
  * Middlewares are also supported via the `router.use` method. There can be multiple
  * middlewares for a single router, they will be executed sequentially in the same
  * order as they were registered.
@@ -66,6 +78,7 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  * crawler.router.use(async (ctx) => {
  *    ctx.log.info('...');
  * });
+ * ```
  */
 export class Router<Context extends CrawlingContext> {
     private readonly routes: Map<string | symbol, (ctx: Context) => Awaitable<void>> = new Map();
