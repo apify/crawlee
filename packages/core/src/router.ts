@@ -10,7 +10,11 @@ export interface RouterHandler<Context extends CrawlingContext = CrawlingContext
     (ctx: Context): Awaitable<void>;
 }
 
-type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
+export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
+
+export type RouterRoutes<Context, UserData extends Dictionary> = {
+    [label in string | symbol]: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>;
+}
 
 /**
  * Simple router that works based on request labels. This instance can then serve as a `requestHandler` of your crawler.
@@ -54,6 +58,19 @@ type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
  * await crawler.run();
  * ```
  *
+ * For convenience, we can also define the routes right when creating the router:
+ *
+ * ```ts
+ * import { CheerioCrawler, createCheerioRouter } from 'crawlee';
+ * const crawler = new CheerioCrawler({
+ *     requestHandler: createCheerioRouter({
+ *         'label-a': async (ctx) => { ... },
+ *         'label-b': async (ctx) => { ... },
+ *     })},
+ * });
+ * await crawler.run();
+ * ```
+ *
  * Middlewares are also supported via the `router.use` method. There can be multiple
  * middlewares for a single router, they will be executed sequentially in the same
  * order as they were registered.
@@ -62,6 +79,7 @@ type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
  * crawler.router.use(async (ctx) => {
  *    ctx.log.info('...');
  * });
+ * ```
  */
 export class Router<Context extends CrawlingContext> {
     private readonly routes: Map<string | symbol, (ctx: Context) => Awaitable<void>> = new Map();
@@ -153,7 +171,10 @@ export class Router<Context extends CrawlingContext> {
      * await crawler.run();
      * ```
      */
-    static create<Context extends CrawlingContext = CrawlingContext>(): RouterHandler<Context> {
+    static create<
+        Context extends CrawlingContext = CrawlingContext,
+        UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+    >(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context> {
         const router = new Router<Context>();
         const obj = Object.create(Function.prototype);
 
@@ -161,6 +182,10 @@ export class Router<Context extends CrawlingContext> {
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
         obj.getHandler = router.getHandler.bind(router);
         obj.use = router.use.bind(router);
+
+        for (const [label, handler] of Object.entries(routes ?? {})) {
+            router.addHandler(label, handler);
+        }
 
         const func = async function (context: Context) {
             const { url, loadedUrl, label } = context.request;

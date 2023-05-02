@@ -1,12 +1,14 @@
 import type {
+    Configuration,
+    EnqueueLinksOptions,
+    ErrorHandler,
+    GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    ErrorHandler,
     RequestHandler,
-    EnqueueLinksOptions,
     RequestQueue,
-    Configuration,
+    RouterRoutes,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -275,6 +277,9 @@ function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl
  * await crawler.run();
  * ```
  */
-export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext>() {
-    return Router.create<Context>();
+export function createCheerioRouter<
+    Context extends CheerioCrawlingContext = CheerioCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
+    return Router.create<Context>(routes);
 }

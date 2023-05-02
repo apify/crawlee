@@ -3,11 +3,13 @@ import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type {
     AutoscaledPoolOptions,
     BasicCrawlerOptions,
-    ErrorHandler,
-    RequestHandler,
     CrawlingContext,
+    ErrorHandler,
+    GetUserDataFromRequest,
     ProxyConfiguration,
     Request,
+    RequestHandler,
+    RouterRoutes,
     Session,
 } from '@crawlee/basic';
 import {
@@ -870,6 +872,9 @@ function parseContentTypeFromResponse(response: IncomingMessage): { type: string
  * await crawler.run();
  * ```
  */
-export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext>() {
-    return Router.create<Context>();
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
+    return Router.create<Context>(routes);
 }

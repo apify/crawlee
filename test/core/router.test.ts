@@ -89,6 +89,38 @@ describe('Router', () => {
         ]);
     });
 
+    test('should be possible to define routes when creating router', async () => {
+        const logs: string[] = [];
+        // it should be possible to define router inline when creating router
+        const router = Router.create({
+            'A': async (ctx) => {
+                logs.push(`label A handled with url ${ctx.request.loadedUrl}`);
+            },
+            'B': async (ctx) => {
+                logs.push(`label B handled with url ${ctx.request.loadedUrl}`);
+            },
+        });
+        // and it's still possible to attach handlers later
+        router.addHandler('C', async (ctx) => {
+            logs.push(`label C handled with url ${ctx.request.loadedUrl}`);
+        });
+        router.addDefaultHandler(async (ctx) => {
+            logs.push(`default handled with url ${ctx.request.loadedUrl}`);
+        });
+        const log = { info: jest.fn(), warn: jest.fn(), debug: jest.fn() };
+        await router({ request: { loadedUrl: 'https://example.com/A', label: 'A' }, log } as any);
+        await router({ request: { loadedUrl: 'https://example.com/B', label: 'B' }, log } as any);
+        await router({ request: { loadedUrl: 'https://example.com/C', label: 'C' }, log } as any);
+        await router({ request: { loadedUrl: 'https://example.com/' }, log } as any);
+
+        expect(logs).toEqual([
+            'label A handled with url https://example.com/A',
+            'label B handled with url https://example.com/B',
+            'label C handled with url https://example.com/C',
+            'default handled with url https://example.com/',
+        ]);
+    });
+
     test('validation', async () => {
         const router = Router.create();
         router.addHandler('A', async (ctx) => {});

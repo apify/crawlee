@@ -9,12 +9,14 @@ import type {
     EnqueueLinksOptions,
     EventManager,
     FinalStatistics,
+    GetUserDataFromRequest,
     ProxyInfo,
     Request,
     RequestList,
     RequestOptions,
     RequestQueueOperationOptions,
     RouterHandler,
+    RouterRoutes,
     Session,
     SessionPoolOptions,
 } from '@crawlee/core';
@@ -1399,6 +1401,9 @@ interface HandlePropertyNameChangeData<New, Old> {
  * await crawler.run();
  * ```
  */
-export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext>() {
-    return Router.create<Context>();
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
+    return Router.create<Context>(routes);
 }
