@@ -768,7 +768,7 @@ __metadata:
     tslib: ^2.4.0
   peerDependencies:
     playwright: <= 2.x
-    puppeteer: <= 20.0
+    puppeteer: <= 20.1
   peerDependenciesMeta:
     playwright:
       optional: true
@@ -939,7 +939,7 @@ __metadata:
     ow: ^0.28.1
     tslib: ^2.4.0
   peerDependencies:
-    puppeteer: <= 20.0
+    puppeteer: <= 20.1
   peerDependenciesMeta:
     puppeteer:
       optional: true
@@ -993,7 +993,7 @@ __metadata:
     playwright: 1.33.0
     portastic: ^1.0.1
     proxy: ^1.0.2
-    puppeteer: 20.0.0
+    puppeteer: 20.1.0
     rimraf: ^5.0.0
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
@@ -4549,7 +4549,7 @@ __metadata:
     tslib: ^2.4.0
   peerDependencies:
     playwright: <= 2.x
-    puppeteer: <= 20.0
+    puppeteer: <= 20.1
   peerDependenciesMeta:
     playwright:
       optional: true
@@ -4897,10 +4897,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"devtools-protocol@npm:0.0.1107588":
-  version: 0.0.1107588
-  resolution: "devtools-protocol@npm:0.0.1107588"
-  checksum: 9064fd643f39ae0adabb8f425b746899ff24371d89a5047d38752653259e6afcb6bcb2d9759ff727eb5885cfc0f9ba8eb384850a2af00694135622e88080e3e5
+"devtools-protocol@npm:0.0.1120988":
+  version: 0.0.1120988
+  resolution: "devtools-protocol@npm:0.0.1120988"
+  checksum: 68eb7aa6a2fe20f8321168f9381849296b203355a5c052461b7ed95e8787b34458029dd64c8d4a8640d9fd329138a6d82f41237f5331ea4267c090dcbf6581f7
   languageName: node
   linkType: hard
 
@@ -10711,15 +10711,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:20.0.0":
-  version: 20.0.0
-  resolution: "puppeteer-core@npm:20.0.0"
+"puppeteer-core@npm:20.1.0":
+  version: 20.1.0
+  resolution: "puppeteer-core@npm:20.1.0"
   dependencies:
     "@puppeteer/browsers": 1.0.0
     chromium-bidi: 0.4.7
     cross-fetch: 3.1.5
     debug: 4.3.4
-    devtools-protocol: 0.0.1107588
+    devtools-protocol: 0.0.1120988
     extract-zip: 2.0.1
     https-proxy-agent: 5.0.1
     proxy-from-env: 1.1.0
@@ -10731,21 +10731,21 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: e5f52ed3b6e0e66dd6914882e2b88304a6df6659a9e4b265c07d9393806ef8c55b3d78726e9d2fa375b6a7fc2b741434e44b5a9f7e8989d6638513b68574e936
+  checksum: 24b11a5415f5bc94b06456a10d5533cabc9172a37c62f1cfbc1992fb89d7d823ecdc99cb377cf86e803f5f087d4e8d00d1607ced93b3649a6f7bf3287074c2c3
   languageName: node
   linkType: hard
 
-"puppeteer@npm:20.0.0":
-  version: 20.0.0
-  resolution: "puppeteer@npm:20.0.0"
+"puppeteer@npm:20.1.0":
+  version: 20.1.0
+  resolution: "puppeteer@npm:20.1.0"
   dependencies:
     "@puppeteer/browsers": 1.0.0
     cosmiconfig: 8.1.3
     https-proxy-agent: 5.0.1
     progress: 2.0.3
     proxy-from-env: 1.1.0
-    puppeteer-core: 20.0.0
-  checksum: 716300aa2506e5c9a6d81a8a4ff9024cc6bae64fea600a0e289a2ec4247e3af6168624e270328eca2e505a1ab8a1318ac4e8d4901f23223da036cbd0c6fcd456
+    puppeteer-core: 20.1.0
+  checksum: 206e94d42d89265efd25854b471097f6350e26bdd8a633847f138d1377c8684e32763a61dd285c21e80be9c86254669fbc3447475698f9c85d7d2f8ce32791ac
   languageName: node
   linkType: hard
 
