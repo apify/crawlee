@@ -191,6 +191,9 @@ export interface InternalHttpCrawlingContext<
      */
     contentType: { type: string; encoding: BufferEncoding };
     response: IncomingMessage;
+
+    parseWithLinkeDOM(): Promise<any>; // Typed as any to avoid importing linkeDOM
+    parseWithCheerio(): Promise<any>; // Typed as any to avoid importing cheerio
 }
 
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
@@ -284,6 +287,9 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
     protected suggestResponseEncoding?: string;
     protected forceResponseEncoding?: string;
     protected readonly supportedMimeTypes: Set<string>;
+
+    // LinkeDOM needs to be initialized before potentially using, so save the reference here
+    protected linkeDOMParser?: any; // Typed as any to avoid importing linkeDOM
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -436,6 +442,22 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             const response = parsed.response!;
             const contentType = parsed.contentType!;
             tryCancel();
+
+            if (!crawlingContext.parseWithLinkeDOM) { // if not already set by descendant classes which may optimize this
+                crawlingContext.parseWithLinkeDOM = async () => {
+                    if (!HTML_AND_XML_MIME_TYPES.includes(parsed.contentType.type)) throw new Error(`Response content type is not HTML or XML: ${contentType}`);
+                    if (!('isXml' in parsed)) throw new Error('isXml is not set on parsed response'); // To make TS happy :/
+                    if (!this.linkeDOMParser) this.linkeDOMParser = new (await import('linkedom').then((module) => module.DOMParser))();
+                    return this.linkeDOMParser.parseFromString(parsed.body!.toString(), parsed.isXml ? 'text/xml' : 'text/html');
+                };
+            }
+
+            if (!crawlingContext.parseWithCheerio) { // if not already set by descendant classes which may optimize this
+                crawlingContext.parseWithCheerio = async () => {
+                    // Node itself should take care of not importing cheerio multiple times
+                    return (await import('cheerio')).load(parsed.body!.toString());
+                };
+            }
 
             if (this.useSessionPool) {
                 this._throwOnBlockedRequest(session!, response.statusCode!);
