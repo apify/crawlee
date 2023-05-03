@@ -59,7 +59,7 @@ function Features() {
         <section className={clsx('container', styles.features)}>
             <div className="row">
                 <div className="col col--6">
-                    <h2>Reliable crawling 🏗</h2>
+                    <h2>Reliable crawling 🏗️</h2>
                     <p>
                         Crawlee won't fix broken selectors for you (yet), but it helps you <b>build and maintain your crawlers faster</b>.
                     </p>
