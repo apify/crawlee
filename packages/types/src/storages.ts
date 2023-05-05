@@ -223,6 +223,27 @@ export interface ListOptions {
     limit?: number;
 }
 
+export interface ListAndLockOptions extends ListOptions {
+    lockSecs: number;
+}
+
+export interface ListAndLockHeadResult extends QueueHead {
+    lockSecs: number;
+}
+
+export interface ProlongRequestLockOptions {
+    lockSecs: number;
+    forefront?: boolean;
+}
+
+export interface ProlongRequestLockResult {
+    lockExpiresAt: Date;
+}
+
+export interface DeleteRequestLockOptions {
+    forefront?: boolean;
+}
+
 export interface RequestOptions {
     forefront?: boolean;
     [k: string]: unknown;
@@ -275,6 +296,9 @@ export interface RequestQueueClient {
     getRequest(id: string): Promise<RequestOptions | undefined>;
     updateRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo>;
     deleteRequest(id: string): Promise<unknown>;
+    listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult>;
+    prolongRequestLock(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult>;
+    deleteRequestLock(id: string, options?: DeleteRequestLockOptions): Promise<void>;
 }
 
 export interface RequestQueueOptions {
