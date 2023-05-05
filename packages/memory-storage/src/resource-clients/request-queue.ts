@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { rm } from 'node:fs/promises';
 import { move } from 'fs-extra';
+import { AsyncQueue } from '@sapphire/async-queue';
 import type { MemoryStorage } from '../index';
 import { StorageTypes } from '../consts';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
@@ -47,31 +48,6 @@ export interface InternalRequest {
     json: string;
 }
 
-class Mutex {
-    private locked = false;
-    private waitingTasks: any[] = [];
-
-    async release() {
-        this.locked = false;
-
-        if (this.waitingTasks.length > 0) {
-            const task = this.waitingTasks.shift();
-            task();
-        }
-    }
-
-    async lock() {
-        if (!this.locked) {
-            this.locked = true;
-            return;
-        }
-
-        await new Promise((r) => {
-            this.waitingTasks.push(r);
-        });
-    }
-}
-
 export class RequestQueueClient extends BaseClient implements storage.RequestQueueClient {
     name?: string;
     createdAt = new Date();
@@ -80,7 +56,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     handledRequestCount = 0;
     pendingRequestCount = 0;
     requestQueueDirectory: string;
-    private readonly mutex = new Mutex();
+    private readonly mutex = new AsyncQueue();
 
     private readonly requests = new Map<string, StorageImplementation<InternalRequest>>();
     private readonly client: MemoryStorage;
@@ -214,32 +190,36 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
-        await this.mutex.lock();
-        for (const storageEntry of queue.requests.values()) {
-            if (items.length === limit) {
-                break;
+        await this.mutex.wait();
+
+        try {
+            for (const storageEntry of queue.requests.values()) {
+                if (items.length === limit) {
+                    break;
+                }
+
+                const request = await storageEntry.get();
+
+                if (isLocked(request)) {
+                    continue;
+                }
+
+                request.orderNo = (start + lockSecs * 1000) * (request.orderNo! > 0 ? 1 : -1);
+                await storageEntry.update(request);
+
+                items.push(request);
             }
 
-            const request = await storageEntry.get();
-
-            if (isLocked(request)) {
-                continue;
-            }
-
-            request.orderNo = (start + lockSecs * 1000) * (request.orderNo! > 0 ? 1 : -1);
-            await storageEntry.update(request);
-
-            items.push(request);
+            return {
+                limit,
+                lockSecs,
+                hadMultipleClients: false,
+                queueModifiedAt: queue.modifiedAt,
+                items: items.map(({ json }) => this._jsonToRequest(json)!),
+            };
+        } finally {
+            this.mutex.shift();
         }
-        await this.mutex.release();
-
-        return {
-            limit,
-            lockSecs,
-            hadMultipleClients: false,
-            queueModifiedAt: queue.modifiedAt,
-            items: items.map(({ json }) => this._jsonToRequest(json)!),
-        };
     }
 
     async prolongRequestLock(id: string, options: storage.ProlongRequestLockOptions) : Promise<storage.ProlongRequestLockResult> {
