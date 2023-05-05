@@ -27,6 +27,7 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
         this.setOrRefreshSweepTimeout();
 
         if (this.data) {
+            this.fsQueue.shift();
             return this.data;
         }
 
