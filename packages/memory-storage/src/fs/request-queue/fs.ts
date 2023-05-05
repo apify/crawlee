@@ -11,6 +11,11 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
     private filePath: string;
     private fsQueue = new AsyncQueue();
     private data?: InternalRequest;
+
+    /**
+     * A "sweep" timeout that is created/refreshed whenever this entry is accessed/updated.
+     * It exists to ensure that the entry is not kept in memory indefinitely, by sweeping it after 60 seconds of inactivity (in order to keep memory usage low)
+     */
     private sweepTimeout?: NodeJS.Timeout;
 
     constructor(options: CreateStorageImplementationOptions) {
