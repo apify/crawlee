@@ -6,7 +6,12 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import ow from 'ow';
 import type {
     BatchAddRequestsResult,
+    DeleteRequestLockOptions,
     Dictionary,
+    ListAndLockHeadResult,
+    ListAndLockOptions,
+    ProlongRequestLockOptions,
+    ProlongRequestLockResult,
     QueueOperationInfo,
     RequestQueueClient,
     RequestQueueInfo,
@@ -394,6 +399,62 @@ export class RequestQueue {
         if (!requestOptions) return null;
 
         return new Request(requestOptions as unknown as RequestOptions);
+    }
+
+    /**
+     * Lists the current requests in the queue head, and locks them for a certain amount of time.
+     *
+     * @remark This method is currently **experimental**, and may change without a major version bump.
+     *
+     * @param options Options for the list and lock operation.
+     * @returns Returns the list of requests on the queue head, as well as how long the lock lasts.
+     */
+    async experimental__listAndLockHead(options: ListAndLockOptions): Promise<ListAndLockHeadResult> {
+        ow(options, ow.object.exactShape({
+            limit: ow.optional.number.integer,
+            lockSecs: ow.number.integer,
+        }));
+
+        const { limit = 100, lockSecs } = options;
+
+        const results = await this.client.listAndLockHead({ limit, lockSecs });
+
+        return results;
+    }
+
+    /**
+     * Prolongs a request's lock on the queue head.
+     *
+     * @remark This method is currently **experimental**, and may change without a major version bump.
+     *
+     * @param id The request id to prolong the lock for.
+     * @param options The options when prolonging the lock.
+     */
+    async experimental__prolongRequestLick(id: string, options: ProlongRequestLockOptions): Promise<ProlongRequestLockResult> {
+        ow(id, ow.string);
+        ow(options, ow.object.exactShape({
+            lockSecs: ow.number.integer,
+            forefront: ow.optional.boolean,
+        }));
+
+        return this.client.prolongRequestLock(id, options);
+    }
+
+    /**
+     * Deletes a request's lock, resetting its order number to the current date
+     *
+     * @remark This method is currently **experimental**, and may change without a major version bump.
+     *
+     * @param id The request id to delete the lock for.
+     * @param options The options when deleting the lock.
+     */
+    async experimental__deleteRequestLock(id: string, options?: DeleteRequestLockOptions) {
+        ow(id, ow.string);
+        ow(options, ow.optional.object.exactShape({
+            forefront: ow.optional.boolean,
+        }));
+
+        await this.client.deleteRequestLock(id, options);
     }
 
     /**
