@@ -524,12 +524,17 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         ow(datasetIdOrName, ow.optional.string);
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
+            storageClient: ow.optional.object,
         }));
+
         options.config ??= Configuration.getGlobalConfig();
-        await purgeDefaultStorages();
+        options.storageClient ??= options.config.getStorageClient();
+
+        await purgeDefaultStorages(options.config, options.storageClient);
+
         const manager = StorageManager.getManager<Dataset<Data>>(this, options.config);
 
-        return manager.openStorage(datasetIdOrName, options.config.getStorageClient());
+        return manager.openStorage(datasetIdOrName, options.storageClient);
     }
 
     /**

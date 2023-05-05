@@ -151,4 +151,9 @@ export interface StorageManagerOptions {
      * SDK configuration instance, defaults to the static register.
      */
     config?: Configuration;
+
+    /**
+     * Optional storage client that should be used to open storages.
+     */
+    storageClient?: StorageClient;
 }

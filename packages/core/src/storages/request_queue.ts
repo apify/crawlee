@@ -788,12 +788,17 @@ export class RequestQueue {
         ow(queueIdOrName, ow.optional.string);
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
+            storageClient: ow.optional.object,
         }));
 
-        await purgeDefaultStorages();
+        options.config ??= Configuration.getGlobalConfig();
+        options.storageClient ??= options.config.getStorageClient();
+
+        await purgeDefaultStorages(options.config, options.storageClient);
+
         const manager = StorageManager.getManager(this, options.config);
 
-        return manager.openStorage(queueIdOrName);
+        return manager.openStorage(queueIdOrName, options.storageClient);
     }
 }
 
