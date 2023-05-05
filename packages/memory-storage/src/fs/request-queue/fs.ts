@@ -10,6 +10,8 @@ import type { StorageImplementation } from '../common';
 export class RequestQueueFileSystemEntry implements StorageImplementation<InternalRequest> {
     private filePath: string;
     private fsQueue = new AsyncQueue();
+    private data?: InternalRequest;
+    private sweepTimeout?: NodeJS.Timeout;
 
     constructor(options: CreateStorageImplementationOptions) {
         this.filePath = resolve(options.storeDirectory, `${options.requestId}.json`);
@@ -17,8 +19,17 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
 
     async get() {
         await this.fsQueue.wait();
+        this.setOrRefreshSweepTimeout();
+
+        if (this.data) {
+            return this.data;
+        }
+
         try {
-            return JSON.parse(await readFile(this.filePath, 'utf-8'));
+            const req = JSON.parse(await readFile(this.filePath, 'utf-8'));
+            this.data = req;
+
+            return req;
         } finally {
             this.fsQueue.shift();
         }
@@ -26,10 +37,13 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
 
     async update(data: InternalRequest) {
         await this.fsQueue.wait();
+        this.data = data;
+
         try {
             await ensureDir(dirname(this.filePath));
             await lockAndWrite(this.filePath, data);
         } finally {
+            this.setOrRefreshSweepTimeout();
             this.fsQueue.shift();
         }
     }
@@ -38,5 +52,16 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
         await this.fsQueue.wait();
         await rm(this.filePath, { force: true });
         this.fsQueue.shift();
+    }
+
+    private setOrRefreshSweepTimeout() {
+        if (this.sweepTimeout) {
+            this.sweepTimeout.refresh();
+        } else {
+            this.sweepTimeout = setTimeout(() => {
+                this.sweepTimeout = undefined;
+                this.data = undefined;
+            }, 60_000);
+        }
     }
 }

@@ -230,7 +230,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }).parse(options);
 
         const queue = await this.getQueue();
-        const request = await queue.requests.get(id);
+        const request = queue.requests.get(id);
 
         const internalRequest = await request?.get();
 
@@ -262,7 +262,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }).parse(options);
 
         const queue = await this.getQueue();
-        const request = await queue.requests.get(id);
+        const request = queue.requests.get(id);
 
         const internalRequest = await request?.get();
 
