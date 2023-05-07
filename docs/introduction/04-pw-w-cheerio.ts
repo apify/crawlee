@@ -5,13 +5,13 @@ import { PlaywrightCrawler } from 'crawlee';
 const crawler = new PlaywrightCrawler({
     requestHandler: async ({ page, parseWithCheerio }) => {
         // Wait for the actor cards to render.
-        await page.waitForSelector('.ActorStoreItem');
+        await page.waitForSelector('div[data-test="actorCard"]');
         // Extract the page's HTML from browser
         // and parse it with Cheerio.
         const $ = await parseWithCheerio();
         // Use familiar Cheerio syntax to
         // select all the actor cards.
-        $('.ActorStoreItem').each((i, el) => {
+        $('div[data-test="actorCard"]').each((i, el) => {
             const text = $(el).text();
             console.log(`ACTOR_${i + 1}: ${text}\n`);
         });
