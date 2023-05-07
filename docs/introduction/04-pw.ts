@@ -5,10 +5,10 @@ import { PlaywrightCrawler } from 'crawlee';
 const crawler = new PlaywrightCrawler({
     requestHandler: async ({ page }) => {
         // Wait for the actor cards to render.
-        await page.waitForSelector('.ActorStoreItem');
+        await page.waitForSelector('div[data-test="actorCard"]');
         // Execute a function in the browser which targets
         // the actor card elements and allows their manipulation.
-        const actorTexts = await page.$$eval('.ActorStoreItem', (els) => {
+        const actorTexts = await page.$$eval('div[data-test="actorCard"]', (els) => {
             // Extract text content from the actor cards
             return els.map((el) => el.textContent);
         });
