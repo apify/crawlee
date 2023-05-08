@@ -24,6 +24,7 @@ import {
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
+import * as cheerio from 'cheerio';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
 import type { OptionsInit, Method, Request as GotRequest, Options } from 'got-scraping';
@@ -191,6 +192,8 @@ export interface InternalHttpCrawlingContext<
      */
     contentType: { type: string; encoding: BufferEncoding };
     response: IncomingMessage;
+
+    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
 }
 
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
@@ -436,6 +439,9 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             const response = parsed.response!;
             const contentType = parsed.contentType!;
             tryCancel();
+
+            // `??=` because descendant classes may already set optimized version
+            crawlingContext.parseWithCheerio ??= async () => cheerio.load(parsed.body!.toString());
 
             if (this.useSessionPool) {
                 this._throwOnBlockedRequest(session!, response.statusCode!);
