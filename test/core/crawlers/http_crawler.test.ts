@@ -94,6 +94,22 @@ test('works', async () => {
     expect(results[0].includes('Example Domain')).toBeTruthy();
 });
 
+test('parseWithCheerio works', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        requestHandler: async ({ parseWithCheerio }) => {
+            const $ = await parseWithCheerio();
+            results.push($('title').text());
+        },
+    });
+
+    await crawler.run([`${url}/hello.html`]);
+
+    expect(results).toStrictEqual(['Example Domain']);
+});
+
 test('should parse content type from header', async () => {
     const results: { type: string; encoding: BufferEncoding }[] = [];
 

@@ -274,9 +274,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     }
 
     override async _runRequestHandler(context: JSDOMCrawlingContext) {
-        context.parseWithCheerio = async () => {
-            return cheerio.load(context.body);
-        };
+        context.parseWithCheerio = () => Promise.resolve(cheerio.load(context.body));
         await super._runRequestHandler(context);
     }
 }
