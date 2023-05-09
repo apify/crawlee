@@ -67,7 +67,7 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
             this.sweepTimeout = setTimeout(() => {
                 this.sweepTimeout = undefined;
                 this.data = undefined;
-            }, 60_000);
+            }, 60_000).unref();
         }
     }
 }
