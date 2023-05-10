@@ -155,7 +155,7 @@ You'll see that you can select different elements inside the card. Instead, sele
 
 Selecting an element will highlight it in the DevTools HTML inspector. When carefully look at the elements, you'll see that there are some **classes** attached to the different HTML elements. Those are called **CSS classes**, and we can make a use of them in scraping.
 
-Conversely, by hovering over elements in the HTML inspector, you will see them highlight on the page. Inspect the page's structure around the actor cards. You'll see that all the card's data is displayed in an `<a>` element with data-test **actorCard**. It should now make sense how we got that `div[data-test="actorCard"]` selector. It's just a way to find all elements that are annotated with the `actorCard`.
+Conversely, by hovering over elements in the HTML inspector, you will see them highlight on the page. Inspect the page's structure around the actor cards. You'll see that all the card's data is displayed in an `<a>` element with a `data-test` attribute **actorCard**. It should now make sense how we got that `div[data-test="actorCard"]` selector. It's just a way to find all elements that are annotated with the `actorCard`.
 
 It's always a good idea to double-check that you're not getting any unwanted elements with this class. To do that, go into the **Console** tab of DevTools and run:
 

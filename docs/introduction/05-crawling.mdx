@@ -30,7 +30,7 @@ const crawler = new PlaywrightCrawler({
         // Add links to the queue, but only from
         // elements matching the provided selector.
         await enqueueLinks({
-            selector: 'ActorStorePagination-buttons a',
+            selector: '.ActorStorePagination-buttons a',
             label: 'LIST',
         })
     },
