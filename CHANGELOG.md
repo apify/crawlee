@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.2](https://github.com/apify/crawlee/compare/v3.3.1...v3.3.2) (2023-05-11)
+
+
+### Bug Fixes
+
+* **MemoryStorage:** cache requests in `RequestQueue` ([#1899](https://github.com/apify/crawlee/issues/1899)) ([063dcd1](https://github.com/apify/crawlee/commit/063dcd1c9e6652cd316cc0e8c4f4e4bbb70c246e))
+* respect config object when creating `SessionPool` ([#1881](https://github.com/apify/crawlee/issues/1881)) ([db069df](https://github.com/apify/crawlee/commit/db069df80bc183c6b861c9ac82f1e278e57ea92b))
+
+
+### Features
+
+* allow running single crawler instance multiple times ([#1844](https://github.com/apify/crawlee/issues/1844)) ([9e6eb1e](https://github.com/apify/crawlee/commit/9e6eb1e32f582a8837311aac12cc1d657432f3fa)), closes [#765](https://github.com/apify/crawlee/issues/765)
+* **HttpCrawler:** add `parseWithCheerio` helper to `HttpCrawler` ([#1906](https://github.com/apify/crawlee/issues/1906)) ([ff5f76f](https://github.com/apify/crawlee/commit/ff5f76f9336c47c555c28038cdc72dc650bb5065))
+* **router:** allow inline router definition ([#1877](https://github.com/apify/crawlee/issues/1877)) ([2d241c9](https://github.com/apify/crawlee/commit/2d241c9f88964ebd41a181069c378b6b7b5bf262))
+* RQv2 memory storage support ([#1874](https://github.com/apify/crawlee/issues/1874)) ([049486b](https://github.com/apify/crawlee/commit/049486b772cc2accd2d2d226d8c8726e5ab933a9))
+* support alternate storage clients when opening storages ([#1901](https://github.com/apify/crawlee/issues/1901)) ([661e550](https://github.com/apify/crawlee/commit/661e550dcf3609b75e2d7bc225c2f6914f45c93e))
+
+
+
+
+
 ## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
 
 

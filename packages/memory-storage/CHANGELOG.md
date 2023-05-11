@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.2](https://github.com/apify/crawlee/compare/v3.3.1...v3.3.2) (2023-05-11)
+
+
+### Bug Fixes
+
+* **MemoryStorage:** cache requests in `RequestQueue` ([#1899](https://github.com/apify/crawlee/issues/1899)) ([063dcd1](https://github.com/apify/crawlee/commit/063dcd1c9e6652cd316cc0e8c4f4e4bbb70c246e))
+
+
+### Features
+
+* RQv2 memory storage support ([#1874](https://github.com/apify/crawlee/issues/1874)) ([049486b](https://github.com/apify/crawlee/commit/049486b772cc2accd2d2d226d8c8726e5ab933a9))
+
+
+
+
+
 ## [3.3.1](https://github.com/apify/crawlee/compare/v3.3.0...v3.3.1) (2023-04-11)
 
 
