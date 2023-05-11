@@ -68,7 +68,7 @@
         "csv-stringify": "^6.2.0",
         "fs-extra": "^11.0.0",
         "json5": "^2.2.3",
-        "minimatch": "^8.0.0",
+        "minimatch": "^9.0.0",
         "ow": "^0.28.1",
         "stream-chain": "^2.2.5",
         "stream-json": "^1.7.4",
