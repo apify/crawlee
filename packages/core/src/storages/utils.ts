@@ -15,12 +15,12 @@ import { KeyValueStore } from './key_value_store';
  * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
  * it multiple times.
  */
-export async function purgeDefaultStorages(config = Configuration.getGlobalConfig()) {
-    const client = config.getStorageClient() as StorageClient & { __purged?: boolean };
+export async function purgeDefaultStorages(config = Configuration.getGlobalConfig(), client: StorageClient = config.getStorageClient()) {
+    const casted = client as StorageClient & { __purged?: boolean };
 
-    if (config.get('purgeOnStart') && !client.__purged) {
-        client.__purged = true;
-        await client.purge?.();
+    if (config.get('purgeOnStart') && !casted.__purged) {
+        casted.__purged = true;
+        await casted.purge?.();
     }
 }
 
