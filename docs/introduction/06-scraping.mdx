@@ -109,8 +109,8 @@ The code looks complicated, but it only reads that we're looking for an `<ul cla
 And there we have it! All the data we needed. For the sake of completeness, let's add all the properties together, and we're good to go.
 
 ```js
- const urlParts = request.url.split('/').slice(-2);
- const uniqueIdentifier = urlParts.join('/');
+const urlParts = request.url.split('/').slice(-2);
+const uniqueIdentifier = urlParts.join('/');
 const owner = urlParts[0];
 
 const title = await page.locator('h1').textContent();
