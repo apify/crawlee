@@ -115,7 +115,7 @@ const owner = urlParts[0];
 
 const title = await page.locator('h1').textContent();
 
-const description= await page.locator('p.ActorHeader-description').textContent(),
+const description = await page.locator('p.ActorHeader-description').textContent();
 
 const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
 const modifiedDate = new Date(Number(modifiedTimestamp));
