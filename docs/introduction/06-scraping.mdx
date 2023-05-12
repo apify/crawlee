@@ -101,7 +101,7 @@ We're finishing up with the `runCount`. There's no specific element like `<time>
 ```js
 const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
 const runCountString = await runsRow.textContent();
-runCount: (runCountString.replace('Runs ', '')),
+const runCount = runCountString.replace('Runs ', '');
 ```
 
 The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-userMedallion ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<li>` element. But it contains the "Runs " string as well, so we remove the "Runs " by replacing the word with empty strings.
@@ -122,7 +122,7 @@ const modifiedDate = new Date(Number(modifiedTimestamp));
 
 const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
 const runCountString = await runsRow.textContent();
-runCount: (runCountString.replace('Runs ', '')),
+const runCount = runCountString.replace('Runs ', '');
 ```
 
 ## Trying it out
@@ -147,7 +147,7 @@ const crawler = new PlaywrightCrawler({
                 title: await page.locator('h1').textContent(),
                 description: await page.locator('p.ActorHeader-description').textContent(),
                 modifiedDate: new Date(Number(modifiedTimestamp)),
-                runCount: (runCountString.replace('Runs ', '')),
+                runCount: runCountString.replace('Runs ', ''),
             }
         } else {
             await page.waitForSelector('.ActorStorePagination-buttons a');
