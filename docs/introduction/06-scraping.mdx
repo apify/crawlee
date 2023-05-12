@@ -104,7 +104,7 @@ const runCountString = await runsRow.textContent();
 runCount: (runCountString.replace('Runs ', '')),
 ```
 
-The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-userMedallion ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<li>` element. But it contains a string with "Runs " word as well, so we remove the "Runs " by replacing them with empty strings, .
+The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-userMedallion ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<li>` element. But it contains the "Runs " string as well, so we remove the "Runs " by replacing the word with empty strings.
 
 And there we have it! All the data we needed. For the sake of completeness, let's add all the properties together, and we're good to go.
 
