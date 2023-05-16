@@ -610,8 +610,8 @@ export interface PlaywrightContextUtils {
      *         // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
      *         await blockRequests({
      *             extraUrlPatterns: ['adsbygoogle.js'],
-     *         }),
-     *     }),
+     *         });
+     *     },
      * ],
      * ```
      */
