@@ -71,12 +71,12 @@ const title = await page.locator('h1').textContent();
 
 ### Description
 
-Getting the actor's description is a little more involved, but still pretty straightforward. You can't just simply search for a `<p>` tag, because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description is actually nested inside a `<span>` tag with a class `actor-description`. And since there's no other `<span>` with that class on the page, we can safely use it.
+Getting the actor's description is a little more involved, but still pretty straightforward. You can't just simply search for a `<p>` tag, because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description is actually inside a `<p>` tag with a class `ActorHeader-description`. And since there's no other `<p>` with that class on the page, we can safely use it.
 
 ![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
 
 ```js
-const description = await page.locator('span.actor-description').textContent();
+const description = await page.locator('p.ActorHeader-description').textContent();
 ```
 
 ### Last modification date
@@ -99,12 +99,12 @@ But we would much rather see a readable date in our results, not a unix timestam
 We're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
 ```js
-const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-const runCountString = await runsRow.locator('span').last().textContent();
-const runCount = Number(runCountString.replaceAll(',', ''));
+const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+const runCountString = await runsRow.textContent();
+const runCount = runCountString.replace('Runs ', '');
 ```
 
-The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-stats ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<span>` element inside that `<li>`. But its type is still a `string`, so we remove the commas by replacing them with empty strings, and finally convert the result to a `number` by wrapping it with a `Number()` call.
+The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-userMedallion ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<li>` element. But it contains the "Runs " string as well, so we remove the "Runs " by replacing the word with empty string.
 
 And there we have it! All the data we needed. For the sake of completeness, let's add all the properties together, and we're good to go.
 
@@ -115,14 +115,14 @@ const owner = urlParts[0];
 
 const title = await page.locator('h1').textContent();
 
-const description = await page.locator('span.actor-description').textContent();
+const description = await page.locator('p.ActorHeader-description').textContent();
 
 const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
 const modifiedDate = new Date(Number(modifiedTimestamp));
 
-const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-const runCountString = await runsRow.locator('span').last().textContent();
-const runCount = Number(runCountString.replaceAll(',', ''));
+const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+const runCountString = await runsRow.textContent();
+const runCount = runCountString.replace('Runs ', '');
 ```
 
 ## Trying it out
@@ -138,29 +138,26 @@ const crawler = new PlaywrightCrawler({
         if (request.label === 'DETAIL') {
             const urlParts = request.url.split('/').slice(-2);
             const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
-            const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-            const runCountString = await runsRow.locator('span').last().textContent();
-
+            const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+            const runCountString = await runsRow.textContent();
             const results = {
                 url: request.url,
                 uniqueIdentifier: urlParts.join('/'),
                 owner: urlParts[0],
                 title: await page.locator('h1').textContent(),
-                description: await page.locator('span.actor-description').textContent(),
+                description: await page.locator('p.ActorHeader-description').textContent(),
                 modifiedDate: new Date(Number(modifiedTimestamp)),
-                runCount: Number(runCountString.replaceAll(',', '')),
+                runCount: runCountString.replace('Runs ', ''),
             }
-
-            console.log(results)
         } else {
-            await page.waitForSelector('.ActorStorePagination-pages a');
+            await page.waitForSelector('.ActorStorePagination-buttons a');
             await enqueueLinks({
-                selector: '.ActorStorePagination-pages > a',
+                selector: '.ActorStorePagination-buttons a',
                 label: 'LIST',
             })
-            await page.waitForSelector('.ActorStoreItem');
+            await page.waitForSelector('div[data-test="actorCard"] a');
             await enqueueLinks({
-                selector: '.ActorStoreItem',
+                selector: 'div[data-test="actorCard"] a',
                 label: 'DETAIL', // <= note the different label
             })
         }
