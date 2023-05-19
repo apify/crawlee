@@ -5,7 +5,7 @@ import type { EventManager } from '../events';
 import { EventType } from '../events';
 import { Configuration } from '../configuration';
 import { log } from '../log';
-import type { RequestOptions } from '../request';
+import type { InternalSource, RequestOptions, Source } from '../request';
 import { Request } from '../request';
 import { createDeserialize, serializeArray } from '../serialization';
 import { KeyValueStore } from './key_value_store';
@@ -54,7 +54,7 @@ export interface RequestListOptions {
      * ]
      * ```
      */
-    sources?: Source[];
+    sources?: RequestListSource[];
 
     /**
      * A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
@@ -97,9 +97,9 @@ export interface RequestListOptions {
     sourcesFunction?: RequestListSourcesFunction;
 
     /**
-    *   Used to pass the the proxy configuration for the `requestsFromUrls` objects.
-    *   Takes advantage of the internal address rotation and authentication process.
-    *   If undefined, the `requestsFromUrls` requests will be made without proxy.
+    * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+    * Takes advantage of the internal address rotation and authentication process.
+    * If undefined, the `requestsFromUrl` requests will be made without proxy.
     */
     proxyConfiguration?: ProxyConfiguration;
 
@@ -279,7 +279,7 @@ export class RequestList {
     private initialState?: RequestListState;
     private store?: KeyValueStore;
     private keepDuplicateUrls: boolean;
-    private sources: Source[];
+    private sources: RequestListSource[];
     private sourcesFunction?: RequestListSourcesFunction;
     private proxyConfiguration?: ProxyConfiguration;
     private events: EventManager;
@@ -330,7 +330,7 @@ export class RequestList {
         this.sources = sources ? [...sources] : [];
         this.sourcesFunction = sourcesFunction;
 
-        // The proxy configuration used for `requestsFromUrls` requests.
+        // The proxy configuration used for `requestsFromUrl` requests.
         this.proxyConfiguration = proxyConfiguration;
     }
 
@@ -695,7 +695,7 @@ export class RequestList {
      * If the `source` parameter is a string or plain object and not an instance
      * of a `Request`, then the function creates a `Request` instance.
      */
-    protected _addRequest(source: Source) {
+    protected _addRequest(source: RequestListSource) {
         let request;
         const type = typeof source;
         if (type === 'string') {
@@ -829,7 +829,11 @@ export class RequestList {
      *   the {@apilink RequestListOptions.persistStateKey} and {@apilink RequestListOptions.persistRequestsKey}
      *   options and the `sources` parameter supersedes the {@apilink RequestListOptions.sources} option.
      */
-    static async open(listNameOrOptions: string | null | RequestListOptions, sources?: Source[], options: RequestListOptions = {}): Promise<RequestList> {
+    static async open(
+        listNameOrOptions: string | null | RequestListOptions,
+        sources?: RequestListSource[],
+        options: RequestListOptions = {},
+    ): Promise<RequestList> {
         if (listNameOrOptions != null && typeof listNameOrOptions === 'object') {
             options = { ...listNameOrOptions, ...options };
             const rl = new RequestList(options);
@@ -892,6 +896,5 @@ export interface RequestListState {
 
 }
 
-export type Source = string | (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | Request;
-interface InternalSource { requestsFromUrl: string; regex?: RegExp }
-export type RequestListSourcesFunction = () => Promise<Source[]>;
+type RequestListSource = string | Source;
+export type RequestListSourcesFunction = () => Promise<RequestListSource[]>;

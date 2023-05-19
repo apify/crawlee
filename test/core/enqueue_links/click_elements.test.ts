@@ -1,4 +1,4 @@
-import type { Request, RequestOptions, RequestQueueOperationOptions } from 'crawlee';
+import type { Request, RequestQueueOperationOptions, Source } from 'crawlee';
 import {
     Configuration,
     RequestQueue,
@@ -72,7 +72,7 @@ testCases.forEach(({
         });
 
         test('should work', async () => {
-            const addedRequests: (Request | RequestOptions)[] = [];
+            const addedRequests: Source[] = [];
             const requestQueue = Object.create(RequestQueue.prototype);
             requestQueue.addRequests = async (request: Request[]) => addedRequests.push(...request);
             const html = `
@@ -102,7 +102,7 @@ testCases.forEach(({
         });
 
         test('accepts forefront option', async () => {
-            const addedRequests: {request: (Request | RequestOptions); options: RequestQueueOperationOptions}[] = [];
+            const addedRequests: {request: Source; options: RequestQueueOperationOptions}[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
             requestQueue.addRequests = async (requests, options) => {
                 addedRequests.push(...requests.map((request) => ({ request, options })));

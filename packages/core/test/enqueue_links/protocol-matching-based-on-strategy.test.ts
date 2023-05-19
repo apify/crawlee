@@ -1,6 +1,6 @@
 import log from '@apify/log';
 import { load } from 'cheerio';
-import type { CheerioRoot, Request, RequestOptions } from 'crawlee';
+import type { CheerioRoot, Source } from 'crawlee';
 import { EnqueueStrategy, Configuration, cheerioCrawlerEnqueueLinks, RequestQueue } from 'crawlee';
 
 const apifyClient = Configuration.getStorageClient();
@@ -20,7 +20,7 @@ const HTML = `
 `;
 
 function getMockRequestQueue() {
-    const enqueued: (Request | RequestOptions)[] = [];
+    const enqueued: Source[] = [];
 
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
