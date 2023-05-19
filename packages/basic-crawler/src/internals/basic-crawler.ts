@@ -1,5 +1,5 @@
 import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
+import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
@@ -458,7 +458,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             handleFailedRequestFunction,
             failedRequestHandler,
 
-            loggingInterval = 60,
+            loggingInterval = 5,
         } = options;
 
         this.requestList = requestList;
@@ -592,22 +592,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
-        let {
-            level = LogLevel.INFO,
-        } = options;
-
-        const levelNames = {
-            [LogLevel.DEBUG]: 'debug',
-            [LogLevel.INFO]: 'info',
-            [LogLevel.WARNING]: 'warning',
-            [LogLevel.ERROR]: 'error',
-        } as const;
-
-        if (!(level in levelNames)) {
-            level = LogLevel.INFO;
-        }
-
-        this.log[levelNames[level]](`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
+        this.log.debug(`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
 
         const client = this.config.getStorageClient();
         return client.setStatusMessage?.(message, options);
@@ -633,9 +618,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             const operationMode = getOperationMode();
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`,
-                    { level: LogLevel.WARNING },
-                );
+                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`);
             } else {
                 const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
                 // eslint-disable-next-line max-len
