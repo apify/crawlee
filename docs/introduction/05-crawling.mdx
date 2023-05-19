@@ -5,7 +5,7 @@ sidebar_label: "Crawling"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
-To crawl the whole [Apify Store](https://apify.com/store) and find all the data, you first need to visit all the pages with actors - listing pages and also all the actor detail pages.
+To crawl the whole [Apify Store](https://apify.com/store) and find all the data, you first need to visit all the pages with Actors - listing pages and also all the Actor detail pages.
 
 ## Crawling the listing pages
 
@@ -23,7 +23,7 @@ import { PlaywrightCrawler } from 'crawlee';
 const crawler = new PlaywrightCrawler({
     requestHandler: async ({ page, request, enqueueLinks }) => {
         console.log(`Processing: ${request.url}`)
-        // Wait for the actor cards to render,
+        // Wait for the Actor cards to render,
         // otherwise enqueueLinks wouldn't enqueue anything.
         await page.waitForSelector('.ActorStorePagination-buttons a');
 
@@ -51,7 +51,7 @@ You will see `label` used often throughout Crawlee, as it's a convenient way of 
 
 ## Crawling the detail pages
 
-In a similar fashion, you need to collect all the URLs to the actor detail pages, because only from there you can scrape all the data you need. The following code only repeats the concepts you already know for another set of links.
+In a similar fashion, you need to collect all the URLs to the Actor detail pages, because only from there you can scrape all the data you need. The following code only repeats the concepts you already know for another set of links.
 
 ```ts
 import { PlaywrightCrawler } from 'crawlee';

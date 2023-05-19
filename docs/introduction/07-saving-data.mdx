@@ -38,7 +38,7 @@ const crawler = new PlaywrightCrawler({
                 url: request.url,
                 uniqueIdentifier: urlParts.join('/'),
                 owner: urlParts[0],
-                title: await page.locator('h1').textContent(),
+                title: await page.locator('.ActorHeader-identificator h1').textContent(),
                 description: await page.locator('p.ActorHeader-description').textContent(),
                 modifiedDate: new Date(Number(modifiedTimestamp)),
                 runCount: (runCountString.replace('Runs ', '')),
