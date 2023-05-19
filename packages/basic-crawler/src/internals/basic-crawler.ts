@@ -1,5 +1,5 @@
 import type { Log } from '@apify/log';
-import defaultLog, { LogLevel } from '@apify/log';
+import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
@@ -259,7 +259,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     /**
      * Defines the length of the interval for calling the `setStatusMessage` in seconds.
      */
-    loggingInterval?: number;
+    statusMessageLoggingInterval?: number;
 
     /** @internal */
     log?: Log;
@@ -381,7 +381,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
     protected handledRequestsCount: number;
-    protected loggingInterval: number;
+    protected statusMessageLoggingInterval: number;
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected crawlingContexts = new Map<string, Context>();
@@ -410,7 +410,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
-        loggingInterval: ow.optional.number,
+        statusMessageLoggingInterval: ow.optional.number,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -458,13 +458,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             handleFailedRequestFunction,
             failedRequestHandler,
 
-            loggingInterval = 60,
+            statusMessageLoggingInterval = 5,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.log = log;
-        this.loggingInterval = loggingInterval;
+        this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.events = config.getEventManager();
 
         this._handlePropertyNameChange({
@@ -592,22 +592,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
-        let {
-            level = LogLevel.INFO,
-        } = options;
-
-        const levelNames = {
-            [LogLevel.DEBUG]: 'debug',
-            [LogLevel.INFO]: 'info',
-            [LogLevel.WARNING]: 'warning',
-            [LogLevel.ERROR]: 'error',
-        } as const;
-
-        if (!(level in levelNames)) {
-            level = LogLevel.INFO;
-        }
-
-        this.log[levelNames[level]](`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
+        this.log.debug(`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
 
         const client = this.config.getStorageClient();
         return client.setStatusMessage?.(message, options);
@@ -633,17 +618,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             const operationMode = getOperationMode();
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} errors in the past ${this.loggingInterval} seconds.`,
-                    { level: LogLevel.WARNING },
-                );
+                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`);
             } else {
                 const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} errors.`);
+                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`);
             }
         };
 
-        const interval = setInterval(log, this.loggingInterval * 1e3);
+        const interval = setInterval(log, this.statusMessageLoggingInterval * 1e3);
         return { log, stop: () => clearInterval(interval) };
     }
 
