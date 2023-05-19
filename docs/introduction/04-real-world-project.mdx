@@ -19,7 +19,7 @@ We hear you, young padawan! First, learn how to crawl, you must. Only then, walk
 
 ## Making a production-grade crawler
 
-Making a production-grade crawler is not difficult, but there are many pitfalls of scraping that can catch you off guard. So for the real world project you'll learn how to scrape [Apify Store](https://apify.com/store) instead of the Crawlee website. It is a library of scrapers and automations called **actors** that anyone can grab and use for free.
+Making a production-grade crawler is not difficult, but there are many pitfalls of scraping that can catch you off guard. So for the real world project you'll learn how to scrape [Apify Store](https://apify.com/store) instead of the Crawlee website. It is a library of scrapers and automations called **Actors** that anyone can grab and use for free.
 
 The website requires JavaScript rendering, which allows us to showcase more features of Crawlee. We've also added some helpful tips that prepare you for the real-world issues that you will surely encounter when scraping at scale.
 
@@ -42,7 +42,7 @@ For the purposes of this tutorial, let's assume that the website cannot be scrap
 
 ## Choosing the data you need
 
-A good first step is to figure out what data you want to scrape and where to find it. For the time being, let's just agree that we want to scrape all actors from [Apify Store](https://apify.com/store) and for each actor we want to get its:
+A good first step is to figure out what data you want to scrape and where to find it. For the time being, let's just agree that we want to scrape all Actors from [Apify Store](https://apify.com/store) and for each Actor we want to get its:
 
 - URL
 - Owner
@@ -52,7 +52,7 @@ A good first step is to figure out what data you want to scrape and where to fin
 - Last modification date
 - Number of runs
 
-You will notice that some information is available directly on the list page, but for details such as "Last modification date" or "Number of runs" we'll also need to open the actor detail pages.
+You will notice that some information is available directly on the list page, but for details such as "Last modification date" or "Number of runs" we'll also need to open the Actor detail pages.
 
 ![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
@@ -66,7 +66,7 @@ Let's take a look at the `apify.com/store` page more carefully. There are some *
 
 ### Categories and sorting
 
-When you click the categories, you'll see that they filter the results. If you remove the category, you're back to the original number of results. By going through a few categories and observing the behavior, we can quite safely assume that the default setting - with **no category selected** - shows us **all the actors available** in the store and that's the setting we'll use to scrape. The same applies to sorting. We don't need that now.
+When you click the categories, you'll see that they filter the results. If you remove the category, you're back to the original number of results. By going through a few categories and observing the behavior, we can quite safely assume that the default setting - with **no category selected** - shows us **all the Actors available** in the store and that's the setting we'll use to scrape. The same applies to sorting. We don't need that now.
 
 :::caution
 
@@ -90,13 +90,13 @@ Similarly to the issue with filters explained above, the existence of pagination
 
 :::
 
-At the time of writing the Store results counter showed 1047 results - actors. Quick count of actors on one page of results makes 24. 8 rows times 3 actors. This means that there should be 44 pages of results. 1047 divided by 24. Try going to page number 44 (or the number your own calculation produced).
+At the time of writing the Store results counter showed 1047 results - Actors. Quick count of Actors on one page of results makes 24. 8 rows times 3 Actors. This means that there should be 44 pages of results. 1047 divided by 24. Try going to page number 44 (or the number your own calculation produced).
 
 ```
 https://apify.com/store?page=44
 ```
 
-It's empty. 🤯 Wrong calculation? Not really. This is an example of another common issue in web scraping. The result count presented by websites very rarely matches the actual number of available results. In our case, it's simply because certain actors were hidden for some reason, but the count does not reflect it.
+It's empty. 🤯 Wrong calculation? Not really. This is an example of another common issue in web scraping. The result count presented by websites very rarely matches the actual number of available results. In our case, it's simply because certain Actors were hidden for some reason, but the count does not reflect it.
 
 At the time of writing, the last results were actually on page 42. But that's ok. What's important is that on this page 42, the pagination links at the bottom are still the same as on page one, two or six. This makes it fairly certain that you can keep following those links until you scrape all the results. Good 👍
 
@@ -104,15 +104,15 @@ If you're not convinced, you can visit a page somewhere in the middle, like `htt
 
 ## The crawling strategy
 
-Now that you know where to start and how to find all the actor details, let's look at the crawling process.
+Now that you know where to start and how to find all the Actor details, let's look at the crawling process.
 
-1. Visit the store page containing the list of actors (our start URL).
-2. Enqueue all links to actor details.
+1. Visit the store page containing the list of Actors (our start URL).
+2. Enqueue all links to Actor details.
 3. Enqueue links to next pages of results.
 4. Open the next page in queue.
    - When it's a results list page, go to 2.
-   - When it's an actor detail page, scrape the data.
-5. Repeat until all results pages and all actor details have been processed.
+   - When it's an Actor detail page, scrape the data.
+5. Repeat until all results pages and all Actor details have been processed.
 
 `PlaywrightCrawler` will make sure to visit the pages for you, if you provide the correct requests, and you already know how to enqueue pages, so this should be fairly easy. Nevertheless, there are few more tricks that we'd like to showcase.
 
@@ -120,7 +120,7 @@ Now that you know where to start and how to find all the actor details, let's lo
 
 Let's check that everything is set up correctly before writing the scraping logic itself. You might realize that something in your previous analysis doesn't quite add up, or the website might not behave exactly as you expected.
 
-The example below creates a new crawler that visits the start URL and prints the text content of all the actor cards on that page. When you run the code, you will see the _very badly formatted_ content of the individual actor cards.
+The example below creates a new crawler that visits the start URL and prints the text content of all the Actor cards on that page. When you run the code, you will see the _very badly formatted_ content of the individual Actor cards.
 
 <Tabs groupId="sanity-check">
     <TabItem value="playwright" label="Playwright" default>
@@ -131,9 +131,9 @@ The example below creates a new crawler that visits the start URL and prints the
     </TabItem>
 </Tabs>
 
-If you're wondering how to get that `.ActorStoreItem` selector. We'll explain it in the next chapter on DevTools.
+If you're wondering how to get that `div[data-test="actorCard"]` selector. We'll explain it in the next chapter on DevTools.
 
-## DevTools - the scrapers toolbox
+## DevTools - the scraper's toolbox
 
 :::info
 
@@ -145,7 +145,7 @@ Let's open DevTools by going to https://apify.com/store in Chrome and then right
 
 ## Selecting elements
 
-In the DevTools, choose the **Select an element** tool and try hovering over one of the actor cards.
+In the DevTools, choose the **Select an element** tool and try hovering over one of the Actor cards.
 
 ![select an element](/img/getting-started/select-an-element.png 'Finding the select an element tool.')
 
@@ -155,15 +155,15 @@ You'll see that you can select different elements inside the card. Instead, sele
 
 Selecting an element will highlight it in the DevTools HTML inspector. When carefully look at the elements, you'll see that there are some **classes** attached to the different HTML elements. Those are called **CSS classes**, and we can make a use of them in scraping.
 
-Conversely, by hovering over elements in the HTML inspector, you will see them highlight on the page. Inspect the page's structure around the actor cards. You'll see that all the card's data is displayed in an `<a>` element with two classes, one of which is **ActorStoreItem**. It should now make sense how we got that `.ActorStoreItem` selector. It's just a way to find all elements that are annotated with the `ActorStoreItem`.
+Conversely, by hovering over elements in the HTML inspector, you will see them highlight on the page. Inspect the page's structure around the Actor cards. You'll see that all the card's data is displayed in an `<a>` element with a `data-test` attribute **actorCard**. It should now make sense how we got that `div[data-test="actorCard"]` selector. It's just a way to find all elements that are annotated with the `actorCard`.
 
 It's always a good idea to double-check that you're not getting any unwanted elements with this class. To do that, go into the **Console** tab of DevTools and run:
 
 ```ts
-document.querySelectorAll('.ActorStoreItem');
+document.querySelectorAll('div[data-test="actorCard"]');
 ```
 
-You will see that only the 24 actor cards will be returned, and nothing else.
+You will see that only the 24 Actor cards will be returned, and nothing else.
 
 :::tip
 
@@ -173,4 +173,4 @@ CSS selectors and DevTools are quite a big topic. If you want to learn more, vis
 
 ## Next lesson
 
-In the next lesson we will crawl the whole store, including all the listing pages and all the actor detail pages.
+In the next lesson, we will crawl the whole store, including all the listing pages and all the Actor detail pages.

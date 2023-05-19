@@ -31,7 +31,7 @@ In our `main.mjs` file, we place the general structure of the crawler:
 
 ```js title="src/main.mjs"
 import { PlaywrightCrawler, log } from 'crawlee';
-import { router } from './routes.js';
+import { router } from './routes.mjs';
 
 // This is better set with CRAWLEE_LOG_LEVEL env var
 // or a configuration option. This is just for show 😈
@@ -44,11 +44,8 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
 });
 
-log.debug('Adding requests to the queue.');
-await crawler.addRequests(['https://apify.com/store']);
 
-// crawler.run has its own logs 🙂
-await crawler.run();
+await crawler.run(['https://apify.com/store']);
 ```
 
 Then in a separate `routes.mjs` file:
@@ -65,17 +62,17 @@ router.addHandler('DETAIL', async ({ request, page, log }) => {
     log.debug(`Extracting data: ${request.url}`)
     const urlParts = request.url.split('/').slice(-2);
     const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
-    const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-    const runCountString = await runsRow.locator('span').last().textContent();
+    const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+    const runCountString = await runsRow.textContent();
 
     const results = {
         url: request.url,
         uniqueIdentifier: urlParts.join('/'),
         owner: urlParts[0],
-        title: await page.locator('h1').textContent(),
-        description: await page.locator('span.actor-description').textContent(),
+        title: await page.locator('.ActorHeader-identificator h1').textContent(),
+        description: await page.locator('p.ActorHeader-description').textContent(),
         modifiedDate: new Date(Number(modifiedTimestamp)),
-        runCount: Number(runCountString.replaceAll(',', '')),
+        runCount: runCountString.replace('Runs ', ''),
     }
 
     log.debug(`Saving data: ${request.url}`)
@@ -83,24 +80,24 @@ router.addHandler('DETAIL', async ({ request, page, log }) => {
 });
 
 // This is a fallback route which will handle the start URL
-// as well as the LIST labelled URLs.
+// as well as the LIST labeled URLs.
 router.addDefaultHandler(async ({ request, page, enqueueLinks, log }) => {
     log.debug(`Enqueueing pagination: ${request.url}`)
-    await page.waitForSelector('.ActorStorePagination-pages a');
+    await page.waitForSelector('.ActorStorePagination-buttons a');
     await enqueueLinks({
-        selector: '.ActorStorePagination-pages > a',
+        selector: '.ActorStorePagination-buttons a',
         label: 'LIST',
     })
     log.debug(`Enqueueing actor details: ${request.url}`)
-    await page.waitForSelector('.ActorStoreItem');
+    await page.waitForSelector('div[data-test="actorCard"] a');
     await enqueueLinks({
-        selector: '.ActorStoreItem',
+        selector: 'div[data-test="actorCard"] a',
         label: 'DETAIL', // <= note the different label
     })
 });
 ```
 
-Let's describe the changes a bit more in detail. We hope that in the end, you will agree that this structure makes the actor more readable and manageable.
+Let's describe the changes a bit more in detail. We hope that in the end, you will agree that this structure makes the crawler more readable and manageable.
 
 ## Splitting your code into multiple files
 
@@ -110,9 +107,7 @@ There's no reason not to split your code into multiple files and keep your logic
 
 We won't go to great lengths here to talk about `log` object from Crawlee, because you can read it all in the <ApiLink to="core/class/Log">documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
 
-Crawlee `log` has multiple log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting the `CRAWLEE_LOG_LEVEL` environment variable. This is huge! Because you can now add a lot of debug logs in your actor, which will help you when something goes wrong and turn them on or off with a simple configuration change.
-
-The punch line? Use `log` from Crawlee instead of `console.log` now and thank us later when something goes wrong!
+Crawlee `log` has multiple log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting the `CRAWLEE_LOG_LEVEL` environment variable. Thanks to this you can add a lot of debug logs to your crawler without polluting your log when they're not needed, but ready to help when you encounter issues.
 
 ## Using a router to structure your crawling
 

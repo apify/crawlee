@@ -7,7 +7,7 @@ description: Your first steps into the world of scraping with Crawlee
 
 import ApiLink from '@site/src/components/ApiLink';
 
-In the [Real-world project chapter](./real-world-project#choosing-the-data-you-need), we created a list of the information we wanted to collect about the actors in the Apify Store. Let's review that and figure out ways to access the data.
+In the [Real-world project chapter](./real-world-project#choosing-the-data-you-need), we created a list of the information we wanted to collect about the Actors in the Apify Store. Let's review that and figure out ways to access the data.
 
 - URL
 - Owner
@@ -21,7 +21,7 @@ In the [Real-world project chapter](./real-world-project#choosing-the-data-you-n
 
 ### Scraping the URL, Owner and Unique identifier
 
-Some information is lying right there in front of us without even having to touch the actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
+Some information is lying right there in front of us without even having to touch the Actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
 
 :::info
 
@@ -43,19 +43,13 @@ It's a matter of preference, whether to store this information separately in the
 
 :::
 
-Now it's time to add more data to the results. Let's open one of the actor detail pages, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu 🥋 to figure out how to get the title of the actor.
+Now it's time to add more data to the results. Let's open one of the Actor detail pages, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu 🥋 to figure out how to get the title of the Actor.
 
 ### Title
 
 ![actor title](/img/getting-started/title.jpg 'Finding actor title in DevTools.')
 
-By using the element selector tool, you can see that the title is there under an `<h1>` tag, as titles should be.
-
-:::caution
-
-In some cases there could actually be more `<h1>` tags on the same page. Yes, it's wrong, but it is quite common in the wild. Be careful when scraping and don't assume that websites are programmed correctly. They aren't.
-
-:::
+By using the element selector tool, you can see that the title is there under an `<h1>` tag, as titles should be. Web pages usually have only a single `<h1>` tag, but this one has two. Because of that, we have to extend the selector with more information. The `<h1>` tag is enclosed in a `<div>` with class `ActorHeader-identificator`. We can leverage this to create a combined selector `.ActorHeader-identificator h1`. It selects any `<h1>` element that is a child of a different element with the class `ActorHeader-identificator`.
 
 :::tip
 
@@ -63,20 +57,20 @@ Remember that you can press CTRL+F (or CMD+F on Mac) in the **Elements** tab of 
 
 :::
 
-To get the title we just need to find it using `Playwright` and a `h1` locator, which selects the first `<h1>` element it finds and throws if it finds more. That's good. It's usually better to crash the crawler than silently return bad data.
+To get the title, we need to find it using `Playwright` and a `.ActorHeader-identificator h1` locator, which selects the `<h1>` element we're looking for, or throws, if it finds more than one. That's good. It's usually better to crash the crawler than silently return bad data.
 
 ```js
-const title = await page.locator('h1').textContent();
+const title = await page.locator('.ActorHeader-identificator h1').textContent();
 ```
 
 ### Description
 
-Getting the actor's description is a little more involved, but still pretty straightforward. You can't just simply search for a `<p>` tag, because there's a lot of them in the page. We need to narrow our search down a little. Using the DevTools we find that the actor description is actually nested inside a `<span>` tag with a class `actor-description`. And since there's no other `<span>` with that class on the page, we can safely use it.
+Using the DevTools, we find that the Actor description is inside a `<p>` tag with a class `ActorHeader-description`. And since there's no other `<p>` with that class on the page, we can safely use it.
 
 ![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
 
 ```js
-const description = await page.locator('span.actor-description').textContent();
+const description = await page.locator('p.ActorHeader-description').textContent();
 ```
 
 ### Last modification date
@@ -99,12 +93,12 @@ But we would much rather see a readable date in our results, not a unix timestam
 We're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
 
 ```js
-const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-const runCountString = await runsRow.locator('span').last().textContent();
-const runCount = Number(runCountString.replaceAll(',', ''));
+const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+const runCountString = await runsRow.textContent();
+const runCount = runCountString.replace('Runs ', '');
 ```
 
-The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-stats ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the number from the last (second) `<span>` element inside that `<li>`. But its type is still a `string`, so we remove the commas by replacing them with empty strings, and finally convert the result to a `number` by wrapping it with a `Number()` call.
+The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-userMedallion ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the count from the last (second) `<li>` element. But it contains the "Runs " string as well, so we remove the "Runs " by replacing the word with empty string.
 
 And there we have it! All the data we needed. For the sake of completeness, let's add all the properties together, and we're good to go.
 
@@ -113,16 +107,16 @@ const urlParts = request.url.split('/').slice(-2);
 const uniqueIdentifier = urlParts.join('/');
 const owner = urlParts[0];
 
-const title = await page.locator('h1').textContent();
+const title = await page.locator('.ActorHeader-identificator h1').textContent();
 
-const description = await page.locator('span.actor-description').textContent();
+const description = await page.locator('p.ActorHeader-description').textContent();
 
 const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
 const modifiedDate = new Date(Number(modifiedTimestamp));
 
-const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-const runCountString = await runsRow.locator('span').last().textContent();
-const runCount = Number(runCountString.replaceAll(',', ''));
+const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+const runCountString = await runsRow.textContent();
+const runCount = runCountString.replace('Runs ', '');
 ```
 
 ## Trying it out
@@ -138,29 +132,28 @@ const crawler = new PlaywrightCrawler({
         if (request.label === 'DETAIL') {
             const urlParts = request.url.split('/').slice(-2);
             const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
-            const runsRow = page.locator('ul.ActorHeader-stats > li').filter({ hasText: 'Runs' });
-            const runCountString = await runsRow.locator('span').last().textContent();
-
+            const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
+            const runCountString = await runsRow.textContent();
             const results = {
                 url: request.url,
                 uniqueIdentifier: urlParts.join('/'),
                 owner: urlParts[0],
-                title: await page.locator('h1').textContent(),
-                description: await page.locator('span.actor-description').textContent(),
+                title: await page.locator('.ActorHeader-identificator h1').textContent(),
+                description: await page.locator('p.ActorHeader-description').textContent(),
                 modifiedDate: new Date(Number(modifiedTimestamp)),
-                runCount: Number(runCountString.replaceAll(',', '')),
+                runCount: runCountString.replace('Runs ', ''),
             }
 
-            console.log(results)
+            console.log(results);
         } else {
-            await page.waitForSelector('.ActorStorePagination-pages a');
+            await page.waitForSelector('.ActorStorePagination-buttons a');
             await enqueueLinks({
-                selector: '.ActorStorePagination-pages > a',
+                selector: '.ActorStorePagination-buttons a',
                 label: 'LIST',
             })
-            await page.waitForSelector('.ActorStoreItem');
+            await page.waitForSelector('div[data-test="actorCard"] a');
             await enqueueLinks({
-                selector: '.ActorStoreItem',
+                selector: 'div[data-test="actorCard"] a',
                 label: 'DETAIL', // <= note the different label
             })
         }
@@ -172,7 +165,19 @@ await crawler.run(['https://apify.com/store']);
 
 
 
-When you run the actor, you should see the crawled URLs and their scraped data printed to the console.
+When you run the crawler, you will see the crawled URLs and their scraped data printed to the console. The output will look something like this:
+
+```json
+{
+	"url": "https://apify.com/clockworks/tiktok-scraper",
+	"uniqueIdentifier": "clockworks/tiktok-scraper",
+	"owner": "clockworks",
+	"title": "TikTok Scraper",
+	"description": "Powerful TikTok scraper to extract data from TikTok videos, hashtags, and users. Use it to scrape TikTok profiles, hashtags, posts, URLs, numbers of shares, followers, hearts, names, video, and music-related data. Download TikTok data as a HTML, JSON, CSV, Excel, or XML doc.",
+	"modifiedDate": "2023-04-26T12:13:19.387Z",
+	"runCount": "1.6M"
+}
+```
 
 ## Next lesson
 
