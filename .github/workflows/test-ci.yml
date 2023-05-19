@@ -182,7 +182,7 @@ jobs:
                 run: |
                     git config --global user.name 'Apify Release Bot'
                     git config --global user.email 'noreply@apify.com'
-                    yarn turbo --force copy -- --canary --preid=beta
+                    yarn turbo copy --force -- --canary --preid=beta
                     git commit -am "chore: bump canary versions [skip ci]"
 
                     echo "access=public" > .npmrc
