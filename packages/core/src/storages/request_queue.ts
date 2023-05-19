@@ -12,13 +12,15 @@ import type {
     RequestQueueInfo,
     StorageClient,
 } from '@crawlee/types';
+import { downloadListOfUrls } from '@crawlee/utils';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { log } from '../log';
-import type { RequestOptions } from '../request';
+import type { InternalSource, RequestOptions, Source } from '../request';
 import { Request } from '../request';
 import { Configuration } from '../configuration';
 import { purgeDefaultStorages } from './utils';
+import type { ProxyConfiguration } from '../proxy_configuration';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 
@@ -160,6 +162,7 @@ export class RequestQueue {
     timeoutSecs = 30;
     clientKey = cryptoRandomObjectId();
     client: RequestQueueClient;
+    private proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Contains a cached list of request IDs from the head of the queue,
@@ -211,6 +214,7 @@ export class RequestQueue {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,
         }) as RequestQueueClient;
+        this.proxyConfiguration = options.proxyConfiguration;
     }
 
     /**
@@ -234,17 +238,26 @@ export class RequestQueue {
      * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
      * @param [options] Request queue operation options.
      */
-    async addRequest(requestLike: Request | RequestOptions, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo> {
-        ow(requestLike, ow.object.partialShape({
-            url: ow.string,
-            id: ow.undefined,
-        }));
+    async addRequest(requestLike: Source, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo> {
+        ow(requestLike, ow.object);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
         }));
 
         this.lastActivity = new Date();
         const { forefront = false } = options;
+
+        if ('requestsFromUrl' in requestLike) {
+            const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
+            const processedRequests = await this._addFetchedRequests(requestLike as InternalSource, requests, options);
+
+            return processedRequests[0];
+        }
+
+        ow(requestLike, ow.object.partialShape({
+            url: ow.string,
+            id: ow.undefined,
+        }));
 
         const request = requestLike instanceof Request
             ? requestLike
@@ -293,13 +306,10 @@ export class RequestQueue {
      * @param [options] Request queue operation options.
      */
     async addRequests(
-        requestsLike: (Request | RequestOptions)[],
+        requestsLike: Source[],
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
-        ow(requestsLike, ow.array.ofType(ow.object.partialShape({
-            url: ow.string,
-            id: ow.undefined,
-        })));
+        ow(requestsLike, ow.array);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
         }));
@@ -323,11 +333,18 @@ export class RequestQueue {
             unprocessedRequests: [],
         };
 
-        const requests = requestsLike.map((requestLike) => {
-            return requestLike instanceof Request
-                ? requestLike
-                : new Request(requestLike);
-        });
+        for (const requestLike of requestsLike) {
+            if ('requestsFromUrl' in requestLike) {
+                const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
+                await this._addFetchedRequests(requestLike as InternalSource, requests, options);
+            }
+        }
+
+        const requests = requestsLike
+            .filter((requestLike) => !('requestsFromUrl' in requestLike))
+            .map((requestLike) => {
+                return requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
+            });
 
         const requestsToAdd = new Map<string, Request>();
 
@@ -769,6 +786,55 @@ export class RequestQueue {
     }
 
     /**
+     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
+     */
+    protected async _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
+        const { requestsFromUrl, regex, ...sharedOpts } = source;
+
+        // Download remote resource and parse URLs.
+        let urlsArr;
+        try {
+            urlsArr = await this._downloadListOfUrls({ url: requestsFromUrl, urlRegExp: regex, proxyUrl: await this.proxyConfiguration?.newUrl() });
+        } catch (err) {
+            throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
+        }
+
+        // Skip if resource contained no URLs.
+        if (!urlsArr.length) {
+            this.log.warning('list fetched, but it is empty.', { requestsFromUrl, regex });
+            return [];
+        }
+
+        return urlsArr.map((url) => ({ url, ...sharedOpts }));
+    }
+
+    /**
+     * Adds all fetched requests from a URL from a remote resource.
+     */
+    protected async _addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[], options: RequestQueueOperationOptions) {
+        const { requestsFromUrl, regex } = source;
+        const { processedRequests } = await this.addRequests(fetchedRequests, options);
+
+        this.log.info('Fetched and loaded Requests from a remote resource.', {
+            requestsFromUrl,
+            regex,
+            fetchedCount: fetchedRequests.length,
+            importedCount: processedRequests.length,
+            duplicateCount: fetchedRequests.length - processedRequests.length,
+            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
+        });
+
+        return processedRequests;
+    }
+
+    /**
+     * @internal wraps public utility for mocking purposes
+     */
+    private async _downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<string[]> {
+        return downloadListOfUrls(options);
+    }
+
+    /**
      * Opens a request queue and returns a promise resolving to an instance
      * of the {@apilink RequestQueue} class.
      *
@@ -785,10 +851,11 @@ export class RequestQueue {
      * @param [options] Open Request Queue options.
      */
     static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestQueue> {
-        ow(queueIdOrName, ow.optional.string);
+        ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
             storageClient: ow.optional.object,
+            proxyConfiguration: ow.optional.object,
         }));
 
         options.config ??= Configuration.getGlobalConfig();
@@ -797,8 +864,10 @@ export class RequestQueue {
         await purgeDefaultStorages(options.config, options.storageClient);
 
         const manager = StorageManager.getManager(this, options.config);
+        const queue = await manager.openStorage(queueIdOrName, options.storageClient);
+        queue.proxyConfiguration = options.proxyConfiguration;
 
-        return manager.openStorage(queueIdOrName, options.storageClient);
+        return queue;
     }
 }
 
@@ -806,4 +875,11 @@ export interface RequestQueueOptions {
     id: string;
     name?: string;
     client: StorageClient;
+
+    /**
+     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+     * Takes advantage of the internal address rotation and authentication process.
+     * If undefined, the `requestsFromUrl` requests will be made without proxy.
+     */
+    proxyConfiguration?: ProxyConfiguration;
 }

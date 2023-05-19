@@ -5,8 +5,31 @@ import {
     RequestQueue,
     Request,
     Configuration,
+    ProxyConfiguration,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
+import { gotScraping } from 'got-scraping';
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+
+jest.mock('got-scraping', () => {
+    const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
+    return {
+        ...original,
+        gotScraping: jest.fn(original.gotScraping),
+    };
+});
+
+const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
+const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
+
+afterEach(() => {
+    gotScrapingSpy.mockReset();
+    gotScrapingSpy.mockImplementation(originalGotScraping);
+});
+
+afterAll(() => {
+    jest.unmock('got-scraping');
+});
 
 describe('RequestQueue remote', () => {
     const storageClient = Configuration.getStorageClient();
@@ -683,6 +706,144 @@ describe('RequestQueue remote', () => {
         const desc3 = Object.getOwnPropertyDescriptor(r3.userData, '__crawlee');
         expect(desc3.enumerable).toBe(false);
         expect(r3.userData.__crawlee).toEqual({});
+    });
+});
+
+describe('RequestQueue with requestsFromUrl', () => {
+    const emulator = new MemoryStorageEmulator();
+
+    beforeEach(async () => {
+        await emulator.init();
+        jest.restoreAllMocks();
+    });
+
+    afterAll(async () => {
+        await emulator.destroy();
+    });
+
+    test('should correctly load list from hosted files in correct order', async () => {
+        const spy = jest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
+        const list1 = [
+            'https://example.com',
+            'https://google.com',
+            'https://wired.com',
+        ];
+        const list2 = [
+            'https://another.com',
+            'https://page.com',
+        ];
+        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve(list1) as any, 100)) as any);
+        spy.mockResolvedValueOnce(list2);
+
+        const queue = await RequestQueue.open();
+        await queue.addRequests([
+            { method: 'GET', requestsFromUrl: 'http://example.com/list-1' },
+            { method: 'POST', requestsFromUrl: 'http://example.com/list-2' },
+        ]);
+
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[0] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[1] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[2] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
+
+        expect(spy).toBeCalledTimes(2);
+        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
+        spy.mockRestore();
+    });
+
+    test('should use regex parameter to parse urls', async () => {
+        const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
+        const listArr = ['https://example.com', 'HTTP://google.com'];
+        gotScrapingSpy.mockResolvedValue({ body: listStr } as any);
+
+        const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
+        const queue = await RequestQueue.open();
+        await queue.addRequest({
+            method: 'GET',
+            requestsFromUrl: 'http://example.com/list-1',
+            regex,
+        });
+
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[0] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
+        await queue.drop();
+
+        expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
+        gotScrapingSpy.mockRestore();
+    });
+
+    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
+        const list = [
+            'https://example.com',
+            'https://google.com',
+            'https://wired.com',
+        ];
+        const wrongUrls = [
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
+        ];
+        const correctUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
+
+        gotScrapingSpy.mockResolvedValue({ body: JSON.stringify(list) } as any);
+
+        const queue = await RequestQueue.open();
+        await queue.addRequests(wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })));
+
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
+        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
+
+        expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
+        gotScrapingSpy.mockRestore();
+        await queue.drop();
+    });
+
+    test('should handle requestsFromUrl with no URLs', async () => {
+        const spy = jest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
+        spy.mockResolvedValueOnce([]);
+
+        const queue = await RequestQueue.open();
+        await queue.addRequest({
+            method: 'GET',
+            requestsFromUrl: 'http://example.com/list-1',
+        });
+
+        expect(await queue.fetchNextRequest()).toBe(null);
+
+        expect(spy).toBeCalledTimes(1);
+        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        spy.mockRestore();
+    });
+
+    test('should use the defined proxy server when using `requestsFromUrl`', async () => {
+        const proxyUrls = [
+            'http://proxyurl.usedforthe.download',
+            'http://another.proxy.url',
+        ];
+
+        const spy = jest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
+        spy.mockResolvedValue([]);
+
+        const proxyConfiguration = new ProxyConfiguration({
+            proxyUrls,
+        });
+
+        const queue = await RequestQueue.open(null, { proxyConfiguration });
+        await queue.addRequests([
+            { requestsFromUrl: 'http://example.com/list-1' },
+            { requestsFromUrl: 'http://example.com/list-2' },
+            { requestsFromUrl: 'http://example.com/list-3' },
+        ]);
+
+        expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
+
+        spy.mockRestore();
     });
 });
 

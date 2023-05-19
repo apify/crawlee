@@ -1,7 +1,8 @@
 import log from '@apify/log';
+import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
-import type { CheerioRoot, Request, RequestOptions } from 'crawlee';
-import { Configuration, cheerioCrawlerEnqueueLinks, RequestQueue, EnqueueStrategy } from 'crawlee';
+import type { Source } from '@crawlee/cheerio';
+import { Configuration, cheerioCrawlerEnqueueLinks, RequestQueue } from '@crawlee/cheerio';
 
 const apifyClient = Configuration.getStorageClient();
 
@@ -20,7 +21,7 @@ const HTML = `
 `;
 
 function getMockRequestQueue() {
-    const enqueued: (Request | RequestOptions)[] = [];
+    const enqueued: Source[] = [];
 
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
@@ -43,7 +44,7 @@ describe('enqueueLinks() - userData shouldn\'t be changed and outer label must t
         log.setLevel(ll);
     });
 
-    let $: CheerioRoot;
+    let $: CheerioAPI;
     beforeEach(() => {
         $ = load(HTML);
     });

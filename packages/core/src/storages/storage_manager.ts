@@ -2,6 +2,7 @@ import type { Dictionary, StorageClient } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { Configuration } from '../configuration';
 import type { Constructor } from '../typedefs';
+import type { ProxyConfiguration } from '../proxy_configuration';
 
 const DEFAULT_ID_CONFIG_KEYS = {
     Dataset: 'defaultDatasetId',
@@ -156,4 +157,11 @@ export interface StorageManagerOptions {
      * Optional storage client that should be used to open storages.
      */
     storageClient?: StorageClient;
+
+    /**
+     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+     * Takes advantage of the internal address rotation and authentication process.
+     * If undefined, the `requestsFromUrl` requests will be made without proxy.
+     */
+    proxyConfiguration?: ProxyConfiguration;
 }

@@ -440,3 +440,11 @@ interface ComputeUniqueKeyOptions {
     keepUrlFragment?: boolean;
     useExtendedUniqueKey?: boolean;
 }
+
+export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | Request;
+
+/** @internal */
+export interface InternalSource {
+    requestsFromUrl: string;
+    regex?: RegExp;
+}
