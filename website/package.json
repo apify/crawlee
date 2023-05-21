@@ -35,7 +35,7 @@
         "@giscus/react": "^2.2.6",
         "clsx": "^1.1.1",
         "docusaurus-gtm-plugin": "^0.0.2",
-        "docusaurus-plugin-typedoc-api": "2.5.1",
+        "docusaurus-plugin-typedoc-api": "3.0.0",
         "prop-types": "^15.8.1",
         "raw-loader": "^4.0.2",
         "react": "^17.0.2",
