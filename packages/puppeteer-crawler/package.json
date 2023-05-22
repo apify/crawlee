@@ -66,7 +66,7 @@
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
-        "puppeteer": "<= 20.2"
+        "puppeteer": "<= 20.3"
     },
     "peerDependenciesMeta": {
         "puppeteer": {
