@@ -84,7 +84,7 @@ jobs:
             -   name: Checkout repository
                 uses: actions/checkout@v3
                 with:
-                    token: ${{ secrets.GH_TOKEN }}
+                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 18
@@ -119,23 +119,23 @@ jobs:
                     git config --global user.email "noreply@apify.com"
 
                     echo "access=public" > .npmrc
-                    echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
+                    echo "//registry.npmjs.org/:_authToken=${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}" >> .npmrc
 
             -   name: Bump version to custom version
                 if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
                 run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
                     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Bump version to ${{ github.event.inputs.version }} version
                 if: ${{ github.event.inputs.version != 'custom' }}
                 run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
                     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Update lockfile
                 run: |
@@ -148,8 +148,8 @@ jobs:
                 run: yarn publish:prod --yes --no-verify-access
                 env:
                     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Collect versions for Docker images
                 id: versions
@@ -166,7 +166,7 @@ jobs:
             -   name: Trigger Docker image builds
                 uses: peter-evans/repository-dispatch@v2
                 with:
-                    token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
+                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     repository: apify/apify-actor-docker
                     event-type: build-node-images
                     client-payload: >

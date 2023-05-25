@@ -37,8 +37,8 @@ jobs:
                     # build and deploy the docs
                     yarn deploy
                 env:
-                    GIT_USER: "B4nan:${{ secrets.GH_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    GIT_USER: "B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
     squash:
         runs-on: ubuntu-latest
@@ -63,5 +63,5 @@ jobs:
                     git commit --amend -m 'crawlee.dev docs'
                     git push --force origin gh-pages
                 env:
-                    GIT_USER: "B4nan:${{ secrets.GH_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    GIT_USER: "B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
