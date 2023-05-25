@@ -125,7 +125,7 @@ jobs:
                 if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
                 run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
                     GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
@@ -133,7 +133,7 @@ jobs:
                 if: ${{ github.event.inputs.version != 'custom' }}
                 run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
                     GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
@@ -147,7 +147,7 @@ jobs:
             -   name: Publish packages
                 run: yarn publish:prod --yes --no-verify-access
                 env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
                     GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
