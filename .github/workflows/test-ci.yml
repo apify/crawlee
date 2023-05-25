@@ -189,9 +189,9 @@ jobs:
                     echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc
                     yarn publish:next --yes --no-verify-access
                 env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.GH_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
+                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
+                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             -   name: Collect versions for Docker images
                 id: versions
@@ -210,7 +210,7 @@ jobs:
                 # Trigger next images only if we have something new pushed
                 if: steps.changed-packages.outputs.changed_packages != '0'
                 with:
-                    token: ${{ secrets.TRIGGER_DOCKER_IMAGE_BUILD_TOKEN }}
+                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     repository: apify/apify-actor-docker
                     event-type: build-node-images
                     client-payload: >

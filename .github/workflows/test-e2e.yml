@@ -50,7 +50,7 @@ jobs:
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
             -   name: Login to Apify
-                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_TOKEN }}
+                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
             -   name: Install Dependencies
                 run: yarn
