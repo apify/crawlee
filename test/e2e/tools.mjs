@@ -81,7 +81,7 @@ export async function runActor(dirName, memory = 4096) {
         const client = Actor.newClient();
 
         await copyPackages(dirName);
-        execSync('npx -y apify-cli push', { cwd: dirName });
+        execSync('npx -y apify-cli@beta push', { cwd: dirName });
 
         const actorName = await getActorName(dirName);
         const { items: actors } = await client.actors().list();
