@@ -317,6 +317,41 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
+    test('should retry failed requests based on `request.maxRetries`', async () => {
+        const sources = [
+            { url: 'http://example.com/1', maxRetries: 10 },
+            { url: 'http://example.com/2', maxRetries: 5 },
+            { url: 'http://example.com/3', maxRetries: 1 },
+        ];
+        const processed: Dictionary<Request> = {};
+        const requestList = await RequestList.open(null, sources);
+
+        const requestHandler: RequestHandler = async ({ request }) => {
+            await sleep(10);
+            processed[request.url] = request;
+            throw Error(`This is ${request.retryCount}th error!`);
+        };
+
+        const basicCrawler = new BasicCrawler({
+            requestList,
+            minConcurrency: 3,
+            maxConcurrency: 3,
+            requestHandler,
+        });
+
+        await basicCrawler.run();
+
+        expect(processed['http://example.com/1'].errorMessages).toHaveLength(11);
+        expect(processed['http://example.com/1'].retryCount).toBe(10);
+        expect(processed['http://example.com/2'].errorMessages).toHaveLength(6);
+        expect(processed['http://example.com/2'].retryCount).toBe(5);
+        expect(processed['http://example.com/3'].errorMessages).toHaveLength(2);
+        expect(processed['http://example.com/3'].retryCount).toBe(1);
+
+        expect(await requestList.isFinished()).toBe(true);
+        expect(await requestList.isEmpty()).toBe(true);
+    });
+
     test('should not retry requests with noRetry set to true ', async () => {
         const noRetryRequest = new Request({ url: 'http://example.com/3' });
         noRetryRequest.noRetry = true;

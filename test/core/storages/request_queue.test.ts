@@ -685,7 +685,7 @@ describe('RequestQueue remote', () => {
         const r1 = new Request({
             url,
             method,
-            userData: { __crawlee: { skipNavigation: true, foo: 123, bar: true } },
+            userData: { __crawlee: { skipNavigation: true, maxRetries: 10, foo: 123, bar: true } },
         });
         const r2 = new Request({
             url,
@@ -699,13 +699,19 @@ describe('RequestQueue remote', () => {
         const desc1 = Object.getOwnPropertyDescriptor(r1.userData, '__crawlee');
         expect(desc1.enumerable).toBe(false);
         expect(r1.skipNavigation).toBe(true);
-        expect(r1.userData.__crawlee).toMatchObject({ skipNavigation: true, foo: 123, bar: true });
+        expect(r1.maxRetries).toBe(10);
+        r1.maxRetries = 5;
+        expect(r1.userData.__crawlee).toMatchObject({ skipNavigation: true, maxRetries: 5, foo: 123, bar: true });
         const desc2 = Object.getOwnPropertyDescriptor(r2.userData, '__crawlee');
         expect(desc2.enumerable).toBe(false);
+        expect(r2.maxRetries).toBeUndefined();
         expect(r2.userData.__crawlee).toEqual({});
         const desc3 = Object.getOwnPropertyDescriptor(r3.userData, '__crawlee');
         expect(desc3.enumerable).toBe(false);
+        expect(r3.maxRetries).toBeUndefined();
         expect(r3.userData.__crawlee).toEqual({});
+        r3.maxRetries = 2;
+        expect(r3.userData.__crawlee).toEqual({ maxRetries: 2 });
     });
 });
 
