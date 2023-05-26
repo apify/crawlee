@@ -257,12 +257,12 @@ export class Request<UserData extends Dictionary = Dictionary> {
     }
 
     /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
-    get maxRetries(): number {
+    get maxRetries(): number | undefined {
         return this.userData.__crawlee?.maxRetries;
     }
 
     /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
-    set maxRetries(value: number) {
+    set maxRetries(value: number | undefined) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { maxRetries: value };
         } else {
