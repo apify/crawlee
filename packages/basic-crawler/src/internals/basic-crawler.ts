@@ -1207,7 +1207,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         // Ensure there are more retries available for the request
-        return request.retryCount < this.maxRequestRetries;
+        const maxRequestRetries = request.maxRetries ?? this.maxRequestRetries;
+        return request.retryCount < maxRequestRetries;
     }
 
     protected _augmentContextWithDeprecatedError(context: Context, error: Error) {

@@ -20,6 +20,7 @@ const requestOptionalPredicates = {
     payload: ow.optional.any(ow.string, ow.buffer),
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
+    maxRetries: ow.optional.number,
     errorMessages: ow.optional.array.ofType(ow.string),
     headers: ow.optional.object,
     userData: ow.optional.object,
@@ -153,6 +154,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             payload,
             noRetry = false,
             retryCount = 0,
+            maxRetries,
             errorMessages = [],
             headers = {},
             userData = {},
@@ -161,7 +163,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
             skipNavigation,
-        } = options as RequestOptions & { loadedUrl?: string; retryCount?: number; errorMessages?: string[]; handledAt?: string | Date };
+        } = options as RequestOptions & { loadedUrl?: string; retryCount?: number; maxRetries?: number; errorMessages?: string[]; handledAt?: string | Date };
 
         let {
             method = 'GET',
@@ -227,6 +229,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.userData = userData;
 
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
+        if (maxRetries != null) this.maxRetries = maxRetries;
     }
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
@@ -236,8 +239,11 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
     set skipNavigation(value: boolean) {
-        if (!this.userData.__crawlee) (this.userData as Dictionary).__crawlee = { skipNavigation: value };
-        else this.userData.__crawlee.skipNavigation = value;
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { skipNavigation: value };
+        } else {
+            this.userData.__crawlee.skipNavigation = value;
+        }
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -250,6 +256,20 @@ export class Request<UserData extends Dictionary = Dictionary> {
         (this.userData as Dictionary).label = value;
     }
 
+    /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
+    get maxRetries(): number | undefined {
+        return this.userData.__crawlee?.maxRetries;
+    }
+
+    /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
+    set maxRetries(value: number | undefined) {
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { maxRetries: value };
+        } else {
+            this.userData.__crawlee.maxRetries = value;
+        }
+    }
+
     /** Describes the request's current lifecycle state. */
     get state(): RequestState {
         return this.userData.__crawlee?.state ?? RequestState.UNPROCESSED;
@@ -257,8 +277,11 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** Describes the request's current lifecycle state. */
     set state(value: RequestState) {
-        if (!this.userData.__crawlee) (this.userData as Dictionary).__crawlee = { state: value };
-        else this.userData.__crawlee.state = value;
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { state: value };
+        } else {
+            this.userData.__crawlee.state = value;
+        }
     }
 
     /**
