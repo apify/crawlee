@@ -215,7 +215,7 @@ jobs:
                     event-type: build-node-images
                     client-payload: >
                         {
-                          "release_tag": "next",
+                          "release_tag": "beta",
                           "apify_version": "${{ steps.versions.outputs.apify }}",
                           "crawlee_version": "${{ steps.versions.outputs.crawlee }}",
                           "puppeteer_version": "${{ steps.versions.outputs.puppeteer }}",

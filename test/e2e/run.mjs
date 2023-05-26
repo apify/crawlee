@@ -93,6 +93,13 @@ async function run() {
                 console.log(`${colors.yellow(`[${dir.name}] `)}${match[2]}: ${c(match[1])}`);
             }
         });
+
+        worker.on('error', (err) => {
+            // If the worker emits any error, we want to exit with a non-zero code
+            failure = true;
+            console.log(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} failed with error: ${err}`);
+        });
+
         worker.on('exit', async (code) => {
             if (code === SKIPPED_TEST_CLOSE_CODE) {
                 console.log(`Test ${colors.yellow(`[${dir.name}]`)} was skipped`);
@@ -120,6 +127,7 @@ async function run() {
 
             if (status === 'failure') failure = true;
         });
+
         await once(worker, 'exit');
     }
 }
