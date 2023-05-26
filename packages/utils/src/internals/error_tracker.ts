@@ -1,3 +1,5 @@
+import { inspect } from 'node:util';
+
 /**
  * Node.js Error interface
  */
@@ -220,7 +222,11 @@ const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unk
     let { message } = error;
 
     if (!message) {
-        message = typeof error === 'string' ? error : `Unknown error message. Received non-error object: ${JSON.stringify(error)}`;
+        try {
+            message = typeof error === 'string' ? error : `Unknown error message. Received non-error object: ${JSON.stringify(error)}`;
+        } catch {
+            message = `Unknown error message. Received non-error object, and could not stringify it: ${inspect(error, { depth: 0 })}`;
+        }
     }
 
     if (!showFullMessage) {
