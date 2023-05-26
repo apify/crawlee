@@ -6,13 +6,13 @@ RUN npm --quiet set progress=false \
     && npm install --only=prod --no-optional \
     && npm update
 
-FROM apify/actor-node-playwright-chrome:16-beta
+FROM apify/actor-node-playwright-chrome:18-beta
 
 RUN rm -r node_modules
 COPY --from=builder /node_modules ./node_modules
 COPY --from=builder /packages ./packages
 COPY --from=builder /package*.json ./
-COPY /apify.json ./
+COPY /.actor ./.actor
 COPY /main.js ./
 
 RUN echo "Installed NPM packages:" \

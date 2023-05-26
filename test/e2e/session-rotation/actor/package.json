@@ -10,10 +10,10 @@
         "@crawlee/browser-pool": "file:./packages/browser-pool",
         "@crawlee/core": "file:./packages/core",
         "@crawlee/memory-storage": "file:./packages/memory-storage",
-        "@crawlee/puppeteer": "file:./packages/puppeteer-crawler",
+        "@crawlee/playwright": "file:./packages/playwright-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "puppeteer": "*"
+        "playwright": "*"
     },
     "overrides": {
         "apify": {

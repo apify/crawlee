@@ -1,4 +1,8 @@
-import { initialize, getActorTestDir, runActor, expect, validateDataset } from '../tools.mjs';
+import { initialize, getActorTestDir, runActor, expect, validateDataset, skipTest } from '../tools.mjs';
+
+if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM') {
+    await skipTest('not supported on platform');
+}
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
