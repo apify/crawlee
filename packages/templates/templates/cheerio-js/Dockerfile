@@ -1,7 +1,7 @@
 # Specify the base Docker image. You can read more about
 # the available images at https://crawlee.dev/docs/guides/docker-images
 # You can also use any other image from Docker Hub.
-FROM apify/actor-node:16
+FROM apify/actor-node:18
 
 # Copy just package.json and package-lock.json
 # to speed up the build using Docker layer cache.
