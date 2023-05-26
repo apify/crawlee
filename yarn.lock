@@ -768,7 +768,7 @@ __metadata:
     tslib: ^2.4.0
   peerDependencies:
     playwright: <= 2.x
-    puppeteer: <= 20.4
+    puppeteer: <= 20.x
   peerDependenciesMeta:
     playwright:
       optional: true
@@ -940,7 +940,7 @@ __metadata:
     ow: ^0.28.1
     tslib: ^2.4.0
   peerDependencies:
-    puppeteer: <= 20.4
+    puppeteer: <= 20.x
   peerDependenciesMeta:
     puppeteer:
       optional: true
@@ -4564,7 +4564,7 @@ __metadata:
     tslib: ^2.4.0
   peerDependencies:
     playwright: <= 2.x
-    puppeteer: <= 20.4
+    puppeteer: <= 20.x
   peerDependenciesMeta:
     playwright:
       optional: true
