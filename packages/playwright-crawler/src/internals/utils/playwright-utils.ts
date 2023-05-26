@@ -35,6 +35,9 @@ import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/cli
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
 
+// @ts-ignore No type definitions for this package
+import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
+
 const log = log_.child({ prefix: 'Playwright Utils' });
 
 const jqueryPath = require.resolve('jquery');
@@ -558,6 +561,12 @@ export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
     return cheerio.load(pageContent);
 }
 
+export async function closeCookieModals(page: Page): Promise<void> {
+    ow(page, ow.object.validate(validators.browserPage));
+    
+    await page.evaluate(getCookieClosingScript());
+}
+
 /** @internal */
 export interface PlaywrightContextUtils {
     /**
@@ -729,6 +738,11 @@ export interface PlaywrightContextUtils {
     * secured copies beforehand.
     */
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+
+    /**
+     * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
+     */
+    closeCookieModals(): Promise<void>;
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
@@ -751,6 +765,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
         requestQueue: context.crawler.requestQueue!,
     });
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
+    context.closeCookieModals = () => closeCookieModals(context.page);
 }
 
 export { enqueueLinksByClickingElements };
@@ -766,4 +781,5 @@ export const playwrightUtils = {
     infiniteScroll,
     saveSnapshot,
     compileScript,
+    closeCookieModals,
 };
