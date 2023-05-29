@@ -2,9 +2,8 @@
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { ensureDirSync, pathExistsSync } from 'fs-extra';
-import { renameSync } from 'node:fs';
-import { rm, rename, readdir } from 'node:fs/promises';
+import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra';
+import { rm, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { DatasetClient } from './resource-clients/dataset';
 import { DatasetCollectionClient } from './resource-clients/dataset-collection';
@@ -206,7 +205,7 @@ export class MemoryStorage implements storage.StorageClient {
                 const tempFilePath = resolve(temporaryPath, entity);
 
                 try {
-                    renameSync(originalFilePath, tempFilePath);
+                    moveSync(originalFilePath, tempFilePath);
                 } catch {
                     // Ignore
                 }
@@ -219,7 +218,7 @@ export class MemoryStorage implements storage.StorageClient {
 
             while (!done) {
                 try {
-                    renameSync(folder, tempPathForOldFolder);
+                    moveSync(folder, tempPathForOldFolder);
                     done = true;
                 } catch {
                     tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${++counter}__`);
@@ -227,7 +226,7 @@ export class MemoryStorage implements storage.StorageClient {
             }
 
             // Replace the temporary folder with the original folder
-            renameSync(temporaryPath, folder);
+            moveSync(temporaryPath, folder);
 
             // Remove the old folder
             return async () => (await this.batchRemoveFiles(tempPathForOldFolder))();
@@ -244,7 +243,7 @@ export class MemoryStorage implements storage.StorageClient {
 
             try {
                 // Rename the old folder to the new one to allow background deletions
-                await rename(folder, temporaryFolder);
+                await move(folder, temporaryFolder);
             } catch {
                 // Folder exists already, try again with an incremented counter
                 return this.batchRemoveFiles(folder, ++counter);
