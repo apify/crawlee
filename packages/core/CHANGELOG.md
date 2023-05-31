@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.3](https://github.com/apify/crawlee/compare/v3.3.2...v3.3.3) (2023-05-31)
+
+
+### Features
+
+* add support for `requestsFromUrl` to `RequestQueue` ([#1917](https://github.com/apify/crawlee/issues/1917)) ([7f2557c](https://github.com/apify/crawlee/commit/7f2557cdbbdee177db7c5970ae5a4881b7bc9b35))
+* **core:** add `Request.maxRetries` to allow overriding the `maxRequestRetries` ([#1925](https://github.com/apify/crawlee/issues/1925)) ([c5592db](https://github.com/apify/crawlee/commit/c5592db0f8094de27c46ad993bea2c1ab1f61385))
+
+
+
+
+
 ## [3.3.2](https://github.com/apify/crawlee/compare/v3.3.1...v3.3.2) (2023-05-11)
 
 

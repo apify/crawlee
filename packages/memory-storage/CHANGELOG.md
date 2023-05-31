@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.3.3](https://github.com/apify/crawlee/compare/v3.3.2...v3.3.3) (2023-05-31)
+
+
+### Bug Fixes
+
+* **MemoryStorage:** handle EXDEV errors when purging storages ([#1932](https://github.com/apify/crawlee/issues/1932)) ([e656050](https://github.com/apify/crawlee/commit/e6560507243f5e2d0b126160616573f13e5998e1))
+
+
+
+
+
 ## [3.3.2](https://github.com/apify/crawlee/compare/v3.3.1...v3.3.2) (2023-05-11)
 
 
