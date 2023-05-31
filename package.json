@@ -97,7 +97,7 @@
         "rimraf": "^5.0.0",
         "ts-jest": "^29.0.3",
         "ts-node": "^10.9.1",
-        "turbo": "1.10.0",
+        "turbo": "1.10.1",
         "typescript": "^5.0.0"
     },
     "packageManager": "yarn@3.5.1",
