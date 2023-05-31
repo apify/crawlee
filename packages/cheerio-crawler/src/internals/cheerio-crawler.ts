@@ -235,6 +235,12 @@ export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, ori
  * @ignore
  */
 function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl?: string): string[] {
+    const base = $('base').attr('href');
+
+    if (base) {
+        baseUrl = base;
+    }
+
     return $(selector)
         .map((_i, el) => $(el).attr('href'))
         .get()
