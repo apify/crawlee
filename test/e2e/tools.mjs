@@ -215,10 +215,9 @@ export async function runActor(dirName, memory = 4096) {
         }
 
         if (input) {
-            // @ts-ignore installed only optionally run `run.mjs` script
-            const { ApifyStorageLocal } = await import('@apify/storage-local');
             await Actor.init({
-                storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined,
+                // @ts-ignore installed only optionally run `run.mjs` script
+                storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
             });
             await Actor.setValue('INPUT', input, { contentType });
         }

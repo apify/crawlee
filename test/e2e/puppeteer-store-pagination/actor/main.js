@@ -1,8 +1,7 @@
 import { Actor } from 'apify';
 import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
-import { ApifyStorageLocal } from '@apify/storage-local';
 
-await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined });
+await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined });
 
 const crawler = new PuppeteerCrawler({
     maxRequestsPerCrawl: 10,
