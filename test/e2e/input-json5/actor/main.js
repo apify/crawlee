@@ -1,9 +1,8 @@
 import { Actor, Dataset, KeyValueStore, log } from 'apify';
-import { ApifyStorageLocal } from '@apify/storage-local';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined,
+    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
 };
 
 await Actor.main(async () => {

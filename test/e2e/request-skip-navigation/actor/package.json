@@ -4,7 +4,7 @@
     "description": "Request Test - skipNavigation",
     "dependencies": {
         "apify": "next",
-        "@apify/storage-local": "^2.1.0",
+        "@apify/storage-local": "^2.1.3",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",
         "@crawlee/http": "file:./packages/http-crawler",

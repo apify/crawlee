@@ -3,13 +3,12 @@ import { URL } from 'url';
 import { once } from 'events';
 import { Actor } from 'apify';
 import { CheerioCrawler, Configuration, Dataset } from '@crawlee/cheerio';
-import { ApifyStorageLocal } from '@apify/storage-local';
 
 process.env.CRAWLEE_PURGE_ON_START = '0';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined,
+    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
 };
 
 const thisFile = new URL(import.meta.url);

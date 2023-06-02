@@ -1,9 +1,8 @@
 import { Actor } from 'apify';
 import { JSDOMCrawler, Dataset } from '@crawlee/jsdom';
-import { ApifyStorageLocal } from '@apify/storage-local';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
-    await Actor.init({ storage: new ApifyStorageLocal() });
+    await Actor.init({ storage: new (await import('@apify/storage-local')).ApifyStorageLocal() });
 } else {
     await Actor.init();
 }

@@ -1,12 +1,11 @@
 import { Actor } from 'apify';
 import { PlaywrightCrawler, log } from '@crawlee/playwright';
-import { ApifyStorageLocal } from '@apify/storage-local';
 
 process.env.APIFY_LOG_LEVEL = 'DEBUG';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new ApifyStorageLocal() : undefined,
+    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
 };
 
 await Actor.main(async () => {

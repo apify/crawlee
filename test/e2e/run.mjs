@@ -134,14 +134,18 @@ async function run() {
 
 if (isMainThread) {
     try {
-        console.log('Temporary installing @apify/storage-local');
-        execSync(`yarn add -D @apify/storage-local > /dev/null`, { stdio: 'inherit' });
+        if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
+            console.log('Temporary installing @apify/storage-local');
+            execSync(`yarn add -D @apify/storage-local@^2.1.3-beta.1 > /dev/null`, { stdio: 'inherit' });
+        }
         await run();
     } catch (e) {
         console.error(e);
     } finally {
-        console.log('Removing temporary installation of @apify/storage-local');
-        execSync(`yarn remove @apify/storage-local > /dev/null`, { stdio: 'inherit' });
+        if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
+            console.log('Removing temporary installation of @apify/storage-local');
+            execSync(`yarn remove @apify/storage-local > /dev/null`, { stdio: 'inherit' });
+        }
     }
 
     // We want to exit with non-zero code if any of the tests failed
