@@ -238,7 +238,7 @@ function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl
     const base = $('base').attr('href');
 
     if (base) {
-        baseUrl = base;
+        baseUrl = tryAbsoluteURL(base, baseUrl!);
     }
 
     return $(selector)

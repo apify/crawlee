@@ -1,28 +1,29 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type {
+    Awaitable,
+    BasicCrawlerOptions,
     CrawlingContext,
+    Dictionary,
+    EnqueueLinksOptions,
+    ErrorHandler,
     ProxyConfiguration,
     ProxyInfo,
+    RequestHandler,
     RequestQueue,
     Session,
-    BasicCrawlerOptions,
-    Awaitable,
-    Dictionary,
-    RequestHandler,
-    ErrorHandler,
-    EnqueueLinksOptions,
 } from '@crawlee/basic';
 import {
+    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    BasicCrawler,
+    Configuration,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    validators,
-    resolveBaseUrlForEnqueueLinksFiltering,
-    Configuration,
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-    BasicCrawler,
+    tryAbsoluteURL,
     RequestState,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -698,7 +699,7 @@ export async function browserCrawlerEnqueueLinks({
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = await extractUrlsFromPage(page as any, options?.selector ?? 'a');
+    const urls = await extractUrlsFromPage(page as any, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
 
     return enqueueLinks({
         requestQueue,
@@ -713,6 +714,25 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-async function extractUrlsFromPage(page: { $$eval: Function }, selector: string): Promise<string[]> {
-    return page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.href)) ?? [];
+async function extractUrlsFromPage(page: { $eval: Function; $$eval: Function }, selector: string, baseUrl?: string): Promise<string[]> {
+    const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
+    const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
+
+    if (base) {
+        baseUrl = tryAbsoluteURL(base, baseUrl!);
+    }
+
+    return urls.map((href: string) => {
+        // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
+        const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
+        if (!isHrefAbsolute && !baseUrl) {
+            throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
+                + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
+        }
+
+        return baseUrl
+            ? tryAbsoluteURL(href, baseUrl)
+            : href;
+    })
+        .filter((href: string | undefined) => !!href);
 }

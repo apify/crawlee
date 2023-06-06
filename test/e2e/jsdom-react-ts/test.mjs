@@ -1,4 +1,6 @@
-import { initialize, getActorTestDir, runActor, expect, validateDataset } from '../tools.mjs';
+import { initialize, getActorTestDir, runActor, expect, validateDataset, skipTest } from '../tools.mjs';
+
+await skipTest('target site no longer exists');
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
