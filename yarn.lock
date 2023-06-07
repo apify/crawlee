@@ -885,7 +885,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/linkedom@workspace:packages/linkedom-crawler":
+"@crawlee/linkedom@^3.3.3, @crawlee/linkedom@workspace:packages/linkedom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
@@ -4594,6 +4594,7 @@ __metadata:
     "@crawlee/core": ^3.3.3
     "@crawlee/http": ^3.3.3
     "@crawlee/jsdom": ^3.3.3
+    "@crawlee/linkedom": ^3.3.3
     "@crawlee/playwright": ^3.3.3
     "@crawlee/puppeteer": ^3.3.3
     "@crawlee/utils": ^3.3.3
