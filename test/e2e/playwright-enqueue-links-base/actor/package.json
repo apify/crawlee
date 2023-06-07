@@ -1,0 +1,30 @@
+{
+    "name": "test-playwright-enqueue-links-base",
+    "version": "0.0.1",
+    "description": "Playwright Test - Enqueue Links with <base href>",
+    "dependencies": {
+        "apify": "next",
+        "@apify/storage-local": "^2.1.0",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/browser": "file:./packages/browser-crawler",
+        "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/playwright": "file:./packages/playwright-crawler",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils",
+        "deep-equal": "^2.0.5",
+        "playwright": "*"
+    },
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}

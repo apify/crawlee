@@ -1,0 +1,7 @@
+{
+	"actorSpecification": 1,
+	"name": "test-playwright-enqueue-links-base",
+	"version": "0.0",
+	"buildTag": "latest",
+	"env": null
+}

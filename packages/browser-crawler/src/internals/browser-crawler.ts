@@ -1,29 +1,29 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import type {
+    Awaitable,
+    BasicCrawlerOptions,
     CrawlingContext,
+    Dictionary,
+    EnqueueLinksOptions,
+    ErrorHandler,
     ProxyConfiguration,
     ProxyInfo,
+    RequestHandler,
     RequestQueue,
     Session,
-    BasicCrawlerOptions,
-    Awaitable,
-    Dictionary,
-    RequestHandler,
-    ErrorHandler,
-    EnqueueLinksOptions,
 } from '@crawlee/basic';
 import {
+    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+    BasicCrawler,
+    Configuration,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    validators,
-    resolveBaseUrlForEnqueueLinksFiltering,
-    Configuration,
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-    BasicCrawler,
-    RequestState,
     tryAbsoluteURL,
+    RequestState,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -714,15 +714,21 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl?: string): Promise<string[]> {
+async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
     const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
+    const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
+    const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
+
+    if (absoluteBaseUrl) {
+        baseUrl = absoluteBaseUrl;
+    }
 
     return urls.map((href: string) => {
         // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
         const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
         if (!isHrefAbsolute && !baseUrl) {
             throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
-                    + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
+                + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
         }
 
         return baseUrl
