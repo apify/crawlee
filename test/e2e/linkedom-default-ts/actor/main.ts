@@ -3,8 +3,7 @@ import { LinkeDOMCrawler, Dataset } from '@crawlee/linkedom';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     // @ts-ignore
-    const { ApifyStorageLocal } = await import('@apify/storage-local');
-    await Actor.init({ storage: new ApifyStorageLocal() });
+    await Actor.init({ storage: new (await import('@apify/storage-local')).ApifyStorageLocal() });
 } else {
     await Actor.init();
 }

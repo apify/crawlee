@@ -7,9 +7,11 @@ import type {
     RequestHandler,
     EnqueueLinksOptions,
     RequestQueue,
+    GetUserDataFromRequest,
+    RouterRoutes,
 } from '@crawlee/http';
+import type { Dictionary } from '@crawlee/types';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
-import type { Dictionary, GetUserDataFromRequest, RouterRoutes } from '@crawlee/core';
 import { concatStreamToBuffer } from '@apify/utilities';
 import { DOMParser } from 'linkedom/cached';
 import type { IncomingMessage } from 'http';

@@ -61,6 +61,7 @@
         "@crawlee/core": "^3.3.3",
         "@crawlee/http": "^3.3.3",
         "@crawlee/jsdom": "^3.3.3",
+        "@crawlee/linkedom": "^3.3.3",
         "@crawlee/playwright": "^3.3.3",
         "@crawlee/puppeteer": "^3.3.3",
         "@crawlee/utils": "^3.3.3",
