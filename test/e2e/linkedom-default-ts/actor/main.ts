@@ -1,8 +1,8 @@
 import { Actor } from 'apify';
 import { LinkeDOMCrawler, Dataset } from '@crawlee/linkedom';
-import { ApifyStorageLocal } from '@apify/storage-local';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
+    const { ApifyStorageLocal } = await import('@apify/storage-local');
     await Actor.init({ storage: new ApifyStorageLocal() });
 } else {
     await Actor.init();
