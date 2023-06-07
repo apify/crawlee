@@ -8,6 +8,7 @@ The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of sever
 - [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler): exports `CheerioCrawler`
 - [`@crawlee/playwright`](https://crawlee.dev/api/playwright-crawler): exports `PlaywrightCrawler`
 - [`@crawlee/puppeteer`](https://crawlee.dev/api/puppeteer-crawler): exports `PuppeteerCrawler`
+- [`@crawlee/linkedom`](https://crawlee.dev/api/jsdom-crawler): exports `LinkeDOMCrawler`
 - [`@crawlee/jsdom`](https://crawlee.dev/api/jsdom-crawler): exports `JSDOMCrawler`
 - [`@crawlee/basic`](https://crawlee.dev/api/basic-crawler): exports `BasicCrawler`
 - [`@crawlee/http`](https://crawlee.dev/api/http-crawler): exports `HttpCrawler` (which is used for creating [`@crawlee/jsdom`](https://crawlee.dev/api/jsdom-crawler) and [`@crawlee/cheerio`](https://crawlee.dev/api/cheerio-crawler))

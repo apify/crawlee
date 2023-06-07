@@ -849,7 +849,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/http@^3.3.3, @crawlee/http@workspace:packages/http-crawler":
+"@crawlee/http@^3.3.1, @crawlee/http@^3.3.3, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
@@ -880,6 +880,20 @@ __metadata:
     "@types/jsdom": ^21.0.0
     cheerio: ^1.0.0-rc.12
     jsdom: ^22.0.0
+    ow: ^0.28.2
+    tslib: ^2.4.0
+  languageName: unknown
+  linkType: soft
+
+"@crawlee/linkedom@workspace:packages/linkedom-crawler":
+  version: 0.0.0-use.local
+  resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
+  dependencies:
+    "@apify/timeout": ^0.3.0
+    "@apify/utilities": ^2.1.4
+    "@crawlee/http": ^3.3.1
+    "@crawlee/types": ^3.3.1
+    linkedom: ^0.14.25
     ow: ^0.28.2
     tslib: ^2.4.0
   languageName: unknown
@@ -1015,7 +1029,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/types@^3.3.0, @crawlee/types@^3.3.3, @crawlee/types@workspace:packages/types":
+"@crawlee/types@^3.3.0, @crawlee/types@^3.3.1, @crawlee/types@^3.3.3, @crawlee/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:
@@ -4673,6 +4687,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cssom@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "cssom@npm:0.5.0"
+  checksum: 823471aa30091c59e0a305927c30e7768939b6af70405808f8d2ce1ca778cddcb24722717392438329d1691f9a87cb0183b64b8d779b56a961546d54854fde01
+  languageName: node
+  linkType: hard
+
 "cssstyle@npm:^3.0.0":
   version: 3.0.0
   resolution: "cssstyle@npm:3.0.0"
@@ -6898,6 +6919,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"html-escaper@npm:^3.0.3":
+  version: 3.0.3
+  resolution: "html-escaper@npm:3.0.3"
+  checksum: a2678be42c15d2ef6e629775dac0925a729f4615c6593db8358b9262c7565c4627134987c00f548eb4eb76cbc3b3392f78475cd02b022f8ae7aeb9a88280831b
+  languageName: node
+  linkType: hard
+
 "htmlparser2@npm:^8.0.1":
   version: 8.0.2
   resolution: "htmlparser2@npm:8.0.2"
@@ -8625,6 +8653,19 @@ __metadata:
   version: 2.0.3
   resolution: "lines-and-columns@npm:2.0.3"
   checksum: 5955363dfd7d3d7c476d002eb47944dbe0310d57959e2112dce004c0dc76cecfd479cf8c098fd479ff344acdf04ee0e82b455462a26492231ac152f6c48d17a1
+  languageName: node
+  linkType: hard
+
+"linkedom@npm:^0.14.25":
+  version: 0.14.26
+  resolution: "linkedom@npm:0.14.26"
+  dependencies:
+    css-select: ^5.1.0
+    cssom: ^0.5.0
+    html-escaper: ^3.0.3
+    htmlparser2: ^8.0.1
+    uhyphen: ^0.2.0
+  checksum: 828415ac9f848efb307f444c47b3966383f782bd6cc8e52cf839f6a901d3ef2dc56da11aee3454794b345f08b04960152a3a339753295cd7b72084608f7314a0
   languageName: node
   linkType: hard
 
@@ -12765,6 +12806,13 @@ __metadata:
   bin:
     uglifyjs: bin/uglifyjs
   checksum: 7b3897df38b6fc7d7d9f4dcd658599d81aa2b1fb0d074829dd4e5290f7318dbca1f4af2f45acb833b95b1fe0ed4698662ab61b87e94328eb4c0a0d3435baf924
+  languageName: node
+  linkType: hard
+
+"uhyphen@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "uhyphen@npm:0.2.0"
+  checksum: b946e2c17989f50412d7cc07521a199a1edc52e0320813c06ef5eee21570cd46bbfeb98e82288f21150144a3ef9d4e99395533ab1c918030e5224f3e247cbe57
   languageName: node
   linkType: hard
 
