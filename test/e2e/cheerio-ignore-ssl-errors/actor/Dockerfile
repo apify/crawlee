@@ -4,7 +4,7 @@ COPY packages ./packages
 COPY package*.json ./
 
 RUN npm --quiet set progress=false \
-	&& npm install --only=prod --no-optional \
+	&& npm install --only=prod --no-optional --no-audit \
 	&& npm update \
 	&& echo "Installed NPM packages:" \
 	&& (npm list --only=prod --no-optional --all || true) \

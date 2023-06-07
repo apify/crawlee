@@ -3,7 +3,7 @@ FROM node:18 AS builder
 COPY /packages ./packages
 COPY /package*.json ./
 RUN npm --quiet set progress=false \
-    && npm install --only=prod --no-optional \
+    && npm install --only=prod --no-optional --no-audit \
     && npm update
 
 FROM apify/actor-node-playwright-firefox:18-beta
