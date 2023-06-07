@@ -9,6 +9,10 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestsPerCrawl: 30,
+        proxyConfiguration: await Actor.createProxyConfiguration({ groups: ['SHADER'] }),
+        sessionPoolOptions: {
+            blockedStatusCodes: [401, 429],
+        },
         async requestHandler({ parseWithCheerio, enqueueLinks, request, log }) {
             const { url, loadedUrl } = request;
 

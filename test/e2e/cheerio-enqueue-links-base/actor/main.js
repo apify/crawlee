@@ -9,6 +9,7 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         maxRequestsPerCrawl: 30,
+        proxyConfiguration: await Actor.createProxyConfiguration(),
         async requestHandler({ $, enqueueLinks, request, log }) {
             const { url, loadedUrl } = request;
 
