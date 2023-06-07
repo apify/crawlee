@@ -1,4 +1,4 @@
-FROM node:18-beta AS builder
+FROM node:18 AS builder
 
 COPY /packages ./packages
 COPY /package*.json ./
