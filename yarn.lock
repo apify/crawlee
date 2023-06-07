@@ -849,7 +849,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/http@^3.3.1, @crawlee/http@^3.3.3, @crawlee/http@workspace:packages/http-crawler":
+"@crawlee/http@^3.3.3, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
@@ -891,8 +891,8 @@ __metadata:
   dependencies:
     "@apify/timeout": ^0.3.0
     "@apify/utilities": ^2.1.4
-    "@crawlee/http": ^3.3.1
-    "@crawlee/types": ^3.3.1
+    "@crawlee/http": ^3.3.3
+    "@crawlee/types": ^3.3.3
     linkedom: ^0.14.25
     ow: ^0.28.2
     tslib: ^2.4.0
@@ -1029,7 +1029,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/types@^3.3.0, @crawlee/types@^3.3.1, @crawlee/types@^3.3.3, @crawlee/types@workspace:packages/types":
+"@crawlee/types@^3.3.0, @crawlee/types@^3.3.3, @crawlee/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:
@@ -4970,9 +4970,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1152884
-  resolution: "devtools-protocol@npm:0.0.1152884"
-  checksum: e670c916c26fa337e9ab4f0c047f732977c7336f5ca16b2c4a19132fa66b66aa6c6bb9ef3fd0d2d3a1ccef4871311b786aaaee92e5a95304d3b7b921dc56ff4b
+  version: 0.0.1154250
+  resolution: "devtools-protocol@npm:0.0.1154250"
+  checksum: 5c30eb40b9b484ddb9e98f2017dbd18cb14da42719a811eca24a909457eb61d860da31b50eae399f8a24135f192a1dbdb7d0e6bd920fafae4f32e2b49334e359
   languageName: node
   linkType: hard
 

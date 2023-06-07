@@ -2,6 +2,7 @@ import { Actor } from 'apify';
 import { LinkeDOMCrawler, Dataset } from '@crawlee/linkedom';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
+    // @ts-ignore
     const { ApifyStorageLocal } = await import('@apify/storage-local');
     await Actor.init({ storage: new ApifyStorageLocal() });
 } else {
@@ -10,13 +11,13 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
 
 const crawler = new LinkeDOMCrawler();
 
-crawler.router.addDefaultHandler(async ({ document, enqueueLinks, request, log }) => {
+crawler.router.addDefaultHandler(async ({ window, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
         globs: ['https://crawlee.dev/docs/**'],
     });
 
-    const pageTitle = document.title;
+    const pageTitle = window.document.title;
     log.info(`URL: ${url} TITLE: ${pageTitle}`);
 
     await Dataset.pushData({ url, pageTitle });

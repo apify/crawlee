@@ -11,6 +11,7 @@
         "**/*.d.ts"
     ],
 	"rules": {
+        "@typescript-eslint/ban-ts-comment": 0,
 		"import/extensions": 0,
 		"import/no-extraneous-dependencies": 0
 	}
