@@ -234,11 +234,12 @@ export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, ori
  * Extracts URLs from a given Cheerio object.
  * @ignore
  */
-function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl?: string): string[] {
+function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl: string): string[] {
     const base = $('base').attr('href');
+    const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
 
-    if (base) {
-        baseUrl = tryAbsoluteURL(base, baseUrl!);
+    if (absoluteBaseUrl) {
+        baseUrl = absoluteBaseUrl;
     }
 
     return $(selector)
