@@ -22,7 +22,6 @@
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-react-hooks": "^4.6.0",
         "fs-extra": "^11.1.0",
-        "got": "^11.8.6",
         "path-browserify": "^1.0.1",
         "prettier": "^2.8.4",
         "rimraf": "^5.0.0",
