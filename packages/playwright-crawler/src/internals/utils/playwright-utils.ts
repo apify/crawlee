@@ -336,9 +336,15 @@ export function compileScript(scriptString: string, context: Dictionary = Object
 export interface InfiniteScrollOptions {
     /**
      * How many seconds to scroll for. If 0, will scroll until bottom of page.
-     * @default 1
+     * @default 0
      */
     timeoutSecs?: number;
+
+    /**
+     * How many pixels to scroll down. If 0, will scroll until bottom of page.
+     * @default 0
+     */
+    maxScrollHeight?: number;
 
     /**
      * How many seconds to wait for no new content to load before exit.
@@ -373,18 +379,20 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
     ow(page, ow.object.validate(validators.browserPage));
     ow(options, ow.object.exactShape({
         timeoutSecs: ow.optional.number,
+        maxScrollHeight: ow.optional.number,
         waitForSecs: ow.optional.number,
         scrollDownAndUp: ow.optional.boolean,
         buttonSelector: ow.optional.string,
         stopScrollCallback: ow.optional.function,
     }));
 
-    const { timeoutSecs = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector, stopScrollCallback } = options;
+    const { timeoutSecs = 0, maxScrollHeight = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector, stopScrollCallback } = options;
 
     let finished;
     const startTime = Date.now();
     const CHECK_INTERVAL_MILLIS = 1000;
     const SCROLL_HEIGHT_IF_ZERO = 10000;
+    let scrolledDistance = 0;
     const maybeResourceTypesInfiniteScroll = ['xhr', 'fetch', 'websocket', 'other'];
     const resourcesStats = {
         newRequested: 0,
@@ -415,6 +423,12 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
             clearInterval(checkFinished);
             finished = true;
         }
+
+        // check if max scroll height has been reached
+        if (maxScrollHeight > 0 && scrolledDistance >= maxScrollHeight) {
+            clearInterval(checkFinished);
+            finished = true;
+        }
     }, CHECK_INTERVAL_MILLIS);
 
     const doScroll = async () => {
@@ -422,6 +436,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
         const delta = bodyScrollHeight === 0 ? SCROLL_HEIGHT_IF_ZERO : bodyScrollHeight;
 
         await page.mouse.wheel(0, delta);
+        scrolledDistance += delta;
     };
 
     const maybeClickButton = async () => {
