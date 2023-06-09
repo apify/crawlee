@@ -392,6 +392,23 @@ describe('puppeteerUtils', () => {
                 expect(after).toBe(true);
             });
 
+            test('maxScrollHeight works', async () => {
+                const before = await page.evaluate(isAtBottom);
+                expect(before).toBe(false);
+
+                await puppeteerUtils.infiniteScroll(page, {
+                    waitForSecs: Infinity,
+                    maxScrollHeight: 1000,
+                    stopScrollCallback: async () => true,
+                });
+
+                const after = await page.evaluate(isAtBottom);
+                // It scrolls to the bottom in the first scroll so this is correct.
+                // The test passes because the Infinite waitForSecs is broken by the height requirement.
+                // If it didn't, the test would time out.
+                expect(after).toBe(true);
+            });
+
             test('stopScrollCallback works', async () => {
                 const before = await page.evaluate(isAtBottom);
                 expect(before).toBe(false);
@@ -402,9 +419,6 @@ describe('puppeteerUtils', () => {
                 });
 
                 const after = await page.evaluate(isAtBottom);
-                // It scrolls to the bottom in the first scroll so this is correct.
-                // The test passes because the Infinite waitForSecs is broken by the callback.
-                // If it didn't, the test would time out.
                 expect(after).toBe(true);
             });
         });
