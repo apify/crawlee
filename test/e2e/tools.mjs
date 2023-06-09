@@ -82,7 +82,7 @@ export async function runActor(dirName, memory = 4096) {
 
         await copyPackages(dirName);
         try {
-            execSync('npx -y apify-cli@beta push --no-prompt', { cwd: dirName });
+            execSync('npx -y apify-cli@beta push --no-prompt', { cwd: dirName, stdio: 'inherit' });
         } catch (err) {
             console.error(colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`));
 
@@ -99,6 +99,7 @@ export async function runActor(dirName, memory = 4096) {
 
         const actorName = await getActorName(dirName);
         const { items: actors } = await client.actors().list();
+        console.log(actorName, actors.map((actor) => actor.name));
         const { id } = actors.find((actor) => actor.name === actorName);
 
         const gotClient = got.extend({
