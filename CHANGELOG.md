@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.4.0](https://github.com/apify/crawlee/compare/v3.3.3...v3.4.0) (2023-06-12)
+
+
+### Bug Fixes
+
+* respect `<base>` when enqueuing ([#1936](https://github.com/apify/crawlee/issues/1936)) ([aeef572](https://github.com/apify/crawlee/commit/aeef57231c84671374ed0309b7b95fa9ce9a6e8b))
+* stop lerna from overwriting the copy.ts results ([#1946](https://github.com/apify/crawlee/issues/1946)) ([69bed40](https://github.com/apify/crawlee/commit/69bed4033eb1550fe1d0c9713b70f9527bf1bb51))
+
+
+### Features
+
+* add LinkeDOMCrawler ([#1907](https://github.com/apify/crawlee/issues/1907)) ([1c69560](https://github.com/apify/crawlee/commit/1c69560fe7ef45097e6be1037b79a84eb9a06337)), closes [/github.com/apify/crawlee/pull/1890#issuecomment-1533271694](https://github.com//github.com/apify/crawlee/pull/1890/issues/issuecomment-1533271694)
+* infiniteScroll has maxScrollHeight limit ([#1945](https://github.com/apify/crawlee/issues/1945)) ([44997bb](https://github.com/apify/crawlee/commit/44997bba5bbf33ddb7dbac2f3e26d4bee60d4f47))
+
+
+
+
+
 ## [3.3.3](https://github.com/apify/crawlee/compare/v3.3.2...v3.3.3) (2023-05-31)
 
 

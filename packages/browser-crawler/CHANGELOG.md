@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.4.0](https://github.com/apify/crawlee/compare/v3.3.3...v3.4.0) (2023-06-12)
+
+
+### Bug Fixes
+
+* respect `<base>` when enqueuing ([#1936](https://github.com/apify/crawlee/issues/1936)) ([aeef572](https://github.com/apify/crawlee/commit/aeef57231c84671374ed0309b7b95fa9ce9a6e8b))
+
+
+
+
+
 ## [3.3.3](https://github.com/apify/crawlee/compare/v3.3.2...v3.3.3) (2023-05-31)
 
 **Note:** Version bump only for package @crawlee/browser
