@@ -8,6 +8,9 @@
       "conventionalCommits": true,
       "createRelease": "github",
       "message": "chore(release): %s"
+    },
+    "publish": {
+      "assets": []
     }
   },
   "npmClient": "yarn",
