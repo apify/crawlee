@@ -49,6 +49,7 @@ export interface JSDOMCrawlingContext<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
     window: DOMWindow;
+    document: Document;
 
     /**
      * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
@@ -260,6 +261,9 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             window,
             get body() {
                 return window.document.documentElement.outerHTML;
+            },
+            get document() {
+                return window.document;
             },
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({

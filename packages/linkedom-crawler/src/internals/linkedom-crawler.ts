@@ -38,6 +38,12 @@ export interface LinkeDOMCrawlingContext<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
     window: Window;
+    // Technically the document is not of type Document but of type either HTMLDocument or XMLDocument
+    // from linkedom/types/{html/xml}/document, depending on the content type of the response
+    // Using union of the real types would make writing the crawlers inconvenient,
+    // so we specify the type as the native Document type from lib.dom.d.ts
+    // even though it's not technically 100% correct
+    document: Document;
 
     /**
      * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
@@ -135,12 +141,16 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
     protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: LinkeDOMCrawlingContext) {
         const body = await concatStreamToBuffer(response);
 
-        const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/html' : 'text/html');
+        const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/xml' : 'text/html');
 
         return {
             window: document.defaultView,
             get body() {
                 return document.documentElement.outerHTML;
+            },
+            get document() {
+                // See comment about typing in LinkeDOMCrawlingContext definition
+                return document as unknown as Document;
             },
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
