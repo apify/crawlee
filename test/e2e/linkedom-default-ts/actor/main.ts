@@ -1,5 +1,6 @@
 import { Actor } from 'apify';
 import { LinkeDOMCrawler, Dataset } from '@crawlee/linkedom';
+import assert from 'node:assert';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     // @ts-ignore
@@ -10,13 +11,15 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
 
 const crawler = new LinkeDOMCrawler();
 
-crawler.router.addDefaultHandler(async ({ window, enqueueLinks, request, log }) => {
+crawler.router.addDefaultHandler(async ({ window, document, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
         globs: ['https://crawlee.dev/docs/**'],
     });
 
     const pageTitle = window.document.title;
+    const { title } = document;
+    assert.strictEqual(pageTitle, title);
     log.info(`URL: ${url} TITLE: ${pageTitle}`);
 
     await Dataset.pushData({ url, pageTitle });
