@@ -1,0 +1,22 @@
+---
+id: jsdom-crawler
+title: JSDOM crawler
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import JSDOMCrawlerSource from '!!raw-loader!./jsdom_crawler.ts';
+import JSDOMCrawlerRunScriptSource from '!!raw-loader!./jsdom_crawler_react.ts';
+
+This example demonstrates how to use <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> to interact with a website using [jsdom](https://www.npmjs.com/package/jsdom) DOM implementation.
+Here the script will open a calculator app from the [React examples](https://reactjs.org/community/examples.html), click `1` `+` `1` `=` and extract the result.
+
+<CodeBlock className="language-ts">
+	{JSDOMCrawlerRunScriptSource}
+</CodeBlock>
+
+In the following example, we use <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> to crawl a list of URLs from an external file, load each URL using a plain HTTP request, parse the HTML using the [jsdom](https://www.npmjs.com/package/jsdom) DOM implementation and extract some data from it: the page title and all `h1` tags.
+
+<CodeBlock className="language-ts">
+	{JSDOMCrawlerSource}
+</CodeBlock>
