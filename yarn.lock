@@ -3592,9 +3592,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001503":
-  version: 1.0.30001503
-  resolution: "caniuse-lite@npm:1.0.30001503"
-  checksum: cd5f0af37655ff71ec4ab3c49124d75e0b8b68de625d07ea80e9a82329e616b5203d5dad6865192653be9da50081c06878f081ab069dac0be35adf29aa1599cd
+  version: 1.0.30001504
+  resolution: "caniuse-lite@npm:1.0.30001504"
+  checksum: 0256f8ef2f5d6d1559198967d7325952e6451e79ff1b92d3d6ba1ec43efedf49fcd3fbb0735ebed0bfd96c6c6a49730e169535e273c60795d23ef25bd37e3e3d
   languageName: node
   linkType: hard
 
@@ -4501,14 +4501,14 @@ __metadata:
   linkType: hard
 
 "degenerator@npm:^4.0.1":
-  version: 4.0.2
-  resolution: "degenerator@npm:4.0.2"
+  version: 4.0.3
+  resolution: "degenerator@npm:4.0.3"
   dependencies:
     ast-types: ^0.13.2
     escodegen: ^1.8.1
     esprima: ^4.0.0
-    vm2: ^3.9.17
-  checksum: d1d8de82f0449800b6252fc9ed23fa38c39410b47576b057c593671d7e3206e516926836de3bc151f42843e78fd7bd1dfaaf588b04e7b8de4b60f88830a359b1
+    vm2: ^3.9.19
+  checksum: 6d1d9b001b0614409bf650a72af06fe4ba6ad095610966860fbef5b09bc810505d87aabd3527211c797af67c8a21212563f501eba8e765b8ed8e1d7fabce06ea
   languageName: node
   linkType: hard
 
@@ -6212,15 +6212,15 @@ __metadata:
   linkType: hard
 
 "globby@npm:^13.1.2":
-  version: 13.1.4
-  resolution: "globby@npm:13.1.4"
+  version: 13.2.0
+  resolution: "globby@npm:13.2.0"
   dependencies:
     dir-glob: ^3.0.1
     fast-glob: ^3.2.11
     ignore: ^5.2.0
     merge2: ^1.4.1
     slash: ^4.0.0
-  checksum: e8bc13879972082d590cd1b0e27080d90d2e12fff7eeb2cee9329c29115ace14cc5b9f899e3d6beb136ba826307a727016658919a6f383e1511d698acee81741
+  checksum: 0a3dd786571788adef1c894f22112834cff5bbe061ae6e0a01c5118c39d44b3f1937ef1dae3f8b9bc24756eba84a0923e565b1ad9a4ec52831d7e2a04c035e75
   languageName: node
   linkType: hard
 
@@ -11515,21 +11515,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.0.6":
-  version: 6.0.6
-  resolution: "tldts-core@npm:6.0.6"
-  checksum: 2cb5e94fda779a2b02d4aea4105441aa662d9896f0cd3b45a9c105b34cbc55d0c65a0a00266407052cd878178237783c3046f08fc8cc0e5ddf2126c4cd4d1c62
+"tldts-core@npm:^6.0.8":
+  version: 6.0.8
+  resolution: "tldts-core@npm:6.0.8"
+  checksum: c7ba552eb03cb1d4ebc08d48d5a81cf14f65efd9ef0d5b19724242dd45b596e0cf9c2be69140f658e931ac785f0e4e227f7c774a18ad7cd309a6057a5029f09d
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.0.6
-  resolution: "tldts@npm:6.0.6"
+  version: 6.0.8
+  resolution: "tldts@npm:6.0.8"
   dependencies:
-    tldts-core: ^6.0.6
+    tldts-core: ^6.0.8
   bin:
     tldts: bin/cli.js
-  checksum: 5cb33c3fb95ba4d1d4a3085f47bf25cdec3bff4b2453fe0069eafda571ab0e27bce4c1737a0ea5c42058ff119a909cfbd9273144d83dc6f4c2b848377a03ae11
+  checksum: 02908e6d5310c985598fd2c5beba245056a79b65a4c017228b33555bb8d17f55d670e248925c4910f6d4ff9a13e6a6e815a9bb26b87ff772062d195bdc4deed8
   languageName: node
   linkType: hard
 
@@ -12169,7 +12169,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vm2@npm:^3.9.17":
+"vm2@npm:^3.9.19":
   version: 3.9.19
   resolution: "vm2@npm:3.9.19"
   dependencies:
