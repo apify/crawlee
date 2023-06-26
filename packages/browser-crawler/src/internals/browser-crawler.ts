@@ -37,6 +37,7 @@ import type {
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import ow from 'ow';
 import type { Cookie as CookieObject } from '@crawlee/types';
+import { blockedSelectors, sleep } from '@crawlee/utils';
 import type { BrowserLaunchContext } from './browser-launcher';
 
 export interface BrowserCrawlingContext<
@@ -312,6 +313,7 @@ export abstract class BrowserCrawler<
     protected requestHandlerTimeoutInnerMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
+    protected retryOnBlocked: boolean;
     protected persistCookiesPerSession: boolean;
 
     protected static override optionsShape = {
@@ -345,6 +347,7 @@ export abstract class BrowserCrawler<
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
+            retryOnBlocked = false,
             // Ignored
             handleRequestFunction,
 
@@ -396,6 +399,7 @@ export abstract class BrowserCrawler<
         this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
+        this.retryOnBlocked = retryOnBlocked;
 
         if (headless != null) {
             this.launchContext.launchOptions ??= {} as LaunchOptions;
@@ -435,6 +439,18 @@ export abstract class BrowserCrawler<
         if (page) {
             await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
         }
+    }
+
+    protected override async isGettingBlocked(crawlingContext: Context): Promise<boolean> {
+        const { page, response } = crawlingContext;
+
+        if (response?.status() === 403) {
+            await sleep(5000);
+        };
+
+        return (
+            await Promise.all(blockedSelectors.map((selector) => (page as any).$(selector)))
+        ).some((el) => el !== null);
     }
 
     /**
@@ -490,6 +506,13 @@ export abstract class BrowserCrawler<
                 const cookies = await crawlingContext.browserController.getCookies(page);
                 tryCancel();
                 session?.setCookies(cookies, request.loadedUrl!);
+            }
+        }
+
+        if (this.retryOnBlocked) {
+            if (await this.isGettingBlocked(crawlingContext)) {
+                session?.retire();
+                throw new Error('Antibot protection detected, the session has been retired.');
             }
         }
 

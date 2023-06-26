@@ -261,6 +261,11 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     statusMessageLoggingInterval?: number;
 
+    /**
+     * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
+     */
+    retryOnBlocked?: boolean;
+
     /** @internal */
     log?: Log;
 }
@@ -411,6 +416,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
         statusMessageLoggingInterval: ow.optional.number,
+
+        retryOnBlocked: ow.optional.boolean,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -591,6 +598,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+    }
+
+    protected isGettingBlocked(crawlingContext: Context) {
+        throw new Error(`isGettingBlocked - method not implemented in this Crawler.\n ${crawlingContext}`);
     }
 
     private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {

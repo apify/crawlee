@@ -1,3 +1,4 @@
+export * from './internals/blocked';
 export * from './internals/cheerio';
 export * from './internals/chunk';
 export * from './internals/extract-urls';
