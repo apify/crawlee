@@ -1012,7 +1012,7 @@ __metadata:
     rimraf: ^5.0.0
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
-    turbo: 1.10.5
+    turbo: 1.10.6
     typescript: ^5.0.0
   languageName: unknown
   linkType: soft
@@ -11777,58 +11777,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo-darwin-64@npm:1.10.5"
+"turbo-darwin-64@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo-darwin-64@npm:1.10.6"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo-darwin-arm64@npm:1.10.5"
+"turbo-darwin-arm64@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo-darwin-arm64@npm:1.10.6"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo-linux-64@npm:1.10.5"
+"turbo-linux-64@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo-linux-64@npm:1.10.6"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo-linux-arm64@npm:1.10.5"
+"turbo-linux-arm64@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo-linux-arm64@npm:1.10.6"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo-windows-64@npm:1.10.5"
+"turbo-windows-64@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo-windows-64@npm:1.10.6"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo-windows-arm64@npm:1.10.5"
+"turbo-windows-arm64@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo-windows-arm64@npm:1.10.6"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:1.10.5":
-  version: 1.10.5
-  resolution: "turbo@npm:1.10.5"
+"turbo@npm:1.10.6":
+  version: 1.10.6
+  resolution: "turbo@npm:1.10.6"
   dependencies:
-    turbo-darwin-64: 1.10.5
-    turbo-darwin-arm64: 1.10.5
-    turbo-linux-64: 1.10.5
-    turbo-linux-arm64: 1.10.5
-    turbo-windows-64: 1.10.5
-    turbo-windows-arm64: 1.10.5
+    turbo-darwin-64: 1.10.6
+    turbo-darwin-arm64: 1.10.6
+    turbo-linux-64: 1.10.6
+    turbo-linux-arm64: 1.10.6
+    turbo-windows-64: 1.10.6
+    turbo-windows-arm64: 1.10.6
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -11844,7 +11844,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: f73b0b08ea2d27af0fb7bc01519db01e8811ac2227f6e0243a696ee504ac1130166d75afe4ab0afa543ebb9a8e645db212316a65121157274146304f7dac6c2e
+  checksum: 920985d59b088e3e203450ee42446a4e0efa7de3a6455828146089e0e9efc4981e52998f7c13fcb730158e652d84bfc49149ebe33ab4a4cc033db7ab32934390
   languageName: node
   linkType: hard
 
