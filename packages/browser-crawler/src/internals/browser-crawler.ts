@@ -441,6 +441,7 @@ export abstract class BrowserCrawler<
     protected override async isGettingBlocked(crawlingContext: Context): Promise<boolean> {
         const { page, response } = crawlingContext;
 
+        // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
         if (response?.status() === 403) {
             await sleep(5000);
         };
