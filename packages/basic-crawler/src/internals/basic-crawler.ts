@@ -451,7 +451,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             maxConcurrency,
             maxRequestsPerMinute,
 
-            retryOnBlocked = true,
+            retryOnBlocked = false,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
