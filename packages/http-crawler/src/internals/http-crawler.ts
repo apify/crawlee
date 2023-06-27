@@ -465,7 +465,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             });
         }
 
-        if (await this.isGettingBlocked(crawlingContext)) {
+        if (this.retryOnBlocked && await this.isGettingBlocked(crawlingContext)) {
             crawlingContext.session?.retire();
             throw new Error('Antibot protection detected, the session has been retired.');
         }
@@ -485,9 +485,12 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
     }
 
     protected override async isGettingBlocked(crawlingContext: Context) {
-        const $ = await crawlingContext.parseWithCheerio();
+        if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
+            const $ = await crawlingContext.parseWithCheerio();
 
-        return blockedSelectors.some((selector) => $(selector).length > 0);
+            return blockedSelectors.some((selector) => $(selector).length > 0);
+        }
+        return false;
     }
 
     protected async _handleNavigation(crawlingContext: Context) {

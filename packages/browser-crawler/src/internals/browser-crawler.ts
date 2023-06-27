@@ -313,7 +313,6 @@ export abstract class BrowserCrawler<
     protected requestHandlerTimeoutInnerMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
-    protected retryOnBlocked: boolean;
     protected persistCookiesPerSession: boolean;
 
     protected static override optionsShape = {
@@ -347,7 +346,6 @@ export abstract class BrowserCrawler<
             browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
-            retryOnBlocked = false,
             // Ignored
             handleRequestFunction,
 
@@ -399,7 +397,6 @@ export abstract class BrowserCrawler<
         this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
-        this.retryOnBlocked = retryOnBlocked;
 
         if (headless != null) {
             this.launchContext.launchOptions ??= {} as LaunchOptions;

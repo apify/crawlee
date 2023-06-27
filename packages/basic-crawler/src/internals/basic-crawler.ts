@@ -392,6 +392,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
+    protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
     protected static optionsShape = {
@@ -449,6 +450,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             minConcurrency,
             maxConcurrency,
             maxRequestsPerMinute,
+
+            retryOnBlocked = true,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
@@ -510,6 +513,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             newRequestHandlerTimeout = requestHandlerTimeoutSecs * 1000;
         }
 
+        this.retryOnBlocked = retryOnBlocked;
+
         this._handlePropertyNameChange({
             newName: 'requestHandlerTimeoutSecs',
             oldName: 'handleRequestTimeoutSecs',
@@ -533,6 +538,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             ...sessionPoolOptions,
             log,
         };
+        if (this.retryOnBlocked && !sessionPoolOptions.blockedStatusCodes) {
+            this.sessionPoolOptions.blockedStatusCodes = [];
+        }
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
 
