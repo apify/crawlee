@@ -15,10 +15,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.11.0, @apify/consts@npm:^2.16.0, @apify/consts@npm:^2.4.1, @apify/consts@npm:^2.9.0":
-  version: 2.16.0
-  resolution: "@apify/consts@npm:2.16.0"
-  checksum: 0286413d1d7ff39565f9c072997f8f2a5f19d2b53cacb0798cd23f353fbaf130f88f1db7f93e4b242b7cc74242f8ea37b709f294a14d45cf73ab3cf726142c0f
+"@apify/consts@npm:^2.11.0, @apify/consts@npm:^2.17.0, @apify/consts@npm:^2.4.1, @apify/consts@npm:^2.9.0":
+  version: 2.17.0
+  resolution: "@apify/consts@npm:2.17.0"
+  checksum: 23d224b45574538d7aed244ea92085b216d20ad85c2bcdd6f15a86652eed2b5484f0e44f080c17a527b0386a2909880720f19c9ec442e7deb1ac450e87b5ddbc
   languageName: node
   linkType: hard
 
@@ -66,23 +66,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.0":
-  version: 1.1.27
-  resolution: "@apify/input_secrets@npm:1.1.27"
+  version: 1.1.28
+  resolution: "@apify/input_secrets@npm:1.1.28"
   dependencies:
-    "@apify/log": ^2.2.19
-    "@apify/utilities": ^2.7.5
+    "@apify/log": ^2.2.20
+    "@apify/utilities": ^2.7.6
     ow: ^0.28.2
-  checksum: 90446e22981b048c418a6a9268948b5f9f76b0eeafff615086156e41188bb406e1914d0f8d2a7769bb1ac326f82802d982c81ba5a7b94a9f62f07925f1ae0338
+  checksum: ed0b4622814a558147f59cf7bfef6e50a8770900290cbe180f018a69aa7df2a9fb4b310ca1ddfeb03c8a66ac428b49025106bcbbe9570aaa80a72803843f59a8
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.0.0, @apify/log@npm:^2.1.3, @apify/log@npm:^2.1.4, @apify/log@npm:^2.2.19, @apify/log@npm:^2.2.6, @apify/log@npm:^2.2.8":
-  version: 2.2.19
-  resolution: "@apify/log@npm:2.2.19"
+"@apify/log@npm:^2.0.0, @apify/log@npm:^2.1.3, @apify/log@npm:^2.1.4, @apify/log@npm:^2.2.20, @apify/log@npm:^2.2.6, @apify/log@npm:^2.2.8":
+  version: 2.2.20
+  resolution: "@apify/log@npm:2.2.20"
   dependencies:
-    "@apify/consts": ^2.16.0
+    "@apify/consts": ^2.17.0
     ansi-colors: ^4.1.1
-  checksum: 40668160695e8cb02197728ca7090c9cb6c2dc50ced37942929f4ebd848914e9fa4be3abe272138cdf57b62639ef2b96cff47747ff8e976695f47fb6ae454254
+  checksum: 5b9a6e113b61ebda0e45127675254c42156beb65f8b0c92ffe9aad764f1d7f07d68ecb6c5679b657c2f6e749398bd623045c95755877213d0a96f72d805f84b4
   languageName: node
   linkType: hard
 
@@ -98,12 +98,12 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.14":
-  version: 2.0.25
-  resolution: "@apify/pseudo_url@npm:2.0.25"
+  version: 2.0.26
+  resolution: "@apify/pseudo_url@npm:2.0.26"
   dependencies:
-    "@apify/log": ^2.2.19
+    "@apify/log": ^2.2.20
     "@sapphire/shapeshift": ^3.6.0
-  checksum: 71b7d480a7c1b5cf601bf070f39bc62e19e589b2d2c457c598b2c224615d02157b26925d5a0fbd0424e01b355f8830a8a5b0941cf7e4cc171208a32d167447da
+  checksum: 62910f61cb02a96094ea095022b6c8ba409721f6a7d6f04debfb691240ae2d9597881a0fbcb9ca5f36755b0d4d7877df3e0c3f37c73085fa008425369beaed0a
   languageName: node
   linkType: hard
 
@@ -121,13 +121,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.0.0, @apify/utilities@npm:^2.1.4, @apify/utilities@npm:^2.2.2, @apify/utilities@npm:^2.3.3, @apify/utilities@npm:^2.7.5":
-  version: 2.7.5
-  resolution: "@apify/utilities@npm:2.7.5"
+"@apify/utilities@npm:^2.0.0, @apify/utilities@npm:^2.1.4, @apify/utilities@npm:^2.2.2, @apify/utilities@npm:^2.3.3, @apify/utilities@npm:^2.7.6":
+  version: 2.7.6
+  resolution: "@apify/utilities@npm:2.7.6"
   dependencies:
-    "@apify/consts": ^2.16.0
-    "@apify/log": ^2.2.19
-  checksum: 581e682c6b4a246af80634c0230f75a286a0bbc62443b49079429c8f9d1ec12e9cd73890df6ae5ac7bcbede07a51069689bfdddaf65ae33f0ef97c8e37ae0f9c
+    "@apify/consts": ^2.17.0
+    "@apify/log": ^2.2.20
+  checksum: c3049a096d4fe0b43ad0e6e7e0f499adeff895755e3bcbfbc22e5ed87b64207c56ef94e8cd2c642be1c8fdaa233c716b2ee9f8a55b58f0d01c78c82228c1df82
   languageName: node
   linkType: hard
 
@@ -4577,9 +4577,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1161598
-  resolution: "devtools-protocol@npm:0.0.1161598"
-  checksum: 207d0733d0d67aaaf48a1800f1bb4e6ea7d6ac61e33aaf94080e2d252bd8e901260f6e805fcda164b58fc335393f77cdeadf50c4c5cbf2d1ab50fb60a4ee428d
+  version: 0.0.1162774
+  resolution: "devtools-protocol@npm:0.0.1162774"
+  checksum: c1a12a3e8026c213c66978f854960f5425ab6e0e16e2a9ace80dfceb6e8c35513df1604e221c6d86543573242aebf891c4f1368ebc2db1f2e160d3fbf8855e1b
   languageName: node
   linkType: hard
 
@@ -4752,9 +4752,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.431":
-  version: 1.4.441
-  resolution: "electron-to-chromium@npm:1.4.441"
-  checksum: 807a3659daf9ac376c3b7a2d19965e186a8c8a4b2498a911c96bc80f43701ec6e9268c382b4e3155ce0def4c9e35071de6a0506dd69b822bd9592ad8de71bc91
+  version: 1.4.442
+  resolution: "electron-to-chromium@npm:1.4.442"
+  checksum: 2905d01dc9b888ec2b3687801d130e868e951052d856727843e1ed22377e7887d472fd67854392c3944ea329865581a634e1e32e9c077dac63e1542fbc9847d2
   languageName: node
   linkType: hard
 
@@ -6125,17 +6125,17 @@ __metadata:
   linkType: hard
 
 "glob@npm:^10.2.2, glob@npm:^10.2.5":
-  version: 10.3.0
-  resolution: "glob@npm:10.3.0"
+  version: 10.3.1
+  resolution: "glob@npm:10.3.1"
   dependencies:
     foreground-child: ^3.1.0
     jackspeak: ^2.0.3
     minimatch: ^9.0.1
     minipass: ^5.0.0 || ^6.0.2
-    path-scurry: ^1.7.0
+    path-scurry: ^1.10.0
   bin:
     glob: dist/cjs/src/bin.js
-  checksum: 6fa4ac0a86ffec1c5715a2e6fbdd63e1e7f1c2c8f5db08cc3256cdfcb81093678e7c80a3d100b502a1b9d141369ecf87bc24fe2bcb72acec7b14626d358a4eb0
+  checksum: 19c8c2805658b1002fecf0722cd609a33153d756a0d5260676bd0e9c5e6ef889ec9cce6d3dac0411aa90bce8de3d14f25b6f5589a3292582cccbfeddd0e98cc4
   languageName: node
   linkType: hard
 
@@ -8442,10 +8442,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^9.1.1":
-  version: 9.1.2
-  resolution: "lru-cache@npm:9.1.2"
-  checksum: d3415634be3908909081fc4c56371a8d562d9081eba70543d86871b978702fffd0e9e362b83921b27a29ae2b37b90f55675aad770a54ac83bb3e4de5049d4b15
+"lru-cache@npm:^9.1.1 || ^10.0.0":
+  version: 10.0.0
+  resolution: "lru-cache@npm:10.0.0"
+  checksum: 18f101675fe283bc09cda0ef1e3cc83781aeb8373b439f086f758d1d91b28730950db785999cd060d3c825a8571c03073e8c14512b6655af2188d623031baf50
   languageName: node
   linkType: hard
 
@@ -9869,13 +9869,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path-scurry@npm:^1.6.1, path-scurry@npm:^1.7.0":
-  version: 1.9.2
-  resolution: "path-scurry@npm:1.9.2"
+"path-scurry@npm:^1.10.0, path-scurry@npm:^1.6.1":
+  version: 1.10.0
+  resolution: "path-scurry@npm:1.10.0"
   dependencies:
-    lru-cache: ^9.1.1
+    lru-cache: ^9.1.1 || ^10.0.0
     minipass: ^5.0.0 || ^6.0.2
-  checksum: 92888dfb68e285043c6d3291c8e971d5d2bc2f5082f4d7b5392896f34be47024c9d0a8b688dd7ae6d125acc424699195474927cb4f00049a9b1ec7c4256fa8e0
+  checksum: 3b66a4a6ab66e45755b577c966ecf0da92d3e068b3c992d8f69aa2cc908ef4eda9358253e9b4f86cad43d3ad810ec445be164105975f5cb3fdab68459c59dc6e
   languageName: node
   linkType: hard
 
@@ -11951,22 +11951,22 @@ __metadata:
   linkType: hard
 
 "typescript@npm:>=3 < 6, typescript@npm:^4.6.4 || ^5.0.0, typescript@npm:^5.0.0":
-  version: 5.1.3
-  resolution: "typescript@npm:5.1.3"
+  version: 5.1.5
+  resolution: "typescript@npm:5.1.5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: d9d51862d98efa46534f2800a1071a613751b1585dc78884807d0c179bcd93d6e9d4012a508e276742f5f33c480adefc52ffcafaf9e0e00ab641a14cde9a31c7
+  checksum: 0eef8699e05ae767096924dbed633c340b4d36e953bb8ed87fb12e9dd9dcea5055ceac7182c614a556dbd346a8a82df799d330e1e286ae66e17c84e1710f6a6f
   languageName: node
   linkType: hard
 
 "typescript@patch:typescript@>=3 < 6#~builtin<compat/typescript>, typescript@patch:typescript@^4.6.4 || ^5.0.0#~builtin<compat/typescript>, typescript@patch:typescript@^5.0.0#~builtin<compat/typescript>":
-  version: 5.1.3
-  resolution: "typescript@patch:typescript@npm%3A5.1.3#~builtin<compat/typescript>::version=5.1.3&hash=5da071"
+  version: 5.1.5
+  resolution: "typescript@patch:typescript@npm%3A5.1.5#~builtin<compat/typescript>::version=5.1.5&hash=5da071"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 6f0a9dca6bf4ce9dcaf4e282aade55ef4c56ecb5fb98d0a4a5c0113398815aea66d871b5611e83353e5953a19ed9ef103cf5a76ac0f276d550d1e7cd5344f61e
+  checksum: 12ff5d14888805f24479e54bc8a3f83647107a6345f6c29dffcd429fb345be55f584a37e262cca58a0105203e41d4cb4e31b1b9096c9abeca0e2ace8eb00935e
   languageName: node
   linkType: hard
 
