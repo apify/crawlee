@@ -97,12 +97,12 @@
         "rimraf": "^5.0.0",
         "ts-jest": "^29.0.3",
         "ts-node": "^10.9.1",
-        "turbo": "1.10.6",
+        "turbo": "1.10.7",
         "typescript": "^5.0.0"
     },
-    "packageManager": "yarn@3.6.0",
+    "packageManager": "yarn@3.6.1",
     "volta": {
         "node": "18.16.1",
-        "yarn": "3.6.0"
+        "yarn": "3.6.1"
     }
 }
