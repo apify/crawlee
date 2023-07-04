@@ -22,7 +22,7 @@ import {
     Configuration,
     RequestState,
 } from '@crawlee/basic';
-import { blockedSelectors } from '@crawlee/utils';
+import { RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { RequestLike, ResponseLike } from 'content-type';
 import * as cheerio from 'cheerio';
@@ -465,7 +465,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             });
         }
 
-        if (this.retryOnBlocked && await this.isGettingBlocked(crawlingContext)) {
+        if (this.retryOnBlocked && await this.isRequestBlocked(crawlingContext)) {
             crawlingContext.session?.retire();
             throw new Error('Antibot protection detected, the session has been retired.');
         }
@@ -484,11 +484,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         }
     }
 
-    protected override async isGettingBlocked(crawlingContext: Context) {
+    protected override async isRequestBlocked(crawlingContext: Context) {
         if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
             const $ = await crawlingContext.parseWithCheerio();
 
-            return blockedSelectors.some((selector) => $(selector).length > 0);
+            return RETRY_CSS_SELECTORS.some((selector) => $(selector).length > 0);
         }
         return false;
     }

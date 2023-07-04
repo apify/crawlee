@@ -37,7 +37,7 @@ import type {
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import ow from 'ow';
 import type { Cookie as CookieObject } from '@crawlee/types';
-import { blockedSelectors, sleep } from '@crawlee/utils';
+import { RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import type { BrowserLaunchContext } from './browser-launcher';
 
 export interface BrowserCrawlingContext<
@@ -438,7 +438,7 @@ export abstract class BrowserCrawler<
         }
     }
 
-    protected override async isGettingBlocked(crawlingContext: Context): Promise<boolean> {
+    protected override async isRequestBlocked(crawlingContext: Context): Promise<boolean> {
         const { page, response } = crawlingContext;
 
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
@@ -447,7 +447,7 @@ export abstract class BrowserCrawler<
         };
 
         return (
-            await Promise.all(blockedSelectors.map((selector) => (page as any).$(selector)))
+            await Promise.all(RETRY_CSS_SELECTORS.map((selector) => (page as any).$(selector)))
         ).some((el) => el !== null);
     }
 
@@ -508,7 +508,7 @@ export abstract class BrowserCrawler<
         }
 
         if (this.retryOnBlocked) {
-            if (await this.isGettingBlocked(crawlingContext)) {
+            if (await this.isRequestBlocked(crawlingContext)) {
                 session?.retire();
                 throw new Error('Antibot protection detected, the session has been retired.');
             }

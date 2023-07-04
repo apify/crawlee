@@ -263,6 +263,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
 
     /**
      * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
+     *
+     * Currently supports:
+     * - [**Cloudflare** Bot Management](https://www.cloudflare.com/products/bot-management/)
+     * - [**Google Search** Rate Limiting](https://www.google.com/sorry/)
      */
     retryOnBlocked?: boolean;
 
@@ -538,8 +542,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             ...sessionPoolOptions,
             log,
         };
-        if (this.retryOnBlocked && !sessionPoolOptions.blockedStatusCodes) {
-            this.sessionPoolOptions.blockedStatusCodes = [];
+        if (this.retryOnBlocked) {
+            if (!sessionPoolOptions.blockedStatusCodes) {
+                this.sessionPoolOptions.blockedStatusCodes = [];
+            } else {
+                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. 
+Please note that the 'retryOnBlocked' feature might not work as expected.`);
+            }
         }
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
@@ -608,8 +617,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
-    protected isGettingBlocked(crawlingContext: Context) {
-        throw new Error(`isGettingBlocked - method not implemented in this Crawler.\n ${crawlingContext}`);
+    protected isRequestBlocked(_crawlingContext: Context) {
+        throw new Error('the "isRequestBlocked" method is not implemented in this crawler.');
     }
 
     private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
