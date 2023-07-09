@@ -4599,9 +4599,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1166296
-  resolution: "devtools-protocol@npm:0.0.1166296"
-  checksum: ac8d8ecb50eee366f626e88e4fff1553c73b71f4138b64c49a5785b79cd192550f2cc2f2d78ea73636d76cda65733864b28f37e668ce9dcc0953b0b7b36c0d2d
+  version: 0.0.1167732
+  resolution: "devtools-protocol@npm:0.0.1167732"
+  checksum: da6c323932fc9cf42c3e4a0d7865dd1458fa7fb828aa7a09cf4ce5bc0670f1696811c25604b87f1452256deb9e71c0208c83ddac2d81bc584d23b5d6d16920a1
   languageName: node
   linkType: hard
 
@@ -6148,8 +6148,8 @@ __metadata:
   linkType: hard
 
 "glob@npm:^10.2.2, glob@npm:^10.2.5":
-  version: 10.3.2
-  resolution: "glob@npm:10.3.2"
+  version: 10.3.3
+  resolution: "glob@npm:10.3.3"
   dependencies:
     foreground-child: ^3.1.0
     jackspeak: ^2.0.3
@@ -6158,7 +6158,7 @@ __metadata:
     path-scurry: ^1.10.1
   bin:
     glob: dist/cjs/src/bin.js
-  checksum: 3b4f455192d18eb1cf41a9193c825f594a70323b522f290d4b75191d3e399791f9da1febef339392a9828c03a3bf2b96e0b32cc8efb0068c2b11df585026a367
+  checksum: 29190d3291f422da0cb40b77a72fc8d2c51a36524e99b8bf412548b7676a6627489528b57250429612b6eec2e6fe7826d328451d3e694a9d15e575389308ec53
   languageName: node
   linkType: hard
 
