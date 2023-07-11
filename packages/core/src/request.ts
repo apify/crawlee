@@ -145,8 +145,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
             const value = options[prop];
             if (predicate) {
                 ow(value, `RequestOptions.${prop}`, predicate as BasePredicate);
-                // 'url' is checked above because it's not optional
-            } else if (prop !== 'url') {
+                // 'url' is checked above because it's not optional, and lockExpiresAt is ignored
+            } else if (prop !== 'url' && prop !== 'lockExpiresAt') {
                 const msg = `Did not expect property \`${prop}\` to exist, got \`${value}\` in object \`RequestOptions\``;
                 throw new ArgumentError(msg, this.constructor);
             }
@@ -478,6 +478,9 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 
     /** @internal */
     handledAt?: string;
+
+    /** @internal */
+    lockExpiresAt?: Date;
 
 }
 
