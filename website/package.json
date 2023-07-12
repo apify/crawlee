@@ -23,7 +23,7 @@
         "eslint-plugin-react-hooks": "^4.6.0",
         "fs-extra": "^11.1.0",
         "path-browserify": "^1.0.1",
-        "prettier": "^2.8.4",
+        "prettier": "^3.0.0",
         "rimraf": "^5.0.0",
         "typescript": "^5.0.0"
     },
