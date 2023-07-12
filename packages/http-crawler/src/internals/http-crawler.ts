@@ -27,7 +27,7 @@ import type { RequestLike, ResponseLike } from 'content-type';
 import * as cheerio from 'cheerio';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
-import type { OptionsInit, Method, Request as GotRequest, Options } from 'got-scraping';
+import type { OptionsInit, Method, Request as GotRequest, Options, PlainResponse } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
 import type { JsonValue } from 'type-fest';
 import { extname } from 'node:path';
@@ -191,7 +191,7 @@ export interface InternalHttpCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    response: IncomingMessage;
+    response: PlainResponse;
 
     parseWithCheerio(): Promise<cheerio.CheerioAPI>;
 }
@@ -569,7 +569,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    protected async _requestFunction({ request, session, proxyUrl, gotOptions }: RequestFunctionOptions): Promise<IncomingMessage> {
+    protected async _requestFunction({ request, session, proxyUrl, gotOptions }: RequestFunctionOptions): Promise<PlainResponse> {
         const opts = this._getRequestOptions(request, session, proxyUrl, gotOptions);
 
         try {
@@ -577,7 +577,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         } catch (e) {
             if (e instanceof TimeoutError) {
                 this._handleRequestTimeout(session);
-                return undefined as unknown as IncomingMessage;
+                return undefined as unknown as PlainResponse;
             }
 
             throw e;
@@ -752,10 +752,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
      * @internal wraps public utility for mocking purposes
      */
     private _requestAsBrowser = (options: OptionsInit & { isStream: true }, session?: Session) => {
-        return new Promise<IncomingMessage>((resolve, reject) => {
+        return new Promise<PlainResponse>((resolve, reject) => {
             const stream = gotScraping(options);
 
-            stream.on('redirect', (updatedOptions: Options, redirectResponse: IncomingMessage) => {
+            stream.on('redirect', (updatedOptions: Options, redirectResponse: PlainResponse) => {
                 if (this.persistCookiesPerSession) {
                     session!.setCookiesFromResponse(redirectResponse);
 
@@ -812,11 +812,11 @@ function addResponsePropertiesToStream(stream: GotRequest) {
     for (const prop of properties) {
         if (!(prop in stream)) {
             // @ts-expect-error
-            stream[prop] = response[prop as keyof IncomingMessage];
+            stream[prop] = response[prop as keyof PlainResponse];
         }
     }
 
-    return stream as unknown as IncomingMessage;
+    return stream as unknown as PlainResponse;
 }
 
 /**
