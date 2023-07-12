@@ -11,15 +11,14 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
 
 const crawler = new LinkeDOMCrawler();
 
-crawler.router.addDefaultHandler(async ({ window, document, enqueueLinks, request, log }) => {
+crawler.router.addDefaultHandler(async ({ document, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
         globs: ['https://crawlee.dev/docs/**'],
     });
 
-    const pageTitle = window.document.title;
-    const { title } = document;
-    assert.strictEqual(pageTitle, title);
+    const pageTitle = document.title;
+    assert.notEqual(pageTitle, '');
     log.info(`URL: ${url} TITLE: ${pageTitle}`);
 
     await Dataset.pushData({ url, pageTitle });
