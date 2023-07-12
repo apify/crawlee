@@ -51,6 +51,9 @@ export enum RequestState {
  * are considered as pointing to the same web resource. This behavior applies to all Crawlee classes,
  * such as {@apilink RequestList}, {@apilink RequestQueue}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler}.
  *
+ * > To access and examine the actual request sent over http, with all autofilled headers you can access
+ * `response.request` object from the request handler
+ *
  * Example use:
  *
  * ```javascript

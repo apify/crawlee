@@ -380,8 +380,6 @@ describe('CheerioCrawler', () => {
             const crawler = new CheerioCrawler({
                 requestList,
                 requestHandler: ({ response }) => {
-                    // TODO: this accesses IncomingMessage#request, which doesn't exist according to types
-                    // @ts-expect-error
                     headers.push(response.request.options.headers);
                 },
             });
