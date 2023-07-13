@@ -449,6 +449,8 @@ export class RequestQueueV2 {
             return null;
         }
 
+        // Schedule the next hydration in the background (if there is any request left in the queue)
+        // This should hopefully make the next request available faster.
         const nextNextId = this.queueHeadIds.getFirst();
 
         if (nextNextId) {
