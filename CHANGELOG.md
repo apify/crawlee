@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.4.1](https://github.com/apify/crawlee/compare/v3.4.0...v3.4.1) (2023-07-13)
+
+
+### Bug Fixes
+
+* **http-crawler:** replace `IncomingMessage` with `PlainResponse` for context's `response` ([#1973](https://github.com/apify/crawlee/issues/1973)) ([2a1cc7f](https://github.com/apify/crawlee/commit/2a1cc7f4f87f0b1c657759076a236a8f8d9b76ba)), closes [#1964](https://github.com/apify/crawlee/issues/1964)
+
+
+### Features
+
+* **jsdom,linkedom:** Expose document to crawler router context ([#1950](https://github.com/apify/crawlee/issues/1950)) ([4536dc2](https://github.com/apify/crawlee/commit/4536dc2900ee6d0acb562583ed8fca183df28e39))
+
+
+
+
+
 # [3.4.0](https://github.com/apify/crawlee/compare/v3.3.3...v3.4.0) (2023-06-12)
 
 
