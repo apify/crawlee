@@ -11,7 +11,8 @@ import { Configuration } from '../configuration';
 import { Request } from '../request';
 import type { InternalSource, RequestOptions, Source } from '../request';
 
-const MAX_CACHED_REQUESTS = 1_000_000;
+// Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
+const MAX_CACHED_REQUESTS = 2_000_000;
 
 /**
  * When prolonging a lock, we do it for a minute from Date.now()
@@ -31,6 +32,7 @@ interface RequestLruItem {
     isHandled: boolean;
     id: string;
     hydrated: Request | null;
+    lockExpiresAt: number | null;
 }
 
 export interface RequestQueueV2OperationOptions {
@@ -124,7 +126,6 @@ export class RequestQueueV2 {
     assumedHandledCount = 0;
 
     private _listHeadAndLockPromise: Promise<void> | null = null;
-    private _hydrateRequestPromise: Promise<void> | null = null;
 
     protected constructor(options: RequestQueueV2Options, readonly config = Configuration.getGlobalConfig()) {
         this.id = options.id;
@@ -272,6 +273,16 @@ export class RequestQueueV2 {
             uniqueKey: queueOperationInfo.uniqueKey,
             wasAlreadyHandled: queueOperationInfo.wasAlreadyHandled,
             hydrated: null,
+            lockExpiresAt: null,
+        });
+
+        this.requestCache.add(queueOperationInfo.requestId, {
+            id: queueOperationInfo.requestId,
+            isHandled: queueOperationInfo.wasAlreadyHandled,
+            uniqueKey: queueOperationInfo.uniqueKey,
+            wasAlreadyHandled: queueOperationInfo.wasAlreadyHandled,
+            hydrated: null,
+            lockExpiresAt: null,
         });
     }
 
@@ -396,7 +407,6 @@ export class RequestQueueV2 {
      * @param id ID of the request.
      * @returns Returns the request object, or `null` if it was not found.
      */
-
     async getRequest<T extends Dictionary = Dictionary>(id: string): Promise<Request<T> | null> {
         ow(id, ow.string);
 
@@ -404,6 +414,129 @@ export class RequestQueueV2 {
         if (!requestOptions) return null;
 
         return new Request(requestOptions as unknown as RequestOptions);
+    }
+
+    /**
+     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
+     *
+     * Once you successfully finish processing of the request, you need to call
+     * {@apilink RequestQueue.markRequestHandled}
+     * to mark the request as handled in the queue. If there was some error in processing the request,
+     * call {@apilink RequestQueue.reclaimRequest} instead,
+     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
+     *
+     * Note that the `null` return value doesn't mean the queue processing finished,
+     * it means there are currently no pending requests.
+     * To check whether all requests in queue were finished,
+     * use {@apilink RequestQueue.isFinished} instead.
+     *
+     * @returns
+     *   Returns the request object or `null` if there are no more pending requests.
+     */
+    async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+        await this.ensureHeadIsNonEmpty();
+
+        const nextRequestId = this.queueHeadIds.removeFirst();
+
+        // We are likely done at this point.
+        if (!nextRequestId) {
+            return null;
+        }
+
+        // This should never happen, but...
+        if (this.requestIdsInProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
+            this.log.warning('Queue head returned a request that is already in progress?!', {
+                nextRequestId,
+                inProgress: this.requestIdsInProgress.has(nextRequestId),
+                recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
+            });
+            return null;
+        }
+
+        this.requestIdsInProgress.add(nextRequestId);
+        this.lastActivity = new Date();
+
+        const request = await this.getOrHydrateRequest(nextRequestId);
+    }
+
+    private async ensureHeadIsNonEmpty() {}
+
+    private async getOrHydrateRequest<T extends Dictionary = Dictionary>(requestId: string): Promise<Request<T> | null> {
+        const cachedEntry = this.requestCache.get(requestId);
+
+        if (!cachedEntry) {
+            // 2.1. Attempt to prolong the request lock to see if we still own the request
+            const prolongResult = await this._prolongRequestLock(requestId);
+
+            if (!prolongResult) {
+                return null;
+            }
+
+            // 2.1.1. If successful, hydrate the request and return it
+            const hydratedRequest = await this.getRequest(requestId);
+
+            // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
+            if (!hydratedRequest) {
+                // Remove the lock from the request for now, so that it can be picked up later
+            // This may/may not succeed, but that's fine
+                try {
+                    await this.client.deleteRequestLock(requestId);
+                } catch {
+                // Ignore
+                }
+
+                return null;
+            }
+
+            return null;
+        }
+
+        // 1.1. If hydrated, return it
+        if (cachedEntry.hydrated) {
+            return cachedEntry.hydrated;
+        }
+
+        // 1.2. If not hydrated, try to prolong the lock first (to ensure we keep it in our queue), hydrate and return it
+        const prolonged = await this._prolongRequestLock(cachedEntry.id);
+
+        if (!prolonged) {
+            return null;
+        }
+
+        // This might still return null if the queue head is inconsistent with the main queue table.
+        const hydratedRequest = await this.getRequest(cachedEntry.id);
+
+        cachedEntry.hydrated = hydratedRequest;
+
+        // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
+        if (!hydratedRequest) {
+            // Remove the lock from the request for now, so that it can be picked up later
+            // This may/may not succeed, but that's fine
+            try {
+                await this.client.deleteRequestLock(cachedEntry.id);
+            } catch {
+                // Ignore
+            }
+
+            return null;
+        }
+
+        return hydratedRequest;
+    }
+
+    private async _prolongRequestLock(requestId: string): Promise<Date | null> {
+        try {
+            const res = await this.client.prolongRequestLock(requestId, { lockSecs: PROLONG_LOCK_BY_MILLIS });
+            return res.lockExpiresAt;
+        } catch (err) {
+            // Most likely we do not own the lock anymore
+            this.log.debug(`Failed to prolong lock for cached request ${requestId}, possibly lost the lock`, {
+                error: err,
+                requestId,
+            });
+
+            return null;
+        }
     }
 }
 
