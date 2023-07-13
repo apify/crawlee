@@ -973,7 +973,7 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
-    test('limits handleRequestTimeoutSecs to a valid value', async () => {
+    test('limits handleRequestTimeoutSecs and derived vars to a valid value', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
@@ -991,6 +991,8 @@ describe('BasicCrawler', () => {
         const maxSignedInteger = 2 ** 31 - 1;
         // @ts-expect-error Accessing private prop
         expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        // @ts-expect-error Accessing private prop
+        expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
     });
 
     test('should not log stack trace for timeout errors by default', async () => {
