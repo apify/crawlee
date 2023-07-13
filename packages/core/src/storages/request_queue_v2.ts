@@ -78,6 +78,13 @@ export function getRequestId(uniqueKey: string) {
  */
 export const QUERY_HEAD_MIN_LENGTH = 100;
 
+/**
+ * Indicates how long it usually takes for the underlying storage to propagate all writes
+ * to be available to subsequent reads.
+ * @internal
+ */
+export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
+
 export class RequestQueueV2 {
     log = log.child({ prefix: 'RequestQueueV2' });
     id: string;
@@ -125,6 +132,7 @@ export class RequestQueueV2 {
     assumedHandledCount = 0;
 
     private _listHeadAndLockPromise: Promise<void> | null = null;
+    private _hydratingRequestPromise: Promise<any> | null = null;
 
     protected constructor(options: RequestQueueV2Options, readonly config = Configuration.getGlobalConfig()) {
         this.id = options.id;
@@ -432,12 +440,19 @@ export class RequestQueueV2 {
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         await this.ensureHeadIsNonEmpty();
+        await this._hydratingRequestPromise;
 
         const nextRequestId = this.queueHeadIds.removeFirst();
 
         // We are likely done at this point.
         if (!nextRequestId) {
             return null;
+        }
+
+        const nextNextId = this.queueHeadIds.getFirst();
+
+        if (nextNextId) {
+            this._hydratingRequestPromise = this.getOrHydrateRequest(nextNextId);
         }
 
         // This should never happen, but...
@@ -454,6 +469,35 @@ export class RequestQueueV2 {
         this.lastActivity = new Date();
 
         const request = await this.getOrHydrateRequest(nextRequestId);
+
+        // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can occur in two situations:
+
+        // 1) Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
+        //    In this case, keep the request marked as in progress for a short while,
+        //    so that isFinished() doesn't return true and _ensureHeadIsNonEmpty() doesn't not load the request
+        //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
+        //    will try to fetch this request again, until it eventually appears in the main table.
+        if (!request) {
+            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+
+            setTimeout(() => {
+                this.requestIdsInProgress.delete(nextRequestId);
+            }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+
+            return null;
+        }
+
+        // 2) Queue head index is behind the main table and the underlying request was already handled
+        //    (by some other client, since we keep the track of handled requests in recentlyHandled dictionary).
+        //    We just add the request to the recentlyHandled dictionary so that next call to _ensureHeadIsNonEmpty()
+        //    will not put the request again to queueHeadDict.
+        if (request.handledAt) {
+            this.log.debug('Request fetched from the beginning of queue was already handled', { nextRequestId });
+            this.recentlyHandledRequestsCache.add(nextRequestId, true);
+            return null;
+        }
+
+        return request;
     }
 
     private async ensureHeadIsNonEmpty() {}
