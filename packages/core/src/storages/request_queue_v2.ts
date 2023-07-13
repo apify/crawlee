@@ -28,7 +28,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
 interface RequestLruItem {
     uniqueKey: string;
-    wasAlreadyHandled: boolean;
     isHandled: boolean;
     id: string;
     hydrated: Request | null;
@@ -271,7 +270,6 @@ export class RequestQueueV2 {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,
-            wasAlreadyHandled: queueOperationInfo.wasAlreadyHandled,
             hydrated: null,
             lockExpiresAt: null,
         });
@@ -280,7 +278,6 @@ export class RequestQueueV2 {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,
-            wasAlreadyHandled: queueOperationInfo.wasAlreadyHandled,
             hydrated: null,
             lockExpiresAt: null,
         });
@@ -478,7 +475,7 @@ export class RequestQueueV2 {
             // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
             if (!hydratedRequest) {
                 // Remove the lock from the request for now, so that it can be picked up later
-            // This may/may not succeed, but that's fine
+                // This may/may not succeed, but that's fine
                 try {
                     await this.client.deleteRequestLock(requestId);
                 } catch {
@@ -488,7 +485,15 @@ export class RequestQueueV2 {
                 return null;
             }
 
-            return null;
+            this.requestCache.add(requestId, {
+                id: requestId,
+                uniqueKey: hydratedRequest.uniqueKey,
+                hydrated: hydratedRequest,
+                isHandled: hydratedRequest.handledAt !== null,
+                lockExpiresAt: prolongResult.getTime(),
+            });
+
+            return hydratedRequest;
         }
 
         // 1.1. If hydrated, return it
