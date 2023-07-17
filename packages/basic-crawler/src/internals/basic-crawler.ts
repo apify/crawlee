@@ -532,10 +532,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const maxSignedInteger = 2 ** 31 - 1;
         if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
             log.warning(`requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}`
-                + `does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`);
+                + ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`);
 
             this.requestHandlerTimeoutMillis = maxSignedInteger;
         }
+
+        this.internalTimeoutMillis = Math.min(this.internalTimeoutMillis, maxSignedInteger);
 
         let shouldLogMaxPagesExceeded = true;
         const isMaxPagesExceeded = () => maxRequestsPerCrawl && maxRequestsPerCrawl <= this.handledRequestsCount;
