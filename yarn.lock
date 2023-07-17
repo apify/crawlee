@@ -899,7 +899,7 @@ __metadata:
     "@apify/utilities": ^2.1.4
     "@crawlee/http": ^3.4.1
     "@crawlee/types": ^3.4.1
-    linkedom: ^0.14.25
+    linkedom: ^0.15.0
     ow: ^0.28.2
     tslib: ^2.4.0
   languageName: unknown
@@ -8084,16 +8084,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"linkedom@npm:^0.14.25":
-  version: 0.14.26
-  resolution: "linkedom@npm:0.14.26"
+"linkedom@npm:^0.15.0":
+  version: 0.15.0
+  resolution: "linkedom@npm:0.15.0"
   dependencies:
     css-select: ^5.1.0
     cssom: ^0.5.0
     html-escaper: ^3.0.3
     htmlparser2: ^8.0.1
     uhyphen: ^0.2.0
-  checksum: 828415ac9f848efb307f444c47b3966383f782bd6cc8e52cf839f6a901d3ef2dc56da11aee3454794b345f08b04960152a3a339753295cd7b72084608f7314a0
+  checksum: 10b5a5bce2c9bb47dc2574b16af56d1daf2757dcc27fee32cb46ee01afeb2e764708b0330ca1361752d657e6c2201deca154d7ab8dbb1de985b574ed379d11cd
   languageName: node
   linkType: hard
 
