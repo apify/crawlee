@@ -2006,7 +2006,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/plugin-content-docs@npm:2.4.1, @docusaurus/plugin-content-docs@npm:^2.2.0":
+"@docusaurus/plugin-content-docs@npm:2.4.1, @docusaurus/plugin-content-docs@npm:^2.4.0":
   version: 2.4.1
   resolution: "@docusaurus/plugin-content-docs@npm:2.4.1"
   dependencies:
@@ -2270,7 +2270,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/types@npm:2.4.1, @docusaurus/types@npm:^2.2.0":
+"@docusaurus/types@npm:2.4.1, @docusaurus/types@npm:^2.4.0":
   version: 2.4.1
   resolution: "@docusaurus/types@npm:2.4.1"
   dependencies:
@@ -2316,7 +2316,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/utils@npm:2.4.1, @docusaurus/utils@npm:^2.2.0":
+"@docusaurus/utils@npm:2.4.1, @docusaurus/utils@npm:^2.4.0":
   version: 2.4.1
   resolution: "@docusaurus/utils@npm:2.4.1"
   dependencies:
@@ -5408,21 +5408,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"docusaurus-plugin-typedoc-api@npm:2.5.1":
-  version: 2.5.1
-  resolution: "docusaurus-plugin-typedoc-api@npm:2.5.1"
+"docusaurus-plugin-typedoc-api@npm:3.0.0":
+  version: 3.0.0
+  resolution: "docusaurus-plugin-typedoc-api@npm:3.0.0"
   dependencies:
-    "@docusaurus/plugin-content-docs": ^2.2.0
-    "@docusaurus/types": ^2.2.0
-    "@docusaurus/utils": ^2.2.0
+    "@docusaurus/plugin-content-docs": ^2.4.0
+    "@docusaurus/types": ^2.4.0
+    "@docusaurus/utils": ^2.4.0
     "@vscode/codicons": ^0.0.32
-    marked: ^4.2.4
-    typedoc: ^0.23.22
+    marked: ^4.3.0
+    typedoc: ^0.23.28
   peerDependencies:
     "@docusaurus/core": ^2.0.0
     react: ">=16.0.0"
-    typescript: ^4.0.0
-  checksum: c00a3f38a2514b28335156af100168e116b637ff9c76d9888fd37e05ab278cdd9757ae5933da3d711604552bc53a4cc1ed9dfd1fa39b36f3f27f9c70571ad716
+    typescript: ^4.0.0 || ^5.0.0
+  checksum: f4e16ae6f9669e1d00f6227fd7d1ce5a843e298512aa19849fe63e1a08e61d42e2a154aee0db20f92948929fcee6fdcbde117322be24ada220c79ddae8bbd14b
   languageName: node
   linkType: hard
 
@@ -8419,7 +8419,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"marked@npm:^4.2.12, marked@npm:^4.2.4":
+"marked@npm:^4.2.12, marked@npm:^4.3.0":
   version: 4.3.0
   resolution: "marked@npm:4.3.0"
   bin:
@@ -10711,7 +10711,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.54.1
     clsx: ^2.0.0
     docusaurus-gtm-plugin: ^0.0.2
-    docusaurus-plugin-typedoc-api: 2.5.1
+    docusaurus-plugin-typedoc-api: 3.0.0
     eslint: ^8.35.0
     eslint-plugin-react: ^7.32.2
     eslint-plugin-react-hooks: ^4.6.0
@@ -11851,7 +11851,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc@npm:^0.23.22":
+"typedoc@npm:^0.23.28":
   version: 0.23.28
   resolution: "typedoc@npm:0.23.28"
   dependencies:
