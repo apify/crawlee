@@ -738,16 +738,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@crawlee/basic@^3.4.1, @crawlee/basic@workspace:packages/basic-crawler":
+"@crawlee/basic@^3.4.2, @crawlee/basic@workspace:packages/basic-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/basic@workspace:packages/basic-crawler"
   dependencies:
     "@apify/log": ^2.0.0
     "@apify/timeout": ^0.3.0
     "@apify/utilities": ^2.0.0
-    "@crawlee/core": ^3.4.1
-    "@crawlee/types": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/core": ^3.4.2
+    "@crawlee/types": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     got-scraping: ^3.2.9
     ow: ^0.28.1
     tslib: ^2.4.0
@@ -755,13 +755,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser-pool@^3.4.1, @crawlee/browser-pool@workspace:packages/browser-pool":
+"@crawlee/browser-pool@^3.4.2, @crawlee/browser-pool@workspace:packages/browser-pool":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
     "@apify/log": ^2.0.0
     "@apify/timeout": ^0.3.0
-    "@crawlee/types": ^3.4.1
+    "@crawlee/types": ^3.4.2
     fingerprint-generator: ^2.0.6
     fingerprint-injector: ^2.0.5
     lodash.merge: ^4.6.2
@@ -783,37 +783,37 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser@^3.4.1, @crawlee/browser@workspace:packages/browser-crawler":
+"@crawlee/browser@^3.4.2, @crawlee/browser@workspace:packages/browser-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser@workspace:packages/browser-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
-    "@crawlee/basic": ^3.4.1
-    "@crawlee/browser-pool": ^3.4.1
-    "@crawlee/types": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/basic": ^3.4.2
+    "@crawlee/browser-pool": ^3.4.2
+    "@crawlee/types": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     ow: ^0.28.1
     tslib: ^2.4.0
   languageName: unknown
   linkType: soft
 
-"@crawlee/cheerio@^3.4.1, @crawlee/cheerio@workspace:packages/cheerio-crawler":
+"@crawlee/cheerio@^3.4.2, @crawlee/cheerio@workspace:packages/cheerio-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/cheerio@workspace:packages/cheerio-crawler"
   dependencies:
-    "@crawlee/http": ^3.4.1
-    "@crawlee/types": ^3.4.1
+    "@crawlee/http": ^3.4.2
+    "@crawlee/types": ^3.4.2
     cheerio: ^1.0.0-rc.12
     htmlparser2: ^9.0.0
     tslib: ^2.4.0
   languageName: unknown
   linkType: soft
 
-"@crawlee/cli@^3.4.1, @crawlee/cli@workspace:packages/cli":
+"@crawlee/cli@^3.4.2, @crawlee/cli@workspace:packages/cli":
   version: 0.0.0-use.local
   resolution: "@crawlee/cli@workspace:packages/cli"
   dependencies:
-    "@crawlee/templates": ^3.4.1
+    "@crawlee/templates": ^3.4.2
     ansi-colors: ^4.1.3
     fs-extra: ^11.0.0
     inquirer: ^8.2.4
@@ -825,7 +825,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/core@^3.3.0, @crawlee/core@^3.4.1, @crawlee/core@workspace:packages/core":
+"@crawlee/core@^3.3.0, @crawlee/core@^3.4.2, @crawlee/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
@@ -835,9 +835,9 @@ __metadata:
     "@apify/pseudo_url": ^2.0.14
     "@apify/timeout": ^0.3.0
     "@apify/utilities": ^2.3.3
-    "@crawlee/memory-storage": ^3.4.1
-    "@crawlee/types": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/memory-storage": ^3.4.2
+    "@crawlee/types": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     "@sapphire/async-queue": ^1.5.0
     "@types/tough-cookie": ^4.0.2
     "@vladfrangu/async_event_emitter": ^2.0.0
@@ -855,15 +855,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/http@^3.4.1, @crawlee/http@workspace:packages/http-crawler":
+"@crawlee/http@^3.4.2, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
     "@apify/utilities": ^2.0.0
-    "@crawlee/basic": ^3.4.1
-    "@crawlee/types": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/basic": ^3.4.2
+    "@crawlee/types": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     "@types/content-type": ^1.1.5
     cheerio: ^1.0.0-rc.12
     content-type: ^1.0.4
@@ -876,14 +876,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/jsdom@^3.4.1, @crawlee/jsdom@workspace:packages/jsdom-crawler":
+"@crawlee/jsdom@^3.4.2, @crawlee/jsdom@workspace:packages/jsdom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
     "@apify/utilities": ^2.1.4
-    "@crawlee/http": ^3.4.1
-    "@crawlee/types": ^3.4.1
+    "@crawlee/http": ^3.4.2
+    "@crawlee/types": ^3.4.2
     "@types/jsdom": ^21.0.0
     cheerio: ^1.0.0-rc.12
     jsdom: ^22.0.0
@@ -892,26 +892,26 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/linkedom@^3.4.1, @crawlee/linkedom@workspace:packages/linkedom-crawler":
+"@crawlee/linkedom@^3.4.2, @crawlee/linkedom@workspace:packages/linkedom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
     "@apify/utilities": ^2.1.4
-    "@crawlee/http": ^3.4.1
-    "@crawlee/types": ^3.4.1
+    "@crawlee/http": ^3.4.2
+    "@crawlee/types": ^3.4.2
     linkedom: ^0.15.0
     ow: ^0.28.2
     tslib: ^2.4.0
   languageName: unknown
   linkType: soft
 
-"@crawlee/memory-storage@^3.4.1, @crawlee/memory-storage@workspace:packages/memory-storage":
+"@crawlee/memory-storage@^3.4.2, @crawlee/memory-storage@workspace:packages/memory-storage":
   version: 0.0.0-use.local
   resolution: "@crawlee/memory-storage@workspace:packages/memory-storage"
   dependencies:
     "@apify/log": ^2.0.0
-    "@crawlee/types": ^3.4.1
+    "@crawlee/types": ^3.4.2
     "@sapphire/async-queue": ^1.5.0
     "@sapphire/shapeshift": ^3.0.0
     content-type: ^1.0.4
@@ -923,16 +923,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/playwright@^3.4.1, @crawlee/playwright@workspace:packages/playwright-crawler":
+"@crawlee/playwright@^3.4.2, @crawlee/playwright@workspace:packages/playwright-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/playwright@workspace:packages/playwright-crawler"
   dependencies:
     "@apify/datastructures": ^2.0.0
     "@apify/log": ^2.0.0
-    "@crawlee/browser": ^3.4.1
-    "@crawlee/browser-pool": ^3.4.1
-    "@crawlee/types": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/browser": ^3.4.2
+    "@crawlee/browser-pool": ^3.4.2
+    "@crawlee/types": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     cheerio: ^1.0.0-rc.12
     jquery: ^3.6.0
     ow: ^0.28.1
@@ -945,16 +945,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/puppeteer@^3.4.1, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
+"@crawlee/puppeteer@^3.4.2, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/puppeteer@workspace:packages/puppeteer-crawler"
   dependencies:
     "@apify/datastructures": ^2.0.0
     "@apify/log": ^2.0.0
-    "@crawlee/browser": ^3.4.1
-    "@crawlee/browser-pool": ^3.4.1
-    "@crawlee/types": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/browser": ^3.4.2
+    "@crawlee/browser-pool": ^3.4.2
+    "@crawlee/types": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     cheerio: ^1.0.0-rc.12
     devtools-protocol: "*"
     jquery: ^3.6.0
@@ -1024,7 +1024,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/templates@^3.4.1, @crawlee/templates@workspace:packages/templates":
+"@crawlee/templates@^3.4.2, @crawlee/templates@workspace:packages/templates":
   version: 0.0.0-use.local
   resolution: "@crawlee/templates@workspace:packages/templates"
   dependencies:
@@ -1036,7 +1036,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/types@^3.3.0, @crawlee/types@^3.4.1, @crawlee/types@workspace:packages/types":
+"@crawlee/types@^3.3.0, @crawlee/types@^3.4.2, @crawlee/types@workspace:packages/types":
   version: 0.0.0-use.local
   resolution: "@crawlee/types@workspace:packages/types"
   dependencies:
@@ -1044,13 +1044,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/utils@^3.3.0, @crawlee/utils@^3.4.1, @crawlee/utils@workspace:packages/utils":
+"@crawlee/utils@^3.3.0, @crawlee/utils@^3.4.2, @crawlee/utils@workspace:packages/utils":
   version: 0.0.0-use.local
   resolution: "@crawlee/utils@workspace:packages/utils"
   dependencies:
     "@apify/log": ^2.0.0
     "@apify/ps-tree": ^1.1.4
-    "@crawlee/types": ^3.4.1
+    "@crawlee/types": ^3.4.2
     cheerio: ^1.0.0-rc.12
     got-scraping: ^3.2.9
     ow: ^0.28.1
@@ -4232,17 +4232,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "crawlee@workspace:packages/crawlee"
   dependencies:
-    "@crawlee/basic": ^3.4.1
-    "@crawlee/browser": ^3.4.1
-    "@crawlee/cheerio": ^3.4.1
-    "@crawlee/cli": ^3.4.1
-    "@crawlee/core": ^3.4.1
-    "@crawlee/http": ^3.4.1
-    "@crawlee/jsdom": ^3.4.1
-    "@crawlee/linkedom": ^3.4.1
-    "@crawlee/playwright": ^3.4.1
-    "@crawlee/puppeteer": ^3.4.1
-    "@crawlee/utils": ^3.4.1
+    "@crawlee/basic": ^3.4.2
+    "@crawlee/browser": ^3.4.2
+    "@crawlee/cheerio": ^3.4.2
+    "@crawlee/cli": ^3.4.2
+    "@crawlee/core": ^3.4.2
+    "@crawlee/http": ^3.4.2
+    "@crawlee/jsdom": ^3.4.2
+    "@crawlee/linkedom": ^3.4.2
+    "@crawlee/playwright": ^3.4.2
+    "@crawlee/puppeteer": ^3.4.2
+    "@crawlee/utils": ^3.4.2
     import-local: ^3.1.0
     tslib: ^2.4.0
   peerDependencies:
