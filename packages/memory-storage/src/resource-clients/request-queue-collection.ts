@@ -49,7 +49,7 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
 
         // Schedule the worker to write to the disk
         const queueInfo = newStore.toRequestQueueInfo();
-        // eslint-disable-next-line dot-notation
+
         sendWorkerMessage({
             action: 'update-metadata',
             entityType: 'requestQueues',

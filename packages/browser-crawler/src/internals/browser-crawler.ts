@@ -444,7 +444,7 @@ export abstract class BrowserCrawler<
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
         if (response?.status() === 403) {
             await sleep(5000);
-        };
+        }
 
         return (
             await Promise.all(RETRY_CSS_SELECTORS.map((selector) => (page as any).$(selector)))

@@ -745,7 +745,6 @@ export class BrowserPool<
         };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async _executeHooks(hooks: ((...args: any[]) => unknown)[], ...args: unknown[]) {
         for (const hook of hooks) {
             await hook(...args);
@@ -758,7 +757,7 @@ export class BrowserPool<
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
                 log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
-                browserController.close().finally(() => {
+                void browserController.close().finally(() => {
                     this.retiredBrowserControllers.delete(browserController);
                 });
             }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);

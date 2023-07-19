@@ -1,0 +1,8 @@
+{
+	"root": true,
+	"extends": "../../.eslintrc.json",
+	"parserOptions": {
+        "project": "./test/e2e/jsdom-react-ts/actor/tsconfig.json",
+		"ecmaVersion": 2022
+	}
+}

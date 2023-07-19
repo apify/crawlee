@@ -34,7 +34,6 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
             throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         let close = async () => {};
 
         if (this.launchContext.useIncognitoPages && contextOptions?.proxy) {

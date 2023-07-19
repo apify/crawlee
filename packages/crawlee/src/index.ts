@@ -1,5 +1,3 @@
-/* eslint-disable import/export */
-
 import { log, enqueueLinks } from '@crawlee/core';
 import { social, sleep, downloadListOfUrls, parseOpenGraph } from '@crawlee/utils';
 import { puppeteerUtils } from '@crawlee/puppeteer';

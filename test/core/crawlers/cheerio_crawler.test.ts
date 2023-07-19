@@ -1,8 +1,7 @@
 import log, { Log } from '@apify/log';
-import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
-import { gotScraping } from 'got-scraping';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
@@ -40,7 +39,6 @@ afterAll(() => {
     server.close();
 });
 
-/* eslint-disable no-underscore-dangle */
 describe('CheerioCrawler', () => {
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();

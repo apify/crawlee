@@ -5,7 +5,6 @@ import type { WorkerReceivedMessage } from '../utils';
 import { memoryStorageLog } from '../utils';
 import { FileStorageWorkerEmulator } from './file-storage-worker-emulator';
 
-// eslint-disable-next-line import/no-mutable-exports
 let workerInstance: Worker | FileStorageWorkerEmulator;
 
 export const promiseMap: Map<string, {
