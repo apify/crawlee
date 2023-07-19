@@ -543,9 +543,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log,
         };
         if (this.retryOnBlocked) {
-            if (!sessionPoolOptions.blockedStatusCodes) {
-                this.sessionPoolOptions.blockedStatusCodes = [];
-            } else {
+            this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
+            if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
                 log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. 
 Please note that the 'retryOnBlocked' feature might not work as expected.`);
             }
