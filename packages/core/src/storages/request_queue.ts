@@ -904,18 +904,18 @@ export class RequestQueue {
      */
     protected async _addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[], options: RequestQueueOperationOptions) {
         const { requestsFromUrl, regex } = source;
-        const { processedRequests } = await this.addRequests(fetchedRequests, options);
+        const { addedRequests } = await this.addRequestsBatched(fetchedRequests, options);
 
         this.log.info('Fetched and loaded Requests from a remote resource.', {
             requestsFromUrl,
             regex,
             fetchedCount: fetchedRequests.length,
-            importedCount: processedRequests.length,
-            duplicateCount: fetchedRequests.length - processedRequests.length,
+            importedCount: addedRequests.length,
+            duplicateCount: fetchedRequests.length - addedRequests.length,
             sample: JSON.stringify(fetchedRequests.slice(0, 5)),
         });
 
-        return processedRequests;
+        return addedRequests;
     }
 
     /**
