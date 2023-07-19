@@ -1,12 +1,13 @@
+import type { Server } from 'http';
 import path from 'path';
-import express from 'express';
+
 import log from '@apify/log';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
+import express from 'express';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
-import type { Server } from 'http';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { runExampleComServer } from 'test/shared/_helper';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 let port: number;
 let server: Server;

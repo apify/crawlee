@@ -1,3 +1,6 @@
+import { URL } from 'url';
+
+import log_ from '@apify/log';
 import type {
     GlobInput,
     PseudoUrlInput,
@@ -14,7 +17,6 @@ import {
     createRequests,
     createRequestOptions,
 } from '@crawlee/browser';
-import log_ from '@apify/log';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import ow from 'ow';
 import type {
@@ -29,7 +31,7 @@ import {
     BrowserEmittedEvents,
     PageEmittedEvents,
 } from 'puppeteer';
-import { URL } from 'url';
+
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception';
 
 const STARTING_Z_INDEX = 2147400000;

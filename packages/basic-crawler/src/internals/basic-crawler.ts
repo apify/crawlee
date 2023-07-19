@@ -2,7 +2,6 @@ import type { Log } from '@apify/log';
 import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { SetRequired } from 'type-fest';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -40,10 +39,11 @@ import {
     validators,
     RetryRequestError,
 } from '@crawlee/core';
+import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
+import type { SetRequired } from 'type-fest';
 
 export interface BasicCrawlingContext<
     UserData extends Dictionary = Dictionary,

@@ -1,6 +1,7 @@
 import type { Dictionary, StorageClient } from '@crawlee/types';
-import { Configuration } from '../configuration';
+
 import { KeyValueStore } from './key_value_store';
+import { Configuration } from '../configuration';
 
 /**
  * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.

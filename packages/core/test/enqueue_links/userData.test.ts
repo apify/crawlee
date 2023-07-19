@@ -1,8 +1,8 @@
 import log from '@apify/log';
-import type { CheerioAPI } from 'cheerio';
-import { load } from 'cheerio';
 import type { Source } from '@crawlee/cheerio';
 import { Configuration, cheerioCrawlerEnqueueLinks, RequestQueue } from '@crawlee/cheerio';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 
 const apifyClient = Configuration.getStorageClient();
 

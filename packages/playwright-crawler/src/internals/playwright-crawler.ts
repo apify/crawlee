@@ -1,6 +1,3 @@
-import ow from 'ow';
-import type { LaunchOptions, Page, Response } from 'playwright';
-import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
@@ -10,7 +7,11 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
+import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
+import ow from 'ow';
+import type { LaunchOptions, Page, Response } from 'playwright';
+
 import type { PlaywrightLaunchContext } from './playwright-launcher';
 import { PlaywrightLauncher } from './playwright-launcher';
 import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';

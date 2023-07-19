@@ -1,18 +1,20 @@
-import os from 'os';
 import fs from 'fs';
 import net from 'net';
+import os from 'os';
 import path from 'path';
+
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
+
+import { loadFirefoxAddon } from './load-firefox-addon';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
 import { PlaywrightController } from './playwright-controller';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin';
+import { anonymizeProxySugar } from '../anonymize-proxy';
+import { createProxyServerForContainers } from '../container-proxy-server';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { getLocalProxyAddress } from '../proxy-server';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import { createProxyServerForContainers } from '../container-proxy-server';
-import { loadFirefoxAddon } from './load-firefox-addon';
 import type { SafeParameters } from '../utils';
 
 const getFreePort = async () => {

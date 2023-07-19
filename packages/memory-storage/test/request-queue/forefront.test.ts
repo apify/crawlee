@@ -1,6 +1,7 @@
+import { setTimeout as sleep } from 'node:timers/promises';
+
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
-import { setTimeout as sleep } from 'node:timers/promises';
 
 describe('RequestQueue forefront should be respected when listing head', () => {
     const storage = new MemoryStorage({

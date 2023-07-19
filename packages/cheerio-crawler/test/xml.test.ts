@@ -1,6 +1,8 @@
 import type { Server } from 'node:http';
+
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
+
 import { runExampleComServer } from '../../../test/shared/_helper';
 
 let serverAddress = 'http://localhost:';

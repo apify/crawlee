@@ -51,6 +51,11 @@
         "max-classes-per-file": 0,
         "no-console": "error",
         "no-underscore-dangle": 0,
-        "no-void": 0
+        "no-void": 0,
+        "import/order": ["error", {
+            "groups": ["builtin", "external", ["parent", "sibling"], "index", "object"],
+            "alphabetize": { "order": "asc", "caseInsensitive": true },
+            "newlines-between": "always"
+        }]
     }
 }

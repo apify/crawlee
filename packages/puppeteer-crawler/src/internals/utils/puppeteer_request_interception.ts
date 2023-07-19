@@ -1,8 +1,9 @@
 import { EventEmitter } from 'events';
+
+import log from '@apify/log';
+import type { Dictionary } from '@crawlee/utils';
 import ow from 'ow';
 import type { HTTPRequest, HTTPRequest as PuppeteerRequest, Page } from 'puppeteer';
-import type { Dictionary } from '@crawlee/utils';
-import log from '@apify/log';
 
 // We use weak maps here so that the content gets discarded after page gets closed.
 const pageInterceptRequestHandlersMap: WeakMap<Page, InterceptHandler[]> = new WeakMap(); // Maps page to an array of request interception handlers.

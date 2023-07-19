@@ -1,4 +1,5 @@
 import cheerio from 'cheerio';
+
 import { htmlToText } from './cheerio';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/

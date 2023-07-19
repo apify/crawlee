@@ -35,9 +35,10 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
-import ow from 'ow';
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
+import ow from 'ow';
+
 import type { BrowserLaunchContext } from './browser-launcher';
 
 export interface BrowserCrawlingContext<

@@ -1,9 +1,11 @@
-import { launchPuppeteer, utils } from 'crawlee';
-import { sleep } from '@crawlee/utils';
-import express from 'express';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
+
+import { sleep } from '@crawlee/utils';
+import { launchPuppeteer, utils } from 'crawlee';
+import express from 'express';
 import type { HTTPRequest } from 'puppeteer';
+
 import { runExampleComServer } from '../shared/_helper';
 
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = utils.puppeteer;

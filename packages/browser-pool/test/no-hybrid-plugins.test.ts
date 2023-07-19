@@ -1,6 +1,6 @@
-import puppeteer from 'puppeteer';
-import playwright from 'playwright';
 import { BrowserPool, PlaywrightPlugin, PuppeteerPlugin } from '@crawlee/browser-pool';
+import playwright from 'playwright';
+import puppeteer from 'puppeteer';
 
 describe('Hybrid BrowserPool plugins should not be allowed', () => {
     test('mixing Puppeteer with Playwright should throw an error', () => {

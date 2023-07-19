@@ -1,10 +1,12 @@
 /* eslint-disable import/no-duplicates */
+import { rm, readdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra';
-import { rm, readdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
+
 import { DatasetClient } from './resource-clients/dataset';
 import { DatasetCollectionClient } from './resource-clients/dataset-collection';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';

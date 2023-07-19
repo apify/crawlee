@@ -1,10 +1,12 @@
-import type { Dictionary } from '@crawlee/types';
-import { normalizeUrl } from '@apify/utilities';
 import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
+import util from 'node:util';
+
+import { normalizeUrl } from '@apify/utilities';
+import type { Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
 import ow, { ArgumentError } from 'ow';
-import util from 'node:util';
+
 import { log as defaultLog } from './log';
 import type { AllowedHttpMethods } from './typedefs';
 import { keys } from './typedefs';

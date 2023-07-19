@@ -1,17 +1,16 @@
-import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 import http from 'http';
+import type { AddressInfo } from 'net';
 import { promisify } from 'util';
-
-import type { Server as ProxyChainServer } from 'proxy-chain';
-import type { Browser } from 'puppeteer';
-import puppeteer from 'puppeteer';
-import playwright from 'playwright';
 
 import { PuppeteerPlugin, PlaywrightPlugin, PuppeteerController, PlaywrightController, PlaywrightBrowser, LaunchContext } from '@crawlee/browser-pool';
 import type { UnwrapPromise, CommonLibrary } from '@crawlee/browser-pool';
-
+import playwright from 'playwright';
+import type { Server as ProxyChainServer } from 'proxy-chain';
+import type { Browser } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
+
 import { createProxyServer } from './create-proxy-server';
 
 jest.setTimeout(120000);

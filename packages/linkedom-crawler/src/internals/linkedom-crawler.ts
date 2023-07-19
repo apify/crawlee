@@ -1,4 +1,6 @@
-import type * as cheerio from 'cheerio';
+import type { IncomingMessage } from 'http';
+
+import { concatStreamToBuffer } from '@apify/utilities';
 import type {
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
@@ -10,11 +12,10 @@ import type {
     GetUserDataFromRequest,
     RouterRoutes,
 } from '@crawlee/http';
-import type { Dictionary } from '@crawlee/types';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
-import { concatStreamToBuffer } from '@apify/utilities';
+import type { Dictionary } from '@crawlee/types';
+import type * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
-import type { IncomingMessage } from 'http';
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

@@ -1,13 +1,16 @@
-import { ensureDir } from 'fs-extra';
 import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { basename } from 'node:path/win32';
+
 import { AsyncQueue } from '@sapphire/async-queue';
-import type { CreateStorageImplementationOptions } from '.';
+import { ensureDir } from 'fs-extra';
+
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import { memoryStorageLog } from '../../utils';
 import { lockAndWrite } from '../../workers/worker-utils';
 import type { StorageImplementation } from '../common';
+
+import type { CreateStorageImplementationOptions } from '.';
 
 export class KeyValueFileSystemEntry implements StorageImplementation<InternalKeyRecord> {
     private storeDirectory: string;

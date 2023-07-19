@@ -1,3 +1,10 @@
+import { once } from 'events';
+import type { Server } from 'http';
+import { createServer } from 'http';
+import type { AddressInfo } from 'net';
+import os from 'os';
+import { promisify } from 'util';
+
 import log from '@apify/log';
 import type {
     PuppeteerCrawlingContext,
@@ -13,14 +20,9 @@ import {
 } from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
-import { once } from 'events';
-import type { Server } from 'http';
-import { createServer } from 'http';
-import type { AddressInfo } from 'net';
-import os from 'os';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-import { promisify } from 'util';
+
 import { createProxyServer } from '../create-proxy-server';
 
 describe('PuppeteerCrawler', () => {

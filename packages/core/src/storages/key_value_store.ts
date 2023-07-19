@@ -1,15 +1,17 @@
-import JSON5 from 'json5';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { jsonStringifyExtended } from '@apify/utilities';
-import ow, { ArgumentError } from 'ow';
 import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
-import { join } from 'node:path';
-import { readFile } from 'node:fs/promises';
-import { Configuration } from '../configuration';
-import type { Awaitable } from '../typedefs';
+import JSON5 from 'json5';
+import ow, { ArgumentError } from 'ow';
+
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration';
+import type { Awaitable } from '../typedefs';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.

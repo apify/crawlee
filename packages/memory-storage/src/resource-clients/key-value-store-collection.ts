@@ -1,10 +1,12 @@
+import { resolve } from 'node:path';
+
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { resolve } from 'node:path';
+
+import { KeyValueStoreClient } from './key-value-store';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
 import { sendWorkerMessage } from '../workers/instance';
-import { KeyValueStoreClient } from './key-value-store';
 
 export interface KeyValueStoreCollectionClientOptions {
     baseStorageDirectory: string;

@@ -19,19 +19,21 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import ow from 'ow';
 import vm from 'vm';
-import type { Page, Response, Route } from 'playwright';
+
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { validators, KeyValueStore, RequestState } from '@crawlee/browser';
+import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
-import type { BatchAddRequestsResult } from '@crawlee/types';
-import type { PlaywrightCrawlingContext } from '../playwright-crawler';
+import ow from 'ow';
+import type { Page, Response, Route } from 'playwright';
+
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
+import type { PlaywrightCrawlingContext } from '../playwright-crawler';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 

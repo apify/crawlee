@@ -1,3 +1,6 @@
+import { URL } from 'url';
+
+import log_ from '@apify/log';
 import type {
     GlobInput,
     PseudoUrlInput,
@@ -14,7 +17,6 @@ import {
     createRequests,
     createRequestOptions,
 } from '@crawlee/browser';
-import log_ from '@apify/log';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import ow from 'ow';
 import type {
@@ -23,7 +25,6 @@ import type {
     Request,
     Route,
 } from 'playwright';
-import { URL } from 'url';
 
 const STARTING_Z_INDEX = 2147400000;
 const log = log_.child({ prefix: 'Playwright Click Elements' });

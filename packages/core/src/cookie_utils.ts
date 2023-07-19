@@ -1,8 +1,10 @@
-import type { BrowserLikeResponse, Dictionary, Cookie as CookieObject } from '@crawlee/types';
 import type { IncomingMessage } from 'node:http';
+
+import type { BrowserLikeResponse, Dictionary, Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
-import { CookieParseError } from './session_pool/errors';
+
 import { log } from './log';
+import { CookieParseError } from './session_pool/errors';
 
 /**
  * @internal

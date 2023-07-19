@@ -9,6 +9,7 @@ import {
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { gotScraping } from 'got-scraping';
+
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
 jest.mock('got-scraping', () => {

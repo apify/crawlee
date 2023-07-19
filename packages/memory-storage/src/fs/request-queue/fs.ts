@@ -1,11 +1,14 @@
-import { AsyncQueue } from '@sapphire/async-queue';
-import { ensureDir } from 'fs-extra';
 import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import type { CreateStorageImplementationOptions } from '.';
+
+import { AsyncQueue } from '@sapphire/async-queue';
+import { ensureDir } from 'fs-extra';
+
 import type { InternalRequest } from '../../resource-clients/request-queue';
 import { lockAndWrite } from '../../workers/worker-utils';
 import type { StorageImplementation } from '../common';
+
+import type { CreateStorageImplementationOptions } from '.';
 
 export class RequestQueueFileSystemEntry implements StorageImplementation<InternalRequest> {
     private filePath: string;

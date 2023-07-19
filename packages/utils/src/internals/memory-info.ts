@@ -1,11 +1,13 @@
-import log from '@apify/log';
-// @ts-expect-error We need to add typings for @apify/ps-tree
-import psTree from '@apify/ps-tree';
-import type { Dictionary } from '@crawlee/types';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import util from 'node:util';
+
+import log from '@apify/log';
+// @ts-expect-error We need to add typings for @apify/ps-tree
+import psTree from '@apify/ps-tree';
+import type { Dictionary } from '@crawlee/types';
+
 import { isDocker } from './general';
 
 const MEMORY_FILE_PATHS = {

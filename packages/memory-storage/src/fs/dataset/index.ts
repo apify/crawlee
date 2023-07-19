@@ -1,7 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
-import type { StorageImplementation } from '../common';
+
 import { DatasetFileSystemEntry } from './fs';
 import { DatasetMemoryEntry } from './memory';
+import type { StorageImplementation } from '../common';
 
 export function createDatasetStorageImplementation<Data extends Dictionary>(options: CreateStorageImplementationOptions): StorageImplementation<Data> {
     if (options.persistStorage) {
