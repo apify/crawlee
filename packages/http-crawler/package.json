@@ -57,6 +57,7 @@
         "@apify/utilities": "^2.0.0",
         "@crawlee/basic": "^3.4.1",
         "@crawlee/types": "^3.4.1",
+        "@crawlee/utils": "^3.4.1",
         "@types/content-type": "^1.1.5",
         "cheerio": "^1.0.0-rc.12",
         "content-type": "^1.0.4",
