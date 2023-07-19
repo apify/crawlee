@@ -412,7 +412,7 @@ export class RequestQueue {
         ow(requests, ow.array.ofType(ow.any(
             ow.string,
             ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.regExp }),
+            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
         )));
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
