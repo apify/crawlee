@@ -261,6 +261,15 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     statusMessageLoggingInterval?: number;
 
+    /**
+     * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
+     *
+     * Currently supports:
+     * - [**Cloudflare** Bot Management](https://www.cloudflare.com/products/bot-management/)
+     * - [**Google Search** Rate Limiting](https://www.google.com/sorry/)
+     */
+    retryOnBlocked?: boolean;
+
     /** @internal */
     log?: Log;
 }
@@ -387,6 +396,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
+    protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
     protected static optionsShape = {
@@ -411,6 +421,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
         statusMessageLoggingInterval: ow.optional.number,
+
+        retryOnBlocked: ow.optional.boolean,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -442,6 +454,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             minConcurrency,
             maxConcurrency,
             maxRequestsPerMinute,
+
+            retryOnBlocked = false,
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
@@ -503,6 +517,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             newRequestHandlerTimeout = requestHandlerTimeoutSecs * 1000;
         }
 
+        this.retryOnBlocked = retryOnBlocked;
+
         this._handlePropertyNameChange({
             newName: 'requestHandlerTimeoutSecs',
             oldName: 'handleRequestTimeoutSecs',
@@ -526,6 +542,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             ...sessionPoolOptions,
             log,
         };
+        if (this.retryOnBlocked) {
+            this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
+            if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
+                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. 
+Please note that the 'retryOnBlocked' feature might not work as expected.`);
+            }
+        }
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
 
@@ -591,6 +614,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+    }
+
+    protected isRequestBlocked(_crawlingContext: Context) {
+        throw new Error('the "isRequestBlocked" method is not implemented in this crawler.');
     }
 
     private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
