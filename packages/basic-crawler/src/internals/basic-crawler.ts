@@ -747,7 +747,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Adds requests to be processed by the crawler
+     * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
+     * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
+     * the `waitForAllRequestsToBeAdded` promise you get in the response object.
+     *
      * @param requests The requests to add
      * @param options Options for the request queue
      */

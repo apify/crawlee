@@ -401,7 +401,10 @@ export class RequestQueue {
 
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
-     * adding the rest in background.
+     * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
+     * the `waitForAllRequestsToBeAdded` promise you get in the response object.
+     *
      * @param requests The requests to add
      * @param options Options for the request queue
      */
@@ -450,7 +453,7 @@ export class RequestQueue {
 
         const initialChunk = builtRequests.splice(0, batchSize);
 
-        // Add initial batch of 1000 to process them right away
+        // Add initial batch of `batchSize` to process them right away
         const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
 
         // If we have no more requests to add, return early
@@ -974,7 +977,7 @@ export interface RequestQueueOptions {
 
 export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions {
     /**
-     * Whether to wait for all the provided requests to be added, instead of waiting just for the initial batch of up to 1000.
+     * Whether to wait for all the provided requests to be added, instead of waiting just for the initial batch of up to `batchSize`.
      * @default false
      */
     waitForAllRequestsToBeAdded?: boolean;
