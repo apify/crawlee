@@ -1,3 +1,7 @@
+import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
+import { extname } from 'node:path';
+import util from 'node:util';
+
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type {
@@ -22,20 +26,17 @@ import {
     Configuration,
     RequestState,
 } from '@crawlee/basic';
-import { RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import type { RequestLike, ResponseLike } from 'content-type';
+import { RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
+import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-import mime from 'mime-types';
 import type { OptionsInit, Method, Request as GotRequest, Options, PlainResponse } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
-import type { JsonValue } from 'type-fest';
-import { extname } from 'node:path';
-import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import iconv from 'iconv-lite';
+import mime from 'mime-types';
 import ow from 'ow';
-import util from 'node:util';
+import type { JsonValue } from 'type-fest';
 
 /**
  * Default mime types, which HttpScraper supports.

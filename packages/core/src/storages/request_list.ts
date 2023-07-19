@@ -1,16 +1,17 @@
-import { downloadListOfUrls } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/types';
+import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
+
+import { KeyValueStore } from './key_value_store';
+import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration';
 import type { EventManager } from '../events';
 import { EventType } from '../events';
-import { Configuration } from '../configuration';
 import { log } from '../log';
+import type { ProxyConfiguration } from '../proxy_configuration';
 import type { InternalSource, RequestOptions, Source } from '../request';
 import { Request } from '../request';
 import { createDeserialize, serializeArray } from '../serialization';
-import { KeyValueStore } from './key_value_store';
-import type { ProxyConfiguration } from '../proxy_configuration';
-import { purgeDefaultStorages } from './utils';
 
 /** @internal */
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';

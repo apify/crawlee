@@ -1,11 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import {
     downloadListOfUrls,
     extractUrls,
     URL_WITH_COMMAS_REGEX,
 } from '@crawlee/utils';
 import { gotScraping } from 'got-scraping';
-import fs from 'node:fs';
-import path from 'node:path';
 
 const baseDataPath = path.join(__dirname, '..', 'shared', 'data');
 

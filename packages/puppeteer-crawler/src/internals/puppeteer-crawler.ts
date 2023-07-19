@@ -11,6 +11,7 @@ import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+
 import type { PuppeteerLaunchContext } from './puppeteer-launcher';
 import { PuppeteerLauncher } from './puppeteer-launcher';
 import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';

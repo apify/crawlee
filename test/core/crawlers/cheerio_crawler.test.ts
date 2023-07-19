@@ -1,7 +1,7 @@
+import type { IncomingHttpHeaders, Server } from 'http';
+import { Readable } from 'stream';
+
 import log, { Log } from '@apify/log';
-import { sleep } from '@crawlee/utils';
-import type { Dictionary } from '@crawlee/utils';
-import type { OptionsInit } from 'got-scraping';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
@@ -19,11 +19,12 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import type { IncomingHttpHeaders, Server } from 'http';
+import { sleep } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/utils';
+import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
-import { Readable } from 'stream';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { runExampleComServer, responseSamples } from 'test/shared/_helper';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 let server: Server;
 let port: number;

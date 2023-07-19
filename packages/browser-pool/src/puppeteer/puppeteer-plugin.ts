@@ -1,14 +1,15 @@
 import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
+
+import type { PuppeteerNewPageOptions } from './puppeteer-controller';
+import { PuppeteerController } from './puppeteer-controller';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin';
+import { anonymizeProxySugar } from '../anonymize-proxy';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { noop } from '../utils';
-import type { PuppeteerNewPageOptions } from './puppeteer-controller';
-import { PuppeteerController } from './puppeteer-controller';
-import { anonymizeProxySugar } from '../anonymize-proxy';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
 

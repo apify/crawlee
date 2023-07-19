@@ -1,6 +1,7 @@
+import type { Server } from 'http';
+import type { AddressInfo } from 'net';
 import os from 'os';
-import express from 'express';
-import playwright from 'playwright';
+
 import log from '@apify/log';
 import type {
     PlaywrightGotoOptions,
@@ -11,9 +12,10 @@ import {
     PlaywrightCrawler,
     RequestList,
 } from '@crawlee/playwright';
-import type { Server } from 'http';
-import type { AddressInfo } from 'net';
+import express from 'express';
+import playwright from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
 import { startExpressAppPromise } from '../../shared/_helper';
 
 if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);

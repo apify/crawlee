@@ -1,8 +1,8 @@
+import type { Server } from 'http';
+
 import { ENV_VARS } from '@apify/consts';
-import { BROWSER_POOL_EVENTS, BrowserPool, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { HTTPResponse } from 'puppeteer';
-import puppeteer from 'puppeteer';
 import log from '@apify/log';
+import { BROWSER_POOL_EVENTS, BrowserPool, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
 import type {
     PuppeteerCrawlingContext,
     PuppeteerGoToOptions,
@@ -16,11 +16,13 @@ import {
     RequestState,
     Session,
 } from '@crawlee/puppeteer';
-import { gotScraping } from 'got-scraping';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { gotScraping } from 'got-scraping';
+import puppeteer from 'puppeteer';
+import type { HTTPResponse } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
-import type { Server } from 'http';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
 import { BrowserCrawlerTest } from './basic_browser_crawler';
 
 jest.mock('got-scraping', () => {

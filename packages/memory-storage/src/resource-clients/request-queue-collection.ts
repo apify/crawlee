@@ -1,10 +1,12 @@
+import { resolve } from 'node:path';
+
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { resolve } from 'node:path';
+
+import { RequestQueueClient } from './request-queue';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
 import { sendWorkerMessage } from '../workers/instance';
-import { RequestQueueClient } from './request-queue';
 
 export interface RequestQueueCollectionClientOptions {
     baseStorageDirectory: string;

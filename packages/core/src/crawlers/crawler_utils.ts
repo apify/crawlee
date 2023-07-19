@@ -1,4 +1,5 @@
 import { TimeoutError } from '@apify/timeout';
+
 import type { Session } from '../session_pool/session';
 
 /**

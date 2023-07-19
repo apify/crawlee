@@ -1,9 +1,10 @@
-import merge from 'lodash.merge';
 import type { Dictionary } from '@crawlee/types';
-import type { LaunchContextOptions } from '../launch-context';
-import { LaunchContext } from '../launch-context';
+import merge from 'lodash.merge';
+
 import type { BrowserController } from './browser-controller';
 import { throwImplementationNeeded } from './utils';
+import type { LaunchContextOptions } from '../launch-context';
+import { LaunchContext } from '../launch-context';
 import type { UnwrapPromise } from '../utils';
 
 /**

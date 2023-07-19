@@ -1,6 +1,6 @@
-import { Cookie } from 'tough-cookie';
 import { getCookiesFromResponse } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
+import { Cookie } from 'tough-cookie';
 
 describe('getCookiesFromResponse', () => {
     test('should parse cookies if set-cookie is array', () => {

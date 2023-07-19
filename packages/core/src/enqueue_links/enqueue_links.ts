@@ -1,8 +1,9 @@
-import { getDomain } from 'tldts';
-import ow from 'ow';
 import log from '@apify/log';
-import type { SetRequired } from 'type-fest';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import ow from 'ow';
+import { getDomain } from 'tldts';
+import type { SetRequired } from 'type-fest';
+
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
     filterRequestsByPatterns,
@@ -12,8 +13,8 @@ import {
     createRequestOptions,
     createRequests,
 } from './shared';
-import type { RequestQueue, RequestQueueOperationOptions } from '../storages/request_queue';
 import type { RequestOptions } from '../request';
+import type { RequestQueue, RequestQueueOperationOptions } from '../storages/request_queue';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */

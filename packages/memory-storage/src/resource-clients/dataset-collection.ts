@@ -1,10 +1,12 @@
+import { resolve } from 'path';
+
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { resolve } from 'path';
+
+import { DatasetClient } from './dataset';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
 import { sendWorkerMessage } from '../workers/instance';
-import { DatasetClient } from './dataset';
 
 export interface DatasetCollectionClientOptions {
     baseStorageDirectory: string;

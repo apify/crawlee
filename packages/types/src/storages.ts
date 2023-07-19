@@ -1,4 +1,5 @@
 import type { LogLevel } from '@apify/log';
+
 import type { AllowedHttpMethods, Dictionary } from './utility-types';
 
 /**

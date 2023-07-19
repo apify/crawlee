@@ -1,8 +1,9 @@
 import type { Dictionary, StorageClient } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
+
 import { Configuration } from '../configuration';
-import type { Constructor } from '../typedefs';
 import type { ProxyConfiguration } from '../proxy_configuration';
+import type { Constructor } from '../typedefs';
 
 const DEFAULT_ID_CONFIG_KEYS = {
     Dataset: 'defaultDatasetId',

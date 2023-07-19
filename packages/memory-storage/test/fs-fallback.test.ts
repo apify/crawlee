@@ -1,9 +1,10 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
-import type { KeyValueStoreRecord } from '@crawlee/types';
-import { ensureDir } from 'fs-extra';
 import { randomUUID } from 'node:crypto';
 import { rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+
+import { MemoryStorage } from '@crawlee/memory-storage';
+import type { KeyValueStoreRecord } from '@crawlee/types';
+import { ensureDir } from 'fs-extra';
 
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(__dirname, './tmp/fs-fallback');

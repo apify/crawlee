@@ -1,10 +1,11 @@
-import ow from 'ow';
 import { ErrorTracker } from '@crawlee/utils';
-import { log as defaultLog } from '../log';
-import { KeyValueStore } from '../storages/key_value_store';
+import ow from 'ow';
+
+import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
-import { Configuration } from '../configuration';
+import { log as defaultLog } from '../log';
+import { KeyValueStore } from '../storages/key_value_store';
 
 /**
  * @ignore

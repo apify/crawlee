@@ -1,8 +1,9 @@
+import os from 'os';
+
 import log from '@apify/log';
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
-import os from 'os';
 
 const toBytes = (x: number) => x * 1024 * 1024;
 

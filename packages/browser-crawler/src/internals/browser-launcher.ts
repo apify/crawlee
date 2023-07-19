@@ -1,9 +1,10 @@
-import os from 'node:os';
 import fs from 'node:fs';
-import ow from 'ow';
-import type { Dictionary, Constructor } from '@crawlee/utils';
-import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
+import os from 'node:os';
+
 import { Configuration } from '@crawlee/basic';
+import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
+import type { Dictionary, Constructor } from '@crawlee/utils';
+import ow from 'ow';
 
 const DEFAULT_VIEWPORT = {
     width: 1366,

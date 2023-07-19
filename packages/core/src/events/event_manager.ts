@@ -2,6 +2,7 @@ import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
+
 import { Configuration } from '../configuration';
 
 export const enum EventType {

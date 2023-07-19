@@ -1,4 +1,5 @@
 import { rm } from 'node:fs/promises';
+
 import { StorageManager } from '@crawlee/core';
 
 export abstract class StorageEmulator {

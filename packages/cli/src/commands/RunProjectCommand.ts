@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 
 interface RunProjectArgs {

@@ -1,18 +1,18 @@
 import fs from 'fs';
-import path from 'path';
-// @ts-expect-error no types
-import proxy from 'proxy';
 import type { Server } from 'http';
 import http from 'http';
+import type { AddressInfo } from 'net';
+import path from 'path';
 import util from 'util';
+
+import { BrowserLauncher, Configuration, launchPlaywright, PlaywrightLauncher } from '@crawlee/playwright';
+// @ts-expect-error no types
+import basicAuthParser from 'basic-auth-parser';
+import type { Browser, BrowserType } from 'playwright';
 // @ts-expect-error no types
 import portastic from 'portastic';
 // @ts-expect-error no types
-import basicAuthParser from 'basic-auth-parser';
-import { BrowserLauncher, Configuration, launchPlaywright, PlaywrightLauncher } from '@crawlee/playwright';
-
-import type { AddressInfo } from 'net';
-import type { Browser, BrowserType } from 'playwright';
+import proxy from 'proxy';
 import { runExampleComServer } from 'test/shared/_helper';
 
 let prevEnvHeadless: boolean;

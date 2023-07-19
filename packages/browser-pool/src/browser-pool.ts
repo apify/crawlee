@@ -1,20 +1,21 @@
-import pLimit from 'p-limit';
-import { nanoid } from 'nanoid';
-import ow from 'ow';
-import { TypedEmitter } from 'tiny-typed-emitter';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { FingerprintInjector } from 'fingerprint-injector';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
+import { FingerprintInjector } from 'fingerprint-injector';
+import { nanoid } from 'nanoid';
+import ow from 'ow';
+import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
+import { TypedEmitter } from 'tiny-typed-emitter';
+
 import type { BrowserController } from './abstract-classes/browser-controller';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
 import { BROWSER_POOL_EVENTS } from './events';
+import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
+import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 import type { LaunchContext } from './launch-context';
 import { log } from './logger';
 import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
-import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
-import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
