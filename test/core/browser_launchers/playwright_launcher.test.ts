@@ -205,7 +205,6 @@ describe('launchPlaywright()', () => {
             const plugin = launcher.createBrowserPlugin();
 
             // @ts-expect-error private method
-            // eslint-disable-next-line no-underscore-dangle
             expect(plugin.launchOptions.executablePath).toBe(launcher._getTypicalChromeExecutablePath());
         }, 60e3);
 

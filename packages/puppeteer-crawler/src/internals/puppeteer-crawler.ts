@@ -181,7 +181,6 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
 
     protected override async _runRequestHandler(context: PuppeteerCrawlingContext) {
         registerUtilsToContext(context);
-        // eslint-disable-next-line no-underscore-dangle
         await super._runRequestHandler(context);
     }
 

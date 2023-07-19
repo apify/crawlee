@@ -373,4 +373,4 @@ export class ErrorTracker {
             delete this.result[key];
         }
     }
-};
+}

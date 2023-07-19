@@ -236,7 +236,6 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
 
     protected override async _runRequestHandler(context: PlaywrightCrawlingContext) {
         registerUtilsToContext(context);
-        // eslint-disable-next-line no-underscore-dangle
         await super._runRequestHandler(context);
     }
 

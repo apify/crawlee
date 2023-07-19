@@ -28,7 +28,7 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
         .replace(/(\+|\/|=)/g, '');
 
     return str.length > REQUEST_ID_LENGTH ? str.slice(0, REQUEST_ID_LENGTH) : str;
-};
+}
 
 export function isBuffer(value: unknown): boolean {
     try {

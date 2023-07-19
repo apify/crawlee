@@ -1,5 +1,3 @@
-/* eslint-disable no-underscore-dangle */
-
 import log from '@apify/log';
 import { Configuration, EventType, LocalEventManager, Snapshotter } from '@crawlee/core';
 import type { MemoryInfo } from '@crawlee/utils';

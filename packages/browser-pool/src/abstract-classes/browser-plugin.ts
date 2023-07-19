@@ -203,7 +203,7 @@ export abstract class BrowserPlugin<
         }
 
         return originalArgs;
-    };
+    }
 
     /**
      * @private
@@ -215,7 +215,6 @@ export abstract class BrowserPlugin<
     }
 
     // @ts-expect-error Give runtime error as well as compile time
-    // eslint-disable-next-line space-before-function-paren, @typescript-eslint/no-unused-vars, max-len
     protected abstract _isChromiumBasedBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): boolean {
         throwImplementationNeeded('_isChromiumBasedBrowser');
     }
@@ -232,7 +231,6 @@ export abstract class BrowserPlugin<
      * @private
      */
     // @ts-expect-error Give runtime error as well as compile time
-    // eslint-disable-next-line space-before-function-paren
     protected abstract _createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> {
         throwImplementationNeeded('_createController');
     }

@@ -28,14 +28,12 @@ export const anonymizeProxySugar = async (
 
         return [
             undefined,
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
             async () => {},
         ];
     }
 
     return [
         undefined,
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         async () => {},
     ];
 };

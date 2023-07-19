@@ -49,7 +49,7 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
 
         // Schedule the worker to write to the disk
         const kvStoreInfo = newStore.toKeyValueStoreInfo();
-        // eslint-disable-next-line dot-notation
+
         sendWorkerMessage({
             action: 'update-metadata',
             entityType: 'keyValueStores',

@@ -49,4 +49,4 @@ export async function createProxyServerForContainers(fallbackProxyUrl?: string) 
             return proxyServer.close(closeConnections);
         },
     };
-};
+}

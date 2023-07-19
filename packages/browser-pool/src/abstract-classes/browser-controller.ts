@@ -169,7 +169,6 @@ export abstract class BrowserController<
      * @private
      */
     // @ts-expect-error Give runtime error as well as compile time
-    // eslint-disable-next-line space-before-function-paren
     protected abstract async _close(): Promise<void> {
         throwImplementationNeeded('_close');
     }
@@ -178,7 +177,6 @@ export abstract class BrowserController<
      * @private
      */
     // @ts-expect-error Give runtime error as well as compile time
-    // eslint-disable-next-line space-before-function-paren
     protected abstract async _kill(): Promise<void> {
         throwImplementationNeeded('_kill');
     }

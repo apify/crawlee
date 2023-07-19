@@ -462,10 +462,8 @@ describe('Plugins', () => {
                     logger: {
                         isEnabled: () => {
                             ran = true;
-
                             return false;
                         },
-                        // eslint-disable-next-line @typescript-eslint/no-empty-function
                         log: () => {},
                     },
                 };
@@ -539,8 +537,8 @@ describe('Plugins', () => {
                     browser = await plugin.launch(launchContext);
                     const contexts = browser.contexts();
                     expect(contexts).toHaveLength(1);
+
                     // Cast to any to access private property
-                    // eslint-disable-next-line no-underscore-dangle
                     expect(contexts[0]).toEqual((browser as any)._browserContext);
                 });
 

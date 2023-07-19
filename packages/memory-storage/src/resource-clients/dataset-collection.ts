@@ -49,7 +49,7 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
 
         // Schedule the worker to write to the disk
         const datasetInfo = newStore.toDatasetInfo();
-        // eslint-disable-next-line dot-notation
+
         sendWorkerMessage({
             action: 'update-metadata',
             entityType: 'datasets',
