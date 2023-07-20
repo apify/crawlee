@@ -94,15 +94,16 @@ export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
 > {
-    crawler: Crawler;
     state: StatisticState;
+    crawler: Crawler;
     previousState: StatisticState;
+    message: string;
 }
 
 export type StatusMessageCallback<
     Context extends CrawlingContext = BasicCrawlingContext,
     Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
-> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<string | undefined | null>;
+> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -277,14 +278,22 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     statusMessageLoggingInterval?: number;
 
     /**
-     * Allows overriding the default status message. When the callback returns `null` or `undefined`, the default message will be used as a fallback.
+     * Allows overriding the default status message. The callback needs to call `crawler.setStatusMessage()` explicitly.
+     * The default status message is provided in the parameters.
+     *
+     * ```ts
+     * const crawler = new CheerioCrawler({
+     *     statusMessageCallback: async (ctx) => {
+     *         return ctx.crawler.setStatusMessage(`this is status message from ${new Date().toISOString()}`, { level: 'INFO' }); // log level defaults to 'DEBUG'
+     *     },
+     *     statusMessageLoggingInterval: 1, // defaults to 10s
+     *     async requestHandler({ $, enqueueLinks, request, log }) {
+     *         // ...
+     *     },
+     * });
+     * ```
      */
     statusMessageCallback?: StatusMessageCallback;
-
-    /**
-     * Allows overriding the default status message. When the callback returns `null` or `undefined`, the default message will be used as a fallback.
-     */
-    statusMessageLogLevel?: LogLevel.DEBUG | LogLevel.INFO | LogLevel.WARNING | LogLevel.ERROR;
 
     /**
      * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
@@ -417,7 +426,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
-    protected statusMessageLogLevel?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected crawlingContexts = new Map<string, Context>();
@@ -450,7 +458,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         statusMessageLoggingInterval: ow.optional.number,
         statusMessageCallback: ow.optional.function,
-        statusMessageLogLevel: ow.optional.string.oneOf(['DEBUG', 'INFO', 'WARNING', 'ERROR']),
 
         retryOnBlocked: ow.optional.boolean,
 
@@ -504,7 +511,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             statusMessageLoggingInterval = 10,
             statusMessageCallback,
-            statusMessageLogLevel = 'DEBUG',
         } = options;
 
         this.requestList = requestList;
@@ -512,7 +518,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
-        this.statusMessageLogLevel = statusMessageLogLevel;
         this.events = config.getEventManager();
 
         this._handlePropertyNameChange({
@@ -654,7 +659,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         throw new Error('the "isRequestBlocked" method is not implemented in this crawler.');
     }
 
-    private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
+    /**
+     * This method is periodically called by the crawler, every `statusMessageLoggingInterval` seconds.
+     */
+    setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data = options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
         this.log.internal(LogLevel[options.level as 'DEBUG' ?? 'DEBUG'], message, data);
 
@@ -690,8 +698,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`;
             }
 
-            message = await this.statusMessageCallback?.({ crawler: this as any, state: this.stats.state, previousState }) ?? message;
-            await this.setStatusMessage(message, { level: this.statusMessageLogLevel });
+            if (this.statusMessageCallback) {
+                return this.statusMessageCallback({ crawler: this as any, state: this.stats.state, previousState, message });
+            }
+
+            await this.setStatusMessage(message);
         };
 
         const interval = setInterval(log, this.statusMessageLoggingInterval * 1e3);

@@ -8,8 +8,9 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
-        statusMessageCallback: async () => `this is status message from ${new Date().toISOString()}`,
-        statusMessageLogLevel: 'INFO',
+        statusMessageCallback: async (ctx) => {
+            return ctx.crawler.setStatusMessage(`this is status message from ${new Date().toISOString()}`, { level: 'INFO' });
+        },
         statusMessageLoggingInterval: 1,
         async requestHandler({ $, enqueueLinks, request, log }) {
             const { url } = request;
