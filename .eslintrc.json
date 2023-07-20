@@ -52,6 +52,11 @@
         "no-console": "error",
         "no-underscore-dangle": 0,
         "no-void": 0,
+        "max-len": ["error", {
+            "code": 160,
+            "ignoreUrls": true,
+            "ignoreComments": true
+        }],
         "import/order": ["error", {
             "groups": ["builtin", "external", ["parent", "sibling"], "index", "object"],
             "alphabetize": { "order": "asc", "caseInsensitive": true },

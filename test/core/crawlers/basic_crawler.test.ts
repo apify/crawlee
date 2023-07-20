@@ -19,9 +19,7 @@ import {
     CriticalError,
     MissingRouteError,
 } from '@crawlee/basic';
-import {
-    AutoscaledPool, RequestState,
-} from '@crawlee/core';
+import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
