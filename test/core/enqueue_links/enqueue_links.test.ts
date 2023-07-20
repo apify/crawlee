@@ -628,7 +628,8 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with string pseudoUrls', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();const pseudoUrls = [
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
                 { purl: '[http|https]://cool.com/', method: 'POST' as const, userData: { label: 'COOL' } },
             ];
@@ -666,7 +667,8 @@ describe('enqueueLinks()', () => {
         });
 
         test('throws with RegExp pseudoUrls', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();const pseudoUrls = [
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            const pseudoUrls = [
                 /https:\/\/example\.com\/(\w|-|\/)*/,
                 /(http|https):\/\/cool\.com\//,
             ];
@@ -747,7 +749,8 @@ describe('enqueueLinks()', () => {
         });
 
         test('throws with sparse pseudoUrls[]', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();const pseudoUrls = [
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
                 null,
                 '[http|https]://cool.com/',
