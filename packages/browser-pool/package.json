@@ -36,7 +36,7 @@
         "copy": "ts-node -T ../../scripts/copy.ts"
     },
     "dependencies": {
-        "@apify/log": "^2.0.0",
+        "@apify/log": "^2.4.0",
         "@apify/timeout": "^0.3.0",
         "@crawlee/types": "^3.4.2",
         "fingerprint-generator": "^2.0.6",

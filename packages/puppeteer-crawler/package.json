@@ -54,7 +54,7 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.0",
-        "@apify/log": "^2.0.0",
+        "@apify/log": "^2.4.0",
         "@crawlee/browser": "^3.4.2",
         "@crawlee/browser-pool": "^3.4.2",
         "@crawlee/types": "^3.4.2",

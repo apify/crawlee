@@ -22,7 +22,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.11.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.4.1, @apify/consts@npm:^2.9.0":
+"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.4.1, @apify/consts@npm:^2.9.0":
   version: 2.20.0
   resolution: "@apify/consts@npm:2.20.0"
   checksum: 6a016fab9e5f2503e8c68565e6bcc9fd098341d0ca697bfbaed550d472123c8d0a3036a1dd133eaa064db8343453dab1d272af1b869cb3ca909686096732dad5
@@ -83,7 +83,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.0.0, @apify/log@npm:^2.1.3, @apify/log@npm:^2.1.4, @apify/log@npm:^2.2.6, @apify/log@npm:^2.2.8, @apify/log@npm:^2.3.0":
+"@apify/log@npm:^2.1.4, @apify/log@npm:^2.2.6, @apify/log@npm:^2.3.0":
   version: 2.3.0
   resolution: "@apify/log@npm:2.3.0"
   dependencies:
@@ -93,7 +93,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/ps-tree@npm:^1.1.4":
+"@apify/log@npm:^2.4.0":
+  version: 2.4.0
+  resolution: "@apify/log@npm:2.4.0"
+  dependencies:
+    "@apify/consts": ^2.20.0
+    ansi-colors: ^4.1.1
+  checksum: fae3bfa6c0b4988a7ac1daccf388f9e3ca7f3bee1c46f5e30dcd4bfb42f2259cc72eb3b73e47adbb491573b519ee3d894e49a55ab01e4cd5d7055c3de6450cbe
+  languageName: node
+  linkType: hard
+
+"@apify/ps-tree@npm:^1.2.0":
   version: 1.2.0
   resolution: "@apify/ps-tree@npm:1.2.0"
   dependencies:
@@ -104,13 +114,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/pseudo_url@npm:^2.0.14":
-  version: 2.0.29
-  resolution: "@apify/pseudo_url@npm:2.0.29"
+"@apify/pseudo_url@npm:^2.0.30":
+  version: 2.0.30
+  resolution: "@apify/pseudo_url@npm:2.0.30"
   dependencies:
-    "@apify/log": ^2.3.0
+    "@apify/log": ^2.4.0
     "@sapphire/shapeshift": ^3.6.0
-  checksum: 16ff9d9723923d2a43cbf1614c57a4e13d5b67d501aa36a47c30cbae4d0fdf6f699dcfae98704ce0baaa316230bdc572598b504bad6ee436254646cf5ab084b6
+  checksum: d100c4bbe00754dbb208b48c3ab8364b5742e64cb60a3d334e0249a283f59cfea88d1916d0b9f0c7394640a3dde22f4c25f64c45dbe0050bc51adb344e6aeca9
   languageName: node
   linkType: hard
 
@@ -128,13 +138,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.0.0, @apify/utilities@npm:^2.1.4, @apify/utilities@npm:^2.2.2, @apify/utilities@npm:^2.3.3, @apify/utilities@npm:^2.7.9":
+"@apify/utilities@npm:^2.2.2, @apify/utilities@npm:^2.7.9":
   version: 2.7.9
   resolution: "@apify/utilities@npm:2.7.9"
   dependencies:
     "@apify/consts": ^2.20.0
     "@apify/log": ^2.3.0
   checksum: 281c705a236091950a462ae9886052a9e547e70b92477d4688852f249e9644fa7dc6c886a46952b95866519793b999fca4efe9303fae9eced5a088af4e80f0d8
+  languageName: node
+  linkType: hard
+
+"@apify/utilities@npm:^2.7.10":
+  version: 2.7.10
+  resolution: "@apify/utilities@npm:2.7.10"
+  dependencies:
+    "@apify/consts": ^2.20.0
+    "@apify/log": ^2.4.0
+  checksum: a5a55c4561c0f57aa5daf7ca3a939fec00ad3c40c9f229cba89a20eca5f3c63503a6e4876888cf8b0c7e79ceee84697b28151cea091eb94c944b9c3e22854eac
   languageName: node
   linkType: hard
 
@@ -742,9 +762,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/basic@workspace:packages/basic-crawler"
   dependencies:
-    "@apify/log": ^2.0.0
+    "@apify/log": ^2.4.0
     "@apify/timeout": ^0.3.0
-    "@apify/utilities": ^2.0.0
+    "@apify/utilities": ^2.7.10
     "@crawlee/core": ^3.4.2
     "@crawlee/types": ^3.4.2
     "@crawlee/utils": ^3.4.2
@@ -759,7 +779,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
-    "@apify/log": ^2.0.0
+    "@apify/log": ^2.4.0
     "@apify/timeout": ^0.3.0
     "@crawlee/types": ^3.4.2
     fingerprint-generator: ^2.0.6
@@ -829,18 +849,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
-    "@apify/consts": ^2.11.0
+    "@apify/consts": ^2.20.0
     "@apify/datastructures": ^2.0.0
-    "@apify/log": ^2.2.8
-    "@apify/pseudo_url": ^2.0.14
+    "@apify/log": ^2.4.0
+    "@apify/pseudo_url": ^2.0.30
     "@apify/timeout": ^0.3.0
-    "@apify/utilities": ^2.3.3
+    "@apify/utilities": ^2.7.10
     "@crawlee/memory-storage": ^3.4.2
     "@crawlee/types": ^3.4.2
     "@crawlee/utils": ^3.4.2
     "@sapphire/async-queue": ^1.5.0
     "@types/tough-cookie": ^4.0.2
-    "@vladfrangu/async_event_emitter": ^2.0.0
+    "@vladfrangu/async_event_emitter": ^2.2.2
     csv-stringify: ^6.2.0
     fs-extra: ^11.0.0
     json5: ^2.2.3
@@ -860,7 +880,7 @@ __metadata:
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
-    "@apify/utilities": ^2.0.0
+    "@apify/utilities": ^2.7.10
     "@crawlee/basic": ^3.4.2
     "@crawlee/types": ^3.4.2
     "@crawlee/utils": ^3.4.2
@@ -881,7 +901,7 @@ __metadata:
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
-    "@apify/utilities": ^2.1.4
+    "@apify/utilities": ^2.7.10
     "@crawlee/http": ^3.4.2
     "@crawlee/types": ^3.4.2
     "@types/jsdom": ^21.0.0
@@ -897,7 +917,7 @@ __metadata:
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
     "@apify/timeout": ^0.3.0
-    "@apify/utilities": ^2.1.4
+    "@apify/utilities": ^2.7.10
     "@crawlee/http": ^3.4.2
     "@crawlee/types": ^3.4.2
     linkedom: ^0.15.0
@@ -910,7 +930,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/memory-storage@workspace:packages/memory-storage"
   dependencies:
-    "@apify/log": ^2.0.0
+    "@apify/log": ^2.4.0
     "@crawlee/types": ^3.4.2
     "@sapphire/async-queue": ^1.5.0
     "@sapphire/shapeshift": ^3.0.0
@@ -928,7 +948,7 @@ __metadata:
   resolution: "@crawlee/playwright@workspace:packages/playwright-crawler"
   dependencies:
     "@apify/datastructures": ^2.0.0
-    "@apify/log": ^2.0.0
+    "@apify/log": ^2.4.0
     "@crawlee/browser": ^3.4.2
     "@crawlee/browser-pool": ^3.4.2
     "@crawlee/types": ^3.4.2
@@ -950,7 +970,7 @@ __metadata:
   resolution: "@crawlee/puppeteer@workspace:packages/puppeteer-crawler"
   dependencies:
     "@apify/datastructures": ^2.0.0
-    "@apify/log": ^2.0.0
+    "@apify/log": ^2.4.0
     "@crawlee/browser": ^3.4.2
     "@crawlee/browser-pool": ^3.4.2
     "@crawlee/types": ^3.4.2
@@ -973,7 +993,7 @@ __metadata:
   resolution: "@crawlee/root@workspace:."
   dependencies:
     "@apify/eslint-config-ts": ^0.3.0
-    "@apify/log": ^2.1.3
+    "@apify/log": ^2.4.0
     "@apify/tsconfig": ^0.1.0
     "@commitlint/config-conventional": ^17.1.0
     "@types/content-type": ^1.1.5
@@ -1048,8 +1068,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/utils@workspace:packages/utils"
   dependencies:
-    "@apify/log": ^2.0.0
-    "@apify/ps-tree": ^1.1.4
+    "@apify/log": ^2.4.0
+    "@apify/ps-tree": ^1.2.0
     "@crawlee/types": ^3.4.2
     cheerio: ^1.0.0-rc.12
     got-scraping: ^3.2.9
@@ -2661,7 +2681,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vladfrangu/async_event_emitter@npm:^2.0.0":
+"@vladfrangu/async_event_emitter@npm:^2.2.2":
   version: 2.2.2
   resolution: "@vladfrangu/async_event_emitter@npm:2.2.2"
   checksum: ed948294fea1a2dc8b8f307f4061bf65e2043a946132f288702f0572a806ebe3123b8c7e522e70d2abbd3616f5d67027c9e59df9ef80b0195f7502a848a426ba

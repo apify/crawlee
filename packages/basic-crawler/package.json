@@ -45,9 +45,9 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/log": "^2.0.0",
+        "@apify/log": "^2.4.0",
         "@apify/timeout": "^0.3.0",
-        "@apify/utilities": "^2.0.0",
+        "@apify/utilities": "^2.7.10",
         "@crawlee/core": "^3.4.2",
         "@crawlee/types": "^3.4.2",
         "@crawlee/utils": "^3.4.2",
