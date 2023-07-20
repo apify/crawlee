@@ -970,7 +970,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const lastAccessTime = this.requestQueue?.domainAccessedTime.get(request.url)
 
         if(lastAccessTime && (currentEpochTimeMillis-lastAccessTime) < this.sameDomainDelay){
-            console.log(`Request will be reclaimed after ${currentEpochTimeMillis-lastAccessTime} seconds `);
+            console.log(`Request will be reclaimed after ${lastAccessTime+this.sameDomainDelay-currentEpochTimeMillis} seconds `);
             setTimeout(async ()=> {
                 if(request){
                     console.log(`Adding request back to the queue ${request}`);
@@ -979,7 +979,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 else{
                     console.log("Some Issue in request");
                 }
-            },currentEpochTimeMillis-lastAccessTime);
+            },lastAccessTime+this.sameDomainDelay-currentEpochTimeMillis);
         }
         else{
             this.requestQueue?.domainAccessedTime.set(request.url, currentEpochTimeMillis);
