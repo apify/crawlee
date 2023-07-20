@@ -44,6 +44,7 @@ import { gotScraping } from 'got-scraping';
 import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
+import { getDomain } from 'tldts';
 
 export interface BasicCrawlingContext<
     UserData extends Dictionary = Dictionary,
@@ -931,6 +932,31 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         _crawlingContext: Context,
     ) {}
 
+    protected _isValidRequest(request:Request)
+    {
+        const domain = getDomain(request.url);
+        if(domain){
+            const currentEpochTimeMillis: number = new Date().getTime();
+            const lastAccessTime = this.requestQueue?.domainAccessedTime.get(domain);
+            if(lastAccessTime && (currentEpochTimeMillis-lastAccessTime) < this.sameDomainDelay){
+                const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis
+                this.log.info(`Request will be reclaimed after ${delay} milli seconds due to same domain delay`);
+                setTimeout(async ()=> {
+                    if(request){
+                        this.log.info(`Adding request url = ${request.url} back to the queue`);
+                        this.requestQueue?.reclaimRequest(request);
+                    }
+                    else{
+                        this.log.error(`Some Issue in adding request back to the queue`);
+                    }
+                },delay);
+                return false;
+            }
+            this.requestQueue?.domainAccessedTime.set(domain, currentEpochTimeMillis);
+        }
+        return true;
+    }
+
     /**
      * Wrapper around requestHandler that fetches requests from RequestList/RequestQueue
      * then retries them in a case of an error, etc.
@@ -964,25 +990,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         tryCancel();
         
         if (!request) return;
-        console.log(`${request.uniqueKey}`);
-        // Reset loadedUrl so an old one is not carried over to retries.
-        const currentEpochTimeMillis: number = new Date().getTime();
-        const lastAccessTime = this.requestQueue?.domainAccessedTime.get(request.url)
 
-        if(lastAccessTime && (currentEpochTimeMillis-lastAccessTime) < this.sameDomainDelay){
-            console.log(`Request will be reclaimed after ${lastAccessTime+this.sameDomainDelay-currentEpochTimeMillis} seconds `);
-            setTimeout(async ()=> {
-                if(request){
-                    console.log(`Adding request back to the queue ${request}`);
-                    this.requestQueue?.reclaimRequest(request);
-                }
-                else{
-                    console.log("Some Issue in request");
-                }
-            },lastAccessTime+this.sameDomainDelay-currentEpochTimeMillis);
-        }
-        else{
-            this.requestQueue?.domainAccessedTime.set(request.url, currentEpochTimeMillis);
+        if(this._isValidRequest(request)){
+            // Reset loadedUrl so an old one is not carried over to retries.
             request.loadedUrl = undefined;
 
             const statisticsId = request.id || request.uniqueKey;
