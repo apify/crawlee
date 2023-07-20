@@ -310,13 +310,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('throws with RegExp pseudoUrls', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (requests) => {
-                enqueued.push(...requests);
-            };
+            const { enqueued, requestQueue } = createRequestQueueMock();
 
             const pseudoUrls = [
                 /https:\/\/example\.com\/(\w|-|\/)*/,
@@ -461,13 +455,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the strategy of all', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-
+            const { enqueued, requestQueue } = createRequestQueueMock();
             await browserCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.All },
                 page,
@@ -511,13 +499,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly works with transformRequestFunction', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (requests) => {
-                enqueued.push(...requests);
-            };
+            const { enqueued, requestQueue } = createRequestQueueMock();
 
             const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
@@ -646,13 +628,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with string pseudoUrls', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-            const pseudoUrls = [
+            const { enqueued, requestQueue } = createRequestQueueMock();const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
                 { purl: '[http|https]://cool.com/', method: 'POST' as const, userData: { label: 'COOL' } },
             ];
@@ -690,13 +666,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('throws with RegExp pseudoUrls', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-            const pseudoUrls = [
+            const { enqueued, requestQueue } = createRequestQueueMock();const pseudoUrls = [
                 /https:\/\/example\.com\/(\w|-|\/)*/,
                 /(http|https):\/\/cool\.com\//,
             ];
@@ -711,13 +681,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with undefined pseudoUrls[]', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-
+            const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { selector: '.click', strategy: EnqueueStrategy.All },
                 $,
@@ -745,13 +709,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('throws with null pseudoUrls[]', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-
+            const { enqueued, requestQueue } = createRequestQueueMock();
             await expect(cheerioCrawlerEnqueueLinks({
                 options: { selector: '.click', pseudoUrls: null },
                 $,
@@ -761,13 +719,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('works with empty pseudoUrls[]', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-
+            const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { selector: '.click', pseudoUrls: [], strategy: EnqueueStrategy.All },
                 $,
@@ -795,13 +747,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('throws with sparse pseudoUrls[]', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-            const pseudoUrls = [
+            const { enqueued, requestQueue } = createRequestQueueMock();const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
                 null,
                 '[http|https]://cool.com/',
@@ -817,13 +763,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the strategy of all', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-
+            const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/', strategy: EnqueueStrategy.All },
                 $,
@@ -867,13 +807,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly resolves relative URLs with the default strategy of same-hostname', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (request) => {
-                enqueued.push(...request);
-            };
-
+            const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { baseUrl: 'http://www.absolute.com/removethis/' },
                 $,
@@ -917,13 +851,7 @@ describe('enqueueLinks()', () => {
         });
 
         test('correctly works with transformRequestFunction', async () => {
-            const enqueued: Source[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-
-            // @ts-expect-error Override method for testing
-            requestQueue.addRequests = async (requests) => {
-                enqueued.push(...requests);
-            };
+            const { enqueued, requestQueue } = createRequestQueueMock();
             const pseudoUrls = [
                 'https://example.com/[(\\w|-|/)*]',
                 '[http|https]://cool.com/',

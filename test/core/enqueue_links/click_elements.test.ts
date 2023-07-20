@@ -23,6 +23,21 @@ function isPlaywrightBrowser(browser: PPBrowser | PWBrowser): browser is PWBrows
     return (browser as PWBrowser).browserType !== undefined;
 }
 
+const apifyClient = Configuration.getStorageClient();
+
+function createRequestQueueMock() {
+    const enqueued: Source[] = [];
+    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+    // @ts-expect-error Override method for testing
+    requestQueue.addRequests = async function (requests) {
+        enqueued.push(...requests);
+        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+    };
+
+    return { enqueued, requestQueue };
+}
+
 const testCases = [
     {
         caseName: 'Puppeteer',
@@ -72,12 +87,7 @@ testCases.forEach(({
         });
 
         test('should work', async () => {
-            const addedRequests: Source[] = [];
-            const requestQueue = Object.create(RequestQueue.prototype);
-            requestQueue.addRequests = async (requests: Request[]) => {
-                addedRequests.push(...requests);
-                return { processedRequests: requests, unprocessedRequests: [] as never[] };
-            };
+            const { enqueued, requestQueue } = createRequestQueueMock();
             const html = `
 <html>
     <body>
@@ -98,9 +108,9 @@ testCases.forEach(({
                 waitForPageIdleSecs: 0.025,
                 maxWaitForPageIdleSecs: 0.250,
             });
-            expect(addedRequests).toHaveLength(1);
-            expect(addedRequests[0].url).toMatch(`${serverAddress}/`);
-            expect(addedRequests[0].uniqueKey).toBe('key');
+            expect(enqueued).toHaveLength(1);
+            expect(enqueued[0].url).toMatch(`${serverAddress}/`);
+            expect(enqueued[0].uniqueKey).toBe('key');
             expect(page.url()).toBe('about:blank');
         });
 
