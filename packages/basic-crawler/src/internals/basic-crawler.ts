@@ -1,5 +1,5 @@
+import defaultLog, { LogLevel } from '@apify/log';
 import type { Log } from '@apify/log';
-import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
@@ -20,6 +20,7 @@ import type {
     Session,
     SessionPoolOptions,
     Source,
+    StatisticState,
 } from '@crawlee/core';
 import {
     mergeCookies,
@@ -88,6 +89,20 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context) => Awaitable<void>;
 
 export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
+
+export interface StatusMessageCallbackParams<
+    Context extends CrawlingContext = BasicCrawlingContext,
+    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+> {
+    crawler: Crawler;
+    state: StatisticState;
+    previousState: StatisticState;
+}
+
+export type StatusMessageCallback<
+    Context extends CrawlingContext = BasicCrawlingContext,
+    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<string | undefined | null>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -262,6 +277,16 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     statusMessageLoggingInterval?: number;
 
     /**
+     * Allows overriding the default status message. When the callback returns `null` or `undefined`, the default message will be used as a fallback.
+     */
+    statusMessageCallback?: StatusMessageCallback;
+
+    /**
+     * Allows overriding the default status message. When the callback returns `null` or `undefined`, the default message will be used as a fallback.
+     */
+    statusMessageLogLevel?: LogLevel.DEBUG | LogLevel.INFO | LogLevel.WARNING | LogLevel.ERROR;
+
+    /**
      * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
      *
      * Currently supports:
@@ -391,6 +416,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected maxRequestRetries: number;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
+    protected statusMessageCallback?: StatusMessageCallback;
+    protected statusMessageLogLevel?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected crawlingContexts = new Map<string, Context>();
@@ -420,7 +447,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
+
         statusMessageLoggingInterval: ow.optional.number,
+        statusMessageCallback: ow.optional.function,
+        statusMessageLogLevel: ow.optional.string.oneOf(['DEBUG', 'INFO', 'WARNING', 'ERROR']),
 
         retryOnBlocked: ow.optional.boolean,
 
@@ -473,12 +503,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             failedRequestHandler,
 
             statusMessageLoggingInterval = 10,
+            statusMessageCallback,
+            statusMessageLogLevel = 'DEBUG',
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
+        this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
+        this.statusMessageLogLevel = statusMessageLogLevel;
         this.events = config.getEventManager();
 
         this._handlePropertyNameChange({
@@ -545,8 +579,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.retryOnBlocked) {
             this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
             if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. 
-Please note that the 'retryOnBlocked' feature might not work as expected.`);
+                // eslint-disable-next-line max-len
+                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`);
             }
         }
         this.useSessionPool = useSessionPool;
@@ -621,7 +655,8 @@ Please note that the 'retryOnBlocked' feature might not work as expected.`);
     }
 
     private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
-        this.log.debug(`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
+        const data = options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
+        this.log.internal(LogLevel[options.level as 'DEBUG' ?? 'DEBUG'], message, data);
 
         const client = this.config.getStorageClient();
         return client.setStatusMessage?.(message, options);
@@ -645,14 +680,18 @@ Please note that the 'retryOnBlocked' feature might not work as expected.`);
 
         const log = async () => {
             const operationMode = getOperationMode();
+            let message: string;
+
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`);
+                message = `Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
-                // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`);
+                message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`;
             }
+
+            message = await this.statusMessageCallback?.({ crawler: this as any, state: this.stats.state, previousState }) ?? message;
+            await this.setStatusMessage(message, { level: this.statusMessageLogLevel });
         };
 
         const interval = setInterval(log, this.statusMessageLoggingInterval * 1e3);
@@ -696,7 +735,7 @@ Please note that the 'retryOnBlocked' feature might not work as expected.`);
         await this._init();
         await this.stats.startCapturing();
         const periodicLogger = this.getPeriodicLogger();
-        await this.setStatusMessage(`Initializing the crawler.`);
+        await this.setStatusMessage(`Initializing the crawler.`, { level: 'INFO' });
 
         const sigintHandler = async () => {
             this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start');
@@ -711,7 +750,6 @@ Please note that the 'retryOnBlocked' feature might not work as expected.`);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
         try {
-            this.log.info('Starting the crawl');
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
@@ -729,7 +767,7 @@ Please note that the 'retryOnBlocked' feature might not work as expected.`);
             retryHistogram: this.stats.requestRetryHistogram,
             ...finalStats,
         };
-        this.log.info('Crawl finished. Final request statistics:', stats);
+        this.log.info('Final request statistics:', stats);
 
         if (this.stats.errorTracker.total !== 0) {
             const prettify = ([count, info]: [number, string[]]) => `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
@@ -756,7 +794,7 @@ Please note that the 'retryOnBlocked' feature might not work as expected.`);
 
         periodicLogger.stop();
         // eslint-disable-next-line max-len
-        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
+        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true, level: 'INFO' });
         this.running = false;
 
         return stats;

@@ -309,7 +309,7 @@ export interface RequestQueueOptions {
 
 export interface SetStatusMessageOptions {
     isStatusMessageTerminal?: boolean;
-    level?: LogLevel.DEBUG | LogLevel.INFO | LogLevel.WARNING | LogLevel.ERROR;
+    level?: LogLevel.DEBUG | LogLevel.INFO | LogLevel.WARNING | LogLevel.ERROR | 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
 }
 
 /**
