@@ -371,7 +371,9 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     let requests = createFilteredRequests();
     if (limit) requests = requests.slice(0, limit);
 
-    return requestQueue.addRequests(requests, { forefront });
+    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+
+    return { processedRequests: addedRequests, unprocessedRequests: [] };
 }
 
 /**

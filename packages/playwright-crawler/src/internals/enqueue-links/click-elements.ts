@@ -279,7 +279,9 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
     }
     const requests = createRequests(requestOptions, urlPatternObjects);
-    return requestQueue.addRequests(requests, { forefront });
+    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+
+    return { processedRequests: addedRequests, unprocessedRequests: [] };
 }
 
 interface WaitForPageIdleOptions {
