@@ -20,14 +20,14 @@ const HTML = `
 </html>
 `;
 
-function getMockRequestQueue() {
+function createRequestQueueMock() {
     const enqueued: Source[] = [];
-
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
     // @ts-expect-error Override method for testing
-    requestQueue.addRequests = (requests) => {
+    requestQueue.addRequests = async function (requests) {
         enqueued.push(...requests);
+        return { processedRequests: requests, unprocessedRequests: [] as never[] };
     };
 
     return { enqueued, requestQueue };
@@ -50,7 +50,7 @@ describe('enqueueLinks() - userData shouldn\'t be changed and outer label must t
     });
 
     test('multiple enqueues with different labels', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         const userData = { foo: 'bar' };
         await cheerioCrawlerEnqueueLinks({
@@ -84,7 +84,7 @@ describe('enqueueLinks() - userData shouldn\'t be changed and outer label must t
     });
 
     test('JSON string of userData shouldn\'t change, but enqueued label should be different', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         const userData = { foo: 'bar', label: 'bogus' };
         const originalUserData = JSON.stringify(userData);

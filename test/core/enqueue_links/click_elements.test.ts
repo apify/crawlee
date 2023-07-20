@@ -74,7 +74,10 @@ testCases.forEach(({
         test('should work', async () => {
             const addedRequests: Source[] = [];
             const requestQueue = Object.create(RequestQueue.prototype);
-            requestQueue.addRequests = async (request: Request[]) => addedRequests.push(...request);
+            requestQueue.addRequests = async (requests: Request[]) => {
+                addedRequests.push(...requests);
+                return { processedRequests: requests, unprocessedRequests: [] as never[] };
+            };
             const html = `
 <html>
     <body>
