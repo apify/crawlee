@@ -182,6 +182,9 @@ export class RequestQueue {
     // i.e. which were returned by fetchNextRequest() but not markRequestHandled()
     inProgress = new Set();
 
+    domainAccessedTime: Map<string, number> = new Map();
+
+
     // To track whether the queue gets stuck, and we need to reset it
     // `lastActivity` tracks the time when we either added, processed or reclaimed a request,
     // or when we add new request to in-progress cache
@@ -604,6 +607,7 @@ export class RequestQueue {
         this.queueHeadDict.clear();
         this.queryQueueHeadPromise = null;
         this.inProgress.clear();
+        this.domainAccessedTime.clear();
         this.recentlyHandled.clear();
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;
