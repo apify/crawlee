@@ -3,7 +3,7 @@ import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
-import type {
+import {
     AutoscaledPoolOptions,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -270,6 +270,8 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
 
     /** @internal */
     log?: Log;
+
+    domainAccessedTime?: Map<string, number>;
 }
 
 /**
@@ -388,6 +390,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
     protected sameDomainDelay: number;
+    protected domainAccessedTime: Map<string, number>;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
     protected sessionPoolOptions: SessionPoolOptions;
@@ -429,6 +432,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // internal
         log: ow.optional.object,
+
+        domainAccessTime: ow.optional.object,
     };
 
     /**
@@ -476,6 +481,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.events = config.getEventManager();
+        this.domainAccessedTime = new Map();
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -932,19 +938,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         _crawlingContext: Context,
     ) {}
 
-    protected _isValidRequest(request:Request)
+    protected _isValidRequest(request:Request, source: RequestQueue | RequestList)
     {
         const domain = getDomain(request.url);
         if(domain){
             const currentEpochTimeMillis: number = new Date().getTime();
-            const lastAccessTime = this.requestQueue?.domainAccessedTime.get(domain);
+            const lastAccessTime = this.domainAccessedTime.get(domain);
             if(lastAccessTime && (currentEpochTimeMillis-lastAccessTime) < this.sameDomainDelay){
                 const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis
                 this.log.info(`Request will be reclaimed after ${delay} milli seconds due to same domain delay`);
                 setTimeout(async ()=> {
                     if(request){
                         this.log.info(`Adding request url = ${request.url} back to the queue`);
-                        this.requestQueue?.reclaimRequest(request);
+                        source?.reclaimRequest(request);
                     }
                     else{
                         this.log.error(`Some Issue in adding request back to the queue`);
@@ -952,7 +958,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 },delay);
                 return false;
             }
-            this.requestQueue?.domainAccessedTime.set(domain, currentEpochTimeMillis);
+            this.domainAccessedTime.set(domain, currentEpochTimeMillis);
         }
         return true;
     }
@@ -991,7 +997,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         
         if (!request) return;
 
-        if(this._isValidRequest(request)){
+        if(this._isValidRequest(request, source)){
             // Reset loadedUrl so an old one is not carried over to retries.
             request.loadedUrl = undefined;
 
