@@ -1,5 +1,5 @@
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { BatchAddRequestsResult, Dictionary, QueueOperationInfo, RequestQueueClient, StorageClient } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary, QueueOperationInfo, RequestQueueClient, RequestQueueInfo, StorageClient } from '@crawlee/types';
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import ow from 'ow';
 import type { DownloadListOfUrlsOptions } from '@crawlee/utils';
@@ -11,6 +11,9 @@ import type { ProxyConfiguration } from '../proxy_configuration';
 import { Configuration } from '../configuration';
 import { Request } from '../request';
 import type { InternalSource, RequestOptions, Source } from '../request';
+import type { StorageManagerOptions } from './storage_manager';
+import { StorageManager } from './storage_manager';
+import { purgeDefaultStorages } from './utils';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -151,7 +154,7 @@ export class RequestQueueV2 {
     private _listHeadAndLockPromise: Promise<boolean> | null = null;
     private _hydratingRequestPromise: Promise<any> | null = null;
 
-    protected constructor(options: RequestQueueV2Options, readonly config = Configuration.getGlobalConfig()) {
+    constructor(options: RequestQueueV2Options, readonly config = Configuration.getGlobalConfig()) {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client.requestQueue(this.id, {
@@ -719,6 +722,218 @@ export class RequestQueueV2 {
 
             return null;
         }
+    }
+
+    /**
+     * Marks a request that was previously returned by the
+     * {@apilink RequestQueue.fetchNextRequest}
+     * function as handled after successful processing.
+     * Handled requests will never again be returned by the `fetchNextRequest` function.
+     */
+    async markRequestHandled(request: Request): Promise<RequestQueueV2OperationInfo | null> {
+        this.lastActivity = new Date();
+        ow(request, ow.object.partialShape({
+            id: ow.string,
+            uniqueKey: ow.string,
+            handledAt: ow.optional.string,
+        }));
+
+        if (!this.requestIdsInProgress.has(request.id)) {
+            this.log.debug(`Cannot mark request ${request.id} as handled, because it is not in progress!`, { requestId: request.id });
+            return null;
+        }
+
+        const handledAt = request.handledAt ?? new Date().toISOString();
+        const queueOperationInfo = await this.client.updateRequest({ ...request, handledAt }) as RequestQueueV2OperationInfo;
+        request.handledAt = handledAt;
+        queueOperationInfo.uniqueKey = request.uniqueKey;
+
+        this.requestIdsInProgress.delete(request.id);
+        this.recentlyHandledRequestsCache.add(request.id, true);
+
+        if (!queueOperationInfo.wasAlreadyHandled) {
+            this.assumedHandledCount++;
+        }
+
+        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+
+        return queueOperationInfo;
+    }
+
+    /**
+     * Reclaims a failed request back to the queue, so that it can be returned for processing later again
+     * by another call to {@apilink RequestQueue.fetchNextRequest}.
+     * The request record in the queue is updated using the provided `request` parameter.
+     * For example, this lets you store the number of retries or error messages for the request.
+     */
+    async reclaimRequest(request: Request, options: RequestQueueV2OperationOptions = {}): Promise<RequestQueueV2OperationInfo | null> {
+        this.lastActivity = new Date();
+        ow(request, ow.object.partialShape({
+            id: ow.string,
+            uniqueKey: ow.string,
+        }));
+        ow(options, ow.object.exactShape({
+            forefront: ow.optional.boolean,
+        }));
+
+        const { forefront = false } = options;
+
+        if (!this.requestIdsInProgress.has(request.id)) {
+            this.log.debug(`Cannot reclaim request ${request.id}, because it is not in progress!`, { requestId: request.id });
+            return null;
+        }
+
+        // TODO: If request hasn't been changed since the last getRequest(),
+        //   we don't need to call updateRequest() and thus improve performance.
+        const queueOperationInfo = await this.client.updateRequest(request, { forefront }) as RequestQueueV2OperationInfo;
+        queueOperationInfo.uniqueKey = request.uniqueKey;
+        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+
+        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
+        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
+        setTimeout(() => {
+            if (!this.requestIdsInProgress.has(request.id)) {
+                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                return;
+            }
+
+            this.requestIdsInProgress.delete(request.id);
+
+            // Performance optimization: add request straight to head if possible
+            this._maybeAddRequestToQueueHead(request.id, forefront);
+        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+
+        return queueOperationInfo;
+    }
+
+    /**
+     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest}
+     * would return `null`, otherwise it resolves to `false`.
+     * Note that even if the queue is empty, there might be some pending requests currently being processed.
+     * If you need to ensure that there is no activity in the queue, use {@apilink RequestQueue.isFinished}.
+     */
+    async isEmpty(): Promise<boolean> {
+        await this.ensureHeadIsNonEmpty();
+        return this.queueHeadIds.length() === 0;
+    }
+
+    /**
+     * Resolves to `true` if all requests were already handled and there are no more left.
+     * Due to the nature of distributed storage used by the queue,
+     * the function might occasionally return a false negative,
+     * but it will never return a false positive.
+     */
+    async isFinished(): Promise<boolean> {
+        if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
+            const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1000}s, resetting internal state.`;
+            this.log.warning(message, { inProgress: [...this.requestIdsInProgress] });
+            this._reset();
+        }
+
+        if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
+
+        const isHeadConsistent = await this._listHeadAndLock(true);
+        return isHeadConsistent && this.queueHeadIds.length() === 0 && this.inProgressCount() === 0;
+    }
+
+    private _reset() {
+        this.queueHeadIds.clear();
+        this._listHeadAndLockPromise = null;
+        this.requestIdsInProgress.clear();
+        this.recentlyHandledRequestsCache.clear();
+        this.assumedTotalCount = 0;
+        this.assumedHandledCount = 0;
+        this.requestCache.clear();
+        this.lastActivity = new Date();
+    }
+
+    /**
+     * Removes the queue either from the Apify Cloud storage or from the local database,
+     * depending on the mode of operation.
+     */
+    async drop(): Promise<void> {
+        await this.client.delete();
+        const manager = StorageManager.getManager(RequestQueueV2, this.config);
+        manager.closeStorage(this);
+    }
+
+    /**
+     * Returns the number of handled requests.
+     *
+     * This function is just a convenient shortcut for:
+     *
+     * ```javascript
+     * const { handledRequestCount } = await queue.getInfo();
+     * ```
+     */
+    async handledCount(): Promise<number> {
+        // NOTE: We keep this function for compatibility with RequestList.handledCount()
+        const { handledRequestCount } = await this.getInfo() ?? {};
+        return handledRequestCount ?? 0;
+    }
+
+    /**
+     * Returns an object containing general information about the request queue.
+     *
+     * The function returns the same object as the Apify API Client's
+     * [getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)
+     * function, which in turn calls the
+     * [Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)
+     * API endpoint.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   id: "WkzbQMuFYuamGv3YF",
+     *   name: "my-queue",
+     *   userId: "wRsJZtadYvn4mBZmm",
+     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
+     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
+     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
+     *   totalRequestCount: 25,
+     *   handledRequestCount: 5,
+     *   pendingRequestCount: 20,
+     * }
+     * ```
+     */
+    async getInfo(): Promise<RequestQueueInfo | undefined> {
+        return this.client.get();
+    }
+
+    /**
+     * Opens a request queue and returns a promise resolving to an instance
+     * of the {@apilink RequestQueue} class.
+     *
+     * {@apilink RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+     * The queue is used for deep crawling of websites, where you start with several URLs and then
+     * recursively follow links to other pages. The data structure supports both breadth-first
+     * and depth-first crawling orders.
+     *
+     * For more details and code examples, see the {@apilink RequestQueue} class.
+     *
+     * @param [queueIdOrName]
+     *   ID or name of the request queue to be opened. If `null` or `undefined`,
+     *   the function returns the default request queue associated with the crawler run.
+     * @param [options] Open Request Queue options.
+     */
+    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestQueueV2> {
+        ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
+        ow(options, ow.object.exactShape({
+            config: ow.optional.object.instanceOf(Configuration),
+            storageClient: ow.optional.object,
+            proxyConfiguration: ow.optional.object,
+        }));
+
+        options.config ??= Configuration.getGlobalConfig();
+        options.storageClient ??= options.config.getStorageClient();
+
+        await purgeDefaultStorages(options.config, options.storageClient);
+
+        const manager = StorageManager.getManager(this, options.config);
+        const queue = await manager.openStorage(queueIdOrName, options.storageClient);
+        queue.proxyConfiguration = options.proxyConfiguration;
+
+        return queue;
     }
 }
 
