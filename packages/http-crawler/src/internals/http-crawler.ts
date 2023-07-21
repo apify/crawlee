@@ -434,8 +434,17 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId);
         }
         if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
-            tryCancel();
+            try {
+                await this._handleNavigation(crawlingContext);
+                tryCancel();
+            } catch (e: any) {
+                if (this.shouldRotateProxies(e)) {
+                    session?.retire();
+                    throw new Error('Proxy error detected, rotating...');
+                } else {
+                    throw e;
+                }
+            }
 
             const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
             const response = parsed.response!;

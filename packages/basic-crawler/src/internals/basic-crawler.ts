@@ -41,6 +41,7 @@ import {
     RetryRequestError,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
+import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
@@ -653,6 +654,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+    }
+
+    protected shouldRotateProxies(error: Error) {
+        return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
     }
 
     protected isRequestBlocked(_crawlingContext: Context) {

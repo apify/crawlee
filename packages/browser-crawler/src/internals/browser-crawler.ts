@@ -493,8 +493,17 @@ export abstract class BrowserCrawler<
         const { request, session } = crawlingContext;
 
         if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
-            tryCancel();
+            try {
+                await this._handleNavigation(crawlingContext);
+                tryCancel();
+            } catch (e: any) {
+                if (this.shouldRotateProxies(e)) {
+                    session?.retire();
+                    throw new Error('Proxy error detected, rotating...');
+                } else {
+                    throw e;
+                }
+            }
 
             await this._responseHandler(crawlingContext);
             tryCancel();
