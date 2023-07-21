@@ -1,7 +1,9 @@
+import { createHash } from 'node:crypto';
+
 import defaultLog from '@apify/log';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { createHash } from 'node:crypto';
+
 import { REQUEST_ID_LENGTH } from './consts';
 
 /**
@@ -28,7 +30,7 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
         .replace(/(\+|\/|=)/g, '');
 
     return str.length > REQUEST_ID_LENGTH ? str.slice(0, REQUEST_ID_LENGTH) : str;
-};
+}
 
 export function isBuffer(value: unknown): boolean {
     try {

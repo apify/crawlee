@@ -1,3 +1,7 @@
+import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
+import { extname } from 'node:path';
+import util from 'node:util';
+
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
 import type {
@@ -23,18 +27,16 @@ import {
     RequestState,
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import type { RequestLike, ResponseLike } from 'content-type';
+import { RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
+import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-import mime from 'mime-types';
 import type { OptionsInit, Method, Request as GotRequest, Options, PlainResponse } from 'got-scraping';
 import { gotScraping, TimeoutError } from 'got-scraping';
-import type { JsonValue } from 'type-fest';
-import { extname } from 'node:path';
-import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import iconv from 'iconv-lite';
+import mime from 'mime-types';
 import ow from 'ow';
-import util from 'node:util';
+import type { JsonValue } from 'type-fest';
 
 /**
  * Default mime types, which HttpScraper supports.
@@ -464,6 +466,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             });
         }
 
+        if (this.retryOnBlocked && await this.isRequestBlocked(crawlingContext)) {
+            crawlingContext.session?.retire();
+            throw new Error('Antibot protection detected, the session has been retired.');
+        }
+
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
@@ -476,6 +483,15 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             request.state = RequestState.ERROR;
             throw e;
         }
+    }
+
+    protected override async isRequestBlocked(crawlingContext: Context) {
+        if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
+            const $ = await crawlingContext.parseWithCheerio();
+
+            return RETRY_CSS_SELECTORS.some((selector) => $(selector).length > 0);
+        }
+        return false;
     }
 
     protected async _handleNavigation(crawlingContext: Context) {

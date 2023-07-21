@@ -1,3 +1,5 @@
+import type { IncomingMessage } from 'http';
+
 import type {
     Configuration,
     EnqueueLinksOptions,
@@ -16,7 +18,6 @@ import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler } from 'htmlparser2';
 import { WritableStream } from 'htmlparser2/lib/WritableStream';
-import type { IncomingMessage } from 'http';
 
 export type CheerioErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

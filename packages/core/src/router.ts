@@ -1,8 +1,9 @@
 import type { Dictionary } from '@crawlee/types';
+
 import type { CrawlingContext } from './crawlers/crawler_commons';
-import type { Awaitable } from './typedefs';
-import type { Request } from './request';
 import { MissingRouteError } from './errors';
+import type { Request } from './request';
+import type { Awaitable } from './typedefs';
 
 const defaultRoute = Symbol('default-route');
 

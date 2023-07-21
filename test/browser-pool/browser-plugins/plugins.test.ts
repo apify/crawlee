@@ -1,17 +1,16 @@
-import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 import http from 'http';
+import type { AddressInfo } from 'net';
 import { promisify } from 'util';
-
-import type { Server as ProxyChainServer } from 'proxy-chain';
-import type { Browser } from 'puppeteer';
-import puppeteer from 'puppeteer';
-import playwright from 'playwright';
 
 import { PuppeteerPlugin, PlaywrightPlugin, PuppeteerController, PlaywrightController, PlaywrightBrowser, LaunchContext } from '@crawlee/browser-pool';
 import type { UnwrapPromise, CommonLibrary } from '@crawlee/browser-pool';
-
+import playwright from 'playwright';
+import type { Server as ProxyChainServer } from 'proxy-chain';
+import type { Browser } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
+
 import { createProxyServer } from './create-proxy-server';
 
 jest.setTimeout(120000);
@@ -462,10 +461,8 @@ describe('Plugins', () => {
                     logger: {
                         isEnabled: () => {
                             ran = true;
-
                             return false;
                         },
-                        // eslint-disable-next-line @typescript-eslint/no-empty-function
                         log: () => {},
                     },
                 };
@@ -539,8 +536,8 @@ describe('Plugins', () => {
                     browser = await plugin.launch(launchContext);
                     const contexts = browser.contexts();
                     expect(contexts).toHaveLength(1);
+
                     // Cast to any to access private property
-                    // eslint-disable-next-line no-underscore-dangle
                     expect(contexts[0]).toEqual((browser as any)._browserContext);
                 });
 

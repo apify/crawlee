@@ -1,9 +1,10 @@
-import type { Browser, BrowserType, Page } from 'playwright';
 import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
+import type { Browser, BrowserType, Page } from 'playwright';
+
+import type { PlaywrightPlugin } from './playwright-plugin';
 import { BrowserController } from '../abstract-classes/browser-controller';
 import { anonymizeProxySugar } from '../anonymize-proxy';
-import type { PlaywrightPlugin } from './playwright-plugin';
 import type { SafeParameters } from '../utils';
 
 const tabIds = new WeakMap<Page, number>();
@@ -34,7 +35,6 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
             throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         let close = async () => {};
 
         if (this.launchContext.useIncognitoPages && contextOptions?.proxy) {

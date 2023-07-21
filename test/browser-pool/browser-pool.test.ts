@@ -1,19 +1,21 @@
 /* eslint-disable dot-notation -- Accessing private properties */
 import http from 'http';
 import { promisify } from 'util';
+
+import { addTimeoutToPromise } from '@apify/timeout';
+import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
+import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Page } from 'puppeteer';
 import puppeteer from 'puppeteer';
-import playwright from 'playwright';
-import { addTimeoutToPromise } from '@apify/timeout';
-import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
-import { BrowserPool } from '../../packages/browser-pool/src/browser-pool';
-import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
-import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
-import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events';
-import type { BrowserController } from '../../packages/browser-pool/src/abstract-classes/browser-controller';
-import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types';
+
 import { createProxyServer } from './browser-plugins/create-proxy-server';
+import type { BrowserController } from '../../packages/browser-pool/src/abstract-classes/browser-controller';
+import { BrowserPool } from '../../packages/browser-pool/src/browser-pool';
+import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events';
+import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types';
+import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
+import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
 
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [

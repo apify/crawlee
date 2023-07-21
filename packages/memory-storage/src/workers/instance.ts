@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { Worker } from 'node:worker_threads';
+
+import { FileStorageWorkerEmulator } from './file-storage-worker-emulator';
 import type { WorkerReceivedMessage } from '../utils';
 import { memoryStorageLog } from '../utils';
-import { FileStorageWorkerEmulator } from './file-storage-worker-emulator';
 
-// eslint-disable-next-line import/no-mutable-exports
 let workerInstance: Worker | FileStorageWorkerEmulator;
 
 export const promiseMap: Map<string, {

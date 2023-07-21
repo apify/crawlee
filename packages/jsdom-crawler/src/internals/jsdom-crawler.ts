@@ -1,5 +1,7 @@
-import ow from 'ow';
-import * as cheerio from 'cheerio';
+import type { IncomingMessage } from 'http';
+
+import { addTimeoutToPromise } from '@apify/timeout';
+import { concatStreamToBuffer } from '@apify/utilities';
 import type {
     Configuration,
     EnqueueLinksOptions,
@@ -14,11 +16,10 @@ import type {
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { concatStreamToBuffer } from '@apify/utilities';
+import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
-import type { IncomingMessage } from 'http';
-import { addTimeoutToPromise } from '@apify/timeout';
+import ow from 'ow';
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

@@ -1,9 +1,11 @@
 import os from 'node:os';
+
 import log from '@apify/log';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 import { getMemoryInfo } from '@crawlee/utils';
-import type { SystemInfo } from '../autoscaling';
+
 import { EventManager, EventType } from './event_manager';
+import type { SystemInfo } from '../autoscaling';
 
 export class LocalEventManager extends EventManager {
     private previousTicks = { idle: 0, total: 0 };

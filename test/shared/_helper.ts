@@ -1,12 +1,12 @@
-import type { Application } from 'express';
-import type { Server } from 'http';
-
-import express from 'express';
-import { setTimeout } from 'timers/promises';
 import fs from 'fs';
+import type { Server } from 'http';
 import path from 'path';
+import { setTimeout } from 'timers/promises';
+
 import bodyParser from 'body-parser';
 import { entries } from 'crawlee';
+import express from 'express';
+import type { Application } from 'express';
 
 export const startExpressAppPromise = (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {

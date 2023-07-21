@@ -1,6 +1,7 @@
 import type { Server } from 'http';
 import http from 'http';
 import type { AddressInfo } from 'net';
+
 import log from '@apify/log';
 import type {
     CrawlingContext,
@@ -18,13 +19,12 @@ import {
     CriticalError,
     MissingRouteError,
 } from '@crawlee/basic';
-import {
-    AutoscaledPool, RequestState,
-} from '@crawlee/core';
-import express from 'express';
+import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { sleep } from '@crawlee/utils';
+import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
 import { startExpressAppPromise } from '../../shared/_helper';
 
 describe('BasicCrawler', () => {

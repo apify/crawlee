@@ -36,6 +36,7 @@
                     "singleline": { "delimiter": "semi", "requireLast": false }
                 }],
                 "@typescript-eslint/no-empty-interface": "off",
+                "no-empty-function": "off",
                 "@typescript-eslint/no-empty-function": "off",
                 "@typescript-eslint/no-explicit-any": "off",
                 "@typescript-eslint/no-floating-promises": "error",
@@ -50,6 +51,16 @@
         "max-classes-per-file": 0,
         "no-console": "error",
         "no-underscore-dangle": 0,
-        "no-void": 0
+        "no-void": 0,
+        "max-len": ["error", {
+            "code": 160,
+            "ignoreUrls": true,
+            "ignoreComments": true
+        }],
+        "import/order": ["error", {
+            "groups": ["builtin", "external", ["parent", "sibling"], "index", "object"],
+            "alphabetize": { "order": "asc", "caseInsensitive": true },
+            "newlines-between": "always"
+        }]
     }
 }

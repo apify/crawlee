@@ -1,9 +1,6 @@
-/* eslint-disable dot-notation */
 import log from '@apify/log';
 import { AutoscaledPool } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-
-/* eslint-disable no-underscore-dangle */
 
 describe('AutoscaledPool', () => {
     let logLevel: number;

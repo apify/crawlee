@@ -10,7 +10,8 @@
         "baseUrl": ".",
         "allowJs": true,
         "skipLibCheck": true,
-        "resolveJsonModule": false
+        "resolveJsonModule": false,
+        "emitDecoratorMetadata": false
     },
     "include": [
         "./packages/*/src/**/*"

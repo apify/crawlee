@@ -31,14 +31,14 @@ const HTML = `
 </html>
 `;
 
-function getMockRequestQueue() {
+function createRequestQueueMock() {
     const enqueued: Source[] = [];
-
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
     // @ts-expect-error Override method for testing
-    requestQueue.addRequests = (requests) => {
+    requestQueue.addRequests = async function (requests) {
         enqueued.push(...requests);
+        return { processedRequests: requests, unprocessedRequests: [] as never[] };
     };
 
     return { enqueued, requestQueue };
@@ -61,7 +61,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
     });
 
     test('works with globs and same domain strategy', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         const globs = ['**/first'];
 
@@ -82,7 +82,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
     });
 
     test('works with globs and all domains strategy', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         const globs = ['**/first'];
 
@@ -104,7 +104,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
     });
 
     test('works with no user provided patterns but with same domain strategy', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         await cheerioCrawlerEnqueueLinks({
             options: {
@@ -122,7 +122,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
     });
 
     test('works with globs and exclude', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         const globs = ['**/first'];
         const exclude = ['**/first'];

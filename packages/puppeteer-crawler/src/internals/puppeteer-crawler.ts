@@ -11,6 +11,7 @@ import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+
 import type { PuppeteerLaunchContext } from './puppeteer-launcher';
 import { PuppeteerLauncher } from './puppeteer-launcher';
 import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
@@ -181,7 +182,6 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
 
     protected override async _runRequestHandler(context: PuppeteerCrawlingContext) {
         registerUtilsToContext(context);
-        // eslint-disable-next-line no-underscore-dangle
         await super._runRequestHandler(context);
     }
 

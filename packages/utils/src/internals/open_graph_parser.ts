@@ -6,7 +6,7 @@ export interface OpenGraphProperty {
     name: string;
     outputName: string;
     children: OpenGraphProperty[];
-};
+}
 
 type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
 
@@ -402,4 +402,4 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
             ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
         };
     }, {} as Dictionary<OpenGraphResult>);
-};
+}

@@ -1,9 +1,10 @@
+import defaultLog, { LogLevel } from '@apify/log';
 import type { Log } from '@apify/log';
-import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { SetRequired } from 'type-fest';
 import type {
+    AddRequestsBatchedOptions,
+    AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -14,17 +15,17 @@ import type {
     Request,
     RequestList,
     RequestOptions,
-    RequestQueueOperationOptions,
     RouterHandler,
     RouterRoutes,
     Session,
     SessionPoolOptions,
+    Source,
+    StatisticState,
 } from '@crawlee/core';
 import {
     mergeCookies,
     AutoscaledPool,
     Configuration,
-    createRequests,
     enqueueLinks,
     EventType,
     KeyValueStore,
@@ -39,12 +40,12 @@ import {
     validators,
     RetryRequestError,
 } from '@crawlee/core';
+import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
-import type { ProcessedRequest, Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
-import { chunk, sleep } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
+import type { SetRequired } from 'type-fest';
 
 export interface BasicCrawlingContext<
     UserData extends Dictionary = Dictionary,
@@ -89,6 +90,21 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context) => Awaitable<void>;
 
 export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (inputs: Context, error: Error) => Awaitable<void>;
+
+export interface StatusMessageCallbackParams<
+    Context extends CrawlingContext = BasicCrawlingContext,
+    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+> {
+    state: StatisticState;
+    crawler: Crawler;
+    previousState: StatisticState;
+    message: string;
+}
+
+export type StatusMessageCallback<
+    Context extends CrawlingContext = BasicCrawlingContext,
+    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -268,6 +284,33 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     statusMessageLoggingInterval?: number;
 
+    /**
+     * Allows overriding the default status message. The callback needs to call `crawler.setStatusMessage()` explicitly.
+     * The default status message is provided in the parameters.
+     *
+     * ```ts
+     * const crawler = new CheerioCrawler({
+     *     statusMessageCallback: async (ctx) => {
+     *         return ctx.crawler.setStatusMessage(`this is status message from ${new Date().toISOString()}`, { level: 'INFO' }); // log level defaults to 'DEBUG'
+     *     },
+     *     statusMessageLoggingInterval: 1, // defaults to 10s
+     *     async requestHandler({ $, enqueueLinks, request, log }) {
+     *         // ...
+     *     },
+     * });
+     * ```
+     */
+    statusMessageCallback?: StatusMessageCallback;
+
+    /**
+     * If set to `true`, the crawler will automatically try to bypass any detected bot protection.
+     *
+     * Currently supports:
+     * - [**Cloudflare** Bot Management](https://www.cloudflare.com/products/bot-management/)
+     * - [**Google Search** Rate Limiting](https://www.google.com/sorry/)
+     */
+    retryOnBlocked?: boolean;
+
     /** @internal */
     log?: Log;
 
@@ -393,11 +436,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected domainAccessedTime: Map<string, number>;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
+    protected statusMessageCallback?: StatusMessageCallback;
     protected sessionPoolOptions: SessionPoolOptions;
     protected useSessionPool: boolean;
     protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
+    protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
     protected static optionsShape = {
@@ -422,7 +467,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
         useSessionPool: ow.optional.boolean,
+
         statusMessageLoggingInterval: ow.optional.number,
+        statusMessageCallback: ow.optional.function,
+
+        retryOnBlocked: ow.optional.boolean,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
@@ -458,6 +507,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             maxConcurrency,
             maxRequestsPerMinute,
 
+            retryOnBlocked = false,
+
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
 
@@ -474,12 +525,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             failedRequestHandler,
 
             statusMessageLoggingInterval = 10,
+            statusMessageCallback,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
+        this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
 
@@ -519,6 +572,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             newRequestHandlerTimeout = requestHandlerTimeoutSecs * 1000;
         }
 
+        this.retryOnBlocked = retryOnBlocked;
+
         this._handlePropertyNameChange({
             newName: 'requestHandlerTimeoutSecs',
             oldName: 'handleRequestTimeoutSecs',
@@ -543,6 +598,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             ...sessionPoolOptions,
             log,
         };
+        if (this.retryOnBlocked) {
+            this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
+            if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
+                // eslint-disable-next-line max-len
+                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`);
+            }
+        }
         this.useSessionPool = useSessionPool;
         this.crawlingContexts = new Map();
 
@@ -610,8 +672,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
-    private setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
-        this.log.debug(`${options.isStatusMessageTerminal ? 'Terminal status message' : 'Status message'}: ${message}`);
+    protected isRequestBlocked(_crawlingContext: Context) {
+        throw new Error('the "isRequestBlocked" method is not implemented in this crawler.');
+    }
+
+    /**
+     * This method is periodically called by the crawler, every `statusMessageLoggingInterval` seconds.
+     */
+    setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
+        const data = options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
+        this.log.internal(LogLevel[options.level as 'DEBUG' ?? 'DEBUG'], message, data);
 
         const client = this.config.getStorageClient();
         return client.setStatusMessage?.(message, options);
@@ -635,14 +705,21 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const log = async () => {
             const operationMode = getOperationMode();
+            let message: string;
+
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`);
+                message = `Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
-                // eslint-disable-next-line max-len
-                await this.setStatusMessage(`Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`);
+                message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`;
             }
+
+            if (this.statusMessageCallback) {
+                return this.statusMessageCallback({ crawler: this as any, state: this.stats.state, previousState, message });
+            }
+
+            await this.setStatusMessage(message);
         };
 
         const interval = setInterval(log, this.statusMessageLoggingInterval * 1e3);
@@ -686,7 +763,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._init();
         await this.stats.startCapturing();
         const periodicLogger = this.getPeriodicLogger();
-        await this.setStatusMessage(`Initializing the crawler.`);
+        await this.setStatusMessage(`Initializing the crawler.`, { level: 'INFO' });
 
         const sigintHandler = async () => {
             this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start');
@@ -701,7 +778,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
         try {
-            this.log.info('Starting the crawl');
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
@@ -719,7 +795,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             retryHistogram: this.stats.requestRetryHistogram,
             ...finalStats,
         };
-        this.log.info('Crawl finished. Final request statistics:', stats);
+        this.log.info('Final request statistics:', stats);
 
         if (this.stats.errorTracker.total !== 0) {
             const prettify = ([count, info]: [number, string[]]) => `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
@@ -746,7 +822,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         periodicLogger.stop();
         // eslint-disable-next-line max-len
-        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true });
+        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true, level: 'INFO' });
         this.running = false;
 
         return stats;
@@ -764,75 +840,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Adds requests to be processed by the crawler
+     * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
+     * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
+     * the `waitForAllRequestsToBeAdded` promise you get in the response object.
+     *
      * @param requests The requests to add
      * @param options Options for the request queue
      */
-    async addRequests(requests: (string | Request | RequestOptions)[], options: CrawlerAddRequestsOptions = {}): Promise<CrawlerAddRequestsResult> {
-        ow(requests, ow.array.ofType(ow.any(ow.string, ow.object.partialShape({
-            url: ow.string,
-            id: ow.undefined,
-        }))));
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-            waitForAllRequestsToBeAdded: ow.optional.boolean,
-        }));
-
+    async addRequests(requests: (string | Source)[], options: CrawlerAddRequestsOptions = {}): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
-        const builtRequests = createRequests(requests);
-
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Request[]) => {
-            const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await requestQueue.addRequests(providedRequests, { forefront: options.forefront });
-            resultsToReturn.push(...apiResult.processedRequests);
-
-            if (apiResult.unprocessedRequests.length) {
-                await sleep(1000);
-
-                resultsToReturn.push(...await attemptToAddToQueueAndAddAnyUnprocessed(
-                    providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
-                ));
-            }
-
-            return resultsToReturn;
-        };
-
-        const initialChunk = builtRequests.splice(0, 1000);
-
-        // Add initial batch of 1000 to process them right away
-        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
-
-        // If we have no more requests to add, return early
-        if (!builtRequests.length) {
-            return {
-                addedRequests,
-                waitForAllRequestsToBeAdded: Promise.resolve([]),
-            };
-        }
-
-        // eslint-disable-next-line no-async-promise-executor
-        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            const chunks = chunk(builtRequests, 1000);
-            const finalAddedRequests: ProcessedRequest[] = [];
-
-            for (const requestChunk of chunks) {
-                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk));
-
-                await sleep(1000);
-            }
-
-            resolve(finalAddedRequests);
-        });
-
-        // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
-        if (options.waitForAllRequestsToBeAdded) {
-            addedRequests.push(...await promise);
-        }
-
-        return {
-            addedRequests,
-            waitForAllRequestsToBeAdded: promise,
-        };
+        return requestQueue.addRequestsBatched(requests, options);
     }
 
     protected async _init(): Promise<void> {
@@ -1357,13 +1375,9 @@ export interface CreateContextOptions {
     proxyInfo?: ProxyInfo;
 }
 
-export interface CrawlerAddRequestsOptions extends RequestQueueOperationOptions {
-    /**
-     * Whether to wait for all the provided requests to be added, instead of waiting just for the initial batch of up to 1000.
-     * @default false
-     */
-    waitForAllRequestsToBeAdded?: boolean;
-}
+export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions {}
+
+export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {}
 
 export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
     /**
@@ -1372,27 +1386,6 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
      * @default true
      */
     purgeRequestQueue?: boolean;
-}
-
-export interface CrawlerAddRequestsResult {
-    addedRequests: ProcessedRequest[];
-    /**
-     * A promise which will resolve with the rest of the requests that were added to the queue.
-     *
-     * Alternatively, we can set {@apilink CrawlerAddRequestsOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} to `true`
-     * in the {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} options.
-     *
-     * **Example:**
-     *
-     * ```ts
-     * // Assuming `requests` is a list of requests.
-     * const result = await crawler.addRequests(requests);
-     *
-     * // If we want to wait for the rest of the requests to be added to the queue:
-     * await result.waitForAllRequestsToBeAdded;
-     * ```
-     */
-    waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>;
 }
 
 interface HandlePropertyNameChangeData<New, Old> {

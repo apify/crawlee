@@ -1,3 +1,5 @@
+import type { Server } from 'http';
+
 import type { Request, RequestQueueOperationOptions, Source } from 'crawlee';
 import {
     Configuration,
@@ -9,11 +11,9 @@ import {
     puppeteerUtils,
     playwrightUtils,
 } from 'crawlee';
-import type { Browser as PPBrowser, Target } from 'puppeteer';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
-
+import type { Browser as PPBrowser, Target } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
-import type { Server } from 'http';
 
 function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowser {
     return (browser as PPBrowser).targets !== undefined;
@@ -21,6 +21,21 @@ function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowse
 
 function isPlaywrightBrowser(browser: PPBrowser | PWBrowser): browser is PWBrowser {
     return (browser as PWBrowser).browserType !== undefined;
+}
+
+const apifyClient = Configuration.getStorageClient();
+
+function createRequestQueueMock() {
+    const enqueued: Source[] = [];
+    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+    // @ts-expect-error Override method for testing
+    requestQueue.addRequests = async function (requests) {
+        enqueued.push(...requests);
+        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+    };
+
+    return { enqueued, requestQueue };
 }
 
 const testCases = [
@@ -72,9 +87,7 @@ testCases.forEach(({
         });
 
         test('should work', async () => {
-            const addedRequests: Source[] = [];
-            const requestQueue = Object.create(RequestQueue.prototype);
-            requestQueue.addRequests = async (request: Request[]) => addedRequests.push(...request);
+            const { enqueued, requestQueue } = createRequestQueueMock();
             const html = `
 <html>
     <body>
@@ -95,9 +108,9 @@ testCases.forEach(({
                 waitForPageIdleSecs: 0.025,
                 maxWaitForPageIdleSecs: 0.250,
             });
-            expect(addedRequests).toHaveLength(1);
-            expect(addedRequests[0].url).toMatch(`${serverAddress}/`);
-            expect(addedRequests[0].uniqueKey).toBe('key');
+            expect(enqueued).toHaveLength(1);
+            expect(enqueued[0].url).toMatch(`${serverAddress}/`);
+            expect(enqueued[0].uniqueKey).toBe('key');
             expect(page.url()).toBe('about:blank');
         });
 

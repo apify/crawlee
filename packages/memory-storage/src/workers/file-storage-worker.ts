@@ -1,6 +1,7 @@
 import { isMainThread, parentPort } from 'node:worker_threads';
-import type { WorkerReceivedMessage } from '../utils';
+
 import { handleMessage } from './worker-utils';
+import type { WorkerReceivedMessage } from '../utils';
 
 if (isMainThread || !parentPort) {
     throw new Error('This file should only be run in a worker thread!');

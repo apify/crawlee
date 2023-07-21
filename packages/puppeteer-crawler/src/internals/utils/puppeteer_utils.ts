@@ -19,21 +19,23 @@
  */
 
 import { readFile } from 'fs/promises';
-import ow from 'ow';
 import vm from 'vm';
+
 import { LruCache } from '@apify/datastructures';
-import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
-import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { KeyValueStore, RequestState, validators } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
-import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
-import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
+import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
+import ow from 'ow';
+import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
+
 import type { InterceptHandler } from './puppeteer_request_interception';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
+import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PuppeteerCrawlingContext } from '../puppeteer-crawler';
 
 const jqueryPath = require.resolve('jquery');

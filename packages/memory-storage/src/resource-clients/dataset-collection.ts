@@ -1,10 +1,12 @@
+import { resolve } from 'path';
+
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { resolve } from 'path';
+
+import { DatasetClient } from './dataset';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
 import { sendWorkerMessage } from '../workers/instance';
-import { DatasetClient } from './dataset';
 
 export interface DatasetCollectionClientOptions {
     baseStorageDirectory: string;
@@ -49,7 +51,7 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
 
         // Schedule the worker to write to the disk
         const datasetInfo = newStore.toDatasetInfo();
-        // eslint-disable-next-line dot-notation
+
         sendWorkerMessage({
             action: 'update-metadata',
             entityType: 'datasets',

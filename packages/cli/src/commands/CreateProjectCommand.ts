@@ -1,17 +1,18 @@
 /* eslint-disable no-console */
-import { mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { setTimeout } from 'node:timers/promises';
 import { execSync } from 'node:child_process';
-import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
-import { prompt } from 'inquirer';
-import colors from 'ansi-colors';
-import type { Template } from '@crawlee/templates';
-import { fetchManifest } from '@crawlee/templates';
-import { resolve } from 'path';
+import { mkdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { get } from 'node:https';
+import { dirname, join } from 'node:path';
+import { setTimeout } from 'node:timers/promises';
+import { resolve } from 'path';
+
+import type { Template } from '@crawlee/templates';
+import { fetchManifest } from '@crawlee/templates';
+import colors from 'ansi-colors';
 import { ensureDir } from 'fs-extra';
+import { prompt } from 'inquirer';
+import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 
 interface CreateProjectArgs {
     projectName?: string;

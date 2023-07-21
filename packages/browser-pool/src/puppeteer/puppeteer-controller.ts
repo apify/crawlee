@@ -2,9 +2,10 @@ import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
+
 import { BrowserController } from '../abstract-classes/browser-controller';
-import { log } from '../logger';
 import { anonymizeProxySugar } from '../anonymize-proxy';
+import { log } from '../logger';
 
 export interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
     proxyUsername?: string;
@@ -42,7 +43,6 @@ export class PuppeteerController extends BrowserController<
                 throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
             let close = async () => {};
             if (contextOptions.proxyServer) {
                 const [anonymizedProxyUrl, closeProxy] = await anonymizeProxySugar(

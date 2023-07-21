@@ -1,6 +1,7 @@
-import { HttpCrawler } from '@crawlee/http';
-import type { AddressInfo } from 'node:net';
 import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+
+import { HttpCrawler } from '@crawlee/http';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 const router = new Map<string, http.RequestListener>();

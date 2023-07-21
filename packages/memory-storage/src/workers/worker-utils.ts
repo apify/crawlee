@@ -1,11 +1,13 @@
+import { writeFile } from 'node:fs';
+import { writeFile as writeFileP } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { setTimeout } from 'node:timers/promises';
+import { parentPort } from 'node:worker_threads';
+
 import log from '@apify/log';
 import { ensureDir } from 'fs-extra';
-import { writeFile as writeFileP } from 'node:fs/promises';
-import { setTimeout } from 'node:timers/promises';
-import { resolve } from 'node:path';
-import { parentPort } from 'node:worker_threads';
 import { lock } from 'proper-lockfile';
-import { writeFile } from 'node:fs';
+
 import type { WorkerReceivedMessage, WorkerUpdateMetadataMessage } from '../utils';
 
 const workerLog = log.child({ prefix: 'MemoryStorageWorker' });

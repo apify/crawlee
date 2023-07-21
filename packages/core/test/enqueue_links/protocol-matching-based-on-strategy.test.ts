@@ -19,14 +19,14 @@ const HTML = `
 </html>
 `;
 
-function getMockRequestQueue() {
+function createRequestQueueMock() {
     const enqueued: Source[] = [];
-
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
     // @ts-expect-error Override method for testing
-    requestQueue.addRequests = (requests) => {
+    requestQueue.addRequests = async function (requests) {
         enqueued.push(...requests);
+        return { processedRequests: requests, unprocessedRequests: [] as never[] };
     };
 
     return { enqueued, requestQueue };
@@ -49,7 +49,7 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
     });
 
     test('SameHostname should ignore protocol difference', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameHostname },
@@ -64,7 +64,7 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
     });
 
     test('SameDomain should ignore protocol difference', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameDomain },
@@ -79,7 +79,7 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
     });
 
     test('SameOrigin should respect protocol', async () => {
-        const { enqueued, requestQueue } = getMockRequestQueue();
+        const { enqueued, requestQueue } = createRequestQueueMock();
 
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameOrigin },

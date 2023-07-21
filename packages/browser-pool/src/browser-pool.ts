@@ -1,20 +1,21 @@
-import pLimit from 'p-limit';
-import { nanoid } from 'nanoid';
-import ow from 'ow';
-import { TypedEmitter } from 'tiny-typed-emitter';
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { FingerprintInjector } from 'fingerprint-injector';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
+import { FingerprintInjector } from 'fingerprint-injector';
+import { nanoid } from 'nanoid';
+import ow from 'ow';
+import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
+import { TypedEmitter } from 'tiny-typed-emitter';
+
 import type { BrowserController } from './abstract-classes/browser-controller';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
 import { BROWSER_POOL_EVENTS } from './events';
+import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
+import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 import type { LaunchContext } from './launch-context';
 import { log } from './logger';
 import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
-import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
-import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
@@ -745,7 +746,6 @@ export class BrowserPool<
         };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async _executeHooks(hooks: ((...args: any[]) => unknown)[], ...args: unknown[]) {
         for (const hook of hooks) {
             await hook(...args);
@@ -758,7 +758,7 @@ export class BrowserPool<
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
                 log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
-                browserController.close().finally(() => {
+                void browserController.close().finally(() => {
                     this.retiredBrowserControllers.delete(browserController);
                 });
             }, PAGE_CLOSE_KILL_TIMEOUT_MILLIS);

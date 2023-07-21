@@ -10,7 +10,7 @@ export enum StorageTypes {
     RequestQueue = 'Request queue',
     KeyValueStore = 'Key-value store',
     Dataset = 'Dataset',
-};
+}
 
 /**
  * Except in dataset items, the default limit for API results is 1000.
