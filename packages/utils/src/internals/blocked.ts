@@ -6,8 +6,12 @@ export const RETRY_CSS_SELECTORS = [
     'div#infoDiv0 a[href*="//www.google.com/policies/terms/"]',
 ];
 
+/**
+ * Content of proxy errors that should trigger a retry, as the proxy is likely getting blocked / is malfunctioning.
+ */
 export const ROTATE_PROXY_ERRORS = [
     'ECONNRESET',
     'ECONNREFUSED',
     'ERR_PROXY_CONNECTION_FAILED',
+    'Proxy responded with',
 ];
