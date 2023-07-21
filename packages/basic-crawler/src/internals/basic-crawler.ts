@@ -955,11 +955,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                         this.log.error(`Some issue in adding request back to the queue`);
                     }
                 }, delay);
-                return false;
+                return true;
             }
             this.domainAccessedTime.set(domain, currentEpochTimeMillis);
         }
-        return true;
+        return false;
     }
 
     /**
@@ -996,7 +996,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         
         if (!request) return;
 
-        if(this._handleRequestWithDelay(request, source)){
+        if(!this._handleRequestWithDelay(request, source)){
             // Reset loadedUrl so an old one is not carried over to retries.
             request.loadedUrl = undefined;
 
