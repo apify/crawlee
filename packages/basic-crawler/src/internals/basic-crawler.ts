@@ -938,24 +938,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         _crawlingContext: Context,
     ) {}
 
-    protected _isValidRequest(request:Request, source: RequestQueue | RequestList)
+    protected _handleSameDomainDelay(request:Request, source: RequestQueue | RequestList)
     {
         const domain = getDomain(request.url);
-        if(domain){
+        if (domain) {
             const currentEpochTimeMillis: number = new Date().getTime();
             const lastAccessTime = this.domainAccessedTime.get(domain);
-            if(lastAccessTime && (currentEpochTimeMillis-lastAccessTime) < this.sameDomainDelay){
-                const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis
-                this.log.info(`Request will be reclaimed after ${delay} milli seconds due to same domain delay`);
-                setTimeout(async ()=> {
-                    if(request){
+            if (lastAccessTime && (currentEpochTimeMillis - lastAccessTime) < this.sameDomainDelay) {
+                const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis;
+                this.log.info(`Request will be reclaimed after ${delay} milliseconds due to same domain delay`);
+                setTimeout(async () => {
+                    if (request) {
                         this.log.info(`Adding request url = ${request.url} back to the queue`);
                         source?.reclaimRequest(request);
+                    } else {
+                        this.log.error(`Some issue in adding request back to the queue`);
                     }
-                    else{
-                        this.log.error(`Some Issue in adding request back to the queue`);
-                    }
-                },delay);
+                }, delay);
                 return false;
             }
             this.domainAccessedTime.set(domain, currentEpochTimeMillis);
@@ -997,7 +996,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         
         if (!request) return;
 
-        if(this._isValidRequest(request, source)){
+        if(this._handleSameDomainDelay(request, source)){
             // Reset loadedUrl so an old one is not carried over to retries.
             request.loadedUrl = undefined;
 
