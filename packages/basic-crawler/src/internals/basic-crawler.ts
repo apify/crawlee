@@ -938,7 +938,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         _crawlingContext: Context,
     ) {}
 
-    protected _handleSameDomainDelay(request:Request, source: RequestQueue | RequestList)
+    protected _handleRequestWithDelay(request:Request, source: RequestQueue | RequestList)
     {
         const domain = getDomain(request.url);
         if (domain) {
@@ -996,7 +996,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         
         if (!request) return;
 
-        if(this._handleSameDomainDelay(request, source)){
+        if(this._handleRequestWithDelay(request, source)){
             // Reset loadedUrl so an old one is not carried over to retries.
             request.loadedUrl = undefined;
 
