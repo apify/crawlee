@@ -3,7 +3,7 @@ import defaultLog from '@apify/log';
 import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { SetRequired } from 'type-fest';
-import {
+import type {
     AutoscaledPoolOptions,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -938,28 +938,24 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         _crawlingContext: Context,
     ) {}
 
-    protected _handleRequestWithDelay(request:Request, source: RequestQueue | RequestList)
-    {
+    protected _handleRequestWithDelay(request:Request, source: RequestQueue | RequestList) {
         const domain = getDomain(request.url);
-        if (domain) {
-            const currentEpochTimeMillis: number = new Date().getTime();
-            const lastAccessTime = this.domainAccessedTime.get(domain);
-            if (lastAccessTime && (currentEpochTimeMillis - lastAccessTime) < this.sameDomainDelay) {
-                const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis;
-                this.log.info(`Request will be reclaimed after ${delay} milliseconds due to same domain delay`);
-                setTimeout(async () => {
-                    if (request) {
-                        this.log.info(`Adding request url = ${request.url} back to the queue`);
-                        source?.reclaimRequest(request);
-                    } else {
-                        this.log.error(`Some issue in adding request back to the queue`);
-                    }
-                }, delay);
-                return true;
-            }
-            this.domainAccessedTime.set(domain, currentEpochTimeMillis);
+        if (!domain || !request) {
+            return false;
         }
-        return false;
+        const currentEpochTimeMillis: number = new Date().getTime();
+        const lastAccessTime = this.domainAccessedTime.get(domain);
+        if (!lastAccessTime || (currentEpochTimeMillis - lastAccessTime) > this.sameDomainDelay) {
+            return false;
+        }
+        const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis;
+        this.log.info(`Request will be reclaimed after ${delay} milliseconds due to same domain delay`);
+        setTimeout(async () => {
+            this.log.info(`Adding request url = ${request.url} back to the queue`);
+            await source?.reclaimRequest(request);
+        }, delay);
+        this.domainAccessedTime.set(domain, currentEpochTimeMillis);
+        return true;
     }
 
     /**
@@ -993,106 +989,107 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         tryCancel();
-        
+
         if (!request) return;
 
-        if(!this._handleRequestWithDelay(request, source)){
-            // Reset loadedUrl so an old one is not carried over to retries.
-            request.loadedUrl = undefined;
+        if (this._handleRequestWithDelay(request, source)) {
+            return;
+        }
+        // Reset loadedUrl so an old one is not carried over to retries.
+        request.loadedUrl = undefined;
 
-            const statisticsId = request.id || request.uniqueKey;
-            this.stats.startJob(statisticsId);
+        const statisticsId = request.id || request.uniqueKey;
+        this.stats.startJob(statisticsId);
 
-            // Shared crawling context
-            // @ts-expect-error
-            // All missing properties properties (that extend CrawlingContext) are set dynamically,
-            // but TS does not know that, so otherwise it would throw when compiling.
-            const crawlingContext: Context = {
-                id: cryptoRandomObjectId(10),
-                crawler: this,
-                log: this.log,
-                request,
-                session,
-                enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
-                    return enqueueLinks({
-                        // specify the RQ first to allow overriding it
-                        requestQueue: await this.getRequestQueue(),
-                        ...options,
-                    });
-                },
-                sendRequest: async (overrideOptions?: OptionsInit) => {
-                    const cookieJar = session ? {
-                        getCookieString: async (url: string) => session!.getCookieString(url),
-                        setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
-                        ...overrideOptions?.cookieJar,
-                    } : overrideOptions?.cookieJar;
+        // Shared crawling context
+        // @ts-expect-error
+        // All missing properties properties (that extend CrawlingContext) are set dynamically,
+        // but TS does not know that, so otherwise it would throw when compiling.
+        const crawlingContext: Context = {
+            id: cryptoRandomObjectId(10),
+            crawler: this,
+            log: this.log,
+            request,
+            session,
+            enqueueLinks: async (options: SetRequired<EnqueueLinksOptions, 'urls'>) => {
+                return enqueueLinks({
+                    // specify the RQ first to allow overriding it
+                    requestQueue: await this.getRequestQueue(),
+                    ...options,
+                });
+            },
+            sendRequest: async (overrideOptions?: OptionsInit) => {
+                const cookieJar = session ? {
+                    getCookieString: async (url: string) => session!.getCookieString(url),
+                    setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
+                    ...overrideOptions?.cookieJar,
+                } : overrideOptions?.cookieJar;
 
-                    return gotScraping({
-                        url: request!.url,
-                        method: request!.method as Method, // Narrow type to omit CONNECT
-                        body: request!.payload,
-                        headers: request!.headers,
-                        proxyUrl: crawlingContext.proxyInfo?.url,
-                        sessionToken: session,
-                        responseType: 'text',
-                        ...overrideOptions,
-                        retry: {
-                            limit: 0,
-                            ...overrideOptions?.retry,
-                        },
-                        cookieJar,
-                    });
-                },
-            };
+                return gotScraping({
+                    url: request!.url,
+                    method: request!.method as Method, // Narrow type to omit CONNECT
+                    body: request!.payload,
+                    headers: request!.headers,
+                    proxyUrl: crawlingContext.proxyInfo?.url,
+                    sessionToken: session,
+                    responseType: 'text',
+                    ...overrideOptions,
+                    retry: {
+                        limit: 0,
+                        ...overrideOptions?.retry,
+                    },
+                    cookieJar,
+                });
+            },
+        };
 
-            this.crawlingContexts.set(crawlingContext.id, crawlingContext);
+        this.crawlingContexts.set(crawlingContext.id, crawlingContext);
 
+        try {
+            request.state = RequestState.REQUEST_HANDLER;
+            await addTimeoutToPromise(
+                () => this._runRequestHandler(crawlingContext),
+                this.requestHandlerTimeoutMillis,
+                `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
+            );
+
+            await this._timeoutAndRetry(
+                () => source.markRequestHandled(request!),
+                this.internalTimeoutMillis,
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+            );
+
+            this.stats.finishJob(statisticsId);
+            this.handledRequestsCount++;
+
+            // reclaim session if request finishes successfully
+            request.state = RequestState.DONE;
+            crawlingContext.session?.markGood();
+        } catch (err) {
             try {
-                request.state = RequestState.REQUEST_HANDLER;
+                request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    () => this._runRequestHandler(crawlingContext),
-                    this.requestHandlerTimeoutMillis,
-                    `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
-                );
-
-                await this._timeoutAndRetry(
-                    () => source.markRequestHandled(request!),
+                    () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
                     this.internalTimeoutMillis,
-                    `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+                    `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
                 );
-
-                this.stats.finishJob(statisticsId);
-                this.handledRequestsCount++;
-
-                // reclaim session if request finishes successfully
                 request.state = RequestState.DONE;
-                crawlingContext.session?.markGood();
-            } catch (err) {
-                try {
-                    request.state = RequestState.ERROR_HANDLER;
-                    await addTimeoutToPromise(
-                        () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
-                        this.internalTimeoutMillis,
-                        `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-                    );
-                    request.state = RequestState.DONE;
-                } catch (secondaryError: any) {
-                    if (!secondaryError.triggeredFromUserHandler) {
-                        const apifySpecific = process.env.APIFY_IS_AT_HOME
-                            ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.` : '';
-                        this.log.exception(secondaryError as Error, 'An exception occurred during handling of failed request. '
-                            + `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`);
-                    }
-                    request.state = RequestState.ERROR;
-                    throw secondaryError;
+            } catch (secondaryError: any) {
+                if (!secondaryError.triggeredFromUserHandler) {
+                    const apifySpecific = process.env.APIFY_IS_AT_HOME
+                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.` : '';
+                    this.log.exception(secondaryError as Error, 'An exception occurred during handling of failed request. '
+                        + `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`);
                 }
-                // decrease the session score if the request fails (but the error handler did not throw)
-                crawlingContext.session?.markBad();
-            } finally {
-                await this._cleanupContext(crawlingContext);
-
-                this.crawlingContexts.delete(crawlingContext.id);
+                request.state = RequestState.ERROR;
+                throw secondaryError;
             }
+            // decrease the session score if the request fails (but the error handler did not throw)
+            crawlingContext.session?.markBad();
+        } finally {
+            await this._cleanupContext(crawlingContext);
+
+            this.crawlingContexts.delete(crawlingContext.id);
         }
     }
 
