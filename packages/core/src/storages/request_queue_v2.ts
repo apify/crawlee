@@ -3,8 +3,9 @@ import type { BatchAddRequestsResult, Dictionary, QueueOperationInfo, RequestQue
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import ow from 'ow';
 import type { DownloadListOfUrlsOptions } from '@crawlee/utils';
-import { downloadListOfUrls } from '@crawlee/utils';
+import { downloadListOfUrls, sleep } from '@crawlee/utils';
 import crypto from 'node:crypto';
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
 import { Configuration } from '../configuration';
@@ -17,7 +18,7 @@ const MAX_CACHED_REQUESTS = 2_000_000;
 /**
  * When prolonging a lock, we do it for a minute from Date.now()
  */
-const PROLONG_LOCK_BY_MILLIS = 60_000;
+const PROLONG_LOCK_BY_SECS = 60;
 
 /**
  * This number must be large enough so that processing of all these requests cannot be done in
@@ -85,6 +86,22 @@ export const QUERY_HEAD_MIN_LENGTH = 100;
  */
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
+/** @internal */
+export const QUERY_HEAD_BUFFER = 3;
+
+/**
+ * If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
+ * then we assume the get head operation to be consistent.
+ * @internal
+ */
+export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
+
+/**
+ * How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
+ * @internal
+ */
+export const MAX_QUERIES_FOR_CONSISTENCY = 6;
+
 export class RequestQueueV2 {
     log = log.child({ prefix: 'RequestQueueV2' });
     id: string;
@@ -131,7 +148,7 @@ export class RequestQueueV2 {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
-    private _listHeadAndLockPromise: Promise<void> | null = null;
+    private _listHeadAndLockPromise: Promise<boolean> | null = null;
     private _hydratingRequestPromise: Promise<any> | null = null;
 
     protected constructor(options: RequestQueueV2Options, readonly config = Configuration.getGlobalConfig()) {
@@ -440,6 +457,7 @@ export class RequestQueueV2 {
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         await this.ensureHeadIsNonEmpty();
+        // Wait for the currently hydrating request to finish, as it might be the one we return
         await this._hydratingRequestPromise;
 
         const nextRequestId = this.queueHeadIds.removeFirst();
@@ -454,7 +472,9 @@ export class RequestQueueV2 {
         const nextNextId = this.queueHeadIds.getFirst();
 
         if (nextNextId) {
-            this._hydratingRequestPromise = this.getOrHydrateRequest(nextNextId);
+            this._hydratingRequestPromise = this.getOrHydrateRequest(nextNextId).finally(() => {
+                this._hydratingRequestPromise = null;
+            });
         }
 
         // This should never happen, but...
@@ -502,7 +522,107 @@ export class RequestQueueV2 {
         return request;
     }
 
-    private async ensureHeadIsNonEmpty() {}
+    private async ensureHeadIsNonEmpty() {
+        if (this.queueHeadIds.length() > 0) {
+            return;
+        }
+
+        this._listHeadAndLockPromise ??= this._listHeadAndLock().finally(() => {
+            this._listHeadAndLockPromise = null;
+        });
+
+        await this._listHeadAndLockPromise;
+    }
+
+    private async _listHeadAndLock(
+        ensureConsistency = false,
+        limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
+        iteration = 0,
+    ): Promise<boolean> {
+        const queryStartedAt = Date.now();
+
+        const headData = await this.client.listAndLockHead({ limit, lockSecs: PROLONG_LOCK_BY_SECS });
+
+        const queueModifiedAt = headData.queueModifiedAt.getTime();
+
+        // Cache the first request, if it exists, and trigger a hydration for it
+        const firstRequest = headData.items.shift();
+
+        if (firstRequest) {
+            this.queueHeadIds.add(firstRequest.id, firstRequest.id, false);
+            this._cacheRequest(getRequestId(firstRequest.uniqueKey), {
+                requestId: firstRequest.id,
+                uniqueKey: firstRequest.uniqueKey,
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+            });
+
+            // Await current hydration, if any, to not lose it
+            if (this._hydratingRequestPromise) {
+                await this._hydratingRequestPromise;
+            }
+
+            this._hydratingRequestPromise = this.getOrHydrateRequest(firstRequest.id).finally(() => {
+                this._hydratingRequestPromise = null;
+            });
+        }
+
+        // 1. Cache the queue head
+        for (const { id, uniqueKey } of headData.items) {
+            // Queue head index might be behind the main table, so ensure we don't recycle requests
+            if (!id || !uniqueKey || this.requestIdsInProgress.has(id) || this.recentlyHandledRequestsCache.get(id)) {
+                continue;
+            }
+
+            this.queueHeadIds.add(id, id, false);
+            this._cacheRequest(getRequestId(uniqueKey), {
+                requestId: id,
+                uniqueKey,
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+            });
+        }
+
+        // TODO: RQV1 had this logic. This is reimplemented here, but I am not sure if it is needed anymore, since we also lock requests
+
+        const wasLimitReached = headData.items.length >= limit;
+
+        if (limit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
+            this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
+        }
+
+        const shouldRepeatWithHigherLimit = this.queueHeadIds.length() === 0
+            && wasLimitReached
+            && limit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
+
+        // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
+        // - hadMultipleClients=false and this.assumedTotalCount<=this.assumedHandledCount
+        const isDatabaseConsistent = queryStartedAt - queueModifiedAt >= API_PROCESSED_REQUESTS_DELAY_MILLIS;
+        const isLocallyConsistent = !headData.hadMultipleClients && this.assumedTotalCount <= this.assumedHandledCount;
+        // Consistent information from one source is enough to consider request queue finished.
+        const shouldRepeatForConsistency = ensureConsistency && !isDatabaseConsistent && !isLocallyConsistent;
+
+        // If both are false then head is consistent and we may exit.
+        if (!shouldRepeatWithHigherLimit && !shouldRepeatForConsistency) {
+            return true;
+        }
+
+        // If we are querying for consistency then we limit the number of queries to MAX_QUERIES_FOR_CONSISTENCY.
+        // If this is reached then we return false so that empty() and finished() returns possibly false negative.
+        if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) {
+            return false;
+        }
+
+        const nextLimit = shouldRepeatWithHigherLimit ? Math.round(limit * 1.5) : limit;
+
+        if (shouldRepeatForConsistency) {
+            const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - queueModifiedAt);
+            this.log.info(`Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
+            await sleep(delayMillis);
+        }
+
+        return this._listHeadAndLock(ensureConsistency, nextLimit, iteration + 1);
+    }
 
     private async getOrHydrateRequest<T extends Dictionary = Dictionary>(requestId: string): Promise<Request<T> | null> {
         const cachedEntry = this.requestCache.get(requestId);
@@ -542,8 +662,19 @@ export class RequestQueueV2 {
             return hydratedRequest;
         }
 
-        // 1.1. If hydrated, return it
+        // 1.1. If hydrated, prolong the lock more and return it
         if (cachedEntry.hydrated) {
+            // 1.1.1. If the lock expired on the hydrated requests, try to prolong. If we fail, we lost the request
+            if (cachedEntry.lockExpiresAt && cachedEntry.lockExpiresAt < Date.now()) {
+                const prolonged = await this._prolongRequestLock(cachedEntry.id);
+
+                if (!prolonged) {
+                    return null;
+                }
+
+                cachedEntry.lockExpiresAt = prolonged.getTime();
+            }
+
             return cachedEntry.hydrated;
         }
 
@@ -577,7 +708,7 @@ export class RequestQueueV2 {
 
     private async _prolongRequestLock(requestId: string): Promise<Date | null> {
         try {
-            const res = await this.client.prolongRequestLock(requestId, { lockSecs: PROLONG_LOCK_BY_MILLIS });
+            const res = await this.client.prolongRequestLock(requestId, { lockSecs: PROLONG_LOCK_BY_SECS });
             return res.lockExpiresAt;
         } catch (err) {
             // Most likely we do not own the lock anymore
