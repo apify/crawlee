@@ -13,5 +13,6 @@ export const ROTATE_PROXY_ERRORS = [
     'ECONNRESET',
     'ECONNREFUSED',
     'ERR_PROXY_CONNECTION_FAILED',
+    'ERR_TUNNEL_CONNECTION_FAILED',
     'Proxy responded with',
 ];
