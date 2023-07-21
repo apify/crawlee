@@ -52,15 +52,9 @@ export function isStream(value: any): boolean {
 
 export const memoryStorageLog = defaultLog.child({ prefix: 'MemoryStorage' });
 
-export interface WorkerData {
-    datasetsDirectory: string;
-    keyValueStoresDirectory: string;
-    requestQueuesDirectory: string;
-}
+export type BackgroundHandlerReceivedMessage = BackgroundHandlerUpdateMetadataMessage;
 
-export type WorkerReceivedMessage = WorkerUpdateMetadataMessage;
-
-export type WorkerUpdateMetadataMessage =
+export type BackgroundHandlerUpdateMetadataMessage =
     | MetadataUpdate<'datasets', storage.DatasetInfo>
     | MetadataUpdate<'keyValueStores', storage.KeyValueStoreInfo>
     | MetadataUpdate<'requestQueues', storage.RequestQueueInfo>;

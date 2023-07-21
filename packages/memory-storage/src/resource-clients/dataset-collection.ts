@@ -4,9 +4,9 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { DatasetClient } from './dataset';
+import { scheduleBackgroundTask } from '../background-handler';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
-import { sendWorkerMessage } from '../workers/instance';
 
 export interface DatasetCollectionClientOptions {
     baseStorageDirectory: string;
@@ -52,7 +52,7 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
         // Schedule the worker to write to the disk
         const datasetInfo = newStore.toDatasetInfo();
 
-        sendWorkerMessage({
+        scheduleBackgroundTask({
             action: 'update-metadata',
             entityType: 'datasets',
             entityDirectory: newStore.datasetDirectory,

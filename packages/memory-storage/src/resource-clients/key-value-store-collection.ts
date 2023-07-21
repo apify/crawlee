@@ -4,9 +4,9 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { KeyValueStoreClient } from './key-value-store';
+import { scheduleBackgroundTask } from '../background-handler';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
-import { sendWorkerMessage } from '../workers/instance';
 
 export interface KeyValueStoreCollectionClientOptions {
     baseStorageDirectory: string;
@@ -52,7 +52,7 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
         // Schedule the worker to write to the disk
         const kvStoreInfo = newStore.toKeyValueStoreInfo();
 
-        sendWorkerMessage({
+        scheduleBackgroundTask({
             action: 'update-metadata',
             entityType: 'keyValueStores',
             entityDirectory: newStore.keyValueStoreDirectory,

@@ -4,9 +4,9 @@ import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import { RequestQueueClient } from './request-queue';
+import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
-import { sendWorkerMessage } from '../workers/instance';
 
 export interface RequestQueueCollectionClientOptions {
     baseStorageDirectory: string;
@@ -52,7 +52,7 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
         // Schedule the worker to write to the disk
         const queueInfo = newStore.toRequestQueueInfo();
 
-        sendWorkerMessage({
+        scheduleBackgroundTask({
             action: 'update-metadata',
             entityType: 'requestQueues',
             entityDirectory: newStore.requestQueueDirectory,
