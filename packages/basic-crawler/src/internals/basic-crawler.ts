@@ -313,8 +313,6 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
 
     /** @internal */
     log?: Log;
-
-    domainAccessedTime?: Map<string, number>;
 }
 
 /**
@@ -481,8 +479,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // internal
         log: ow.optional.object,
-
-        domainAccessTime: ow.optional.object,
     };
 
     /**
@@ -964,6 +960,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const currentEpochTimeMillis: number = new Date().getTime();
         const lastAccessTime = this.domainAccessedTime.get(domain);
         if (!lastAccessTime || (currentEpochTimeMillis - lastAccessTime) > this.sameDomainDelay) {
+            this.domainAccessedTime.set(domain, currentEpochTimeMillis);
             return false;
         }
         const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis;
@@ -972,7 +969,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.log.info(`Adding request url = ${request.url} back to the queue`);
             await source?.reclaimRequest(request);
         }, delay);
-        this.domainAccessedTime.set(domain, currentEpochTimeMillis);
         return true;
     }
 
