@@ -39,6 +39,7 @@ import {
     purgeDefaultStorages,
     validators,
     RetryRequestError,
+    SessionError,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
@@ -656,7 +657,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
-    protected shouldRotateProxies(error: Error) {
+    protected isProxyError(error: Error) {
         return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
     }
 
@@ -1133,6 +1134,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (error instanceof CriticalError) {
             throw error;
+        }
+
+        if (error instanceof SessionError) {
+            if (crawlingContext.request.sessionRotationCount ?? 0 > 10) {
+                throw new Error(`Session rotation failed ${crawlingContext.request.sessionRotationCount} times. `
+                    + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
+            }
+            crawlingContext.request.sessionRotationCount = (crawlingContext.request.sessionRotationCount ?? 0) + 1;
+            crawlingContext.session?.retire();
         }
 
         const shouldRetryRequest = this._canRequestBeRetried(request, error);

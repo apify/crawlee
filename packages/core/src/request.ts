@@ -22,6 +22,7 @@ const requestOptionalPredicates = {
     payload: ow.optional.any(ow.string, ow.buffer),
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
+    sessionRotationCount: ow.optional.number,
     maxRetries: ow.optional.number,
     errorMessages: ow.optional.array.ofType(ow.string),
     headers: ow.optional.object,
@@ -106,6 +107,9 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** The `true` value indicates that the request will not be automatically retried on error. */
     noRetry: boolean;
+
+    /** Indicates the number of times the crawling of the request has rotated the session due to a proxy error */
+    sessionRotationCount?: number;
 
     /** Indicates the number of times the crawling of the request has been retried on error. */
     retryCount: number;

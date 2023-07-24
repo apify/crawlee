@@ -25,6 +25,7 @@ import {
     validators,
     Configuration,
     RequestState,
+    SessionError,
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { RETRY_CSS_SELECTORS } from '@crawlee/utils';
@@ -438,9 +439,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 await this._handleNavigation(crawlingContext);
                 tryCancel();
             } catch (e: any) {
-                if (this.shouldRotateProxies(e)) {
-                    session?.retire();
-                    throw new Error('Proxy error detected, rotating...');
+                if (this.isProxyError(e)) {
+                    throw new SessionError();
                 } else {
                     throw e;
                 }
@@ -455,11 +455,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             crawlingContext.parseWithCheerio ??= async () => cheerio.load(parsed.body!.toString());
 
             if (this.useSessionPool) {
-                this._throwOnBlockedRequest(session!, response.statusCode!);
+                this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
             }
 
             if (this.persistCookiesPerSession) {
-                session!.setCookiesFromResponse(response);
+                crawlingContext.session!.setCookiesFromResponse(response);
             }
 
             request.loadedUrl = response.url;

@@ -23,3 +23,14 @@ export class RetryRequestError extends Error {
         super(message ?? "Request is being retried at the user's request");
     }
 }
+
+/**
+ * Errors of `SessionError` type will trigger a session rotation.
+ *
+ * This error doesn't respect the `maxRequestRetries` option and has a separate limit of `maxSessionRotations`.
+ */
+export class SessionError extends RetryRequestError {
+    constructor(message?: string) {
+        super(message ?? 'Detected a session error, rotating session...');
+    }
+}

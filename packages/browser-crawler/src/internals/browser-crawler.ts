@@ -497,7 +497,7 @@ export abstract class BrowserCrawler<
                 await this._handleNavigation(crawlingContext);
                 tryCancel();
             } catch (e: any) {
-                if (this.shouldRotateProxies(e)) {
+                if (this.isProxyError(e)) {
                     session?.retire();
                     throw new Error('Proxy error detected, rotating...');
                 } else {
