@@ -9,12 +9,12 @@ import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 
 import { BaseClient } from './common/base-client';
+import { scheduleBackgroundTask } from '../background-handler';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createDatasetStorageImplementation } from '../fs/dataset';
 import type { MemoryStorage } from '../index';
-import { sendWorkerMessage } from '../workers/instance';
 
 /**
  * This is what API returns in the x-apify-pagination-limit
@@ -257,7 +257,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
         }
 
         const data = this.toDatasetInfo();
-        sendWorkerMessage({
+        scheduleBackgroundTask({
             action: 'update-metadata',
             data,
             entityType: 'datasets',

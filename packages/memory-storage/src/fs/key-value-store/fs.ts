@@ -5,9 +5,9 @@ import { basename } from 'node:path/win32';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
 
+import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import { memoryStorageLog } from '../../utils';
-import { lockAndWrite } from '../../workers/worker-utils';
 import type { StorageImplementation } from '../common';
 
 import type { CreateStorageImplementationOptions } from '.';

@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
 
-import { lockAndWrite } from '../../workers/worker-utils';
+import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { StorageImplementation } from '../common';
 
 import type { CreateStorageImplementationOptions } from './index';
