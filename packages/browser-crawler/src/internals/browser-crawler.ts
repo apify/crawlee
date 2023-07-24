@@ -24,6 +24,7 @@ import {
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     validators,
+    SessionError,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -498,8 +499,7 @@ export abstract class BrowserCrawler<
                 tryCancel();
             } catch (e: any) {
                 if (this.isProxyError(e)) {
-                    session?.retire();
-                    throw new Error('Proxy error detected, rotating...');
+                    throw new SessionError();
                 } else {
                     throw e;
                 }

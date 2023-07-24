@@ -1136,24 +1136,27 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             throw error;
         }
 
-        if (error instanceof SessionError) {
-            if (crawlingContext.request.sessionRotationCount ?? 0 > 10) {
-                throw new Error(`Session rotation failed ${crawlingContext.request.sessionRotationCount} times. `
-                    + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
-            }
-            crawlingContext.request.sessionRotationCount = (crawlingContext.request.sessionRotationCount ?? 0) + 1;
-            crawlingContext.session?.retire();
-        }
-
         const shouldRetryRequest = this._canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
             this.stats.errorTrackerRetry.add(error);
 
-            await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
+            if (error instanceof SessionError) {
+                if ((request.sessionRotationCount ?? 0) > 10) {
+                    throw new Error(`Session rotation failed ${request.sessionRotationCount} times. `
+                        + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
+                }
+                request.sessionRotationCount ??= 0;
+                request.sessionRotationCount++;
+                crawlingContext.session?.retire();
+            } else {
+                await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
+            }
 
             if (!request.noRetry) {
-                request.retryCount++;
+                if (!(error instanceof SessionError)) {
+                    request.retryCount++;
+                }
 
                 const { url, retryCount, id } = request;
 
