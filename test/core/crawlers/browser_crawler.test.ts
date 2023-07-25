@@ -843,6 +843,7 @@ describe('BrowserCrawler', () => {
                 },
                 requestList,
                 maxSessionRotations: 5,
+                maxConcurrency: 1,
                 proxyConfiguration,
                 requestHandler: async () => {},
             });
