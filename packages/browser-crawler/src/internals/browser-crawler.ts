@@ -519,8 +519,7 @@ export abstract class BrowserCrawler<
 
         if (this.retryOnBlocked) {
             if (await this.isRequestBlocked(crawlingContext)) {
-                session?.retire();
-                throw new Error('Antibot protection detected, the session has been retired.');
+                throw new SessionError();
             }
         }
 

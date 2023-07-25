@@ -476,8 +476,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         }
 
         if (this.retryOnBlocked && await this.isRequestBlocked(crawlingContext)) {
-            crawlingContext.session?.retire();
-            throw new Error('Antibot protection detected, the session has been retired.');
+            throw new SessionError();
         }
 
         request.state = RequestState.REQUEST_HANDLER;

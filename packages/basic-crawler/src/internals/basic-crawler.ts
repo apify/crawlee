@@ -657,6 +657,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
     }
 
+    /**
+     * Checks if the given error is a proxy error by comparing its message to a list of known proxy error messages.
+     * Used for retrying requests that failed due to proxy errors.
+     * @param {Error} error - The error to check.
+     * @returns {boolean} - `true` if the error is a proxy error, `false` otherwise.
+     */
     protected isProxyError(error: Error) {
         return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
     }
@@ -1142,7 +1148,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.stats.errorTrackerRetry.add(error);
 
             if (error instanceof SessionError) {
-                if ((request.sessionRotationCount ?? 0) > 10) {
+                if ((request.sessionRotationCount ?? 0) >= 10) {
                     throw new Error(`Session rotation failed ${request.sessionRotationCount} times. `
                         + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
                 }
