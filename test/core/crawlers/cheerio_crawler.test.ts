@@ -1047,6 +1047,7 @@ describe('CheerioCrawler', () => {
             const cheerioCrawler = new CheerioCrawler({
                 requestList: requestListNew,
                 maxRequestRetries: 0,
+                maxSessionRotations: 0,
                 requestHandler: () => {},
                 failedRequestHandler: () => {},
                 useSessionPool: true,
@@ -1061,7 +1062,11 @@ describe('CheerioCrawler', () => {
                 return oldHandleRequestF.call(cheerioCrawler, opts);
             };
 
-            await cheerioCrawler.run();
+            try {
+                await cheerioCrawler.run();
+            } catch (e) {
+                // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
+            }
 
             expect(newUrlSpy).toBeCalledWith(usedSession.id);
         });
