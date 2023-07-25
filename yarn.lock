@@ -1012,7 +1012,7 @@ __metadata:
     lerna: ^7.0.0
     lint-staged: ^13.0.3
     node-gyp: ^9.1.0
-    playwright: 1.36.1
+    playwright: 1.36.2
     portastic: ^1.0.1
     proxy: ^1.0.2
     puppeteer: 20.9.0
@@ -10120,23 +10120,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.36.1":
-  version: 1.36.1
-  resolution: "playwright-core@npm:1.36.1"
+"playwright-core@npm:1.36.2":
+  version: 1.36.2
+  resolution: "playwright-core@npm:1.36.2"
   bin:
     playwright-core: cli.js
-  checksum: bbde807294053b50f0dbbc81f0dacc43fe525830ce1526e6ca74012582dd1645eae2391719cfb020051abea90704057cfabcbfe45ca530b37becc491e9459790
+  checksum: 2193ce802ef93c28b9b5e11a0b1d7b60778c686015659978d1cbf0eb9cda2cdc85ec5575b887c1346e9d161cc2805bf27638d76a2f7f857dffeae968e6ceffcd
   languageName: node
   linkType: hard
 
-"playwright@npm:1.36.1":
-  version: 1.36.1
-  resolution: "playwright@npm:1.36.1"
+"playwright@npm:1.36.2":
+  version: 1.36.2
+  resolution: "playwright@npm:1.36.2"
   dependencies:
-    playwright-core: 1.36.1
+    playwright-core: 1.36.2
   bin:
     playwright: cli.js
-  checksum: 21940ccd174eb03a52b13e26dc7e0e90db05298caeab1dd71d21e996b65d959b82aa133f3c9fafb99b5e0bd37265338802d3fbcee1b567e0f75212ddbde5ebae
+  checksum: 5876b65a0f1303e45f99c7d120706af0ab808efd5d89c514741584ff1060408b62148ae2790c2e6527642f2b8f49db682710b87d3df7b3ba510e8e847e6041ef
   languageName: node
   linkType: hard
 
