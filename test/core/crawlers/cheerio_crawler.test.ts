@@ -735,15 +735,13 @@ describe('CheerioCrawler', () => {
                     return null;
                 }
             }({
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                useSessionPool: true,
                 proxyConfiguration,
+                maxSessionRotations: 5,
                 requestHandler: async () => {},
             });
 
             await expect(crawler.run([serverAddress])).rejects.toThrow();
-            expect(numberOfRotations).toBe(10);
+            expect(numberOfRotations).toBe(5);
         });
     });
 

@@ -220,6 +220,13 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     maxRequestRetries?: number;
 
     /**
+     * Maximum number of session rotations per request.
+     * The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by the website.
+     * @default 10
+     */
+    maxSessionRotations?: number;
+
+    /**
      * Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
      * This value should always be set in order to prevent infinite loops in misconfigured crawlers.
      * > *NOTE:* In cases of parallel crawling, the actual number of pages visited might be slightly higher than this value.
@@ -425,6 +432,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
+    protected maxSessionRotations: number;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
@@ -453,6 +461,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // TODO: remove in a future release
         handleFailedRequestFunction: ow.optional.function,
         maxRequestRetries: ow.optional.number,
+        maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
@@ -483,6 +492,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             requestList,
             requestQueue,
             maxRequestRetries = 3,
+            maxSessionRotations = 10,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
             keepAlive,
@@ -577,6 +587,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.maxRequestRetries = maxRequestRetries;
+        this.maxSessionRotations = maxSessionRotations;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:`, config });
         this.sessionPoolOptions = {
@@ -1148,8 +1159,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.stats.errorTrackerRetry.add(error);
 
             if (error instanceof SessionError) {
-                if ((request.sessionRotationCount ?? 0) >= 10) {
-                    throw new Error(`Session rotation failed ${request.sessionRotationCount} times. `
+                if ((request.sessionRotationCount ?? 0) >= this.maxSessionRotations) {
+                    throw new Error(`Session failed ${request.sessionRotationCount} times. `
                         + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
                 }
                 request.sessionRotationCount ??= 0;

@@ -842,15 +842,13 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                useSessionPool: true,
+                maxSessionRotations: 5,
                 proxyConfiguration,
                 requestHandler: async () => {},
             });
 
             await expect(browserCrawler.run()).rejects.toThrow();
-            expect(numberOfRotations).toBe(10);
+            expect(numberOfRotations).toBe(5);
         });
     });
 
