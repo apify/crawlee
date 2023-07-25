@@ -9,6 +9,7 @@ import { move } from 'fs-extra';
 import mime from 'mime-types';
 
 import { BaseClient } from './common/base-client';
+import { scheduleBackgroundTask } from '../background-handler';
 import { maybeParseBody } from '../body-parser';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
 import { DEFAULT_API_PARAM_LIMIT, StorageTypes } from '../consts';
@@ -16,7 +17,6 @@ import type { StorageImplementation } from '../fs/common';
 import { createKeyValueStorageImplementation } from '../fs/key-value-store';
 import type { MemoryStorage } from '../index';
 import { isBuffer, isStream } from '../utils';
-import { sendWorkerMessage } from '../workers/instance';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
@@ -331,7 +331,7 @@ export class KeyValueStoreClient extends BaseClient {
         }
 
         const data = this.toKeyValueStoreInfo();
-        sendWorkerMessage({
+        scheduleBackgroundTask({
             action: 'update-metadata',
             data,
             entityType: 'keyValueStores',

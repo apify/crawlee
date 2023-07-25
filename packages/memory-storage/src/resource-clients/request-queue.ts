@@ -8,13 +8,13 @@ import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 
 import { BaseClient } from './common/base-client';
+import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
 import type { StorageImplementation } from '../fs/common';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 import type { MemoryStorage } from '../index';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
-import { sendWorkerMessage } from '../workers/instance';
 
 const requestShape = s.object({
     id: s.string,
@@ -514,7 +514,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
 
         const data = this.toRequestQueueInfo();
-        sendWorkerMessage({
+        scheduleBackgroundTask({
             action: 'update-metadata',
             data,
             entityType: 'requestQueues',

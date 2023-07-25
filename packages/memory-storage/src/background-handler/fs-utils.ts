@@ -2,17 +2,16 @@ import { writeFile } from 'node:fs';
 import { writeFile as writeFileP } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
-import { parentPort } from 'node:worker_threads';
 
 import log from '@apify/log';
 import { ensureDir } from 'fs-extra';
 import { lock } from 'proper-lockfile';
 
-import type { WorkerReceivedMessage, WorkerUpdateMetadataMessage } from '../utils';
+import type { BackgroundHandlerReceivedMessage, BackgroundHandlerUpdateMetadataMessage } from '../utils';
 
-const workerLog = log.child({ prefix: 'MemoryStorageWorker' });
+const backgroundHandlerLog = log.child({ prefix: 'MemoryStorageBackgroundHandler' });
 
-export async function handleMessage(message: WorkerReceivedMessage & { messageId: string }) {
+export async function handleMessage(message: BackgroundHandlerReceivedMessage) {
     switch (message.action) {
         case 'update-metadata':
             await updateMetadata(message);
@@ -20,16 +19,11 @@ export async function handleMessage(message: WorkerReceivedMessage & { messageId
         default:
             // We're keeping this to make eslint happy + in the event we add a new action without adding checks for it
             // we should be aware of them
-            workerLog.warning(`Unknown worker message action ${(message as WorkerReceivedMessage).action}`);
+            backgroundHandlerLog.warning(`Unknown background handler message action ${(message as BackgroundHandlerReceivedMessage).action}`);
     }
-
-    parentPort?.postMessage({
-        type: 'ack',
-        messageId: message.messageId,
-    });
 }
 
-async function updateMetadata(message: WorkerUpdateMetadataMessage) {
+async function updateMetadata(message: BackgroundHandlerUpdateMetadataMessage) {
     // Skip writing the actual metadata file. This is done after ensuring the directory exists so we have the directory present
     if (!message.writeMetadata) {
         return;

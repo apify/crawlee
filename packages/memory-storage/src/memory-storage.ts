@@ -7,13 +7,13 @@ import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra';
 
+import { promiseMap } from './background-handler/index';
 import { DatasetClient } from './resource-clients/dataset';
 import { DatasetCollectionClient } from './resource-clients/dataset-collection';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';
 import { KeyValueStoreCollectionClient } from './resource-clients/key-value-store-collection';
 import { RequestQueueClient } from './resource-clients/request-queue';
 import { RequestQueueCollectionClient } from './resource-clients/request-queue-collection';
-import { initWorkerIfNeeded, promiseMap } from './workers/instance';
 
 export interface MemoryStorageOptions {
     /**
@@ -74,8 +74,6 @@ export class MemoryStorage implements storage.StorageClient {
         this.writeMetadata = options.writeMetadata ?? process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false;
         this.persistStorage = options.persistStorage
             ?? (process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true);
-
-        initWorkerIfNeeded();
     }
 
     datasets(): storage.DatasetCollectionClient {
