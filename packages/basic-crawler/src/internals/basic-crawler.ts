@@ -959,7 +959,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
         const currentEpochTimeMillis: number = new Date().getTime();
         const lastAccessTime = this.domainAccessedTime.get(domain);
-        if (!lastAccessTime || (currentEpochTimeMillis - lastAccessTime) > this.sameDomainDelay) {
+        if (!lastAccessTime || (currentEpochTimeMillis - lastAccessTime) >= this.sameDomainDelay) {
             this.domainAccessedTime.set(domain, currentEpochTimeMillis);
             return false;
         }
