@@ -22,6 +22,7 @@ const requestOptionalPredicates = {
     payload: ow.optional.any(ow.string, ow.buffer),
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
+    sessionRotationCount: ow.optional.number,
     maxRetries: ow.optional.number,
     errorMessages: ow.optional.array.ofType(ow.string),
     headers: ow.optional.object,
@@ -107,6 +108,9 @@ export class Request<UserData extends Dictionary = Dictionary> {
     /** The `true` value indicates that the request will not be automatically retried on error. */
     noRetry: boolean;
 
+    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
+    sessionRotationCount?: number;
+
     /** Indicates the number of times the crawling of the request has been retried on error. */
     retryCount: number;
 
@@ -159,6 +163,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             payload,
             noRetry = false,
             retryCount = 0,
+            sessionRotationCount = 0,
             maxRetries,
             errorMessages = [],
             headers = {},
@@ -168,7 +173,14 @@ export class Request<UserData extends Dictionary = Dictionary> {
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
             skipNavigation,
-        } = options as RequestOptions & { loadedUrl?: string; retryCount?: number; maxRetries?: number; errorMessages?: string[]; handledAt?: string | Date };
+        } = options as RequestOptions & {
+            loadedUrl?: string;
+            retryCount?: number;
+            sessionRotationCount?: number;
+            maxRetries?: number;
+            errorMessages?: string[];
+            handledAt?: string | Date;
+        };
 
         let {
             method = 'GET',
@@ -186,6 +198,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
+        this.sessionRotationCount = sessionRotationCount;
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = handledAt as unknown instanceof Date ? (handledAt as Date).toISOString() : handledAt!;

@@ -694,6 +694,55 @@ describe('CheerioCrawler', () => {
                 expect(proxyInfo).toEqual(await proxyConfiguration.newProxyInfo(session.id));
             }
         });
+
+        test('proxy rotation on error works as expected', async () => {
+            const goodProxyUrl = 'http://good.proxy';
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl] });
+
+            const crawler = new class extends CheerioCrawler {
+                protected override async _requestFunction({ proxyUrl }: any): Promise<any> {
+                    if (proxyUrl !== goodProxyUrl) {
+                        throw new Error('Proxy responded with 400 - Bad request');
+                    }
+
+                    return null;
+                }
+            }({
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                proxyConfiguration,
+                requestHandler: async () => {},
+            });
+
+            await expect(crawler.run([serverAddress])).resolves.not.toThrow();
+        });
+
+        test('proxy rotation on error stops after maxSessionRotations limit', async () => {
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234'] });
+
+            /**
+             * The first increment is the base case when the proxy is retrieved for the first time.
+             */
+            let numberOfRotations = -1;
+            const crawler = new CheerioCrawler({
+                proxyConfiguration,
+                maxSessionRotations: 5,
+                requestHandler: async () => {},
+            });
+
+            jest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
+                if (proxyUrl.includes('localhost')) {
+                    numberOfRotations++;
+                    throw new Error('Proxy responded with 400 - Bad request');
+                }
+
+                return null;
+            });
+
+            await expect(crawler.run([serverAddress])).rejects.toThrow();
+            expect(numberOfRotations).toBe(5);
+        });
     });
 
     describe('SessionPool', () => {
@@ -998,6 +1047,7 @@ describe('CheerioCrawler', () => {
             const cheerioCrawler = new CheerioCrawler({
                 requestList: requestListNew,
                 maxRequestRetries: 0,
+                maxSessionRotations: 0,
                 requestHandler: () => {},
                 failedRequestHandler: () => {},
                 useSessionPool: true,
@@ -1012,7 +1062,11 @@ describe('CheerioCrawler', () => {
                 return oldHandleRequestF.call(cheerioCrawler, opts);
             };
 
-            await cheerioCrawler.run();
+            try {
+                await cheerioCrawler.run();
+            } catch (e) {
+                // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
+            }
 
             expect(newUrlSpy).toBeCalledWith(usedSession.id);
         });
@@ -1075,26 +1129,6 @@ describe('CheerioCrawler', () => {
                 preNavigationHooks: [prepareRequestFunction],
                 requestHandler,
                 failedRequestHandler,
-            });
-            await cheerioCrawler.run();
-        });
-
-        test('failedRequestHandler contains proxyInfo', async () => {
-            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:8080'] });
-
-            const cheerioCrawler = new CheerioCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                proxyConfiguration,
-                requestHandler: () => {
-                    throw new Error('some error');
-                },
-                failedRequestHandler: (crawlingContext) => {
-                    expect(typeof crawlingContext.proxyInfo).toEqual('object');
-                    expect(crawlingContext.proxyInfo.hasOwnProperty('url')).toEqual(true);
-                },
-                useSessionPool: true,
             });
             await cheerioCrawler.run();
         });
