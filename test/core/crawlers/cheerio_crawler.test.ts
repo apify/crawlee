@@ -715,7 +715,7 @@ describe('CheerioCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            await crawler.run([serverAddress]);
+            await expect(crawler.run([serverAddress])).resolves.not.toThrow();
         });
 
         test('proxy rotation on error stops after maxSessionRotations limit', async () => {
@@ -725,19 +725,19 @@ describe('CheerioCrawler', () => {
              * The first increment is the base case when the proxy is retrieved for the first time.
              */
             let numberOfRotations = -1;
-            const crawler = new class extends CheerioCrawler {
-                protected override async _requestFunction({ proxyUrl }: any): Promise<any> {
-                    if (proxyUrl.includes('localhost')) {
-                        numberOfRotations++;
-                        throw new Error('Proxy responded with 400 - Bad request');
-                    }
-
-                    return null;
-                }
-            }({
+            const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 5,
                 requestHandler: async () => {},
+            });
+
+            jest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
+                if (proxyUrl.includes('localhost')) {
+                    numberOfRotations++;
+                    throw new Error('Proxy responded with 400 - Bad request');
+                }
+
+                return null;
             });
 
             await expect(crawler.run([serverAddress])).rejects.toThrow();

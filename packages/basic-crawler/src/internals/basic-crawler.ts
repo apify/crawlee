@@ -222,6 +222,8 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     /**
      * Maximum number of session rotations per request.
      * The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by the website.
+     *
+     * The session rotations are not counted towards the {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} limit.
      * @default 10
      */
     maxSessionRotations?: number;
@@ -671,10 +673,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * Checks if the given error is a proxy error by comparing its message to a list of known proxy error messages.
      * Used for retrying requests that failed due to proxy errors.
-     * @param {Error} error - The error to check.
-     * @returns {boolean} - `true` if the error is a proxy error, `false` otherwise.
+     *
+     * @param error The error to check.
      */
-    protected isProxyError(error: Error) {
+    protected isProxyError(error: Error): boolean {
         return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
     }
 
@@ -1138,6 +1140,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return isRequestListFinished && isRequestQueueFinished;
     }
 
+    private async _rotateSession(crawlingContext: Context) {
+        const { request } = crawlingContext;
+
+        if ((request.sessionRotationCount ?? 0) >= this.maxSessionRotations) {
+            throw new Error(`Session failed ${request.sessionRotationCount} times. `
+                + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
+        }
+        request.sessionRotationCount ??= 0;
+        request.sessionRotationCount++;
+        crawlingContext.session?.retire();
+    }
+
     /**
      * Handles errors thrown by user provided requestHandler()
      */
@@ -1159,21 +1173,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.stats.errorTrackerRetry.add(error);
 
             if (error instanceof SessionError) {
-                if ((request.sessionRotationCount ?? 0) >= this.maxSessionRotations) {
-                    throw new Error(`Session failed ${request.sessionRotationCount} times. `
-                        + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
-                }
-                request.sessionRotationCount ??= 0;
-                request.sessionRotationCount++;
-                crawlingContext.session?.retire();
+                await this._rotateSession(crawlingContext);
             } else {
                 await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
             }
 
             if (!request.noRetry) {
-                if (!(error instanceof SessionError)) {
-                    request.retryCount++;
-                }
+                request.retryCount++;
 
                 const { url, retryCount, id } = request;
 

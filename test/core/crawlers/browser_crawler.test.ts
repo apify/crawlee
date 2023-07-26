@@ -814,7 +814,7 @@ describe('BrowserCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            await browserCrawler.run();
+            await expect(browserCrawler.run()).resolves.not.toThrow();
         });
 
         test('proxy rotation on error stops after maxSessionRotations limit', async () => {

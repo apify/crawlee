@@ -435,16 +435,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId);
         }
         if (!request.skipNavigation) {
-            try {
-                await this._handleNavigation(crawlingContext);
-                tryCancel();
-            } catch (e: any) {
-                if (this.isProxyError(e)) {
-                    throw new SessionError();
-                } else {
-                    throw e;
-                }
-            }
+            await this._handleNavigation(crawlingContext);
+            tryCancel();
 
             const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
             const response = parsed.response!;
@@ -604,7 +596,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 return undefined as unknown as PlainResponse;
             }
 
-            throw e;
+            if (this.isProxyError(e as Error)) {
+                throw new SessionError();
+            } else {
+                throw e;
+            }
         }
     }
 

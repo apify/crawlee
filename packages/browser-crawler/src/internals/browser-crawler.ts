@@ -494,16 +494,8 @@ export abstract class BrowserCrawler<
         const { request, session } = crawlingContext;
 
         if (!request.skipNavigation) {
-            try {
-                await this._handleNavigation(crawlingContext);
-                tryCancel();
-            } catch (e: any) {
-                if (this.isProxyError(e)) {
-                    throw new SessionError();
-                } else {
-                    throw e;
-                }
-            }
+            await this._handleNavigation(crawlingContext);
+            tryCancel();
 
             await this._responseHandler(crawlingContext);
             tryCancel();
@@ -589,6 +581,8 @@ export abstract class BrowserCrawler<
             await this._handleNavigationTimeout(crawlingContext, error as Error);
 
             crawlingContext.request.state = RequestState.ERROR;
+
+            this._throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
@@ -625,6 +619,15 @@ export abstract class BrowserCrawler<
         }
 
         await crawlingContext.page.close();
+    }
+
+    /**
+     * Transforms proxy-related errors to `SessionError`.
+     */
+    protected _throwIfProxyError(error: Error) {
+        if (this.isProxyError(error)) {
+            throw new SessionError(error.message);
+        }
     }
 
     protected abstract _navigationHandler(crawlingContext: Context, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
