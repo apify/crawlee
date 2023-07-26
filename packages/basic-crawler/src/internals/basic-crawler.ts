@@ -1144,7 +1144,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const { request } = crawlingContext;
 
         if ((request.sessionRotationCount ?? 0) >= this.maxSessionRotations) {
-            throw new Error(`Session failed ${request.sessionRotationCount} times. `
+            throw new Error(`Request failed because of proxy-related errors ${request.sessionRotationCount} times. `
                 + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
         }
         request.sessionRotationCount ??= 0;
