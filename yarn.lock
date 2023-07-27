@@ -6776,6 +6776,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"idcac-playwright@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "idcac-playwright@npm:0.1.2"
+  checksum: 09a157649baf08c9ed779c7e1fdc7dabc80f8723c480699beb5e0ba80214a5bc1254148845193daab5d0a749915c8dd787636c35c014c5805db3e0098978313e
+  languageName: node
+  linkType: hard
+
 "ieee754@npm:^1.1.13":
   version: 1.2.1
   resolution: "ieee754@npm:1.2.1"
