@@ -750,6 +750,7 @@ __metadata:
     "@crawlee/utils": ^3.4.2
     got-scraping: ^3.2.9
     ow: ^0.28.1
+    tldts: ^6.0.0
     tslib: ^2.4.0
     type-fest: ^4.0.0
   languageName: unknown
