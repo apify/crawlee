@@ -208,19 +208,21 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
  */
 export function createRequestOptions(
     sources: (string | Record<string, unknown>)[],
-    options: Pick<EnqueueLinksOptions, 'label' | 'userData'> = {},
+    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl'> = {},
 ): RequestOptions[] {
     return sources
         .map((src) => (typeof src === 'string' ? { url: src } : src as unknown as RequestOptions))
         .filter(({ url }) => {
             try {
-                return new URL(url).href;
+                return new URL(url, options.baseUrl).href;
             } catch (err) {
                 return false;
             }
         })
         .map((requestOptions) => {
+            requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
             requestOptions.userData ??= options.userData ?? {};
+
             if (typeof options.label === 'string') {
                 requestOptions.userData = {
                     ...requestOptions.userData,
