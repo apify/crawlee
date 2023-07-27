@@ -226,7 +226,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     sameDomainDelay?: number;
 
-    /** 
+    /**
      * Maximum number of session rotations per request.
      * The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by the website.
      *
