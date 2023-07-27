@@ -675,7 +675,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
 }
 
 export async function closeCookieModals(page: Page): Promise<void> {
-    return page.evaluate(getInjectableScript());
+    await page.evaluate(getInjectableScript());
 }
 
 /** @internal */
