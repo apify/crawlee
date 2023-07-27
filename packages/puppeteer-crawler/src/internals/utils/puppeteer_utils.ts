@@ -29,6 +29,7 @@ import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
+import { getInjectableScript } from 'idcac-playwright';
 import ow from 'ow';
 import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
 
@@ -38,7 +39,6 @@ import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/cli
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PuppeteerCrawlingContext } from '../puppeteer-crawler';
 // @ts-ignore - No type definitions available for this package.
-import { getInjectableScript } from 'idcac-playwright';
 
 const jqueryPath = require.resolve('jquery');
 

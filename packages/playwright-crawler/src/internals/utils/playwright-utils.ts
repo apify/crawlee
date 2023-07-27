@@ -28,6 +28,7 @@ import { validators, KeyValueStore, RequestState } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
+import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
 import ow from 'ow';
 import type { Page, Response, Route } from 'playwright';
 
@@ -36,7 +37,6 @@ import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements'
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
 
 // @ts-ignore No type definitions for this package
-import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
@@ -563,7 +563,7 @@ export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
 
 export async function closeCookieModals(page: Page): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    
+
     await page.evaluate(getCookieClosingScript());
 }
 
