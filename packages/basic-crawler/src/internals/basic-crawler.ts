@@ -979,21 +979,26 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     protected _handleRequestWithDelay(request:Request, source: RequestQueue | RequestList) {
         const domain = getDomain(request.url);
+
         if (!domain || !request) {
             return false;
         }
-        const currentEpochTimeMillis: number = new Date().getTime();
+
+        const now = Date.now();
         const lastAccessTime = this.domainAccessedTime.get(domain);
-        if (!lastAccessTime || (currentEpochTimeMillis - lastAccessTime) >= this.sameDomainDelay) {
-            this.domainAccessedTime.set(domain, currentEpochTimeMillis);
+
+        if (!lastAccessTime || (now - lastAccessTime) >= this.sameDomainDelay) {
+            this.domainAccessedTime.set(domain, now);
             return false;
         }
-        const delay = lastAccessTime + this.sameDomainDelay - currentEpochTimeMillis;
-        this.log.info(`Request will be reclaimed after ${delay} milliseconds due to same domain delay`);
+
+        const delay = lastAccessTime + this.sameDomainDelay - now;
+        this.log.debug(`Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`);
         setTimeout(async () => {
-            this.log.info(`Adding request url = ${request.url} back to the queue`);
+            this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
             await source?.reclaimRequest(request);
         }, delay);
+
         return true;
     }
 
@@ -1029,11 +1034,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         tryCancel();
 
-        if (!request) return;
-
-        if (this._handleRequestWithDelay(request, source)) {
+        if (!request || this._handleRequestWithDelay(request, source)) {
             return;
         }
+
         // Reset loadedUrl so an old one is not carried over to retries.
         request.loadedUrl = undefined;
 
