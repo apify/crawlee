@@ -38,7 +38,6 @@ import { addInterceptRequestHandler, removeInterceptRequestHandler } from './pup
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PuppeteerCrawlingContext } from '../puppeteer-crawler';
-// @ts-ignore - No type definitions available for this package.
 
 const jqueryPath = require.resolve('jquery');
 

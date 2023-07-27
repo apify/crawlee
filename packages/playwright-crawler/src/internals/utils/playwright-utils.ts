@@ -36,8 +36,6 @@ import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/cli
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
 
-// @ts-ignore No type definitions for this package
-
 const log = log_.child({ prefix: 'Playwright Utils' });
 
 const jqueryPath = require.resolve('jquery');
