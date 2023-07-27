@@ -39,8 +39,10 @@ import {
     purgeDefaultStorages,
     validators,
     RetryRequestError,
+    SessionError,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
+import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
@@ -223,6 +225,15 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * @default 0
      */
     sameDomainDelay?: number;
+
+    /** 
+     * Maximum number of session rotations per request.
+     * The crawler will automatically rotate the session in case of a proxy error or if it gets blocked by the website.
+     *
+     * The session rotations are not counted towards the {@apilink BasicCrawlerOptions.maxRequestRetries|`maxRequestRetries`} limit.
+     * @default 10
+     */
+    maxSessionRotations?: number;
 
     /**
      * Maximum number of pages that the crawler will open. The crawl will stop when this limit is reached.
@@ -432,6 +443,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected maxRequestRetries: number;
     protected sameDomainDelay: number;
     protected domainAccessedTime: Map<string, number>;
+    protected maxSessionRotations: number;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
     protected statusMessageCallback?: StatusMessageCallback;
@@ -461,6 +473,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         handleFailedRequestFunction: ow.optional.function,
         maxRequestRetries: ow.optional.number,
         sameDomainDelay: ow.optional.number,
+        maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
         sessionPoolOptions: ow.optional.object,
@@ -492,6 +505,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             requestQueue,
             maxRequestRetries = 3,
             sameDomainDelay = 0,
+            maxSessionRotations = 10,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
             keepAlive,
@@ -588,6 +602,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         this.maxRequestRetries = maxRequestRetries;
         this.sameDomainDelay = sameDomainDelay;
+        this.maxSessionRotations = maxSessionRotations;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:`, config });
         this.sessionPoolOptions = {
@@ -666,6 +681,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         };
 
         this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+    }
+
+    /**
+     * Checks if the given error is a proxy error by comparing its message to a list of known proxy error messages.
+     * Used for retrying requests that failed due to proxy errors.
+     *
+     * @param error The error to check.
+     */
+    protected isProxyError(error: Error): boolean {
+        return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
     }
 
     protected isRequestBlocked(_crawlingContext: Context) {
@@ -1151,6 +1176,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return isRequestListFinished && isRequestQueueFinished;
     }
 
+    private async _rotateSession(crawlingContext: Context) {
+        const { request } = crawlingContext;
+
+        if ((request.sessionRotationCount ?? 0) >= this.maxSessionRotations) {
+            throw new Error(`Request failed because of proxy-related errors ${request.sessionRotationCount} times. `
+                + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
+        }
+        request.sessionRotationCount ??= 0;
+        request.sessionRotationCount++;
+        crawlingContext.session?.retire();
+    }
+
     /**
      * Handles errors thrown by user provided requestHandler()
      */
@@ -1171,7 +1208,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (shouldRetryRequest) {
             this.stats.errorTrackerRetry.add(error);
 
-            await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
+            if (error instanceof SessionError) {
+                await this._rotateSession(crawlingContext);
+            } else {
+                await this._tagUserHandlerError(() => this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
+            }
 
             if (!request.noRetry) {
                 request.retryCount++;

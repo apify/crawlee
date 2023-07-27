@@ -25,6 +25,7 @@ import {
     validators,
     Configuration,
     RequestState,
+    SessionError,
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { RETRY_CSS_SELECTORS } from '@crawlee/utils';
@@ -446,11 +447,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             crawlingContext.parseWithCheerio ??= async () => cheerio.load(parsed.body!.toString());
 
             if (this.useSessionPool) {
-                this._throwOnBlockedRequest(session!, response.statusCode!);
+                this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
             }
 
             if (this.persistCookiesPerSession) {
-                session!.setCookiesFromResponse(response);
+                crawlingContext.session!.setCookiesFromResponse(response);
             }
 
             request.loadedUrl = response.url;
@@ -467,8 +468,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         }
 
         if (this.retryOnBlocked && await this.isRequestBlocked(crawlingContext)) {
-            crawlingContext.session?.retire();
-            throw new Error('Antibot protection detected, the session has been retired.');
+            throw new SessionError();
         }
 
         request.state = RequestState.REQUEST_HANDLER;
@@ -596,7 +596,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 return undefined as unknown as PlainResponse;
             }
 
-            throw e;
+            if (this.isProxyError(e as Error)) {
+                throw new SessionError();
+            } else {
+                throw e;
+            }
         }
     }
 

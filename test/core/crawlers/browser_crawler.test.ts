@@ -786,7 +786,73 @@ describe('BrowserCrawler', () => {
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
         });
+
+        test('proxy rotation on error works as expected', async () => {
+            const goodProxyUrl = 'http://good.proxy';
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl] });
+
+            const browserCrawler = new class extends BrowserCrawlerTest {
+                protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
+                    const { session } = ctx;
+                    const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+
+                    if (proxyInfo.url !== goodProxyUrl) {
+                        throw new Error('ERR_PROXY_CONNECTION_FAILED');
+                    }
+
+                    return null;
+                }
+            }({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                maxRequestRetries: 0,
+                maxConcurrency: 1,
+                useSessionPool: true,
+                proxyConfiguration,
+                requestHandler: async () => {},
+            });
+
+            await expect(browserCrawler.run()).resolves.not.toThrow();
+        });
+
+        test('proxy rotation on error stops after maxSessionRotations limit', async () => {
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234'] });
+
+            /**
+             * The first increment is the base case when the proxy is retrieved for the first time.
+             */
+            let numberOfRotations = -1;
+            const browserCrawler = new class extends BrowserCrawlerTest {
+                protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
+                    const { session } = ctx;
+                    const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+
+                    numberOfRotations++;
+
+                    if (proxyInfo.url.includes('localhost')) {
+                        throw new Error('ERR_PROXY_CONNECTION_FAILED');
+                    }
+
+                    return null;
+                }
+            }({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                maxSessionRotations: 5,
+                maxConcurrency: 1,
+                proxyConfiguration,
+                requestHandler: async () => {},
+            });
+
+            await expect(browserCrawler.run()).rejects.toThrow();
+            expect(numberOfRotations).toBe(5);
+        });
     });
+
     describe('Crawling context', () => {
         const sources = ['http://example.com/'];
         let requestList: RequestList;
@@ -852,30 +918,6 @@ describe('BrowserCrawler', () => {
             });
             // @ts-expect-error Overriding protected method
             browserCrawler._navigationHandler = gotoFunction;
-
-            await browserCrawler.run();
-        });
-
-        test('failedRequestHandler contains proxyInfo', async () => {
-            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost'] });
-
-            const browserCrawler = new BrowserCrawlerTest({
-                browserPoolOptions: {
-                    browserPlugins: [puppeteerPlugin],
-                },
-                requestList,
-                maxRequestRetries: 0,
-                maxConcurrency: 1,
-                useSessionPool: true,
-                proxyConfiguration,
-                requestHandler: async () => {
-                    throw new Error('some error');
-                },
-                failedRequestHandler: async (crawlingContext) => {
-                    expect(typeof crawlingContext.proxyInfo).toEqual('object');
-                    expect(crawlingContext.proxyInfo.hasOwnProperty('url')).toEqual(true);
-                },
-            });
 
             await browserCrawler.run();
         });

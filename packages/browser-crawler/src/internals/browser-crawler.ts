@@ -24,6 +24,7 @@ import {
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     validators,
+    SessionError,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -510,8 +511,7 @@ export abstract class BrowserCrawler<
 
         if (this.retryOnBlocked) {
             if (await this.isRequestBlocked(crawlingContext)) {
-                session?.retire();
-                throw new Error('Antibot protection detected, the session has been retired.');
+                throw new SessionError();
             }
         }
 
@@ -581,6 +581,8 @@ export abstract class BrowserCrawler<
             await this._handleNavigationTimeout(crawlingContext, error as Error);
 
             crawlingContext.request.state = RequestState.ERROR;
+
+            this._throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
@@ -617,6 +619,15 @@ export abstract class BrowserCrawler<
         }
 
         await crawlingContext.page.close();
+    }
+
+    /**
+     * Transforms proxy-related errors to `SessionError`.
+     */
+    protected _throwIfProxyError(error: Error) {
+        if (this.isProxyError(error)) {
+            throw new SessionError(error.message);
+        }
     }
 
     protected abstract _navigationHandler(crawlingContext: Context, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
