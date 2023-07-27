@@ -61,6 +61,7 @@
         "@crawlee/utils": "^3.4.2",
         "cheerio": "^1.0.0-rc.12",
         "devtools-protocol": "*",
+        "idcac-playwright": "^0.1.2",
         "jquery": "^3.6.0",
         "ow": "^0.28.1",
         "tslib": "^2.4.0"
