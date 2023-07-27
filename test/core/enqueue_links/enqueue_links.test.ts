@@ -853,6 +853,29 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({});
         });
 
+        test('correctly resolves relative URLs with `urls` option', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            await cheerioCrawlerEnqueueLinks({
+                options: {
+                    baseUrl: 'http://www.absolute.com/removethis/',
+                    urls: ['/relative/url1', '/relative/url2'],
+                },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(2);
+
+            expect(enqueued[0].url).toBe('http://www.absolute.com/relative/url1');
+            expect(enqueued[0].method).toBe('GET');
+            expect(enqueued[0].userData).toEqual({});
+
+            expect(enqueued[1].url).toBe('http://www.absolute.com/relative/url2');
+            expect(enqueued[1].method).toBe('GET');
+            expect(enqueued[1].userData).toEqual({});
+        });
+
         test('correctly works with transformRequestFunction', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             const pseudoUrls = [
