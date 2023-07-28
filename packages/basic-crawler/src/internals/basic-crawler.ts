@@ -221,7 +221,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     maxRequestRetries?: number;
 
     /**
-     * Indicates how much time wait before crawling same domain request
+     * Indicates how much time to wait before crawling another same domain request.
      * @default 0
      */
     sameDomainDelay?: number;
