@@ -221,10 +221,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
     maxRequestRetries?: number;
 
     /**
-     * Indicates how much time to wait before crawling another same domain request.
+     * Indicates how much time (in seconds) to wait before crawling another same domain request.
      * @default 0
      */
-    sameDomainDelay?: number;
+    sameDomainDelaySecs?: number;
 
     /**
      * Maximum number of session rotations per request.
@@ -441,7 +441,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
-    protected sameDomainDelay: number;
+    protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected handledRequestsCount: number;
@@ -472,7 +472,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // TODO: remove in a future release
         handleFailedRequestFunction: ow.optional.function,
         maxRequestRetries: ow.optional.number,
-        sameDomainDelay: ow.optional.number,
+        sameDomainDelaySecs: ow.optional.number,
         maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
@@ -504,7 +504,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             requestList,
             requestQueue,
             maxRequestRetries = 3,
-            sameDomainDelay = 0,
+            sameDomainDelaySecs = 0,
             maxSessionRotations = 10,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
@@ -601,7 +601,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.maxRequestRetries = maxRequestRetries;
-        this.sameDomainDelay = sameDomainDelay;
+        this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:`, config });
@@ -978,7 +978,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     ) {}
 
     /**
-     * Delays processing of the request based on the `sameDomainDelay` option,
+     * Delays processing of the request based on the `sameDomainDelaySecs` option,
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
@@ -992,12 +992,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const now = Date.now();
         const lastAccessTime = this.domainAccessedTime.get(domain);
 
-        if (!lastAccessTime || (now - lastAccessTime) >= this.sameDomainDelay) {
+        if (!lastAccessTime || (now - lastAccessTime) >= this.sameDomainDelayMillis) {
             this.domainAccessedTime.set(domain, now);
             return false;
         }
 
-        const delay = lastAccessTime + this.sameDomainDelay - now;
+        const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(`Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`);
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
