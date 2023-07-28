@@ -29,6 +29,7 @@ import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
+import { getInjectableScript } from 'idcac-playwright';
 import ow from 'ow';
 import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
 
@@ -673,6 +674,10 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     }
 }
 
+export async function closeCookieModals(page: Page): Promise<void> {
+    await page.evaluate(getInjectableScript());
+}
+
 /** @internal */
 export interface PuppeteerContextUtils {
     /**
@@ -924,6 +929,11 @@ export interface PuppeteerContextUtils {
      * Saves a full screenshot and HTML of the current page into a Key-Value store.
      */
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+
+    /**
+     * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
+     */
+    closeCookieModals(): Promise<void>;
 }
 
 /** @internal */
@@ -953,6 +963,7 @@ export function registerUtilsToContext(context: PuppeteerCrawlingContext): void 
     context.removeInterceptRequestHandler = (handler: InterceptHandler) => removeInterceptRequestHandler(context.page, handler);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, options);
+    context.closeCookieModals = () => closeCookieModals(context.page);
 }
 
 export {
@@ -976,4 +987,5 @@ export const puppeteerUtils = {
     infiniteScroll,
     saveSnapshot,
     parseWithCheerio,
+    closeCookieModals,
 };

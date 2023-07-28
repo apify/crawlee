@@ -11,12 +11,13 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestsPerCrawl: 30,
-        requestHandler: async ({ page, request, enqueueLinks }) => {
+        requestHandler: async ({ page, request, enqueueLinks, closeCookieModals }) => {
             const { url, loadedUrl } = request;
 
             const pageTitle = await page.title();
             log.info(`URL: ${url}; LOADED_URL: ${loadedUrl}; TITLE: ${pageTitle}`);
 
+            await closeCookieModals();
             // Wait for the actor cards to render,
             // otherwise enqueueLinks wouldn't enqueue anything.
             await page.waitForSelector('.ActorStorePagination-buttons a');
