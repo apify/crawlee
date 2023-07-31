@@ -1,0 +1,167 @@
+---
+id: proxy-management
+title: Proxy Management
+description: Using proxies to get around those annoying IP-blocks
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import HttpSource from '!!raw-loader!./proxy_management_integration_http.ts';
+import JSDOMSource from '!!raw-loader!./proxy_management_integration_jsdom.ts';
+import CheerioSource from '!!raw-loader!./proxy_management_integration_cheerio.ts';
+import PlaywrightSource from '!!raw-loader!./proxy_management_integration_playwright.ts';
+import PuppeteerSource from '!!raw-loader!./proxy_management_integration_puppeteer.ts';
+import SessionStandaloneSource from '!!raw-loader!./proxy_management_session_standalone.ts';
+import SessionHttpSource from '!!raw-loader!./proxy_management_session_http.ts';
+import SessionJSDOMSource from '!!raw-loader!./proxy_management_session_jsdom.ts';
+import SessionCheerioSource from '!!raw-loader!./proxy_management_session_cheerio.ts';
+import SessionPlaywrightSource from '!!raw-loader!./proxy_management_session_playwright.ts';
+import SessionPuppeteerSource from '!!raw-loader!./proxy_management_session_puppeteer.ts';
+import InspectionHttpSource from '!!raw-loader!./proxy_management_inspection_http.ts';
+import InspectionJSDOMSource from '!!raw-loader!./proxy_management_inspection_jsdom.ts';
+import InspectionCheerioSource from '!!raw-loader!./proxy_management_inspection_cheerio.ts';
+import InspectionPlaywrightSource from '!!raw-loader!./proxy_management_inspection_playwright.ts';
+import InspectionPuppeteerSource from '!!raw-loader!./proxy_management_inspection_puppeteer.ts';
+
+[IP address blocking](https://en.wikipedia.org/wiki/IP_address_blocking) is one of the oldest
+and most effective ways of preventing access to a website. It is therefore paramount for
+a good web scraping library to provide easy to use but powerful tools which can work around
+IP blocking. The most powerful weapon in our anti IP blocking arsenal is a
+[proxy server](https://en.wikipedia.org/wiki/Proxy_server).
+
+With Crawlee we can use our own proxy servers or proxy servers acquired from
+third-party providers.
+
+## Quick start
+
+If we already have proxy URLs of our own, we can start using
+them immediately in only a few lines of code.
+
+```javascript
+import { ProxyConfiguration } from 'crawlee';
+
+const proxyConfiguration = new ProxyConfiguration({
+    proxyUrls: [
+        'http://proxy-1.com',
+        'http://proxy-2.com',
+    ]
+});
+const proxyUrl = await proxyConfiguration.newUrl();
+```
+
+Examples of how to use our proxy URLs with crawlers are shown below in [Crawler integration](#crawler-integration) section.
+
+## Proxy Configuration
+
+All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguration">`ProxyConfiguration`</ApiLink> class. We create an instance using the `ProxyConfiguration` <ApiLink to="core/class/ProxyConfiguration#constructor">`constructor`</ApiLink> function based on the provided options. See the <ApiLink to="core/interface/ProxyConfigurationOptions">`ProxyConfigurationOptions`</ApiLink> for all the possible constructor options.
+
+### Crawler integration
+
+`ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
+
+<Tabs groupId="proxy_session_management">
+    <TabItem value="http" label="HttpCrawler">
+        <CodeBlock language="js">
+            {HttpSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="cheerio" label="CheerioCrawler" default>
+        <CodeBlock language="js">
+            {CheerioSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="jsdom" label="JSDOMCrawler">
+        <CodeBlock language="js">
+            {JSDOMSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js">
+            {PlaywrightSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js">
+            {PuppeteerSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+Our crawlers will now use the selected proxies for all connections.
+
+### IP Rotation and session management
+
+&#8203;<ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> allows us to pass a `sessionId` parameter. It will then be used to create a `sessionId`-`proxyUrl` pair, and subsequent `newUrl()` calls with the same `sessionId` will always return the same `proxyUrl`. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
+
+When no `sessionId` is provided, our proxy URLs are rotated round-robin.
+
+<Tabs groupId="proxy_session_management">
+    <TabItem value="http" label="HttpCrawler">
+        <CodeBlock language="js">
+            {SessionHttpSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="cheerio" label="CheerioCrawler" default>
+        <CodeBlock language="js">
+            {SessionCheerioSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="jsdom" label="JSDOMCrawler">
+        <CodeBlock language="js">
+            {SessionJSDOMSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js">
+            {SessionPlaywrightSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js">
+            {SessionPuppeteerSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="standalone" label="Standalone">
+        <CodeBlock language="js">
+            {SessionStandaloneSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+## Inspecting current proxy in Crawlers
+
+`HttpCrawler`, `CheerioCrawler`, `JSDOMCrawler`, `PlaywrightCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
+in their `requestHandler` using a <ApiLink to="core/interface/ProxyInfo">`proxyInfo`</ApiLink> object.
+With the `proxyInfo` object, we can easily access the proxy URL.
+
+<Tabs groupId="proxy_session_management">
+    <TabItem value="http" label="HttpCrawler">
+        <CodeBlock language="js">
+            {InspectionHttpSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="cheerio" label="CheerioCrawler" default>
+        <CodeBlock language="js">
+            {InspectionCheerioSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="jsdom" label="JSDOMCrawler">
+        <CodeBlock language="js">
+            {InspectionJSDOMSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js">
+            {InspectionPlaywrightSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js">
+            {InspectionPuppeteerSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>

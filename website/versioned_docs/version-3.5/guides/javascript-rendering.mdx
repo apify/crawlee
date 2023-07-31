@@ -1,0 +1,94 @@
+---
+id: javascript-rendering
+title: "JavaScript rendering"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import PlaywrightSource from '!!raw-loader!./javascript-rendering-playwright.ts';
+import PlaywrightNoWaitSource from '!!raw-loader!./javascript-rendering-playwright-no-wait.ts';
+import PuppeteerSource from '!!raw-loader!./javascript-rendering-puppeteer.ts';
+import PuppeteerNoWaitSource from '!!raw-loader!./javascript-rendering-puppeteer-no-wait.ts';
+
+JavaScript rendering is the process of executing JavaScript on a page to make changes in the page's structure or content. It's also called client-side rendering, the opposite of server-side rendering. Some modern websites render on the client, some on the server and many cutting edge websites render some things on the server and other things on the client.
+
+The Crawlee website does not use JavaScript rendering to display its content, so we have to look for an example elsewhere. [Apify Store](https://apify.com/store) is a library of scrapers and automations called **actors** that anyone can grab and use for free. It uses JavaScript rendering to display the list of actors, so let's use it to demonstrate how it works.
+
+```ts title="src/main.mjs"
+import { CheerioCrawler } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    async requestHandler({ $, request }) {
+        // Extract text content of an actor card
+        const actorText = $('.ActorStoreItem').text();
+        console.log(`ACTOR: ${actorText}`);
+    }
+})
+
+await crawler.run(['https://apify.com/store']);
+```
+
+Run the code, and you'll see that the crawler won't print the content of the actor card.
+
+```log
+ACTOR:
+```
+
+That's because Apify Store uses client-side JavaScript to render its content and `CheerioCrawler` can't execute it, so the text never appears in the page's HTML.
+
+You can confirm this using Chrome DevTools. If you go to https://apify.com/store, right-click anywhere in the page, select **View Page Source** and search for **ActorStoreItem** you won't find any results. Then, if you right-click again, select **Inspect** and search for the same **ActorStoreItem**, you will find many of them.
+
+How's this possible? Because **View Page Source** shows the original HTML, before any JavaScript executions. That's what `CheerioCrawler` gets. Whereas with **Inspect** you see the current HTML - after JavaScript execution. When you understand this, it's not a huge surprise that `CheerioCrawler` can't find the data. For that we need a headless browser.
+
+## Headless browsers
+
+To get the contents of `.ActorStoreItem`, you will have to use a headless browser. You can choose from two libraries to control your browser: [Puppeteer](https://github.com/puppeteer/puppeteer) or [Playwright](https://github.com/microsoft/playwright). The choice is simple. If you know one of them, choose the one you know. If you know both, or none, choose Playwright, because it's better in most cases.
+
+## Waiting for elements to render
+
+No matter which library you pick, here's example code for both. Playwright is a little more pleasant to use, but both libraries will get the job done. The big difference between them is that Playwright will automatically wait for elements to appear, whereas in Puppeteer, you have to explicitly wait for them.
+
+<Tabs groupId="javascript-rendering">
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PlaywrightSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PuppeteerSource}</CodeBlock>
+    </TabItem>
+</Tabs>
+
+When you run the code, you'll see the _badly formatted_ content of the first actor card printed to console:
+
+```log
+ACTOR: Web Scraperapify/web-scraperCrawls arbitrary websites using [...]
+```
+
+### We're not kidding
+
+If you don't believe us that the elements need to be waited for, run the following code which skips the waiting.
+
+<Tabs groupId="javascript-rendering">
+    <TabItem value="playwright" label="PlaywrightCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PlaywrightNoWaitSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer" label="PuppeteerCrawler">
+        <CodeBlock language="js" title="src/main.mjs">{PuppeteerNoWaitSource}</CodeBlock>
+    </TabItem>
+</Tabs>
+
+In both cases, the request will be retried a few times and eventually fail with an error like this:
+
+```log
+ERROR [...] Error: failed to find element matching selector ".ActorStoreItem"
+```
+
+That's because when you try to access the element in the browser, it's not been rendered in the DOM yet.
+
+:::tip
+
+This guide only touches the concept of JavaScript rendering and use of headless browsers. To learn more, continue with the [Puppeteer & Playwright course](https://developers.apify.com/academy/puppeteer-playwright) in the Apify Academy. **It's free and open-source** ❤️.
+
+:::

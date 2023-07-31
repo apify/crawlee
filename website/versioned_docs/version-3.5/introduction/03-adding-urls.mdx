@@ -1,0 +1,167 @@
+---
+id: adding-urls
+title: "Adding more URLs"
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import FindWithELSource from '!!raw-loader!./03-find-el.ts';
+import FilterWithELSource from '!!raw-loader!./03-filter-el.ts';
+import FindWithoutELSource from '!!raw-loader!./03-find-without-el.ts';
+import FilterWithoutELSource from '!!raw-loader!./03-filter-without-el.ts';
+
+In the previous lesson you built a very simple crawler that downloads HTML of a single page, reads its title and prints
+it to the console. This is the original source code:
+
+```ts
+import { CheerioCrawler } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    async requestHandler({ $, request }) {
+        const title = $('title').text();
+        console.log(`The title of "${request.url}" is: ${title}.`);
+    }
+})
+
+await crawler.run(['https://crawlee.dev']);
+```
+
+In this lesson you'll use the example from the previous section and improve on it. You'll add more URLs to the queue and thanks to that the crawler will keep going, finding new links, enqueuing them into the `RequestQueue` and then scraping them.
+
+## How crawling works
+
+The process is simple:
+
+1. Find new links on the page.
+2. Filter only those pointing to the same domain, in this case `crawlee.dev`.
+3. Enqueue (add) them to the `RequestQueue`.
+4. Visit the newly enqueued links.
+5. Repeat the process.
+
+In the following paragraphs you will learn about the <ApiLink to="core/function/enqueueLinks">`enqueueLinks`</ApiLink> function which simplifies crawling to a single function call. For comparison and learning purposes we will show an equivalent solution written without `enqueueLinks` in the second code tab.
+
+:::tip
+
+The `enqueueLinks` function is context aware. It means that it will read the information about the currently crawled page from the context, and you don't need to explicitly provide any arguments. It will find the links using the Cheerio function `$` and automatically add the links to the running crawler's `RequestQueue`.
+
+:::
+
+## Limit your crawls with `maxRequestsPerCrawl`
+
+ When you're just testing your code or when your crawler could potentially find millions of links, it's very useful to set a maximum limit of crawled pages. The option is called `maxRequestsPerCrawl`, is available in all crawlers, and you can set it like this:
+
+```ts
+const crawler = new CheerioCrawler({
+    maxRequestsPerCrawl: 20,
+    // ...
+});
+```
+
+This means that no new requests will be started after the 20th request is finished. The actual number of processed requests might be a little higher thanks to parallelization, because the running requests won't be forcefully aborted. It's not even possible in most cases.
+
+
+## Finding new links
+
+There are numerous approaches to finding links to follow when crawling the web. For our purposes, we will be looking for `<a>` elements that contain the `href` attribute because that's what you need in most cases. For example:
+
+```html
+<a href="https://crawlee.dev/docs/introduction">This is a link to Crawlee introduction</a>
+```
+
+Since this is the most common case, it is also the `enqueueLinks` default.
+
+<Tabs groupId="crawling-links">
+<TabItem value="enqueue-links" label="with enqueueLinks" default>
+<CodeBlock language="js" title="src/main.mjs">{FindWithELSource}</CodeBlock>
+</TabItem>
+<TabItem value="plain-js" label="without enqueueLinks">
+<CodeBlock language="js" title="src/main.mjs">{FindWithoutELSource}</CodeBlock>
+</TabItem>
+</Tabs>
+
+If you need to override the default selection of elements in `enqueueLinks`, you can use the `selector` argument.
+
+```ts
+await enqueueLinks({
+    selector: 'div.has-link'
+});
+```
+
+## Filtering links to same domain
+
+Websites typically contain a lot of links that lead away from the original page. This is normal, but when crawling a website, we usually want to crawl that one site and not let our crawler wander away to Google, Facebook and Twitter. Therefore, we need to filter out the off-domain links and only keep the ones that lead to the same domain.
+
+<Tabs groupId="crawling-links">
+    <TabItem value="enqueue-links" label="with enqueueLinks" default>
+        <CodeBlock language="js" title="src/main.mjs">{FilterWithELSource}</CodeBlock>
+    </TabItem>
+    <TabItem value="plain-js" label="without enqueueLinks">
+        <CodeBlock language="js" title="src/main.mjs">{FilterWithoutELSource}</CodeBlock>
+    </TabItem>
+</Tabs>
+
+The default behavior of `enqueueLinks` is to stay on the same hostname. This **does not include subdomains**. To include subdomains in your crawl, use the `strategy` argument.
+
+```ts
+await enqueueLinks({
+    strategy: 'same-domain'
+});
+```
+
+When you run the code, you will see the crawler  log the **title** of the first page, then the **enqueueing** message showing number of URLs, followed by the **title** of the first enqueued page and so on and so on.
+
+## Skipping duplicate URLs
+
+Skipping of duplicate URLs is critical, because visiting the same page multiple times would lead to duplicate results. This is automatically handled by the `RequestQueue` which deduplicates requests using their `uniqueKey`. This `uniqueKey` is automatically generated from the request's URL by lowercasing the URL, lexically ordering query parameters, removing fragments and a few other tweaks that ensure the queue only includes unique URLs.
+
+## Advanced filtering arguments
+
+While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over which URLs should be enqueued. One way we already mentioned above is by using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the <ApiLink to="core/enum/EnqueueStrategy#All">`All`</ApiLink> strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the <ApiLink to="core/enum/EnqueueStrategy#SameDomain">`SameDomain`</ApiLink> strategy.
+
+```ts
+await enqueueLinks({
+    strategy: 'all', // wander the internet
+});
+```
+
+### Filter URLs with patterns
+
+For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter the URLs. Each of those arguments is always an `Array`, but the contents can take on many forms. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
+
+:::caution
+
+If you provide one of those options, the default `same-hostname` strategy will **not** be applied unless explicitly set in the options.
+
+:::
+
+```ts
+await enqueueLinks({
+    globs: ['http?(s)://apify.com/*/*'],
+});
+```
+
+### Transform requests
+
+To have absolute control, we have the <ApiLink to="core/interface/EnqueueLinksOptions/#transformRequestFunction">`transformRequestFunction`</ApiLink>. Just before a new <ApiLink to="core/class/Request">`Request`</ApiLink> is constructed and enqueued to the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>, this function can be used to skip it or modify its contents such as `userData`, `payload` or, most importantly, `uniqueKey`. This is useful when you need to enqueue multiple requests to the queue, and these requests share the same URL, but differ in methods or payloads. Another use case is to dynamically update or create the `userData`.
+
+```ts
+await enqueueLinks({
+    globs: ['http?(s)://apify.com/*/*'],
+    transformRequestFunction(req) {
+        // ignore all links ending with `.pdf`
+        if (req.url.endsWith('.pdf')) return false;
+        return req;
+    },
+});
+```
+
+And that's it! `enqueueLinks()` is just one example of Crawlee's powerful helper functions. They're all designed to make your life easier, so you can focus on getting your data, while leaving the mundane crawling management to the tools.
+
+## Next lesson
+
+In the next lesson you will start your project of scraping a production website and learn some more Crawlee tricks in the process.

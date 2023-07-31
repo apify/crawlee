@@ -1,0 +1,14 @@
+---
+id: http-crawler
+title: HTTP crawler
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import HttpCrawlerSource from '!!raw-loader!./http_crawler.ts';
+
+This example demonstrates how to use <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink> to crawl a list of URLs from an external file, load each URL using a plain HTTP request, and save HTML.
+
+<CodeBlock className="language-js">
+	{HttpCrawlerSource}
+</CodeBlock>
