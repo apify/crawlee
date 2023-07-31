@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.5.0](https://github.com/apify/crawlee/compare/v3.4.2...v3.5.0) (2023-07-31)
+
+
+### Bug Fixes
+
+* cleanup worker stuff from memory storage to fix `vitest` ([#2004](https://github.com/apify/crawlee/issues/2004)) ([d2e098c](https://github.com/apify/crawlee/commit/d2e098cab62c700a5c58fcf43a5bcf9f492d71ec)), closes [#1999](https://github.com/apify/crawlee/issues/1999)
+
+
+
+
+
 ## [3.4.2](https://github.com/apify/crawlee/compare/v3.4.1...v3.4.2) (2023-07-19)
 
 **Note:** Version bump only for package @crawlee/memory-storage

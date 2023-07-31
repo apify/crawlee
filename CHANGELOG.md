@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.5.0](https://github.com/apify/crawlee/compare/v3.4.2...v3.5.0) (2023-07-31)
+
+
+### Bug Fixes
+
+* cleanup worker stuff from memory storage to fix `vitest` ([#2004](https://github.com/apify/crawlee/issues/2004)) ([d2e098c](https://github.com/apify/crawlee/commit/d2e098cab62c700a5c58fcf43a5bcf9f492d71ec)), closes [#1999](https://github.com/apify/crawlee/issues/1999)
+* **core:** add requests from URL list (`requestsFromUrl`) to the queue in batches ([418fbf8](https://github.com/apify/crawlee/commit/418fbf89d8680f8c460e37cfbf3e521f45770eb2)), closes [#1995](https://github.com/apify/crawlee/issues/1995)
+* **core:** support relative links in `enqueueLinks` explicitly provided via `urls` option ([#2014](https://github.com/apify/crawlee/issues/2014)) ([cbd9d08](https://github.com/apify/crawlee/commit/cbd9d08065694b8c86e32c773875cecd41e5fcc9)), closes [#2005](https://github.com/apify/crawlee/issues/2005)
+
+
+### Features
+
+* add `closeCookieModals` context helper for Playwright and Puppeteer ([#1927](https://github.com/apify/crawlee/issues/1927)) ([98d93bb](https://github.com/apify/crawlee/commit/98d93bb6713ec219baa83db2ad2cd1d7621a3339))
+* add support for `sameDomainDelay` ([#2003](https://github.com/apify/crawlee/issues/2003)) ([e796883](https://github.com/apify/crawlee/commit/e79688324790e5d07fc11192769cf051617e96e4)), closes [#1993](https://github.com/apify/crawlee/issues/1993)
+* **basic-crawler:** allow configuring the automatic status message ([#2001](https://github.com/apify/crawlee/issues/2001)) ([3eb4e4c](https://github.com/apify/crawlee/commit/3eb4e4c558b4bc0673fbff75b1db19c46004a1da))
+* **core:** use `RequestQueue.addBatchedRequests()` in `enqueueLinks` helper ([4d61ca9](https://github.com/apify/crawlee/commit/4d61ca934072f8bbb680c842d8b1c9a4452ee73a)), closes [#1995](https://github.com/apify/crawlee/issues/1995)
+* retire session on proxy error ([#2002](https://github.com/apify/crawlee/issues/2002)) ([8c0928b](https://github.com/apify/crawlee/commit/8c0928b24ceabefc454f8114ac30a27023709010)), closes [#1912](https://github.com/apify/crawlee/issues/1912)
+
+
+
+
+
 ## [3.4.2](https://github.com/apify/crawlee/compare/v3.4.1...v3.4.2) (2023-07-19)
 
 
