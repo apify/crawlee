@@ -46,6 +46,7 @@ import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
+import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
 export interface BasicCrawlingContext<
@@ -218,6 +219,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * @default 3
      */
     maxRequestRetries?: number;
+
+    /**
+     * Indicates how much time (in seconds) to wait before crawling another same domain request.
+     * @default 0
+     */
+    sameDomainDelaySecs?: number;
 
     /**
      * Maximum number of session rotations per request.
@@ -434,6 +441,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected requestHandlerTimeoutMillis!: number;
     protected internalTimeoutMillis: number;
     protected maxRequestRetries: number;
+    protected sameDomainDelayMillis: number;
+    protected domainAccessedTime: Map<string, number>;
     protected maxSessionRotations: number;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
@@ -463,6 +472,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // TODO: remove in a future release
         handleFailedRequestFunction: ow.optional.function,
         maxRequestRetries: ow.optional.number,
+        sameDomainDelaySecs: ow.optional.number,
         maxSessionRotations: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
@@ -494,6 +504,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             requestList,
             requestQueue,
             maxRequestRetries = 3,
+            sameDomainDelaySecs = 0,
             maxSessionRotations = 10,
             maxRequestsPerCrawl,
             autoscaledPoolOptions = {},
@@ -533,6 +544,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
+        this.domainAccessedTime = new Map();
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -589,6 +601,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         this.maxRequestRetries = maxRequestRetries;
+        this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
         this.handledRequestsCount = 0;
         this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:`, config });
@@ -965,6 +978,36 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     ) {}
 
     /**
+     * Delays processing of the request based on the `sameDomainDelaySecs` option,
+     * adding it back to the queue after the timeout passes. Returns `true` if the request
+     * should be ignored and will be reclaimed to the queue once ready.
+     */
+    protected delayRequest(request:Request, source: RequestQueue | RequestList) {
+        const domain = getDomain(request.url);
+
+        if (!domain || !request) {
+            return false;
+        }
+
+        const now = Date.now();
+        const lastAccessTime = this.domainAccessedTime.get(domain);
+
+        if (!lastAccessTime || (now - lastAccessTime) >= this.sameDomainDelayMillis) {
+            this.domainAccessedTime.set(domain, now);
+            return false;
+        }
+
+        const delay = lastAccessTime + this.sameDomainDelayMillis - now;
+        this.log.debug(`Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`);
+        setTimeout(async () => {
+            this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
+            await source?.reclaimRequest(request);
+        }, delay);
+
+        return true;
+    }
+
+    /**
      * Wrapper around requestHandler that fetches requests from RequestList/RequestQueue
      * then retries them in a case of an error, etc.
      */
@@ -996,7 +1039,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         tryCancel();
 
-        if (!request) return;
+        if (!request || this.delayRequest(request, source)) {
+            return;
+        }
 
         // Reset loadedUrl so an old one is not carried over to retries.
         request.loadedUrl = undefined;
