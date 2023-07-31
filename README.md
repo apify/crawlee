@@ -16,8 +16,6 @@
     <a href="https://github.com/apify/crawlee/actions/workflows/test-and-release.yml"><img src="https://github.com/apify/crawlee/actions/workflows/test-and-release.yml/badge.svg?branch=master" alt="Build Status" style="max-width: 100%;"></a>
 </p>
 
-> ℹ️ Crawlee is the successor to [Apify SDK](https://sdk.apify.com). 🎉 Fully rewritten in **TypeScript** for a better developer experience, and with even more powerful anti-blocking features. The interface is almost the same as Apify SDK so upgrading is a breeze. Read [the upgrading guide](https://crawlee.dev/docs/upgrading/upgrading-to-v3) to learn about the changes. ℹ️
-
 Crawlee covers your crawling and scraping end-to-end and **helps you build reliable scrapers. Fast.**
 
 Your crawlers will appear human-like and fly under the radar of modern bot protections even with the default configuration. Crawlee gives you the tools to crawl the web for links, scrape data, and store it to disk or cloud while staying configurable to suit your project's needs.
