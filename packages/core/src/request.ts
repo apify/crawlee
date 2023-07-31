@@ -108,9 +108,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
     /** The `true` value indicates that the request will not be automatically retried on error. */
     noRetry: boolean;
 
-    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
-    sessionRotationCount?: number;
-
     /** Indicates the number of times the crawling of the request has been retried on error. */
     retryCount: number;
 
@@ -261,6 +258,20 @@ export class Request<UserData extends Dictionary = Dictionary> {
             (this.userData as Dictionary).__crawlee = { skipNavigation: value };
         } else {
             this.userData.__crawlee.skipNavigation = value;
+        }
+    }
+
+    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
+    get sessionRotationCount(): number {
+        return this.userData.__crawlee?.sessionRotationCount ?? false;
+    }
+
+    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
+    set sessionRotationCount(value: number) {
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { sessionRotationCount: value };
+        } else {
+            this.userData.__crawlee.sessionRotationCount = value;
         }
     }
 
