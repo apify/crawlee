@@ -597,7 +597,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             }
 
             if (this.isProxyError(e as Error)) {
-                throw new SessionError();
+                throw new SessionError(this._getMessageFromError(e as Error) as string);
             } else {
                 throw e;
             }

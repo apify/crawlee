@@ -31,6 +31,6 @@ export class RetryRequestError extends Error {
  */
 export class SessionError extends RetryRequestError {
     constructor(message?: string) {
-        super(message ?? 'Detected a session error, rotating session...');
+        super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
     }
 }
