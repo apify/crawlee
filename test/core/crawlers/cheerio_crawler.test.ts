@@ -743,6 +743,33 @@ describe('CheerioCrawler', () => {
             await expect(crawler.run([serverAddress])).rejects.toThrow();
             expect(numberOfRotations).toBe(5);
         });
+
+        test('proxy rotation logs the original proxy error', async () => {
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:1234'] });
+
+            const proxyError = 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
+
+            const crawler = new CheerioCrawler({
+                proxyConfiguration,
+                maxSessionRotations: 1,
+                requestHandler: async () => {},
+            });
+
+            jest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
+                if (proxyUrl.includes('localhost')) {
+                    throw new Error(proxyError);
+                }
+
+                return null;
+            });
+
+            const spy = jest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
+
+            await expect(crawler.run([serverAddress])).rejects.toThrow();
+
+            expect(spy).toBeCalled();
+            expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
+        });
     });
 
     describe('SessionPool', () => {

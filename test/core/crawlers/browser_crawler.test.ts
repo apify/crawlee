@@ -851,6 +851,41 @@ describe('BrowserCrawler', () => {
             await expect(browserCrawler.run()).rejects.toThrow();
             expect(numberOfRotations).toBe(5);
         });
+
+        test('proxy rotation logs the original proxy error', async () => {
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:1234'] });
+
+            const proxyError = 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
+
+            const crawler = new class extends BrowserCrawlerTest {
+                protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
+                    const { session } = ctx;
+                    const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+
+                    if (proxyInfo.url.includes('localhost')) {
+                        throw new Error(proxyError);
+                    }
+
+                    return null;
+                }
+            }({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                requestList,
+                maxSessionRotations: 1,
+                maxConcurrency: 1,
+                proxyConfiguration,
+                requestHandler: async () => {},
+            });
+
+            const spy = jest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
+
+            await expect(crawler.run([serverAddress])).rejects.toThrow();
+
+            expect(spy).toBeCalled();
+            expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
+        });
     });
 
     describe('Crawling context', () => {
