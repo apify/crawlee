@@ -626,7 +626,7 @@ export abstract class BrowserCrawler<
      */
     protected _throwIfProxyError(error: Error) {
         if (this.isProxyError(error)) {
-            throw new SessionError(error.message);
+            throw new SessionError(this._getMessageFromError(error) as string);
         }
     }
 
