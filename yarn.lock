@@ -1018,7 +1018,7 @@ __metadata:
     playwright: 1.36.2
     portastic: ^1.0.1
     proxy: ^1.0.2
-    puppeteer: 21.0.0
+    puppeteer: 21.0.1
     rimraf: ^5.0.0
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
@@ -10354,9 +10354,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:21.0.0":
-  version: 21.0.0
-  resolution: "puppeteer-core@npm:21.0.0"
+"puppeteer-core@npm:21.0.1":
+  version: 21.0.1
+  resolution: "puppeteer-core@npm:21.0.1"
   dependencies:
     "@puppeteer/browsers": 1.5.0
     chromium-bidi: 0.4.20
@@ -10364,18 +10364,18 @@ __metadata:
     debug: 4.3.4
     devtools-protocol: 0.0.1147663
     ws: 8.13.0
-  checksum: 0f6996fb9df2e67fbebf85422753f0ade375c0274e4d69dd7444f8ebe1a69b735b01a3944cb75e107f7e3716238b64ea2941a859da2e1a5b14427da367d95d98
+  checksum: 56e04c88b7e1f1f2ff42e4f2191160c512971852ffdfc4733fdd8b6de8d7dc5c9b8ebd4b5d9359aadba761c66fa8e4bad02525c5030ab989adec62cd4fd22308
   languageName: node
   linkType: hard
 
-"puppeteer@npm:21.0.0":
-  version: 21.0.0
-  resolution: "puppeteer@npm:21.0.0"
+"puppeteer@npm:21.0.1":
+  version: 21.0.1
+  resolution: "puppeteer@npm:21.0.1"
   dependencies:
     "@puppeteer/browsers": 1.5.0
     cosmiconfig: 8.2.0
-    puppeteer-core: 21.0.0
-  checksum: 7cf4d557576f711841d675b2bb610627259306dbd5bd9f5c233cf00cdc5f5537f9dc8fb36f41ca6d7f5579d63e931919809c7a8e8ed8b7d48e157098055fd8a8
+    puppeteer-core: 21.0.1
+  checksum: 241c937d32b72ecdb40ffe9a14bf912f24ff7070791cd9914064f0a69fc0f7e831177bf3686b65b49b508b2ddcab2de5793e79a2117d4b2b39de9b0f5c29383e
   languageName: node
   linkType: hard
 
