@@ -174,7 +174,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
             loadedUrl?: string;
             retryCount?: number;
             sessionRotationCount?: number;
-            maxRetries?: number;
             errorMessages?: string[];
             handledAt?: string | Date;
         };
@@ -468,6 +467,11 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      * @default false
      */
     skipNavigation?: boolean;
+
+    /**
+     * Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`.
+     */
+    maxRetries?: number;
 
     /** @internal */
     id?: string;
