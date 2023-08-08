@@ -13,6 +13,7 @@ import type {
     RequestQueue,
     RequestQueueV2,
     RouterRoutes,
+    Configuration,
 } from '@crawlee/http';
 import {
     HttpCrawler,
@@ -20,7 +21,6 @@ import {
     Router,
     resolveBaseUrlForEnqueueLinksFiltering,
     tryAbsoluteURL,
-    Configuration,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import * as cheerio from 'cheerio';

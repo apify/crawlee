@@ -1,15 +1,11 @@
+import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
+import { ListDictionary, LruCache } from '@apify/datastructures';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { BatchAddRequestsResult, Dictionary, QueueOperationInfo, RequestQueueClient, RequestQueueInfo, StorageClient } from '@crawlee/types';
-import { ListDictionary, LruCache } from '@apify/datastructures';
-import ow from 'ow';
 import type { DownloadListOfUrlsOptions } from '@crawlee/utils';
 import { downloadListOfUrls, sleep } from '@crawlee/utils';
-import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
-import { log } from '../log';
-import type { ProxyConfiguration } from '../proxy_configuration';
-import { Configuration } from '../configuration';
-import { Request } from '../request';
-import type { InternalSource, RequestOptions, Source } from '../request';
+import ow from 'ow';
+
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import {
@@ -21,6 +17,11 @@ import {
     getRequestId,
     purgeDefaultStorages,
 } from './utils';
+import { Configuration } from '../configuration';
+import { log } from '../log';
+import type { ProxyConfiguration } from '../proxy_configuration';
+import { Request } from '../request';
+import type { InternalSource, RequestOptions, Source } from '../request';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -479,11 +480,7 @@ class RequestQueue {
     ): Promise<boolean> {
         const queryStartedAt = Date.now();
 
-        console.log('_listHeadAndLock', { ensureConsistency, limit, iteration });
-
         const headData = await this.client.listAndLockHead({ limit, lockSecs: PROLONG_LOCK_BY_SECS });
-
-        console.log('_listHeadAndLock', headData);
 
         const queueModifiedAt = headData.queueModifiedAt.getTime();
 
@@ -567,18 +564,13 @@ class RequestQueue {
     }
 
     private async getOrHydrateRequest<T extends Dictionary = Dictionary>(requestId: string): Promise<Request<T> | null> {
-        console.log('getOrHydrateRequest', requestId, new Error().stack);
-
         const cachedEntry = this.requestCache.get(requestId);
 
         if (!cachedEntry) {
-            console.log('getOrHydrateRequest - cache miss', requestId);
-
             // 2.1. Attempt to prolong the request lock to see if we still own the request
             const prolongResult = await this._prolongRequestLock(requestId);
 
             if (!prolongResult) {
-                console.log('getOrHydrateRequest - prolong failed', requestId);
                 return null;
             }
 
@@ -587,7 +579,6 @@ class RequestQueue {
 
             // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
             if (!hydratedRequest) {
-                console.log('getOrHydrateRequest - hydrate failed', requestId);
                 // Remove the lock from the request for now, so that it can be picked up later
                 // This may/may not succeed, but that's fine
                 try {
@@ -617,7 +608,6 @@ class RequestQueue {
                 const prolonged = await this._prolongRequestLock(cachedEntry.id);
 
                 if (!prolonged) {
-                    console.log('getOrHydrateRequest - hydrated prolong failed', requestId);
                     return null;
                 }
 
@@ -631,7 +621,6 @@ class RequestQueue {
         const prolonged = await this._prolongRequestLock(cachedEntry.id);
 
         if (!prolonged) {
-            console.log('getOrHydrateRequest - prolong for new request failed', requestId);
             return null;
         }
 
@@ -642,7 +631,6 @@ class RequestQueue {
 
         // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
         if (!hydratedRequest) {
-            console.log('getOrHydrateRequest - hydrate for new request failed', requestId);
             // Remove the lock from the request for now, so that it can be picked up later
             // This may/may not succeed, but that's fine
             try {
