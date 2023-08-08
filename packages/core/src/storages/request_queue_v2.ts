@@ -1,11 +1,20 @@
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import { cryptoRandomObjectId } from '@apify/utilities';
-import type { BatchAddRequestsResult, Dictionary, QueueOperationInfo, RequestQueueClient, RequestQueueInfo, StorageClient } from '@crawlee/types';
+import type {
+    BatchAddRequestsResult,
+    Dictionary,
+    ProcessedRequest,
+    QueueOperationInfo,
+    RequestQueueClient,
+    RequestQueueInfo,
+    StorageClient,
+} from '@crawlee/types';
 import type { DownloadListOfUrlsOptions } from '@crawlee/utils';
-import { downloadListOfUrls, sleep } from '@crawlee/utils';
+import { chunk, downloadListOfUrls, sleep } from '@crawlee/utils';
 import ow from 'ow';
 
+import type { AddRequestsBatchedOptions, AddRequestsBatchedResult } from './request_queue';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import {
@@ -360,6 +369,96 @@ class RequestQueue {
         }
 
         return results;
+    }
+
+    /**
+     * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
+     * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
+     * the `waitForAllRequestsToBeAdded` promise you get in the response object.
+     *
+     * @param requests The requests to add
+     * @param options Options for the request queue
+     */
+    async addRequestsBatched(requests: (string | Source)[], options: AddRequestsBatchedOptions = {}): Promise<AddRequestsBatchedResult> {
+        ow(requests, ow.array.ofType(ow.any(
+            ow.string,
+            ow.object.partialShape({ url: ow.string, id: ow.undefined }),
+            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
+        )));
+        ow(options, ow.object.exactShape({
+            forefront: ow.optional.boolean,
+            waitForAllRequestsToBeAdded: ow.optional.boolean,
+            batchSize: ow.optional.number,
+            waitBetweenBatchesMillis: ow.optional.number,
+        }));
+
+        const {
+            batchSize = 1000,
+            waitBetweenBatchesMillis = 1000,
+        } = options;
+        const builtRequests: Request[] = [];
+
+        for (const opts of requests) {
+            if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
+                await this.addRequest(opts, { forefront: options.forefront });
+            } else {
+                builtRequests.push(new Request(typeof opts === 'string' ? { url: opts } : opts as RequestOptions));
+            }
+        }
+
+        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Request[]) => {
+            const resultsToReturn: ProcessedRequest[] = [];
+            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront });
+            resultsToReturn.push(...apiResult.processedRequests);
+
+            if (apiResult.unprocessedRequests.length) {
+                await sleep(waitBetweenBatchesMillis);
+
+                resultsToReturn.push(...await attemptToAddToQueueAndAddAnyUnprocessed(
+                    providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
+                ));
+            }
+
+            return resultsToReturn;
+        };
+
+        const initialChunk = builtRequests.splice(0, batchSize);
+
+        // Add initial batch of `batchSize` to process them right away
+        const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
+
+        // If we have no more requests to add, return early
+        if (!builtRequests.length) {
+            return {
+                addedRequests,
+                waitForAllRequestsToBeAdded: Promise.resolve([]),
+            };
+        }
+
+        // eslint-disable-next-line no-async-promise-executor
+        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
+            const chunks = chunk(builtRequests, batchSize);
+            const finalAddedRequests: ProcessedRequest[] = [];
+
+            for (const requestChunk of chunks) {
+                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk));
+
+                await sleep(waitBetweenBatchesMillis);
+            }
+
+            resolve(finalAddedRequests);
+        });
+
+        // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
+        if (options.waitForAllRequestsToBeAdded) {
+            addedRequests.push(...await promise);
+        }
+
+        return {
+            addedRequests,
+            waitForAllRequestsToBeAdded: promise,
+        };
     }
 
     /**
