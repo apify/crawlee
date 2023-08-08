@@ -4,7 +4,6 @@ import { ListDictionary, LruCache } from '@apify/datastructures';
 import ow from 'ow';
 import type { DownloadListOfUrlsOptions } from '@crawlee/utils';
 import { downloadListOfUrls, sleep } from '@crawlee/utils';
-import crypto from 'node:crypto';
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
@@ -13,7 +12,15 @@ import { Request } from '../request';
 import type { InternalSource, RequestOptions, Source } from '../request';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
-import { purgeDefaultStorages } from './utils';
+import {
+    API_PROCESSED_REQUESTS_DELAY_MILLIS,
+    MAX_QUERIES_FOR_CONSISTENCY,
+    QUERY_HEAD_BUFFER,
+    QUERY_HEAD_MIN_LENGTH,
+    STORAGE_CONSISTENCY_DELAY_MILLIS,
+    getRequestId,
+    purgeDefaultStorages,
+} from './utils';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -57,55 +64,7 @@ export interface RequestQueueV2OperationInfo extends QueueOperationInfo {
     uniqueKey: string;
 }
 
-/**
- * Helper function that creates ID from uniqueKey for local emulation of request queue.
- * It's also used for local cache of remote request queue.
- *
- * This function may not exactly match how requestId is created server side.
- * So we never pass requestId created by this to server and use it only for local cache.
- *
- * @internal
- */
-export function getRequestId(uniqueKey: string) {
-    const str = crypto
-        .createHash('sha256')
-        .update(uniqueKey)
-        .digest('base64')
-        .replace(/[+/=]/g, '');
-
-    return str.slice(0, 15);
-}
-
-/**
- * When requesting queue head we always fetch requestsInProgressCount * QUERY_HEAD_BUFFER number of requests.
- * @internal
- */
-export const QUERY_HEAD_MIN_LENGTH = 100;
-
-/**
- * Indicates how long it usually takes for the underlying storage to propagate all writes
- * to be available to subsequent reads.
- * @internal
- */
-export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
-
-/** @internal */
-export const QUERY_HEAD_BUFFER = 3;
-
-/**
- * If queue was modified (request added/updated/deleted) before more than API_PROCESSED_REQUESTS_DELAY_MILLIS
- * then we assume the get head operation to be consistent.
- * @internal
- */
-export const API_PROCESSED_REQUESTS_DELAY_MILLIS = 10_000;
-
-/**
- * How many times we try to get queue head with queueModifiedAt older than API_PROCESSED_REQUESTS_DELAY_MILLIS.
- * @internal
- */
-export const MAX_QUERIES_FOR_CONSISTENCY = 6;
-
-export class RequestQueueV2 {
+class RequestQueue {
     log = log.child({ prefix: 'RequestQueueV2' });
     id: string;
     name?: string;
@@ -113,30 +72,6 @@ export class RequestQueueV2 {
     clientKey = cryptoRandomObjectId();
     client: RequestQueueClient;
     private proxyConfiguration?: ProxyConfiguration;
-
-    /*
-    We need:
-
-    - queue for all requests, using ListDictionary
-        - When we get a request from the head, we:
-            - hydrate it if for some reason it's not hydrated
-            - enqueue the next request to be hydrated, storing it in _hydratingRequestPromise
-            - prolong the lock on said request by another minute
-        - When we add an/many requests, we add them to the queue, and immediately trigger a hydrate for the first one
-
-    - set of all requests in progress, using ids (should be enough)
-    - lru of recently handled requests
-    - lru of all requests that have been added to the queue
-
-    Steps:
-        - list head and lock it all for PROLONG_LOCK_BY_MILLIS (stored in _listHeadAndLockPromise, so subsequent calls will NOT trigger multiples)
-        - add the requests to the queue and requestsCache
-        - hydrate the first one
-
-    Decisions:
-        - do we want to trigger another queue head fetch when we approach the end of the queue?
-        - is this whole consistency thing still needed?
-    */
 
     private queueHeadIds = new ListDictionary<string>();
     private requestCache = new LruCache<RequestLruItem>({ maxLength: MAX_CACHED_REQUESTS });
@@ -544,7 +479,11 @@ export class RequestQueueV2 {
     ): Promise<boolean> {
         const queryStartedAt = Date.now();
 
+        console.log('_listHeadAndLock', { ensureConsistency, limit, iteration });
+
         const headData = await this.client.listAndLockHead({ limit, lockSecs: PROLONG_LOCK_BY_SECS });
+
+        console.log('_listHeadAndLock', headData);
 
         const queueModifiedAt = headData.queueModifiedAt.getTime();
 
@@ -628,13 +567,18 @@ export class RequestQueueV2 {
     }
 
     private async getOrHydrateRequest<T extends Dictionary = Dictionary>(requestId: string): Promise<Request<T> | null> {
+        console.log('getOrHydrateRequest', requestId, new Error().stack);
+
         const cachedEntry = this.requestCache.get(requestId);
 
         if (!cachedEntry) {
+            console.log('getOrHydrateRequest - cache miss', requestId);
+
             // 2.1. Attempt to prolong the request lock to see if we still own the request
             const prolongResult = await this._prolongRequestLock(requestId);
 
             if (!prolongResult) {
+                console.log('getOrHydrateRequest - prolong failed', requestId);
                 return null;
             }
 
@@ -643,6 +587,7 @@ export class RequestQueueV2 {
 
             // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
             if (!hydratedRequest) {
+                console.log('getOrHydrateRequest - hydrate failed', requestId);
                 // Remove the lock from the request for now, so that it can be picked up later
                 // This may/may not succeed, but that's fine
                 try {
@@ -672,6 +617,7 @@ export class RequestQueueV2 {
                 const prolonged = await this._prolongRequestLock(cachedEntry.id);
 
                 if (!prolonged) {
+                    console.log('getOrHydrateRequest - hydrated prolong failed', requestId);
                     return null;
                 }
 
@@ -685,6 +631,7 @@ export class RequestQueueV2 {
         const prolonged = await this._prolongRequestLock(cachedEntry.id);
 
         if (!prolonged) {
+            console.log('getOrHydrateRequest - prolong for new request failed', requestId);
             return null;
         }
 
@@ -695,6 +642,7 @@ export class RequestQueueV2 {
 
         // Queue head index is ahead of the main table and the request is not present in the main table yet (i.e. getRequest() returned null).
         if (!hydratedRequest) {
+            console.log('getOrHydrateRequest - hydrate for new request failed', requestId);
             // Remove the lock from the request for now, so that it can be picked up later
             // This may/may not succeed, but that's fine
             try {
@@ -715,7 +663,7 @@ export class RequestQueueV2 {
             return res.lockExpiresAt;
         } catch (err) {
             // Most likely we do not own the lock anymore
-            this.log.debug(`Failed to prolong lock for cached request ${requestId}, possibly lost the lock`, {
+            this.log.warning(`Failed to prolong lock for cached request ${requestId}, possibly lost the lock`, {
                 error: err,
                 requestId,
             });
@@ -853,7 +801,7 @@ export class RequestQueueV2 {
      */
     async drop(): Promise<void> {
         await this.client.delete();
-        const manager = StorageManager.getManager(RequestQueueV2, this.config);
+        const manager = StorageManager.getManager(RequestQueue, this.config);
         manager.closeStorage(this);
     }
 
@@ -916,7 +864,7 @@ export class RequestQueueV2 {
      *   the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
-    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestQueueV2> {
+    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestQueue> {
         ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
@@ -936,6 +884,8 @@ export class RequestQueueV2 {
         return queue;
     }
 }
+
+export { RequestQueue as RequestQueueV2 };
 
 export interface RequestQueueV2Options {
     id: string;

@@ -10,6 +10,7 @@ import type {
     ProxyInfo,
     RequestHandler,
     RequestQueue,
+    RequestQueueV2,
     Session,
 } from '@crawlee/basic';
 import {
@@ -712,7 +713,7 @@ export abstract class BrowserCrawler<
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     page: CommonPage;
-    requestQueue: RequestQueue;
+    requestQueue: RequestQueue | RequestQueueV2;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

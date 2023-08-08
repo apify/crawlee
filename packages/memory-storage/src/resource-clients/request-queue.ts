@@ -240,11 +240,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             throw new Error(`Request with ID ${id} not found in queue ${queue.name ?? queue.id}`);
         }
 
-        const currentTimestamp = Date.now();
-        const canProlong = (r: InternalRequest) => !r.orderNo || r.orderNo > currentTimestamp || r.orderNo < -currentTimestamp;
+        const canProlong = (r: InternalRequest) => !!r.orderNo;
 
         if (!canProlong(internalRequest)) {
-            throw new Error(`Request with ID ${id} is not locked in queue ${queue.name ?? queue.id}`);
+            throw new Error(`Request with ID ${id} has already been handled in queue ${queue.name ?? queue.id}`);
         }
 
         const unlockTimestamp = Math.abs(internalRequest.orderNo!) + lockSecs * 1000;

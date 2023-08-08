@@ -1,0 +1,28 @@
+{
+    "name": "test-cheerio-request-queue-v2",
+    "version": "0.0.1",
+    "description": "Cheerio Crawler Test - Request Queue V2",
+    "dependencies": {
+        "apify": "next",
+        "@apify/storage-local": "^2.1.3",
+        "@crawlee/basic": "file:./packages/basic-crawler",
+        "@crawlee/browser-pool": "file:./packages/browser-pool",
+        "@crawlee/http": "file:./packages/http-crawler",
+        "@crawlee/cheerio": "file:./packages/cheerio-crawler",
+        "@crawlee/core": "file:./packages/core",
+        "@crawlee/memory-storage": "file:./packages/memory-storage",
+        "@crawlee/types": "file:./packages/types",
+        "@crawlee/utils": "file:./packages/utils"
+    },
+    "overrides": {
+        "apify": {
+            "@crawlee/core": "file:./packages/core",
+            "@crawlee/utils": "file:./packages/utils"
+        }
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}

@@ -23,24 +23,24 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
-    mergeCookies,
     AutoscaledPool,
     Configuration,
-    enqueueLinks,
     EventType,
     KeyValueStore,
-    CriticalError,
     NonRetryableError,
     RequestQueue,
+    RequestQueueV2,
     RequestState,
+    RetryRequestError,
     Router,
     SessionPool,
     Statistics,
+    enqueueLinks,
+    mergeCookies,
     purgeDefaultStorages,
     validators,
-    RetryRequestError,
     SessionError,
-    Dataset,
+    CriticalError,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
@@ -165,7 +165,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * > Alternatively, `requests` parameter of {@apilink BasicCrawler.run|`crawler.run()`} could be used to enqueue the initial requests -
      * it is a shortcut for running `crawler.addRequests()` before the `crawler.run()`.
      */
-    requestQueue?: RequestQueue;
+    requestQueue?: RequestQueue | RequestQueueV2;
 
     /**
      * Timeout in which the function passed as {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`} needs to finish, in seconds.
@@ -325,6 +325,26 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
 
     /** @internal */
     log?: Log;
+
+    /**
+     * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
+     * WARNING: these options are not guaranteed to be stable and may change or be removed at any time.
+     */
+    experiments?: CrawlerExperiments;
+}
+
+/**
+ * A set of options that you can toggle to enable experimental features in Crawlee.
+ *
+ * NOTE: These options will not respect versioning and may be removed or changed at any time. Use at your own risk.
+ * If you do use these and encounter issues, please report them to us.
+ */
+export interface CrawlerExperiments {
+    /**
+     * Enables the use of the new RequestQueue API, which allows multiple clients to use the same queue,
+     * by locking the requests they are processing for a period of time.
+     */
+    useRequestQueueV2?: boolean;
 }
 
 /**
@@ -410,7 +430,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * A reference to the underlying {@apilink RequestQueue} class that manages the crawler's {@apilink Request|requests}.
      * Only available if used by the crawler.
      */
-    requestQueue?: RequestQueue;
+    requestQueue?: RequestQueue | RequestQueueV2;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -456,6 +476,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
+    private experiments: CrawlerExperiments;
+    private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
+
     protected static optionsShape = {
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
@@ -493,6 +516,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // internal
         log: ow.optional.object,
+        experiments: ow.optional.object,
     };
 
     /**
@@ -522,6 +546,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             // internal
             log = defaultLog.child({ prefix: this.constructor.name }),
+            experiments = {},
 
             // Old and new request handler methods
             handleRequestFunction,
@@ -546,6 +571,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
+        this.experiments = experiments;
+
+        if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.useRequestQueueV2) {
+            throw new Error([
+                'You provided the new RequestQueue v2 class in your crawler, without also enabling the experiment!',
+                "If you're sure you want to test out the new, experimental RequestQueue v2, please provide `experiments: { useRequestQueueV2: true }` "
+                + 'in your crawler options, and try again.',
+            ].join('\n'));
+        }
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -596,6 +630,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const tryEnv = (val?: string) => (val == null ? null : +val);
         // allow at least 5min for internal timeouts
         this.internalTimeoutMillis = tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
+
         // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
         if (this.requestQueue) {
             this.requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
@@ -769,7 +804,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // ignored - as a failed requests is still handled.
         if (this.running === false && this.requestQueue?.name === 'default' && purgeRequestQueue) {
             await this.requestQueue.drop();
-            this.requestQueue = await RequestQueue.open(null, { config: this.config });
+            this.requestQueue = await this._getRequestQueue();
         }
 
         this.running = true;
@@ -851,7 +886,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     async getRequestQueue() {
-        this.requestQueue ??= await RequestQueue.open(null, { config: this.config });
+        this.requestQueue ??= await this._getRequestQueue();
 
         return this.requestQueue!;
     }
@@ -1006,7 +1041,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: RequestQueue | RequestList) {
+    protected delayRequest(request: Request, source: RequestQueue | RequestList | RequestQueueV2) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1230,7 +1265,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: RequestList | RequestQueue,
+        source: RequestList | RequestQueue | RequestQueueV2,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
@@ -1443,6 +1478,22 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         return request.headers?.Cookie || request.headers?.cookie || '';
+    }
+
+    private _getRequestQueue() {
+        if (this.experiments.useRequestQueueV2) {
+            if (!this._experimentWarnings.useRequestQueueV2) {
+                this.log.warning([
+                    'RequestQueue v2 is an experimental feature, and may have issues when used in production.',
+                    'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
+                ].join('\n'));
+                this._experimentWarnings.useRequestQueueV2 = true;
+            }
+
+            return RequestQueueV2.open(null, { config: this.config });
+        }
+
+        return RequestQueue.open(null, { config: this.config });
     }
 }
 

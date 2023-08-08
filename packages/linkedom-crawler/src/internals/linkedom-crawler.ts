@@ -11,6 +11,7 @@ import type {
     RequestQueue,
     GetUserDataFromRequest,
     RouterRoutes,
+    RequestQueueV2,
 } from '@crawlee/http';
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -169,7 +170,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: LinkeDOMCrawlerEnqueueLinksOptions;
     window: Window | null;
-    requestQueue: RequestQueue;
+    requestQueue: RequestQueue | RequestQueueV2;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
