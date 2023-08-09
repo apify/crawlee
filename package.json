@@ -102,7 +102,7 @@
     },
     "packageManager": "yarn@3.6.1",
     "volta": {
-        "node": "18.17.0",
+        "node": "18.17.1",
         "yarn": "3.6.1"
     }
 }
