@@ -790,6 +790,7 @@ describe('BrowserCrawler', () => {
         test('proxy rotation on error works as expected', async () => {
             const goodProxyUrl = 'http://good.proxy';
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl] });
+            const requestHandler = jest.fn();
 
             const browserCrawler = new class extends BrowserCrawlerTest {
                 protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
@@ -811,10 +812,11 @@ describe('BrowserCrawler', () => {
                 maxConcurrency: 1,
                 useSessionPool: true,
                 proxyConfiguration,
-                requestHandler: async () => {},
+                requestHandler,
             });
 
             await expect(browserCrawler.run()).resolves.not.toThrow();
+            expect(requestHandler).toHaveBeenCalledTimes(requestList.length());
         });
 
         test('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
@@ -884,7 +886,7 @@ describe('BrowserCrawler', () => {
 
             const spy = jest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
 
-            await expect(crawler.run([serverAddress])).rejects.toThrow();
+            await crawler.run([serverAddress]);
 
             expect(spy).toBeCalled();
             expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));

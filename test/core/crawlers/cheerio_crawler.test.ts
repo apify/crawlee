@@ -698,24 +698,28 @@ describe('CheerioCrawler', () => {
         test('proxy rotation on error works as expected', async () => {
             const goodProxyUrl = 'http://good.proxy';
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl] });
+            const check = jest.fn();
 
             const crawler = new class extends CheerioCrawler {
-                protected override async _requestFunction({ proxyUrl }: any): Promise<any> {
-                    if (proxyUrl !== goodProxyUrl) {
-                        throw new Error('Proxy responded with 400 - Bad request');
+                protected override async _requestFunction(...args: any[]): Promise<any> {
+                    check(...args);
+
+                    if (args[0].proxyUrl === goodProxyUrl) {
+                        return null;
                     }
 
-                    return null;
+                    throw new Error('Proxy responded with 400 - Bad request');
                 }
             }({
-                maxRequestRetries: 0,
+                maxSessionRotations: 2,
                 maxConcurrency: 1,
                 useSessionPool: true,
                 proxyConfiguration,
-                requestHandler: async () => {},
+                requestHandler: () => {},
             });
 
             await expect(crawler.run([serverAddress])).resolves.not.toThrow();
+            expect(check).toBeCalledWith(expect.objectContaining({ proxyUrl: goodProxyUrl }));
         });
 
         test('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
@@ -768,7 +772,7 @@ describe('CheerioCrawler', () => {
 
             const spy = jest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
 
-            await expect(crawler.run([serverAddress])).rejects.toThrow();
+            await crawler.run([serverAddress]);
 
             expect(spy).toBeCalled();
             expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
