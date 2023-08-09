@@ -1188,10 +1188,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private async _rotateSession(crawlingContext: Context) {
         const { request } = crawlingContext;
 
-        if ((request.sessionRotationCount ?? 0) >= this.maxSessionRotations) {
-            throw new Error(`Request failed because of proxy-related errors ${request.sessionRotationCount} times. `
-                + 'This might be caused by a misconfigured proxy or an invalid session pool configuration.');
-        }
         request.sessionRotationCount ??= 0;
         request.sessionRotationCount++;
         crawlingContext.session?.retire();
@@ -1302,14 +1298,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
+        // Request should never be retried, or the error encountered makes it not able to be retried, or the session rotation limit has been reached
+        if (request.noRetry
+            || (error instanceof NonRetryableError)
+            || (error instanceof SessionError && (this.maxSessionRotations <= (request.sessionRotationCount ?? 0)))
+        ) {
+            return false;
+        }
+
         // User requested retry (we ignore retry count here as its explicitly told by the user to retry)
         if (error instanceof RetryRequestError) {
             return true;
-        }
-
-        // Request should never be retried, or the error encountered makes it not able to be retried
-        if (request.noRetry || (error instanceof NonRetryableError)) {
-            return false;
         }
 
         // Ensure there are more retries available for the request

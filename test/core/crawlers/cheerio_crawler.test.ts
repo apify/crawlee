@@ -718,17 +718,19 @@ describe('CheerioCrawler', () => {
             await expect(crawler.run([serverAddress])).resolves.not.toThrow();
         });
 
-        test('proxy rotation on error stops after maxSessionRotations limit', async () => {
+        test('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234'] });
 
             /**
              * The first increment is the base case when the proxy is retrieved for the first time.
              */
             let numberOfRotations = -1;
+            const failedRequestHandler = jest.fn();
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 5,
                 requestHandler: async () => {},
+                failedRequestHandler,
             });
 
             jest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
@@ -740,7 +742,8 @@ describe('CheerioCrawler', () => {
                 return null;
             });
 
-            await expect(crawler.run([serverAddress])).rejects.toThrow();
+            await crawler.run([serverAddress]);
+            expect(failedRequestHandler).toBeCalledTimes(1);
             expect(numberOfRotations).toBe(5);
         });
 
