@@ -336,7 +336,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
 /**
  * A set of options that you can toggle to enable experimental features in Crawlee.
  *
- * NOTE: These options will not respect versioning and may be removed or changed at any time. Use at your own risk.
+ * NOTE: These options will not respect semantic versioning and may be removed or changed at any time. Use at your own risk.
  * If you do use these and encounter issues, please report them to us.
  */
 export interface CrawlerExperiments {
@@ -575,8 +575,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.useRequestQueueV2) {
             throw new Error([
-                'You provided the new RequestQueue v2 class in your crawler, without also enabling the experiment!',
-                "If you're sure you want to test out the new, experimental RequestQueue v2, please provide `experiments: { useRequestQueueV2: true }` "
+                'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
+                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { useRequestQueueV2: true }` "
                 + 'in your crawler options, and try again.',
             ].join('\n'));
         }
@@ -1484,7 +1484,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.experiments.useRequestQueueV2) {
             if (!this._experimentWarnings.useRequestQueueV2) {
                 this.log.warning([
-                    'RequestQueue v2 is an experimental feature, and may have issues when used in production.',
+                    'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
                     'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
                 ].join('\n'));
                 this._experimentWarnings.useRequestQueueV2 = true;
