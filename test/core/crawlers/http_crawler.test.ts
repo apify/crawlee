@@ -47,6 +47,11 @@ router.set('/echo', (req, res) => {
     req.pipe(res);
 });
 
+router.set('/500Error', (req, res) => {
+    res.statusCode = 500;
+    res.end();
+});
+
 let server: http.Server;
 let url: string;
 
@@ -272,4 +277,42 @@ test('POST with undefined (empty) payload', async () => {
     ]);
 
     expect(results).toStrictEqual(['']);
+});
+
+test('should ignore non http error status codes set by user', async () => {
+    const failed: any[] = [];
+
+    const crawler = new HttpCrawler({
+        minConcurrency: 2,
+        maxConcurrency: 2,
+        ignoreHttpErrorStatusCodes: [500],
+        requestHandler: () => {},
+        failedRequestHandler: ({ request }) => {
+            failed.push(request);
+        },
+    });
+
+    await crawler.run([`${url}/500Error`]);
+
+    expect(crawler.autoscaledPool.minConcurrency).toBe(2);
+    expect(failed).toHaveLength(0);
+});
+
+test('should throw and error on http error status codes set by user', async () => {
+    const failed: any[] = [];
+
+    const crawler = new HttpCrawler({
+        minConcurrency: 2,
+        maxConcurrency: 2,
+        additionalHttpErrorStatusCodes: [200],
+        requestHandler: () => {},
+        failedRequestHandler: ({ request }) => {
+            failed.push(request);
+        },
+    });
+
+    await crawler.run([`${url}/hello.html`]);
+
+    expect(crawler.autoscaledPool.minConcurrency).toBe(2);
+    expect(failed).toHaveLength(1);
 });
