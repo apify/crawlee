@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.1](https://github.com/apify/crawlee/compare/v3.5.0...v3.5.1) (2023-08-16)
+
+
+### Bug Fixes
+
+* add `Request.maxRetries` to the `RequestOptions` interface ([#2024](https://github.com/apify/crawlee/issues/2024)) ([6433821](https://github.com/apify/crawlee/commit/6433821a59538b1f1cb4f29addd83a259ddda74f))
+* log original error message on session rotation ([#2022](https://github.com/apify/crawlee/issues/2022)) ([8a11ffb](https://github.com/apify/crawlee/commit/8a11ffbdaef6b2fe8603aac570c3038f84c2f203))
+
+
+### Features
+
+* exceeding maxSessionRotations calls failedRequestHandler ([#2029](https://github.com/apify/crawlee/issues/2029)) ([b1cb108](https://github.com/apify/crawlee/commit/b1cb108882ab28d956adfc3d77ba9813507823f6)), closes [#2028](https://github.com/apify/crawlee/issues/2028)
+
+
+
+
+
 # [3.5.0](https://github.com/apify/crawlee/compare/v3.4.2...v3.5.0) (2023-07-31)
 
 
