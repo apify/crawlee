@@ -691,7 +691,7 @@ describe('RequestQueue remote', () => {
         const r2 = new Request({
             url,
             method,
-            userData: {},
+            userData: {} as any,
         });
         const r3 = new Request({
             url,
