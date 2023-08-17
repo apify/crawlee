@@ -90,7 +90,7 @@
         "lerna": "^7.0.0",
         "lint-staged": "^13.0.3",
         "node-gyp": "^9.1.0",
-        "playwright": "1.37.0",
+        "playwright": "1.37.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
         "puppeteer": "21.0.3",
@@ -100,9 +100,9 @@
         "turbo": "1.10.12",
         "typescript": "^5.0.0"
     },
-    "packageManager": "yarn@3.6.1",
+    "packageManager": "yarn@3.6.2",
     "volta": {
         "node": "18.17.1",
-        "yarn": "3.6.1"
+        "yarn": "3.6.2"
     }
 }
