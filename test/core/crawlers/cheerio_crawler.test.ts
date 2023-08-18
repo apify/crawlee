@@ -507,6 +507,54 @@ describe('CheerioCrawler', () => {
         });
     });
 
+    test('should ignore non http error status codes set by user', async () => {
+        const requestList = await getRequestListForMock({
+            headers: {
+                'content-type': 'text/plain',
+            },
+            statusCode: 500,
+        });
+
+        const failed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            ignoreHttpErrorStatusCodes: [500],
+            requestHandler: () => {},
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run();
+
+        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(failed).toHaveLength(0);
+    });
+
+    test('should throw and error on http error status codes set by user', async () => {
+        const requestList = await getRequestListForMirror();
+        const failed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestList,
+            minConcurrency: 2,
+            maxConcurrency: 2,
+            additionalHttpErrorStatusCodes: [200],
+            requestHandler: () => {},
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run();
+
+        expect(cheerioCrawler.autoscaledPool.minConcurrency).toBe(2);
+        expect(failed).toHaveLength(4);
+    });
+
     test('should work with all defaults content types', async () => {
         let handledRequests = 0;
         const contentTypes = ['text/html', 'application/xhtml+xml', 'text/xml', 'application/xml', 'application/json'];

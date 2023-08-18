@@ -154,6 +154,18 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
      * It passes the "Cookie" header to the request with the session cookies.
      */
     persistCookiesPerSession?: boolean;
+
+    /**
+     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
+     * By default, status codes >= 500 trigger errors.
+     */
+    ignoreHttpErrorStatusCodes?: number[];
+
+    /**
+     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
+     * By default, status codes >= 500 trigger errors.
+     */
+    additionalHttpErrorStatusCodes?: number[];
 }
 
 /**
@@ -289,6 +301,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
     protected ignoreSslErrors: boolean;
     protected suggestResponseEncoding?: string;
     protected forceResponseEncoding?: string;
+    protected additionalHttpErrorStatusCodes: Set<number>;
+    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected readonly supportedMimeTypes: Set<string>;
 
     protected static override optionsShape = {
@@ -302,6 +316,9 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         forceResponseEncoding: ow.optional.string,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         persistCookiesPerSession: ow.optional.boolean,
+
+        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
 
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
@@ -327,6 +344,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             persistCookiesPerSession,
             preNavigationHooks = [],
             postNavigationHooks = [],
+            additionalHttpErrorStatusCodes = [],
+            ignoreHttpErrorStatusCodes = [],
 
             // Ignored
             handleRequestFunction,
@@ -375,6 +394,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
+        this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
+        this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
         this.proxyConfiguration = proxyConfiguration;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = [
@@ -617,7 +638,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             this.stats.registerStatusCode(statusCode!);
         }
 
-        if (statusCode! >= 500) {
+        const excludeError = this.ignoreHttpErrorStatusCodes.has(statusCode!);
+        const includeError = this.additionalHttpErrorStatusCodes.has(statusCode!);
+
+        if ((statusCode! >= 500 && !excludeError) || includeError) {
             const body = await readStreamToString(response, encoding);
 
             // Errors are often sent as JSON, so attempt to parse them,
@@ -627,6 +651,10 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 let { message } = errorResponse;
                 if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
                 throw new Error(`${statusCode} - ${message}`);
+            }
+
+            if (includeError) {
+                throw new Error(`${statusCode} - Error status code was set by user.`);
             }
 
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
