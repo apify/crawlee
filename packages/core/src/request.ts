@@ -132,7 +132,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
-    constructor(options: RequestOptions) {
+    constructor(options: RequestOptions<UserData>) {
         ow(options, 'RequestOptions', ow.object);
         ow(options.url, 'RequestOptions.url', ow.string);
         // 'ow' validation is slow, because it checks all predicates
