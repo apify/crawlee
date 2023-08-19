@@ -8,10 +8,9 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RequestQueue,
-    RequestQueueV2,
     RouterRoutes,
     Configuration,
+    RequestProvider,
 } from '@crawlee/http';
 import {
     HttpCrawler,
@@ -210,7 +209,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
-    requestQueue: RequestQueue | RequestQueueV2;
+    requestQueue: RequestProvider;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

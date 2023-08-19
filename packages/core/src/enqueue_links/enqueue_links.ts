@@ -14,7 +14,7 @@ import {
     createRequests,
 } from './shared';
 import type { RequestOptions } from '../request';
-import type { RequestQueueV2, RequestQueue, RequestQueueOperationOptions } from '../storages';
+import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -24,7 +24,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     urls?: string[];
 
     /** A request queue to which the URLs will be enqueued. */
-    requestQueue?: RequestQueue | RequestQueueV2;
+    requestQueue?: RequestProvider;
 
     /** A CSS selector matching links to be enqueued. */
     selector?: string;

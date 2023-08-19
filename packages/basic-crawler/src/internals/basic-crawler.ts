@@ -15,6 +15,7 @@ import type {
     Request,
     RequestList,
     RequestOptions,
+    RequestProvider,
     RouterHandler,
     RouterRoutes,
     Session,
@@ -165,7 +166,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * > Alternatively, `requests` parameter of {@apilink BasicCrawler.run|`crawler.run()`} could be used to enqueue the initial requests -
      * it is a shortcut for running `crawler.addRequests()` before the `crawler.run()`.
      */
-    requestQueue?: RequestQueue | RequestQueueV2;
+    requestQueue?: RequestProvider;
 
     /**
      * Timeout in which the function passed as {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`} needs to finish, in seconds.
@@ -430,7 +431,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * A reference to the underlying {@apilink RequestQueue} class that manages the crawler's {@apilink Request|requests}.
      * Only available if used by the crawler.
      */
-    requestQueue?: RequestQueue | RequestQueueV2;
+    requestQueue?: RequestProvider;
 
     /**
      * A reference to the underlying {@apilink SessionPool} class that manages the crawler's {@apilink Session|sessions}.
@@ -1041,7 +1042,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: RequestQueue | RequestList | RequestQueueV2) {
+    protected delayRequest(request:Request, source: RequestList | RequestProvider) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1265,7 +1266,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: RequestList | RequestQueue | RequestQueueV2,
+        source: RequestList | RequestProvider,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);

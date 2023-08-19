@@ -86,6 +86,7 @@ export class StorageManager<T extends IStorage = IStorage> {
                 name: storageObject.name,
                 client,
             });
+
             this._addStorageToCache(storage);
         }
 

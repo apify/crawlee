@@ -10,10 +10,9 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RequestQueue,
-    RequestQueueV2,
     RouterRoutes,
     Configuration,
+    RequestProvider,
 } from '@crawlee/http';
 import {
     HttpCrawler,
@@ -294,7 +293,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
-    requestQueue: RequestQueue | RequestQueueV2;
+    requestQueue: RequestProvider;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }
