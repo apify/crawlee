@@ -270,4 +270,19 @@ export class RequestQueue extends RequestProvider {
 
         return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
     }
+
+    // TODO: This needs to be adapted in a way that it is agnostic to the request queue api we use.
+    // For the sake of having something, we'll just list the head normally and check if it's empty.
+    override async isFinished(): Promise<boolean> {
+        if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
+            const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
+            this.log.warning(message, { inProgress: [...this.requestIdsInProgress] });
+            this._reset();
+        }
+
+        if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
+
+        const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
+        return isHeadConsistent && this.queueHeadIds.length() === 0 && this.inProgressCount() === 0;
+    }
 }

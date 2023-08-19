@@ -460,9 +460,6 @@ export abstract class RequestProvider implements IStorage {
 
         if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
 
-        // TODO: This needs to be adapted in a way that it is agnostic to the request queue api we use.
-        // For the sake of having something, we'll just list the head normally and check if it's empty.
-
         const currentHead = await this.client.listHead({ limit: 2 });
         return currentHead.items.length === 0 && this.inProgressCount() === 0;
     }

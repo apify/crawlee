@@ -1,3 +1,5 @@
+/* eslint-disable dot-notation */
+
 import {
     QUERY_HEAD_MIN_LENGTH,
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
@@ -56,8 +58,8 @@ describe('RequestQueue remote', () => {
         expect(queueOperationInfo1).toMatchObject({
             ...firstResolveValue,
         });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(mockAddRequest).toBeCalledTimes(1);
         expect(mockAddRequest).toBeCalledWith(requestA, { forefront: false });
 
@@ -68,8 +70,8 @@ describe('RequestQueue remote', () => {
             wasAlreadyHandled: false,
             requestId: 'a',
         });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
 
         const requestB = new Request({ url: 'http://example.com/b' });
         const secondResolveValue = {
@@ -82,8 +84,8 @@ describe('RequestQueue remote', () => {
         await queue.addRequest(requestB, { forefront: true });
         expect(mockAddRequest).toBeCalledTimes(2);
         expect(mockAddRequest).toHaveBeenLastCalledWith(requestB, { forefront: true });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(2);
+
+        expect(queue['queueHeadIds'].length()).toBe(2);
         expect(queue.inProgressCount()).toBe(0);
 
         // Forefronted request was added to the queue.
@@ -94,8 +96,8 @@ describe('RequestQueue remote', () => {
         expect(mockGetRequest).toBeCalledTimes(1);
         expect(mockGetRequest).toHaveBeenLastCalledWith('b');
         expect(requestBFromQueue).toEqual({ ...requestB, id: 'b' });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
 
         // Test validations
@@ -130,12 +132,12 @@ describe('RequestQueue remote', () => {
         await queue.reclaimRequest(requestBFromQueue, { forefront: true });
         expect(mockUpdateRequest).toBeCalledTimes(1);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue, { forefront: true });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
         await sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(2);
+
+        expect(queue['queueHeadIds'].length()).toBe(2);
         expect(queue.inProgressCount()).toBe(0);
 
         // Fetch again.
@@ -145,8 +147,8 @@ describe('RequestQueue remote', () => {
         expect(mockGetRequest).toBeCalledTimes(3);
         expect(mockGetRequest).toHaveBeenLastCalledWith('b');
         expect(requestBFromQueue2).toEqual(requestBFromQueue);
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
 
         // Mark handled.
@@ -162,13 +164,13 @@ describe('RequestQueue remote', () => {
         await queue.markRequestHandled(requestBFromQueue);
         expect(mockUpdateRequest).toBeCalledTimes(2);
         expect(mockUpdateRequest).toHaveBeenLastCalledWith(requestBFromQueue);
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(queue.inProgressCount()).toBe(0);
 
         // Emulate there are no cached items in queue
-        // @ts-expect-error Accessing private property
-        queue.queueHeadDict.clear();
+
+        queue['queueHeadIds'].clear();
 
         // Query queue head.
         const mockListHead = jest.spyOn(queue.client, 'listHead');
@@ -186,8 +188,8 @@ describe('RequestQueue remote', () => {
         expect(mockListHead).toBeCalledTimes(1);
         expect(mockListHead).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
         expect(requestAFromQueue).toEqual({ ...requestA, id: 'a' });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(queue.inProgressCount()).toBe(1);
 
         // Drop queue.
@@ -226,8 +228,8 @@ describe('RequestQueue remote', () => {
         });
 
         // Ensure the client method was actually called, and added
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(mockAddRequests).toBeCalledTimes(1);
         expect(mockAddRequests).toBeCalledWith([requestA], { forefront: false });
 
@@ -238,8 +240,8 @@ describe('RequestQueue remote', () => {
             ...firstRequestAdded,
             wasAlreadyPresent: true,
         });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
 
         // Adding more requests, forefront
         const requestB = new Request({ url: 'http://example.com/b' });
@@ -277,8 +279,8 @@ describe('RequestQueue remote', () => {
             wasAlreadyHandled: false,
             wasAlreadyPresent: false,
         });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(3);
+
+        expect(queue['queueHeadIds'].length()).toBe(3);
         expect(mockAddRequests).toHaveBeenCalled();
         expect(mockAddRequests).toBeCalledWith([requestB, requestC], { forefront: true });
     });
@@ -389,8 +391,8 @@ describe('RequestQueue remote', () => {
         await queue.addRequest(requestA, { forefront: true });
         expect(addRequestMock).toBeCalledTimes(1);
         expect(addRequestMock).toHaveBeenLastCalledWith(requestA, { forefront: true });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
 
         // Try to get requestA which is not available yet.
         const getRequestMock = jest.spyOn(queue.client, 'getRequest');
@@ -526,8 +528,7 @@ describe('RequestQueue remote', () => {
         await queue.addRequest(requestA, { forefront: true });
         await queue.addRequest(requestB, { forefront: true });
 
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(2);
+        expect(queue['queueHeadIds'].length()).toBe(2);
         expect(queue.inProgressCount()).toBe(0);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(0);
@@ -556,8 +557,7 @@ describe('RequestQueue remote', () => {
         expect(getRequestMock).toBeCalledTimes(2);
         expect(getRequestMock).toHaveBeenLastCalledWith('a');
 
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(0);
+        expect(queue['queueHeadIds'].length()).toBe(0);
         expect(queue.inProgressCount()).toBe(2);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(0);
@@ -579,14 +579,14 @@ describe('RequestQueue remote', () => {
         await queue.reclaimRequest(requestAWithId, { forefront: true });
         expect(updateRequestMock).toBeCalledTimes(2);
         expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId, { forefront: true });
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(0);
+
+        expect(queue['queueHeadIds'].length()).toBe(0);
         expect(queue.inProgressCount()).toBe(1);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(1);
         await sleep(STORAGE_CONSISTENCY_DELAY_MILLIS + 10);
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(1);
+
+        expect(queue['queueHeadIds'].length()).toBe(1);
         expect(queue.inProgressCount()).toBe(0);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(1);
@@ -605,8 +605,7 @@ describe('RequestQueue remote', () => {
         expect(getRequestMock).toBeCalledTimes(3);
         expect(getRequestMock).toHaveBeenLastCalledWith('a');
 
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(0);
+        expect(queue['queueHeadIds'].length()).toBe(0);
         expect(queue.inProgressCount()).toBe(1);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(1);
@@ -622,8 +621,7 @@ describe('RequestQueue remote', () => {
         expect(updateRequestMock).toBeCalledTimes(3);
         expect(updateRequestMock).toHaveBeenLastCalledWith(requestAWithId);
 
-        // @ts-expect-error Accessing private property
-        expect(queue.queueHeadDict.length()).toBe(0);
+        expect(queue['queueHeadIds'].length()).toBe(0);
         expect(queue.inProgressCount()).toBe(0);
         expect(queue.assumedTotalCount).toBe(2);
         expect(queue.assumedHandledCount).toBe(2);
