@@ -46,6 +46,7 @@
         "release:next": "yarn build && yarn publish:next",
         "publish:prod": "lerna publish from-package --contents dist --force-publish",
         "release:prod": "yarn build && yarn publish:prod",
+        "release:pin-versions": "turbo run copy -- -- --pin-versions",
         "lint": "eslint \"packages/**/*.ts\" \"test/**/*.ts\"",
         "lint:fix": "eslint \"packages/**/*.ts\" \"test/**/*.ts\" --fix"
     },

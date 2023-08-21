@@ -137,8 +137,9 @@ jobs:
                     GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
-            -   name: Update lockfile
+            -   name: Pin versions in internal dependencies and update lockfile
                 run: |
+                    yarn release:tilde
                     yarn install --no-immutable
                     git add .
                     git diff-index --quiet HEAD || git commit -m 'chore(release): update internal dependencies [skip ci]'

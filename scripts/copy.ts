@@ -1,6 +1,7 @@
-import { copyFileSync, readFileSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+/* eslint-disable @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require */
 import { execSync } from 'node:child_process';
+import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const options = process.argv.slice(2).reduce((args, arg) => {
     const [key, value] = arg.split('=');
@@ -25,7 +26,7 @@ function rewrite(path: string, replacer: (from: string) => string): void {
 
 let rootVersion: string;
 
-function getRootVersion(): string {
+function getRootVersion(bump = true): string {
     if (rootVersion) {
         return rootVersion;
     }
@@ -33,9 +34,11 @@ function getRootVersion(): string {
     // eslint-disable-next-line @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require
     rootVersion = require(resolve(root, './lerna.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
 
-    const parts = rootVersion.split('.');
-    parts[2] = `${+parts[2] + 1}`;
-    rootVersion = parts.join('.');
+    if (bump) {
+        const parts = rootVersion.split('.');
+        parts[2] = `${+parts[2] + 1}`;
+        rootVersion = parts.join('.');
+    }
 
     return rootVersion;
 }
@@ -79,7 +82,6 @@ const target = resolve(process.cwd(), 'dist');
 const pkgPath = resolve(process.cwd(), 'package.json');
 
 if (options.canary) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires,import/no-dynamic-require,global-require
     const pkgJson = require(pkgPath);
     const nextVersion = getNextVersion();
     pkgJson.version = nextVersion;
@@ -93,6 +95,22 @@ if (options.canary) {
 
     // eslint-disable-next-line no-console
     console.info(`canary: setting version to ${nextVersion}`);
+
+    writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
+}
+
+if (options['pin-versions']) {
+    const pkgJson = require(pkgPath);
+    const version = getRootVersion(false);
+
+    for (const dep of Object.keys(pkgJson.dependencies ?? {})) {
+        if (dep.startsWith('@crawlee/') || dep === 'crawlee') {
+            pkgJson.dependencies[dep] = version;
+        }
+    }
+
+    // eslint-disable-next-line no-console
+    console.info(`pin-versions: version ${version}`, pkgJson.dependencies);
 
     writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
 }
