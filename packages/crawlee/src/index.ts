@@ -13,6 +13,7 @@ export * from '@crawlee/linkedom';
 export * from '@crawlee/cheerio';
 export * from '@crawlee/puppeteer';
 export * from '@crawlee/playwright';
+export * from '@crawlee/browser-pool';
 
 export const utils = {
     puppeteer: puppeteerUtils,
