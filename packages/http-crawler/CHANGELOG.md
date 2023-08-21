@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.2](https://github.com/apify/crawlee/compare/v3.5.1...v3.5.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* support `DELETE` requests in `HttpCrawler` ([#2039](https://github.com/apify/crawlee/issues/2039)) ([7ea5c41](https://github.com/apify/crawlee/commit/7ea5c4185b169ec933dcd8df2e85824a7e452913)), closes [#1658](https://github.com/apify/crawlee/issues/1658)
+
+
+### Features
+
+* Add options for custom HTTP error status codes ([#2035](https://github.com/apify/crawlee/issues/2035)) ([b50ef1a](https://github.com/apify/crawlee/commit/b50ef1ad51d6d7c7a71e7f40efdb2b1ef0f09291)), closes [#1711](https://github.com/apify/crawlee/issues/1711)
+
+
+
+
+
 ## [3.5.1](https://github.com/apify/crawlee/compare/v3.5.0...v3.5.1) (2023-08-16)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.2](https://github.com/apify/crawlee/compare/v3.5.1...v3.5.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* make the `Request` constructor options typesafe ([#2034](https://github.com/apify/crawlee/issues/2034)) ([75e7d65](https://github.com/apify/crawlee/commit/75e7d6554a1875e80e5c54f3877bb6e3daf6cdd7))
+
+
+
+
+
 ## [3.5.1](https://github.com/apify/crawlee/compare/v3.5.0...v3.5.1) (2023-08-16)
 
 

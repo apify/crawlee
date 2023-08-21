@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.2](https://github.com/apify/crawlee/compare/v3.5.1...v3.5.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* pin `@crawlee/*` packages versions in `crawlee` metapackage ([#2040](https://github.com/apify/crawlee/issues/2040)) ([61f91c7](https://github.com/apify/crawlee/commit/61f91c79cad38ed4415f736c4e706f27150db8ba)), closes [/github.com/apify/crawlee/pull/2002#issuecomment-1680091061](https://github.com//github.com/apify/crawlee/pull/2002/issues/issuecomment-1680091061)
+
+
+
+
+
 ## [3.5.1](https://github.com/apify/crawlee/compare/v3.5.0...v3.5.1) (2023-08-16)
 
 **Note:** Version bump only for package crawlee

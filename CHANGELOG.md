@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.2](https://github.com/apify/crawlee/compare/v3.5.1...v3.5.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* make the `Request` constructor options typesafe ([#2034](https://github.com/apify/crawlee/issues/2034)) ([75e7d65](https://github.com/apify/crawlee/commit/75e7d6554a1875e80e5c54f3877bb6e3daf6cdd7))
+* pin `@crawlee/*` packages versions in `crawlee` metapackage ([#2040](https://github.com/apify/crawlee/issues/2040)) ([61f91c7](https://github.com/apify/crawlee/commit/61f91c79cad38ed4415f736c4e706f27150db8ba)), closes [/github.com/apify/crawlee/pull/2002#issuecomment-1680091061](https://github.com//github.com/apify/crawlee/pull/2002/issues/issuecomment-1680091061)
+* support `DELETE` requests in `HttpCrawler` ([#2039](https://github.com/apify/crawlee/issues/2039)) ([7ea5c41](https://github.com/apify/crawlee/commit/7ea5c4185b169ec933dcd8df2e85824a7e452913)), closes [#1658](https://github.com/apify/crawlee/issues/1658)
+
+
+### Features
+
+* Add options for custom HTTP error status codes ([#2035](https://github.com/apify/crawlee/issues/2035)) ([b50ef1a](https://github.com/apify/crawlee/commit/b50ef1ad51d6d7c7a71e7f40efdb2b1ef0f09291)), closes [#1711](https://github.com/apify/crawlee/issues/1711)
+
+
+
+
+
 ## [3.5.1](https://github.com/apify/crawlee/compare/v3.5.0...v3.5.1) (2023-08-16)
 
 
