@@ -279,7 +279,7 @@ test('POST with undefined (empty) payload', async () => {
     expect(results).toStrictEqual(['']);
 });
 
-test('should ignore non http error status codes set by user', async () => {
+test('should ignore http error status codes set by user', async () => {
     const failed: any[] = [];
 
     const crawler = new HttpCrawler({
@@ -298,7 +298,7 @@ test('should ignore non http error status codes set by user', async () => {
     expect(failed).toHaveLength(0);
 });
 
-test('should throw and error on http error status codes set by user', async () => {
+test('should throw an error on http error status codes set by user', async () => {
     const failed: any[] = [];
 
     const crawler = new HttpCrawler({
@@ -315,4 +315,26 @@ test('should throw and error on http error status codes set by user', async () =
 
     expect(crawler.autoscaledPool.minConcurrency).toBe(2);
     expect(failed).toHaveLength(1);
+});
+
+test('should work with delete requests', async () => {
+    const failed: any[] = [];
+
+    const cheerioCrawler = new HttpCrawler({
+        maxConcurrency: 1,
+        maxRequestRetries: 0,
+        navigationTimeoutSecs: 5,
+        requestHandlerTimeoutSecs: 5,
+        requestHandler: async () => {},
+        failedRequestHandler: async ({ request }) => {
+            failed.push(request);
+        },
+    });
+
+    await cheerioCrawler.run([{
+        url: `${url}`,
+        method: 'DELETE',
+    }]);
+
+    expect(failed).toHaveLength(0);
 });

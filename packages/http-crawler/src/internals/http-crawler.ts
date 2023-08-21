@@ -814,6 +814,11 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
                 }
             });
 
+            // We need to end the stream for DELETE requests, otherwise it will hang.
+            if (options.method && ['DELETE', 'delete'].includes(options.method)) {
+                stream.end();
+            }
+
             stream.on('error', reject);
             stream.on('response', () => {
                 resolve(addResponsePropertiesToStream(stream));
