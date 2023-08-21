@@ -507,7 +507,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    test('should ignore non http error status codes set by user', async () => {
+    test('should ignore http error status codes set by user', async () => {
         const requestList = await getRequestListForMock({
             headers: {
                 'content-type': 'text/plain',
@@ -534,7 +534,7 @@ describe('CheerioCrawler', () => {
         expect(failed).toHaveLength(0);
     });
 
-    test('should throw and error on http error status codes set by user', async () => {
+    test('should throw an error on http error status codes set by user', async () => {
         const requestList = await getRequestListForMirror();
         const failed: Request[] = [];
 
@@ -1289,6 +1289,34 @@ describe('CheerioCrawler', () => {
             // @ts-expect-error Accessing private prop
             expect(cheerioCrawler.requestHandler).toBeUndefined();
         });
+    });
+
+    test('should work with delete requests', async () => {
+        const sources: Source[] = [1, 2, 3, 4].map((num) => {
+            return {
+                url: `${serverAddress}/special/mock?a=${num}`,
+                method: 'DELETE',
+            };
+        });
+        const requestList = await RequestList.open(null, sources);
+
+        const failed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestList,
+            maxConcurrency: 1,
+            maxRequestRetries: 0,
+            navigationTimeoutSecs: 5,
+            requestHandlerTimeoutSecs: 5,
+            requestHandler: async () => {},
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run();
+
+        expect(failed).toHaveLength(0);
     });
 });
 
