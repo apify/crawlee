@@ -737,7 +737,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@crawlee/basic@^3.5.1, @crawlee/basic@workspace:packages/basic-crawler":
+"@crawlee/basic@3.5.1, @crawlee/basic@^3.5.1, @crawlee/basic@workspace:packages/basic-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/basic@workspace:packages/basic-crawler"
   dependencies:
@@ -755,7 +755,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser-pool@^3.5.1, @crawlee/browser-pool@workspace:packages/browser-pool":
+"@crawlee/browser-pool@3.5.1, @crawlee/browser-pool@^3.5.1, @crawlee/browser-pool@workspace:packages/browser-pool":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
@@ -783,7 +783,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/browser@^3.5.1, @crawlee/browser@workspace:packages/browser-crawler":
+"@crawlee/browser@3.5.1, @crawlee/browser@^3.5.1, @crawlee/browser@workspace:packages/browser-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/browser@workspace:packages/browser-crawler"
   dependencies:
@@ -797,7 +797,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/cheerio@^3.5.1, @crawlee/cheerio@workspace:packages/cheerio-crawler":
+"@crawlee/cheerio@3.5.1, @crawlee/cheerio@workspace:packages/cheerio-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/cheerio@workspace:packages/cheerio-crawler"
   dependencies:
@@ -809,7 +809,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/cli@^3.5.1, @crawlee/cli@workspace:packages/cli":
+"@crawlee/cli@3.5.1, @crawlee/cli@workspace:packages/cli":
   version: 0.0.0-use.local
   resolution: "@crawlee/cli@workspace:packages/cli"
   dependencies:
@@ -825,7 +825,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/core@^3.4.2, @crawlee/core@^3.5.1, @crawlee/core@workspace:packages/core":
+"@crawlee/core@3.5.1, @crawlee/core@^3.4.2, @crawlee/core@^3.5.1, @crawlee/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@crawlee/core@workspace:packages/core"
   dependencies:
@@ -855,7 +855,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/http@^3.5.1, @crawlee/http@workspace:packages/http-crawler":
+"@crawlee/http@3.5.1, @crawlee/http@^3.5.1, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
@@ -876,7 +876,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/jsdom@^3.5.1, @crawlee/jsdom@workspace:packages/jsdom-crawler":
+"@crawlee/jsdom@3.5.1, @crawlee/jsdom@workspace:packages/jsdom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
   dependencies:
@@ -892,7 +892,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/linkedom@^3.5.1, @crawlee/linkedom@workspace:packages/linkedom-crawler":
+"@crawlee/linkedom@3.5.1, @crawlee/linkedom@workspace:packages/linkedom-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
@@ -923,7 +923,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/playwright@^3.5.1, @crawlee/playwright@workspace:packages/playwright-crawler":
+"@crawlee/playwright@3.5.1, @crawlee/playwright@workspace:packages/playwright-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/playwright@workspace:packages/playwright-crawler"
   dependencies:
@@ -946,7 +946,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/puppeteer@^3.5.1, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
+"@crawlee/puppeteer@3.5.1, @crawlee/puppeteer@workspace:packages/puppeteer-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/puppeteer@workspace:packages/puppeteer-crawler"
   dependencies:
@@ -1046,7 +1046,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@crawlee/utils@^3.4.2, @crawlee/utils@^3.5.1, @crawlee/utils@workspace:packages/utils":
+"@crawlee/utils@3.5.1, @crawlee/utils@^3.4.2, @crawlee/utils@^3.5.1, @crawlee/utils@workspace:packages/utils":
   version: 0.0.0-use.local
   resolution: "@crawlee/utils@workspace:packages/utils"
   dependencies:
@@ -4302,17 +4302,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "crawlee@workspace:packages/crawlee"
   dependencies:
-    "@crawlee/basic": ^3.5.1
-    "@crawlee/browser": ^3.5.1
-    "@crawlee/cheerio": ^3.5.1
-    "@crawlee/cli": ^3.5.1
-    "@crawlee/core": ^3.5.1
-    "@crawlee/http": ^3.5.1
-    "@crawlee/jsdom": ^3.5.1
-    "@crawlee/linkedom": ^3.5.1
-    "@crawlee/playwright": ^3.5.1
-    "@crawlee/puppeteer": ^3.5.1
-    "@crawlee/utils": ^3.5.1
+    "@crawlee/basic": 3.5.1
+    "@crawlee/browser": 3.5.1
+    "@crawlee/browser-pool": 3.5.1
+    "@crawlee/cheerio": 3.5.1
+    "@crawlee/cli": 3.5.1
+    "@crawlee/core": 3.5.1
+    "@crawlee/http": 3.5.1
+    "@crawlee/jsdom": 3.5.1
+    "@crawlee/linkedom": 3.5.1
+    "@crawlee/playwright": 3.5.1
+    "@crawlee/puppeteer": 3.5.1
+    "@crawlee/utils": 3.5.1
     import-local: ^3.1.0
     tslib: ^2.4.0
   peerDependencies:
