@@ -1012,7 +1012,7 @@ __metadata:
     husky: ^8.0.1
     jest: ^29.1.2
     lerna: ^7.0.0
-    lint-staged: ^13.0.3
+    lint-staged: ^14.0.0
     node-gyp: ^9.1.0
     playwright: 1.37.1
     portastic: ^1.0.1
@@ -8352,9 +8352,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lint-staged@npm:^13.0.3":
-  version: 13.3.0
-  resolution: "lint-staged@npm:13.3.0"
+"lint-staged@npm:^14.0.0":
+  version: 14.0.1
+  resolution: "lint-staged@npm:14.0.1"
   dependencies:
     chalk: 5.3.0
     commander: 11.0.0
@@ -8368,7 +8368,7 @@ __metadata:
     yaml: 2.3.1
   bin:
     lint-staged: bin/lint-staged.js
-  checksum: f7c146cc2849c9ce4f1d2808d990fcbdef5e0bb79e6e79cc895f53c91f5ac4dcefdb8c3465156b38a015dcb051f2795c6bda4f20a1e2f2fa654c7ba521b2d2e0
+  checksum: 8c5d740cb3c90fab2d970fa6bbffe5ddf35ec66ed374a52caf3a3cf83d8f4d5fd01a949994822bce5ea18c0b8dc8fa4ce087ef886a8c11db674139a063cdfe4f
   languageName: node
   linkType: hard
 
