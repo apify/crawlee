@@ -417,7 +417,7 @@ export class KeyValueStore {
         options.config ??= Configuration.getGlobalConfig();
         options.storageClient ??= options.config.getStorageClient();
 
-        await purgeDefaultStorages(options.config, options.storageClient, { onlyPurgeOnce: true });
+        await purgeDefaultStorages(options.config, options.storageClient);
 
         const manager = StorageManager.getManager(this, options.config);
 
