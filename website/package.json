@@ -42,5 +42,5 @@
         "react-lite-youtube-embed": "^2.3.1",
         "unist-util-visit": "^5.0.0"
     },
-    "packageManager": "yarn@3.6.2"
+    "packageManager": "yarn@3.6.3"
 }

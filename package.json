@@ -98,12 +98,12 @@
         "rimraf": "^5.0.0",
         "ts-jest": "^29.0.3",
         "ts-node": "^10.9.1",
-        "turbo": "1.10.12",
+        "turbo": "1.10.13",
         "typescript": "^5.0.0"
     },
-    "packageManager": "yarn@3.6.2",
+    "packageManager": "yarn@3.6.3",
     "volta": {
         "node": "18.17.1",
-        "yarn": "3.6.2"
+        "yarn": "3.6.3"
     }
 }
