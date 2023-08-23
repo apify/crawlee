@@ -16,10 +16,15 @@ import { Configuration } from '../configuration';
  * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
  * it multiple times.
  */
-export async function purgeDefaultStorages(config = Configuration.getGlobalConfig(), client: StorageClient = config.getStorageClient()) {
+export async function purgeDefaultStorages(config = Configuration.getGlobalConfig(), client: StorageClient = config.getStorageClient(), options: {
+    onlyPurgeOnce: boolean;
+} = {
+    onlyPurgeOnce: false,
+}) {
     const casted = client as StorageClient & { __purged?: boolean };
 
-    if (config.get('purgeOnStart') && !casted.__purged) {
+    // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
+    if (!options.onlyPurgeOnce || (config.get('purgeOnStart') && !casted.__purged)) {
         casted.__purged = true;
         await casted.purge?.();
     }
