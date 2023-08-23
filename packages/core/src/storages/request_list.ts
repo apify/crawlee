@@ -345,7 +345,9 @@ export class RequestList {
         }
 
         this.isLoading = true;
-        await purgeDefaultStorages();
+        await purgeDefaultStorages(undefined, undefined, {
+            onlyPurgeOnce: true,
+        });
 
         const [state, persistedRequests] = await this._loadStateAndPersistedRequests();
 
