@@ -982,7 +982,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request:Request, source: RequestQueue | RequestList) {
+    protected delayRequest(request: Request, source: RequestQueue | RequestList) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -997,10 +997,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return false;
         }
 
+        source.inProgress.delete(request.id!);
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(`Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`);
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
+            source?.inProgress.add(request.id!);
             await source?.reclaimRequest(request);
         }, delay);
 
