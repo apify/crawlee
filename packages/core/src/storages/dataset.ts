@@ -531,7 +531,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         options.config ??= Configuration.getGlobalConfig();
         options.storageClient ??= options.config.getStorageClient();
 
-        await purgeDefaultStorages(options.config, options.storageClient);
+        await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
 
         const manager = StorageManager.getManager<Dataset<Data>>(this, options.config);
 
