@@ -3,6 +3,12 @@ import type { Dictionary, StorageClient } from '@crawlee/types';
 import { KeyValueStore } from './key_value_store';
 import { Configuration } from '../configuration';
 
+interface PurgeDefaultStorageOptions {
+    onlyPurgeOnce?: boolean;
+    config?: Configuration;
+    client?: StorageClient;
+}
+
 /**
  * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
  * Purging will remove all the files in all storages except for INPUT.json in the default KV store.
@@ -16,14 +22,20 @@ import { Configuration } from '../configuration';
  * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
  * it multiple times.
  */
-
-interface PurgeDefaultStorageOptions {
-    onlyPurgeOnce?: boolean;
-    config?: Configuration;
-    client?: StorageClient;
-}
-
 export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
+/**
+ * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
+ * Purging will remove all the files in all storages except for INPUT.json in the default KV store.
+ *
+ * Purging of storages is happening automatically when we run our crawler (or when we open some storage
+ * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@apilink Configuration}
+ * option or by setting `CRAWLEE_PURGE_ON_START` environment variable to `0` or `false`.
+ *
+ * This is a shortcut for running (optional) `purge` method on the StorageClient interface, in other words
+ * it will call the `purge` method of the underlying storage implementation we are currently using. In addition,
+ * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
+ * it multiple times, unless you set `onlyPurgeOnce` to `false` in the `options` object
+ */
 export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 export async function purgeDefaultStorages(
     configOrOptions?: Configuration | PurgeDefaultStorageOptions,
