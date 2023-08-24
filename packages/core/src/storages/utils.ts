@@ -16,11 +16,35 @@ import { Configuration } from '../configuration';
  * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
  * it multiple times.
  */
-export async function purgeDefaultStorages(config = Configuration.getGlobalConfig(), client: StorageClient = config.getStorageClient(), options: {
-    onlyPurgeOnce: boolean;
-} = {
-    onlyPurgeOnce: true,
-}) {
+
+interface PurgeDefaultStorageOptions {
+    onlyPurgeOnce?: boolean;
+}
+
+export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient, options?: PurgeDefaultStorageOptions): Promise<void>;
+export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions, client?: StorageClient, config?: Configuration): Promise<void>;
+export async function purgeDefaultStorages(
+    configOrOptions?: Configuration | PurgeDefaultStorageOptions,
+    client?: StorageClient,
+    optionsOrConfig?: Configuration | PurgeDefaultStorageOptions,
+) {
+    let config: Configuration;
+    let options: PurgeDefaultStorageOptions | undefined;
+    if (configOrOptions instanceof Configuration) {
+        config = configOrOptions;
+        options = optionsOrConfig as PurgeDefaultStorageOptions;
+    } else if (optionsOrConfig instanceof Configuration) {
+        config = optionsOrConfig;
+        options = configOrOptions as PurgeDefaultStorageOptions;
+    } else {
+        // both are either undefined, or one - undefined, one - options
+        config = Configuration.getGlobalConfig();
+        options = configOrOptions ?? optionsOrConfig;
+    }
+    options ??= {
+        onlyPurgeOnce: true,
+    };
+    client ??= config.getStorageClient();
     const casted = client as StorageClient & { __purged?: boolean };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
