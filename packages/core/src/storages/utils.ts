@@ -19,36 +19,30 @@ import { Configuration } from '../configuration';
 
 interface PurgeDefaultStorageOptions {
     onlyPurgeOnce?: boolean;
+    config?: Configuration;
+    client?: StorageClient;
 }
 
-export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient, options?: PurgeDefaultStorageOptions): Promise<void>;
-export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions, client?: StorageClient, config?: Configuration): Promise<void>;
+export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
+export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 export async function purgeDefaultStorages(
     configOrOptions?: Configuration | PurgeDefaultStorageOptions,
     client?: StorageClient,
-    optionsOrConfig?: Configuration | PurgeDefaultStorageOptions,
 ) {
-    let config: Configuration;
-    let options: PurgeDefaultStorageOptions | undefined;
-    if (configOrOptions instanceof Configuration) {
-        config = configOrOptions;
-        options = optionsOrConfig as PurgeDefaultStorageOptions;
-    } else if (optionsOrConfig instanceof Configuration) {
-        config = optionsOrConfig;
-        options = configOrOptions as PurgeDefaultStorageOptions;
-    } else {
-        // both are either undefined, or one - undefined, one - options
-        config = Configuration.getGlobalConfig();
-        options = configOrOptions ?? optionsOrConfig;
-    }
-    options ??= {
-        onlyPurgeOnce: true,
-    };
-    client ??= config.getStorageClient();
+    const options: PurgeDefaultStorageOptions = configOrOptions instanceof Configuration ? {
+        client,
+        config: configOrOptions,
+    } : configOrOptions ?? {};
+    const {
+        config = Configuration.getGlobalConfig(),
+        onlyPurgeOnce = true,
+    } = options;
+    ({ client = config.getStorageClient() } = options);
+
     const casted = client as StorageClient & { __purged?: boolean };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
-    if (!options.onlyPurgeOnce || (config.get('purgeOnStart') && !casted.__purged)) {
+    if (!onlyPurgeOnce || (config.get('purgeOnStart') && !casted.__purged)) {
         casted.__purged = true;
         await casted.purge?.();
     }
