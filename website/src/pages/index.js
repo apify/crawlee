@@ -149,6 +149,70 @@ function ActorExample() {
     );
 }
 
+const npmInstall = `npm install apify
+npm install -G apify-cli`;
+const exampleActor = `import { PlaywrightCrawler, Dataset } from 'crawlee';
+
+// import the \`Actor\` class from the Apify SDK
+import { Actor } from 'apify';
+
+// set up the integration to Apify
+await Actor.init();
+
+// crawler setup from the previous example
+const crawler = new PlaywrightCrawler({
+    // ...
+});
+await crawler.run(['https://crawlee.dev']);
+
+// once finished, clean up the environment
+await Actor.exit();
+`;
+
+const apifyPush = `apify login # so the CLI knows you
+apify init  # and the Apify platform understands your project
+apify push  # time to ship it!`;
+
+function Deployment() {
+    return (
+        <section className={clsx(styles.try, 'container')}>
+            <div className="col">
+                <h2>Deploy to the cloud ☁️</h2>
+                <p>
+                    Crawlee is developed by <a href="https://apify.com" rel="dofollow" target="_blank"><b>Apify</b></a>, the web scraping and automation platform.
+                    You can deploy a <b>Crawlee</b> project wherever you want, but using the <a href="https://console.apify.com/" target="_blank"><b>Apify
+                    platform</b></a> will give you the best experience. With a few simple steps, you can convert your Crawlee project into a so
+                    called <b>Actor</b>. Actors are serverless micro-apps that are easy to develop, run, share, and integrate. The infra, proxies,
+                    and storages are ready to go. <a href="https://apify.com/actors" target="_blank">Learn more about Actors</a>.
+                </p>
+                <p>
+                    1️⃣ First, install the <b>Apify SDK</b> to your project, as well as the <b>Apify CLI</b>. The SDK will help with the Apify integration,
+                    while the CLI will help us with the initialization and deployment.
+                </p>
+                <CodeBlock className="language-bash">
+                    {npmInstall}
+                </CodeBlock>
+                <p>
+                    2️⃣ The next step is to add <code>Actor.init()</code> to the beginning of your main script and <code>Actor.exit()</code> to the end of it.
+                    This will enable the integration to the Apify Platform, so the <a href="https://apify.com/storage" target="_blank">cloud
+                    storages</a> (e.g. <code>RequestQueue</code>) will be used. The code should look like this:
+                </p>
+                <CodeBlock className="language-typescript">
+                    {exampleActor}
+                </CodeBlock>
+                <p>
+                    3️⃣ Then you will need to <a href="https://console.apify.com/sign-up" target="_blank">sign up for the Apify account</a>. Once you have it,
+                    use the Apify CLI to log in via <code>apify login</code>. The last two steps also involve the Apify CLI. Call the <code>apify
+                    init</code> first, which will add Apify config to your project, and finally run the <code>apify push</code> to deploy it.
+                </p>
+                <CodeBlock className="language-bash">
+                    {apifyPush}
+                </CodeBlock>
+            </div>
+        </section>
+    );
+}
+
 export default function Home() {
     const SvgLogo = require('../../static/img/crawlee-logo.svg').default;
     const { siteConfig } = useDocusaurusContext();
@@ -160,6 +224,7 @@ export default function Home() {
             <Features />
             <Highlights />
             <ActorExample />
+            <Deployment />
             <div className="container">
                 <div className="row">
                     <div className="col text--center padding-top--lg padding-bottom--xl">
