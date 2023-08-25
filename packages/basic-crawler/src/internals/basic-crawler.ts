@@ -768,7 +768,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // ignored - as a failed requests is still handled.
         if (this.running === false && this.requestQueue?.name === 'default' && purgeRequestQueue) {
             await this.requestQueue.drop();
-            this.requestQueue = await RequestQueue.open();
+            this.requestQueue = await RequestQueue.open(null, { config: this.config });
         }
 
         this.running = true;
@@ -850,7 +850,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     async getRequestQueue() {
-        this.requestQueue ??= await RequestQueue.open();
+        this.requestQueue ??= await RequestQueue.open(null, { config: this.config });
 
         return this.requestQueue!;
     }
