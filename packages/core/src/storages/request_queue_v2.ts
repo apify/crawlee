@@ -79,16 +79,16 @@ class RequestQueue extends RequestProvider {
         }
 
         // This should never happen, but...
-        if (this.requestIdsInProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
+        if (this.inProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
             this.log.warning('Queue head returned a request that is already in progress?!', {
                 nextRequestId,
-                inProgress: this.requestIdsInProgress.has(nextRequestId),
+                inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
             });
             return null;
         }
 
-        this.requestIdsInProgress.add(nextRequestId);
+        this.inProgress.add(nextRequestId);
         this.lastActivity = new Date();
 
         let request: Request | null;
@@ -97,7 +97,7 @@ class RequestQueue extends RequestProvider {
             request = await this.getOrHydrateRequest(nextRequestId);
         } catch (e) {
             // On error, remove the request from in progress, otherwise it would be there forever
-            this.requestIdsInProgress.delete(nextRequestId);
+            this.inProgress.delete(nextRequestId);
             throw e;
         }
 
@@ -112,7 +112,7 @@ class RequestQueue extends RequestProvider {
             this.log.debug('Cannot find a request from the beginning of queue or lost lock, will be retried later', { nextRequestId });
 
             setTimeout(() => {
-                this.requestIdsInProgress.delete(nextRequestId);
+                this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
             return null;
@@ -154,7 +154,7 @@ class RequestQueue extends RequestProvider {
 
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
-            if (!id || !uniqueKey || this.requestIdsInProgress.has(id) || this.recentlyHandledRequestsCache.get(id)) {
+            if (!id || !uniqueKey || this.inProgress.has(id) || this.recentlyHandledRequestsCache.get(id)) {
                 continue;
             }
 

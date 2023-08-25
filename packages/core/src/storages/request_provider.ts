@@ -43,7 +43,7 @@ export abstract class RequestProvider implements IStorage {
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
     /** @internal */
-    requestIdsInProgress = new Set<string>();
+    inProgress = new Set<string>();
     protected recentlyHandledRequestsCache: LruCache<boolean>;
 
     // TODO: RQv1 logic for stuck queues, this might not be needed anymore
@@ -79,7 +79,7 @@ export abstract class RequestProvider implements IStorage {
      * @ignore
      */
     inProgressCount() {
-        return this.requestIdsInProgress.size;
+        return this.inProgress.size;
     }
 
     /**
@@ -142,7 +142,7 @@ export abstract class RequestProvider implements IStorage {
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
 
-        if (!wasAlreadyPresent && !this.requestIdsInProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
+        if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
 
             // Performance optimization: add request straight to head if possible
@@ -245,7 +245,7 @@ export abstract class RequestProvider implements IStorage {
             const { requestId, wasAlreadyPresent } = newRequest;
             this._cacheRequest(cacheKey, newRequest);
 
-            if (!wasAlreadyPresent && !this.requestIdsInProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
+            if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
 
                 // Performance optimization: add request straight to head if possible
@@ -377,7 +377,7 @@ export abstract class RequestProvider implements IStorage {
             handledAt: ow.optional.string,
         }));
 
-        if (!this.requestIdsInProgress.has(request.id)) {
+        if (!this.inProgress.has(request.id)) {
             this.log.debug(`Cannot mark request ${request.id} as handled, because it is not in progress!`, { requestId: request.id });
             return null;
         }
@@ -387,7 +387,7 @@ export abstract class RequestProvider implements IStorage {
         request.handledAt = handledAt;
         queueOperationInfo.uniqueKey = request.uniqueKey;
 
-        this.requestIdsInProgress.delete(request.id);
+        this.inProgress.delete(request.id);
         this.recentlyHandledRequestsCache.add(request.id, true);
 
         if (!queueOperationInfo.wasAlreadyHandled) {
@@ -417,7 +417,7 @@ export abstract class RequestProvider implements IStorage {
 
         const { forefront = false } = options;
 
-        if (!this.requestIdsInProgress.has(request.id)) {
+        if (!this.inProgress.has(request.id)) {
             this.log.debug(`Cannot reclaim request ${request.id}, because it is not in progress!`, { requestId: request.id });
             return null;
         }
@@ -431,12 +431,12 @@ export abstract class RequestProvider implements IStorage {
         // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
-            if (!this.requestIdsInProgress.has(request.id)) {
+            if (!this.inProgress.has(request.id)) {
                 this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
                 return;
             }
 
-            this.requestIdsInProgress.delete(request.id);
+            this.inProgress.delete(request.id);
 
             // Performance optimization: add request straight to head if possible
             this._maybeAddRequestToQueueHead(request.id, forefront);
@@ -467,7 +467,7 @@ export abstract class RequestProvider implements IStorage {
     async isFinished(): Promise<boolean> {
         if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
-            this.log.warning(message, { inProgress: [...this.requestIdsInProgress] });
+            this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();
         }
 
@@ -479,7 +479,7 @@ export abstract class RequestProvider implements IStorage {
 
     protected _reset() {
         this.queueHeadIds.clear();
-        this.requestIdsInProgress.clear();
+        this.inProgress.clear();
         this.recentlyHandledRequestsCache.clear();
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;

@@ -119,16 +119,16 @@ export class RequestQueue extends RequestProvider {
         if (!nextRequestId) return null;
 
         // This should never happen, but...
-        if (this.requestIdsInProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
+        if (this.inProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
             this.log.warning('Queue head returned a request that is already in progress?!', {
                 nextRequestId,
-                inProgress: this.requestIdsInProgress.has(nextRequestId),
+                inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
             });
             return null;
         }
 
-        this.requestIdsInProgress.add(nextRequestId);
+        this.inProgress.add(nextRequestId);
         this.lastActivity = new Date();
 
         let request: Request | null;
@@ -136,7 +136,7 @@ export class RequestQueue extends RequestProvider {
             request = await this.getRequest(nextRequestId);
         } catch (e) {
             // On error, remove the request from in progress, otherwise it would be there forever
-            this.requestIdsInProgress.delete(nextRequestId);
+            this.inProgress.delete(nextRequestId);
             throw e;
         }
 
@@ -150,7 +150,7 @@ export class RequestQueue extends RequestProvider {
         if (!request) {
             this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
             setTimeout(() => {
-                this.requestIdsInProgress.delete(nextRequestId);
+                this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
             return null;
         }
@@ -207,7 +207,7 @@ export class RequestQueue extends RequestProvider {
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id: requestId, uniqueKey }) => {
                         // Queue head index might be behind the main table, so ensure we don't recycle requests
-                        if (!requestId || !uniqueKey || this.requestIdsInProgress.has(requestId) || this.recentlyHandledRequestsCache.get(requestId!)) return;
+                        if (!requestId || !uniqueKey || this.inProgress.has(requestId) || this.recentlyHandledRequestsCache.get(requestId!)) return;
 
                         this.queueHeadIds.add(requestId, requestId, false);
                         this._cacheRequest(getRequestId(uniqueKey), {
@@ -283,7 +283,7 @@ export class RequestQueue extends RequestProvider {
     override async isFinished(): Promise<boolean> {
         if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
-            this.log.warning(message, { inProgress: [...this.requestIdsInProgress] });
+            this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();
         }
 
