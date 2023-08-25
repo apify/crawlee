@@ -111,7 +111,7 @@ export class RequestQueue extends RequestProvider {
      *   Returns the request object or `null` if there are no more pending requests.
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
-        await this._ensureHeadIsNonEmpty();
+        await this.ensureHeadIsNonEmpty();
 
         const nextRequestId = this.queueHeadIds.removeFirst();
 
@@ -131,7 +131,7 @@ export class RequestQueue extends RequestProvider {
         this.requestIdsInProgress.add(nextRequestId);
         this.lastActivity = new Date();
 
-        let request;
+        let request: Request | null;
         try {
             request = await this.getRequest(nextRequestId);
         } catch (e) {

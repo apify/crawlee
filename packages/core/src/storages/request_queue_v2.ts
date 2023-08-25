@@ -91,7 +91,15 @@ class RequestQueue extends RequestProvider {
         this.requestIdsInProgress.add(nextRequestId);
         this.lastActivity = new Date();
 
-        const request = await this.getOrHydrateRequest(nextRequestId);
+        let request: Request | null;
+
+        try {
+            request = await this.getOrHydrateRequest(nextRequestId);
+        } catch (e) {
+            // On error, remove the request from in progress, otherwise it would be there forever
+            this.requestIdsInProgress.delete(nextRequestId);
+            throw e;
+        }
 
         // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can occur in two situations:
 
