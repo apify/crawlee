@@ -17,6 +17,7 @@ import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
+import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
 import { Request } from '../request';
@@ -46,6 +47,7 @@ export abstract class RequestProvider implements IStorage {
 
     // TODO: RQv1 logic for stuck queues, this might not be needed anymore
     protected lastActivity = new Date();
+    protected queuePausedForMigration = false;
 
     constructor(options: InternalRequestProviderOptions, readonly config = Configuration.getGlobalConfig()) {
         this.id = options.id;
@@ -60,6 +62,16 @@ export abstract class RequestProvider implements IStorage {
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
         this.log = log.child({ prefix: options.logPrefix });
+
+        const eventManager = config.getEventManager();
+
+        eventManager.on(EventType.MIGRATING, async () => {
+            await this._clearPossibleLocks();
+        });
+
+        eventManager.on(EventType.ABORTING, async () => {
+            await this._clearPossibleLocks();
+        });
     }
 
     /**
@@ -490,7 +502,7 @@ export abstract class RequestProvider implements IStorage {
     /**
      * Adds a request straight to the queueHeadDict, to improve performance.
      */
-    private _maybeAddRequestToQueueHead(requestId: string, forefront: boolean): void {
+    protected _maybeAddRequestToQueueHead(requestId: string, forefront: boolean): void {
         if (forefront) {
             this.queueHeadIds.add(requestId, requestId, true);
         } else if (this.assumedTotalCount < QUERY_HEAD_MIN_LENGTH) {
@@ -598,6 +610,20 @@ export abstract class RequestProvider implements IStorage {
      */
     private async _downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<string[]> {
         return downloadListOfUrls(options);
+    }
+
+    protected async _clearPossibleLocks() {
+        this.queuePausedForMigration = true;
+        let requestId: string | null;
+
+        // eslint-disable-next-line no-cond-assign
+        while ((requestId = this.queueHeadIds.removeFirst()) !== null) {
+            try {
+                await this.client.deleteRequestLock(requestId);
+            } catch {
+                // We don't have the lock, or the request was never locked. Either way it's fine
+            }
+        }
     }
 
     /**

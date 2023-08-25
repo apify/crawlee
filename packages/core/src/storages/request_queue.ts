@@ -189,8 +189,15 @@ export class RequestQueue extends RequestProvider {
         limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
         iteration = 0,
     ): Promise<boolean> {
+        // If we are paused for migration, resolve immediately.
+        if (this.queuePausedForMigration) {
+            return true;
+        }
+
         // If is nonempty resolve immediately.
-        if (this.queueHeadIds.length() > 0) return true;
+        if (this.queueHeadIds.length() > 0) {
+            return true;
+        }
 
         if (!this.queryQueueHeadPromise) {
             const queryStartedAt = new Date();

@@ -13,9 +13,9 @@ import type { Request } from '../request';
 const MAX_CACHED_REQUESTS = 2_000_000;
 
 /**
- * When prolonging a lock, we do it for a minute from Date.now()
+ * When prolonging a lock, we do it for 3 minutes from Date.now()
  */
-const PROLONG_LOCK_BY_SECS = 60;
+const PROLONG_LOCK_BY_SECS = 3 * 60;
 
 /**
  * This number must be large enough so that processing of all these requests cannot be done in
@@ -26,7 +26,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
 class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
-    private _hydratingRequestPromise: Promise<any> | null = null;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
         super({
@@ -71,24 +70,12 @@ class RequestQueue extends RequestProvider {
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         await this.ensureHeadIsNonEmpty();
-        // Wait for the currently hydrating request to finish, as it might be the one we return
-        await this._hydratingRequestPromise;
 
         const nextRequestId = this.queueHeadIds.removeFirst();
 
         // We are likely done at this point.
         if (!nextRequestId) {
             return null;
-        }
-
-        // Schedule the next hydration in the background (if there is any request left in the queue)
-        // This should hopefully make the next request available faster.
-        const nextNextId = this.queueHeadIds.getFirst();
-
-        if (nextNextId) {
-            this._hydratingRequestPromise = this.getOrHydrateRequest(nextNextId).finally(() => {
-                this._hydratingRequestPromise = null;
-            });
         }
 
         // This should never happen, but...
@@ -114,7 +101,7 @@ class RequestQueue extends RequestProvider {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+            this.log.debug('Cannot find a request from the beginning of queue or lost lock, will be retried later', { nextRequestId });
 
             setTimeout(() => {
                 this.requestIdsInProgress.delete(nextRequestId);
@@ -137,7 +124,13 @@ class RequestQueue extends RequestProvider {
     }
 
     protected async ensureHeadIsNonEmpty() {
-        if (this.queueHeadIds.length() > 0) {
+        // Stop fetching if we are paused for migration
+        if (this.queuePausedForMigration) {
+            return;
+        }
+
+        // We want to fetch ahead of time to minimize dead time
+        if (this.queueHeadIds.length() > 1) {
             return;
         }
 
@@ -150,28 +143,6 @@ class RequestQueue extends RequestProvider {
 
     private async _listHeadAndLock(): Promise<void> {
         const headData = await this.client.listAndLockHead({ limit: 25, lockSecs: PROLONG_LOCK_BY_SECS });
-
-        // Cache the first request, if it exists, and trigger a hydration for it
-        const firstRequest = headData.items.shift();
-
-        if (firstRequest) {
-            this.queueHeadIds.add(firstRequest.id, firstRequest.id, false);
-            this._cacheRequest(getRequestId(firstRequest.uniqueKey), {
-                requestId: firstRequest.id,
-                uniqueKey: firstRequest.uniqueKey,
-                wasAlreadyPresent: true,
-                wasAlreadyHandled: false,
-            });
-
-            // Await current hydration, if any, to not lose it
-            if (this._hydratingRequestPromise) {
-                await this._hydratingRequestPromise;
-            }
-
-            this._hydratingRequestPromise = this.getOrHydrateRequest(firstRequest.id).finally(() => {
-                this._hydratingRequestPromise = null;
-            });
-        }
 
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
@@ -210,7 +181,7 @@ class RequestQueue extends RequestProvider {
                 try {
                     await this.client.deleteRequestLock(requestId);
                 } catch {
-                // Ignore
+                    // Ignore
                 }
 
                 return null;
@@ -229,7 +200,7 @@ class RequestQueue extends RequestProvider {
 
         // 1.1. If hydrated, prolong the lock more and return it
         if (cachedEntry.hydrated) {
-            // 1.1.1. If the lock expired on the hydrated requests, try to prolong. If we fail, we lost the request
+            // 1.1.1. If the lock expired on the hydrated requests, try to prolong. If we fail, we lost the request (or it was handled already)
             if (cachedEntry.lockExpiresAt && cachedEntry.lockExpiresAt < Date.now()) {
                 const prolonged = await this._prolongRequestLock(cachedEntry.id);
 
@@ -275,11 +246,10 @@ class RequestQueue extends RequestProvider {
         try {
             const res = await this.client.prolongRequestLock(requestId, { lockSecs: PROLONG_LOCK_BY_SECS });
             return res.lockExpiresAt;
-        } catch (err) {
+        } catch (err: any) {
             // Most likely we do not own the lock anymore
-            this.log.warning(`Failed to prolong lock for cached request ${requestId}, possibly lost the lock`, {
-                error: err,
-                requestId,
+            this.log.warning(`Failed to prolong lock for cached request ${requestId}, either lost the lock or the request was already handled\n`, {
+                err,
             });
 
             return null;
@@ -289,6 +259,10 @@ class RequestQueue extends RequestProvider {
     protected override _reset() {
         super._reset();
         this._listHeadAndLockPromise = null;
+    }
+
+    protected override _maybeAddRequestToQueueHead() {
+        // Do nothing for request queue v2, as we are only able to lock requests when listing the head
     }
 }
 

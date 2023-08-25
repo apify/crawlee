@@ -1,4 +1,4 @@
-import { Actor, LogLevel, log } from 'apify';
+import { Actor, LogLevel, log as Logger } from 'apify';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
@@ -15,14 +15,17 @@ await Actor.main(async () => {
             });
 
             const pageTitle = $('title').first().text();
-            log.info(`URL: ${url} TITLE: ${pageTitle}`);
+            log.info(`REQUEST ID: ${request.id} URL: ${url} TITLE: ${pageTitle}`);
 
             await Dataset.pushData({ url, pageTitle });
         },
         experiments: {
             useRequestQueueV2: true,
         },
-        log: log.child({ prefix: 'CheerioCrawler', level: LogLevel.DEBUG }),
+        log: Logger.child({
+            prefix: 'CheerioCrawler',
+            // level: LogLevel.DEBUG,
+        }),
     });
 
     try {
