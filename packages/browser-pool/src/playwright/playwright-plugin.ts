@@ -63,7 +63,10 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
 
         try {
             if (useIncognitoPages) {
-                browser = await this.library.launch(launchOptions);
+                browser = await this.library.launch(launchOptions).catch((error) => {
+                    this._notifyOfFailedLaunch();
+                    throw error;
+                });
 
                 if (anonymizedProxyUrl) {
                     browser.on('disconnected', async () => {
@@ -108,7 +111,10 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                     }
                 }
 
-                const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions);
+                const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions).catch((error) => {
+                    this._notifyOfFailedLaunch();
+                    throw error;
+                });
 
                 browserContext.once('close', () => {
                     if (userDataDir.includes('apify-playwright-firefox-taac-')) {
@@ -172,6 +178,18 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         }
 
         return browser;
+    }
+
+    private _notifyOfFailedLaunch() {
+        let debugMessage = `Failed to launch browser. ${this.launchOptions?.executablePath ? 'Check whether the provided executable path is correct.' : ''} `;
+        if (process.env.APIFY_IS_AT_HOME) {
+            debugMessage += 'Make sure you used the correct Actor template for Playwright: '
+                + 'your Dockerfile has to extend `apify/actor-node-playwright-*` (with a correct browser name). Or install ';
+        } else {
+            debugMessage += 'Try installing ';
+        }
+        debugMessage += 'the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers). The original error will be displayed below.';
+        log.error(debugMessage);
     }
 
     protected _createController(): BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {
