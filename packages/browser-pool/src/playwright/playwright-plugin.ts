@@ -188,7 +188,8 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         } else {
             debugMessage += 'Try installing ';
         }
-        debugMessage += 'the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers). The original error will be displayed below.';
+        debugMessage += 'the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers).'
+            + ' The original error will be displayed below.';
         log.error(debugMessage);
     }
 

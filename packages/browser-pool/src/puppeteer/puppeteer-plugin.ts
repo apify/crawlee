@@ -75,8 +75,10 @@ export class PuppeteerPlugin extends BrowserPlugin<
             } catch (error) {
                 await close();
                 if (process.env.APIFY_IS_AT_HOME) {
-                    log.error('Failed to launch browser. Make sure you used the correct Actor template for Puppeteer: your Dockerfile has to extend `apify/actor-node-puppeteer-chrome`.'
-                        + ' Or install the missing dependencies manually, referring to the Puppeteer\'s troubleshooting guide. The original error will be displayed below.');
+                    log.error('Failed to launch browser. Make sure you used the correct Actor template for Puppeteer:'
+                        + ' your Dockerfile has to extend `apify/actor-node-puppeteer-chrome`.'
+                        + ' Or install the missing dependencies manually, referring to the Puppeteer\'s troubleshooting guide.'
+                        + ' The original error will be displayed below.');
                 }
                 throw error;
             }
