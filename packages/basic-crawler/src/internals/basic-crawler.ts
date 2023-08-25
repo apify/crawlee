@@ -1057,13 +1057,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return false;
         }
 
-        source.inProgress.delete(request.id!);
+        // eslint-disable-next-line dot-notation
+        source['requestIdsInProgress'].delete(request.id!);
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(`Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`);
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-            source?.inProgress.add(request.id!);
-            await source?.reclaimRequest(request);
+            // eslint-disable-next-line dot-notation
+            source['requestIdsInProgress'].add(request.id!);
+            await source.reclaimRequest(request);
         }, delay);
 
         return true;

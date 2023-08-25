@@ -253,7 +253,7 @@ export class RequestList {
      * Set of `uniqueKey`s of requests that were returned by fetchNextRequest().
      * @internal
      */
-    inProgress = new Set<string>();
+    requestIdsInProgress = new Set<string>();
 
     /**
      * Set of `uniqueKey`s of requests for which reclaimRequest() was called.
@@ -492,7 +492,7 @@ export class RequestList {
         });
 
         this.nextIndex = state.nextIndex;
-        this.inProgress = new Set(state.inProgress);
+        this.requestIdsInProgress = new Set(state.inProgress);
 
         // WORKAROUND:
         // It happened to some users that state object contained something like:
@@ -512,12 +512,12 @@ export class RequestList {
                 deleteFromInProgress,
             });
             for (const uniqueKey of deleteFromInProgress) {
-                this.inProgress.delete(uniqueKey);
+                this.requestIdsInProgress.delete(uniqueKey);
             }
         }
 
         // All in-progress requests need to be re-crawled
-        this.reclaimed = new Set(this.inProgress);
+        this.reclaimed = new Set(this.requestIdsInProgress);
     }
 
     /**
@@ -556,7 +556,7 @@ export class RequestList {
             nextUniqueKey: this.nextIndex < this.requests.length
                 ? this.requests[this.nextIndex].uniqueKey
                 : null,
-            inProgress: [...this.inProgress],
+            inProgress: [...this.requestIdsInProgress],
         };
     }
 
@@ -577,7 +577,7 @@ export class RequestList {
     async isFinished(): Promise<boolean> {
         this._ensureIsInitialized();
 
-        return this.inProgress.size === 0 && this.nextIndex >= this.requests.length;
+        return this.requestIdsInProgress.size === 0 && this.nextIndex >= this.requests.length;
     }
 
     /**
@@ -602,7 +602,7 @@ export class RequestList {
         // Otherwise return next request.
         if (this.nextIndex < this.requests.length) {
             const request = this.requests[this.nextIndex];
-            this.inProgress.add(request.uniqueKey);
+            this.requestIdsInProgress.add(request.uniqueKey);
             this.nextIndex++;
             this.isStatePersisted = false;
             return request;
@@ -621,7 +621,7 @@ export class RequestList {
         this._ensureInProgressAndNotReclaimed(uniqueKey);
         this._ensureIsInitialized();
 
-        this.inProgress.delete(uniqueKey);
+        this.requestIdsInProgress.delete(uniqueKey);
         this.isStatePersisted = false;
     }
 
@@ -742,7 +742,7 @@ export class RequestList {
      * Checks that request is not reclaimed and throws an error if so.
      */
     protected _ensureInProgressAndNotReclaimed(uniqueKey: string): void {
-        if (!this.inProgress.has(uniqueKey)) {
+        if (!this.requestIdsInProgress.has(uniqueKey)) {
             throw new Error(`The request is not being processed (uniqueKey: ${uniqueKey})`);
         }
         if (this.reclaimed.has(uniqueKey)) {
@@ -774,7 +774,7 @@ export class RequestList {
     handledCount(): number {
         this._ensureIsInitialized();
 
-        return this.nextIndex - this.inProgress.size;
+        return this.nextIndex - this.requestIdsInProgress.size;
     }
 
     /**

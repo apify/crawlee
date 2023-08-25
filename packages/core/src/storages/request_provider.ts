@@ -42,7 +42,8 @@ export abstract class RequestProvider implements IStorage {
 
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
-    protected requestIdsInProgress = new Set<string>();
+    /** @internal */
+    requestIdsInProgress = new Set<string>();
     protected recentlyHandledRequestsCache: LruCache<boolean>;
 
     // TODO: RQv1 logic for stuck queues, this might not be needed anymore
