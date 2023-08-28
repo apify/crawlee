@@ -21,7 +21,6 @@ export interface IStorage {
  * @ignore
  */
 export class StorageManager<T extends IStorage = IStorage> {
-    private static readonly storageManagers = new Map<Constructor, StorageManager>();
     private readonly name: 'Dataset' | 'KeyValueStore' | 'RequestQueue';
     private readonly StorageConstructor: Constructor<T> & { name: string };
     private readonly cache = new Map<string, T>();
@@ -48,24 +47,24 @@ export class StorageManager<T extends IStorage = IStorage> {
         storageClass: Constructor<T>,
         config = Configuration.getGlobalConfig(),
     ): StorageManager<T> {
-        if (!this.storageManagers.has(storageClass)) {
+        if (!config.storageManagers.has(storageClass)) {
             const manager = new StorageManager(storageClass, config);
-            this.storageManagers.set(storageClass, manager);
+            config.storageManagers.set(storageClass, manager);
         }
 
-        return this.storageManagers.get(storageClass) as StorageManager<T>;
+        return config.storageManagers.get(storageClass) as StorageManager<T>;
     }
 
     /** @internal */
-    static clearCache(): void {
-        this.storageManagers.forEach((manager) => {
+    static clearCache(config = Configuration.getGlobalConfig()): void {
+        config.storageManagers.forEach((manager) => {
             if (manager.name === 'KeyValueStore') {
                 manager.cache.forEach((item) => {
                     (item as Dictionary).clearCache?.();
                 });
             }
         });
-        this.storageManagers.clear();
+        config.storageManagers.clear();
     }
 
     async openStorage(idOrName?: string | null, client?: StorageClient): Promise<T> {
