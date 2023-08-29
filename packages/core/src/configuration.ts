@@ -8,9 +8,9 @@ import type { MemoryStorageOptions } from '@crawlee/memory-storage';
 import type { Dictionary, StorageClient } from '@crawlee/types';
 import { pathExistsSync, readFileSync } from 'fs-extra';
 
-import type { EventManager } from './events';
-import { LocalEventManager } from './events';
-import { entries } from './typedefs';
+import { LocalEventManager, type EventManager } from './events';
+import type { StorageManager } from './storages';
+import { entries, type Constructor } from './typedefs';
 
 export interface ConfigurationOptions {
     /**
@@ -279,6 +279,8 @@ export class Configuration {
 
     /** @internal */
     static globalConfig?: Configuration;
+
+    public readonly storageManagers = new Map<Constructor, StorageManager>();
 
     /**
      * Creates new `Configuration` instance with provided options. Env vars will have precedence over those.
