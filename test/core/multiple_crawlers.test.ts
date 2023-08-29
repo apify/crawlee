@@ -1,5 +1,5 @@
-import { MemoryStorage } from "@crawlee/memory-storage";
-import { CheerioCrawler, Configuration } from "crawlee";
+import { MemoryStorage } from '@crawlee/memory-storage';
+import { CheerioCrawler, Configuration } from 'crawlee';
 
 describe('multiple crawlers', () => {
     test('Crawler instances with different StorageClients do not affect each other', async () => {
