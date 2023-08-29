@@ -64,7 +64,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         try {
             if (useIncognitoPages) {
                 browser = await this.library.launch(launchOptions).catch((error) => {
-                    this._notifyOfFailedLaunch();
+                    this._notifyOfFailedLaunch(launchContext);
                     throw error;
                 });
 
@@ -112,7 +112,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                 }
 
                 const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions).catch((error) => {
-                    this._notifyOfFailedLaunch();
+                    this._notifyOfFailedLaunch(launchContext);
                     throw error;
                 });
 
@@ -180,15 +180,16 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         return browser;
     }
 
-    private _notifyOfFailedLaunch() {
-        let debugMessage = `Failed to launch browser. ${this.launchOptions?.executablePath ? 'Check whether the provided executable path is correct.' : ''} `;
+    private _notifyOfFailedLaunch(launchContext: LaunchContext<BrowserType>) {
+        let debugMessage = `Failed to launch browser.`
+        + `${launchContext.launchOptions?.executablePath
+            ? ` Check whether the provided executable path is correct: ${launchContext.launchOptions?.executablePath}.` : ''}`;
         if (process.env.APIFY_IS_AT_HOME) {
-            debugMessage += 'Make sure you used the correct Actor template for Playwright: '
-                + 'your Dockerfile has to extend `apify/actor-node-playwright-*` (with a correct browser name). Or install ';
+            debugMessage += ' Make sure your Dockerfile extends apify/actor-node-playwright-*` (with a correct browser name). Or install';
         } else {
-            debugMessage += 'Try installing ';
+            debugMessage += ' Try installing';
         }
-        debugMessage += 'the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers).'
+        debugMessage += ' the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers).'
             + ' The original error will be displayed below.';
         log.error(debugMessage);
     }

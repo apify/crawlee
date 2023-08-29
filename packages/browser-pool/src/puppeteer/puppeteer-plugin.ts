@@ -74,12 +74,18 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 }
             } catch (error) {
                 await close();
+                let debugMessage = `Failed to launch browser.`
+                    + `${launchContext.launchOptions?.executablePath
+                        ? ` Check whether the provided executable path is correct: ${launchContext.launchOptions?.executablePath}.` : ''}`;
                 if (process.env.APIFY_IS_AT_HOME) {
-                    log.error('Failed to launch browser. Make sure you used the correct Actor template for Puppeteer:'
-                        + ' your Dockerfile has to extend `apify/actor-node-puppeteer-chrome`.'
-                        + ' Or install the missing dependencies manually, referring to the Puppeteer\'s troubleshooting guide.'
-                        + ' The original error will be displayed below.');
+                    debugMessage += ' Make sure your Dockerfile extends `apify/actor-node-puppeteer-chrome. Or install';
+                } else {
+                    debugMessage += ' Try installing';
                 }
+                debugMessage += ' browser, if it\'s missing, by running `npx @puppeteer/browsers install chromium --path [path]`'
+                    + ' and pointing `executablePath` to the downloaded executable (https://playwright.dev/docs/browsers).'
+                    + ' The original error will be displayed below.';
+                log.error(debugMessage);
                 throw error;
             }
         }
