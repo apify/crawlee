@@ -59,7 +59,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      *
      * @param [data] Data to be pushed to the default dataset.
      */
-    pushData(data: Parameters<Dataset['pushData']>): Promise<void>;
+    pushData(...args: Parameters<Dataset['pushData']>): Promise<void>;
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/docs/guides/got-scraping), allowing to override the request
      * options on the fly.

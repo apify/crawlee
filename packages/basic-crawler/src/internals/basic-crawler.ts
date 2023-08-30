@@ -77,8 +77,6 @@ export interface BasicCrawlingContext<
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinks(options?: SetRequired<EnqueueLinksOptions, 'urls'>): Promise<BatchAddRequestsResult>;
-
-    pushData(...args: Parameters<typeof Dataset.pushData>): ReturnType<typeof Dataset.pushData>;
 }
 
 /**
@@ -878,7 +876,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Pushes data to the default crawler dataset.
+     * Pushes data to the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
     async pushData(...args: Parameters<Dataset['pushData']>): Promise<void> {
         const dataset = await Dataset.open(undefined, { config: this.config });
@@ -886,10 +884,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Retrieves data from the default crawler dataset.
+     * Retrieves the default crawler {@apilink Dataset} by calling {@apilink Dataset.open}.
+     */
+    async getDataset(): Promise<Dataset> {
+        return Dataset.open(undefined, { config: this.config });
+    }
+
+    /**
+     * Retrieves data from the default crawler {@apilink Dataset} by calling {@apilink Dataset.getData}.
      */
     async getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']> {
-        const dataset = await Dataset.open(undefined, { config: this.config });
+        const dataset = await this.getDataset();
         return dataset.getData(...args);
     }
 
