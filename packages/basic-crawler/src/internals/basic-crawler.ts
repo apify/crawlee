@@ -1152,7 +1152,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 );
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
-                if (!secondaryError.triggeredFromUserHandler) {
+                if (!secondaryError.triggeredFromUserHandler
+                    // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
+                    && !(secondaryError instanceof CriticalError)) {
                     const apifySpecific = process.env.APIFY_IS_AT_HOME
                         ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.` : '';
                     this.log.exception(secondaryError as Error, 'An exception occurred during handling of failed request. '

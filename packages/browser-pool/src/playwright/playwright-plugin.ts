@@ -3,6 +3,7 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 
+import { CriticalError } from '@crawlee/core';
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
 import { loadFirefoxAddon } from './load-firefox-addon';
@@ -63,7 +64,9 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
 
         try {
             if (useIncognitoPages) {
-                browser = await this.library.launch(launchOptions);
+                browser = await this.library.launch(launchOptions).catch((error) => {
+                    return this._throwOnFailedLaunch(launchContext, error);
+                });
 
                 if (anonymizedProxyUrl) {
                     browser.on('disconnected', async () => {
@@ -108,7 +111,9 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                     }
                 }
 
-                const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions);
+                const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions).catch((error) => {
+                    return this._throwOnFailedLaunch(launchContext, error);
+                });
 
                 browserContext.once('close', () => {
                     if (userDataDir.includes('apify-playwright-firefox-taac-')) {
@@ -172,6 +177,22 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         }
 
         return browser;
+    }
+
+    private _throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
+        let debugMessage = `Failed to launch browser.`
+        + `${launchContext.launchOptions?.executablePath
+            ? ` Check whether the provided executable path is correct: ${launchContext.launchOptions?.executablePath}.` : ''}`;
+        if (process.env.APIFY_IS_AT_HOME) {
+            debugMessage += ' Make sure your Dockerfile extends apify/actor-node-playwright-*` (with a correct browser name). Or install';
+        } else {
+            debugMessage += ' Try installing';
+        }
+        debugMessage += ' the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers).'
+            + ' The original error will be displayed at the bottom as the [cause].';
+        throw new CriticalError(debugMessage, {
+            cause,
+        });
     }
 
     protected _createController(): BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {

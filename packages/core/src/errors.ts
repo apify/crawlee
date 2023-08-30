@@ -5,6 +5,7 @@ export class NonRetryableError extends Error {}
 
 /**
  * Errors of `CriticalError` type will shut down the whole crawler.
+ * Error handlers catching CriticalError should avoid logging it, as it will be logged by Node.js itself at the end
  */
 export class CriticalError extends NonRetryableError {}
 

@@ -9,6 +9,7 @@ import { Snapshotter } from './snapshotter';
 import type { SystemInfo, SystemStatusOptions } from './system_status';
 import { SystemStatus } from './system_status';
 import { Configuration } from '../configuration';
+import { CriticalError } from '../errors';
 import { log as defaultLog } from '../log';
 
 export interface AutoscaledPoolOptions {
@@ -551,7 +552,12 @@ export class AutoscaledPool {
             // We might have already rejected this promise.
             if (this.reject) {
                 // No need to log all concurrent errors.
-                this.log.exception(err, 'runTaskFunction failed.');
+                if (
+                    // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
+                    !(e instanceof CriticalError)
+                ) {
+                    this.log.exception(err, 'runTaskFunction failed.');
+                }
                 this.reject(err);
             }
         }
