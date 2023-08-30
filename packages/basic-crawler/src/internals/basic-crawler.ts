@@ -40,6 +40,7 @@ import {
     validators,
     RetryRequestError,
     SessionError,
+    Dataset,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
@@ -76,6 +77,8 @@ export interface BasicCrawlingContext<
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinks(options?: SetRequired<EnqueueLinksOptions, 'urls'>): Promise<BatchAddRequestsResult>;
+
+    pushData(...args: Parameters<typeof Dataset.pushData>): ReturnType<typeof Dataset.pushData>;
 }
 
 /**
@@ -874,6 +877,22 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return requestQueue.addRequestsBatched(requests, options);
     }
 
+    /**
+     * Pushes data to the default crawler dataset.
+     */
+    async pushData(...args: Parameters<Dataset['pushData']>): Promise<void> {
+        const dataset = await Dataset.open(undefined, { config: this.config });
+        return dataset.pushData(...args);
+    }
+
+    /**
+     * Retrieves data from the default crawler dataset.
+     */
+    async getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']> {
+        const dataset = await Dataset.open(undefined, { config: this.config });
+        return dataset.getData(...args);
+    }
+
     protected async _init(): Promise<void> {
         if (!this.events.isInitialized()) {
             await this.events.init();
@@ -1067,6 +1086,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     requestQueue: await this.getRequestQueue(),
                     ...options,
                 });
+            },
+            pushData: async (...args: Parameters<Dataset['pushData']>) => {
+                return this.pushData(...args);
             },
             sendRequest: async (overrideOptions?: OptionsInit) => {
                 const cookieJar = session ? {
