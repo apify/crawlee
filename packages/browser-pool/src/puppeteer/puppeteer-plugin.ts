@@ -84,7 +84,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                     debugMessage += ' Try installing';
                 }
                 debugMessage += ` a browser, if it's missing, by running \`npx @puppeteer/browsers install chromium --path [path]\``
-                    + ` and pointing \`executablePath\` to the downloaded executable (https://playwright.dev/docs/browsers).`
+                    + ` and pointing \`executablePath\` to the downloaded executable (https://pptr.dev/browsers-api).`
                     + ` The original error will be displayed at the bottom as the [cause].`;
                 throw new CriticalError(debugMessage, {
                     cause: error,
