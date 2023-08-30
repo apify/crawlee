@@ -65,8 +65,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         try {
             if (useIncognitoPages) {
                 browser = await this.library.launch(launchOptions).catch((error) => {
-                    this._throwOnFailedLaunch(launchContext, error);
-                    throw error;
+                    return this._throwOnFailedLaunch(launchContext, error);
                 });
 
                 if (anonymizedProxyUrl) {
@@ -113,8 +112,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                 }
 
                 const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions).catch((error) => {
-                    this._throwOnFailedLaunch(launchContext, error);
-                    throw error;
+                    return this._throwOnFailedLaunch(launchContext, error);
                 });
 
                 browserContext.once('close', () => {
@@ -181,7 +179,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         return browser;
     }
 
-    private _throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown) {
+    private _throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
         let debugMessage = `Failed to launch browser.`
         + `${launchContext.launchOptions?.executablePath
             ? ` Check whether the provided executable path is correct: ${launchContext.launchOptions?.executablePath}.` : ''}`;
