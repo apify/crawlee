@@ -3,6 +3,7 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 
+import { CriticalError } from '@crawlee/core';
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
 import { loadFirefoxAddon } from './load-firefox-addon';
@@ -64,7 +65,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         try {
             if (useIncognitoPages) {
                 browser = await this.library.launch(launchOptions).catch((error) => {
-                    this._notifyOfFailedLaunch(launchContext);
+                    this._throwOnFailedLaunch(launchContext, error);
                     throw error;
                 });
 
@@ -112,7 +113,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                 }
 
                 const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions).catch((error) => {
-                    this._notifyOfFailedLaunch(launchContext);
+                    this._throwOnFailedLaunch(launchContext, error);
                     throw error;
                 });
 
@@ -180,7 +181,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         return browser;
     }
 
-    private _notifyOfFailedLaunch(launchContext: LaunchContext<BrowserType>) {
+    private _throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown) {
         let debugMessage = `Failed to launch browser.`
         + `${launchContext.launchOptions?.executablePath
             ? ` Check whether the provided executable path is correct: ${launchContext.launchOptions?.executablePath}.` : ''}`;
@@ -190,8 +191,10 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
             debugMessage += ' Try installing';
         }
         debugMessage += ' the required dependencies by running `npx playwright install --with-deps` (https://playwright.dev/docs/browsers).'
-            + ' The original error will be displayed below.';
-        log.error(debugMessage);
+            + ' The original error will be displayed at the bottom as the [cause].';
+        throw new CriticalError(debugMessage, {
+            cause,
+        });
     }
 
     protected _createController(): BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {

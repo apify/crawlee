@@ -1,3 +1,4 @@
+import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
@@ -72,7 +73,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         await close();
                     });
                 }
-            } catch (error) {
+            } catch (error: any) {
                 await close();
                 let debugMessage = `Failed to launch browser.`
                     + `${launchContext.launchOptions?.executablePath
@@ -82,11 +83,12 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 } else {
                     debugMessage += ' Try installing';
                 }
-                debugMessage += ' browser, if it\'s missing, by running `npx @puppeteer/browsers install chromium --path [path]`'
-                    + ' and pointing `executablePath` to the downloaded executable (https://playwright.dev/docs/browsers).'
-                    + ' The original error will be displayed below.';
-                log.error(debugMessage);
-                throw error;
+                debugMessage += ` a browser, if it's missing, by running \`npx @puppeteer/browsers install chromium --path [path]\``
+                    + ` and pointing \`executablePath\` to the downloaded executable (https://playwright.dev/docs/browsers).`
+                    + ` The original error will be displayed at the bottom as the [cause].`;
+                throw new CriticalError(debugMessage, {
+                    cause: error,
+                });
             }
         }
 
