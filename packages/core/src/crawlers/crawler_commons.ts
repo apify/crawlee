@@ -6,6 +6,7 @@ import type { Log } from '../log';
 import type { ProxyInfo } from '../proxy_configuration';
 import type { Request } from '../request';
 import type { Session } from '../session_pool/session';
+import { type Dataset } from '../storages';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
@@ -50,6 +51,15 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
+
+    /**
+     * This function allows you to push data to the default {@apilink Dataset} currently used by the crawler.
+     *
+     * Shortcut for `crawler.pushData()`.
+     *
+     * @param [data] Data to be pushed to the default dataset.
+     */
+    pushData(...args: Parameters<Dataset['pushData']>): Promise<void>;
 
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/docs/guides/got-scraping), allowing to override the request

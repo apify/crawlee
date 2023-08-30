@@ -1381,4 +1381,56 @@ describe('BasicCrawler', () => {
             expect(crawler).toBeTruthy();
         });
     });
+
+    describe('Dataset helpers, crawler paralellism', () => {
+        const payload: Dictionary<any>[] = [{ foo: 'bar' }];
+        const getPayload: (id: string) => Dictionary<any>[] = (id) => [{ foo: id }];
+
+        test('should expose default Dataset methods', async () => {
+            const crawler = new BasicCrawler();
+
+            await crawler.pushData(payload);
+
+            expect((await crawler.getData()).items)
+                .toEqual(payload);
+        });
+
+        test('should expose pushData helper', async () => {
+            const crawler = new BasicCrawler({
+                requestHandler: ({ pushData }) => pushData(payload),
+            });
+
+            await crawler.run([{
+                url: `http://${HOSTNAME}:${port}`,
+            }]);
+
+            expect((await crawler.getData()).items)
+                .toEqual(payload);
+        });
+
+        test("Crawlers with different Configurations don't share Datasets", async () => {
+            const crawlerA = new BasicCrawler({}, new Configuration({ persistStorage: false }));
+            const crawlerB = new BasicCrawler({}, new Configuration({ persistStorage: false }));
+
+            await crawlerA.pushData(getPayload('A'));
+            await crawlerB.pushData(getPayload('B'));
+
+            expect((await crawlerA.getData()).items)
+                .toEqual(getPayload('A'));
+
+            expect((await crawlerB.getData()).items)
+                .toEqual(getPayload('B'));
+        });
+
+        test('Crawlers with different Configurations run separately', async () => {
+            const crawlerA = new BasicCrawler({ requestHandler: () => {} }, new Configuration({ persistStorage: false }));
+            const crawlerB = new BasicCrawler({ requestHandler: () => {} }, new Configuration({ persistStorage: false }));
+
+            await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
+            await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
+
+            expect(crawlerA.stats.state.requestsFinished).toBe(1);
+            expect(crawlerB.stats.state.requestsFinished).toBe(1);
+        });
+    });
 });
