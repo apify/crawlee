@@ -139,7 +139,7 @@ jobs:
 
             -   name: Pin versions in internal dependencies and update lockfile
                 run: |
-                    yarn release:tilde
+                    yarn release:pin-versions
                     yarn install --no-immutable
                     git add .
                     git diff-index --quiet HEAD || git commit -m 'chore(release): update internal dependencies [skip ci]'
