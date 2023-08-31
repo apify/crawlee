@@ -9,10 +9,6 @@ import { Configuration } from '../configuration';
 interface PurgeDefaultStorageOptions {
     /**
      * If set to `true`, calling multiple times will only have effect at the first time.
-     *
-     * @type {boolean}
-     * @optional
-     * @default false
      */
     onlyPurgeOnce?: boolean;
     config?: Configuration;
