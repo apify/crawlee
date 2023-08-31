@@ -1,4 +1,4 @@
-import { Dataset, createCheerioRouter } from 'crawlee';
+import { createCheerioRouter } from 'crawlee';
 
 export const router = createCheerioRouter();
 
@@ -10,11 +10,11 @@ router.addDefaultHandler(async ({ enqueueLinks, log }) => {
     });
 });
 
-router.addHandler('detail', async ({ request, $, log }) => {
+router.addHandler('detail', async ({ request, $, log, pushData }) => {
     const title = $('title').text();
     log.info(`${title}`, { url: request.loadedUrl });
 
-    await Dataset.pushData({
+    await pushData({
         url: request.loadedUrl,
         title,
     });

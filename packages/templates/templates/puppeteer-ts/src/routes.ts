@@ -1,4 +1,4 @@
-import { Dataset, createPuppeteerRouter } from 'crawlee';
+import { createPuppeteerRouter } from 'crawlee';
 
 export const router = createPuppeteerRouter();
 
@@ -10,11 +10,11 @@ router.addDefaultHandler(async ({ enqueueLinks, log }) => {
     });
 });
 
-router.addHandler('detail', async ({ request, page, log }) => {
+router.addHandler('detail', async ({ request, page, log, pushData }) => {
     const title = await page.title();
     log.info(`${title}`, { url: request.loadedUrl });
 
-    await Dataset.pushData({
+    await pushData({
         url: request.loadedUrl,
         title,
     });
