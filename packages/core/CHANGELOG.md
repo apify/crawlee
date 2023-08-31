@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.3](https://github.com/apify/crawlee/compare/v3.5.2...v3.5.3) (2023-08-31)
+
+
+### Bug Fixes
+
+* **browser-pool:** improve error handling when browser is not found ([#2050](https://github.com/apify/crawlee/issues/2050)) ([282527f](https://github.com/apify/crawlee/commit/282527f31bb366a4e52463212f652dcf6679b6c3)), closes [#1459](https://github.com/apify/crawlee/issues/1459)
+* crawler instances with different StorageClients do not affect each other ([#2056](https://github.com/apify/crawlee/issues/2056)) ([3f4c863](https://github.com/apify/crawlee/commit/3f4c86352bdbad1c6a8dd10a2c49a1889ca206fa))
+* pin all internal dependencies ([#2041](https://github.com/apify/crawlee/issues/2041)) ([d6f2b17](https://github.com/apify/crawlee/commit/d6f2b172d4a6776137c7893ca798d5b4a9408e79)), closes [#2040](https://github.com/apify/crawlee/issues/2040)
+
+
+### Features
+
+* **core:** add default dataset helpers to `BasicCrawler` ([#2057](https://github.com/apify/crawlee/issues/2057)) ([e2a7544](https://github.com/apify/crawlee/commit/e2a7544ddf775db023ca25553d21cb73484fcd8c))
+
+
+
+
+
 ## [3.5.2](https://github.com/apify/crawlee/compare/v3.5.1...v3.5.2) (2023-08-21)
 
 
