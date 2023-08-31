@@ -181,7 +181,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
         const { limit, lockSecs } = s.object({
-            limit: s.number.optional.default(100),
+            limit: s.number.lessThanOrEqual(25).optional.default(25),
             lockSecs: s.number,
         }).parse(options);
 
