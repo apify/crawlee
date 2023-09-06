@@ -3,7 +3,13 @@ import type { Dictionary, StorageClient } from '@crawlee/types';
 import { KeyValueStore } from './key_value_store';
 import { Configuration } from '../configuration';
 
+/**
+ * Options for purging default storage.
+ */
 interface PurgeDefaultStorageOptions {
+    /**
+     * If set to `true`, calling multiple times will only have effect at the first time.
+     */
     onlyPurgeOnce?: boolean;
     config?: Configuration;
     client?: StorageClient;
@@ -18,11 +24,11 @@ interface PurgeDefaultStorageOptions {
  * option or by setting `CRAWLEE_PURGE_ON_START` environment variable to `0` or `false`.
  *
  * This is a shortcut for running (optional) `purge` method on the StorageClient interface, in other words
- * it will call the `purge` method of the underlying storage implementation we are currently using. In addition,
- * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
- * it multiple times.
+ * it will call the `purge` method of the underlying storage implementation we are currently using. You can
+ * make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in
+ * the `options` object
  */
-export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
+export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 /**
  * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
  * Purging will remove all the files in all storages except for INPUT.json in the default KV store.
@@ -32,11 +38,9 @@ export async function purgeDefaultStorages(config?: Configuration, client?: Stor
  * option or by setting `CRAWLEE_PURGE_ON_START` environment variable to `0` or `false`.
  *
  * This is a shortcut for running (optional) `purge` method on the StorageClient interface, in other words
- * it will call the `purge` method of the underlying storage implementation we are currently using. In addition,
- * this method will make sure the storage is purged only once for a given execution context, so it is safe to call
- * it multiple times, unless you set `onlyPurgeOnce` to `false` in the `options` object
+ * it will call the `purge` method of the underlying storage implementation we are currently using.
  */
-export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
+export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
 export async function purgeDefaultStorages(
     configOrOptions?: Configuration | PurgeDefaultStorageOptions,
     client?: StorageClient,
@@ -47,7 +51,7 @@ export async function purgeDefaultStorages(
     } : configOrOptions ?? {};
     const {
         config = Configuration.getGlobalConfig(),
-        onlyPurgeOnce = true,
+        onlyPurgeOnce = false,
     } = options;
     ({ client = config.getStorageClient() } = options);
 

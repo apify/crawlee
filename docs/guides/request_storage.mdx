@@ -143,4 +143,4 @@ import { purgeDefaultStorages } from 'crawlee';
 await purgeDefaultStorages();
 ```
 
-Calling this function will clean up the default request storage directory (and also the request list stored in default key-value store). This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageClient">`StorageClient`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.
+Calling this function will clean up the default request storage directory (and also the request list stored in default key-value store). This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageClient">`StorageClient`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. You can make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in the `options` object.
