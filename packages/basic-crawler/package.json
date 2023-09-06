@@ -51,7 +51,7 @@
         "@crawlee/core": "3.5.3",
         "@crawlee/types": "3.5.3",
         "@crawlee/utils": "3.5.3",
-        "got-scraping": "^3.2.9",
+        "got-scraping": "^3.2.15",
         "ow": "^0.28.1",
         "tldts": "^6.0.0",
         "tslib": "^2.4.0",
