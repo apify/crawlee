@@ -1355,6 +1355,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
                 return error;
             },
+            configurable: true,
         });
 
         return context;
