@@ -18,6 +18,7 @@ module.exports = {
                 'introduction/scraping',
                 'introduction/saving-data',
                 'introduction/refactoring',
+                'introduction/deployment',
             ],
         },
         {
