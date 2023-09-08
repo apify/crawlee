@@ -25,6 +25,7 @@ import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { KeyValueStore, RequestState, validators } from '@crawlee/browser';
+import { Configuration } from '@crawlee/core';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -630,6 +631,12 @@ export interface SaveSnapshotOptions {
      * @default null
      */
     keyValueStoreName?: string | null;
+
+    /**
+     * Configuration of the crawler that will be used to save the snapshot.
+     * @default null
+     */
+    config?: Configuration | null;
 }
 
 /**
@@ -645,6 +652,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
         saveScreenshot: ow.optional.boolean,
         saveHtml: ow.optional.boolean,
         keyValueStoreName: ow.optional.string,
+        config: ow.optional.object,
     }));
 
     const {
@@ -653,10 +661,11 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
         saveScreenshot = true,
         saveHtml = true,
         keyValueStoreName,
+        config,
     } = options;
 
     try {
-        const store = await KeyValueStore.open(keyValueStoreName);
+        const store = await KeyValueStore.open(keyValueStoreName, { config: config ?? Configuration.getGlobalConfig() });
 
         if (saveScreenshot) {
             const screenshotName = `${key}.jpg`;
@@ -962,7 +971,7 @@ export function registerUtilsToContext(context: PuppeteerCrawlingContext): void 
     context.addInterceptRequestHandler = (handler: InterceptHandler) => addInterceptRequestHandler(context.page, handler);
     context.removeInterceptRequestHandler = (handler: InterceptHandler) => removeInterceptRequestHandler(context.page, handler);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, options);
+    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
     context.closeCookieModals = () => closeCookieModals(context.page);
 }
 

@@ -25,6 +25,7 @@ import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { validators, KeyValueStore, RequestState } from '@crawlee/browser';
+import { Configuration } from '@crawlee/core';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -498,6 +499,12 @@ export interface SaveSnapshotOptions {
      * @default null
      */
     keyValueStoreName?: string | null;
+
+    /**
+     * Configuration of the crawler that will be used to save the snapshot.
+     * @default null
+     */
+    config?: Configuration | null;
 }
 
 /**
@@ -513,6 +520,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
         saveScreenshot: ow.optional.boolean,
         saveHtml: ow.optional.boolean,
         keyValueStoreName: ow.optional.string,
+        config: ow.optional.object,
     }));
 
     const {
@@ -521,10 +529,11 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
         saveScreenshot = true,
         saveHtml = true,
         keyValueStoreName,
+        config,
     } = options;
 
     try {
-        const store = await KeyValueStore.open(keyValueStoreName);
+        const store = await KeyValueStore.open(keyValueStoreName, { config: config ?? Configuration.getGlobalConfig() });
 
         if (saveScreenshot) {
             const screenshotName = `${key}.jpg`;
@@ -756,7 +765,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
     context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = () => parseWithCheerio(context.page);
     context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, options);
+    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
     context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         ...options,
         page: context.page,
