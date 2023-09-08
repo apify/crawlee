@@ -181,8 +181,8 @@ function Deployment() {
                 <p>
                     Crawlee is developed by <a href="https://apify.com" rel="dofollow" target="_blank"><b>Apify</b></a>, the web scraping and automation platform.
                     You can deploy a <b>Crawlee</b> project wherever you want, but using the <a href="https://console.apify.com/" target="_blank"><b>Apify
-                    platform</b></a> will give you the best experience. With a few simple steps, you can convert your Crawlee project into a so
-                    called <b>Actor</b>. Actors are serverless micro-apps that are easy to develop, run, share, and integrate. The infra, proxies,
+                    platform</b></a> will give you the best experience. With a few simple steps, you can convert your Crawlee project into a so-called&nbsp;
+                    <b>Actor</b>. Actors are serverless micro-apps that are easy to develop, run, share, and integrate. The infra, proxies,
                     and storages are ready to go. <a href="https://apify.com/actors" target="_blank">Learn more about Actors</a>.
                 </p>
                 <p>
