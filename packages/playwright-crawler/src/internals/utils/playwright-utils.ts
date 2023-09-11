@@ -24,8 +24,7 @@ import vm from 'vm';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { validators, KeyValueStore, RequestState } from '@crawlee/browser';
-import { Configuration } from '@crawlee/core';
+import { validators, KeyValueStore, RequestState, Configuration } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -502,9 +501,9 @@ export interface SaveSnapshotOptions {
 
     /**
      * Configuration of the crawler that will be used to save the snapshot.
-     * @default null
+     * @default Configuration.getGlobalConfig()
      */
-    config?: Configuration | null;
+    config?: Configuration;
 }
 
 /**
