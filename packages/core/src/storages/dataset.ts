@@ -301,7 +301,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
      */
     async exportTo(key: string, options?: ExportOptions, contentType?: string): Promise<void> {
-        const kvStore = await KeyValueStore.open(options?.toKVS ?? null);
+        const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { config: this.config });
         const items: Data[] = [];
 
         const fetchNextChunk = async (offset = 0): Promise<void> => {

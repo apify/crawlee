@@ -77,6 +77,11 @@ export class Statistics {
      */
     readonly requestRetryHistogram: number[] = [];
 
+    /**
+     * Contains the associated Configuration instance
+     */
+    private readonly config: Configuration;
+
     private keyValueStore?: KeyValueStore = undefined;
     private persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
     private logIntervalMillis: number;
@@ -111,6 +116,7 @@ export class Statistics {
         this.keyValueStore = keyValueStore;
         this.listener = this.persistState.bind(this);
         this.events = config.getEventManager();
+        this.config = config;
 
         // initialize by "resetting"
         this.reset();
@@ -239,7 +245,7 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
-        this.keyValueStore ??= await KeyValueStore.open();
+        this.keyValueStore ??= await KeyValueStore.open(null, { config: this.config });
 
         await this._maybeLoadStatistics();
 
