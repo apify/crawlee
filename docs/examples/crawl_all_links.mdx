@@ -5,7 +5,7 @@ title: Crawl all links on a website
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
 import CheerioSource from '!!raw-loader!./crawl_all_links_cheerio.ts';
@@ -26,9 +26,9 @@ option. You can find more info about this option in the [`Crawl relative links`]
 
 <TabItem value="cheerio_crawler" label="Cheerio Crawler" default>
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{CheerioSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -40,9 +40,9 @@ To run this example on the Apify Platform, select the `apify/actor-node-puppetee
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{PuppeteerSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -54,9 +54,9 @@ To run this example on the Apify Platform, select the `apify/actor-node-playwrig
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{PlaywrightSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 

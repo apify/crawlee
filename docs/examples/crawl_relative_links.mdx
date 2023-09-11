@@ -5,7 +5,7 @@ title: Crawl a website with relative links
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
 import AllLinksSource from '!!raw-loader!./crawl_relative_links_all.ts';
@@ -44,9 +44,9 @@ Any urls found will be matched by this strategy, even if they go off of the site
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{AllLinksSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -63,9 +63,9 @@ For instance, hyperlinks like `https://example.com/some/path`, `/absolute/exampl
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
     {SameHostnameSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -79,9 +79,9 @@ For instance, hyperlinks like `https://subdomain.example.com/some/path`, `/absol
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
     {SameDomainSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 

@@ -9,6 +9,7 @@ import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import Highlights from '../components/Highlights';
 import styles from './index.module.css';
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
+import RunnableCodeBlock from '../components/RunnableCodeBlock';
 
 function Hero() {
     return (
@@ -141,9 +142,9 @@ function ActorExample() {
                 <CodeBlock className="language-bash">
                     npm install crawlee playwright
                 </CodeBlock>
-                <CodeBlock className="language-typescript">
+                <RunnableCodeBlock className="language-typescript">
                     {example}
-                </CodeBlock>
+                </RunnableCodeBlock>
             </div>
         </section>
     );

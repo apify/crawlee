@@ -3,7 +3,7 @@ id: basic-crawler
 title: Basic crawler
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 import BasicCrawlerSource from '!!raw-loader!./basic_crawler.ts';
 
@@ -14,6 +14,6 @@ The script simply downloads several web pages with plain HTTP requests using the
 npm module internally) and stores their raw HTML and URL in the default dataset. In local configuration, the data will be stored as JSON files in
 `./storage/datasets/default`.
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{BasicCrawlerSource}
-</CodeBlock>
+</RunnableCodeBlock>

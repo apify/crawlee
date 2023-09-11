@@ -3,14 +3,14 @@ id: accept-user-input
 title: Accept user input
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import AcceptInputSource from '!!raw-loader!./accept_user_input.ts';
 
 This example accepts and logs user input:
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{AcceptInputSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 To provide the actor with input, create a `INPUT.json` file inside the "default" key-value store:
 

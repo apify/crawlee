@@ -20,7 +20,8 @@
         }
     },
     "rules": {
-        "quote-props": ["error", "consistent"]
+        "quote-props": ["error", "consistent"],
+        "no-void": 0
     },
     "root": true
 }
