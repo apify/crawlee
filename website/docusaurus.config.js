@@ -1,4 +1,5 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
+const webpack = require('webpack');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -124,6 +125,46 @@ module.exports = {
                 id: 'GTM-5P7MCS7',
             },
         ],
+        async function runnableCodeBlock(context, options) {
+            // ...
+            return {
+                name: 'runnable-code-block',
+                // async loadContent() {
+                //     // ...
+                // },
+                // async contentLoaded({content, actions}) {
+                //     // ...
+                // },
+                configureWebpack(config, isServer) {
+                    if (isServer) {
+                        return {};
+                    }
+
+                    return {
+                        resolve: {
+                            alias: {
+                                path: require.resolve('path-browserify'),
+                            },
+                            fallback: {
+                                'crypto': require.resolve('crypto-browserify'),
+                                'node:crypto': require.resolve('crypto-browserify'),
+                                'stream': require.resolve('stream-browserify'),
+                                'node:stream': require.resolve('stream-browserify'),
+                                'buffer': require.resolve('buffer'),
+                            },
+                        },
+                        plugins: [
+                            new webpack.ProvidePlugin({
+                                process: 'process/browser',
+                            }),
+                            new webpack.ProvidePlugin({
+                                Buffer: ['buffer', 'Buffer'],
+                            }),
+                        ],
+                    };
+                },
+            };
+        },
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({
