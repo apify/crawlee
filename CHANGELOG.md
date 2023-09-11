@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.4](https://github.com/apify/crawlee/compare/v3.5.3...v3.5.4) (2023-09-11)
+
+
+### Bug Fixes
+
+* **core:** allow explicit calls to `purgeDefaultStorage` to wipe the storage on each call ([#2060](https://github.com/apify/crawlee/issues/2060)) ([4831f07](https://github.com/apify/crawlee/commit/4831f073e5639fdfb058588bc23c4b673be70929))
+* various helpers opening KVS now respect Configuration ([#2071](https://github.com/apify/crawlee/issues/2071)) ([59dbb16](https://github.com/apify/crawlee/commit/59dbb164699774e5a6718e98d0a4e8f630f35323))
+
+
+### Features
+
+* remove side effect from the deprecated error context augmentation ([#2069](https://github.com/apify/crawlee/issues/2069)) ([f9fb5c4](https://github.com/apify/crawlee/commit/f9fb5c42ecb14f8d0845a15982d204bd2b5b228f))
+
+
+
+
+
 ## [3.5.3](https://github.com/apify/crawlee/compare/v3.5.2...v3.5.3) (2023-08-31)
 
 
