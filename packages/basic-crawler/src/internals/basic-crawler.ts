@@ -24,6 +24,7 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
+    Dataset,
     AutoscaledPool,
     Configuration,
     EventType,
