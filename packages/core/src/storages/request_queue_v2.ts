@@ -7,15 +7,11 @@ import {
     getRequestId,
 } from './utils';
 import { Configuration } from '../configuration';
+import { EventType } from '../events';
 import type { Request } from '../request';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;
-
-/**
- * When prolonging a lock, we do it for 3 minutes from Date.now()
- */
-const PROLONG_LOCK_BY_SECS = 3 * 60;
 
 /**
  * This number must be large enough so that processing of all these requests cannot be done in
@@ -34,6 +30,16 @@ class RequestQueue extends RequestProvider {
             recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
             requestCacheMaxSize: MAX_CACHED_REQUESTS,
         }, config);
+
+        const eventManager = config.getEventManager();
+
+        eventManager.on(EventType.MIGRATING, async () => {
+            await this._clearPossibleLocks();
+        });
+
+        eventManager.on(EventType.ABORTING, async () => {
+            await this._clearPossibleLocks();
+        });
     }
 
     /**
@@ -150,7 +156,7 @@ class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
-        const headData = await this.client.listAndLockHead({ limit: 25, lockSecs: PROLONG_LOCK_BY_SECS });
+        const headData = await this.client.listAndLockHead({ limit: 25, lockSecs: this.requestLockSecs });
 
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
@@ -252,7 +258,7 @@ class RequestQueue extends RequestProvider {
 
     private async _prolongRequestLock(requestId: string): Promise<Date | null> {
         try {
-            const res = await this.client.prolongRequestLock(requestId, { lockSecs: PROLONG_LOCK_BY_SECS });
+            const res = await this.client.prolongRequestLock(requestId, { lockSecs: this.requestLockSecs });
             return res.lockExpiresAt;
         } catch (err: any) {
             // Most likely we do not own the lock anymore
@@ -271,6 +277,20 @@ class RequestQueue extends RequestProvider {
 
     protected override _maybeAddRequestToQueueHead() {
         // Do nothing for request queue v2, as we are only able to lock requests when listing the head
+    }
+
+    protected async _clearPossibleLocks() {
+        this.queuePausedForMigration = true;
+        let requestId: string | null;
+
+        // eslint-disable-next-line no-cond-assign
+        while ((requestId = this.queueHeadIds.removeFirst()) !== null) {
+            try {
+                await this.client.deleteRequestLock(requestId);
+            } catch {
+                // We don't have the lock, or the request was never locked. Either way it's fine
+            }
+        }
     }
 }
 

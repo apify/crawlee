@@ -17,7 +17,6 @@ import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
-import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
 import { Request } from '../request';
@@ -34,6 +33,7 @@ export abstract class RequestProvider implements IStorage {
 
     log: Log;
     internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
+    requestLockSecs = 3 * 60; // defaults to 3 minutes, will be overridden by BasicCrawler
 
     // We can trust these numbers only in a case that queue is used by a single client.
     // This information is returned by getHead() under the hadMultipleClients property.
@@ -63,16 +63,6 @@ export abstract class RequestProvider implements IStorage {
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
         this.log = log.child({ prefix: options.logPrefix });
-
-        const eventManager = config.getEventManager();
-
-        eventManager.on(EventType.MIGRATING, async () => {
-            await this._clearPossibleLocks();
-        });
-
-        eventManager.on(EventType.ABORTING, async () => {
-            await this._clearPossibleLocks();
-        });
     }
 
     /**
@@ -611,20 +601,6 @@ export abstract class RequestProvider implements IStorage {
      */
     private async _downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<string[]> {
         return downloadListOfUrls(options);
-    }
-
-    protected async _clearPossibleLocks() {
-        this.queuePausedForMigration = true;
-        let requestId: string | null;
-
-        // eslint-disable-next-line no-cond-assign
-        while ((requestId = this.queueHeadIds.removeFirst()) !== null) {
-            try {
-                await this.client.deleteRequestLock(requestId);
-            } catch {
-                // We don't have the lock, or the request was never locked. Either way it's fine
-            }
-        }
     }
 
     /**

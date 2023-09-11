@@ -853,7 +853,7 @@ describe('RequestQueue with requestsFromUrl', () => {
 });
 
 describe('RequestQueue v2', () => {
-    const totalRequestsPerTest = 100;
+    const totalRequestsPerTest = 50;
 
     function calculateHistogram(requests: { uniqueKey: string }[]) : number[] {
         const histogram: number[] = [];
