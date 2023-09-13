@@ -30,6 +30,7 @@ const crawler = new PlaywrightCrawler({
             await page.waitForSelector('div[data-test="actorCard"] a');
             await enqueueLinks({
                 selector: 'div[data-test="actorCard"] a',
+                // highlight-next-line
                 label: 'DETAIL', // <= note the different label
             });
         }
