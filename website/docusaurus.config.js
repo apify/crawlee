@@ -1,4 +1,5 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
+const webpack = require('webpack');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
