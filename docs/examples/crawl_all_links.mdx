@@ -8,9 +8,9 @@ import TabItem from '@theme/TabItem';
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
-import CheerioSource from '!!raw-loader!./crawl_all_links_cheerio.ts';
-import PuppeteerSource from '!!raw-loader!./crawl_all_links_puppeteer.ts';
-import PlaywrightSource from '!!raw-loader!./crawl_all_links_playwright.ts';
+import CheerioSource from '!!raw-loader!roa-loader!./crawl_all_links_cheerio.ts';
+import PuppeteerSource from '!!raw-loader!roa-loader!./crawl_all_links_puppeteer.ts';
+import PlaywrightSource from '!!raw-loader!roa-loader!./crawl_all_links_playwright.ts';
 
 This example uses the `enqueueLinks()` method to add new links to the `RequestQueue`
 as the crawler navigates from page to page.

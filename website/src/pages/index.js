@@ -143,7 +143,10 @@ function ActorExample() {
                     npm install crawlee playwright
                 </CodeBlock>
                 <RunnableCodeBlock className="language-typescript">
-                    {example}
+                    {{
+                        code: example,
+                        runUrl: 'https://fix.me',
+                    }}
                 </RunnableCodeBlock>
             </div>
         </section>

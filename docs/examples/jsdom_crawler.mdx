@@ -5,8 +5,8 @@ title: JSDOM crawler
 
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import JSDOMCrawlerSource from '!!raw-loader!./jsdom_crawler.ts';
-import JSDOMCrawlerRunScriptSource from '!!raw-loader!./jsdom_crawler_react.ts';
+import JSDOMCrawlerSource from '!!raw-loader!roa-loader!./jsdom_crawler.ts';
+import JSDOMCrawlerRunScriptSource from '!!raw-loader!roa-loader!./jsdom_crawler_react.ts';
 
 This example demonstrates how to use <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink> to interact with a website using [jsdom](https://www.npmjs.com/package/jsdom) DOM implementation.
 Here the script will open a calculator app from the [React examples](https://reactjs.org/community/examples.html), click `1` `+` `1` `=` and extract the result.

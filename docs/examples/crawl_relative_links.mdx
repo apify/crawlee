@@ -8,9 +8,9 @@ import TabItem from '@theme/TabItem';
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
-import AllLinksSource from '!!raw-loader!./crawl_relative_links_all.ts';
-import SameDomainSource from '!!raw-loader!./crawl_relative_links_same_domain.ts';
-import SameHostnameSource from '!!raw-loader!./crawl_relative_links_same_hostname.ts';
+import AllLinksSource from '!!raw-loader!roa-loader!./crawl_relative_links_all.ts';
+import SameDomainSource from '!!raw-loader!roa-loader!./crawl_relative_links_same_domain.ts';
+import SameHostnameSource from '!!raw-loader!roa-loader!./crawl_relative_links_same_hostname.ts';
 
 When crawling a website, you may encounter different types of links present that you may want to crawl.
 To facilitate the easy crawling of such links, we provide the `enqueueLinks()` method on the crawler context, which will

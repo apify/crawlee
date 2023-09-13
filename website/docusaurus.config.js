@@ -126,41 +126,15 @@ module.exports = {
             },
         ],
         async function runnableCodeBlock(context, options) {
-            // ...
             return {
                 name: 'runnable-code-block',
-                // async loadContent() {
-                //     // ...
-                // },
-                // async contentLoaded({content, actions}) {
-                //     // ...
-                // },
                 configureWebpack(config, isServer) {
-                    if (isServer) {
-                        return {};
-                    }
-
                     return {
-                        resolve: {
+                        resolveLoader: {
                             alias: {
-                                path: require.resolve('path-browserify'),
-                            },
-                            fallback: {
-                                'crypto': require.resolve('crypto-browserify'),
-                                'node:crypto': require.resolve('crypto-browserify'),
-                                'stream': require.resolve('stream-browserify'),
-                                'node:stream': require.resolve('stream-browserify'),
-                                'buffer': require.resolve('buffer'),
+                                'roa-loader': require.resolve(`${__dirname}/roa-loader/`),
                             },
                         },
-                        plugins: [
-                            new webpack.ProvidePlugin({
-                                process: 'process/browser',
-                            }),
-                            new webpack.ProvidePlugin({
-                                Buffer: ['buffer', 'Buffer'],
-                            }),
-                        ],
                     };
                 },
             };
