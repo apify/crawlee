@@ -15,6 +15,9 @@ const crawler = new CheerioCrawler({
         // and add them to the crawling queue.
         await enqueueLinks();
     },
+
+    // Let's limit our crawls to make our tests shorter and safer.
+    maxRequestsPerCrawl: 50,
 });
 
 // Add first URL to the queue and start the crawl.

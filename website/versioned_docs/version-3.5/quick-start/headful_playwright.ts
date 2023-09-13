@@ -10,6 +10,9 @@ const crawler = new PlaywrightCrawler({
     // When you turn off headless mode, the crawler
     // will run with a visible browser window.
     headless: false,
+
+    // Let's limit our crawls to make our tests shorter and safer.
+    maxRequestsPerCrawl: 50,
 });
 
 // Add first URL to the queue and start the crawl.

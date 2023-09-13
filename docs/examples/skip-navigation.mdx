@@ -3,9 +3,9 @@ id: skip-navigation
 title: Skipping navigations for certain requests
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import SkipNavigationSource from '!!raw-loader!./skip-navigation.ts';
+import SkipNavigationSource from '!!raw-loader!roa-loader!./skip-navigation.ts';
 
 While crawling a website, you may encounter certain resources you'd like to save, but don't need the full power of a crawler to do so (like images delivered through a CDN).
 
@@ -18,6 +18,6 @@ For this example, we are using the <ApiLink to="playwright-crawler/class/Playwri
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{SkipNavigationSource}
-</CodeBlock>
+</RunnableCodeBlock>

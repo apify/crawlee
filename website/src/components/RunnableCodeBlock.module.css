@@ -1,0 +1,25 @@
+.button {
+    display: inline-block;
+    padding: 3px 10px;
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    z-index: 1;
+    font-size: 16px;
+    line-height: 28px;
+    background: var(--prism-background-color);
+    color: var(--prism-color);
+    border: 1px solid var(--ifm-color-emphasis-300);
+    border-radius: var(--ifm-global-radius);
+    opacity: 0.6;
+    font-weight: 600;
+}
+
+.button:hover {
+    opacity: 1;
+    color: var(--prism-color);
+}
+
+.container {
+    position: relative;
+}

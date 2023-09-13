@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import React from 'react';
 import clsx from 'clsx';
 import Admonition from '@theme/Admonition';
@@ -9,6 +10,7 @@ import LiteYouTubeEmbed from 'react-lite-youtube-embed';
 import Highlights from '../components/Highlights';
 import styles from './index.module.css';
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
+import RunnableCodeBlock from '../components/RunnableCodeBlock';
 
 function Hero() {
     return (
@@ -141,9 +143,12 @@ function ActorExample() {
                 <CodeBlock className="language-bash">
                     npm install crawlee playwright
                 </CodeBlock>
-                <CodeBlock className="language-typescript">
-                    {example}
-                </CodeBlock>
+                <RunnableCodeBlock className="language-typescript" type="playwright">
+                    {{
+                        code: example,
+                        hash: 'eyJ1IjoiRWdQdHczb2VqNlRhRHQ1cW4iLCJ2IjoxfQ.eyJpbnB1dCI6IntcbiAgICBcImNvZGVcIjogXCJpbXBvcnQgeyBQbGF5d3JpZ2h0Q3Jhd2xlciwgRGF0YXNldCB9IGZyb20gJ2NyYXdsZWUnO1xcblxcbi8vIFBsYXl3cmlnaHRDcmF3bGVyIGNyYXdscyB0aGUgd2ViIHVzaW5nIGEgaGVhZGxlc3NcXG4vLyBicm93c2VyIGNvbnRyb2xsZWQgYnkgdGhlIFBsYXl3cmlnaHQgbGlicmFyeS5cXG5jb25zdCBjcmF3bGVyID0gbmV3IFBsYXl3cmlnaHRDcmF3bGVyKHtcXG4gICAgLy8gVXNlIHRoZSByZXF1ZXN0SGFuZGxlciB0byBwcm9jZXNzIGVhY2ggb2YgdGhlIGNyYXdsZWQgcGFnZXMuXFxuICAgIGFzeW5jIHJlcXVlc3RIYW5kbGVyKHsgcmVxdWVzdCwgcGFnZSwgZW5xdWV1ZUxpbmtzLCBsb2cgfSkge1xcbiAgICAgICAgY29uc3QgdGl0bGUgPSBhd2FpdCBwYWdlLnRpdGxlKCk7XFxuICAgICAgICBsb2cuaW5mbyhgVGl0bGUgb2YgJHtyZXF1ZXN0LmxvYWRlZFVybH0gaXMgJyR7dGl0bGV9J2ApO1xcblxcbiAgICAgICAgLy8gU2F2ZSByZXN1bHRzIGFzIEpTT04gdG8gLi9zdG9yYWdlL2RhdGFzZXRzL2RlZmF1bHRcXG4gICAgICAgIGF3YWl0IERhdGFzZXQucHVzaERhdGEoeyB0aXRsZSwgdXJsOiByZXF1ZXN0LmxvYWRlZFVybCB9KTtcXG5cXG4gICAgICAgIC8vIEV4dHJhY3QgbGlua3MgZnJvbSB0aGUgY3VycmVudCBwYWdlXFxuICAgICAgICAvLyBhbmQgYWRkIHRoZW0gdG8gdGhlIGNyYXdsaW5nIHF1ZXVlLlxcbiAgICAgICAgYXdhaXQgZW5xdWV1ZUxpbmtzKCk7XFxuICAgIH0sXFxuICAgIC8vIFVuY29tbWVudCB0aGlzIG9wdGlvbiB0byBzZWUgdGhlIGJyb3dzZXIgd2luZG93LlxcbiAgICAvLyBoZWFkbGVzczogZmFsc2UsXFxuICAgIC8vIGZpbmlzaCBlYXJseSwgY29tbWVudCB0aGlzIG91dCBmb3IgcHJvZHVjdGlvbiB1c2FnZVxcbiAgICBtYXhSZXF1ZXN0c1BlckNyYXdsOiA1MCxcXG59KTtcXG5cXG4vLyBBZGQgZmlyc3QgVVJMIHRvIHRoZSBxdWV1ZSBhbmQgc3RhcnQgdGhlIGNyYXdsLlxcbmF3YWl0IGNyYXdsZXIucnVuKFsnaHR0cHM6Ly9jcmF3bGVlLmRldiddKTtcIlxufSIsIm9wdGlvbnMiOnsiY29udGVudFR5cGUiOiJhcHBsaWNhdGlvbi9qc29uOyBjaGFyc2V0PXV0Zi04In19.Kvw-9zauyUo_oNpHLtptTF9ElzoaUVY4liqXweB2A5Y',
+                    }}
+                </RunnableCodeBlock>
             </div>
         </section>
     );
@@ -197,9 +202,12 @@ function Deployment() {
                     This will enable the integration to the Apify Platform, so the <a href="https://apify.com/storage" target="_blank">cloud
                     storages</a> (e.g. <code>RequestQueue</code>) will be used. The code should look like this:
                 </p>
-                <CodeBlock className="language-typescript">
-                    {exampleActor}
-                </CodeBlock>
+                <RunnableCodeBlock className="language-typescript" type="playwright">
+                    {{
+                        code: exampleActor,
+                        hash: 'eyJ1IjoiRWdQdHczb2VqNlRhRHQ1cW4iLCJ2IjoxfQ.eyJpbnB1dCI6IntcbiAgICBcImNvZGVcIjogXCJpbXBvcnQgeyBQbGF5d3JpZ2h0Q3Jhd2xlciwgRGF0YXNldCB9IGZyb20gJ2NyYXdsZWUnO1xcblxcbi8vIGltcG9ydCB0aGUgYEFjdG9yYCBjbGFzcyBmcm9tIHRoZSBBcGlmeSBTREtcXG5pbXBvcnQgeyBBY3RvciB9IGZyb20gJ2FwaWZ5JztcXG5cXG4vLyBzZXQgdXAgdGhlIGludGVncmF0aW9uIHRvIEFwaWZ5XFxuYXdhaXQgQWN0b3IuaW5pdCgpO1xcblxcbi8vIGNyYXdsZXIgc2V0dXAgZnJvbSB0aGUgcHJldmlvdXMgZXhhbXBsZVxcbmNvbnN0IGNyYXdsZXIgPSBuZXcgUGxheXdyaWdodENyYXdsZXIoe1xcbiAgICAvLyBVc2UgdGhlIHJlcXVlc3RIYW5kbGVyIHRvIHByb2Nlc3MgZWFjaCBvZiB0aGUgY3Jhd2xlZCBwYWdlcy5cXG4gICAgYXN5bmMgcmVxdWVzdEhhbmRsZXIoeyByZXF1ZXN0LCBwYWdlLCBlbnF1ZXVlTGlua3MsIGxvZyB9KSB7XFxuICAgICAgICBjb25zdCB0aXRsZSA9IGF3YWl0IHBhZ2UudGl0bGUoKTtcXG4gICAgICAgIGxvZy5pbmZvKGBUaXRsZSBvZiAke3JlcXVlc3QubG9hZGVkVXJsfSBpcyAnJHt0aXRsZX0nYCk7XFxuXFxuICAgICAgICAvLyBTYXZlIHJlc3VsdHMgYXMgSlNPTiB0byAuL3N0b3JhZ2UvZGF0YXNldHMvZGVmYXVsdFxcbiAgICAgICAgYXdhaXQgRGF0YXNldC5wdXNoRGF0YSh7IHRpdGxlLCB1cmw6IHJlcXVlc3QubG9hZGVkVXJsIH0pO1xcblxcbiAgICAgICAgLy8gRXh0cmFjdCBsaW5rcyBmcm9tIHRoZSBjdXJyZW50IHBhZ2VcXG4gICAgICAgIC8vIGFuZCBhZGQgdGhlbSB0byB0aGUgY3Jhd2xpbmcgcXVldWUuXFxuICAgICAgICBhd2FpdCBlbnF1ZXVlTGlua3MoKTtcXG4gICAgfSxcXG4gICAgLy8gVW5jb21tZW50IHRoaXMgb3B0aW9uIHRvIHNlZSB0aGUgYnJvd3NlciB3aW5kb3cuXFxuICAgIC8vIGhlYWRsZXNzOiBmYWxzZSxcXG4gICAgLy8gZmluaXNoIGVhcmx5LCBjb21tZW50IHRoaXMgb3V0IGZvciBwcm9kdWN0aW9uIHVzYWdlXFxuICAgIG1heFJlcXVlc3RzUGVyQ3Jhd2w6IDUwLFxcbn0pO1xcbmF3YWl0IGNyYXdsZXIucnVuKFsnaHR0cHM6Ly9jcmF3bGVlLmRldiddKTtcXG5cXG4vLyBvbmNlIGZpbmlzaGVkLCBjbGVhbiB1cCB0aGUgZW52aXJvbm1lbnRcXG5hd2FpdCBBY3Rvci5leGl0KCk7XFxuXCJcbn0iLCJvcHRpb25zIjp7ImNvbnRlbnRUeXBlIjoiYXBwbGljYXRpb24vanNvbjsgY2hhcnNldD11dGYtOCJ9fQ.dmQ1s6ZgTP4EMBCLOHCQ7Q53h0H8KXOu3LHHLq2scHk',
+                    }}
+                </RunnableCodeBlock>
                 <p>
                     3️⃣ Then you will need to <a href="https://console.apify.com/sign-up" target="_blank">sign up for the Apify account</a>. Once you have it,
                     use the Apify CLI to log in via <code>apify login</code>. The last two steps also involve the Apify CLI. Call the <code>apify

@@ -3,12 +3,12 @@ id: playwright-puppeteer-extra
 title: Using puppeteer-extra and playwright-extra
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import ApiLink from '@site/src/components/ApiLink';
-import PuppeteerExtraSource from '!!raw-loader!./puppeteer-extra.ts';
-import PlaywrightExtraSource from '!!raw-loader!./playwright-extra.ts';
+import PuppeteerExtraSource from '!!raw-loader!roa-loader!./puppeteer-extra.ts';
+import PlaywrightExtraSource from '!!raw-loader!roa-loader!./playwright-extra.ts';
 
 [`puppeteer-extra`](https://www.npmjs.com/package/puppeteer-extra) and [`playwright-extra`](https://www.npmjs.com/package/playwright-extra) are community-built
 libraries that bring in a plugin system to enhance the usage of [`puppeteer`](https://www.npmjs.com/package/puppeteer) and
@@ -45,9 +45,9 @@ To run this example on the Apify Platform, select the `apify/actor-node-puppetee
 
 :::
 
-<CodeBlock className="language-js" title="src/crawler.ts">
+<RunnableCodeBlock className="language-js" title="src/crawler.ts" type="puppeteer">
     {PuppeteerExtraSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -69,9 +69,9 @@ To run this example on the Apify Platform, select the `apify/actor-node-puppetee
 
 :::
 
-<CodeBlock className="language-js" title="src/crawler.ts">
+<RunnableCodeBlock className="language-js" title="src/crawler.ts" type="playwright">
     {PlaywrightExtraSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 

@@ -3,9 +3,9 @@ id: basic-crawler
 title: Basic crawler
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import BasicCrawlerSource from '!!raw-loader!./basic_crawler.ts';
+import BasicCrawlerSource from '!!raw-loader!roa-loader!./basic_crawler.ts';
 
 This is the most bare-bones example of using Crawlee, which demonstrates some of its building blocks such as the <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>. You probably don't need to go this deep though, and it would be better to start with one of the full-featured crawlers
 like <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> or <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>.
@@ -14,6 +14,6 @@ The script simply downloads several web pages with plain HTTP requests using the
 npm module internally) and stores their raw HTML and URL in the default dataset. In local configuration, the data will be stored as JSON files in
 `./storage/datasets/default`.
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
 	{BasicCrawlerSource}
-</CodeBlock>
+</RunnableCodeBlock>

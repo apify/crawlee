@@ -5,12 +5,12 @@ title: Crawl a sitemap
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
-import CheerioSource from '!!raw-loader!./crawl_sitemap_cheerio.ts';
-import PuppeteerSource from '!!raw-loader!./crawl_sitemap_puppeteer.ts';
-import PlaywrightSource from '!!raw-loader!./crawl_sitemap_playwright.ts';
+import CheerioSource from '!!raw-loader!roa-loader!./crawl_sitemap_cheerio.ts';
+import PuppeteerSource from '!!raw-loader!roa-loader!./crawl_sitemap_puppeteer.ts';
+import PlaywrightSource from '!!raw-loader!roa-loader!./crawl_sitemap_playwright.ts';
 
 This example downloads and crawls the URLs from a sitemap, by using the <ApiLink to="utils/function/downloadListOfUrls">`downloadListOfUrls`</ApiLink> utility method provided by the <ApiLink to="utils">`@crawlee/utils`</ApiLink> module.
 
@@ -18,9 +18,9 @@ This example downloads and crawls the URLs from a sitemap, by using the <ApiLink
 
 <TabItem value="cheerio_crawler" label="Cheerio Crawler" default>
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
 	{CheerioSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -32,9 +32,9 @@ To run this example on the Apify Platform, select the `apify/actor-node-puppetee
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="puppeteer">
 	{PuppeteerSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -46,9 +46,9 @@ To run this example on the Apify Platform, select the `apify/actor-node-playwrig
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="playwright">
 	{PlaywrightSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 

@@ -97,6 +97,8 @@ jobs:
                     cd website
                     yarn
                     yarn build
+                env:
+                    APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
 
     lint:
         name: Lint

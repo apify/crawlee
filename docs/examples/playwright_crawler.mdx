@@ -3,9 +3,9 @@ id: playwright-crawler
 title: Playwright crawler
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import CrawlSource from '!!raw-loader!./playwright_crawler.ts';
+import CrawlSource from '!!raw-loader!roa-loader!./playwright_crawler.ts';
 
 This example demonstrates how to use <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> in combination with <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> to recursively scrape the [Hacker News website](https://news.ycombinator.com) using headless Chrome / Playwright.
 
@@ -17,6 +17,6 @@ To run this example on the Apify Platform, select the `apify/actor-node-playwrig
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
 	{CrawlSource}
-</CodeBlock>
+</RunnableCodeBlock>

@@ -3,16 +3,16 @@ id: add-data-to-dataset
 title: Add data to dataset
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import AddDataToDatasetSource from '!!raw-loader!./add_data_to_dataset.ts';
+import AddDataToDatasetSource from '!!raw-loader!roa-loader!./add_data_to_dataset.ts';
 
 This example saves data to the default dataset. If the dataset doesn't exist, it will be created.
 You can save data to custom datasets by using <ApiLink to="core/class/Dataset#open">`Dataset.open()`</ApiLink>
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
 	{AddDataToDatasetSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 Each item in this dataset will be saved to its own file in the following directory:
 

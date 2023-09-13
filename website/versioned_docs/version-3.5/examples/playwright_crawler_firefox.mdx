@@ -3,9 +3,9 @@ id: playwright-crawler-firefox
 title: Using Firefox browser with Playwright crawler
 ---
 
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import PlaywrightFirefoxSource from '!!raw-loader!./playwright_crawler_firefox.ts';
+import PlaywrightFirefoxSource from '!!raw-loader!roa-loader!./playwright_crawler_firefox.ts';
 
 This example demonstrates how to use <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> with headless Firefox browser.
 
@@ -15,8 +15,8 @@ To run this example on the Apify Platform, select the `apify/actor-node-playwrig
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js">
     {PlaywrightFirefoxSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 To see a real-world example of how to use <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> in combination with <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> to recursively scrape the [Hacker News website](https://news.ycombinator.com) check out the [`Playwright crawler example`](./playwright-crawler).

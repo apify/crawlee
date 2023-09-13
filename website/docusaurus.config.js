@@ -1,4 +1,5 @@
 /* eslint-disable global-require,import/no-extraneous-dependencies */
+const webpack = require('webpack');
 const { externalLinkProcessor } = require('./tools/utils/externalLink');
 
 const packages = [
@@ -11,6 +12,7 @@ const packages = [
     'puppeteer-crawler',
     'playwright-crawler',
     'jsdom-crawler',
+    'linkedom-crawler',
     'memory-storage',
     'utils',
     'types',
@@ -18,9 +20,10 @@ const packages = [
 const packagesOrder = [
     '@crawlee/core',
     '@crawlee/cheerio',
-    '@crawlee/jsdom',
     '@crawlee/playwright',
     '@crawlee/puppeteer',
+    '@crawlee/jsdom',
+    '@crawlee/linkedom',
     '@crawlee/basic',
     '@crawlee/http',
     '@crawlee/browser',
@@ -122,6 +125,20 @@ module.exports = {
                 id: 'GTM-5P7MCS7',
             },
         ],
+        async function runnableCodeBlock(context, options) {
+            return {
+                name: 'runnable-code-block',
+                configureWebpack(config, isServer) {
+                    return {
+                        resolveLoader: {
+                            alias: {
+                                'roa-loader': require.resolve(`${__dirname}/roa-loader/`),
+                            },
+                        },
+                    };
+                },
+            };
+        },
     ],
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({

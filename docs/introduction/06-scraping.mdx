@@ -5,7 +5,9 @@ sidebar_label: "Scraping"
 description: Your first steps into the world of scraping with Crawlee
 ---
 
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
+import ExampleCode from '!!raw-loader!roa-loader!./06-example.ts';
 
 In the [Real-world project chapter](./real-world-project#choosing-the-data-you-need), we created a list of the information we wanted to collect about the Actors in the Apify Store. Let's review that and figure out ways to access the data.
 
@@ -123,47 +125,9 @@ const runCount = runCountString.replace('Runs ', '');
 
 We have everything we need so grab our newly created scraping logic, dump it into our original `requestHandler()` and see the magic happen!
 
-```js
-import { PlaywrightCrawler } from 'crawlee';
-
-const crawler = new PlaywrightCrawler({
-    requestHandler: async ({ page, request, enqueueLinks }) => {
-        console.log(`Processing: ${request.url}`)
-        if (request.label === 'DETAIL') {
-            const urlParts = request.url.split('/').slice(-2);
-            const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
-            const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
-            const runCountString = await runsRow.textContent();
-            const results = {
-                url: request.url,
-                uniqueIdentifier: urlParts.join('/'),
-                owner: urlParts[0],
-                title: await page.locator('.ActorHeader-identificator h1').textContent(),
-                description: await page.locator('p.ActorHeader-description').textContent(),
-                modifiedDate: new Date(Number(modifiedTimestamp)),
-                runCount: runCountString.replace('Runs ', ''),
-            }
-
-            console.log(results);
-        } else {
-            await page.waitForSelector('.ActorStorePagination-buttons a');
-            await enqueueLinks({
-                selector: '.ActorStorePagination-buttons a',
-                label: 'LIST',
-            })
-            await page.waitForSelector('div[data-test="actorCard"] a');
-            await enqueueLinks({
-                selector: 'div[data-test="actorCard"] a',
-                label: 'DETAIL', // <= note the different label
-            })
-        }
-    }
-});
-
-await crawler.run(['https://apify.com/store']);
-```
-
-
+<RunnableCodeBlock className="language-js" type="playwright">
+    {ExampleCode}
+</RunnableCodeBlock>
 
 When you run the crawler, you will see the crawled URLs and their scraped data printed to the console. The output will look something like this:
 

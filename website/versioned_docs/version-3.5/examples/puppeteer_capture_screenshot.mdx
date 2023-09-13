@@ -5,13 +5,13 @@ title: Capture a screenshot using Puppeteer
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
-import PuppeteerPageScreenshotSource from '!!raw-loader!./puppeteer_page_screenshot.ts';
-import PuppeteerCrawlerUtilsSnapshotSource from '!!raw-loader!./puppeteer_crawler_utils_snapshot.ts';
-import PuppeteerCrawlerPageScreenshotSource from '!!raw-loader!./puppeteer_crawler_page_screenshot.ts';
-import PuppeteerCrawlerCrawlerUtilsSnapshotSource from '!!raw-loader!./puppeteer_crawler_crawler_utils_snapshot.ts';
+import PuppeteerPageScreenshotSource from '!!raw-loader!roa-loader!./puppeteer_page_screenshot.ts';
+import PuppeteerCrawlerUtilsSnapshotSource from '!!raw-loader!roa-loader!./puppeteer_crawler_utils_snapshot.ts';
+import PuppeteerCrawlerPageScreenshotSource from '!!raw-loader!roa-loader!./puppeteer_crawler_page_screenshot.ts';
+import PuppeteerCrawlerCrawlerUtilsSnapshotSource from '!!raw-loader!roa-loader!./puppeteer_crawler_crawler_utils_snapshot.ts';
 
 ## Using Puppeteer directly
 
@@ -28,9 +28,9 @@ This example captures a screenshot of a web page using `Puppeteer`. It would loo
 
 Using `page.screenshot()`:
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="puppeteer">
 	{PuppeteerPageScreenshotSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -38,9 +38,9 @@ Using `page.screenshot()`:
 
 Using `utils.puppeteer.saveSnapshot()`:
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="puppeteer">
 	{PuppeteerCrawlerUtilsSnapshotSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 </Tabs>
@@ -54,9 +54,9 @@ This example captures a screenshot of multiple web pages when using `PuppeteerCr
 
 Using `page.screenshot()`:
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="puppeteer">
 	{PuppeteerCrawlerPageScreenshotSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -64,9 +64,9 @@ Using `page.screenshot()`:
 
 Using the context-aware <ApiLink to="puppeteer-crawler/namespace/puppeteerUtils#saveSnapshot">`saveSnapshot()`</ApiLink> utility:
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="puppeteer">
 	{PuppeteerCrawlerCrawlerUtilsSnapshotSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 </Tabs>

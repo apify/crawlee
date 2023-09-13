@@ -5,12 +5,12 @@ title: Crawl a website with relative links
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import CodeBlock from '@theme/CodeBlock';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 
-import AllLinksSource from '!!raw-loader!./crawl_relative_links_all.ts';
-import SameDomainSource from '!!raw-loader!./crawl_relative_links_same_domain.ts';
-import SameHostnameSource from '!!raw-loader!./crawl_relative_links_same_hostname.ts';
+import AllLinksSource from '!!raw-loader!roa-loader!./crawl_relative_links_all.ts';
+import SameDomainSource from '!!raw-loader!roa-loader!./crawl_relative_links_same_domain.ts';
+import SameHostnameSource from '!!raw-loader!roa-loader!./crawl_relative_links_same_hostname.ts';
 
 When crawling a website, you may encounter different types of links present that you may want to crawl.
 To facilitate the easy crawling of such links, we provide the `enqueueLinks()` method on the crawler context, which will
@@ -44,9 +44,9 @@ Any urls found will be matched by this strategy, even if they go off of the site
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
 	{AllLinksSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -63,9 +63,9 @@ For instance, hyperlinks like `https://example.com/some/path`, `/absolute/exampl
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
     {SameHostnameSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
@@ -79,9 +79,9 @@ For instance, hyperlinks like `https://subdomain.example.com/some/path`, `/absol
 
 :::
 
-<CodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
     {SameDomainSource}
-</CodeBlock>
+</RunnableCodeBlock>
 
 </TabItem>
 
