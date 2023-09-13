@@ -17,6 +17,9 @@ const crawler = new PuppeteerCrawler({
     },
     // Uncomment this option to see the browser window.
     // headless: false,
+
+    // Let's limit our crawls to make our tests shorter and safer.
+    maxRequestsPerCrawl: 50,
 });
 
 // Add first URL to the queue and start the crawl.
