@@ -1018,7 +1018,7 @@ __metadata:
     playwright: 1.37.1
     portastic: ^1.0.1
     proxy: ^1.0.2
-    puppeteer: 21.2.0
+    puppeteer: 21.2.1
     rimraf: ^5.0.0
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
@@ -1922,20 +1922,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puppeteer/browsers@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@puppeteer/browsers@npm:1.7.0"
+"@puppeteer/browsers@npm:1.7.1":
+  version: 1.7.1
+  resolution: "@puppeteer/browsers@npm:1.7.1"
   dependencies:
     debug: 4.3.4
     extract-zip: 2.0.1
     progress: 2.0.3
-    proxy-agent: 6.3.0
+    proxy-agent: 6.3.1
     tar-fs: 3.0.4
     unbzip2-stream: 1.4.3
     yargs: 17.7.1
   bin:
     browsers: lib/cjs/main-cli.js
-  checksum: 0a2aecc72fb94a8d94246188f94cfaad730d1d372b34df94ca51ff8a94596bf475a0fee162c317a768fa4b2a707bfa8afd582d594958f49e1019effadfe744b6
+  checksum: fb7cf7773a1aed4e34ce0952dbf9609a164e624d4f8e1f342b816fe3e983888d7a7b2fbafc963559e96cb5bca0d75fb9c81f2097f9b1f5478a0f1cc7cbc12dff
   languageName: node
   linkType: hard
 
@@ -6756,7 +6756,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"https-proxy-agent@npm:^7.0.0, https-proxy-agent@npm:^7.0.2":
+"https-proxy-agent@npm:^7.0.2":
   version: 7.0.2
   resolution: "https-proxy-agent@npm:7.0.2"
   dependencies:
@@ -9918,7 +9918,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pac-proxy-agent@npm:^7.0.0":
+"pac-proxy-agent@npm:^7.0.1":
   version: 7.0.1
   resolution: "pac-proxy-agent@npm:7.0.1"
   dependencies:
@@ -10360,19 +10360,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"proxy-agent@npm:6.3.0":
-  version: 6.3.0
-  resolution: "proxy-agent@npm:6.3.0"
+"proxy-agent@npm:6.3.1":
+  version: 6.3.1
+  resolution: "proxy-agent@npm:6.3.1"
   dependencies:
     agent-base: ^7.0.2
     debug: ^4.3.4
     http-proxy-agent: ^7.0.0
-    https-proxy-agent: ^7.0.0
+    https-proxy-agent: ^7.0.2
     lru-cache: ^7.14.1
-    pac-proxy-agent: ^7.0.0
+    pac-proxy-agent: ^7.0.1
     proxy-from-env: ^1.1.0
-    socks-proxy-agent: ^8.0.1
-  checksum: e3fb0633d665e352ed4efe23ae5616b8301423dfa4ff1c5975d093da8a636181a97391f7a91c6a7ffae17c1a305df855e95507f73bcdafda8876198c64b88f5b
+    socks-proxy-agent: ^8.0.2
+  checksum: 31030da419da31809340ac2521090c9a5bf4fe47a944843f829b3502883208c8586a468955e64b694140a41d70af6f45cf4793f5efd4a6f3ed94e5ac8023e36d
   languageName: node
   linkType: hard
 
@@ -10429,28 +10429,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:21.2.0":
-  version: 21.2.0
-  resolution: "puppeteer-core@npm:21.2.0"
+"puppeteer-core@npm:21.2.1":
+  version: 21.2.1
+  resolution: "puppeteer-core@npm:21.2.1"
   dependencies:
-    "@puppeteer/browsers": 1.7.0
+    "@puppeteer/browsers": 1.7.1
     chromium-bidi: 0.4.26
     cross-fetch: 4.0.0
     debug: 4.3.4
     devtools-protocol: 0.0.1159816
-    ws: 8.14.0
-  checksum: eb64ffe24dca0b42940a77bcd878a1ba7a110e08ffcf2e471bceeafa75ca2a20d2405df8a009f96af8332fcdc0fd6ffb3394f99e421ddca0b13141485f6330e1
+    ws: 8.14.1
+  checksum: 7b37e35b3df308128c6526756b13372d5c4e19d4b6fce8e4c31e5616eeca2f49a420132d7eae249de82180821c1147b327b9d11e1b730911a604db3e9be256fe
   languageName: node
   linkType: hard
 
-"puppeteer@npm:21.2.0":
-  version: 21.2.0
-  resolution: "puppeteer@npm:21.2.0"
+"puppeteer@npm:21.2.1":
+  version: 21.2.1
+  resolution: "puppeteer@npm:21.2.1"
   dependencies:
-    "@puppeteer/browsers": 1.7.0
+    "@puppeteer/browsers": 1.7.1
     cosmiconfig: 8.3.5
-    puppeteer-core: 21.2.0
-  checksum: f16660f4dea475906effc507920ad6cdebf7ac5531b0968cb80ca4954d0d241d0ad1f24e0020bbf64b9f5c7f20c0fedc83b9bdfb41efe7cdb43af0a425a9d57d
+    puppeteer-core: 21.2.1
+  checksum: 43a8ca132be52c2b07f35cda50c25c38009bc888433ad1106009c5ee76a252b2d8e9bab939ccacc408d17da6ad6671fdb773423289e87dd830c9e5f84781859c
   languageName: node
   linkType: hard
 
@@ -11218,7 +11218,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"socks-proxy-agent@npm:^8.0.1, socks-proxy-agent@npm:^8.0.2":
+"socks-proxy-agent@npm:^8.0.2":
   version: 8.0.2
   resolution: "socks-proxy-agent@npm:8.0.2"
   dependencies:
@@ -12732,9 +12732,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.14.0":
-  version: 8.14.0
-  resolution: "ws@npm:8.14.0"
+"ws@npm:8.14.1":
+  version: 8.14.1
+  resolution: "ws@npm:8.14.1"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -12743,7 +12743,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: dd91d055396c42552d8e2d26a0ab10221e73ca356de3db9109e337b8d9df216a0a308ace46a5e0520ed18ffcae3f54c2fa45a96711f94a063c816ef13a30b700
+  checksum: 9e310be2b0ff69e1f87d8c6d093ecd17a1ed4c37f281d17c35e8c30e2bd116401775b3d503249651374e6e0e1e9905db62fff096b694371c77561aee06bc3466
   languageName: node
   linkType: hard
 
