@@ -39,6 +39,7 @@ jobs:
                 env:
                     GIT_USER: "B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                    APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
 
     squash:
         runs-on: ubuntu-latest
