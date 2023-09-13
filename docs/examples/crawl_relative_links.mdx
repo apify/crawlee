@@ -44,7 +44,7 @@ Any urls found will be matched by this strategy, even if they go off of the site
 
 :::
 
-<RunnableCodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
 	{AllLinksSource}
 </RunnableCodeBlock>
 
@@ -63,7 +63,7 @@ For instance, hyperlinks like `https://example.com/some/path`, `/absolute/exampl
 
 :::
 
-<RunnableCodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
     {SameHostnameSource}
 </RunnableCodeBlock>
 
@@ -79,7 +79,7 @@ For instance, hyperlinks like `https://subdomain.example.com/some/path`, `/absol
 
 :::
 
-<RunnableCodeBlock className="language-js">
+<RunnableCodeBlock className="language-js" type="cheerio">
     {SameDomainSource}
 </RunnableCodeBlock>
 
