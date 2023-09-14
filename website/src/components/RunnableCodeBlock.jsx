@@ -26,7 +26,7 @@ Make sure you are importing the code block contents with the roa-loader.`);
         );
     }
 
-    const href = `https://console.apify.com/actors/${actor ?? EXAMPLE_RUNNERS[type ?? 'playwright']}?runConfig=${hash}`;
+    const href = `https://console.apify.com/actors/${actor ?? EXAMPLE_RUNNERS[type ?? 'playwright']}?runConfig=${hash}&asrc=run_on_apify`;
 
     return (
         <div className={clsx(styles.container, 'runnable-code-block')}>
