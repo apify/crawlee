@@ -60,6 +60,9 @@ async function encodeAndSign(source) {
 }
 
 module.exports = async function (code) {
+    if (process.env.CRAWLEE_DOCS_FAST) {
+        return { code, hash: 'fast' };
+    }
     console.log(`Signing ${urlToRequest(this.resourcePath)}...`, { working, queue: queue.length });
     const hash = await encodeAndSign(code);
     return { code, hash };

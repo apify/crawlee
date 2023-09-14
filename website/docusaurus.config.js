@@ -66,6 +66,7 @@ module.exports = {
                     path: '../docs',
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
+                    disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
                 },
                 theme: {
                     customCss: '/src/css/custom.css',
