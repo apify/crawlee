@@ -43,9 +43,11 @@ async function encodeAndSign(source) {
         });
     }
 
+    let res;
+
     try {
         working = true;
-        await getHash(source);
+        res = await getHash(source);
 
         while (queue.length) {
             await queue.shift()();
@@ -53,6 +55,8 @@ async function encodeAndSign(source) {
     } finally {
         working = false;
     }
+
+    return res;
 }
 
 module.exports = async function (code) {
