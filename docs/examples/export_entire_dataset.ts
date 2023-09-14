@@ -16,5 +16,5 @@ const data = [
 await Dataset.pushData(data);
 
 // Export the entirety of the dataset to a single file in
-// a key-value store named "my-data" under the key "OUTPUT"
-await Dataset.exportToCSV('OUTPUT', { toKVS: 'my-data' });
+// the default key-value store under the key "OUTPUT"
+await Dataset.exportToCSV('OUTPUT');
