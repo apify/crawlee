@@ -18,15 +18,17 @@ await page.select('select#search_language', 'JavaScript');
 // Submit the form and wait for full load of next page
 console.log('Submit search form');
 await Promise.all([
-    page.waitForNavigation(),
+    page.waitForNavigation({ waitUntil: 'networkidle2' }),
     page.click('#adv_code_search button[type="submit"]'),
 ]);
 
 // Obtain and print list of search results
-const results = await page.$$eval('div.f4.text-normal a', (nodes) => nodes.map((node) => ({
-    url: node.href,
-    name: node.innerText,
-})));
+const results = await page.$$eval('[data-testid="results-list"] div.search-title > a',
+    (nodes) => nodes.map((node) => ({
+        url: node.href,
+        name: node.innerText,
+    })),
+);
 
 console.log('Results:', results);
 
