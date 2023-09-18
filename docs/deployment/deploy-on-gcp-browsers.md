@@ -9,7 +9,26 @@ If we want to run browser-enabled Crawlee crawlers on GCP, we’ll need to turn 
 
 GCP can spin up your containers on demand, so you’re only billed for the time it takes your container to return an HTTP response to the requesting client. In a way, it also provides a slightly better developer experience (than regular FaaS), as you can debug your Docker containers locally and be sure you’re getting the same setup in the cloud.
 
+## Preparing the project
+
 As always, we first pass a new `Configuration` instance to the crawler constructor:
+
+```javascript  title="src/main.js"
+import { Configuration, PlaywrightCrawler } from 'crawlee';
+import { router } from './routes.js';
+
+const startUrls = ['https://crawlee.dev'];
+
+const crawler = new PlaywrightCrawler({
+    requestHandler: router,
+// highlight-start
+}, new Configuration({
+    persistStorage: false,
+}));
+// highlight-end
+
+await crawler.run(startUrls);
+```
 
 All we now need to do is wrap our crawler with an Express HTTP server handler, so it can communicate with the client via HTTP. Because the Cloud Run platform sees only an opaque Docker container, we have to take care of this bit ourselves. 
 
@@ -22,12 +41,15 @@ The `main.js` script should be looking like this in the end:
 ```javascript title="src/main.js"
 import { Configuration, PlaywrightCrawler } from 'crawlee';
 import { router } from './routes.js';
+// highlight-start
 import express from 'express';
+const app = express();
+// highlight-end
 
 const startUrls = ['https://crawlee.dev'];
 
-const app = express();
 
+// highlight-next-line
 app.get('/', async (req, res) => {
     const crawler = new PlaywrightCrawler({
         requestHandler: router,
@@ -37,15 +59,20 @@ app.get('/', async (req, res) => {
     
     await crawler.run(startUrls);    
 
+    // highlight-next-line
     return res.send(await crawler.getData());
+// highlight-next-line
 });
 
+// highlight-next-line
 app.listen(parseInt(process.env.PORT) || 3000);
 ```
 
 :::tip
 Always make sure to keep all the logic in the request handler - as with other FaaS services, your request handlers have to be **stateless.**
 :::
+
+## Deploying to GCP
 
 Now, we’re ready to deploy! If you have initialized your project using `npx crawlee create`, the initialization script has prepared a Dockerfile for you. 
 
