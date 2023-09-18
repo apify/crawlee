@@ -1,8 +1,4 @@
-import { initialize, getActorTestDir, runActor, expect, validateDataset, skipTest } from '../tools.mjs';
-
-if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
-    await skipTest('TODO(vladfrangu): bring in the local storage implementation for request locking');
-}
+import { initialize, getActorTestDir, runActor, expect, validateDataset } from '../tools.mjs';
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
