@@ -23,6 +23,32 @@ module.exports = {
         },
         {
             type: 'category',
+            label: 'Deployment',
+            // link: {
+            //     type: 'doc',
+            //     id: 'introduction/introduction',
+            // },
+            items: [
+                {
+                    type: 'category',
+                    label: 'Deploy on AWS',
+                    items: [
+                        'deployment/deploy-on-aws-cheerio',
+                        'deployment/deploy-on-aws-browsers',
+                    ],
+                },
+                {
+                    type: 'category',
+                    label: 'Deploy on GCP',
+                    items: [
+                        'deployment/deploy-on-gcp-cheerio',
+                        'deployment/deploy-on-gcp-browsers',
+                    ],
+                },
+            ],
+        },
+        {
+            type: 'category',
             label: 'Guides',
             link: {
                 type: 'generated-index',
