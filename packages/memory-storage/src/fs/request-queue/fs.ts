@@ -1,6 +1,7 @@
 import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
+import log from '@apify/log';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
 
@@ -39,6 +40,10 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
             this.data = req;
 
             return req;
+        } catch (err) {
+            log.error(`Error parsing JSON from request queue file: ${this.filePath} ${err}`);
+            this.data = undefined;
+            throw err;
         } finally {
             this.fsQueue.shift();
         }
