@@ -30,6 +30,11 @@ module.exports = {
             // },
             items: [
                 {
+                    type: 'doc',
+                    id: 'guides/apify-platform',
+                    label: 'Deploy on Apify',
+                },
+                {
                     type: 'category',
                     label: 'Deploy on AWS',
                     items: [
@@ -70,7 +75,6 @@ module.exports = {
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',
-                'guides/apify-platform',
             ],
         },
         {
