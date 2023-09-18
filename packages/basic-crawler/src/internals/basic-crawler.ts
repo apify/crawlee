@@ -775,6 +775,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.running = true;
         this.stats.reset();
         await this.stats.resetStore();
+        await this.sessionPool?.resetStore();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 

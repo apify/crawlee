@@ -290,6 +290,14 @@ export class SessionPool extends EventEmitter {
         return this._createSession();
     }
 
+    async resetStore() {
+        if (!this.keyValueStore) {
+            return;
+        }
+
+        await this.keyValueStore.setValue(this.persistStateKey, null);
+    }
+
     /**
      * Returns an object representing the internal state of the `SessionPool` instance.
      * Note that the object's fields can change in future releases.
