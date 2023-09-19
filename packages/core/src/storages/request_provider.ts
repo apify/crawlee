@@ -17,6 +17,7 @@ import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
+import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
 import { Request } from '../request';
@@ -46,8 +47,6 @@ export abstract class RequestProvider implements IStorage {
     inProgress = new Set<string>();
     protected recentlyHandledRequestsCache: LruCache<boolean>;
 
-    // TODO: RQv1 logic for stuck queues, this might not be needed anymore
-    protected lastActivity = new Date();
     protected queuePausedForMigration = false;
 
     constructor(options: InternalRequestProviderOptions, readonly config = Configuration.getGlobalConfig()) {
@@ -63,6 +62,12 @@ export abstract class RequestProvider implements IStorage {
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
         this.log = log.child({ prefix: options.logPrefix });
+
+        const eventManager = config.getEventManager();
+
+        eventManager.on(EventType.MIGRATING, async () => {
+            this.queuePausedForMigration = true;
+        });
     }
 
     /**
@@ -92,7 +97,6 @@ export abstract class RequestProvider implements IStorage {
             forefront: ow.optional.boolean,
         }));
 
-        this.lastActivity = new Date();
         const { forefront = false } = options;
 
         if ('requestsFromUrl' in requestLike) {
@@ -360,7 +364,6 @@ export abstract class RequestProvider implements IStorage {
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
-        this.lastActivity = new Date();
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -396,7 +399,6 @@ export abstract class RequestProvider implements IStorage {
      * For example, this lets you store the number of retries or error messages for the request.
      */
     async reclaimRequest(request: Request, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo | null> {
-        this.lastActivity = new Date();
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -455,12 +457,6 @@ export abstract class RequestProvider implements IStorage {
      * but it will never return a false positive.
      */
     async isFinished(): Promise<boolean> {
-        if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
-            const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
-            this.log.warning(message, { inProgress: [...this.inProgress] });
-            this._reset();
-        }
-
         if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
 
         const currentHead = await this.client.listHead({ limit: 2 });
@@ -474,7 +470,6 @@ export abstract class RequestProvider implements IStorage {
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;
         this.requestCache.clear();
-        this.lastActivity = new Date();
     }
 
     /**

@@ -346,7 +346,7 @@ export interface CrawlerExperiments {
      * Enables the use of the new RequestQueue API, which allows multiple clients to use the same queue,
      * by locking the requests they are processing for a period of time.
      */
-    useRequestQueueV2?: boolean;
+    requestLocking?: boolean;
 }
 
 /**
@@ -575,10 +575,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
 
-        if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.useRequestQueueV2) {
+        if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.requestLocking) {
             throw new Error([
                 'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
-                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { useRequestQueueV2: true }` "
+                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { requestLocking: true }` "
                 + 'in your crawler options, and try again.',
             ].join('\n'));
         }
@@ -1488,13 +1488,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private _getRequestQueue() {
-        if (this.experiments.useRequestQueueV2) {
-            if (!this._experimentWarnings.useRequestQueueV2) {
+        if (this.experiments.requestLocking) {
+            if (!this._experimentWarnings.requestLocking) {
                 this.log.warning([
                     'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
                     'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
                 ].join('\n'));
-                this._experimentWarnings.useRequestQueueV2 = true;
+                this._experimentWarnings.requestLocking = true;
             }
 
             return RequestQueueV2.open(null, { config: this.config });

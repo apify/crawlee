@@ -4,7 +4,7 @@ import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary,
 } from '@crawlee/types';
 
-import type { RequestProviderOptions } from './request_provider';
+import type { RequestProviderOptions, RequestQueueOperationOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
@@ -15,7 +15,7 @@ import {
     getRequestId,
 } from './utils';
 import { Configuration } from '../configuration';
-import type { Request } from '../request';
+import type { Request, Source } from '../request';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 
@@ -80,6 +80,8 @@ export class RequestQueue extends RequestProvider {
         queryStartedAt: Date;
         hadMultipleClients?: boolean;
     }> | null = null;
+
+    private lastActivity = new Date();
 
     /**
      * @internal
@@ -278,8 +280,7 @@ export class RequestQueue extends RequestProvider {
         return this._ensureHeadIsNonEmpty(ensureConsistency, nextLimit, iteration + 1);
     }
 
-    // TODO: This needs to be adapted in a way that it is agnostic to the request queue api we use.
-    // For the sake of having something, we'll just list the head normally and check if it's empty.
+    // RequestQueue v1 behavior overrides below
     override async isFinished(): Promise<boolean> {
         if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
@@ -291,5 +292,38 @@ export class RequestQueue extends RequestProvider {
 
         const isHeadConsistent = await this._ensureHeadIsNonEmpty(true);
         return isHeadConsistent && this.queueHeadIds.length() === 0 && this.inProgressCount() === 0;
+    }
+
+    override async addRequest(requestLike: Source, options: RequestQueueOperationOptions = {}) {
+        this.lastActivity = new Date();
+        return super.addRequest(requestLike, options);
+    }
+
+    override async addRequests(requestLikes: Source[], options: RequestQueueOperationOptions = {}) {
+        this.lastActivity = new Date();
+        return super.addRequests(requestLikes, options);
+    }
+
+    override async addRequestsBatched(
+        requestLikes: (string | Source)[],
+        options: RequestQueueOperationOptions = {},
+    ) {
+        this.lastActivity = new Date();
+        return super.addRequestsBatched(requestLikes, options);
+    }
+
+    override async markRequestHandled(request: Request) {
+        this.lastActivity = new Date();
+        return super.markRequestHandled(request);
+    }
+
+    override async reclaimRequest(request: Request) {
+        this.lastActivity = new Date();
+        return super.reclaimRequest(request);
+    }
+
+    protected override _reset() {
+        super._reset();
+        this.lastActivity = new Date();
     }
 }

@@ -95,7 +95,6 @@ class RequestQueue extends RequestProvider {
         }
 
         this.inProgress.add(nextRequestId);
-        this.lastActivity = new Date();
 
         let request: Request | null;
 
