@@ -23,37 +23,6 @@ module.exports = {
         },
         {
             type: 'category',
-            label: 'Deployment',
-            // link: {
-            //     type: 'doc',
-            //     id: 'introduction/introduction',
-            // },
-            items: [
-                {
-                    type: 'doc',
-                    id: 'guides/apify-platform',
-                    label: 'Deploy on Apify',
-                },
-                {
-                    type: 'category',
-                    label: 'Deploy on AWS',
-                    items: [
-                        'deployment/deploy-on-aws-cheerio',
-                        'deployment/deploy-on-aws-browsers',
-                    ],
-                },
-                {
-                    type: 'category',
-                    label: 'Deploy on GCP',
-                    items: [
-                        'deployment/deploy-on-gcp-cheerio',
-                        'deployment/deploy-on-gcp-browsers',
-                    ],
-                },
-            ],
-        },
-        {
-            type: 'category',
             label: 'Guides',
             link: {
                 type: 'generated-index',
@@ -75,6 +44,33 @@ module.exports = {
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Deployment',
+            items: [
+                {
+                    type: 'doc',
+                    id: 'deployment/apify-platform',
+                    label: 'Deploy on Apify',
+                },
+                {
+                    type: 'category',
+                    label: 'Deploy on AWS',
+                    items: [
+                        'deployment/aws-cheerio',
+                        'deployment/aws-browsers',
+                    ],
+                },
+                {
+                    type: 'category',
+                    label: 'Deploy on GCP',
+                    items: [
+                        'deployment/gcp-cheerio',
+                        'deployment/gcp-browsers',
+                    ],
+                },
             ],
         },
         {
