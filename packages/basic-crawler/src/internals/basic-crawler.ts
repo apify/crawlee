@@ -1046,7 +1046,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request:Request, source: RequestList | RequestProvider) {
+    protected delayRequest(request: Request, source: RequestList | RequestProvider) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
