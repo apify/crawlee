@@ -467,21 +467,19 @@ export abstract class BrowserCrawler<
         if (this.proxyConfiguration && (useIncognitoPages || experimentalContainers)) {
             const { session } = crawlingContext;
 
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, crawlingContext.request);
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
             crawlingContext.proxyInfo = proxyInfo;
 
-            if (proxyInfo) {
-                newPageOptions.proxyUrl = proxyInfo.url;
+            newPageOptions.proxyUrl = proxyInfo.url;
 
-                if (this.proxyConfiguration.isManInTheMiddle) {
-                    /**
-                     * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                     * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                     */
-                    newPageOptions.pageOptions = {
-                        ignoreHTTPSErrors: true,
-                    };
-                }
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
+                newPageOptions.pageOptions = {
+                    ignoreHTTPSErrors: true,
+                };
             }
         }
 
@@ -666,19 +664,16 @@ export abstract class BrowserCrawler<
 
         if (this.proxyConfiguration) {
             const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session?.id);
+            launchContext.proxyUrl = proxyInfo.url;
+            launchContextExtends.proxyInfo = proxyInfo;
 
-            if (proxyInfo) {
-                launchContext.proxyUrl = proxyInfo.url;
-                launchContextExtends.proxyInfo = proxyInfo;
-
-                // Disable SSL verification for MITM proxies
-                if (this.proxyConfiguration.isManInTheMiddle) {
-                    /**
-                     * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                     * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                     */
-                    (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
-                }
+            // Disable SSL verification for MITM proxies
+            if (this.proxyConfiguration.isManInTheMiddle) {
+                /**
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
+                (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
             }
         }
 
