@@ -4,7 +4,7 @@ import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary,
 } from '@crawlee/types';
 
-import type { RequestProviderOptions, RequestQueueOperationOptions } from './request_provider';
+import type { RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
@@ -15,7 +15,7 @@ import {
     getRequestId,
 } from './utils';
 import { Configuration } from '../configuration';
-import type { Request, Source } from '../request';
+import type { Request } from '../request';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 
@@ -294,32 +294,29 @@ export class RequestQueue extends RequestProvider {
         return isHeadConsistent && this.queueHeadIds.length() === 0 && this.inProgressCount() === 0;
     }
 
-    override async addRequest(requestLike: Source, options: RequestQueueOperationOptions = {}) {
+    override async addRequest(...args: Parameters<RequestProvider['addRequest']>) {
         this.lastActivity = new Date();
-        return super.addRequest(requestLike, options);
+        return super.addRequest(...args);
     }
 
-    override async addRequests(requestLikes: Source[], options: RequestQueueOperationOptions = {}) {
+    override async addRequests(...args: Parameters<RequestProvider['addRequests']>) {
         this.lastActivity = new Date();
-        return super.addRequests(requestLikes, options);
+        return super.addRequests(...args);
     }
 
-    override async addRequestsBatched(
-        requestLikes: (string | Source)[],
-        options: RequestQueueOperationOptions = {},
-    ) {
+    override async addRequestsBatched(...args: Parameters<RequestProvider['addRequestsBatched']>) {
         this.lastActivity = new Date();
-        return super.addRequestsBatched(requestLikes, options);
+        return super.addRequestsBatched(...args);
     }
 
-    override async markRequestHandled(request: Request) {
+    override async markRequestHandled(...args: Parameters<RequestProvider['markRequestHandled']>) {
         this.lastActivity = new Date();
-        return super.markRequestHandled(request);
+        return super.markRequestHandled(...args);
     }
 
-    override async reclaimRequest(request: Request) {
+    override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
         this.lastActivity = new Date();
-        return super.reclaimRequest(request);
+        return super.reclaimRequest(...args);
     }
 
     protected override _reset() {
