@@ -291,11 +291,7 @@ export class SessionPool extends EventEmitter {
     }
 
     async resetStore() {
-        if (!this.keyValueStore) {
-            return;
-        }
-
-        await this.keyValueStore.setValue(this.persistStateKey, null);
+        await this.keyValueStore?.setValue(this.persistStateKey, null);
     }
 
     /**
