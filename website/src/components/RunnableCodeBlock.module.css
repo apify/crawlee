@@ -13,11 +13,14 @@
     border-radius: var(--ifm-global-radius);
     opacity: 0.7;
     font-weight: 600;
+    width: 155px;
 }
 
 .button svg {
     height: 20px;
-    margin-right: -10px;
+    position: absolute;
+    top: 7.5px;
+    right: 0;
 }
 
 .button:hover {
