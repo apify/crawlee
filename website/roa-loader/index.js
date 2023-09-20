@@ -27,8 +27,8 @@ async function getHash(source) {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     if (!res.data || !res.data.encoded) {
-        console.error(res);
-        throw new Error(`Signing failed:' ${inspect(res.error) || 'Unknown error'}`);
+        console.error(`Signing failed:' ${inspect(res.error) || 'Unknown error'}`, res);
+        return 'invalid-token';
     }
 
     return res.data.encoded;

@@ -11,8 +11,13 @@
     color: var(--prism-color);
     border: 1px solid var(--ifm-color-emphasis-300);
     border-radius: var(--ifm-global-radius);
-    opacity: 0.6;
+    opacity: 0.7;
     font-weight: 600;
+}
+
+.button svg {
+    height: 20px;
+    margin-right: -10px;
 }
 
 .button:hover {
