@@ -97,15 +97,16 @@ Let’s create a zip archive from our project (including the `node_modules` fold
 
 :::note Large `node_modules` folder?
 
- AWS has a limit of 50MB for direct file upload. Usually, our Crawlee projects won’t be anywhere near this limit, but we can easily exceed this with large dependency trees.
+AWS has a limit of 50MB for direct file upload. Usually, our Crawlee projects won’t be anywhere near this limit, but we can easily exceed this with large dependency trees.
 
- A better way to install your project dependencies is by using Lambda Layers. With Layers, we can also share files between multiple Lambdas - and keep the actual “code” part of the Lambdas as slim as possible.
+A better way to install your project dependencies is by using Lambda Layers. With Layers, we can also share files between multiple Lambdas - and keep the actual “code” part of the Lambdas as slim as possible.
 
- **To create a Lambda Layer, we need to:** 
+**To create a Lambda Layer, we need to:** 
 
- - Pack the `node_modules` folder into a separate zip file (the archive should contain one folder named `node_modules`).
- - Create a new Lambda layer from this archive. We’ll probably need to upload this file to AWS S3 storage and create the Lambda Layer like this.
- - After creating it, we simply tell our new Lambda function to use this layer.
+- Pack the `node_modules` folder into a separate zip file (the archive should contain one folder named `node_modules`).
+- Create a new Lambda layer from this archive. We’ll probably need to upload this file to AWS S3 storage and create the Lambda Layer like this.
+- After creating it, we simply tell our new Lambda function to use this layer.
+
 :::
 
 To deploy our actual code, we upload the `package.zip` archive as our code source.
@@ -115,9 +116,11 @@ In Lambda Runtime Settings, we point the `handler` to the main function that run
 Now we’re all set! By clicking the **Test** button, we can send an example testing event to our new Lambda. The actual contents of the event don’t really matter for now - if you want, further parameterize your crawler run by analyzing the `event` object AWS passes as the first argument to the handler.
 
 :::tip
+
 In the Configuration tab in the AWS Lambda dashboard, you can configure the amount of memory the Lambda is running with or the size of the ephemeral storage. 
 
 The memory size can greatly affect the execution speed of your Lambda. 
 
 See the [official documentation](https://docs.aws.amazon.com/lambda/latest/operatorguide/computing-power.html) to see how the performance and cost scale with more memory.
+
 :::

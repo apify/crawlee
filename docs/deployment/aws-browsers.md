@@ -120,4 +120,5 @@ Now we can simply pack the code into a zip archive (minus the `node_modules` fol
 Since we’re using full-size browsers here, we have to update the Lambda configurations a bit. Most importantly, make sure to set the memory setting to **1024 MB or more** and update the **Lambda timeout**. 
 
 The target timeout value depends on how long your crawler will be running. Try measuring the execution time when running your crawler locally and set the timeout accordingly.
+
 :::

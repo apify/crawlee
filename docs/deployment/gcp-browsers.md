@@ -33,7 +33,9 @@ await crawler.run(startUrls);
 All we now need to do is wrap our crawler with an Express HTTP server handler, so it can communicate with the client via HTTP. Because the Cloud Run platform sees only an opaque Docker container, we have to take care of this bit ourselves. 
 
 :::info
+
 GCP passes you an environment variable called `PORT` - your HTTP server is expected to be listening on this port (GCP exposes this one to the outer world).
+
 :::
 
 The `main.js` script should be looking like this in the end:
@@ -69,7 +71,9 @@ app.listen(parseInt(process.env.PORT) || 3000);
 ```
 
 :::tip
+
 Always make sure to keep all the logic in the request handler - as with other FaaS services, your request handlers have to be **stateless.**
+
 :::
 
 ## Deploying to GCP
@@ -81,5 +85,7 @@ All you have to do now is run `gcloud run deploy` in your project folder (the on
 After answering those questions, you should be able to see your application in the GCP dashboard and run it using the link you find there.
 
 :::tip
+
 In case your first execution of your newly created Cloud Run fails, try editing the Run configuration - mainly setting the available memory to 1GiB or more and updating the request timeout according to the size of the website you are scraping.
+
 :::
