@@ -49,6 +49,12 @@ module.exports = {
         {
             type: 'category',
             label: 'Deployment',
+            link: {
+                type: 'generated-index',
+                title: 'Deployment guides',
+                description: 'Here you can find guides on how to deploy your crawlers to various cloud providers.',
+                slug: '/deployment',
+            },
             items: [
                 {
                     type: 'doc',
@@ -65,7 +71,7 @@ module.exports = {
                 },
                 {
                     type: 'category',
-                    label: 'Deploy on GCP',
+                    label: 'Deploy to Google Cloud',
                     items: [
                         'deployment/gcp-cheerio',
                         'deployment/gcp-browsers',

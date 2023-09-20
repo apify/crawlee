@@ -51,6 +51,12 @@
     {
       "type": "category",
       "label": "Deployment",
+      "link": {
+        "type": "generated-index",
+        "slug": "/deployment",
+        "title": "Deployment guides",
+        "description": "Here you can find guides on how to deploy your crawlers to various cloud providers."
+      },
       "items": [
         {
           "type": "doc",
@@ -67,7 +73,7 @@
         },
         {
           "type": "category",
-          "label": "Deploy on GCP",
+          "label": "Deploy to Google Cloud",
           "items": [
             "deployment/gcp-cheerio",
             "deployment/gcp-browsers"
