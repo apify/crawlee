@@ -887,7 +887,11 @@ export class RequestQueue {
         // Download remote resource and parse URLs.
         let urlsArr;
         try {
-            urlsArr = await this._downloadListOfUrls({ url: requestsFromUrl, urlRegExp: regex, proxyUrl: await this.proxyConfiguration?.newUrl() });
+            urlsArr = await this._downloadListOfUrls({
+                url: requestsFromUrl,
+                urlRegExp: regex,
+                proxyUrl: await this.proxyConfiguration?.newUrl() || undefined,
+            });
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
         }

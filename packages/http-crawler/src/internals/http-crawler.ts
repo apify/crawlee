@@ -453,7 +453,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
 
         if (this.proxyConfiguration) {
             const sessionId = session ? session.id : undefined;
-            crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId);
+            crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, crawlingContext.request);
         }
         if (!request.skipNavigation) {
             await this._handleNavigation(crawlingContext);

@@ -2,8 +2,10 @@ import log from '@apify/log';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
+import type { Request } from './request';
+
 export interface ProxyConfigurationFunction {
-    (sessionId: string | number): string | Promise<string>;
+    (sessionId: string | number, request?: Request): string | Promise<string | false>;
 }
 
 export interface ProxyConfigurationOptions {
@@ -15,8 +17,8 @@ export interface ProxyConfigurationOptions {
     proxyUrls?: string[];
 
     /**
-     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
-     * and should always return stringified proxy URL. Can be asynchronous.
+     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` and the current Request object as parameters
+     * and should return either stringified proxy URL or `false` if proxy shouldn't be used. Can be asynchronous.
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
@@ -173,9 +175,11 @@ export class ProxyConfiguration {
      *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(sessionId?: string | number): Promise<ProxyInfo> {
+    async newProxyInfo(sessionId?: string | number, request?: Request): Promise<ProxyInfo | undefined> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
-        const url = await this.newUrl(sessionId);
+        const url = await this.newUrl(sessionId, request);
+
+        if (!url) return undefined;
 
         const { username, password, port, hostname } = new URL(url);
 
@@ -202,11 +206,11 @@ export class ProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(sessionId?: string | number): Promise<string> {
+    async newUrl(sessionId?: string | number, request?: Request): Promise<string | false> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
-            return this._callNewUrlFunction(sessionId)!;
+            return this._callNewUrlFunction(sessionId, request)!;
         }
 
         return this._handleCustomUrl(sessionId);
@@ -233,13 +237,15 @@ export class ProxyConfiguration {
     }
 
     /**
-     * Calls the custom newUrlFunction and checks format of its return value
+     * Calls the custom newUrlFunction and checks format of its return value.
      */
-    protected async _callNewUrlFunction(sessionId?: string) {
-        let proxyUrl: string;
+    protected async _callNewUrlFunction(sessionId?: string, request?: Request) {
+        let proxyUrl: string | false;
 
         try {
-            proxyUrl = await this.newUrlFunction!(sessionId!);
+            proxyUrl = await this.newUrlFunction!(sessionId!, request);
+            if (!proxyUrl) return false;
+
             new URL(proxyUrl); // eslint-disable-line no-new
             return proxyUrl;
         } catch (err) {
