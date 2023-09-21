@@ -709,6 +709,38 @@ describe('CheerioCrawler', () => {
             expect(proxies[3]).toEqual(proxyUrl);
         });
 
+        test('newUrlFunction works as expected', async () => {
+            const proxyUrl = serverAddress;
+            const proxyConfiguration = new ProxyConfiguration({
+                newUrlFunction: async (sessionId, request) => {
+                    if (request.url.includes('12') || request.url.includes('33')) return false;
+                    return proxyUrl;
+                },
+            });
+
+            const requestList = await getRequestListForMirror();
+            const results: { proxyUrl: string; url: string }[] = [];
+
+            const crawler = new CheerioCrawler({
+                requestList,
+                requestHandler: ({ proxyInfo, request: { url } }) => {
+                    results.push({ proxyUrl: proxyInfo?.url, url });
+                },
+                proxyConfiguration,
+            });
+
+            await crawler.run();
+
+            expect(results).toHaveLength(4);
+            results.forEach(({ proxyUrl: currentProxyUrl, url }) => {
+                if (url.includes('12') || url.includes('33')) {
+                    expect(currentProxyUrl).toEqual(undefined);
+                } else {
+                    expect(currentProxyUrl).toEqual(proxyUrl);
+                }
+            });
+        });
+
         test('requestHandler should expose the proxyInfo object with sessions correctly', async () => {
             const proxyUrls = [0, 1, 2, 3].map((n) => `${serverAddress}/proxy?x=${n}`);
             const proxyConfiguration = new ProxyConfiguration({

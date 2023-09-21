@@ -891,6 +891,47 @@ describe('BrowserCrawler', () => {
             expect(spy).toBeCalled();
             expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
         });
+
+        test('newUrlFunction works as expected', async () => {
+            const proxyConfiguration = new ProxyConfiguration({
+                newUrlFunction: async (sessionId, request) => {
+                    if (request?.url.includes('noproxy')) return false;
+                    return 'http://localhost:1234';
+                },
+            });
+
+            const results: { proxyUrl: string | undefined; url: string }[] = [];
+
+            const crawler = new class extends BrowserCrawlerTest {
+                protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
+                    const { request } = ctx;
+                    const proxyInfo = await this.proxyConfiguration.newProxyInfo('', request);
+
+                    results.push({ url: request.url, proxyUrl: proxyInfo?.url });
+
+                    return null;
+                }
+            }({
+                browserPoolOptions: {
+                    browserPlugins: [puppeteerPlugin],
+                },
+                proxyConfiguration,
+                requestHandler: async () => {},
+            });
+
+            await crawler.run([
+                { url: 'http://localhost:1234' },
+                { url: 'http://noproxy.com' },
+                { url: 'http://localhost:1234/123' },
+                { url: 'http://noproxy.com/456' },
+            ]);
+
+            expect(results).toHaveLength(4);
+            results.forEach((result) => {
+                if (result.url.includes('noproxy')) return expect(result.proxyUrl).toBeUndefined();
+                expect(result.proxyUrl).toEqual('http://localhost:1234');
+            });
+        });
     });
 
     describe('Crawling context', () => {
