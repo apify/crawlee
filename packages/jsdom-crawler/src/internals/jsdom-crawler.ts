@@ -3,7 +3,6 @@ import type { IncomingMessage } from 'http';
 import { addTimeoutToPromise } from '@apify/timeout';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type {
-    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -11,10 +10,17 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RequestQueue,
     RouterRoutes,
+    Configuration,
+    RequestProvider,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
+import {
+    HttpCrawler,
+    enqueueLinks,
+    Router,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    tryAbsoluteURL,
+} from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
@@ -287,7 +293,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     window: DOMWindow | null;
-    requestQueue: RequestQueue;
+    requestQueue: RequestProvider;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

@@ -1,7 +1,6 @@
 import type { IncomingMessage } from 'http';
 
 import type {
-    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -9,10 +8,17 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RequestQueue,
     RouterRoutes,
+    Configuration,
+    RequestProvider,
 } from '@crawlee/http';
-import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
+import {
+    HttpCrawler,
+    enqueueLinks,
+    Router,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    tryAbsoluteURL,
+} from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
@@ -203,7 +209,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 interface EnqueueLinksInternalOptions {
     options?: EnqueueLinksOptions;
     $: cheerio.CheerioAPI | null;
-    requestQueue: RequestQueue;
+    requestQueue: RequestProvider;
     originalRequestUrl: string;
     finalRequestUrl?: string;
 }

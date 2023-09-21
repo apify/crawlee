@@ -5,7 +5,7 @@ import util from 'node:util';
 import { normalizeUrl } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
-import ow, { ArgumentError } from 'ow';
+import ow from 'ow';
 
 import { log as defaultLog } from './log';
 import type { AllowedHttpMethods } from './typedefs';
@@ -141,14 +141,15 @@ export class Request<UserData extends Dictionary = Dictionary> {
         // properties and speeds up the validation cca 3-fold.
         // See https://github.com/sindresorhus/ow/issues/193
         keys(options).forEach((prop) => {
+            // skip url, because it is validated above
+            if (prop === 'url') {
+                return;
+            }
+
             const predicate = requestOptionalPredicates[prop as keyof typeof requestOptionalPredicates];
             const value = options[prop];
             if (predicate) {
                 ow(value, `RequestOptions.${prop}`, predicate as BasePredicate);
-                // 'url' is checked above because it's not optional
-            } else if (prop !== 'url') {
-                const msg = `Did not expect property \`${prop}\` to exist, got \`${value}\` in object \`RequestOptions\``;
-                throw new ArgumentError(msg, this.constructor);
             }
         });
 
@@ -478,6 +479,9 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 
     /** @internal */
     handledAt?: string;
+
+    /** @internal */
+    lockExpiresAt?: Date;
 
 }
 

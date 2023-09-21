@@ -7,8 +7,8 @@ import type {
     RegExpInput,
     RequestTransform,
     UrlPatternObject,
-    RequestQueue,
     RequestOptions,
+    RequestProvider,
 } from '@crawlee/browser';
 import {
     constructGlobObjectsFromGlobs,
@@ -40,7 +40,7 @@ export interface EnqueueLinksByClickingElementsOptions {
     /**
      * A request queue to which the URLs will be enqueued.
      */
-    requestQueue: RequestQueue;
+    requestQueue: RequestProvider;
 
     /**
      * A CSS selector matching elements to be clicked on. Unlike in {@apilink enqueueLinks}, there is no default
