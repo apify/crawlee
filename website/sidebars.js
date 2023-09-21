@@ -44,7 +44,39 @@ module.exports = {
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',
-                'guides/apify-platform',
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Deployment',
+            link: {
+                type: 'generated-index',
+                title: 'Deployment guides',
+                description: 'Here you can find guides on how to deploy your crawlers to various cloud providers.',
+                slug: '/deployment',
+            },
+            items: [
+                {
+                    type: 'doc',
+                    id: 'deployment/apify-platform',
+                    label: 'Deploy on Apify',
+                },
+                {
+                    type: 'category',
+                    label: 'Deploy on AWS',
+                    items: [
+                        'deployment/aws-cheerio',
+                        'deployment/aws-browsers',
+                    ],
+                },
+                {
+                    type: 'category',
+                    label: 'Deploy to Google Cloud',
+                    items: [
+                        'deployment/gcp-cheerio',
+                        'deployment/gcp-browsers',
+                    ],
+                },
             ],
         },
         {

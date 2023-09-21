@@ -110,6 +110,10 @@ module.exports = {
                         from: '/docs/guides/getting-started',
                         to: '/docs/introduction',
                     },
+                    {
+                        from: '/docs/guides/apify-platform',
+                        to: '/docs/deployment/apify-platform',
+                    },
                 ],
                 createRedirects(existingPath) {
                     if (!existingPath.endsWith('/')) {
