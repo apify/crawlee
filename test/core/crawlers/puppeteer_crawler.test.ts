@@ -23,7 +23,7 @@ import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
-import { createProxyServer } from '../create-proxy-server';
+import { createProxyServer, createProxyServerWithResponse } from '../create-proxy-server';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless: string;
@@ -31,9 +31,12 @@ describe('PuppeteerCrawler', () => {
     const localStorageEmulator = new MemoryStorageEmulator();
     let requestList: RequestList;
     let servers: ProxyChainServer[];
+    let customProxyServer: ProxyChainServer;
     let target: Server;
     let serverUrl: string;
     let proxyConfiguration: ProxyConfiguration;
+
+    const CUSTOM_PROXY_RESPONSE = 'This is a custom proxy response!';
 
     beforeAll(async () => {
         prevEnvHeadless = process.env.CRAWLEE_HEADLESS;
@@ -57,6 +60,14 @@ describe('PuppeteerCrawler', () => {
             createProxyServer('127.0.0.4', '', ''),
         ];
 
+        customProxyServer = createProxyServerWithResponse('127.0.0.5', {
+            body: CUSTOM_PROXY_RESPONSE,
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+        });
+
+        await customProxyServer.listen();
         await Promise.all(servers.map((server) => server.listen()));
 
         proxyConfiguration = new ProxyConfiguration({
@@ -84,6 +95,7 @@ describe('PuppeteerCrawler', () => {
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
 
         await Promise.all(servers.map((server) => promisify(server.close.bind(server))(true)));
+        await customProxyServer.close(true);
         await promisify(target.close.bind(target))();
     });
 
@@ -465,6 +477,54 @@ describe('PuppeteerCrawler', () => {
             expect(count[3]).toBeGreaterThan(0);
             expect(count[4]).toBeGreaterThan(0);
             expect(count[2] + count[3] + count[4]).toBe(6);
+        });
+
+        test('proxy customization per request', async () => {
+            const results: { url: string; body: string }[] = [];
+
+            const puppeteerCrawler = new PuppeteerCrawler({
+                requestList: await RequestList.open(null, [
+                    { url: `${serverUrl}/?q=noproxy` },
+                    { url: `${serverUrl}/?q=thiswillgothroughproxy` },
+                    { url: `${serverUrl}/?q=andthistoo` },
+                ]),
+                launchContext: {
+                    useIncognitoPages: true,
+                    launchOptions: {
+                        headless: true,
+                    },
+                },
+                browserPoolOptions: {
+                    prePageCreateHooks: [
+                        (_id, _controller, options) => {
+                            options.proxyBypassList = ['<-loopback>'];
+                        },
+                    ],
+                },
+                proxyConfiguration: new ProxyConfiguration({
+                    newUrlFunction: async (_, request) => {
+                        if (!request?.url.includes('noproxy')) return `http://127.0.0.5:${customProxyServer.port}`;
+                        return false;
+                    },
+                }),
+                requestHandler: async ({ request, response }) => {
+                    results.push({
+                        url: request.url,
+                        body: await response.text(),
+                    });
+                },
+            });
+
+            await puppeteerCrawler.run();
+
+            expect(results).toHaveLength(3);
+            results.forEach((result) => {
+                if (result.url.includes('noproxy')) {
+                    expect(result.body).not.toEqual(CUSTOM_PROXY_RESPONSE);
+                } else {
+                    expect(result.body).toEqual(CUSTOM_PROXY_RESPONSE);
+                }
+            });
         });
     }
 });

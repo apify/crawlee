@@ -10,13 +10,16 @@ import type {
 } from '@crawlee/playwright';
 import {
     PlaywrightCrawler,
+    ProxyConfiguration,
     RequestList,
 } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
+import type { Server as ProxyChainServer } from 'proxy-chain';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { startExpressAppPromise } from '../../shared/_helper';
+import { createProxyServerWithResponse } from '../create-proxy-server';
 
 if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);
 
@@ -25,10 +28,13 @@ describe('PlaywrightCrawler', () => {
     let logLevel: number;
     const localStorageEmulator = new MemoryStorageEmulator();
     let requestList: RequestList;
+    let customProxyServer: ProxyChainServer;
 
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
+
+    const CUSTOM_PROXY_RESPONSE = 'This is a custom proxy response!';
 
     beforeAll(async () => {
         const app = express();
@@ -45,6 +51,15 @@ describe('PlaywrightCrawler', () => {
         process.env.CRAWLEE_HEADLESS = '1';
         logLevel = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
+
+        customProxyServer = createProxyServerWithResponse('127.0.0.5', {
+            body: CUSTOM_PROXY_RESPONSE,
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+        });
+
+        await customProxyServer.listen();
     });
 
     beforeEach(async () => {
@@ -63,6 +78,7 @@ describe('PlaywrightCrawler', () => {
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
     });
     afterAll(async () => {
+        await customProxyServer.close(true);
         server.close();
     });
 
@@ -146,5 +162,46 @@ describe('PlaywrightCrawler', () => {
         void new PlaywrightCrawler(options);
 
         expect(Object.keys(options.browserPoolOptions).length).toBe(0);
+    });
+
+    test('proxy customization per request', async () => {
+        const results: { url: string; body: string }[] = [];
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            requestList: await RequestList.open(null, [
+                { url: `http://${HOSTNAME}:${[port]}/?q=noproxy` },
+                { url: `http://${HOSTNAME}:${[port]}/?q=thiswillgothroughproxy` },
+                { url: `http://${HOSTNAME}:${[port]}/?q=andthistoo` },
+            ]),
+            launchContext: {
+                useIncognitoPages: true,
+                launchOptions: {
+                    headless: true,
+                },
+            },
+            proxyConfiguration: new ProxyConfiguration({
+                newUrlFunction: async (_, request) => {
+                    if (!request?.url.includes('noproxy')) return `http://127.0.0.5:${customProxyServer.port}`;
+                    return false;
+                },
+            }),
+            requestHandler: async ({ request, response }) => {
+                results.push({
+                    url: request.url,
+                    body: await response.text(),
+                });
+            },
+        });
+
+        await playwrightCrawler.run();
+
+        expect(results).toHaveLength(3);
+        results.forEach((result) => {
+            if (result.url.includes('noproxy')) {
+                expect(result.body).not.toEqual(CUSTOM_PROXY_RESPONSE);
+            } else {
+                expect(result.body).toEqual(CUSTOM_PROXY_RESPONSE);
+            }
+        });
     });
 });
