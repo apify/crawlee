@@ -15,7 +15,7 @@
     "scripts": {
         "start": "npm run start:dev",
         "start:prod": "node dist/main.js",
-        "start:dev": "ts-node-esm -T src/main.ts",
+        "start:dev": "node --no-warnings=ExperimentalWarning --loader ts-node/esm/transpile-only src/main.ts",
         "build": "tsc",
         "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
     },
