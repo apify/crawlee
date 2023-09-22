@@ -713,7 +713,7 @@ describe('CheerioCrawler', () => {
             const proxyUrl = serverAddress;
             const proxyConfiguration = new ProxyConfiguration({
                 newUrlFunction: async (sessionId, request) => {
-                    if (request.url.includes('12') || request.url.includes('33')) return false;
+                    if (request.url.includes('12') || request.url.includes('33')) return null;
                     return proxyUrl;
                 },
             });

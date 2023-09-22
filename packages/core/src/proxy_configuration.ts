@@ -4,7 +4,8 @@ import ow from 'ow';
 
 import type { Request } from './request';
 
-export type ProxyConfigurationFunction = (sessionId: string | number, request?: Request) => string | Promise<string | false>;
+type NewUrlRetVal = string | undefined | null;
+export type ProxyConfigurationFunction = (sessionId: string | number, request?: Request) => Promise<NewUrlRetVal> | NewUrlRetVal;
 
 export interface ProxyConfigurationOptions {
     /**
@@ -16,7 +17,7 @@ export interface ProxyConfigurationOptions {
 
     /**
      * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` and the current Request object as parameters
-     * and should return either stringified proxy URL or `false` if proxy shouldn't be used. Can be asynchronous.
+     * and should return either stringified proxy URL or `null` if proxy shouldn't be used. Can be asynchronous.
      *
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      *
@@ -242,7 +243,7 @@ export class ProxyConfiguration {
      * Calls the custom newUrlFunction and checks format of its return value.
      */
     protected async _callNewUrlFunction(sessionId?: string, request?: Request) {
-        let proxyUrl: string | false;
+        let proxyUrl: NewUrlRetVal;
 
         try {
             proxyUrl = await this.newUrlFunction!(sessionId!, request);

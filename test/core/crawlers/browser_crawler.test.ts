@@ -895,7 +895,7 @@ describe('BrowserCrawler', () => {
         test('newUrlFunction works as expected', async () => {
             const proxyConfiguration = new ProxyConfiguration({
                 newUrlFunction: async (sessionId, request) => {
-                    if (request?.url.includes('noproxy')) return false;
+                    if (request?.url.includes('noproxy')) return null;
                     return 'http://localhost:1234';
                 },
             });

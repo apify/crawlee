@@ -182,7 +182,7 @@ describe('PlaywrightCrawler', () => {
             proxyConfiguration: new ProxyConfiguration({
                 newUrlFunction: async (_, request) => {
                     if (!request?.url.includes('noproxy')) return `http://127.0.0.5:${customProxyServer.port}`;
-                    return false;
+                    return null;
                 },
             }),
             requestHandler: async ({ request, response }) => {
