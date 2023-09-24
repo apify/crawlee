@@ -3181,53 +3181,53 @@ __metadata:
   linkType: hard
 
 "@types/eslint-scope@npm:^3.7.3":
-  version: 3.7.4
-  resolution: "@types/eslint-scope@npm:3.7.4"
+  version: 3.7.5
+  resolution: "@types/eslint-scope@npm:3.7.5"
   dependencies:
     "@types/eslint": "*"
     "@types/estree": "*"
-  checksum: ea6a9363e92f301cd3888194469f9ec9d0021fe0a397a97a6dd689e7545c75de0bd2153dfb13d3ab532853a278b6572c6f678ce846980669e41029d205653460
+  checksum: e91ce335c3791c2cf6084caa0073f90d5b7ae3fcf27785ade8422b7d896159fa14a5a3f1efd31ef03e9ebc1ff04983288280dfe8c9a5579a958539f59df8cc9f
   languageName: node
   linkType: hard
 
 "@types/eslint@npm:*":
-  version: 8.44.2
-  resolution: "@types/eslint@npm:8.44.2"
+  version: 8.44.3
+  resolution: "@types/eslint@npm:8.44.3"
   dependencies:
     "@types/estree": "*"
     "@types/json-schema": "*"
-  checksum: 25b3ef61bae96350026593c9914c8a61ee02fde48ab8d568a73ee45032f13c0028c62e47a5ff78715af488dfe8e8bba913f7d30f859f60c7f9e639d328e80482
+  checksum: 3a0d152785400cb83a887a646d9c8877468e686b6fb439635c64856b70dbe91019e588d2b32bc923cd60642bf5dca7f70b2cf61eb431cf25fbdf2932f6e13dd3
   languageName: node
   linkType: hard
 
 "@types/estree@npm:*, @types/estree@npm:^1.0.0":
-  version: 1.0.1
-  resolution: "@types/estree@npm:1.0.1"
-  checksum: e9aa175eacb797216fafce4d41e8202c7a75555bc55232dee0f9903d7171f8f19f0ae7d5191bb1a88cb90e65468be508c0df850a9fb81b4433b293a5a749899d
+  version: 1.0.2
+  resolution: "@types/estree@npm:1.0.2"
+  checksum: aeedb1b2fe20cbe06f44b99b562bf9703e360bfcdf5bb3d61d248182ee1dd63500f2474e12f098ffe1f5ac3202b43b3e18ec99902d9328d5374f5512fa077e45
   languageName: node
   linkType: hard
 
 "@types/express-serve-static-core@npm:*, @types/express-serve-static-core@npm:^4.17.33":
-  version: 4.17.36
-  resolution: "@types/express-serve-static-core@npm:4.17.36"
+  version: 4.17.37
+  resolution: "@types/express-serve-static-core@npm:4.17.37"
   dependencies:
     "@types/node": "*"
     "@types/qs": "*"
     "@types/range-parser": "*"
     "@types/send": "*"
-  checksum: 410b13cbd663f18c0f8729e7f2ff54d960d96de76ebbae7cadb612972f85cc66c54051e00d32f11aa230c0a683d81a6d6fc7f7e4e383a95c0801494c517f36e1
+  checksum: 2dab1380e45eb44e56ecc1be1c42c4b897364d2f2a08e03ca28fbcb1e6866e390217385435813711c046f9acd684424d088855dc32825d5cbecf72c60ecd037f
   languageName: node
   linkType: hard
 
 "@types/express@npm:*, @types/express@npm:^4.17.13":
-  version: 4.17.17
-  resolution: "@types/express@npm:4.17.17"
+  version: 4.17.18
+  resolution: "@types/express@npm:4.17.18"
   dependencies:
     "@types/body-parser": "*"
     "@types/express-serve-static-core": ^4.17.33
     "@types/qs": "*"
     "@types/serve-static": "*"
-  checksum: 0196dacc275ac3ce89d7364885cb08e7fb61f53ca101f65886dbf1daf9b7eb05c0943e2e4bbd01b0cc5e50f37e0eea7e4cbe97d0304094411ac73e1b7998f4da
+  checksum: 8c178da4f0edff1f006d871fbdc3f849620986ff10bad252f3dfd45b57554e26aaa28c602285df028930d5216e257a06fbaf795070f8bb42f7d87e3b689cba50
   languageName: node
   linkType: hard
 
@@ -3342,9 +3342,9 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.6.3
-  resolution: "@types/node@npm:20.6.3"
-  checksum: 444a6f1f41cfa8d3e20ce0108e6e43960fb2ae0e481f233bb1c14d6252aa63a92e021de561cd317d9fdb411688f871065f40175a1f18763282dee2613a08f8a3
+  version: 20.6.4
+  resolution: "@types/node@npm:20.6.4"
+  checksum: 5fdf81c8760b620a3f3b2cdac1688008f0c73a00af98e067b4621a572d39b831eaeee8fbd7300cd06667dec31d8b032fbb8e1bbedae56ec6ff1230a338b4e8a5
   languageName: node
   linkType: hard
 
@@ -4436,14 +4436,14 @@ __metadata:
   linkType: hard
 
 "babel-plugin-polyfill-corejs3@npm:^0.8.3":
-  version: 0.8.3
-  resolution: "babel-plugin-polyfill-corejs3@npm:0.8.3"
+  version: 0.8.4
+  resolution: "babel-plugin-polyfill-corejs3@npm:0.8.4"
   dependencies:
     "@babel/helper-define-polyfill-provider": ^0.4.2
-    core-js-compat: ^3.31.0
+    core-js-compat: ^3.32.2
   peerDependencies:
     "@babel/core": ^7.4.0 || ^8.0.0-0 <8.0.0
-  checksum: dcbb30e551702a82cfd4d2c375da2c317658e55f95e9edcda93b9bbfdcc8fb6e5344efcb144e04d3406859e7682afce7974c60ededd9f12072a48a83dd22a0da
+  checksum: 7243241a5b978b1335d51bcbd1248d6c4df88f6b3726706e71e0392f111c59bbf01118c85bb0ed42dce65e90e8fc768d19eda0a81a321cbe54abd3df9a285dc8
   languageName: node
   linkType: hard
 
@@ -5310,7 +5310,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"core-js-compat@npm:^3.31.0":
+"core-js-compat@npm:^3.31.0, core-js-compat@npm:^3.32.2":
   version: 3.32.2
   resolution: "core-js-compat@npm:3.32.2"
   dependencies:

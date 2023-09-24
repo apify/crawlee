@@ -2200,26 +2200,26 @@ __metadata:
   linkType: hard
 
 "@types/express-serve-static-core@npm:^4.17.33":
-  version: 4.17.36
-  resolution: "@types/express-serve-static-core@npm:4.17.36"
+  version: 4.17.37
+  resolution: "@types/express-serve-static-core@npm:4.17.37"
   dependencies:
     "@types/node": "*"
     "@types/qs": "*"
     "@types/range-parser": "*"
     "@types/send": "*"
-  checksum: 410b13cbd663f18c0f8729e7f2ff54d960d96de76ebbae7cadb612972f85cc66c54051e00d32f11aa230c0a683d81a6d6fc7f7e4e383a95c0801494c517f36e1
+  checksum: 2dab1380e45eb44e56ecc1be1c42c4b897364d2f2a08e03ca28fbcb1e6866e390217385435813711c046f9acd684424d088855dc32825d5cbecf72c60ecd037f
   languageName: node
   linkType: hard
 
 "@types/express@npm:^4.17.13":
-  version: 4.17.17
-  resolution: "@types/express@npm:4.17.17"
+  version: 4.17.18
+  resolution: "@types/express@npm:4.17.18"
   dependencies:
     "@types/body-parser": "*"
     "@types/express-serve-static-core": ^4.17.33
     "@types/qs": "*"
     "@types/serve-static": "*"
-  checksum: 0196dacc275ac3ce89d7364885cb08e7fb61f53ca101f65886dbf1daf9b7eb05c0943e2e4bbd01b0cc5e50f37e0eea7e4cbe97d0304094411ac73e1b7998f4da
+  checksum: 8c178da4f0edff1f006d871fbdc3f849620986ff10bad252f3dfd45b57554e26aaa28c602285df028930d5216e257a06fbaf795070f8bb42f7d87e3b689cba50
   languageName: node
   linkType: hard
 
@@ -2415,9 +2415,9 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.6.3
-  resolution: "@types/node@npm:20.6.3"
-  checksum: 444a6f1f41cfa8d3e20ce0108e6e43960fb2ae0e481f233bb1c14d6252aa63a92e021de561cd317d9fdb411688f871065f40175a1f18763282dee2613a08f8a3
+  version: 20.6.4
+  resolution: "@types/node@npm:20.6.4"
+  checksum: 5fdf81c8760b620a3f3b2cdac1688008f0c73a00af98e067b4621a572d39b831eaeee8fbd7300cd06667dec31d8b032fbb8e1bbedae56ec6ff1230a338b4e8a5
   languageName: node
   linkType: hard
 
@@ -2429,16 +2429,16 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:^18.7.13":
-  version: 18.17.18
-  resolution: "@types/node@npm:18.17.18"
-  checksum: 59cbd906363d37017fe9ba0c08c1446e440d4d977459609c5f90b8fb7eb41f273ce8af30c5a5b5d599d7de934c1b3702bc9fc27caf8d2270e5cdb659c5232991
+  version: 18.17.19
+  resolution: "@types/node@npm:18.17.19"
+  checksum: 6ab47127cd7534511aa199550659d56b44e5a6dbec9df054d0cde279926b4d43f0e6438f92c8392b039ab4e2a85aa0f698b95926430aff860e23bfc36c96576c
   languageName: node
   linkType: hard
 
 "@types/normalize-package-data@npm:^2.4.0":
-  version: 2.4.1
-  resolution: "@types/normalize-package-data@npm:2.4.1"
-  checksum: e87bccbf11f95035c89a132b52b79ce69a1e3652fe55962363063c9c0dae0fe2477ebc585e03a9652adc6f381d24ba5589cc5e51849df4ced3d3e004a7d40ed5
+  version: 2.4.2
+  resolution: "@types/normalize-package-data@npm:2.4.2"
+  checksum: 2132e4054711e6118de967ae3a34f8c564e58d71fbcab678ec2c34c14659f638a86c35a0fd45237ea35a4a03079cf0a485e3f97736ffba5ed647bfb5da086b03
   languageName: node
   linkType: hard
 
@@ -11803,21 +11803,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.0.14":
-  version: 6.0.14
-  resolution: "tldts-core@npm:6.0.14"
-  checksum: c1946b259ad60d5e158293c52840d5eeaeef8c9804ec2044f1880698c6f962b03eb525e33d297003fc9beb25b8e30c74af654f239c5be6882b374057d949d9c0
+"tldts-core@npm:^6.0.15":
+  version: 6.0.15
+  resolution: "tldts-core@npm:6.0.15"
+  checksum: 130072fbe17ce4b2a1b655a20b30940ea3e1c7375f007d03857240537c55e7127541c4340f5b0e86871826c53f20f433823bcf7172628ef3f2379b9698eeaf31
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.0.14
-  resolution: "tldts@npm:6.0.14"
+  version: 6.0.15
+  resolution: "tldts@npm:6.0.15"
   dependencies:
-    tldts-core: ^6.0.14
+    tldts-core: ^6.0.15
   bin:
     tldts: bin/cli.js
-  checksum: d59264aacbe9d73c5012681bffcd0e430a2a2d79ac438652ef755cb513e5f2af8800f4012486815ee8638139974ec379a1fdc09a72ee15403fe0dda97fc72d42
+  checksum: 4b5add60009d1aad2cfbff6194dc008b99f9ea980663cac288b80fabc1df1499b5068ed736708ee64fef788f6cd7e0b30627972d7166942ffb33bc907233a57f
   languageName: node
   linkType: hard
 
