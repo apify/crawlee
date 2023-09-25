@@ -323,4 +323,8 @@ export class RequestQueue extends RequestProvider {
         super._reset();
         this.lastActivity = new Date();
     }
+
+    static override open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
+        return super.open(...args) as Promise<RequestQueue>;
+    }
 }
