@@ -164,6 +164,42 @@ describe('PlaywrightCrawler', () => {
         expect(Object.keys(options.browserPoolOptions).length).toBe(0);
     });
 
+    test('basic proxy usage', async () => {
+        const usedProxies = new Set<string>();
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            requestList: await RequestList.open(null, [
+                { url: `http://${HOSTNAME}:${[port]}/?q=all_of_these_requests` },
+                { url: `http://${HOSTNAME}:${[port]}/?q=will_go` },
+                { url: `http://${HOSTNAME}:${[port]}/?q=through_one_of` },
+                { url: `http://${HOSTNAME}:${[port]}/?q=the_specified` },
+                { url: `http://${HOSTNAME}:${[port]}/?q=proxy_servers` },
+            ]),
+            maxConcurrency: 1,
+            sessionPoolOptions: {
+                sessionOptions: {
+                    maxUsageCount: 1,
+                },
+            },
+            proxyConfiguration: new ProxyConfiguration({
+                proxyUrls: [
+                    `http://127.0.0.5:${customProxyServer.port}?token=oydxq`,
+                    `http://127.0.0.5:${customProxyServer.port}?token=bhzjc`,
+                    `http://127.0.0.5:${customProxyServer.port}?token=jrbte`,
+                    `http://127.0.0.5:${customProxyServer.port}?token=jjsxt`,
+                    `http://127.0.0.5:${customProxyServer.port}?token=abghf`,
+                ],
+            }),
+            requestHandler: async ({ proxyInfo, page }) => {
+                if (!(await page.content()).includes(CUSTOM_PROXY_RESPONSE)) throw new Error('Proxy not used!');
+                usedProxies.add(proxyInfo?.url);
+            },
+        });
+
+        await playwrightCrawler.run();
+        expect(usedProxies.size).toBe(5);
+    });
+
     test('proxy customization per request', async () => {
         const results: { url: string; body: string }[] = [];
 
@@ -181,8 +217,8 @@ describe('PlaywrightCrawler', () => {
             },
             proxyConfiguration: new ProxyConfiguration({
                 newUrlFunction: async (_, request) => {
-                    if (!request?.url.includes('noproxy')) return `http://127.0.0.5:${customProxyServer.port}`;
-                    return null;
+                    if (request?.url.includes('noproxy')) return null;
+                    return `http://127.0.0.5:${customProxyServer.port}`;
                 },
             }),
             requestHandler: async ({ request, response }) => {

@@ -55,7 +55,13 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
         }
 
         try {
-            const page = await this.browser.newPage(contextOptions);
+            const page = await this.browser.newPage({
+                ...contextOptions,
+                proxy: contextOptions?.proxy ?? {
+                    server: 'http://disabled',
+                    bypass: '*,',
+                },
+            });
 
             page.once('close', async () => {
                 this.activePages--;
