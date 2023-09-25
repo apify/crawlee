@@ -291,6 +291,10 @@ class RequestQueue extends RequestProvider {
             }
         }
     }
+
+    static override open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
+        return super.open(...args) as Promise<RequestQueue>;
+    }
 }
 
 export { RequestQueue as RequestQueueV2 };

@@ -614,7 +614,7 @@ export abstract class RequestProvider implements IStorage {
      *   the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
-    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<BuiltRequestProvider> {
+    static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestProvider> {
         ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
