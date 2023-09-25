@@ -826,7 +826,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this._init();
         await this.stats.startCapturing();
         const periodicLogger = this.getPeriodicLogger();
-        await this.setStatusMessage(`Initializing the crawler.`, { level: 'INFO' });
+        await this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
         const sigintHandler = async () => {
             this.log.warning('Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start');
