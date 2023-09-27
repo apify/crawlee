@@ -70,8 +70,8 @@
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
-        "playwright": "<= 2.x",
-        "puppeteer": "<= 21.2"
+        "playwright": "*",
+        "puppeteer": "*"
     },
     "peerDependenciesMeta": {
         "playwright": {
