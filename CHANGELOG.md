@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.5](https://github.com/apify/crawlee/compare/v3.5.4...v3.5.5) (2023-10-02)
+
+
+### Bug Fixes
+
+* allow to use any version of puppeteer or playwright ([#2102](https://github.com/apify/crawlee/issues/2102)) ([0cafceb](https://github.com/apify/crawlee/commit/0cafceb2966d430dd1b2a1b619fe66da1c951f4c)), closes [#2101](https://github.com/apify/crawlee/issues/2101)
+* session pool leaks memory on multiple crawler runs ([#2083](https://github.com/apify/crawlee/issues/2083)) ([b96582a](https://github.com/apify/crawlee/commit/b96582a200e25ec11124da1f7f84a2b16b64d133)), closes [#2074](https://github.com/apify/crawlee/issues/2074) [#2031](https://github.com/apify/crawlee/issues/2031)
+* **templates:** install browsers on postinstall for playwright ([#2104](https://github.com/apify/crawlee/issues/2104)) ([323768b](https://github.com/apify/crawlee/commit/323768bf335000ae2a23eaa903612cbdd73aaf0a))
+* **types:** make return type of RequestProvider.open and RequestQueue(v2).open strict and accurate ([#2096](https://github.com/apify/crawlee/issues/2096)) ([dfaddb9](https://github.com/apify/crawlee/commit/dfaddb920d9772985e0b54e0ce029cc7d99b1efa))
+
+
+### Features
+
+* Request Queue v2 ([#1975](https://github.com/apify/crawlee/issues/1975)) ([70a77ee](https://github.com/apify/crawlee/commit/70a77ee15f984e9ae67cd584fc58ace7e55346db)), closes [#1365](https://github.com/apify/crawlee/issues/1365)
+
+
+
+
+
 ## [3.5.4](https://github.com/apify/crawlee/compare/v3.5.3...v3.5.4) (2023-09-11)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.5](https://github.com/apify/crawlee/compare/v3.5.4...v3.5.5) (2023-10-02)
+
+
+### Bug Fixes
+
+* **templates:** install browsers on postinstall for playwright ([#2104](https://github.com/apify/crawlee/issues/2104)) ([323768b](https://github.com/apify/crawlee/commit/323768bf335000ae2a23eaa903612cbdd73aaf0a))
+
+
+
+
+
 ## [3.5.4](https://github.com/apify/crawlee/compare/v3.5.3...v3.5.4) (2023-09-11)
 
 **Note:** Version bump only for package @crawlee/templates
