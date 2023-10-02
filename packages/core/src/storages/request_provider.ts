@@ -661,6 +661,14 @@ export interface RequestProviderOptions {
     proxyConfiguration?: ProxyConfiguration;
 }
 
+/**
+ * @deprecated Use {@apilink RequestProviderOptions} instead.
+ */
+export interface RequestQueueOptions extends RequestProviderOptions {}
+
+/**
+ * @internal
+ */
 export interface InternalRequestProviderOptions extends RequestProviderOptions {
     logPrefix: string;
     requestCacheMaxSize: number;
