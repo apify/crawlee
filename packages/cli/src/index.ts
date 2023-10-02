@@ -10,6 +10,8 @@ require('yargonaut')
 // eslint-disable-next-line
 import { CreateProjectCommand } from './commands/CreateProjectCommand';
 // eslint-disable-next-line
+import { InstallPlaywrightBrowsersCommand } from './commands/InstallPlaywrightBrowsersCommand';
+// eslint-disable-next-line
 import { RunProjectCommand } from './commands/RunProjectCommand';
 
 // eslint-disable-next-line
@@ -35,6 +37,7 @@ const cli = yargs.scriptName('crawlee')
     .alias('h', 'help')
     .command(new CreateProjectCommand())
     .command(new RunProjectCommand())
+    .command(new InstallPlaywrightBrowsersCommand())
     .recommendCommands()
     .strict();
 
