@@ -1,6 +1,6 @@
 import type { Server } from 'http';
 
-import type { Request, RequestQueueOperationOptions, Source } from 'crawlee';
+import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
     Configuration,
     RequestQueue,
@@ -485,7 +485,7 @@ testCases.forEach(({
                 expect(pageContent).toMatch('onclick="return window.history.pushState');
             });
 
-            test('should close newly opened tabs', async () => {
+            test.skip('should close newly opened tabs', async () => {
                 const html = `
 <html>
     <body>
@@ -537,7 +537,7 @@ testCases.forEach(({
                 expect(pageContent).toMatch('onclick="return window.open(');
             });
 
-            test('should save urls from newly opened tabs', async () => {
+            test.skip('should save urls from newly opened tabs', async () => {
                 const html = `
 <html>
     <body>

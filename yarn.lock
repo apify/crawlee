@@ -774,8 +774,8 @@ __metadata:
     tiny-typed-emitter: ^2.1.0
     tslib: ^2.4.0
   peerDependencies:
-    playwright: <= 2.x
-    puppeteer: <= 21.2
+    playwright: "*"
+    puppeteer: "*"
   peerDependenciesMeta:
     playwright:
       optional: true
@@ -940,7 +940,7 @@ __metadata:
     ow: ^0.28.1
     tslib: ^2.4.0
   peerDependencies:
-    playwright: <= 2.x
+    playwright: "*"
   peerDependenciesMeta:
     playwright:
       optional: true
@@ -964,7 +964,7 @@ __metadata:
     ow: ^0.28.1
     tslib: ^2.4.0
   peerDependencies:
-    puppeteer: <= 21.2
+    puppeteer: "*"
   peerDependenciesMeta:
     puppeteer:
       optional: true
@@ -979,6 +979,9 @@ __metadata:
     "@apify/log": ^2.4.0
     "@apify/tsconfig": ^0.1.0
     "@commitlint/config-conventional": ^17.1.0
+    "@playwright/browser-chromium": "*"
+    "@playwright/browser-firefox": "*"
+    "@playwright/browser-webkit": "*"
     "@types/content-type": ^1.1.5
     "@types/deep-equal": ^1.0.1
     "@types/domhandler": ^2.4.2
@@ -1015,10 +1018,10 @@ __metadata:
     lerna: ^7.0.0
     lint-staged: ^14.0.0
     node-gyp: ^9.1.0
-    playwright: 1.37.1
+    playwright: 1.38.1
     portastic: ^1.0.1
     proxy: ^1.0.2
-    puppeteer: 21.2.1
+    puppeteer: 21.3.6
     rimraf: ^5.0.0
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
@@ -1919,6 +1922,33 @@ __metadata:
   version: 0.11.0
   resolution: "@pkgjs/parseargs@npm:0.11.0"
   checksum: 6ad6a00fc4f2f2cfc6bff76fb1d88b8ee20bc0601e18ebb01b6d4be583733a860239a521a7fbca73b612e66705078809483549d2b18f370eb346c5155c8e4a0f
+  languageName: node
+  linkType: hard
+
+"@playwright/browser-chromium@npm:*":
+  version: 1.38.1
+  resolution: "@playwright/browser-chromium@npm:1.38.1"
+  dependencies:
+    playwright-core: 1.38.1
+  checksum: 0fa4c30792288102a27fd1cdb33f44ab25cbec53c6913e268f4c4609865fa7dd556177f72e54790d0472e73d668fa97e1a2f54d83b9bec7e04cdb6e748d0f555
+  languageName: node
+  linkType: hard
+
+"@playwright/browser-firefox@npm:*":
+  version: 1.38.1
+  resolution: "@playwright/browser-firefox@npm:1.38.1"
+  dependencies:
+    playwright-core: 1.38.1
+  checksum: d14d91a8c7354eb882b0f4696feedab5a017214edb590c64742220402fc30b721f61012a49d57fde5ef7ec7044ae85635b806f5c91ff4f20f1e11f7494f9dbea
+  languageName: node
+  linkType: hard
+
+"@playwright/browser-webkit@npm:*":
+  version: 1.38.1
+  resolution: "@playwright/browser-webkit@npm:1.38.1"
+  dependencies:
+    playwright-core: 1.38.1
+  checksum: 941008c3ed7a4a336bf1a860ffb7c8e8b20a39a9f774d71a6499881385a54f05bac83156423c2c1ec29ea6eb789e39c9ace4ff344f859107d646d1eaea882f3d
   languageName: node
   linkType: hard
 
@@ -3830,14 +3860,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chromium-bidi@npm:0.4.26":
-  version: 0.4.26
-  resolution: "chromium-bidi@npm:0.4.26"
+"chromium-bidi@npm:0.4.28":
+  version: 0.4.28
+  resolution: "chromium-bidi@npm:0.4.28"
   dependencies:
     mitt: 3.0.1
+    urlpattern-polyfill: 9.0.0
   peerDependencies:
     devtools-protocol: "*"
-  checksum: fac806b005c0860c62bbccd05333ac74cfff9786a3e94e1214106d2928780fe053b03118f1d5ef2adba31a0cb4b86f4d768ded5b75ff6a28805abcf7e3869f73
+  checksum: d8ac0aefcf11ebd744e0b97ecded9dac5c03ab55f46267570cdf1b780ad1e05e8cf6987b65178bda99a1ef1ea1bc59721bda85008283ca5f145912b9e1bf578d
   languageName: node
   linkType: hard
 
@@ -4289,24 +4320,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cosmiconfig@npm:8.3.5":
-  version: 8.3.5
-  resolution: "cosmiconfig@npm:8.3.5"
-  dependencies:
-    import-fresh: ^3.3.0
-    js-yaml: ^4.1.0
-    parse-json: ^5.2.0
-    path-type: ^4.0.0
-  peerDependencies:
-    typescript: ">=4.9.5"
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  checksum: c6e44bb3cabf268b70049e7bd4ee8ecf00068854e53cbc32f9104794927ef406817f9e64e1c4949bd10776b604c01f7b50674336fcd2d5b9efc4cf8277fdf025
-  languageName: node
-  linkType: hard
-
-"cosmiconfig@npm:^8.0.0, cosmiconfig@npm:^8.2.0":
+"cosmiconfig@npm:8.3.6, cosmiconfig@npm:^8.0.0, cosmiconfig@npm:^8.2.0":
   version: 8.3.6
   resolution: "cosmiconfig@npm:8.3.6"
   dependencies:
@@ -4342,8 +4356,8 @@ __metadata:
     import-local: ^3.1.0
     tslib: ^2.4.0
   peerDependencies:
-    playwright: <= 2.x
-    puppeteer: <= 21.2
+    playwright: "*"
+    puppeteer: "*"
   peerDependenciesMeta:
     playwright:
       optional: true
@@ -4733,10 +4747,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"devtools-protocol@npm:0.0.1159816":
-  version: 0.0.1159816
-  resolution: "devtools-protocol@npm:0.0.1159816"
-  checksum: 24aa985a34a093a7418c955d0398e8a0829bc1f482eb1db55eca0cf09789de8344d0f36177d3e394fc63ec9bf08cf4114fadf3a7f2ab64f95a17ccc53bcf1aea
+"devtools-protocol@npm:0.0.1179426":
+  version: 0.0.1179426
+  resolution: "devtools-protocol@npm:0.0.1179426"
+  checksum: 38a091bde42d7d0f8e5e6c7a445db6a56d7b80f21f51de47ed1316123f70b2256aa6fe0d87fbe37bcc4928c0b9245e28a17fb7fbf8d8622156ae36870b26c1ed
   languageName: node
   linkType: hard
 
@@ -6023,12 +6037,31 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fsevents@npm:2.3.2":
+  version: 2.3.2
+  resolution: "fsevents@npm:2.3.2"
+  dependencies:
+    node-gyp: latest
+  checksum: 97ade64e75091afee5265e6956cb72ba34db7819b4c3e94c431d4be2b19b8bb7a2d4116da417950c3425f17c8fe693d25e20212cac583ac1521ad066b77ae31f
+  conditions: os=darwin
+  languageName: node
+  linkType: hard
+
 "fsevents@npm:^2.3.2":
   version: 2.3.3
   resolution: "fsevents@npm:2.3.3"
   dependencies:
     node-gyp: latest
   checksum: 11e6ea6fea15e42461fc55b4b0e4a0a3c654faa567f1877dbd353f39156f69def97a69936d1746619d656c4b93de2238bf731f6085a03a50cabf287c9d024317
+  conditions: os=darwin
+  languageName: node
+  linkType: hard
+
+"fsevents@patch:fsevents@2.3.2#~builtin<compat/fsevents>":
+  version: 2.3.2
+  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=df0bf1"
+  dependencies:
+    node-gyp: latest
   conditions: os=darwin
   languageName: node
   linkType: hard
@@ -10220,23 +10253,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.37.1":
-  version: 1.37.1
-  resolution: "playwright-core@npm:1.37.1"
+"playwright-core@npm:1.38.1":
+  version: 1.38.1
+  resolution: "playwright-core@npm:1.38.1"
   bin:
     playwright-core: cli.js
-  checksum: 69f818da2230057584140d5b3af7778a4f4a822b5b18d133abfc5d259128becb943c343a2ddf6b0635277a69f28983e83e2bc3fce23595ececb1e410475b6368
+  checksum: 66e83fe040f309b13ad94ba39dea40ac207bfcbbc22de13141af88dbdedd64e1c4e3ce1d0cb070d4efd8050d7e579953ec3681dd8a0acf2c1cc738d9c50e545e
   languageName: node
   linkType: hard
 
-"playwright@npm:1.37.1":
-  version: 1.37.1
-  resolution: "playwright@npm:1.37.1"
+"playwright@npm:1.38.1":
+  version: 1.38.1
+  resolution: "playwright@npm:1.38.1"
   dependencies:
-    playwright-core: 1.37.1
+    fsevents: 2.3.2
+    playwright-core: 1.38.1
+  dependenciesMeta:
+    fsevents:
+      optional: true
   bin:
     playwright: cli.js
-  checksum: 99406ef3e15b83a659cb23ef1d92d9935789aad430580d1e0371087dfdf266891483c6f97cfa06bf5f49f081eacd44245d05d20714f98531edef4cc317044d6b
+  checksum: 4e01d4ee52d9ccf75a80d8492829106802590721d56bff7c5957ff1f21eb3c328ee5bc3c1784a59c4b515df1b98d08ef92e4a35a807f454cd00dc481d30fadc2
   languageName: node
   linkType: hard
 
@@ -10436,28 +10473,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:21.2.1":
-  version: 21.2.1
-  resolution: "puppeteer-core@npm:21.2.1"
+"puppeteer-core@npm:21.3.6":
+  version: 21.3.6
+  resolution: "puppeteer-core@npm:21.3.6"
   dependencies:
     "@puppeteer/browsers": 1.7.1
-    chromium-bidi: 0.4.26
+    chromium-bidi: 0.4.28
     cross-fetch: 4.0.0
     debug: 4.3.4
-    devtools-protocol: 0.0.1159816
-    ws: 8.14.1
-  checksum: 7b37e35b3df308128c6526756b13372d5c4e19d4b6fce8e4c31e5616eeca2f49a420132d7eae249de82180821c1147b327b9d11e1b730911a604db3e9be256fe
+    devtools-protocol: 0.0.1179426
+    ws: 8.14.2
+  checksum: 18f85781d0fc575fc6b5261a242414492e99ba497f914afaef9e3afd62a7ad135dbb63602cca5eae102a91ec8e84838a2bf0d6217bf68ba9b01d2c8b4152faf8
   languageName: node
   linkType: hard
 
-"puppeteer@npm:21.2.1":
-  version: 21.2.1
-  resolution: "puppeteer@npm:21.2.1"
+"puppeteer@npm:21.3.6":
+  version: 21.3.6
+  resolution: "puppeteer@npm:21.3.6"
   dependencies:
     "@puppeteer/browsers": 1.7.1
-    cosmiconfig: 8.3.5
-    puppeteer-core: 21.2.1
-  checksum: 43a8ca132be52c2b07f35cda50c25c38009bc888433ad1106009c5ee76a252b2d8e9bab939ccacc408d17da6ad6671fdb773423289e87dd830c9e5f84781859c
+    cosmiconfig: 8.3.6
+    puppeteer-core: 21.3.6
+  checksum: 781dd1061e402dd14fb0d2a522987dc81624437b3cf25eae7dfde26e94a23e992e201d97c9021e002ecd3aae43e1f6a248ec70566c2520a25cd4fabe9e171506
   languageName: node
   linkType: hard
 
@@ -12383,6 +12420,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"urlpattern-polyfill@npm:9.0.0":
+  version: 9.0.0
+  resolution: "urlpattern-polyfill@npm:9.0.0"
+  checksum: d3658b78a10eaee514c464f5a4336c408c70cf01e9b915cb1df5892b3c49003d1ed4042dc72d1b18493b8b847883e84fbf2bf358abb5dff84b2725d5e8463bcb
+  languageName: node
+  linkType: hard
+
 "util-deprecate@npm:^1.0.1, util-deprecate@npm:~1.0.1":
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
@@ -12751,9 +12795,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.14.1":
-  version: 8.14.1
-  resolution: "ws@npm:8.14.1"
+"ws@npm:8.14.2, ws@npm:^8.13.0":
+  version: 8.14.2
+  resolution: "ws@npm:8.14.2"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -12762,7 +12806,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 9e310be2b0ff69e1f87d8c6d093ecd17a1ed4c37f281d17c35e8c30e2bd116401775b3d503249651374e6e0e1e9905db62fff096b694371c77561aee06bc3466
+  checksum: 3ca0dad26e8cc6515ff392b622a1467430814c463b3368b0258e33696b1d4bed7510bc7030f7b72838b9fdeb8dbd8839cbf808367d6aae2e1d668ce741d4308b
   languageName: node
   linkType: hard
 
@@ -12778,21 +12822,6 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: c3c100a181b731f40b7f2fddf004aa023f79d64f489706a28bc23ff88e87f6a64b3c6651fbec3a84a53960b75159574d7a7385709847a62ddb7ad6af76f49138
-  languageName: node
-  linkType: hard
-
-"ws@npm:^8.13.0":
-  version: 8.14.2
-  resolution: "ws@npm:8.14.2"
-  peerDependencies:
-    bufferutil: ^4.0.1
-    utf-8-validate: ">=5.0.2"
-  peerDependenciesMeta:
-    bufferutil:
-      optional: true
-    utf-8-validate:
-      optional: true
-  checksum: 3ca0dad26e8cc6515ff392b622a1467430814c463b3368b0258e33696b1d4bed7510bc7030f7b72838b9fdeb8dbd8839cbf808367d6aae2e1d668ce741d4308b
   languageName: node
   linkType: hard
 
