@@ -21,6 +21,7 @@ import {
 } from '@crawlee/cheerio';
 import { sleep } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/utils';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood\
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
 import { runExampleComServer, responseSamples } from 'test/shared/_helper';

@@ -1,4 +1,5 @@
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { Response as GotResponse, OptionsInit } from 'got-scraping';
 
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links';

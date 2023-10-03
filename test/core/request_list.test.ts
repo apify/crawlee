@@ -1,7 +1,6 @@
 import log from '@apify/log';
 import { Configuration, deserializeArray, EventType, KeyValueStore, ProxyConfiguration, Request, RequestList } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { gotScraping } from 'got-scraping';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 /**
@@ -16,13 +15,13 @@ function shuffle(array: unknown[]) : unknown[] {
     return out;
 }
 
-vitest.mock('got-scraping', async () => {
-    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
+vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     return {
-        ...original,
-        gotScraping: vitest.fn(original.gotScraping),
+        gotScraping: vitest.fn(),
     };
 });
+
+const { gotScraping } = await import('@crawlee/utils/src/internals/gotScraping');
 
 const gotScrapingSpy = vitest.mocked(gotScraping);
 

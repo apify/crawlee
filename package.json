@@ -102,7 +102,7 @@
         "rimraf": "^5.0.0",
         "ts-node": "^10.9.1",
         "turbo": "1.10.16",
-        "typescript": "^5.0.0",
+        "typescript": "^5.2.2",
         "vite-tsconfig-paths": "^4.2.1",
         "vitest": "^0.34.6"
     },
