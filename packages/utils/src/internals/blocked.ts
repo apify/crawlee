@@ -4,6 +4,7 @@
 export const RETRY_CSS_SELECTORS = [
     'iframe[src^="https://challenges.cloudflare.com"]',
     'div#infoDiv0 a[href*="//www.google.com/policies/terms/"]',
+    'iframe[src*="_Incapsula_Resource"]',
 ];
 
 /**
