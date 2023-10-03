@@ -185,10 +185,11 @@ function Deployment() {
                 <h2>Deploy to the cloud ☁️</h2>
                 <p>
                     Crawlee is developed by <a href="https://apify.com" rel="dofollow" target="_blank"><b>Apify</b></a>, the web scraping and automation platform.
-                    You can deploy a <b>Crawlee</b> project wherever you want, but using the <a href="https://console.apify.com/" target="_blank"><b>Apify
-                    platform</b></a> will give you the best experience. With a few simple steps, you can convert your Crawlee project into a so-called&nbsp;
-                    <b>Actor</b>. Actors are serverless micro-apps that are easy to develop, run, share, and integrate. The infra, proxies,
-                    and storages are ready to go. <a href="https://apify.com/actors" target="_blank">Learn more about Actors</a>.
+                    You can deploy a <b>Crawlee</b> project wherever you want (see our deployment guides for <a href="https://crawlee.dev/docs/deployment/aws-cheerio"><b>AWS
+                    Lambda</b></a> and <a href="https://crawlee.dev/docs/deployment/gcp-cheerio"><b>Google Cloud</b></a>), but using the&nbsp;
+                    <a href="https://console.apify.com/" target="_blank"><b>Apify platform</b></a> will give you the best experience. With a few simple steps,
+                    you can convert your <b>Crawlee</b> project into a so-called <b>Actor</b>. Actors are serverless micro-apps that are easy to develop, run,
+                    share, and integrate. The infra, proxies, and storages are ready to go. <a href="https://apify.com/actors" target="_blank">Learn more about Actors</a>.
                 </p>
                 <p>
                     1️⃣ First, install the <b>Apify SDK</b> to your project, as well as the <b>Apify CLI</b>. The SDK will help with the Apify integration,
