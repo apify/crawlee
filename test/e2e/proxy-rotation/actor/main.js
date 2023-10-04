@@ -11,9 +11,8 @@ await Actor.main(async () => {
         proxyConfiguration: await Actor.createProxyConfiguration(),
         maxConcurrency: 1,
         sessionPoolOptions: { sessionOptions: { maxUsageCount: 1 } },
-        async requestHandler({ page }) {
-            const pageContent = await page.evaluate(() => document.body.children[0].innerText);
-            const { clientIp } = JSON.parse(pageContent);
+        async requestHandler({ response }) {
+            const { clientIp } = await response.json();
 
             const presentAlready = await KeyValueStore.getValue(clientIp);
             if (presentAlready) {
