@@ -71,10 +71,6 @@ export abstract class RequestProvider implements IStorage {
         eventManager.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
         });
-
-        (async () => {
-            this.initialCount = (await client.get())?.totalRequestCount ?? 0;
-        })().catch(() => {});
     }
 
     /**
@@ -646,6 +642,9 @@ export abstract class RequestProvider implements IStorage {
         const manager = StorageManager.getManager(this as typeof BuiltRequestProvider, options.config);
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
+
+        // eslint-disable-next-line dot-notation
+        queue['initialCount'] = (await queue.client.get())?.totalRequestCount ?? 0;
 
         return queue;
     }
