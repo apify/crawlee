@@ -755,8 +755,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await addTimeoutToPromise(
             () => client.setStatusMessage!(message, options),
             1000,
-            `setting status message timed out`,
-        );
+            'Setting status message timed out after 1s',
+        ).catch((e) => this.log.warning(e.message));
     }
 
     private getPeriodicLogger() {
