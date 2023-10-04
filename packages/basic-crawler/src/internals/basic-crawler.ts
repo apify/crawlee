@@ -741,12 +741,22 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * This method is periodically called by the crawler, every `statusMessageLoggingInterval` seconds.
      */
-    setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
+    async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data = options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
         this.log.internal(LogLevel[options.level as 'DEBUG' ?? 'DEBUG'], message, data);
 
         const client = this.config.getStorageClient();
-        return client.setStatusMessage?.(message, options);
+
+        if (!client.setStatusMessage) {
+            return;
+        }
+
+        // just to be sure, this should be fast
+        await addTimeoutToPromise(
+            () => client.setStatusMessage!(message, options),
+            1000,
+            `setting status message timed out`,
+        );
     }
 
     private getPeriodicLogger() {
