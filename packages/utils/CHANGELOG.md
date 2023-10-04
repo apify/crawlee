@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.6](https://github.com/apify/crawlee/compare/v3.5.5...v3.5.6) (2023-10-04)
+
+
+### Features
+
+* add incapsula iframe selector to the blocked list ([#2111](https://github.com/apify/crawlee/issues/2111)) ([2b17d8a](https://github.com/apify/crawlee/commit/2b17d8a797dec2824a0063792aa7bd3fce8dccae)), closes [apify/store-website-content-crawler#154](https://github.com/apify/store-website-content-crawler/issues/154)
+
+
+
+
+
 ## [3.5.5](https://github.com/apify/crawlee/compare/v3.5.4...v3.5.5) (2023-10-02)
 
 **Note:** Version bump only for package @crawlee/utils

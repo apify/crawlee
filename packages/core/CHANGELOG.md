@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.6](https://github.com/apify/crawlee/compare/v3.5.5...v3.5.6) (2023-10-04)
+
+
+### Bug Fixes
+
+* **types:** re-export RequestQueueOptions as an alias to RequestProviderOptions ([#2109](https://github.com/apify/crawlee/issues/2109)) ([0900f76](https://github.com/apify/crawlee/commit/0900f76742475c19a777733462e38c5a3a9b86b7))
+
+
+
+
+
 ## [3.5.5](https://github.com/apify/crawlee/compare/v3.5.4...v3.5.5) (2023-10-02)
 
 
