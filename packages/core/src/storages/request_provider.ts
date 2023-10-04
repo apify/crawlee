@@ -41,6 +41,8 @@ export abstract class RequestProvider implements IStorage {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
+    private initialCount = 0;
+
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
     /** @internal */
@@ -52,11 +54,12 @@ export abstract class RequestProvider implements IStorage {
     constructor(options: InternalRequestProviderOptions, readonly config = Configuration.getGlobalConfig()) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client.requestQueue(this.id, {
+        const client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,
         });
 
+        this.client = client;
         this.proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
@@ -68,6 +71,10 @@ export abstract class RequestProvider implements IStorage {
         eventManager.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
         });
+
+        (async () => {
+            this.initialCount = (await client.get())?.totalRequestCount ?? 0;
+        })().catch(() => {});
     }
 
     /**
@@ -75,6 +82,15 @@ export abstract class RequestProvider implements IStorage {
      */
     inProgressCount() {
         return this.inProgress.size;
+    }
+
+    /**
+     * Returns an offline approximation of the total number of requests in the queue (i.e. pending + handled).
+     *
+     * Survives restarts and actor migrations.
+     */
+    getTotalCount() {
+        return this.assumedTotalCount + this.initialCount;
     }
 
     /**
