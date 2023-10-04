@@ -889,7 +889,9 @@ describe('BrowserCrawler', () => {
             await crawler.run([serverAddress]);
 
             expect(spy).toBeCalled();
-            expect(spy.mock.calls[0][0]).toEqual(expect.stringContaining(proxyError));
+            // eslint-disable-next-line max-len
+            expect(spy.mock.calls[0][0]).toEqual('When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.');
+            expect(spy.mock.calls[1][0]).toEqual(expect.stringContaining(proxyError));
         });
     });
 
