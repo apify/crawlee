@@ -902,6 +902,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     async getRequestQueue() {
+        if (!this.requestQueue && this.requestList) {
+            // eslint-disable-next-line max-len
+            this.log.warningOnce('When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.');
+        }
+
         this.requestQueue ??= await this._getRequestQueue();
 
         return this.requestQueue!;
