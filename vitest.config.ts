@@ -20,6 +20,7 @@ export default defineConfig({
                 '**/test/**',
             ],
         },
+        restoreMocks: true,
         // minThreads: 1,
         // maxThreads: 3,
         testTimeout: 60_000,

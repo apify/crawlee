@@ -25,12 +25,6 @@ vitest.mock('got-scraping', async () => {
 });
 
 const gotScrapingSpy = vitest.mocked(gotScraping);
-const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
-
-afterEach(() => {
-    gotScrapingSpy.mockReset();
-    gotScrapingSpy.mockImplementation(originalGotScraping);
-});
 
 describe('RequestList', () => {
     let ll: number;
