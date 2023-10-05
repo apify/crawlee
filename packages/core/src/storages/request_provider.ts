@@ -54,12 +54,11 @@ export abstract class RequestProvider implements IStorage {
     constructor(options: InternalRequestProviderOptions, readonly config = Configuration.getGlobalConfig()) {
         this.id = options.id;
         this.name = options.name;
-        const client = options.client.requestQueue(this.id, {
+        this.client = options.client.requestQueue(this.id, {
             clientKey: this.clientKey,
             timeoutSecs: this.timeoutSecs,
         });
 
-        this.client = client;
         this.proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
