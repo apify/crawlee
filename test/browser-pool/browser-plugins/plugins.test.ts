@@ -13,7 +13,7 @@ import { runExampleComServer } from 'test/shared/_helper';
 
 import { createProxyServer } from './create-proxy-server';
 
-jest.setTimeout(120000);
+vitest.setConfig({ testTimeout: 120_000 });
 
 let port: number;
 let server: Server;

@@ -7,7 +7,7 @@ export default defineConfig({
     plugins: [tsconfigPaths()],
     esbuild: {
         target: 'es2021',
-        format: 'cjs',
+        // format: 'cjs',
     },
     test: {
         globals: true,
@@ -27,10 +27,12 @@ export default defineConfig({
         alias: [
             { find: '@crawlee/browser-pool', replacement: resolve(__dirname, './packages/browser-pool/src/') },
         ],
+        deps: {
+            moduleDirectories: ['/node_modules/', `${resolve('./packages')}/`],
+        },
         server: {
             deps: {
-                moduleDirectories: ['/node_modules/', `${resolve('./packages')}/`],
-                inline: ['browser-pool'],
+                inline: ['@crawlee/browser-pool'],
             },
         },
     },
