@@ -1,52 +1,47 @@
 import { readFile, access } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
-import { ENV_VARS } from '@apify/consts';
 import { launchPuppeteer } from '@crawlee/puppeteer';
 import { isDocker, getMemoryInfo } from '@crawlee/utils';
 
-jest.mock('node:os', () => {
-    const originalOs = jest.requireActual('node:os');
+vitest.mock('node:os', async () => {
+    const originalOs: typeof import('node:os') = await vitest.importActual('node:os');
     return {
         ...originalOs,
-        freemem: jest.fn(),
-        totalmem: jest.fn(),
+        freemem: vitest.fn(),
+        totalmem: vitest.fn(),
     };
 });
 
-jest.mock('@crawlee/utils/src/internals/general', () => {
-    const original = jest.requireActual('@crawlee/utils/src/internals/general');
+vitest.mock('@crawlee/utils/src/internals/general', async () => {
+    const original: typeof import('@crawlee/utils/src/internals/general') = await vitest.importActual('@crawlee/utils/src/internals/general');
     return {
         ...original,
-        isDocker: jest.fn(),
+        isDocker: vitest.fn(),
     };
 });
 
-jest.mock('node:fs/promises', () => {
-    const originalFs: typeof import('node:fs/promises') = jest.requireActual('node:fs/promises');
+vitest.mock('node:fs/promises', async () => {
+    const originalFs: typeof import('node:fs/promises') = await vitest.importActual('node:fs/promises');
     return {
         ...originalFs,
-        readFile: jest.fn(originalFs.readFile),
-        access: jest.fn(originalFs.access),
+        readFile: vitest.fn(originalFs.readFile),
+        access: vitest.fn(originalFs.access),
     };
 });
 
 afterAll(() => {
-    jest.unmock('node:os');
-    jest.unmock('node:fs/promises');
-    jest.unmock('@crawlee/utils/src/internals/general');
+    vitest.unmock('node:os');
+    vitest.unmock('node:fs/promises');
+    vitest.unmock('@crawlee/utils/src/internals/general');
 });
 
-function castToMock<T extends (...args: any[]) => any>(mock: T): jest.MockedFunction<T> {
-    return mock as jest.MockedFunction<T>;
-}
-
-const isDockerSpy = castToMock(isDocker);
-const freememSpy = castToMock(freemem);
-const totalmemSpy = castToMock(totalmem);
-const accessSpy = castToMock(access);
+const isDockerSpy = vitest.mocked(isDocker);
+const freememSpy = vitest.mocked(freemem);
+const totalmemSpy = vitest.mocked(totalmem);
+const accessSpy = vitest.mocked(access);
 // If you use this spy, make sure to reset it to the original implementation at the end of the test.
-const readFileSpy = castToMock(readFile);
+const readFileSpy = vitest.mocked(readFile);
 
 describe('getMemoryInfo()', () => {
     test('works WITHOUT child process outside the container', async () => {

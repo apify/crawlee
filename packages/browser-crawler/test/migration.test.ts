@@ -31,7 +31,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
         it('should log when providing both handlePageFunction and requestHandler', async () => {
             const oldHandler = () => {};
             const newHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             // @ts-expect-error -- Protected constructor
             const crawler = new BrowserCrawler({
@@ -58,7 +58,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should log when providing only the deprecated handlePageFunction', async () => {
             const oldHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             // @ts-expect-error -- We are verifying the deprecation warning
             const crawler = new BrowserCrawler({
@@ -83,7 +83,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should not log when providing only requestHandler', async () => {
             const handler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             // @ts-expect-error -- Protected constructor
             const crawler = new BrowserCrawler({
@@ -108,7 +108,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
         it('should log when providing both handleFailedRequestFunction and failedRequestHandler', async () => {
             const oldHandler = () => {};
             const newHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             // @ts-expect-error -- Protected constructor
             const crawler = new BrowserCrawler({
@@ -136,7 +136,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should log when providing only the deprecated handleFailedRequestFunction', async () => {
             const oldHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             // @ts-expect-error -- Protected constructor
             const crawler = new BrowserCrawler({
@@ -162,7 +162,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should not log when providing only failedRequestHandler', async () => {
             const handler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             // @ts-expect-error -- Protected constructor
             const crawler = new BrowserCrawler({

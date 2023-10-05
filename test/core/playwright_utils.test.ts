@@ -299,7 +299,7 @@ describe('playwrightUtils', () => {
         });
 
         test('saveSnapshot() works', async () => {
-            const openKVSSpy = jest.spyOn(KeyValueStore, 'open');
+            const openKVSSpy = vitest.spyOn(KeyValueStore, 'open');
             const browser = await chromium.launch({ headless: true });
 
             try {
@@ -310,7 +310,7 @@ describe('playwrightUtils', () => {
                 const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
 
                 // Test saving both image and html
-                const object = { setValue: jest.fn() };
+                const object = { setValue: vitest.fn() };
                 openKVSSpy.mockResolvedValue(object as any);
                 await playwrightUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 

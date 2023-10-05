@@ -16,15 +16,15 @@ function shuffle(array: unknown[]) : unknown[] {
     return out;
 }
 
-jest.mock('got-scraping', () => {
-    const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
+vitest.mock('got-scraping', async () => {
+    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
     return {
         ...original,
-        gotScraping: jest.fn(original.gotScraping),
+        gotScraping: vitest.fn(original.gotScraping),
     };
 });
 
-const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
+const gotScrapingSpy = vitest.mocked(gotScraping);
 const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
 
 afterEach(() => {
@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 afterAll(() => {
-    jest.unmock('got-scraping');
+    vitest.unmock('got-scraping');
 });
 
 describe('RequestList', () => {
@@ -48,7 +48,7 @@ describe('RequestList', () => {
 
     beforeEach(async () => {
         await emulator.init();
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     afterAll(async () => {
@@ -142,7 +142,7 @@ describe('RequestList', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = jest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         const list1 = [
             'https://example.com',
             'https://google.com',
@@ -228,7 +228,7 @@ describe('RequestList', () => {
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = jest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         spy.mockResolvedValueOnce([]);
 
         const requestList = await RequestList.open({
@@ -253,7 +253,7 @@ describe('RequestList', () => {
             'http://another.proxy.url',
         ];
 
-        const spy = jest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         spy.mockResolvedValue([]);
 
         const proxyConfiguration = new ProxyConfiguration({
@@ -467,8 +467,8 @@ describe('RequestList', () => {
 
     test('should correctly persist its state when persistStateKey is set', async () => {
         const PERSIST_STATE_KEY = 'some-key';
-        const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
         getValueSpy.mockResolvedValueOnce(null);
 
@@ -518,8 +518,8 @@ describe('RequestList', () => {
 
     test('should correctly persist its sources when persistRequestsKey is set', async () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
-        const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
         let persistedRequests;
 
@@ -561,9 +561,9 @@ describe('RequestList', () => {
 
     test('should correctly persist sources from requestsFromUrl if persistRequestsKey is set', async () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
-        const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
-        const spy = jest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         let persistedRequests;
 
         const opts = {
@@ -696,7 +696,7 @@ describe('RequestList', () => {
         expect(requestList.length()).toBe(4);
 
         log.setLevel(log.LEVELS.INFO);
-        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        const warnSpy = vitest.spyOn(console, 'warn').mockImplementation(() => {});
 
         requestList = await RequestList.open({
             sources: sourcesCopy.concat([
@@ -718,8 +718,8 @@ describe('RequestList', () => {
 
     describe('Apify.RequestList.open()', () => {
         test('should work', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-            const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
             const SDK_KEY = `SDK_${name}`;
@@ -741,8 +741,8 @@ describe('RequestList', () => {
         });
 
         test('should work with string sources', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-            const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
             const SDK_KEY = `SDK_${name}`;
@@ -764,8 +764,8 @@ describe('RequestList', () => {
         });
 
         test('should correctly pass options', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-            const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
             const SDK_KEY = `SDK_${name}`;
@@ -794,8 +794,8 @@ describe('RequestList', () => {
         });
 
         test('should work with null name', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-            const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name: string = null;
             const sources = [{ url: 'https://example.com' }];

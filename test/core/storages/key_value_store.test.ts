@@ -18,7 +18,7 @@ describe('KeyValueStore', () => {
     const client = Configuration.getStorageClient();
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vitest.clearAllMocks();
     });
 
     test('should work', async () => {
@@ -32,7 +32,7 @@ describe('KeyValueStore', () => {
         const recordStr = JSON.stringify(record, null, 2);
 
         // Set record
-        const mockSetRecord = jest
+        const mockSetRecord = vitest
             // @ts-expect-error Accessing private property
             .spyOn(store.client, 'setRecord')
             .mockResolvedValueOnce(null);
@@ -47,7 +47,7 @@ describe('KeyValueStore', () => {
         });
 
         // Get Record
-        const mockGetRecord = jest
+        const mockGetRecord = vitest
             // @ts-expect-error Accessing private property
             .spyOn(store.client, 'getRecord')
             .mockResolvedValueOnce({
@@ -63,7 +63,7 @@ describe('KeyValueStore', () => {
         expect(response).toEqual(record);
 
         // Delete Record
-        const mockDeleteRecord = jest
+        const mockDeleteRecord = vitest
             // @ts-expect-error Accessing private property
             .spyOn(store.client, 'deleteRecord')
             .mockResolvedValueOnce(null);
@@ -74,7 +74,7 @@ describe('KeyValueStore', () => {
         expect(mockDeleteRecord).toBeCalledWith('key-1');
 
         // Drop store
-        const mockDelete = jest
+        const mockDelete = vitest
             // @ts-expect-error Accessing private property
             .spyOn(store.client, 'delete')
             .mockResolvedValueOnce(undefined);
@@ -101,7 +101,7 @@ describe('KeyValueStore', () => {
         });
 
         test('KeyValueStore.getValue()', async () => {
-            const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
             getValueSpy.mockImplementationOnce(async () => 123);
 
             const val = await KeyValueStore.getValue('key-1');
@@ -215,7 +215,7 @@ describe('KeyValueStore', () => {
                 client,
             });
 
-            const mockSetRecord = jest
+            const mockSetRecord = vitest
                 // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
@@ -239,7 +239,7 @@ describe('KeyValueStore', () => {
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
 
-            const mockSetRecord = jest
+            const mockSetRecord = vitest
                 // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
@@ -260,7 +260,7 @@ describe('KeyValueStore', () => {
                 client,
             });
 
-            const mockSetRecord = jest
+            const mockSetRecord = vitest
                 // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
@@ -281,7 +281,7 @@ describe('KeyValueStore', () => {
                 client,
             });
 
-            const mockSetRecord = jest
+            const mockSetRecord = vitest
                 // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
@@ -303,7 +303,7 @@ describe('KeyValueStore', () => {
                 client,
             });
 
-            const mockSetRecord = jest
+            const mockSetRecord = vitest
             // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
@@ -389,7 +389,7 @@ describe('KeyValueStore', () => {
             });
 
             // @ts-expect-error Accessing private property
-            const mockListKeys = jest.spyOn(store.client, 'listKeys');
+            const mockListKeys = vitest.spyOn(store.client, 'listKeys');
             mockListKeys.mockResolvedValueOnce({
                 isTruncated: true,
                 exclusiveStartKey: 'key0',

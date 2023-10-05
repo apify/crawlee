@@ -27,7 +27,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
         it('should log when providing both handlePageFunction and requestHandler', () => {
             const oldHandler = () => {};
             const newHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             const crawler = new CheerioCrawler({
                 requestList,
@@ -48,7 +48,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should log when providing only the deprecated handlePageFunction', () => {
             const oldHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             const crawler = new CheerioCrawler({
                 requestList,
@@ -67,7 +67,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should not log when providing only requestHandler', () => {
             const handler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             const crawler = new CheerioCrawler({
                 requestList,
@@ -86,7 +86,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
         it('should log when providing both handleFailedRequestFunction and failedRequestHandler', () => {
             const oldHandler = () => {};
             const newHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             const crawler = new CheerioCrawler({
                 requestList,
@@ -108,7 +108,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should log when providing only the deprecated handleFailedRequestFunction', () => {
             const oldHandler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             const crawler = new CheerioCrawler({
                 requestList,
@@ -128,7 +128,7 @@ describe('Moving from handleRequest* to requestHandler*', () => {
 
         it('should not log when providing only failedRequestHandler', () => {
             const handler = () => {};
-            const warningSpy = jest.spyOn(testLogger, 'warning');
+            const warningSpy = vitest.spyOn(testLogger, 'warning');
 
             const crawler = new CheerioCrawler({
                 requestList,

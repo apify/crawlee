@@ -96,8 +96,8 @@ describe('Session - testing session behaviour ', () => {
 
     test('should retire session after marking bad', () => {
         // @ts-expect-error Private property
-        jest.spyOn(session, '_maybeSelfRetire');
-        jest.spyOn(session, 'retire');
+        vitest.spyOn(session, '_maybeSelfRetire');
+        vitest.spyOn(session, 'retire');
         session.markBad();
         expect(session.retire).toBeCalledTimes(0);
         session.isUsable = () => false;
@@ -107,8 +107,8 @@ describe('Session - testing session behaviour ', () => {
 
     test('should retire session after marking good', () => {
         // @ts-expect-error Private property
-        jest.spyOn(session, '_maybeSelfRetire');
-        jest.spyOn(session, 'retire');
+        vitest.spyOn(session, '_maybeSelfRetire');
+        vitest.spyOn(session, 'retire');
 
         session.markGood();
         expect(session.retire).toBeCalledTimes(0);
@@ -120,7 +120,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('should reevaluate usability of session after marking the session', () => {
         // @ts-expect-error Private property
-        jest.spyOn(session, '_maybeSelfRetire');
+        vitest.spyOn(session, '_maybeSelfRetire');
         session.markGood();
         // @ts-expect-error Private property
         expect(session._maybeSelfRetire).toBeCalledTimes(1);

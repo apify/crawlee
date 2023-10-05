@@ -19,7 +19,7 @@ describe('RequestQueue#addRequest should not call the API if the request is alre
     test('should not call the API if the request is already in the queue', async () => {
         const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
 
-        const clientSpy = jest.spyOn(requestQueue.client, 'addRequest');
+        const clientSpy = vitest.spyOn(requestQueue.client, 'addRequest');
 
         const requestData = await requestQueue.addRequest({ url: 'https://example.com' });
 
@@ -37,7 +37,7 @@ describe('RequestQueue#addRequests should not call the API if the request is alr
     test('should not call the API if the request is already in the queue', async () => {
         const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
 
-        const clientSpy = jest.spyOn(requestQueue.client, 'batchAddRequests');
+        const clientSpy = vitest.spyOn(requestQueue.client, 'batchAddRequests');
 
         const requestData = await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
