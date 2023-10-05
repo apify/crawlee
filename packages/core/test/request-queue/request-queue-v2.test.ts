@@ -23,6 +23,8 @@ async function makeQueue(name: string, numOfRequestsToAdd = 0) {
     return queue;
 }
 
+vitest.setConfig({ restoreMocks: false });
+
 describe('RequestQueueV2#isFinished should use listHead instead of listAndLock', () => {
     let queue: RequestQueueV2;
     let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;

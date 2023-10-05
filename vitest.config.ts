@@ -21,8 +21,8 @@ export default defineConfig({
             ],
         },
         restoreMocks: true,
-        minThreads: 2,
-        maxThreads: 4,
+        minThreads: 3,
+        maxThreads: 6,
         testTimeout: 60_000,
         alias: [
             { find: 'crawlee', replacement: resolve(__dirname, './packages/crawlee/src') },
