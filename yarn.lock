@@ -13019,18 +13019,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"v8-to-istanbul@npm:^9.0.1":
-  version: 9.1.3
-  resolution: "v8-to-istanbul@npm:9.1.3"
-  dependencies:
-    "@jridgewell/trace-mapping": ^0.3.12
-    "@types/istanbul-lib-coverage": ^2.0.1
-    convert-source-map: ^2.0.0
-  checksum: 5d592ab3d186b386065dace8e01c543a922a904b3cfac39667de172455a6b3d0e8e1401574fecb8a12092ad0809b5a8fd15f1cc14d0666139a1bb77cd6ac2cf8
-  languageName: node
-  linkType: hard
-
-"v8-to-istanbul@npm:^9.1.0":
+"v8-to-istanbul@npm:^9.0.1, v8-to-istanbul@npm:^9.1.0":
   version: 9.1.2
   resolution: "v8-to-istanbul@npm:9.1.2"
   dependencies:
@@ -13115,7 +13104,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0, vite@npm:^3.1.0 || ^4.0.0 || ^5.0.0-0":
+"vite@npm:5.0.0-beta.4, vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0":
   version: 5.0.0-beta.4
   resolution: "vite@npm:5.0.0-beta.4"
   dependencies:
@@ -13152,6 +13141,46 @@ __metadata:
   bin:
     vite: bin/vite.js
   checksum: 98077ffe7b63fa14bf3c9c9e5161e3d5604cadd805ab6ff2a03acad9723283f2eedd362e009f2c8145b70fd90a38453171c927a11847f63e7c1af551196067fd
+  languageName: node
+  linkType: hard
+
+"vite@patch:vite@npm%3A5.0.0-beta.4#./.yarn/patches/vite-npm-5.0.0-beta.4-47b562f0aa.patch::locator=%40crawlee%2Froot%40workspace%3A.":
+  version: 5.0.0-beta.4
+  resolution: "vite@patch:vite@npm%3A5.0.0-beta.4#./.yarn/patches/vite-npm-5.0.0-beta.4-47b562f0aa.patch::version=5.0.0-beta.4&hash=ba77b7&locator=%40crawlee%2Froot%40workspace%3A."
+  dependencies:
+    esbuild: ^0.19.3
+    fsevents: ~2.3.3
+    postcss: ^8.4.30
+    rollup: ^3.29.2
+  peerDependencies:
+    "@types/node": ^18.0.0 || >=20.0.0
+    less: "*"
+    lightningcss: ^1.21.0
+    sass: "*"
+    stylus: "*"
+    sugarss: "*"
+    terser: ^5.4.0
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  peerDependenciesMeta:
+    "@types/node":
+      optional: true
+    less:
+      optional: true
+    lightningcss:
+      optional: true
+    sass:
+      optional: true
+    stylus:
+      optional: true
+    sugarss:
+      optional: true
+    terser:
+      optional: true
+  bin:
+    vite: bin/vite.js
+  checksum: 9778ac11e9e38fe257d0ac900fd2bd292f7bc9ec690e5520e0226efe8a2bec6db8d1bc5fa25aa21fbf23ed8c8016e098c2a8145e8b8d718a36b362fda343ca69
   languageName: node
   linkType: hard
 

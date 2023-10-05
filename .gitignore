@@ -29,4 +29,5 @@ storage
 test/e2e/**/packages
 
 # we use corepack, no need to commit yarn binary
-.yarn
+.yarn/*
+!.yarn/patches

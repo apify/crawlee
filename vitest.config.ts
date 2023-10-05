@@ -7,7 +7,7 @@ export default defineConfig({
     plugins: [tsconfigPaths()],
     esbuild: {
         target: 'es2021',
-        // format: 'cjs',
+        keepNames: true,
     },
     test: {
         globals: true,

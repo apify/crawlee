@@ -1,0 +1,373 @@
+diff --git a/dist/node/chunks/dep-69dc786c.js b/dist/node/chunks/dep-69dc786c.js
+index 1c4ec28da1ac1d85a740ab5970b49a5774a3765d..b8f3034e833be8fa13357dd0bf53d3bb1fe223f8 100644
+--- a/dist/node/chunks/dep-69dc786c.js
++++ b/dist/node/chunks/dep-69dc786c.js
+@@ -666,7 +666,7 @@ var constants$6 = {
+ 	    output = `(?:^(?!${output}).*$)`;
+ 	  }
+ 	  return output;
+-	};
++	};
+ } (utils$k));
+
+ const utils$j = utils$k;
+@@ -2802,12 +2802,12 @@ var commondir = function (basedir, relfiles) {
+     else {
+         var files = basedir;
+     }
+-
++
+     var res = files.slice(1).reduce(function (ps, file) {
+         if (!file.match(/^([A-Za-z]:)?\/|\\/)) {
+             throw new Error('relative path without a basedir');
+         }
+-
++
+         var xs = file.split(/\/+|\\+/);
+         for (
+             var i = 0;
+@@ -2816,7 +2816,7 @@ var commondir = function (basedir, relfiles) {
+         );
+         return ps.slice(0, i);
+     }, files[0].split(/\/+|\\+/));
+-
++
+     // Windows correctly handles paths with forward-slashes
+     return res.length > 1 ? res.join('/') : '/'
+ };
+@@ -3367,7 +3367,7 @@ function expand$4(str, isTop) {
+     ? expand$4(m.post, false)
+     : [''];
+
+-  if (/\$$/.test(m.pre)) {
++  if (/\$$/.test(m.pre)) {
+     for (var k = 0; k < post.length; k++) {
+       var expansion = pre+ '{' + m.body + '}' + post[k];
+       expansions.push(expansion);
+@@ -11297,7 +11297,7 @@ function requireBrowser$1 () {
+ 			} catch (error) {
+ 				return '[UnexpectedJSONParseError]: ' + error.message;
+ 			}
+-		};
++		};
+ 	} (browser$3, browser$3.exports));
+ 	return browser$3.exports;
+ }
+@@ -11572,7 +11572,7 @@ function requireNode$1 () {
+ 		formatters.O = function (v) {
+ 			this.inspectOpts.colors = this.useColors;
+ 			return util.inspect(v, this.inspectOpts);
+-		};
++		};
+ 	} (node$1, node$1.exports));
+ 	return node$1.exports;
+ }
+@@ -14361,7 +14361,14 @@ function esbuildPlugin(config) {
+         // keepNames is not needed when minify is disabled.
+         // Also transforming multiple times with keepNames enabled breaks
+         // tree-shaking. (#9164)
+-        keepNames: false,
++
++        // PATCH FROM CRAWLEE
++        // Setting this to false changes the names of classes for vitest to include `_`
++        // This breaks some of our tests that check stack traces
++        // We could add `_?` inside the tests but thats not ideal at this time, so we manually enforce it to `true`\
++        //
++        // Tracked issue: https://github.com/vitest-dev/vitest/issues/3742
++        // keepNames: true,
+     };
+     return {
+         name: 'vite:esbuild',
+@@ -15384,7 +15391,7 @@ class Chunk {
+ 			// '  test'.trim()
+ 			//     split   -> '  ' + 'test'
+ 			//   ✔️ edit    -> '' + 'test'
+-			//   ✖️ edit    -> 'test' + ''
++			//   ✖️ edit    -> 'test' + ''
+ 			// TODO is this block necessary?...
+ 			newChunk.edit('', false);
+ 			this.content = '';
+@@ -16711,7 +16718,7 @@ async function urlToBuiltUrl(url, importer, config, pluginContext) {
+     const file = url[0] === '/'
+         ? path$o.join(config.root, url)
+         : path$o.join(path$o.dirname(importer), url);
+-    return fileToBuiltUrl(file, config, pluginContext,
++    return fileToBuiltUrl(file, config, pluginContext,
+     // skip public check since we just did it above
+     true);
+ }
+@@ -17123,7 +17130,7 @@ var convertSourceMap$1 = {};
+ 	exports.generateMapFileComment = function (file, options) {
+ 	  var data = 'sourceMappingURL=' + file;
+ 	  return options && options.multiline ? '/*# ' + data + ' */' : '//# ' + data;
+-	};
++	};
+ } (convertSourceMap$1));
+
+ var convertSourceMap = /*@__PURE__*/getDefaultExportFromCjs(convertSourceMap$1);
+@@ -17669,7 +17676,7 @@ var utils$f = {};
+ 	  };
+ 	  flat(args);
+ 	  return result;
+-	};
++	};
+ } (utils$f));
+
+ const utils$e = utils$f;
+@@ -20034,7 +20041,7 @@ var fs$f = {};
+ 	    }
+ 	    return Object.assign(Object.assign({}, exports.FILE_SYSTEM_ADAPTER), fsMethods);
+ 	}
+-	exports.createFileSystemAdapter = createFileSystemAdapter;
++	exports.createFileSystemAdapter = createFileSystemAdapter;
+ } (fs$f));
+
+ Object.defineProperty(settings$3, "__esModule", { value: true });
+@@ -20387,7 +20394,7 @@ var fs$b = {};
+ 	    }
+ 	    return Object.assign(Object.assign({}, exports.FILE_SYSTEM_ADAPTER), fsMethods);
+ 	}
+-	exports.createFileSystemAdapter = createFileSystemAdapter;
++	exports.createFileSystemAdapter = createFileSystemAdapter;
+ } (fs$b));
+
+ Object.defineProperty(settings$2, "__esModule", { value: true });
+@@ -21730,7 +21737,7 @@ var settings = {};
+ 	        return Object.assign(Object.assign({}, exports.DEFAULT_FILE_SYSTEM_ADAPTER), methods);
+ 	    }
+ 	}
+-	exports.default = Settings;
++	exports.default = Settings;
+ } (settings));
+
+ const taskManager = tasks;
+@@ -29501,7 +29508,7 @@ var dist = {};
+ 	        },
+ 	    };
+ 	}
+-	exports.lilconfigSync = lilconfigSync;
++	exports.lilconfigSync = lilconfigSync;
+ } (dist));
+
+ const ALIAS = Symbol.for('yaml.alias');
+@@ -32711,7 +32718,7 @@ class Document {
+             replacer = undefined;
+         }
+         const { aliasDuplicateObjects, anchorPrefix, flow, keepUndefined, onTagObj, tag } = options ?? {};
+-        const { onAnchor, setAnchors, sourceObjects } = createNodeAnchors(this,
++        const { onAnchor, setAnchors, sourceObjects } = createNodeAnchors(this,
+         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+         anchorPrefix || 'a');
+         const ctx = {
+@@ -38733,7 +38740,7 @@ function cssPlugin(config) {
+                                 ? moduleGraph.createFileOnlyEntry(file)
+                                 : await moduleGraph.ensureEntryFromUrl(stripBase(await fileToUrl(file, config, this), (config.server?.origin ?? '') + devBase), ssr));
+                         }
+-                        moduleGraph.updateModuleInfo(thisModule, depModules, null,
++                        moduleGraph.updateModuleInfo(thisModule, depModules, null,
+                         // The root CSS proxy module is self-accepting and should not
+                         // have an explicit accept list
+                         new Set(), null, isSelfAccepting, ssr);
+@@ -39069,7 +39076,7 @@ function cssPostPlugin(config) {
+                             }
+                             return true;
+                         });
+-                        chunk.code = chunk.code.replace(emptyChunkRE,
++                        chunk.code = chunk.code.replace(emptyChunkRE,
+                         // remove css import while preserving source map location
+                         (m) => `/* empty css ${''.padEnd(m.length - 15)}*/`);
+                     }
+@@ -40756,13 +40763,13 @@ function createIsConfiguredAsSsrExternal(config) {
+             return false;
+         }
+         try {
+-            return !!tryNodeResolve(id,
++            return !!tryNodeResolve(id,
+             // Skip passing importer in build to avoid externalizing non-hoisted dependencies
+             // unresolvable from root (which would be unresolvable from output bundles also)
+-            config.command === 'build' ? undefined : importer, resolveOptions, ssr?.target === 'webworker', undefined, true,
++            config.command === 'build' ? undefined : importer, resolveOptions, ssr?.target === 'webworker', undefined, true,
+             // try to externalize, will return undefined or an object without
+             // a external flag if it isn't externalizable
+-            true,
++            true,
+             // Allow linked packages to be externalized if they are explicitly
+             // configured as external
+             !!configuredAsExternal)?.external;
+@@ -43139,7 +43146,7 @@ function webWorkerPlugin(config) {
+                 if (query.inline != null) {
+                     const chunk = await bundleWorkerEntry(config, id, query);
+                     const encodedJs = `const encodedJs = "${Buffer.from(chunk.code).toString('base64')}";`;
+-                    const code =
++                    const code =
+                     // Using blob URL for SharedWorker results in multiple instances of a same worker
+                     workerConstructor === 'Worker'
+                         ? `${encodedJs}
+@@ -43602,7 +43609,7 @@ function workerImportMetaUrlPlugin(config) {
+                         builtUrl = injectQuery(builtUrl, WORKER_FILE_ID);
+                         builtUrl = injectQuery(builtUrl, `type=${workerType}`);
+                     }
+-                    s.update(urlIndex, urlIndex + exp.length,
++                    s.update(urlIndex, urlIndex + exp.length,
+                     // add `'' +` to skip vite:asset-import-meta-url plugin
+                     `new URL('' + ${JSON.stringify(builtUrl)}, import.meta.url)`);
+                 }
+@@ -44567,7 +44574,7 @@ async function createPluginContainer(config, moduleGraph, watcher) {
+                     errLocation = numberToPos(ctx._activeCode, pos);
+                 }
+                 catch (err2) {
+-                    logger.error(colors$1.red(`Error in error handler:\n${err2.stack || err2.message}\n`),
++                    logger.error(colors$1.red(`Error in error handler:\n${err2.stack || err2.message}\n`),
+                     // print extra newline to separate the two errors
+                     { error: err2 });
+                     throw err;
+@@ -47428,7 +47435,7 @@ function buildImportAnalysisPlugin(config) {
+                                     });
+                                 }
+                                 else {
+-                                    renderedDeps = depsArray.map((d) =>
++                                    renderedDeps = depsArray.map((d) =>
+                                     // Don't include the assets dir if the default asset file names
+                                     // are used, the path will be reconstructed by the import preload helper
+                                     JSON.stringify(optimizeModulePreloadRelativePaths
+@@ -48803,7 +48810,7 @@ function onRollupWarning(warning, warn, config) {
+                 }
+             }
+             if (warning.plugin === 'rollup-plugin-dynamic-import-variables' &&
+-                dynamicImportWarningIgnoreList.some((msg) =>
++                dynamicImportWarningIgnoreList.some((msg) =>
+                 // @ts-expect-error warning is RollupLog
+                 warning.message.includes(msg))) {
+                 return;
+@@ -49418,7 +49425,7 @@ function requireDebug () {
+ 		function coerce(val) {
+ 		  if (val instanceof Error) return val.stack || val.message;
+ 		  return val;
+-		}
++		}
+ 	} (debug$6, debug$6.exports));
+ 	return debug$6.exports;
+ }
+@@ -49613,7 +49620,7 @@ function requireBrowser () {
+ 		  try {
+ 		    return window.localStorage;
+ 		  } catch (e) {}
+-		}
++		}
+ 	} (browser, browser.exports));
+ 	return browser.exports;
+ }
+@@ -49873,7 +49880,7 @@ function requireNode () {
+ 		 * Enable namespaces listed in `process.env.DEBUG` initially.
+ 		 */
+
+-		exports.enable(load());
++		exports.enable(load());
+ 	} (node, node.exports));
+ 	return node.exports;
+ }
+@@ -51004,7 +51011,7 @@ var utilsMerge = {exports: {}};
+ 	    }
+ 	  }
+ 	  return a;
+-	};
++	};
+ } (utilsMerge));
+
+ var utilsMergeExports = utilsMerge.exports;
+@@ -52541,7 +52548,7 @@ var constants$1 = {};
+ 	exports.isWindows = platform === 'win32';
+ 	exports.isMacos = platform === 'darwin';
+ 	exports.isLinux = platform === 'linux';
+-	exports.isIBMi = os.type() === 'OS400';
++	exports.isIBMi = os.type() === 'OS400';
+ } (constants$1));
+
+ const fs$7 = require$$0__default;
+@@ -53492,7 +53499,7 @@ _watchWithFsEvents(watchPath, realPath, transform, globFilter) {
+   if (this.fsw.closed || this.fsw._isIgnored(watchPath)) return;
+   const opts = this.fsw.options;
+   const watchCallback = async (fullPath, flags, info) => {
+-    // PATCH: bypass the callback for better perf when fullPath hit the ignored file list
++    // PATCH: bypass the callback for better perf when fullPath hit the ignored file list
+     if (this.fsw.closed || this.fsw._isIgnored(fullPath)) return;
+     if (
+       opts.depth !== undefined &&
+@@ -55342,7 +55349,7 @@ async function resolveHttpServer({ proxy }, app, httpsOptions) {
+             maxSessionMemory: 1000,
+             ...httpsOptions,
+             allowHTTP1: true,
+-        },
++        },
+         // @ts-expect-error TODO: is this correct?
+         app);
+     }
+@@ -56638,7 +56645,7 @@ async function nodeImport(id, importer, resolveOptions) {
+         url = id;
+     }
+     else {
+-        const resolved = tryNodeResolve(id, importer,
++        const resolved = tryNodeResolve(id, importer,
+         // Non-external modules can import ESM-only modules, but only outside
+         // of test runs, because we use Node `require` in Jest to avoid segfault.
+         // @ts-expect-error jest only exists when running Jest
+@@ -62952,7 +62959,7 @@ var eventemitter3 = {exports: {}};
+ 	//
+ 	{
+ 	  module.exports = EventEmitter;
+-	}
++	}
+ } (eventemitter3));
+
+ var eventemitter3Exports = eventemitter3.exports;
+@@ -63048,7 +63055,7 @@ var requiresPort = function required(port, protocol) {
+ 	  if (options.auth) {
+ 	    outgoing.auth = options.auth;
+ 	  }
+-
++
+ 	  if (options.ca) {
+ 	      outgoing.ca = options.ca;
+ 	  }
+@@ -64550,7 +64557,7 @@ var wsIncoming = {
+ 	  if(i === false) throw new Error('No such pass');
+
+ 	  passes.splice(i++, 0, callback);
+-	};
++	};
+ } (httpProxy$3));
+
+ var httpProxyExports = httpProxy$3.exports;
+@@ -64624,12 +64631,12 @@ var httpProxy$2 = ProxyServer;
+ /*!
+  * Caron dimonio, con occhi di bragia
+  * loro accennando, tutte le raccoglie;
+- * batte col remo qualunque s’adagia
++ * batte col remo qualunque s’adagia
+  *
+  * Charon the demon, with the eyes of glede,
+  * Beckoning to them, collects them all together,
+  * Beats with his oar whoever lags behind
+- *
++ *
+  *          Dante - The Divine Comedy (Canto III)
+  */
+
+@@ -64882,7 +64889,7 @@ var lib = {exports: {}};
+ 	    return console.log.bind(console);
+ 	  }
+ 	  return function(){};
+-	}
++	}
+ } (lib));
+
+ var libExports = lib.exports;
+@@ -65557,7 +65564,7 @@ class ModuleGraph {
+     /**
+      * @internal
+      */
+-    async _ensureEntryFromUrl(rawUrl, ssr, setIsSelfAccepting = true,
++    async _ensureEntryFromUrl(rawUrl, ssr, setIsSelfAccepting = true,
+     // Optimization, avoid resolving the same url twice if the caller already did it
+     resolved) {
+         // Quick path, if we already have a module for this rawUrl (even without extension)
