@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.7](https://github.com/apify/crawlee/compare/v3.5.6...v3.5.7) (2023-10-05)
+
+
+### Bug Fixes
+
+* add warning when we detect use of RL and RQ, but RQ is not provided explicitly ([#2115](https://github.com/apify/crawlee/issues/2115)) ([6fb1c55](https://github.com/apify/crawlee/commit/6fb1c5568a0bf3b6fa38045161866a32b13310ca)), closes [#1773](https://github.com/apify/crawlee/issues/1773)
+* ensure the status message cannot stuck the crawler ([#2114](https://github.com/apify/crawlee/issues/2114)) ([9034f08](https://github.com/apify/crawlee/commit/9034f08106f53a70205695076e874f04f632c5bb))
+* RQ request count is consistent after migration ([#2116](https://github.com/apify/crawlee/issues/2116)) ([9ab8c18](https://github.com/apify/crawlee/commit/9ab8c1874f52acc3f0337fdabd36321d0fb40b86)), closes [#1855](https://github.com/apify/crawlee/issues/1855) [#1855](https://github.com/apify/crawlee/issues/1855)
+
+
+
+
+
 ## [3.5.6](https://github.com/apify/crawlee/compare/v3.5.5...v3.5.6) (2023-10-04)
 
 
