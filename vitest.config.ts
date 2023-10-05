@@ -27,5 +27,11 @@ export default defineConfig({
         alias: [
             { find: '@crawlee/browser-pool', replacement: resolve(__dirname, './packages/browser-pool/src/') },
         ],
+        server: {
+            deps: {
+                moduleDirectories: ['/node_modules/', `${resolve('./packages')}/`],
+                inline: ['browser-pool'],
+            },
+        },
     },
 });
