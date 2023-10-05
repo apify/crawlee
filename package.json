@@ -65,7 +65,6 @@
         "@types/fs-extra": "^11.0.0",
         "@types/htmlparser2": "^3.10.3",
         "@types/inquirer": "^8.2.1",
-        "@types/jest": "^29.1.1",
         "@types/lodash.merge": "^4.6.7",
         "@types/mime-types": "^2.1.1",
         "@types/node": "^18.7.13",
@@ -77,6 +76,7 @@
         "@types/tough-cookie": "^4.0.2",
         "@typescript-eslint/eslint-plugin": "6.7.5",
         "@typescript-eslint/parser": "6.7.5",
+        "@vitest/coverage-v8": "^0.34.6",
         "apify": "*",
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^1.20.0",
@@ -102,7 +102,9 @@
         "ts-jest": "^29.0.3",
         "ts-node": "^10.9.1",
         "turbo": "1.10.15",
-        "typescript": "^5.0.0"
+        "typescript": "^5.0.0",
+        "vite-tsconfig-paths": "^4.2.1",
+        "vitest": "^0.34.6"
     },
     "packageManager": "yarn@3.6.4",
     "volta": {
