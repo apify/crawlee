@@ -24,6 +24,7 @@ export default defineConfig({
         minThreads: 3,
         maxThreads: 6,
         testTimeout: 60_000,
+        hookTimeout: 60_000,
         alias: [
             { find: 'crawlee', replacement: resolve(__dirname, './packages/crawlee/src') },
             { find: '@crawlee/basic', replacement: resolve(__dirname, './packages/basic-crawler/src') },
