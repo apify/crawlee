@@ -34,9 +34,9 @@ export default defineConfig({
             { find: '@crawlee/cheerio', replacement: resolve(__dirname, './packages/cheerio-crawler/src') },
             { find: '@crawlee/playwright', replacement: resolve(__dirname, './packages/playwright-crawler/src') },
             { find: '@crawlee/puppeteer', replacement: resolve(__dirname, './packages/puppeteer-crawler/src') },
-            { find: /@crawlee\/(.*)\/(.*)/, replacement: resolve(__dirname, './packages/$1/$2') },
-            { find: /@crawlee\/(.*)/, replacement: resolve(__dirname, './packages/$1/src') },
-            { find: /test\/(.*)/, replacement: resolve(__dirname, './test/$1') },
+            { find: /^@crawlee\/(.*)\/(.*)$/, replacement: resolve(__dirname, './packages/$1/$2') },
+            { find: /^@crawlee\/(.*)$/, replacement: resolve(__dirname, './packages/$1/src') },
+            { find: /^test\/(.*)$/, replacement: resolve(__dirname, './test/$1') },
         ],
     },
 });
