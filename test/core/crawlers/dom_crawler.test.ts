@@ -13,7 +13,7 @@ router.set('/', (req, res) => {
 let server: http.Server;
 let url: string;
 
-beforeAll((cb) => {
+beforeAll(async () => {
     server = http.createServer((request, response) => {
         try {
             const requestUrl = new URL(request.url, 'http://localhost');
@@ -23,14 +23,14 @@ beforeAll((cb) => {
         }
     });
 
-    server.listen(() => {
+    await new Promise<void>((resolve) => server.listen(() => {
         url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-        cb();
-    });
+        resolve();
+    }));
 });
 
-afterAll((cb) => {
-    server.close(cb);
+afterAll(async (cb) => {
+    await new Promise((resolve) => server.close(resolve));
 });
 
 const localStorageEmulator = new MemoryStorageEmulator();
