@@ -783,7 +783,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 // eslint-disable-next-line max-len
                 message = `Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
-                const total = this.requestQueue?.assumedTotalCount || this.requestList?.length();
+                const total = this.requestQueue?.getTotalCount() || this.requestList?.length();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`;
             }
 

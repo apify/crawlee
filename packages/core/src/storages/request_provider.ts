@@ -41,6 +41,8 @@ export abstract class RequestProvider implements IStorage {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
+    private initialCount = 0;
+
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
     /** @internal */
@@ -75,6 +77,15 @@ export abstract class RequestProvider implements IStorage {
      */
     inProgressCount() {
         return this.inProgress.size;
+    }
+
+    /**
+     * Returns an offline approximation of the total number of requests in the queue (i.e. pending + handled).
+     *
+     * Survives restarts and actor migrations.
+     */
+    getTotalCount() {
+        return this.assumedTotalCount + this.initialCount;
     }
 
     /**
@@ -630,6 +641,9 @@ export abstract class RequestProvider implements IStorage {
         const manager = StorageManager.getManager(this as typeof BuiltRequestProvider, options.config);
         const queue = await manager.openStorage(queueIdOrName, options.storageClient);
         queue.proxyConfiguration = options.proxyConfiguration;
+
+        // eslint-disable-next-line dot-notation
+        queue['initialCount'] = (await queue.client.get())?.totalRequestCount ?? 0;
 
         return queue;
     }
