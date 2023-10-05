@@ -25,7 +25,7 @@ export default defineConfig({
         // maxThreads: 3,
         testTimeout: 60_000,
         alias: [
-            { find: '@crawlee/browser-pool', replacement: resolve(__dirname, 'packages/browser-pool/src/index.ts') },
+            { find: '@crawlee/browser-pool', replacement: resolve(__dirname, './packages/browser-pool/src/index.ts') },
         ],
     },
 });
