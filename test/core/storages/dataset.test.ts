@@ -29,9 +29,10 @@ describe('dataset', () => {
                 client: storageClient,
             });
 
-            const mockPushItems = vitest
-                .spyOn(dataset.client, 'pushItems')
-                .mockResolvedValueOnce(null);
+            const pushItemSpy = vitest
+                .spyOn(dataset.client, 'pushItems');
+
+            const mockPushItems = pushItemSpy.mockResolvedValueOnce(null);
 
             await dataset.pushData({ foo: 'bar' });
 
@@ -40,9 +41,7 @@ describe('dataset', () => {
                 JSON.stringify({ foo: 'bar' }),
             );
 
-            const mockPushItems2 = vitest
-                .spyOn(dataset.client, 'pushItems')
-                .mockResolvedValueOnce(null);
+            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(null);
 
             await dataset.pushData([
                 { foo: 'hotel;' },

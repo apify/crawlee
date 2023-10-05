@@ -2,7 +2,7 @@ import { readFile, access } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { isDocker, getMemoryInfo } from '@crawlee/utils';
+import { getMemoryInfo, isDocker } from '@crawlee/utils';
 
 vitest.mock('node:os', async () => {
     const originalOs: typeof import('node:os') = await vitest.importActual('node:os');
@@ -13,8 +13,8 @@ vitest.mock('node:os', async () => {
     };
 });
 
-vitest.mock('@crawlee/utils/src/internals/general', async () => {
-    const original: typeof import('@crawlee/utils/src/internals/general') = await vitest.importActual('@crawlee/utils/src/internals/general');
+vitest.mock('/packages/utils/src/index.ts', async () => {
+    const original: typeof import('@crawlee/utils') = await vitest.importActual('@crawlee/utils');
     return {
         ...original,
         isDocker: vitest.fn(),
@@ -31,9 +31,9 @@ vitest.mock('node:fs/promises', async () => {
 });
 
 afterAll(() => {
-    vitest.unmock('node:os');
-    vitest.unmock('node:fs/promises');
-    vitest.unmock('@crawlee/utils/src/internals/general');
+    vitest.doUnmock('node:os');
+    vitest.doUnmock('node:fs/promises');
+    vitest.doUnmock('/packages/utils/src/index.ts');
 });
 
 const isDockerSpy = vitest.mocked(isDocker);
@@ -51,8 +51,8 @@ describe('getMemoryInfo()', () => {
 
         const data = await getMemoryInfo();
 
-        expect(freemem).toHaveBeenCalled();
-        expect(totalmem).toHaveBeenCalled();
+        expect(freememSpy).toHaveBeenCalled();
+        expect(totalmemSpy).toHaveBeenCalled();
 
         expect(data).toMatchObject({
             totalBytes: 333,
@@ -108,8 +108,8 @@ describe('getMemoryInfo()', () => {
             browser = await launchPuppeteer();
             const data = await getMemoryInfo();
 
-            expect(freemem).toHaveBeenCalled();
-            expect(totalmem).toHaveBeenCalled();
+            expect(freememSpy).toHaveBeenCalled();
+            expect(totalmemSpy).toHaveBeenCalled();
             expect(data).toMatchObject({
                 totalBytes: 333,
                 freeBytes: 222,

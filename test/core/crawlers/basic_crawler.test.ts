@@ -1034,7 +1034,7 @@ describe('BasicCrawler', () => {
         }
     });
 
-    test.only('should log stack trace for non-timeout errors only when request will no longer be retried by default', async () => {
+    test('should log stack trace for non-timeout errors only when request will no longer be retried by default', async () => {
         const sources = [{ url: `http://${HOSTNAME}:${port}` }];
         const requestList = await RequestList.open(null, sources);
 
@@ -1065,12 +1065,11 @@ describe('BasicCrawler', () => {
 
         expect(errorSpy.mock.calls.length).toBe(1);
         for (const args of errorSpy.mock.calls) {
-            console.log(args);
             expect(args.length).toBe(2);
             expect(typeof args[0]).toBe('string');
             expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1146,7 +1145,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
             expect(args[1]).toBeDefined();
         }
 
@@ -1156,7 +1155,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
             expect(args[1]).toBeDefined();
         }
 

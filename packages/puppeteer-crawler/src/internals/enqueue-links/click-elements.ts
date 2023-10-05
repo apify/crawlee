@@ -26,11 +26,6 @@ import type {
     Page,
     Target,
 } from 'puppeteer';
-import {
-    BrowserContextEmittedEvents,
-    BrowserEmittedEvents,
-    PageEmittedEvents,
-} from 'puppeteer';
 
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception';
 
@@ -324,8 +319,8 @@ export async function clickElementsAndInterceptNavigationRequests(options: Click
     const onFrameNavigated = createFrameNavigatedHandler(page, uniqueRequests);
 
     await addInterceptRequestHandler(page, onInterceptedRequest);
-    browser.on(BrowserEmittedEvents.TargetCreated, onTargetCreated);
-    page.on(PageEmittedEvents.FrameNavigated, onFrameNavigated);
+    browser.on('targetcreated', onTargetCreated);
+    page.on('framenavigated', onFrameNavigated);
 
     await preventHistoryNavigation(page);
 
@@ -334,8 +329,8 @@ export async function clickElementsAndInterceptNavigationRequests(options: Click
 
     await restoreHistoryNavigationAndSaveCapturedUrls(page, uniqueRequests);
 
-    browser.off(BrowserEmittedEvents.TargetCreated, onTargetCreated);
-    page.off(PageEmittedEvents.FrameNavigated, onFrameNavigated);
+    browser.off('targetcreated', onTargetCreated);
+    page.off('framenavigated', onFrameNavigated);
     await removeInterceptRequestHandler(page, onInterceptedRequest);
 
     const serializedRequests = Array.from(uniqueRequests);
@@ -537,17 +532,17 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
         }
 
         function finish() {
-            page.off(PageEmittedEvents.Request, activityHandler);
-            page.off(PageEmittedEvents.FrameNavigated, activityHandler);
-            context.off(BrowserContextEmittedEvents.TargetCreated, newTabTracker);
+            page.off('request', activityHandler);
+            page.off('framenavigated', activityHandler);
+            context.off('targetcreated', newTabTracker);
             resolve();
         }
 
         maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
         activityHandler(); // We call this once manually in case there would be no requests at all.
-        page.on(PageEmittedEvents.Request, activityHandler);
-        page.on(PageEmittedEvents.FrameNavigated, activityHandler);
-        context.on(BrowserContextEmittedEvents.TargetCreated, newTabTracker);
+        page.on('request', activityHandler);
+        page.on('framenavigated', activityHandler);
+        context.on('targetcreated', newTabTracker);
     });
 }
 
