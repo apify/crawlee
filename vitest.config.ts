@@ -21,6 +21,9 @@ export default defineConfig({
             ],
         },
         restoreMocks: true,
+        // TODO: We were recommended to turn this to false if we do not rely on global state, as it will speed up tests even more
+        // but that said, not sure if it WILL work in our system, so if tests crap the bed, try turning this off first.
+        isolate: false,
         // minThreads: 1,
         // maxThreads: 3,
         testTimeout: 60_000,

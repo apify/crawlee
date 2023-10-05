@@ -268,8 +268,6 @@ describe('BasicCrawler', () => {
         // clean up
         // @ts-expect-error Accessing private method
         await basicCrawler.autoscaledPool._destroy();
-        getValueSpy.mockRestore();
-        setValueSpy.mockRestore();
     });
 
     test('should retry failed requests', async () => {

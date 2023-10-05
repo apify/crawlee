@@ -168,8 +168,6 @@ describe('Snapshotter', () => {
         expect(loopSnapshots[4].isOverloaded).toBe(true);
         expect(cpusMock).toBeCalledTimes(5);
 
-        cpusMock.mockRestore();
-        spy.mockRestore();
         await snapshotter.stop();
     });
 

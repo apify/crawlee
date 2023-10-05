@@ -188,7 +188,6 @@ describe('Statistics', () => {
 
             // @ts-expect-error Accessing private prop
             expect(setValueSpy).toBeCalledWith(stats.persistStateKey, { ...state, ...rest });
-            setValueSpy.mockRestore();
         }, 2000);
     });
 
@@ -322,7 +321,6 @@ describe('Statistics', () => {
             requestsTotal: 1,
             retryHistogram: [1],
         });
-        infoSpy.mockRestore();
     });
 
     test('should reset stats', async () => {

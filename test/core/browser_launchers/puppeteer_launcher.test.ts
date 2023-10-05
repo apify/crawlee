@@ -223,7 +223,6 @@ describe('launchPuppeteer()', () => {
             expect(version).not.toMatch('Chromium');
             expect(spy).toBeCalledTimes(1);
         } finally {
-            spy.mockRestore();
             if (browser) await browser.close();
         }
     });

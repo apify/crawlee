@@ -153,7 +153,6 @@ describe.each([
             // 4 calls instead of just one.
             expect(spy).toBeCalledTimes(1);
 
-            spy.mockRestore();
             browserPool.operationTimeoutMillis = timeout;
             browserPool.retireAllBrowsers();
         });

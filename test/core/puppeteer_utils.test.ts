@@ -451,7 +451,6 @@ describe('puppeteerUtils', () => {
                 const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 50 });
                 expect(object.setValue).toBeCalledWith('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' });
             } finally {
-                openKVSSpy.mockRestore();
                 await browser.close();
             }
         });

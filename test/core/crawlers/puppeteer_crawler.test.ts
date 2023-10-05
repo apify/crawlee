@@ -263,7 +263,6 @@ describe('PuppeteerCrawler', () => {
                 3,
             ],
         ]);
-        logWarningSpy.mockRestore();
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
         expect(errors).toEqual([
@@ -272,7 +271,6 @@ describe('PuppeteerCrawler', () => {
                 undefined,
             ],
         ]);
-        logErrorSpy.mockRestore();
     });
 
     test('timeout in preLaunchHooks will abort the page function as early as possible (gh #1216)', async () => {
@@ -322,7 +320,6 @@ describe('PuppeteerCrawler', () => {
                 3,
             ],
         ]);
-        logWarningSpy.mockRestore();
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
         expect(errors).toEqual([
@@ -331,7 +328,6 @@ describe('PuppeteerCrawler', () => {
                 undefined,
             ],
         ]);
-        logErrorSpy.mockRestore();
     });
 
     test('should set cookies assigned to session to page', async () => {

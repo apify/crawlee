@@ -23,16 +23,6 @@ vitest.mock('got-scraping', async () => {
 });
 
 const gotScrapingSpy = vitest.mocked(gotScraping);
-const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
-
-afterEach(() => {
-    gotScrapingSpy.mockReset();
-    gotScrapingSpy.mockImplementation(originalGotScraping);
-});
-
-afterAll(() => {
-    vitest.unmock('got-scraping');
-});
 
 describe('RequestQueue remote', () => {
     const storageClient = Configuration.getStorageClient();
@@ -755,7 +745,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(spy).toBeCalledTimes(2);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -776,7 +765,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         await queue.drop();
 
         expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
-        gotScrapingSpy.mockRestore();
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
@@ -805,7 +793,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
 
         expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
-        gotScrapingSpy.mockRestore();
         await queue.drop();
     });
 
@@ -823,7 +810,6 @@ describe('RequestQueue with requestsFromUrl', () => {
 
         expect(spy).toBeCalledTimes(1);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
@@ -847,8 +833,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         ]);
 
         expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
-
-        spy.mockRestore();
     });
 });
 

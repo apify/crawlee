@@ -33,12 +33,6 @@ vitest.mock('got-scraping', async () => {
     };
 });
 
-const gotScrapingSpy = vitest.mocked(gotScraping);
-
-afterAll(() => {
-    vitest.unmock('got-scraping');
-});
-
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;
     let logLevel: number;

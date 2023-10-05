@@ -11,8 +11,6 @@ describe('isDocker()', () => {
         const is = await isDocker(true);
 
         expect(is).toBe(true);
-        statMock.mockRestore();
-        readMock.mockRestore();
     });
 
     test('works for dockerenv', async () => {
@@ -22,8 +20,6 @@ describe('isDocker()', () => {
         const is = await isDocker(true);
 
         expect(is).toBe(true);
-        statMock.mockRestore();
-        readMock.mockRestore();
     });
 
     test('works for cgroup', async () => {
@@ -33,8 +29,6 @@ describe('isDocker()', () => {
         const is = await isDocker(true);
 
         expect(is).toBe(true);
-        statMock.mockRestore();
-        readMock.mockRestore();
     });
 
     test('works for nothing', async () => {
@@ -44,8 +38,6 @@ describe('isDocker()', () => {
         const is = await isDocker(true);
 
         expect(is).toBe(false);
-        statMock.mockRestore();
-        readMock.mockRestore();
     });
 });
 

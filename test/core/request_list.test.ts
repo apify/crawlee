@@ -161,7 +161,6 @@ describe('RequestList', () => {
         expect(spy).toBeCalledTimes(2);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -184,7 +183,6 @@ describe('RequestList', () => {
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
 
         expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
-        gotScrapingSpy.mockRestore();
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
@@ -214,7 +212,6 @@ describe('RequestList', () => {
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
 
         expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
-        gotScrapingSpy.mockRestore();
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
@@ -234,7 +231,6 @@ describe('RequestList', () => {
 
         expect(spy).toBeCalledTimes(1);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
@@ -260,8 +256,6 @@ describe('RequestList', () => {
         });
 
         expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
-
-        spy.mockRestore();
     });
 
     test('should correctly handle reclaimed pages', async () => {
@@ -582,7 +576,6 @@ describe('RequestList', () => {
 
         expect(spy).toBeCalledTimes(1);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-urls.txt', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('handles correctly inconsistent inProgress fields in state', async () => {
@@ -702,7 +695,6 @@ describe('RequestList', () => {
         expect(warnSpy).toBeCalled();
         expect(warnSpy.mock.calls[0][0]).toMatch(`Check your sources' unique keys.`);
 
-        warnSpy.mockRestore();
         log.setLevel(log.LEVELS.ERROR);
     });
 

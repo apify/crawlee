@@ -36,7 +36,6 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-    vitest.unmock('got-scraping');
     server.close();
 });
 
