@@ -13,7 +13,6 @@ export default defineConfig({
         globals: true,
         coverage: {
             provider: 'v8',
-            enabled: true,
             reporter: ['text', 'lcov', 'cobertura'],
             exclude: [
                 '**/node_modules/**',
