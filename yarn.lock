@@ -642,6 +642,7 @@ __metadata:
     "@types/tough-cookie": ^4.0.2
     "@typescript-eslint/eslint-plugin": 6.7.5
     "@typescript-eslint/parser": 6.7.5
+    "@types/yargs": ^17.0.26
     "@vitest/coverage-v8": ^0.34.6
     apify: "*"
     basic-auth-parser: ^0.0.2
@@ -2072,6 +2073,22 @@ __metadata:
   version: 4.0.3
   resolution: "@types/tough-cookie@npm:4.0.3"
   checksum: f201be1bbca2f2d3572032513cdb9825845114d2604a7f4091af848eeee3228a573cdc5e8082b04468a2848bb1d058f1adbb97db822e22c975ebd6fcd851a453
+  languageName: node
+  linkType: hard
+
+"@types/yargs-parser@npm:*":
+  version: 21.0.1
+  resolution: "@types/yargs-parser@npm:21.0.1"
+  checksum: 64e6316c2045e2d460c4fb79572f872f9d2f98fddc6d9d3949c71f0b6ad0ef8a2706cf49db26dfb02a9cb81433abb8f340f015e1d20a9692279abe9477b72c8e
+  languageName: node
+  linkType: hard
+
+"@types/yargs@npm:^17.0.26":
+  version: 17.0.26
+  resolution: "@types/yargs@npm:17.0.26"
+  dependencies:
+    "@types/yargs-parser": "*"
+  checksum: 26611969674f4972080c3b22239d4579eaadc5287f95f7802f893c4a9bb292c141467bd70f1e66eb834486c63a23c4f10032618b3d2e7b1ddc05051d08db4078
   languageName: node
   linkType: hard
 

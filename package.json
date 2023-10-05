@@ -76,6 +76,7 @@
         "@types/tough-cookie": "^4.0.2",
         "@typescript-eslint/eslint-plugin": "6.7.5",
         "@typescript-eslint/parser": "6.7.5",
+        "@types/yargs": "^17.0.26",
         "@vitest/coverage-v8": "^0.34.6",
         "apify": "*",
         "basic-auth-parser": "^0.0.2",
