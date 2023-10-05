@@ -4,8 +4,8 @@ import { freemem, totalmem } from 'node:os';
 import { launchPuppeteer } from '@crawlee/puppeteer';
 import { getMemoryInfo, isDocker } from '@crawlee/utils';
 
-vitest.mock('node:os', async () => {
-    const originalOs: typeof import('node:os') = await vitest.importActual('node:os');
+vitest.mock('node:os', async (importActual) => {
+    const originalOs: typeof import('node:os') = await importActual();
     return {
         ...originalOs,
         freemem: vitest.fn(),
@@ -13,16 +13,16 @@ vitest.mock('node:os', async () => {
     };
 });
 
-vitest.mock('/packages/utils/src/index.ts', async () => {
-    const original: typeof import('@crawlee/utils') = await vitest.importActual('@crawlee/utils');
+vitest.mock('@crawlee/utils', async (importActual) => {
+    const original: typeof import('@crawlee/utils') = await importActual();
     return {
         ...original,
         isDocker: vitest.fn(),
     };
 });
 
-vitest.mock('node:fs/promises', async () => {
-    const originalFs: typeof import('node:fs/promises') = await vitest.importActual('node:fs/promises');
+vitest.mock('node:fs/promises', async (importActual) => {
+    const originalFs: typeof import('node:fs/promises') = await importActual();
     return {
         ...originalFs,
         readFile: vitest.fn(originalFs.readFile),
@@ -33,7 +33,8 @@ vitest.mock('node:fs/promises', async () => {
 afterAll(() => {
     vitest.doUnmock('node:os');
     vitest.doUnmock('node:fs/promises');
-    vitest.doUnmock('/packages/utils/src/index.ts');
+    // vitest.doUnmock('/packages/utils/src/index.ts');
+    vitest.doUnmock('@crawlee/utils');
 });
 
 const isDockerSpy = vitest.mocked(isDocker);
