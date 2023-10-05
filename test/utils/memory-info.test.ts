@@ -2,7 +2,8 @@ import { readFile, access } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { getMemoryInfo, isDocker } from '@crawlee/utils';
+import { getMemoryInfo } from '@crawlee/utils';
+import { isDocker } from '@crawlee/utils/src/internals/general';
 
 vitest.mock('node:os', async (importActual) => {
     const originalOs: typeof import('node:os') = await importActual();
@@ -13,8 +14,9 @@ vitest.mock('node:os', async (importActual) => {
     };
 });
 
-vitest.mock('@crawlee/utils', async (importActual) => {
-    const original: typeof import('@crawlee/utils') = await importActual();
+vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
+    const original: typeof import('@crawlee/utils/src/internals/general') = await importActual();
+
     return {
         ...original,
         isDocker: vitest.fn(),
@@ -28,13 +30,6 @@ vitest.mock('node:fs/promises', async (importActual) => {
         readFile: vitest.fn(originalFs.readFile),
         access: vitest.fn(originalFs.access),
     };
-});
-
-afterAll(() => {
-    vitest.doUnmock('node:os');
-    vitest.doUnmock('node:fs/promises');
-    // vitest.doUnmock('/packages/utils/src/index.ts');
-    vitest.doUnmock('@crawlee/utils');
 });
 
 const isDockerSpy = vitest.mocked(isDocker);
@@ -68,7 +63,6 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        const originalSpyImplementation = readFileSpy.getMockImplementation()!;
         readFileSpy.mockImplementation((path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('333');
@@ -81,19 +75,15 @@ describe('getMemoryInfo()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        try {
-            const data = await getMemoryInfo();
+        const data = await getMemoryInfo();
 
-            expect(data).toMatchObject({
-                totalBytes: 333,
-                freeBytes: 222,
-                usedBytes: 111,
-            });
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
 
-            expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20_000_000);
-        } finally {
-            readFileSpy.mockImplementation(originalSpyImplementation);
-        }
+        expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20_000_000);
     });
 
     // TODO: check if this comment is still accurate
@@ -131,7 +121,6 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        const originalSpyImplementation = readFileSpy.getMockImplementation()!;
         readFileSpy.mockImplementation((path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('333');
@@ -157,7 +146,6 @@ describe('getMemoryInfo()', () => {
             expect(data.mainProcessBytes).toBeGreaterThanOrEqual(20_000_000);
             expect(data.childProcessesBytes).toBeGreaterThanOrEqual(20_000_000);
         } finally {
-            readFileSpy.mockImplementation(originalSpyImplementation);
             delete process.env.CRAWLEE_HEADLESS;
             await browser?.close();
         }
@@ -167,7 +155,6 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        const originalSpyImplementation = readFileSpy.getMockImplementation()!;
         readFileSpy.mockImplementation((path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('333');
@@ -180,23 +167,18 @@ describe('getMemoryInfo()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        try {
-            const data = await getMemoryInfo();
-            expect(data).toMatchObject({
-                totalBytes: 333,
-                freeBytes: 222,
-                usedBytes: 111,
-            });
-        } finally {
-            readFileSpy.mockImplementation(originalSpyImplementation);
-        }
+        const data = await getMemoryInfo();
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
     });
 
     test('works with cgroup V1 with UNLIMITED memory', async () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        const originalSpyImplementation = readFileSpy.getMockImplementation()!;
         readFileSpy.mockImplementation((path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('9223372036854771712');
@@ -211,23 +193,18 @@ describe('getMemoryInfo()', () => {
 
         totalmemSpy.mockReturnValueOnce(333);
 
-        try {
-            const data = await getMemoryInfo();
-            expect(data).toMatchObject({
-                totalBytes: 333,
-                freeBytes: 222,
-                usedBytes: 111,
-            });
-        } finally {
-            readFileSpy.mockImplementation(originalSpyImplementation);
-        }
+        const data = await getMemoryInfo();
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
     });
 
     test('works with cgroup V2 with LIMITED memory', async () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockRejectedValueOnce(new Error('ENOENT'));
 
-        const originalSpyImplementation = readFileSpy.getMockImplementation()!;
         readFileSpy.mockImplementation((path) => {
             if (path === '/sys/fs/cgroup/memory.max') {
                 return Promise.resolve('333\n');
@@ -240,23 +217,18 @@ describe('getMemoryInfo()', () => {
             throw new Error(`Unexpected path ${path}`);
         });
 
-        try {
-            const data = await getMemoryInfo();
-            expect(data).toMatchObject({
-                totalBytes: 333,
-                freeBytes: 222,
-                usedBytes: 111,
-            });
-        } finally {
-            readFileSpy.mockImplementation(originalSpyImplementation);
-        }
+        const data = await getMemoryInfo();
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
     });
 
     test('works with cgroup V2 with UNLIMITED memory', async () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockRejectedValueOnce(new Error('ENOENT'));
 
-        const originalSpyImplementation = readFileSpy.getMockImplementation()!;
         readFileSpy.mockImplementation((path) => {
             if (path === '/sys/fs/cgroup/memory.max') {
                 return Promise.resolve('max\n');
@@ -271,15 +243,11 @@ describe('getMemoryInfo()', () => {
 
         totalmemSpy.mockReturnValueOnce(333);
 
-        try {
-            const data = await getMemoryInfo();
-            expect(data).toMatchObject({
-                totalBytes: 333,
-                freeBytes: 222,
-                usedBytes: 111,
-            });
-        } finally {
-            readFileSpy.mockImplementation(originalSpyImplementation);
-        }
+        const data = await getMemoryInfo();
+        expect(data).toMatchObject({
+            totalBytes: 333,
+            freeBytes: 222,
+            usedBytes: 111,
+        });
     });
 });

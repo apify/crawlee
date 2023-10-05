@@ -32,10 +32,6 @@ afterEach(() => {
     gotScrapingSpy.mockImplementation(originalGotScraping);
 });
 
-afterAll(() => {
-    vitest.unmock('got-scraping');
-});
-
 describe('RequestList', () => {
     let ll: number;
     const emulator = new MemoryStorageEmulator();
