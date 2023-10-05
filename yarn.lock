@@ -1021,11 +1021,11 @@ __metadata:
     playwright: 1.38.1
     portastic: ^1.0.1
     proxy: ^1.0.2
-    puppeteer: 21.3.6
+    puppeteer: 21.3.7
     rimraf: ^5.0.0
     ts-jest: ^29.0.3
     ts-node: ^10.9.1
-    turbo: 1.10.14
+    turbo: 1.10.15
     typescript: ^5.0.0
   languageName: unknown
   linkType: soft
@@ -10473,9 +10473,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:21.3.6":
-  version: 21.3.6
-  resolution: "puppeteer-core@npm:21.3.6"
+"puppeteer-core@npm:21.3.7":
+  version: 21.3.7
+  resolution: "puppeteer-core@npm:21.3.7"
   dependencies:
     "@puppeteer/browsers": 1.7.1
     chromium-bidi: 0.4.28
@@ -10483,18 +10483,18 @@ __metadata:
     debug: 4.3.4
     devtools-protocol: 0.0.1179426
     ws: 8.14.2
-  checksum: 18f85781d0fc575fc6b5261a242414492e99ba497f914afaef9e3afd62a7ad135dbb63602cca5eae102a91ec8e84838a2bf0d6217bf68ba9b01d2c8b4152faf8
+  checksum: 0ff4d49dcd4ac59fcacfa4798702d579ae072e2f07743b41650273071a39e6dcfe218fe6e36375cc0d5791c32a2f89598952c89349e3b21f66932e456f27f06e
   languageName: node
   linkType: hard
 
-"puppeteer@npm:21.3.6":
-  version: 21.3.6
-  resolution: "puppeteer@npm:21.3.6"
+"puppeteer@npm:21.3.7":
+  version: 21.3.7
+  resolution: "puppeteer@npm:21.3.7"
   dependencies:
     "@puppeteer/browsers": 1.7.1
     cosmiconfig: 8.3.6
-    puppeteer-core: 21.3.6
-  checksum: 781dd1061e402dd14fb0d2a522987dc81624437b3cf25eae7dfde26e94a23e992e201d97c9021e002ecd3aae43e1f6a248ec70566c2520a25cd4fabe9e171506
+    puppeteer-core: 21.3.7
+  checksum: 58e05d03f95e88a90cb1b1be7e119d31feeaf1533fefc2b0efe0130eb386ee4f8869a04aade508778fc1acdba2a5a8bcd09de55c8c357336f25b3595bfff838d
   languageName: node
   linkType: hard
 
@@ -12062,58 +12062,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo-darwin-64@npm:1.10.14"
+"turbo-darwin-64@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo-darwin-64@npm:1.10.15"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo-darwin-arm64@npm:1.10.14"
+"turbo-darwin-arm64@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo-darwin-arm64@npm:1.10.15"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo-linux-64@npm:1.10.14"
+"turbo-linux-64@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo-linux-64@npm:1.10.15"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo-linux-arm64@npm:1.10.14"
+"turbo-linux-arm64@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo-linux-arm64@npm:1.10.15"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo-windows-64@npm:1.10.14"
+"turbo-windows-64@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo-windows-64@npm:1.10.15"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo-windows-arm64@npm:1.10.14"
+"turbo-windows-arm64@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo-windows-arm64@npm:1.10.15"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:1.10.14":
-  version: 1.10.14
-  resolution: "turbo@npm:1.10.14"
+"turbo@npm:1.10.15":
+  version: 1.10.15
+  resolution: "turbo@npm:1.10.15"
   dependencies:
-    turbo-darwin-64: 1.10.14
-    turbo-darwin-arm64: 1.10.14
-    turbo-linux-64: 1.10.14
-    turbo-linux-arm64: 1.10.14
-    turbo-windows-64: 1.10.14
-    turbo-windows-arm64: 1.10.14
+    turbo-darwin-64: 1.10.15
+    turbo-darwin-arm64: 1.10.15
+    turbo-linux-64: 1.10.15
+    turbo-linux-arm64: 1.10.15
+    turbo-windows-64: 1.10.15
+    turbo-windows-arm64: 1.10.15
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -12129,7 +12129,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: 219d245bb5cc32a9f76b136b81e86e179228d93a44cab4df3e3d487a55dd2688b5b85f4d585b66568ac53166145352399dd2d7ed0cd47f1aae63d08beb814ebb
+  checksum: b494c8bf79355874919e76ee0e4a0a53616e0ae5c7126eb1add50e67d4cd1e445ed9aecf99cb6d81c592b7a43ba91cd7dbf30df70410a44cecedba8b5126095d
   languageName: node
   linkType: hard
 
