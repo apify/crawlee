@@ -21,8 +21,8 @@ export default defineConfig({
             ],
         },
         restoreMocks: true,
-        minThreads: 2,
-        maxThreads: 4,
+        // minThreads: 2,
+        // maxThreads: 4,
         testTimeout: 60_000,
         hookTimeout: 60_000,
         alias: [
@@ -39,6 +39,6 @@ export default defineConfig({
             { find: /^@crawlee\/(.*)$/, replacement: resolve(__dirname, './packages/$1/src') },
             { find: /^test\/(.*)$/, replacement: resolve(__dirname, './test/$1') },
         ],
-        retry: 2,
+        retry: 3,
     },
 });
