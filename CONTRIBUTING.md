@@ -46,14 +46,11 @@ You will need to use this tsconfig.json in the `test` folder in the package (say
 
 ```json
 {
- "extends": "../../../tsconfig.json",
- "include": [
-  "**/*",
-  "../../**/*"
- ],
- "compilerOptions": {
-  "types": ["vitest/globals"]
- }
+    "extends": "../../../tsconfig.json",
+    "include": ["**/*", "../../**/*"],
+    "compilerOptions": {
+        "types": ["vitest/globals"]
+    }
 }
 ```
 
@@ -64,30 +61,30 @@ Mocks are pretty much the same when it comes to jest vs vitest. One crucial diff
 #### Previous
 
 ```ts
-jest.mock("node:os", () => {
- const original: typeof import("node:os") = jest.requireActual("node:os");
- return {
-  ...original,
-  platform: () => "darwin",
-  freemem: jest.fn(),
- };
+jest.mock('node:os', () => {
+    const original: typeof import('node:os') = jest.requireActual('node:os');
+    return {
+        ...original,
+        platform: () => 'darwin',
+        freemem: jest.fn(),
+    };
 });
 
 afterAll(() => {
-  jest.unmock("node:os");
+    jest.unmock('node:os');
 });
 ```
 
 #### Now
 
 ```ts
-vitest.mock("node:os", async (importActual) => {
-  const original = await importActual<typeof import("node:os")>();
- return {
-  ...original,
-  platform: () => "darwin",
-  freemem: jest.fn(),
- };
+vitest.mock('node:os', async (importActual) => {
+    const original = await importActual<typeof import('node:os')>();
+    return {
+        ...original,
+        platform: () => 'darwin',
+        freemem: jest.fn(),
+    };
 });
 ```
 
@@ -98,7 +95,7 @@ Given the following two samples:
 #### 1
 
 ```ts
-import os from "node:os";
+import os from 'node:os';
 
 console.log(os.platform());
 ```
@@ -106,7 +103,7 @@ console.log(os.platform());
 #### 2
 
 ```ts
-import { platform } from "node:os";
+import { platform } from 'node:os';
 
 console.log(platform());
 ```
@@ -116,49 +113,51 @@ You will need to mock the module based on how you import it in the source code. 
 So, for example 1:
 
 ```ts
-vitest.mock("node:os", async (importActual) => {
- const original = await importActual<typeof import("node:os") & { default: typeof import("node:os") }>();
+vitest.mock('node:os', async (importActual) => {
+    const original = await importActual<
+        typeof import('node:os') & { default: typeof import('node:os') }
+    >();
 
- const platformMock = () => "darwin";
- const freememMock = vitest.fn();
+    const platformMock = () => 'darwin';
+    const freememMock = vitest.fn();
 
- return {
-  ...original,
-  platform: platformMock,
-  freemem: freememMock,
-  // Specifically, you'll need to add this v block
-  default: {
-   ...original.default,
-   platform: platformMock,
-   freemem: freememMock,
-  },
- };
+    return {
+        ...original,
+        platform: platformMock,
+        freemem: freememMock,
+        // Specifically, you'll need to also mock the `default` property of the module, as seen below
+        default: {
+            ...original.default,
+            platform: platformMock,
+            freemem: freememMock,
+        },
+    };
 });
 ```
 
 And for example 2:
 
 ```ts
-vitest.mock("node:os", async (importActual) => {
- const original = await importActual<typeof import("node:os")>();
+vitest.mock('node:os', async (importActual) => {
+    const original = await importActual<typeof import('node:os')>();
 
- const platformMock = () => "darwin";
- const freememMock = vitest.fn();
+    const platformMock = () => 'darwin';
+    const freememMock = vitest.fn();
 
- return {
-  ...original,
-  platform: platformMock,
-  freemem: freememMock,
- };
+    return {
+        ...original,
+        platform: platformMock,
+        freemem: freememMock,
+    };
 });
 ```
 
 ### Mocked functions
 
-In previous jest code, we had to cast mocked functions as `jest.MockedFunction`. This is *technically* still needed, but vitest gives us a utility function that casts it for us: `vitest.mocked()`. It doesn't do anything runtime wise, but it helps with type inference.
+In previous jest code, we had to cast mocked functions as `jest.MockedFunction`. This is _technically_ still needed, but vitest gives us a utility function that casts it for us: `vitest.mocked()`. It doesn't do anything runtime wise, but it helps with type inference.
 
 ```ts
-import os from "node:os";
+import os from 'node:os';
 
 const mockedPlatform = vitest.mocked(os.platform);
 ```
@@ -174,28 +173,28 @@ With that said, if you create spies in a `beforeAll`/`beforeEach` hook, you migh
 In previous jest code, you could do something like this:
 
 ```ts
-const spy = jest.spyOn(os, "platform").mockReturnValueOnce("darwin");
+const spy = jest.spyOn(os, 'platform').mockReturnValueOnce('darwin');
 
-expect(os.platform()).toBe("darwin");
+expect(os.platform()).toBe('darwin');
 expect(spy).toHaveBeenCalledTimes(1);
 
-const spy2 = jest.spyOn(os, "platform").mockReturnValueOnce("linux");
+const spy2 = jest.spyOn(os, 'platform').mockReturnValueOnce('linux');
 
-expect(os.platform()).toBe("linux");
+expect(os.platform()).toBe('linux');
 expect(spy).toHaveBeenCalledTimes(2);
 ```
 
 This is no longer valid in vitest. You will need to re-use the same spy instance.
 
 ```ts
-const spy = vitest.spyOn(os, "platform").mockReturnValueOnce("darwin");
+const spy = vitest.spyOn(os, 'platform').mockReturnValueOnce('darwin');
 
-expect(os.platform()).toBe("darwin");
+expect(os.platform()).toBe('darwin');
 expect(spy).toHaveBeenCalledTimes(1);
 
-spy.mockReturnValueOnce("linux");
+spy.mockReturnValueOnce('linux');
 
-expect(os.platform()).toBe("linux");
+expect(os.platform()).toBe('linux');
 expect(spy).toHaveBeenCalledTimes(2);
 ```
 
@@ -204,18 +203,18 @@ expect(spy).toHaveBeenCalledTimes(2);
 In jest, we were able to do the following to adjust timeouts at runtime:
 
 ```ts
-if (os.platform() === "win32") {
- jest.setTimeout(100_000);
+if (os.platform() === 'win32') {
+    jest.setTimeout(100_000);
 }
 ```
 
 In vitest, you need to call the `vitest.setConfig` function instead (and specify what to change):
 
 ```ts
-if (os.platform() === "win32") {
- vitest.setConfig({
-  testTimeout: 100_000,
- });
+if (os.platform() === 'win32') {
+    vitest.setConfig({
+        testTimeout: 100_000,
+    });
 }
 ```
 
@@ -225,27 +224,27 @@ In jest, we were able to call the callback provided in the hooks to signal the h
 
 ```ts
 beforeAll((done) => {
- // Do something
- done();
+    // Do something
+    done();
 });
 ```
 
-In vitest, this is no longer provided, but *can* be substituted with a promise:
+In vitest, this is no longer provided, but _can_ be substituted with a promise:
 
 ```ts
 beforeAll(async () => {
- await new Promise(resolve => {
-  // Do something
-   resolve();
- });
+    await new Promise((resolve) => {
+        // Do something
+        resolve();
+    });
 });
 ```
 
 ## `const enums`
 
 > [!IMPORTANT]
-> While the built code would inline `const enum` members due to the way we compile with `tsc`, vitest uses `vite` internally which does not support `const enums`.
-> It's recommended to inline the variable if the `const enum` isn't exposed at runtime (looking at you puppeteer)
+> Certain projects, like `puppeteer` declare `const enum`s in their typings. These are enums that do not actually exist at runtime, but enums that `tsc` (which is what we're currently using to compile Crawlee) can inline the values of
+> directly into the compiled code. You should avoid importing `const enums` as `vitest` will not inline them like `tsc` does and will throw an error, unless the enum is also present at runtime (check by importing the module and seeing if it's exported anywhere).
 
 ## Code of Conduct
 
@@ -263,22 +262,22 @@ orientation.
 Examples of behavior that contributes to creating a positive environment
 include:
 
-* Using welcoming and inclusive language
-* Being respectful of differing viewpoints and experiences
-* Gracefully accepting constructive criticism
-* Focusing on what is best for the community
-* Showing empathy towards other community members
+-   Using welcoming and inclusive language
+-   Being respectful of differing viewpoints and experiences
+-   Gracefully accepting constructive criticism
+-   Focusing on what is best for the community
+-   Showing empathy towards other community members
 
 Examples of unacceptable behavior by participants include:
 
-* The use of sexualized language or imagery and unwelcome sexual attention or
-advances
-* Trolling, insulting/derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or electronic
-  address, without explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+-   The use of sexualized language or imagery and unwelcome sexual attention or
+    advances
+-   Trolling, insulting/derogatory comments, and personal or political attacks
+-   Public or private harassment
+-   Publishing others' private information, such as a physical or electronic
+    address, without explicit permission
+-   Other conduct which could reasonably be considered inappropriate in a
+    professional setting
 
 ### Our Responsibilities
 
