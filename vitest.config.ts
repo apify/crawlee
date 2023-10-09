@@ -21,8 +21,8 @@ export default defineConfig({
             ],
         },
         restoreMocks: true,
-        // minThreads: 2,
-        // maxThreads: 4,
+        minThreads: 2,
+        maxThreads: 2,
         testTimeout: 60_000,
         hookTimeout: 60_000,
         alias: [
