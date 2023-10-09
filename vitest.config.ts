@@ -25,6 +25,7 @@ export default defineConfig({
         maxThreads: 2,
         testTimeout: 60_000,
         hookTimeout: 60_000,
+        experimentalVmThreads: true,
         alias: [
             { find: 'crawlee', replacement: resolve(__dirname, './packages/crawlee/src') },
             { find: '@crawlee/basic', replacement: resolve(__dirname, './packages/basic-crawler/src') },
