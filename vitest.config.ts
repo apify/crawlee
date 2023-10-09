@@ -1,3 +1,4 @@
+import { cpus } from 'node:os';
 import { resolve } from 'node:path';
 
 import isCI from 'is-ci';
@@ -8,8 +9,8 @@ let threads: { minThreads: number; maxThreads: number } | undefined;
 
 if (isCI) {
     // eslint-disable-next-line no-console
-    console.log('Running in CI, throttling threads to 2');
-    threads = { minThreads: 2, maxThreads: 2 };
+    console.log(`Running in CI, throttling threads to 2-${cpus().length}`);
+    threads = { minThreads: 2, maxThreads: Math.max(cpus().length, 2) };
 }
 
 export default defineConfig({
