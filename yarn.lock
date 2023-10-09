@@ -631,6 +631,7 @@ __metadata:
     "@types/fs-extra": ^11.0.0
     "@types/htmlparser2": ^3.10.3
     "@types/inquirer": ^8.2.1
+    "@types/is-ci": ^3.0.1
     "@types/lodash.merge": ^4.6.7
     "@types/mime-types": ^2.1.1
     "@types/node": ^18.7.13
@@ -657,6 +658,7 @@ __metadata:
     globby: ^13.1.2
     got: ^13.0.0
     husky: ^8.0.1
+    is-ci: ^3.0.1
     lerna: ^7.0.0
     lint-staged: ^14.0.0
     node-gyp: ^9.1.0
@@ -1825,6 +1827,15 @@ __metadata:
     "@types/through": "*"
     rxjs: ^7.2.0
   checksum: 8f021bc2ad0cdcccbd55abd11a8ecc73f716ea108f2ffb5f8f605d23519b47acb46fdcac032d8c81e7c05f183c0f2300a0a394c449ad8980bc11f333708d4387
+  languageName: node
+  linkType: hard
+
+"@types/is-ci@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "@types/is-ci@npm:3.0.1"
+  dependencies:
+    ci-info: ^3.1.0
+  checksum: c5cce9ffcd2528ebc731570855d23f99e2589d094e20ac5c3d87c2e53a456c2e7002851bd3fec4e3c20cdd8a5b090d8a90194e108192d9494c4d130ff9b65bbb
   languageName: node
   linkType: hard
 
@@ -3341,6 +3352,13 @@ __metadata:
   peerDependencies:
     devtools-protocol: "*"
   checksum: 9761b602ccc7737af6abb16ea6485871ca70ee3ec37714ccb99265f28611fb2b109e40e5a6551535d0d571667b7faa54eceeab8142cc6b1253872bce7e1dcc96
+  languageName: node
+  linkType: hard
+
+"ci-info@npm:^3.1.0":
+  version: 3.9.0
+  resolution: "ci-info@npm:3.9.0"
+  checksum: 6b19dc9b2966d1f8c2041a838217299718f15d6c4b63ae36e4674edd2bee48f780e94761286a56aa59eb305a85fbea4ddffb7630ec063e7ec7e7e5ad42549a87
   languageName: node
   linkType: hard
 
@@ -6562,7 +6580,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"is-ci@npm:3.0.1":
+"is-ci@npm:3.0.1, is-ci@npm:^3.0.1":
   version: 3.0.1
   resolution: "is-ci@npm:3.0.1"
   dependencies:

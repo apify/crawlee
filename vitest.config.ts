@@ -1,7 +1,14 @@
 import { resolve } from 'node:path';
 
+import isCI from 'is-ci';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
+
+let threads: { minThreads: number; maxThreads: number } | undefined;
+
+if (isCI) {
+    threads = { minThreads: 2, maxThreads: 2 };
+}
 
 export default defineConfig({
     plugins: [tsconfigPaths()],
@@ -21,8 +28,7 @@ export default defineConfig({
             ],
         },
         restoreMocks: true,
-        minThreads: 2,
-        maxThreads: 2,
+        ...threads,
         testTimeout: 60_000,
         hookTimeout: 60_000,
         alias: [
