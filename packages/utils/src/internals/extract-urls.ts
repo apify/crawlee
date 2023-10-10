@@ -73,6 +73,13 @@ export function extractUrls(options: ExtractUrlsOptions): string[] {
         string: ow.string,
         urlRegExp: ow.optional.regExp,
     }));
-    const { string, urlRegExp = URL_NO_COMMAS_REGEX } = options;
-    return string.match(urlRegExp) || [];
+    const lines = options.string.split('\n');
+    const result: string[] = [];
+    const urlRegExp = options.urlRegExp ?? URL_NO_COMMAS_REGEX;
+
+    for (const line of lines) {
+        result.push(...(line.match(urlRegExp) ?? []));
+    }
+
+    return result;
 }
