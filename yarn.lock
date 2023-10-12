@@ -167,11 +167,11 @@ __metadata:
   linkType: hard
 
 "@babel/runtime@npm:^7.20.7":
-  version: 7.23.2
-  resolution: "@babel/runtime@npm:7.23.2"
+  version: 7.23.1
+  resolution: "@babel/runtime@npm:7.23.1"
   dependencies:
     regenerator-runtime: ^0.14.0
-  checksum: 6c4df4839ec75ca10175f636d6362f91df8a3137f86b38f6cd3a4c90668a0fe8e9281d320958f4fbd43b394988958585a17c3aab2a4ea6bf7316b22916a371fb
+  checksum: 0cd0d43e6e7dc7f9152fda8c8312b08321cda2f56ef53d6c22ebdd773abdc6f5d0a69008de90aa41908d00e2c1facb24715ff121274e689305c858355ff02c70
   languageName: node
   linkType: hard
 
@@ -1113,11 +1113,9 @@ __metadata:
   linkType: hard
 
 "@ljharb/through@npm:^2.3.9":
-  version: 2.3.11
-  resolution: "@ljharb/through@npm:2.3.11"
-  dependencies:
-    call-bind: ^1.0.2
-  checksum: 10502726028b8a4e0b270a2213e546821c04ed8d7fe411009a8e47497e4ae99c57eeb9ff3d13620ebdefd7c856b16fc873f27c433cad60465dc132fb4b997233
+  version: 2.3.9
+  resolution: "@ljharb/through@npm:2.3.9"
+  checksum: a47ffed12ef4b08d07458db8bff5f7a13a7030fddf7dbfa947a765581a634d42ee90f7b8c249315aad122c21ad061e97a74f65aef3c03d2c09291d11312f0bfb
   languageName: node
   linkType: hard
 
@@ -1493,29 +1491,29 @@ __metadata:
   linkType: hard
 
 "@playwright/browser-chromium@npm:*":
-  version: 1.39.0
-  resolution: "@playwright/browser-chromium@npm:1.39.0"
+  version: 1.38.1
+  resolution: "@playwright/browser-chromium@npm:1.38.1"
   dependencies:
-    playwright-core: 1.39.0
-  checksum: 43cbcef98ee5c8e704f18770f53d7fcb20e11d11dfaef790b6d5fd1abd27cc71c032272a15cfb7c6b3f1ce8a4b8f707000b5318d745594ac5f9f300928414ac3
+    playwright-core: 1.38.1
+  checksum: 0fa4c30792288102a27fd1cdb33f44ab25cbec53c6913e268f4c4609865fa7dd556177f72e54790d0472e73d668fa97e1a2f54d83b9bec7e04cdb6e748d0f555
   languageName: node
   linkType: hard
 
 "@playwright/browser-firefox@npm:*":
-  version: 1.39.0
-  resolution: "@playwright/browser-firefox@npm:1.39.0"
+  version: 1.38.1
+  resolution: "@playwright/browser-firefox@npm:1.38.1"
   dependencies:
-    playwright-core: 1.39.0
-  checksum: 6d6c73f26894f78c1851400685e4232284e88a221f7d9caa231114f7f6038f4def96e15f91a1f9b6ec146e95865153973dbed4f318cb48e893adc73371815d30
+    playwright-core: 1.38.1
+  checksum: d14d91a8c7354eb882b0f4696feedab5a017214edb590c64742220402fc30b721f61012a49d57fde5ef7ec7044ae85635b806f5c91ff4f20f1e11f7494f9dbea
   languageName: node
   linkType: hard
 
 "@playwright/browser-webkit@npm:*":
-  version: 1.39.0
-  resolution: "@playwright/browser-webkit@npm:1.39.0"
+  version: 1.38.1
+  resolution: "@playwright/browser-webkit@npm:1.38.1"
   dependencies:
-    playwright-core: 1.39.0
-  checksum: e680f3291ecc3882f714e0e6eeda71c94ddc5698ee93adc2415dd9a72ea6424b3e4bbc8cc6aa4702a8210eb2e8c1e39f00dac5d1aa73ab758afdee2cf89fc17d
+    playwright-core: 1.38.1
+  checksum: 941008c3ed7a4a336bf1a860ffb7c8e8b20a39a9f774d71a6499881385a54f05bac83156423c2c1ec29ea6eb789e39c9ace4ff344f859107d646d1eaea882f3d
   languageName: node
   linkType: hard
 
@@ -2567,8 +2565,8 @@ __metadata:
   linkType: hard
 
 "apify-client@npm:^2.8.0":
-  version: 2.8.1
-  resolution: "apify-client@npm:2.8.1"
+  version: 2.8.0
+  resolution: "apify-client@npm:2.8.0"
   dependencies:
     "@apify/consts": ^2.19.0
     "@apify/log": ^2.2.6
@@ -2580,7 +2578,7 @@ __metadata:
     ow: ^0.28.2
     tslib: ^2.5.0
     type-fest: ^4.0.0
-  checksum: 99d2cf2da057b8cee88e0dd823cd2d9be1f6dd37a143256cd987d631c825dc58dfe6c9f903c1cdd98d4eacc19385417d36ddab9796a1600a84207220a07c93e2
+  checksum: a302caf5c7245db8a89ccc97f1a8ccdb146ab315afd547cee472e41720ddfd62154d83c9230dc3ac5bd52f24b340536cc367ffbda37af23c972badc1c0cd61d6
   languageName: node
   linkType: hard
 
@@ -4164,9 +4162,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1208070
-  resolution: "devtools-protocol@npm:0.0.1208070"
-  checksum: ea9fe7acad1560ae503bbd8485a2255c62f7766f7ff05a675107bb8cba0a44c22c2275aa3df15aaba922bc2192c92be3966b45b2974dc7e7f8195034862c24e1
+  version: 0.0.1207450
+  resolution: "devtools-protocol@npm:0.0.1207450"
+  checksum: 76064f46aedf23d7dc17fa04a25b3c108acb87f5474c23d41bb2128c77630736d0dad3f073dc459a2470e570c5caf6c281e282f5be1fbc7a4caaca1b2a7c3a37
   languageName: node
   linkType: hard
 
@@ -4346,9 +4344,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.551
-  resolution: "electron-to-chromium@npm:1.4.551"
-  checksum: 80f05eaefaaaf99b7833318c728b9aa7013fbdc9ee96dcc79b25ae3ebdddc62e2ed8b0153c0e6e6e2f1f600b4fa164774cdabb0674aa0a23373e7edbace0febb
+  version: 1.4.549
+  resolution: "electron-to-chromium@npm:1.4.549"
+  checksum: 6aa2a71fa359642e8cc77c0bbf4ded752ff769405173fdb91f790ae3b29cc076eb98579622a87fda86d087ef6f18ca13fa05d229083756c546761b1258c3dd48
   languageName: node
   linkType: hard
 
@@ -9256,15 +9254,6 @@ __metadata:
   bin:
     playwright-core: cli.js
   checksum: 66e83fe040f309b13ad94ba39dea40ac207bfcbbc22de13141af88dbdedd64e1c4e3ce1d0cb070d4efd8050d7e579953ec3681dd8a0acf2c1cc738d9c50e545e
-  languageName: node
-  linkType: hard
-
-"playwright-core@npm:1.39.0":
-  version: 1.39.0
-  resolution: "playwright-core@npm:1.39.0"
-  bin:
-    playwright-core: cli.js
-  checksum: 556e78dee4f9890facf2af8249972e0d6e01a5ae98737b0f6b0166c660a95ffee4cb79350335b1ef96430a0ef01d3669daae9099fa46c8d403d11c623988238b
   languageName: node
   linkType: hard
 
