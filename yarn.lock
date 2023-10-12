@@ -167,11 +167,11 @@ __metadata:
   linkType: hard
 
 "@babel/runtime@npm:^7.20.7":
-  version: 7.23.1
-  resolution: "@babel/runtime@npm:7.23.1"
+  version: 7.23.2
+  resolution: "@babel/runtime@npm:7.23.2"
   dependencies:
     regenerator-runtime: ^0.14.0
-  checksum: 0cd0d43e6e7dc7f9152fda8c8312b08321cda2f56ef53d6c22ebdd773abdc6f5d0a69008de90aa41908d00e2c1facb24715ff121274e689305c858355ff02c70
+  checksum: 6c4df4839ec75ca10175f636d6362f91df8a3137f86b38f6cd3a4c90668a0fe8e9281d320958f4fbd43b394988958585a17c3aab2a4ea6bf7316b22916a371fb
   languageName: node
   linkType: hard
 
@@ -641,9 +641,9 @@ __metadata:
     "@types/semver": ^7.3.12
     "@types/stream-json": ^1.7.2
     "@types/tough-cookie": ^4.0.2
+    "@types/yargs": ^17.0.26
     "@typescript-eslint/eslint-plugin": 6.7.5
     "@typescript-eslint/parser": 6.7.5
-    "@types/yargs": ^17.0.26
     "@vitest/coverage-v8": ^0.34.6
     apify: "*"
     basic-auth-parser: ^0.0.2
@@ -1113,9 +1113,11 @@ __metadata:
   linkType: hard
 
 "@ljharb/through@npm:^2.3.9":
-  version: 2.3.9
-  resolution: "@ljharb/through@npm:2.3.9"
-  checksum: a47ffed12ef4b08d07458db8bff5f7a13a7030fddf7dbfa947a765581a634d42ee90f7b8c249315aad122c21ad061e97a74f65aef3c03d2c09291d11312f0bfb
+  version: 2.3.11
+  resolution: "@ljharb/through@npm:2.3.11"
+  dependencies:
+    call-bind: ^1.0.2
+  checksum: 10502726028b8a4e0b270a2213e546821c04ed8d7fe411009a8e47497e4ae99c57eeb9ff3d13620ebdefd7c856b16fc873f27c433cad60465dc132fb4b997233
   languageName: node
   linkType: hard
 
@@ -1491,29 +1493,29 @@ __metadata:
   linkType: hard
 
 "@playwright/browser-chromium@npm:*":
-  version: 1.38.1
-  resolution: "@playwright/browser-chromium@npm:1.38.1"
+  version: 1.39.0
+  resolution: "@playwright/browser-chromium@npm:1.39.0"
   dependencies:
-    playwright-core: 1.38.1
-  checksum: 0fa4c30792288102a27fd1cdb33f44ab25cbec53c6913e268f4c4609865fa7dd556177f72e54790d0472e73d668fa97e1a2f54d83b9bec7e04cdb6e748d0f555
+    playwright-core: 1.39.0
+  checksum: 43cbcef98ee5c8e704f18770f53d7fcb20e11d11dfaef790b6d5fd1abd27cc71c032272a15cfb7c6b3f1ce8a4b8f707000b5318d745594ac5f9f300928414ac3
   languageName: node
   linkType: hard
 
 "@playwright/browser-firefox@npm:*":
-  version: 1.38.1
-  resolution: "@playwright/browser-firefox@npm:1.38.1"
+  version: 1.39.0
+  resolution: "@playwright/browser-firefox@npm:1.39.0"
   dependencies:
-    playwright-core: 1.38.1
-  checksum: d14d91a8c7354eb882b0f4696feedab5a017214edb590c64742220402fc30b721f61012a49d57fde5ef7ec7044ae85635b806f5c91ff4f20f1e11f7494f9dbea
+    playwright-core: 1.39.0
+  checksum: 6d6c73f26894f78c1851400685e4232284e88a221f7d9caa231114f7f6038f4def96e15f91a1f9b6ec146e95865153973dbed4f318cb48e893adc73371815d30
   languageName: node
   linkType: hard
 
 "@playwright/browser-webkit@npm:*":
-  version: 1.38.1
-  resolution: "@playwright/browser-webkit@npm:1.38.1"
+  version: 1.39.0
+  resolution: "@playwright/browser-webkit@npm:1.39.0"
   dependencies:
-    playwright-core: 1.38.1
-  checksum: 941008c3ed7a4a336bf1a860ffb7c8e8b20a39a9f774d71a6499881385a54f05bac83156423c2c1ec29ea6eb789e39c9ace4ff344f859107d646d1eaea882f3d
+    playwright-core: 1.39.0
+  checksum: e680f3291ecc3882f714e0e6eeda71c94ddc5698ee93adc2415dd9a72ea6424b3e4bbc8cc6aa4702a8210eb2e8c1e39f00dac5d1aa73ab758afdee2cf89fc17d
   languageName: node
   linkType: hard
 
@@ -1706,9 +1708,9 @@ __metadata:
   linkType: hard
 
 "@types/chai@npm:*, @types/chai@npm:^4.3.5":
-  version: 4.3.6
-  resolution: "@types/chai@npm:4.3.6"
-  checksum: 32a6c18bf53fb3dbd89d1bfcadb1c6fd45cc0007c34e436393cc37a0a5a556f9e6a21d1e8dd71674c40cc36589d2f30bf4d9369d7787021e54d6e997b0d7300a
+  version: 4.3.8
+  resolution: "@types/chai@npm:4.3.8"
+  checksum: 21431e46fa4a5602641726a24c7631bbf7ba8a41b1a290d0c73dcef6b3521c1d973ee605236b83a978cc918e55470fd04a3109d51aa30dcdf93a8b122e6c3e2c
   languageName: node
   linkType: hard
 
@@ -1831,11 +1833,11 @@ __metadata:
   linkType: hard
 
 "@types/is-ci@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "@types/is-ci@npm:3.0.1"
+  version: 3.0.2
+  resolution: "@types/is-ci@npm:3.0.2"
   dependencies:
     ci-info: ^3.1.0
-  checksum: c5cce9ffcd2528ebc731570855d23f99e2589d094e20ac5c3d87c2e53a456c2e7002851bd3fec4e3c20cdd8a5b090d8a90194e108192d9494c4d130ff9b65bbb
+  checksum: 38ff40670403ecb90bdfc072aa17d0d8e7461f95613ffe5080b641fed218b93001c53fd8d0283b207d2c6353f08bafda514eaeb9f947759312160a01b95cc597
   languageName: node
   linkType: hard
 
@@ -2095,11 +2097,11 @@ __metadata:
   linkType: hard
 
 "@types/yargs@npm:^17.0.26":
-  version: 17.0.26
-  resolution: "@types/yargs@npm:17.0.26"
+  version: 17.0.28
+  resolution: "@types/yargs@npm:17.0.28"
   dependencies:
     "@types/yargs-parser": "*"
-  checksum: 26611969674f4972080c3b22239d4579eaadc5287f95f7802f893c4a9bb292c141467bd70f1e66eb834486c63a23c4f10032618b3d2e7b1ddc05051d08db4078
+  checksum: f78c5e5c29903933c0557b4ffcd1d0b8564d66859c8ca4aa51da3714e49109ed7c2644334a1918d033df19028f4cecc91fd2e502651bb8e8451f246c371da847
   languageName: node
   linkType: hard
 
@@ -2564,9 +2566,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"apify-client@npm:^2.7.1":
-  version: 2.8.0
-  resolution: "apify-client@npm:2.8.0"
+"apify-client@npm:^2.8.0":
+  version: 2.8.1
+  resolution: "apify-client@npm:2.8.1"
   dependencies:
     "@apify/consts": ^2.19.0
     "@apify/log": ^2.2.6
@@ -2578,7 +2580,7 @@ __metadata:
     ow: ^0.28.2
     tslib: ^2.5.0
     type-fest: ^4.0.0
-  checksum: a302caf5c7245db8a89ccc97f1a8ccdb146ab315afd547cee472e41720ddfd62154d83c9230dc3ac5bd52f24b340536cc367ffbda37af23c972badc1c0cd61d6
+  checksum: 99d2cf2da057b8cee88e0dd823cd2d9be1f6dd37a143256cd987d631c825dc58dfe6c9f903c1cdd98d4eacc19385417d36ddab9796a1600a84207220a07c93e2
   languageName: node
   linkType: hard
 
@@ -3038,8 +3040,8 @@ __metadata:
   linkType: hard
 
 "browserslist@npm:^4.21.1":
-  version: 4.22.0
-  resolution: "browserslist@npm:4.22.0"
+  version: 4.22.1
+  resolution: "browserslist@npm:4.22.1"
   dependencies:
     caniuse-lite: ^1.0.30001541
     electron-to-chromium: ^1.4.535
@@ -3218,10 +3220,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"caniuse-lite@npm:^1.0.30001539":
-  version: 1.0.30001540
-  resolution: "caniuse-lite@npm:1.0.30001540"
-  checksum: 95b9203a85ad0187a2480c341bfff6f32d61b9eb9cc323d2942025cd29fbe3f9c3dd056646996d303a0a42c968954f32994f97250e931b2ea5b9531099d6ba2d
+"caniuse-lite@npm:^1.0.30001541":
+  version: 1.0.30001547
+  resolution: "caniuse-lite@npm:1.0.30001547"
+  checksum: ec0fc2b46721887f6f4aca1f3902f03d9a1a07416d16a86b7cd4bfba60e7b6b03ab3969659d3ea0158cc2f298972c80215c06c9457eb15c649d7780e8f5e91a7
   languageName: node
   linkType: hard
 
@@ -3355,14 +3357,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ci-info@npm:^3.1.0":
-  version: 3.9.0
-  resolution: "ci-info@npm:3.9.0"
-  checksum: 6b19dc9b2966d1f8c2041a838217299718f15d6c4b63ae36e4674edd2bee48f780e94761286a56aa59eb305a85fbea4ddffb7630ec063e7ec7e7e5ad42549a87
-  languageName: node
-  linkType: hard
-
-"ci-info@npm:^3.2.0, ci-info@npm:^3.6.1":
+"ci-info@npm:^3.1.0, ci-info@npm:^3.2.0, ci-info@npm:^3.6.1":
   version: 3.9.0
   resolution: "ci-info@npm:3.9.0"
   checksum: 6b19dc9b2966d1f8c2041a838217299718f15d6c4b63ae36e4674edd2bee48f780e94761286a56aa59eb305a85fbea4ddffb7630ec063e7ec7e7e5ad42549a87
@@ -4169,9 +4164,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1207450
-  resolution: "devtools-protocol@npm:0.0.1207450"
-  checksum: 76064f46aedf23d7dc17fa04a25b3c108acb87f5474c23d41bb2128c77630736d0dad3f073dc459a2470e570c5caf6c281e282f5be1fbc7a4caaca1b2a7c3a37
+  version: 0.0.1208070
+  resolution: "devtools-protocol@npm:0.0.1208070"
+  checksum: ea9fe7acad1560ae503bbd8485a2255c62f7766f7ff05a675107bb8cba0a44c22c2275aa3df15aaba922bc2192c92be3966b45b2974dc7e7f8195034862c24e1
   languageName: node
   linkType: hard
 
@@ -4351,9 +4346,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.549
-  resolution: "electron-to-chromium@npm:1.4.549"
-  checksum: 6aa2a71fa359642e8cc77c0bbf4ded752ff769405173fdb91f790ae3b29cc076eb98579622a87fda86d087ef6f18ca13fa05d229083756c546761b1258c3dd48
+  version: 1.4.551
+  resolution: "electron-to-chromium@npm:1.4.551"
+  checksum: 80f05eaefaaaf99b7833318c728b9aa7013fbdc9ee96dcc79b25ae3ebdddc62e2ed8b0153c0e6e6e2f1f600b4fa164774cdabb0674aa0a23373e7edbace0febb
   languageName: node
   linkType: hard
 
@@ -9264,6 +9259,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@npm:1.39.0":
+  version: 1.39.0
+  resolution: "playwright-core@npm:1.39.0"
+  bin:
+    playwright-core: cli.js
+  checksum: 556e78dee4f9890facf2af8249972e0d6e01a5ae98737b0f6b0166c660a95ffee4cb79350335b1ef96430a0ef01d3669daae9099fa46c8d403d11c623988238b
+  languageName: node
+  linkType: hard
+
 "playwright@npm:1.38.1":
   version: 1.38.1
   resolution: "playwright@npm:1.38.1"
@@ -9292,7 +9296,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.4.30":
+"postcss@npm:^8.4.31":
   version: 8.4.31
   resolution: "postcss@npm:8.4.31"
   dependencies:
@@ -9808,8 +9812,8 @@ __metadata:
   linkType: hard
 
 "resolve@npm:^1.10.0, resolve@npm:^1.22.0, resolve@npm:^1.22.4":
-  version: 1.22.6
-  resolution: "resolve@npm:1.22.6"
+  version: 1.22.8
+  resolution: "resolve@npm:1.22.8"
   dependencies:
     is-core-module: ^2.13.0
     path-parse: ^1.0.7
@@ -9821,21 +9825,8 @@ __metadata:
   linkType: hard
 
 "resolve@npm:^2.0.0-next.4":
-  version: 2.0.0-next.4
-  resolution: "resolve@npm:2.0.0-next.4"
-  dependencies:
-    is-core-module: ^2.9.0
-    path-parse: ^1.0.7
-    supports-preserve-symlinks-flag: ^1.0.0
-  bin:
-    resolve: bin/resolve
-  checksum: c438ac9a650f2030fd074219d7f12ceb983b475da2d89ad3d6dd05fbf6b7a0a8cd37d4d10b43cb1f632bc19f22246ab7f36ebda54d84a29bfb2910a0680906d3
-  languageName: node
-  linkType: hard
-
-"resolve@patch:resolve@^1.10.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.22.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.22.4#~builtin<compat/resolve>":
-  version: 1.22.6
-  resolution: "resolve@patch:resolve@npm%3A1.22.6#~builtin<compat/resolve>::version=1.22.6&hash=c3c19d"
+  version: 2.0.0-next.5
+  resolution: "resolve@npm:2.0.0-next.5"
   dependencies:
     is-core-module: ^2.13.0
     path-parse: ^1.0.7
@@ -9846,7 +9837,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"resolve@patch:resolve@^1.10.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.20.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.22.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.22.4#~builtin<compat/resolve>":
+"resolve@patch:resolve@^1.10.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.22.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.22.4#~builtin<compat/resolve>":
   version: 1.22.8
   resolution: "resolve@patch:resolve@npm%3A1.22.8#~builtin<compat/resolve>::version=1.22.8&hash=c3c19d"
   dependencies:
@@ -10848,10 +10839,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.0.16":
-  version: 6.0.16
-  resolution: "tldts-core@npm:6.0.16"
-  checksum: 77f5e0841a0bb5df0ebcc7470463d7bc0c48421ea44a34cba68f26a967107e18624f5dbba37ac79a26372566f3ad52189e3572b2db4d780dce2903e110e599fd
 "tinybench@npm:^2.5.0":
   version: 2.5.1
   resolution: "tinybench@npm:2.5.1"
@@ -10870,6 +10857,13 @@ __metadata:
   version: 2.2.0
   resolution: "tinyspy@npm:2.2.0"
   checksum: 36431acaa648054406147a92b9bde494b7548d0f9f3ffbcc02113c25a6e59f3310cbe924353d7f4c51436299150bec2dbb3dc595748f58c4ddffea22d5baaadb
+  languageName: node
+  linkType: hard
+
+"tldts-core@npm:^6.0.16":
+  version: 6.0.16
+  resolution: "tldts-core@npm:6.0.16"
+  checksum: 77f5e0841a0bb5df0ebcc7470463d7bc0c48421ea44a34cba68f26a967107e18624f5dbba37ac79a26372566f3ad52189e3572b2db4d780dce2903e110e599fd
   languageName: node
   linkType: hard
 
@@ -11481,13 +11475,13 @@ __metadata:
   linkType: hard
 
 "v8-to-istanbul@npm:^9.1.0":
-  version: 9.1.2
-  resolution: "v8-to-istanbul@npm:9.1.2"
+  version: 9.1.3
+  resolution: "v8-to-istanbul@npm:9.1.3"
   dependencies:
     "@jridgewell/trace-mapping": ^0.3.12
     "@types/istanbul-lib-coverage": ^2.0.1
     convert-source-map: ^2.0.0
-  checksum: b0aee7869fb4ea9415ca7887fb24cbaa59c2c9a811951a332470b47f52b012f2576c68d1529c53f055a4a0c2fd3dd47b62d1d804e5ac1194725da6423e68fa46
+  checksum: 5d592ab3d186b386065dace8e01c543a922a904b3cfac39667de172455a6b3d0e8e1401574fecb8a12092ad0809b5a8fd15f1cc14d0666139a1bb77cd6ac2cf8
   languageName: node
   linkType: hard
 
@@ -11565,13 +11559,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:5.0.0-beta.4, vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0":
-  version: 5.0.0-beta.4
-  resolution: "vite@npm:5.0.0-beta.4"
+"vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0, vite@npm:^3.1.0 || ^4.0.0 || ^5.0.0-0":
+  version: 5.0.0-beta.6
+  resolution: "vite@npm:5.0.0-beta.6"
   dependencies:
     esbuild: ^0.19.3
     fsevents: ~2.3.3
-    postcss: ^8.4.30
+    postcss: ^8.4.31
     rollup: ^3.29.2
   peerDependencies:
     "@types/node": ^18.0.0 || >=20.0.0
@@ -11601,47 +11595,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 98077ffe7b63fa14bf3c9c9e5161e3d5604cadd805ab6ff2a03acad9723283f2eedd362e009f2c8145b70fd90a38453171c927a11847f63e7c1af551196067fd
-  languageName: node
-  linkType: hard
-
-"vite@patch:vite@npm%3A5.0.0-beta.4#./.yarn/patches/vite-npm-5.0.0-beta.4-47b562f0aa.patch::locator=%40crawlee%2Froot%40workspace%3A.":
-  version: 5.0.0-beta.4
-  resolution: "vite@patch:vite@npm%3A5.0.0-beta.4#./.yarn/patches/vite-npm-5.0.0-beta.4-47b562f0aa.patch::version=5.0.0-beta.4&hash=ba77b7&locator=%40crawlee%2Froot%40workspace%3A."
-  dependencies:
-    esbuild: ^0.19.3
-    fsevents: ~2.3.3
-    postcss: ^8.4.30
-    rollup: ^3.29.2
-  peerDependencies:
-    "@types/node": ^18.0.0 || >=20.0.0
-    less: "*"
-    lightningcss: ^1.21.0
-    sass: "*"
-    stylus: "*"
-    sugarss: "*"
-    terser: ^5.4.0
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  peerDependenciesMeta:
-    "@types/node":
-      optional: true
-    less:
-      optional: true
-    lightningcss:
-      optional: true
-    sass:
-      optional: true
-    stylus:
-      optional: true
-    sugarss:
-      optional: true
-    terser:
-      optional: true
-  bin:
-    vite: bin/vite.js
-  checksum: 9778ac11e9e38fe257d0ac900fd2bd292f7bc9ec690e5520e0226efe8a2bec6db8d1bc5fa25aa21fbf23ed8c8016e098c2a8145e8b8d718a36b362fda343ca69
+  checksum: 7491d6e67637f0f90ec585459da33a7cdf45368cad57ee8dbaabd11dbb7dd55f0ffaf2886870bea7f899d74dcf5690f77b27ad0b5e5b65d63599cda08874200a
   languageName: node
   linkType: hard
 
