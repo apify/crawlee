@@ -124,7 +124,7 @@ describe('Snapshotter', () => {
     });
 
     test('correctly marks CPU overloaded using OS metrics', async () => {
-        const cpusMock = jest.spyOn(os, 'cpus');
+        const cpusMock = vitest.spyOn(os, 'cpus');
         const fakeCpu = [{
             times: {
                 idle: 0,
@@ -139,7 +139,7 @@ describe('Snapshotter', () => {
         const config = new Configuration({ maxUsedCpuRatio: 0.5 });
         const snapshotter = new Snapshotter({ config });
         // do not initialize the event intervals as we will fire them manually
-        const spy = jest.spyOn(LocalEventManager.prototype, 'init').mockImplementation();
+        const spy = vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
         const events = config.getEventManager() as LocalEventManager;
         await snapshotter.start();
 
@@ -168,13 +168,11 @@ describe('Snapshotter', () => {
         expect(loopSnapshots[4].isOverloaded).toBe(true);
         expect(cpusMock).toBeCalledTimes(5);
 
-        cpusMock.mockRestore();
-        spy.mockRestore();
         await snapshotter.stop();
     });
 
     test('correctly marks eventLoopOverloaded', () => {
-        const clock = jest.useFakeTimers();
+        const clock = vitest.useFakeTimers();
         try {
             const noop = () => {};
             const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
@@ -201,7 +199,7 @@ describe('Snapshotter', () => {
             expect(loopSnapshots[3].isOverloaded).toBe(true);
             expect(loopSnapshots[4].isOverloaded).toBe(false);
         } finally {
-            jest.useRealTimers();
+            vitest.useRealTimers();
         }
     });
 
@@ -212,13 +210,13 @@ describe('Snapshotter', () => {
             childProcessesBytes: toBytes(1000),
         } as MemoryInfo;
         const getMemoryInfo = async () => ({ ...memoryData });
-        jest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockImplementation(getMemoryInfo);
-        jest.spyOn(Snapshotter.prototype as any, '_getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) });
+        vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockImplementation(getMemoryInfo);
+        vitest.spyOn(Snapshotter.prototype as any, '_getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) });
 
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         // do not initialize the event intervals as we will fire them manually
-        jest.spyOn(LocalEventManager.prototype, 'init').mockImplementation();
+        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
         const events = config.getEventManager() as LocalEventManager;
         await snapshotter.start();
 
@@ -241,15 +239,15 @@ describe('Snapshotter', () => {
         expect(memorySnapshots[4].isOverloaded).toBe(false);
 
         await snapshotter.stop();
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     test('correctly logs critical memory overload', async () => {
-        jest.spyOn(Snapshotter.prototype as any, '_getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) });
+        vitest.spyOn(Snapshotter.prototype as any, '_getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) });
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         await snapshotter.start();
-        const warningSpy = jest.spyOn(snapshotter.log, 'warning').mockImplementation();
+        const warningSpy = vitest.spyOn(snapshotter.log, 'warning').mockImplementation(() => {});
 
         // @ts-expect-error Calling private method
         snapshotter._memoryOverloadWarning({
@@ -264,7 +262,7 @@ describe('Snapshotter', () => {
         });
         expect(warningSpy).not.toBeCalled();
 
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
         await snapshotter.stop();
     });
 

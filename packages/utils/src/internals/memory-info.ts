@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
-import fs from 'node:fs/promises';
-import os from 'node:os';
+import { access, readFile } from 'node:fs/promises';
+import { freemem, totalmem } from 'node:os';
 import util from 'node:util';
 
 import log from '@apify/log';
@@ -110,15 +110,15 @@ export async function getMemoryInfo(): Promise<MemoryInfo> {
         let cgroupsVersion: keyof typeof MEMORY_FILE_PATHS.TOTAL = 'V1';
         try {
             // If this directory does not exists, assume docker is using cgroups V2
-            await fs.access('/sys/fs/cgroup/memory/');
+            await access('/sys/fs/cgroup/memory/');
         } catch {
             cgroupsVersion = 'V2';
         }
 
         try {
             let [totalBytesStr, usedBytesStr] = await Promise.all([
-                fs.readFile(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], 'utf8'),
-                fs.readFile(MEMORY_FILE_PATHS.USED[cgroupsVersion], 'utf8'),
+                readFile(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], 'utf8'),
+                readFile(MEMORY_FILE_PATHS.USED[cgroupsVersion], 'utf8'),
             ]);
 
             // Cgroups V2 files contains newline character. Getting rid of it for better handling in later part of the code.
@@ -128,13 +128,13 @@ export async function getMemoryInfo(): Promise<MemoryInfo> {
             // Cgroups V2 contains 'max' string if memory is not limited
             // See https://git.kernel.org/pub/scm/linux/kernel/git/tj/cgroup.git/tree/Documentation/admin-guide/cgroup-v2.rst (see "memory.max")
             if (totalBytesStr === 'max') {
-                totalBytes = os.totalmem();
+                totalBytes = totalmem();
                 // Cgroups V1 is set to number related to platform and page size if memory is not limited
                 // See https://unix.stackexchange.com/q/420906
             } else {
                 totalBytes = parseInt(totalBytesStr, 10);
                 const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
-                if (containerRunsWithUnlimitedMemory) totalBytes = os.totalmem();
+                if (containerRunsWithUnlimitedMemory) totalBytes = totalmem();
             }
             usedBytes = parseInt(usedBytesStr, 10);
             freeBytes = totalBytes - usedBytes;
@@ -143,13 +143,13 @@ export async function getMemoryInfo(): Promise<MemoryInfo> {
             log.deprecated('Your environment is Docker, but your system does not support memory cgroups. '
                 + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.\n\n'
                 + `Cause: ${(err as Error).message}`);
-            totalBytes = os.totalmem();
-            freeBytes = os.freemem();
+            totalBytes = totalmem();
+            freeBytes = freemem();
             usedBytes = totalBytes - freeBytes;
         }
     } else {
-        totalBytes = os.totalmem();
-        freeBytes = os.freemem();
+        totalBytes = totalmem();
+        freeBytes = freemem();
         usedBytes = totalBytes - freeBytes;
     }
 

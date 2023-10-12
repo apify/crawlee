@@ -18,7 +18,7 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { startExpressAppPromise } from '../../shared/_helper';
 
-if (os.platform() === 'win32') jest.setTimeout(2 * 60 * 1e3);
+if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless: string;
@@ -66,7 +66,7 @@ describe('PlaywrightCrawler', () => {
         server.close();
     });
 
-    jest.setTimeout(2 * 60 * 1e3);
+    vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
     describe('should work', () => {
         // @TODO: add webkit
         test.each(['chromium', 'firefox'] as const)('with %s', async (browser) => {

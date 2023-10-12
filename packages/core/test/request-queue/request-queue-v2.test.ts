@@ -2,6 +2,7 @@
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { ListAndLockHeadResult, ListAndLockOptions, ListOptions, ProlongRequestLockOptions, ProlongRequestLockResult, QueueHead } from '@crawlee/types';
 import { RequestQueueV2 } from 'crawlee';
+import type { SpyInstance } from 'vitest';
 
 const storage = new MemoryStorage({ persistStorage: false, writeMetadata: false });
 
@@ -22,18 +23,20 @@ async function makeQueue(name: string, numOfRequestsToAdd = 0) {
     return queue;
 }
 
+vitest.setConfig({ restoreMocks: false });
+
 describe('RequestQueueV2#isFinished should use listHead instead of listAndLock', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: jest.SpyInstance<Promise<QueueHead>, [options?: ListOptions | undefined], any>;
+    let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
     let listHeadCallCount = 0;
-    let clientListAndLockHeadSpy: jest.SpyInstance<Promise<ListAndLockHeadResult>, [options: ListAndLockOptions], any>;
+    let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
     let listAndLockHeadCallCount = 0;
     let lockResult: ListAndLockHeadResult;
 
     beforeAll(async () => {
         queue = await makeQueue('is-finished', 2);
-        clientListHeadSpy = jest.spyOn(queue.client, 'listHead');
-        clientListAndLockHeadSpy = jest.spyOn(queue.client, 'listAndLockHead');
+        clientListHeadSpy = vitest.spyOn(queue.client, 'listHead');
+        clientListAndLockHeadSpy = vitest.spyOn(queue.client, 'listAndLockHead');
     });
 
     test('should return false if there are still requests in the queue', async () => {
@@ -55,15 +58,15 @@ describe('RequestQueueV2#isFinished should use listHead instead of listAndLock',
 
 describe('RequestQueueV2#isFinished should return true once locked requests are handled', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: jest.SpyInstance<Promise<QueueHead>, [options?: ListOptions | undefined], any>;
+    let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
     let listHeadCallCount = 0;
-    let clientListAndLockHeadSpy: jest.SpyInstance<Promise<ListAndLockHeadResult>, [options: ListAndLockOptions], any>;
+    let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
     let lockResult: ListAndLockHeadResult;
 
     beforeAll(async () => {
         queue = await makeQueue('is-finished-locked', 1);
-        clientListHeadSpy = jest.spyOn(queue.client, 'listHead');
-        clientListAndLockHeadSpy = jest.spyOn(queue.client, 'listAndLockHead');
+        clientListHeadSpy = vitest.spyOn(queue.client, 'listHead');
+        clientListAndLockHeadSpy = vitest.spyOn(queue.client, 'listAndLockHead');
 
         lockResult = await queue.client.listAndLockHead({ lockSecs: 60 });
         queue['inProgress'].add(lockResult.items[0].id);
@@ -87,16 +90,16 @@ describe('RequestQueueV2#isFinished should return true once locked requests are 
 
 describe('RequestQueueV2#fetchNextRequest should use locking API', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: jest.SpyInstance<Promise<QueueHead>, [options?: ListOptions | undefined], any>;
-    let clientListAndLockHeadSpy: jest.SpyInstance<Promise<ListAndLockHeadResult>, [options: ListAndLockOptions], any>;
-    let clientProlongLockSpy: jest.SpyInstance<Promise<ProlongRequestLockResult>, [id: string, options: ProlongRequestLockOptions], any>;
+    let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
+    let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
+    let clientProlongLockSpy: SpyInstance<[id: string, options: ProlongRequestLockOptions], Promise<ProlongRequestLockResult>>;
     let listAndLockHeadCallCount = 0;
 
     beforeAll(async () => {
         queue = await makeQueue('fetch-next-request', 1);
-        clientListHeadSpy = jest.spyOn(queue.client, 'listHead');
-        clientListAndLockHeadSpy = jest.spyOn(queue.client, 'listAndLockHead');
-        clientProlongLockSpy = jest.spyOn(queue.client, 'prolongRequestLock');
+        clientListHeadSpy = vitest.spyOn(queue.client, 'listHead');
+        clientListAndLockHeadSpy = vitest.spyOn(queue.client, 'listAndLockHead');
+        clientProlongLockSpy = vitest.spyOn(queue.client, 'prolongRequestLock');
     });
 
     test('should return the first request', async () => {
@@ -120,15 +123,10 @@ describe('RequestQueueV2#fetchNextRequest should use locking API', () => {
 
 describe('RequestQueueV2#isEmpty should return true even if isFinished returns false due to locked requests', () => {
     let queue: RequestQueueV2;
-    let clientListHeadSpy: jest.SpyInstance<Promise<QueueHead>, [options?: ListOptions | undefined], any>;
-    let clientListAndLockHeadSpy: jest.SpyInstance<Promise<ListAndLockHeadResult>, [options: ListAndLockOptions], any>;
     let lockResult: ListAndLockHeadResult;
 
     beforeAll(async () => {
         queue = await makeQueue('is-empty-vs-is-finished', 1);
-        clientListHeadSpy = jest.spyOn(queue.client, 'listHead');
-        clientListAndLockHeadSpy = jest.spyOn(queue.client, 'listAndLockHead');
-
         lockResult = await queue.client.listAndLockHead({ lockSecs: 60 });
         queue['inProgress'].add(lockResult.items[0].id);
     });

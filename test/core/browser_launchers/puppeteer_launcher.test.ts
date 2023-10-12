@@ -198,7 +198,7 @@ describe('launchPuppeteer()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = jest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
+        const spy = vitest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
 
         let browser;
         const opts = {
@@ -223,7 +223,6 @@ describe('launchPuppeteer()', () => {
             expect(version).not.toMatch('Chromium');
             expect(spy).toBeCalledTimes(1);
         } finally {
-            spy.mockRestore();
             if (browser) await browser.close();
         }
     });

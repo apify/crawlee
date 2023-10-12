@@ -25,18 +25,12 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { BrowserCrawlerTest } from './basic_browser_crawler';
 
-jest.mock('got-scraping', () => {
-    const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
+vitest.mock('got-scraping', async () => {
+    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
     return {
         ...original,
-        gotScraping: jest.fn(),
+        gotScraping: vitest.fn(),
     };
-});
-
-const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
-
-afterAll(() => {
-    jest.unmock('got-scraping');
 });
 
 describe('BrowserCrawler', () => {
@@ -135,7 +129,7 @@ describe('BrowserCrawler', () => {
             requestHandler: async () => {},
             maxRequestRetries: 1,
         });
-        jest.spyOn(browserCrawler.browserPool, 'destroy');
+        vitest.spyOn(browserCrawler.browserPool, 'destroy');
 
         await browserCrawler.run();
         expect(browserCrawler.browserPool.destroy).toBeCalled();
@@ -151,7 +145,7 @@ describe('BrowserCrawler', () => {
         let sessionGoto: Session;
         const browserCrawler = new class extends BrowserCrawlerTest {
             protected override _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
-                jest.spyOn(ctx.session, 'markBad');
+                vitest.spyOn(ctx.session, 'markBad');
                 sessionGoto = ctx.session;
                 throw new TimeoutError();
             }
@@ -380,7 +374,7 @@ describe('BrowserCrawler', () => {
             ],
         });
 
-        const callSpy = jest.fn();
+        const callSpy = vitest.fn();
 
         const browserCrawler = new BrowserCrawlerTest({
             browserPoolOptions: {
@@ -790,7 +784,7 @@ describe('BrowserCrawler', () => {
         test('proxy rotation on error works as expected', async () => {
             const goodProxyUrl = 'http://good.proxy';
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl] });
-            const requestHandler = jest.fn();
+            const requestHandler = vitest.fn();
 
             const browserCrawler = new class extends BrowserCrawlerTest {
                 protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
@@ -821,7 +815,7 @@ describe('BrowserCrawler', () => {
 
         test('proxy rotation on error respects maxSessionRotations, calls failedRequestHandler', async () => {
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234'] });
-            const failedRequestHandler = jest.fn();
+            const failedRequestHandler = vitest.fn();
 
             /**
              * The first increment is the base case when the proxy is retrieved for the first time.
@@ -884,7 +878,7 @@ describe('BrowserCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            const spy = jest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
+            const spy = vitest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
 
             await crawler.run([serverAddress]);
 

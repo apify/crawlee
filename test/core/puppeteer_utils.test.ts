@@ -425,7 +425,7 @@ describe('puppeteerUtils', () => {
         });
 
         it('saveSnapshot() works', async () => {
-            const openKVSSpy = jest.spyOn(KeyValueStore, 'open');
+            const openKVSSpy = vitest.spyOn(KeyValueStore, 'open');
             const browser = await method(launchContext);
 
             try {
@@ -436,7 +436,7 @@ describe('puppeteerUtils', () => {
                 const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
 
                 // Test saving both image and html
-                const object = { setValue: jest.fn() };
+                const object = { setValue: vitest.fn() };
                 openKVSSpy.mockResolvedValue(object as any);
                 await puppeteerUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
@@ -451,7 +451,6 @@ describe('puppeteerUtils', () => {
                 const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 50 });
                 expect(object.setValue).toBeCalledWith('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' });
             } finally {
-                openKVSSpy.mockRestore();
                 await browser.close();
             }
         });

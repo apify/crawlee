@@ -52,7 +52,7 @@ describe('BasicCrawler', () => {
     });
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vitest.clearAllMocks();
         await localStorageEmulator.init();
     });
 
@@ -228,8 +228,8 @@ describe('BasicCrawler', () => {
         const persistPromise = new Promise((res) => { persistResolve = res; });
 
         // Mock the calls to persist sources.
-        const getValueSpy = jest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = jest.spyOn(KeyValueStore.prototype, 'setValue');
+        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
         getValueSpy.mockResolvedValue(null);
 
         const processed: { url: string }[] = [];
@@ -268,8 +268,6 @@ describe('BasicCrawler', () => {
         // clean up
         // @ts-expect-error Accessing private method
         await basicCrawler.autoscaledPool._destroy();
-        getValueSpy.mockRestore();
-        setValueSpy.mockRestore();
     });
 
     test('should retry failed requests', async () => {
@@ -591,7 +589,7 @@ describe('BasicCrawler', () => {
             throw new CriticalError('some-error');
         };
 
-        const failedRequestHandler = jest.fn() as ErrorHandler;
+        const failedRequestHandler = vitest.fn() as ErrorHandler;
 
         const basicCrawler = new BasicCrawler({
             requestList,
@@ -613,13 +611,13 @@ describe('BasicCrawler', () => {
         ];
         const requestList = await RequestList.open(null, sources);
 
-        const failedRequestHandler = jest.fn() as ErrorHandler;
+        const failedRequestHandler = vitest.fn() as ErrorHandler;
 
         const basicCrawler = new BasicCrawler({
             requestList,
             failedRequestHandler,
         });
-        const testRoute = jest.fn();
+        const testRoute = vitest.fn();
         basicCrawler.router.addHandler('TEST', testRoute);
 
         await expect(basicCrawler.run()).rejects.toThrow(MissingRouteError);
@@ -659,9 +657,9 @@ describe('BasicCrawler', () => {
             requestHandler,
         });
 
-        jest.spyOn(requestQueue, 'handledCount').mockResolvedValueOnce(0);
+        vitest.spyOn(requestQueue, 'handledCount').mockResolvedValueOnce(0);
 
-        jest.spyOn(requestQueue, 'addRequest')
+        vitest.spyOn(requestQueue, 'addRequest')
             .mockResolvedValueOnce({ requestId: 'id-0' } as any)
             .mockResolvedValueOnce({ requestId: 'id-1' } as any)
             .mockResolvedValueOnce({ requestId: 'id-2' } as any);
@@ -670,7 +668,7 @@ describe('BasicCrawler', () => {
         const request1 = new Request({ id: 'id-1', ...sources[1] });
         const request2 = new Request({ id: 'id-2', ...sources[2] });
 
-        jest.spyOn(requestQueue, 'fetchNextRequest')
+        vitest.spyOn(requestQueue, 'fetchNextRequest')
             .mockResolvedValueOnce(request0)
             .mockResolvedValueOnce(request1)
             .mockResolvedValueOnce(request2)
@@ -678,16 +676,16 @@ describe('BasicCrawler', () => {
             .mockResolvedValueOnce(request1)
             .mockResolvedValueOnce(request1);
 
-        const markReqHandled = jest.spyOn(requestQueue, 'markRequestHandled').mockReturnValue(Promise.resolve() as any);
-        const reclaimReq = jest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
+        const markReqHandled = vitest.spyOn(requestQueue, 'markRequestHandled').mockReturnValue(Promise.resolve() as any);
+        const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
-        jest.spyOn(requestQueue, 'isEmpty')
+        vitest.spyOn(requestQueue, 'isEmpty')
             .mockResolvedValueOnce(false)
             .mockResolvedValueOnce(false)
             .mockResolvedValueOnce(false)
             .mockResolvedValueOnce(true);
 
-        jest.spyOn(requestQueue, 'isFinished')
+        vitest.spyOn(requestQueue, 'isFinished')
             .mockResolvedValueOnce(true);
 
         await basicCrawler.run();
@@ -711,7 +709,7 @@ describe('BasicCrawler', () => {
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
 
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
@@ -755,11 +753,11 @@ describe('BasicCrawler', () => {
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
 
-        jest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
-        const markRequestHandled = jest.spyOn(requestQueue, 'markRequestHandled')
+        vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
+        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled')
             .mockReturnValue(Promise.resolve() as any);
 
-        const isFinishedOrig = jest.spyOn(requestQueue, 'isFinished').mockImplementation();
+        const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
         requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
         requestQueue.isEmpty = () => Promise.resolve(!queue.length);
@@ -777,7 +775,7 @@ describe('BasicCrawler', () => {
         // TODO: see why the request1 was passed as a second parameter to includes
         expect(processed.includes(request0)).toBe(true);
 
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     test('keepAlive', async () => {
@@ -801,11 +799,11 @@ describe('BasicCrawler', () => {
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
 
-        jest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
-        const markRequestHandled = jest.spyOn(requestQueue, 'markRequestHandled')
+        vitest.spyOn(requestQueue, 'handledCount').mockReturnValue(Promise.resolve() as any);
+        const markRequestHandled = vitest.spyOn(requestQueue, 'markRequestHandled')
             .mockReturnValue(Promise.resolve() as any);
 
-        const isFinishedOrig = jest.spyOn(requestQueue, 'isFinished').mockImplementation();
+        const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
         requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
         requestQueue.isEmpty = () => Promise.resolve(!queue.length);
@@ -823,7 +821,7 @@ describe('BasicCrawler', () => {
         // TODO: see why the request1 was passed as a second parameter to includes
         expect(processed.includes(request0)).toBe(true);
 
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     test('should support maxRequestsPerCrawl parameter', async () => {
@@ -886,7 +884,7 @@ describe('BasicCrawler', () => {
         // @ts-expect-error Overriding the method for testing purposes
         requestQueue.markRequestHandled = async () => {};
 
-        const requestQueueStub = jest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
+        const requestQueueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
 
         let count = 0;
         let crawler = new BasicCrawler({
@@ -902,12 +900,12 @@ describe('BasicCrawler', () => {
         await crawler.run();
         expect(requestQueueStub).toBeCalled();
         expect(count).toBe(7);
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
 
         const sources = Array.from(Array(10).keys(), (x) => x + 1).map((i) => ({ url: `http://example.com/${i}` }));
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
         let requestList = await RequestList.open({ sources });
-        const requestListStub = jest.spyOn(requestList, 'handledCount').mockReturnValue(33);
+        const requestListStub = vitest.spyOn(requestList, 'handledCount').mockReturnValue(33);
 
         count = 0;
         crawler = new BasicCrawler({
@@ -923,12 +921,12 @@ describe('BasicCrawler', () => {
         await crawler.run();
         expect(requestListStub).toBeCalled();
         expect(count).toBe(7);
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
 
         requestList = await RequestList.open({ sources: sourcesCopy });
-        const listStub = jest.spyOn(requestList, 'handledCount').mockReturnValue(20);
-        const queueStub = jest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
-        const addRequestStub = jest.spyOn(requestQueue, 'addRequest').mockReturnValue(Promise.resolve() as any);
+        const listStub = vitest.spyOn(requestList, 'handledCount').mockReturnValue(20);
+        const queueStub = vitest.spyOn(requestQueue, 'handledCount').mockResolvedValue(33);
+        const addRequestStub = vitest.spyOn(requestQueue, 'addRequest').mockReturnValue(Promise.resolve() as any);
 
         count = 0;
         crawler = new BasicCrawler({
@@ -949,7 +947,7 @@ describe('BasicCrawler', () => {
         expect(addRequestStub).toBeCalledTimes(7);
         expect(count).toBe(7);
 
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     test('should timeout after handleRequestTimeoutSecs', async () => {
@@ -1007,9 +1005,9 @@ describe('BasicCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        const warningSpy = jest.spyOn(crawler.log, 'warning');
+        const warningSpy = vitest.spyOn(crawler.log, 'warning');
         // @ts-expect-error Overriding protected method
-        const errorSpy = jest.spyOn(crawler.log, 'error');
+        const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
 
@@ -1047,9 +1045,9 @@ describe('BasicCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        const warningSpy = jest.spyOn(crawler.log, 'warning');
+        const warningSpy = vitest.spyOn(crawler.log, 'warning');
         // @ts-expect-error Overriding protected method
-        const errorSpy = jest.spyOn(crawler.log, 'error');
+        const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
 
@@ -1069,7 +1067,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
             expect(args[1]).toBeDefined();
         }
     });
@@ -1088,9 +1086,9 @@ describe('BasicCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        const warningSpy = jest.spyOn(crawler.log, 'warning');
+        const warningSpy = vitest.spyOn(crawler.log, 'warning');
         // @ts-expect-error Overriding protected method
-        const errorSpy = jest.spyOn(crawler.log, 'error');
+        const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
 
@@ -1133,9 +1131,9 @@ describe('BasicCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        const warningSpy = jest.spyOn(crawler.log, 'warning');
+        const warningSpy = vitest.spyOn(crawler.log, 'warning');
         // @ts-expect-error Overriding protected method
-        const errorSpy = jest.spyOn(crawler.log, 'error');
+        const errorSpy = vitest.spyOn(crawler.log, 'error');
 
         await crawler.run();
 
@@ -1145,7 +1143,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(/Reclaiming failed request back to the list or queue/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
             expect(args[1]).toBeDefined();
         }
 
@@ -1155,7 +1153,7 @@ describe('BasicCrawler', () => {
             expect(typeof args[0]).toBe('string');
             expect(/Request failed and reached maximum retries/.test(args[0])).toBe(true);
             expect(/Other non-timeout error/.test(args[0])).toBe(true);
-            expect(/at BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
+            expect(/at _?BasicCrawler\.requestHandler/.test(args[0])).toBe(true);
             expect(args[1]).toBeDefined();
         }
 
@@ -1300,16 +1298,18 @@ describe('BasicCrawler', () => {
 
         let url: string;
 
-        beforeAll((callback) => {
-            httpServer.listen(0, () => {
-                url = `http://127.0.0.1:${(httpServer.address() as AddressInfo).port}/`;
+        beforeAll(async () => {
+            await new Promise<void>((resolve) => {
+                httpServer.listen(0, () => {
+                    url = `http://127.0.0.1:${(httpServer.address() as AddressInfo).port}/`;
 
-                callback();
+                    resolve();
+                });
             });
         });
 
-        afterAll((callback) => {
-            httpServer.close(callback);
+        afterAll(async () => {
+            await new Promise((resolve) => httpServer.close(resolve));
         });
 
         test('works', async () => {

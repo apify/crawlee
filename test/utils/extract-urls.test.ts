@@ -10,18 +10,18 @@ import { gotScraping } from 'got-scraping';
 
 const baseDataPath = path.join(__dirname, '..', 'shared', 'data');
 
-jest.mock('got-scraping', () => {
-    const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
+vitest.mock('got-scraping', async () => {
+    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
     return {
         ...original,
-        gotScraping: jest.fn(),
+        gotScraping: vitest.fn(),
     };
 });
 
-const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
+const gotScrapingSpy = vitest.mocked(gotScraping);
 
 afterAll(() => {
-    jest.unmock('got-scraping');
+    vitest.doUnmock('got-scraping');
 });
 
 describe('downloadListOfUrls()', () => {

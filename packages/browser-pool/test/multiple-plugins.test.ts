@@ -7,7 +7,7 @@ describe('BrowserPool - Using multiple plugins', () => {
     const firefoxPlugin = new PlaywrightPlugin(playwright.firefox);
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vitest.clearAllMocks();
         browserPool = new BrowserPool({
             browserPlugins: [
                 chromePlugin,
@@ -60,8 +60,8 @@ describe('BrowserPool - Using multiple plugins', () => {
     });
 
     test('newPageWithEachPlugin should open in existing browsers', async () => {
-        jest.spyOn(chromePlugin, 'launch');
-        jest.spyOn(firefoxPlugin, 'launch');
+        vitest.spyOn(chromePlugin, 'launch');
+        vitest.spyOn(firefoxPlugin, 'launch');
 
         // launch 2 browsers
         await browserPool.newPage();

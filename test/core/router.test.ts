@@ -23,7 +23,7 @@ describe('Router', () => {
         router.use(({ request }) => void logs.push(`middleware 2: ${request.loadedUrl}`));
         router.use(({ request }) => void logs.push(`middleware 3: ${request.loadedUrl}`));
 
-        const log = { info: jest.fn(), warn: jest.fn(), debug: jest.fn() };
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
         await router({ request: { loadedUrl: 'https://example.com/A', label: 'A' }, log } as any);
         await router({ request: { loadedUrl: 'https://example.com/A', label: 'A' }, log } as any);
         await router({ request: { loadedUrl: 'https://example.com/C', label: 'C' }, log } as any);
@@ -107,7 +107,7 @@ describe('Router', () => {
         router.addDefaultHandler(async (ctx) => {
             logs.push(`default handled with url ${ctx.request.loadedUrl}`);
         });
-        const log = { info: jest.fn(), warn: jest.fn(), debug: jest.fn() };
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
         await router({ request: { loadedUrl: 'https://example.com/A', label: 'A' }, log } as any);
         await router({ request: { loadedUrl: 'https://example.com/B', label: 'B' }, log } as any);
         await router({ request: { loadedUrl: 'https://example.com/C', label: 'C' }, log } as any);
@@ -125,7 +125,7 @@ describe('Router', () => {
         const router = Router.create();
         router.addHandler('A', async (ctx) => {});
         expect(() => router.addHandler('A', async (ctx) => {})).toThrow();
-        const log = { info: jest.fn(), warn: jest.fn(), debug: jest.fn() };
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
         await expect(router({ request: { loadedUrl: 'https://example.com/C', label: 'C' }, log } as any)).rejects.toThrow(MissingRouteError);
         router.addDefaultHandler(async (ctx) => {});
         expect(() => router.addDefaultHandler(async (ctx) => {})).toThrow();

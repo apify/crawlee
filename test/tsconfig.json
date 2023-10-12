@@ -8,6 +8,7 @@
         "sourceMap": true,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
-        "strictNullChecks": false
+        "strictNullChecks": false,
+        "types": ["vitest/globals"]
     }
 }

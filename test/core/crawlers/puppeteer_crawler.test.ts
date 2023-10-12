@@ -221,7 +221,7 @@ describe('PuppeteerCrawler', () => {
     test('timeout via preNavigationHooks will abort the page function as early as possible (gh #1216)', async () => {
         const requestQueue = await RequestQueue.open();
         await requestQueue.addRequest({ url: serverUrl });
-        const requestHandler = jest.fn();
+        const requestHandler = vitest.fn();
 
         const crawler = new PuppeteerCrawler({
             requestQueue,
@@ -236,11 +236,11 @@ describe('PuppeteerCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        const logWarningSpy = jest.spyOn(crawler.log, 'warning');
+        const logWarningSpy = vitest.spyOn(crawler.log, 'warning');
         logWarningSpy.mockImplementation(() => {});
 
         // @ts-expect-error Overriding protected method
-        const logErrorSpy = jest.spyOn(crawler.log, 'error');
+        const logErrorSpy = vitest.spyOn(crawler.log, 'error');
         logErrorSpy.mockImplementation(() => {});
 
         await crawler.run();
@@ -263,7 +263,6 @@ describe('PuppeteerCrawler', () => {
                 3,
             ],
         ]);
-        logWarningSpy.mockRestore();
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
         expect(errors).toEqual([
@@ -272,13 +271,12 @@ describe('PuppeteerCrawler', () => {
                 undefined,
             ],
         ]);
-        logErrorSpy.mockRestore();
     });
 
     test('timeout in preLaunchHooks will abort the page function as early as possible (gh #1216)', async () => {
         const requestQueue = await RequestQueue.open();
         await requestQueue.addRequest({ url: serverUrl });
-        const requestHandler = jest.fn();
+        const requestHandler = vitest.fn();
 
         const crawler = new PuppeteerCrawler({
             requestQueue,
@@ -295,11 +293,11 @@ describe('PuppeteerCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        const logWarningSpy = jest.spyOn(crawler.log, 'warning');
+        const logWarningSpy = vitest.spyOn(crawler.log, 'warning');
         logWarningSpy.mockImplementation(() => {});
 
         // @ts-expect-error Overriding protected method
-        const logErrorSpy = jest.spyOn(crawler.log, 'error');
+        const logErrorSpy = vitest.spyOn(crawler.log, 'error');
         logErrorSpy.mockImplementation(() => {});
 
         await crawler.run();
@@ -322,7 +320,6 @@ describe('PuppeteerCrawler', () => {
                 3,
             ],
         ]);
-        logWarningSpy.mockRestore();
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
         expect(errors).toEqual([
@@ -331,7 +328,6 @@ describe('PuppeteerCrawler', () => {
                 undefined,
             ],
         ]);
-        logErrorSpy.mockRestore();
     });
 
     test('should set cookies assigned to session to page', async () => {

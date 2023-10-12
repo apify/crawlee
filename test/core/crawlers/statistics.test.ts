@@ -12,7 +12,7 @@ describe('Statistics', () => {
     const events = Configuration.getEventManager();
 
     beforeAll(async () => {
-        jest.useFakeTimers();
+        vitest.useFakeTimers();
     });
 
     beforeEach(async () => {
@@ -48,9 +48,9 @@ describe('Statistics', () => {
 
         test('should persist the state to KV and load again', async () => {
             const startedAt = 1000;
-            jest.advanceTimersByTime(startedAt);
+            vitest.advanceTimersByTime(startedAt);
             stats.startJob(0);
-            jest.advanceTimersByTime(100);
+            vitest.advanceTimersByTime(100);
             stats.finishJob(0);
 
             await stats.startCapturing();
@@ -113,10 +113,10 @@ describe('Statistics', () => {
             await stats.startCapturing();
 
             stats.startJob(1);
-            jest.advanceTimersByTime(100);
+            vitest.advanceTimersByTime(100);
             stats.finishJob(1);
 
-            jest.advanceTimersByTime(1000);
+            vitest.advanceTimersByTime(1000);
 
             expect(stats.toJSON()).toEqual({
                 crawlerRuntimeMillis: 2200,
@@ -141,7 +141,7 @@ describe('Statistics', () => {
                 statsPersistedAt: toISOString(startedAt + 1200),
             });
 
-            jest.advanceTimersByTime(10000);
+            vitest.advanceTimersByTime(10000);
 
             expect(stats.calculate()).toEqual({
                 crawlerRuntimeMillis: 12200,
@@ -171,14 +171,14 @@ describe('Statistics', () => {
 
         test('on persistState event', async () => {
             stats.startJob(0);
-            jest.advanceTimersByTime(100);
+            vitest.advanceTimersByTime(100);
             stats.finishJob(0);
 
             await stats.startCapturing(); // keyValueStore is initialized here
 
             const state = stats.toJSON();
             // @ts-expect-error Accessing private prop
-            const setValueSpy = jest.spyOn(stats.keyValueStore, 'setValue');
+            const setValueSpy = vitest.spyOn(stats.keyValueStore, 'setValue');
 
             events.emit(EventType.PERSIST_STATE);
 
@@ -188,15 +188,14 @@ describe('Statistics', () => {
 
             // @ts-expect-error Accessing private prop
             expect(setValueSpy).toBeCalledWith(stats.persistStateKey, { ...state, ...rest });
-            setValueSpy.mockRestore();
         }, 2000);
     });
 
     test('should finish a job', () => {
         stats.startJob(0);
-        jest.advanceTimersByTime(1);
+        vitest.advanceTimersByTime(1);
         stats.finishJob(0);
-        jest.advanceTimersByTime(1);
+        vitest.advanceTimersByTime(1);
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 2,
@@ -211,9 +210,9 @@ describe('Statistics', () => {
 
     test('should fail a job', () => {
         stats.startJob(0);
-        jest.advanceTimersByTime(0);
+        vitest.advanceTimersByTime(0);
         stats.failJob(0);
-        jest.advanceTimersByTime(1);
+        vitest.advanceTimersByTime(1);
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 1,
@@ -252,17 +251,17 @@ describe('Statistics', () => {
 
     test('should return correct stats for multiple parallel jobs', () => {
         stats.startJob(0);
-        jest.advanceTimersByTime(1);
+        vitest.advanceTimersByTime(1);
         stats.startJob(1);
-        jest.advanceTimersByTime(1);
+        vitest.advanceTimersByTime(1);
         stats.startJob(2);
-        jest.advanceTimersByTime(2);
+        vitest.advanceTimersByTime(2);
         stats.finishJob(1); // runtime: 3ms
-        jest.advanceTimersByTime(1); // since startedAt: 5ms
+        vitest.advanceTimersByTime(1); // since startedAt: 5ms
         stats.failJob(0); // runtime: irrelevant
-        jest.advanceTimersByTime(10);
+        vitest.advanceTimersByTime(10);
         stats.finishJob(2); // runtime: 13ms
-        jest.advanceTimersByTime(10); // since startedAt: 25ms
+        vitest.advanceTimersByTime(10); // since startedAt: 25ms
 
         const current = stats.calculate();
         expect(current).toEqual({
@@ -284,18 +283,18 @@ describe('Statistics', () => {
     test('should regularly log stats', async () => {
         const logged: [string, Dictionary?][] = [];
         // @ts-expect-error Accessing private prop
-        const infoSpy = jest.spyOn(stats.log, 'info');
-        infoSpy.mockImplementation((...args) => {
+        const infoSpy = vitest.spyOn(stats.log, 'info');
+        infoSpy.mockImplementation((...args: [message: string, data?: Record<string, any>]) => {
             logged.push(args);
         });
 
         stats.startJob(0);
-        jest.advanceTimersByTime(1);
+        vitest.advanceTimersByTime(1);
         stats.finishJob(0);
         await stats.startCapturing();
-        jest.advanceTimersByTime(50000);
+        vitest.advanceTimersByTime(50000);
         expect(logged).toHaveLength(0);
-        jest.advanceTimersByTime(10001);
+        vitest.advanceTimersByTime(10001);
         expect(logged).toHaveLength(1);
         expect(logged[0][0]).toBe('Statistics');
         expect(logged[0][1]).toEqual({
@@ -309,7 +308,7 @@ describe('Statistics', () => {
             retryHistogram: [1],
         });
         await stats.stopCapturing();
-        jest.advanceTimersByTime(60001);
+        vitest.advanceTimersByTime(60001);
         expect(logged).toHaveLength(1);
         expect(logged[0][0]).toBe('Statistics');
         expect(logged[0][1]).toEqual({
@@ -322,13 +321,12 @@ describe('Statistics', () => {
             requestsTotal: 1,
             retryHistogram: [1],
         });
-        infoSpy.mockRestore();
     });
 
     test('should reset stats', async () => {
         await stats.startCapturing();
         stats.startJob(1);
-        jest.advanceTimersByTime(3);
+        vitest.advanceTimersByTime(3);
         stats.finishJob(1);
         expect(stats.state.requestsFinished).toEqual(1);
         expect(stats.requestRetryHistogram).toEqual([1]);

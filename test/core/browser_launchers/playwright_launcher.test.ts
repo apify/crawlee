@@ -151,7 +151,7 @@ describe('launchPlaywright()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = jest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
+        const spy = vitest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
         let browser;
         const opts = {
             useChrome: true,
@@ -172,7 +172,6 @@ describe('launchPlaywright()', () => {
             expect(version).not.toMatch('Chromium');
             expect(spy).toBeCalledTimes(1);
         } finally {
-            spy.mockRestore();
             if (browser) await browser.close();
         }
     }, 60e3);

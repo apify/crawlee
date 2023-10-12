@@ -14,31 +14,21 @@ import { gotScraping } from 'got-scraping';
 
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
 
-jest.mock('got-scraping', () => {
-    const original: typeof import('got-scraping') = jest.requireActual('got-scraping');
+vitest.mock('got-scraping', async () => {
+    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
     return {
         ...original,
-        gotScraping: jest.fn(original.gotScraping),
+        gotScraping: vitest.fn(original.gotScraping),
     };
 });
 
-const gotScrapingSpy = gotScraping as jest.MockedFunction<typeof gotScraping>;
-const originalGotScraping = gotScrapingSpy.getMockImplementation()!;
-
-afterEach(() => {
-    gotScrapingSpy.mockReset();
-    gotScrapingSpy.mockImplementation(originalGotScraping);
-});
-
-afterAll(() => {
-    jest.unmock('got-scraping');
-});
+const gotScrapingSpy = vitest.mocked(gotScraping);
 
 describe('RequestQueue remote', () => {
     const storageClient = Configuration.getStorageClient();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vitest.clearAllMocks();
     });
 
     test('should work', async () => {
@@ -48,7 +38,7 @@ describe('RequestQueue remote', () => {
             wasAlreadyHandled: false,
             wasAlreadyPresent: false,
         };
-        const mockAddRequest = jest
+        const mockAddRequest = vitest
             .spyOn(queue.client, 'addRequest')
             .mockResolvedValueOnce(firstResolveValue);
 
@@ -89,7 +79,7 @@ describe('RequestQueue remote', () => {
         expect(queue.inProgressCount()).toBe(0);
 
         // Forefronted request was added to the queue.
-        const mockGetRequest = jest.spyOn(queue.client, 'getRequest');
+        const mockGetRequest = vitest.spyOn(queue.client, 'getRequest');
         mockGetRequest.mockResolvedValueOnce({ ...requestB, id: 'b' });
 
         const requestBFromQueue = await queue.fetchNextRequest();
@@ -119,7 +109,7 @@ describe('RequestQueue remote', () => {
         expect(requestXFromQueue).toBe(null);
 
         // Reclaim it.
-        const mockUpdateRequest = jest.spyOn(queue.client, 'updateRequest');
+        const mockUpdateRequest = vitest.spyOn(queue.client, 'updateRequest');
         mockUpdateRequest.mockResolvedValueOnce({
             requestId: 'b',
             wasAlreadyHandled: false,
@@ -173,7 +163,7 @@ describe('RequestQueue remote', () => {
         queue['queueHeadIds'].clear();
 
         // Query queue head.
-        const mockListHead = jest.spyOn(queue.client, 'listHead');
+        const mockListHead = vitest.spyOn(queue.client, 'listHead');
         mockListHead.mockResolvedValueOnce({
             items: [
                 { id: 'a', uniqueKey: 'aaa' },
@@ -193,7 +183,7 @@ describe('RequestQueue remote', () => {
         expect(queue.inProgressCount()).toBe(1);
 
         // Drop queue.
-        const mockDelete = jest.spyOn(queue.client, 'delete');
+        const mockDelete = vitest.spyOn(queue.client, 'delete');
         mockDelete.mockResolvedValueOnce(undefined);
 
         await queue.drop();
@@ -203,7 +193,7 @@ describe('RequestQueue remote', () => {
 
     test('addRequests', async () => {
         const queue = new RequestQueue({ id: 'batch-requests', client: storageClient });
-        const mockAddRequests = jest.spyOn(queue.client, 'batchAddRequests');
+        const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
 
         const requestOptions = { url: 'http://example.com/a' };
         const requestA = new Request(requestOptions);
@@ -292,7 +282,7 @@ describe('RequestQueue remote', () => {
         const requestB = new Request({ url: 'http://example.com/a' }); // Has same uniqueKey as A
 
         // Add request A
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'a',
             wasAlreadyHandled: false,
@@ -322,7 +312,7 @@ describe('RequestQueue remote', () => {
         const requestY = new Request({ url: 'http://example.com/x' }); // Has same uniqueKey as X
 
         // Add request X.
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'x',
             wasAlreadyHandled: true,
@@ -349,7 +339,7 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue({ id: 'some-id', client: storageClient });
 
         // Query queue head with request A
-        const listHeadMock = jest.spyOn(queue.client, 'listHead');
+        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
         listHeadMock.mockResolvedValueOnce({
             items: [
                 { id: 'a', uniqueKey: 'aaa' },
@@ -362,7 +352,7 @@ describe('RequestQueue remote', () => {
 
         // Add request A and addRequest is not called because was already cached.
         const requestA = new Request({ url: 'http://example.com/a', uniqueKey: 'aaa' });
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
 
         const queueOperationInfo = await queue.addRequest(requestA);
         expect(addRequestMock).toBeCalledTimes(0);
@@ -376,12 +366,12 @@ describe('RequestQueue remote', () => {
 
     test('should handle situation when newly created request is not available yet', async () => {
         const queue = new RequestQueue({ id: 'some-id', name: 'some-queue', client: storageClient });
-        const listHeadMock = jest.spyOn(queue.client, 'listHead');
+        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
 
         const requestA = new Request({ url: 'http://example.com/a' });
 
         // Add request A
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'a',
             wasAlreadyHandled: false,
@@ -395,7 +385,7 @@ describe('RequestQueue remote', () => {
         expect(queue['queueHeadIds'].length()).toBe(1);
 
         // Try to get requestA which is not available yet.
-        const getRequestMock = jest.spyOn(queue.client, 'getRequest');
+        const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
         getRequestMock.mockResolvedValueOnce(undefined);
 
         const fetchedRequest = await queue.fetchNextRequest();
@@ -432,16 +422,16 @@ describe('RequestQueue remote', () => {
 
         const requestA = new Request({ url: 'http://example.com/a' });
 
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'a',
             wasAlreadyHandled: true,
             wasAlreadyPresent: true,
         });
 
-        const getRequestMock = jest.spyOn(queue.client, 'getRequest');
+        const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
 
-        const listHeadMock = jest.spyOn(queue.client, 'listHead');
+        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
         listHeadMock.mockResolvedValueOnce({
             items: [],
         } as never);
@@ -459,7 +449,7 @@ describe('RequestQueue remote', () => {
 
     test('should accept plain object in addRequest()', async () => {
         const queue = new RequestQueue({ id: 'some-id', client: storageClient });
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({
             requestId: 'xxx',
             wasAlreadyHandled: false,
@@ -474,7 +464,7 @@ describe('RequestQueue remote', () => {
 
     test('should return correct handledCount', async () => {
         const queue = new RequestQueue({ id: 'id', client: storageClient });
-        const getMock = jest.spyOn(queue.client, 'get');
+        const getMock = vitest.spyOn(queue.client, 'get');
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
         } as never);
@@ -488,7 +478,7 @@ describe('RequestQueue remote', () => {
         const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
 
         // Return head with modifiedAt = now so it will retry the call.
-        const listHeadMock = jest.spyOn(queue.client, 'listHead');
+        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
         listHeadMock.mockResolvedValueOnce({
             limit: 5,
             queueModifiedAt: new Date(Date.now() - API_PROCESSED_REQUESTS_DELAY_MILLIS * 0.75),
@@ -521,7 +511,7 @@ describe('RequestQueue remote', () => {
         const requestAWithId = { ...requestA, id: 'a' } as Request;
         const requestB = new Request({ url: 'http://example.com/b' });
         const requestBWithId = { ...requestB, id: 'b' } as Request;
-        const addRequestMock = jest.spyOn(queue.client, 'addRequest');
+        const addRequestMock = vitest.spyOn(queue.client, 'addRequest');
         addRequestMock.mockResolvedValueOnce({ requestId: 'a', wasAlreadyHandled: false, wasAlreadyPresent: false });
         addRequestMock.mockResolvedValueOnce({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: false });
 
@@ -537,14 +527,14 @@ describe('RequestQueue remote', () => {
         expect(addRequestMock).toHaveBeenNthCalledWith(2, requestB, { forefront: true });
 
         // It won't query the head as there is something in progress or pending.
-        const listHeadMock = jest.spyOn(queue.client, 'listHead');
+        const listHeadMock = vitest.spyOn(queue.client, 'listHead');
 
         const isFinished = await queue.isFinished();
         expect(isFinished).toBe(false);
         expect(listHeadMock).not.toBeCalled();
 
         // Fetch them from queue.
-        const getRequestMock = jest.spyOn(queue.client, 'getRequest');
+        const getRequestMock = vitest.spyOn(queue.client, 'getRequest');
         getRequestMock.mockResolvedValueOnce({ ...requestB, id: 'b' });
         getRequestMock.mockResolvedValueOnce({ ...requestA, id: 'a' });
 
@@ -567,7 +557,7 @@ describe('RequestQueue remote', () => {
         expect(listHeadMock).not.toBeCalled();
 
         // Reclaim one and mark another one handled.
-        const updateRequestMock = jest.spyOn(queue.client, 'updateRequest');
+        const updateRequestMock = vitest.spyOn(queue.client, 'updateRequest');
         updateRequestMock.mockResolvedValueOnce({ requestId: 'b', wasAlreadyHandled: false, wasAlreadyPresent: true });
 
         await queue.markRequestHandled(requestBWithId);
@@ -657,7 +647,7 @@ describe('RequestQueue remote', () => {
             hadMultipleClients: false,
         };
 
-        const getMock = jest
+        const getMock = vitest
             .spyOn(queue.client, 'get')
             .mockResolvedValueOnce(expected);
 
@@ -669,7 +659,7 @@ describe('RequestQueue remote', () => {
 
     test('drop() works', async () => {
         const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
-        const deleteMock = jest
+        const deleteMock = vitest
             .spyOn(queue.client, 'delete')
             .mockResolvedValueOnce(undefined);
 
@@ -719,7 +709,7 @@ describe('RequestQueue with requestsFromUrl', () => {
 
     beforeEach(async () => {
         await emulator.init();
-        jest.restoreAllMocks();
+        vitest.restoreAllMocks();
     });
 
     afterAll(async () => {
@@ -727,7 +717,7 @@ describe('RequestQueue with requestsFromUrl', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = jest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
         const list1 = [
             'https://example.com',
             'https://google.com',
@@ -755,7 +745,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(spy).toBeCalledTimes(2);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -776,7 +765,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         await queue.drop();
 
         expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
-        gotScrapingSpy.mockRestore();
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
@@ -805,12 +793,11 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
 
         expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
-        gotScrapingSpy.mockRestore();
         await queue.drop();
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = jest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
         spy.mockResolvedValueOnce([]);
 
         const queue = await RequestQueue.open();
@@ -823,7 +810,6 @@ describe('RequestQueue with requestsFromUrl', () => {
 
         expect(spy).toBeCalledTimes(1);
         expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        spy.mockRestore();
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
@@ -832,7 +818,7 @@ describe('RequestQueue with requestsFromUrl', () => {
             'http://another.proxy.url',
         ];
 
-        const spy = jest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
         spy.mockResolvedValue([]);
 
         const proxyConfiguration = new ProxyConfiguration({
@@ -847,8 +833,6 @@ describe('RequestQueue with requestsFromUrl', () => {
         ]);
 
         expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
-
-        spy.mockRestore();
     });
 });
 
@@ -890,23 +874,23 @@ describe('RequestQueue v2', () => {
     });
 
     test('lock timers work as expected (timeout unlocks)', async () => {
-        jest.useFakeTimers();
+        vitest.useFakeTimers();
         const queue = await getEmptyQueue('lock-timers');
         await queue.addRequests(getUniqueRequests(totalRequestsPerTest));
 
         const { items: firstFetch } = await queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 });
 
-        jest.advanceTimersByTime(65000);
+        vitest.advanceTimersByTime(65000);
 
         const { items: secondFetch } = await queue.client.listAndLockHead({ limit: totalRequestsPerTest / 2, lockSecs: 60 });
 
         const histogram = calculateHistogram([...firstFetch, ...secondFetch]);
         expect(histogram).toEqual(Array(totalRequestsPerTest / 2).fill(2));
-        jest.useRealTimers();
+        vitest.useRealTimers();
     });
 
     test('prolongRequestLock works as expected ', async () => {
-        jest.useFakeTimers();
+        vitest.useFakeTimers();
         const queue = await getEmptyQueue('prolong-request-lock');
         await queue.addRequests(getUniqueRequests(1));
 
@@ -914,15 +898,15 @@ describe('RequestQueue v2', () => {
         await queue.client.prolongRequestLock(firstFetch[0].id, { lockSecs: 60 });
         expect(firstFetch).toHaveLength(1);
 
-        jest.advanceTimersByTime(65000);
+        vitest.advanceTimersByTime(65000);
         const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
         expect(secondFetch).toHaveLength(0);
 
-        jest.advanceTimersByTime(65000);
+        vitest.advanceTimersByTime(65000);
         const { items: thirdFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
 
         expect(thirdFetch).toHaveLength(1);
-        jest.useRealTimers();
+        vitest.useRealTimers();
     });
 
     test('deleteRequestLock works as expected', async () => {

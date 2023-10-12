@@ -63,7 +63,7 @@ describe.each([
     let browserPool: BrowserPool<{ browserPlugins: [typeof plugin]; closeInactiveBrowserAfterSecs: 2 }>;
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vitest.clearAllMocks();
         browserPool = new BrowserPool({
             browserPlugins: [plugin],
             closeInactiveBrowserAfterSecs: 2,
@@ -110,7 +110,7 @@ describe.each([
         test('should destroy pool', async () => {
             const page = await browserPool.newPage();
             const browserController = browserPool.getBrowserControllerByPage(page)!;
-            jest.spyOn(browserController, 'close');
+            vitest.spyOn(browserController, 'close');
 
             await browserPool.destroy();
 
@@ -135,7 +135,7 @@ describe.each([
             const timeout = browserPool.operationTimeoutMillis;
             browserPool.operationTimeoutMillis = 500;
             // @ts-expect-error mocking private method
-            const spy = jest.spyOn(BrowserPool.prototype, '_executeHooks');
+            const spy = vitest.spyOn(BrowserPool.prototype, '_executeHooks');
 
             await browserPool.newPage();
             expect(spy).toBeCalledTimes(4);
@@ -153,7 +153,6 @@ describe.each([
             // 4 calls instead of just one.
             expect(spy).toBeCalledTimes(1);
 
-            spy.mockRestore();
             browserPool.operationTimeoutMillis = timeout;
             browserPool.retireAllBrowsers();
         });
@@ -172,7 +171,7 @@ describe.each([
         });
 
         test('should open new page in new browser', async () => {
-            jest.spyOn(plugin, 'launch');
+            vitest.spyOn(plugin, 'launch');
 
             await browserPool.newPage();
             await browserPool.newPageInNewBrowser();
@@ -184,7 +183,7 @@ describe.each([
 
         test('should correctly override page close', async () => {
             // @ts-expect-error Private function
-            jest.spyOn(browserPool!, '_overridePageClose');
+            vitest.spyOn(browserPool!, '_overridePageClose');
 
             const page = await browserPool.newPage();
 
@@ -204,7 +203,7 @@ describe.each([
         test('should retire browser after page count', async () => {
             browserPool.retireBrowserAfterPageCount = 2;
 
-            jest.spyOn(browserPool, 'retireBrowserController');
+            vitest.spyOn(browserPool, 'retireBrowserController');
             expect(browserPool.activeBrowserControllers.size).toBe(0);
 
             await browserPool.newPage();
@@ -220,7 +219,7 @@ describe.each([
         test('should allow max pages per browser', async () => {
             browserPool.maxOpenPagesPerBrowser = 1;
             // @ts-expect-error Private function
-            jest.spyOn(browserPool!, '_launchBrowser');
+            vitest.spyOn(browserPool!, '_launchBrowser');
 
             await browserPool.newPage();
             expect(browserPool.activeBrowserControllers.size).toBe(1);
@@ -235,7 +234,7 @@ describe.each([
         test('should allow max pages per browser - no race condition', async () => {
             browserPool.maxOpenPagesPerBrowser = 1;
             // @ts-expect-error Private function
-            jest.spyOn(browserPool, '_launchBrowser');
+            vitest.spyOn(browserPool, '_launchBrowser');
 
             const usePlugin = {
                 browserPlugin: plugin,
@@ -262,12 +261,12 @@ describe.each([
             );
 
             // @ts-expect-error Private function
-            jest.spyOn(browserPool!, '_closeRetiredBrowserWithNoPages');
+            vitest.spyOn(browserPool!, '_closeRetiredBrowserWithNoPages');
             expect(browserPool.retiredBrowserControllers.size).toBe(0);
 
             const page = await browserPool.newPage();
             const controller = browserPool.getBrowserControllerByPage(page)!;
-            jest.spyOn(controller, 'close');
+            vitest.spyOn(controller, 'close');
 
             expect(browserPool.retiredBrowserControllers.size).toBe(1);
             await page.close();
@@ -305,7 +304,7 @@ describe.each([
                     browserPool.preLaunchHooks.push(myAsyncHook);
 
                     // @ts-expect-error Private function
-                    jest.spyOn(browserPool!, '_executeHooks');
+                    vitest.spyOn(browserPool!, '_executeHooks');
 
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
@@ -342,7 +341,7 @@ describe.each([
                     browserPool.postLaunchHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
-                    jest.spyOn(browserPool, '_executeHooks');
+                    vitest.spyOn(browserPool, '_executeHooks');
 
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
@@ -397,7 +396,7 @@ describe.each([
                     browserPool.prePageCreateHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
-                    jest.spyOn(browserPool, '_executeHooks');
+                    vitest.spyOn(browserPool, '_executeHooks');
 
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
@@ -419,7 +418,7 @@ describe.each([
                     browserPool.postPageCreateHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
-                    jest.spyOn(browserPool, '_executeHooks');
+                    vitest.spyOn(browserPool, '_executeHooks');
 
                     const page = await browserPool.newPage();
                     const browserController = browserPool.getBrowserControllerByPage(page);
@@ -434,7 +433,7 @@ describe.each([
                     browserPool.prePageCloseHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
-                    jest.spyOn(browserPool, '_executeHooks');
+                    vitest.spyOn(browserPool, '_executeHooks');
 
                     const page = await browserPool.newPage();
                     await page.close();
@@ -450,7 +449,7 @@ describe.each([
                     browserPool.postPageCloseHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
-                    jest.spyOn(browserPool, '_executeHooks');
+                    vitest.spyOn(browserPool, '_executeHooks');
 
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page);
@@ -598,7 +597,7 @@ describe.each([
                                 },
                             ],
                         });
-                        const mock = jest.fn();
+                        const mock = vitest.fn();
                         browserPoolCache.fingerprintInjector!.attachFingerprintToPlaywright = mock;
                         const page: Page = await browserPoolCache.newPageInNewBrowser();
                         expect(mock.mock.calls[0][1]).toBeDefined();
@@ -629,7 +628,7 @@ describe.each([
                         useFingerprints: true,
                     });
                     const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
-                    const mock = jest.fn((options) => {
+                    const mock = vitest.fn((options) => {
                         return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
                     });
                     browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
@@ -666,7 +665,7 @@ describe.each([
                         },
                     });
                     const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
-                    const mock = jest.fn((options) => {
+                    const mock = vitest.fn((options) => {
                         return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
                     });
                     browserPoolConfig.fingerprintGenerator.getFingerprint = mock;

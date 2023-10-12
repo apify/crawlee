@@ -1,6 +1,5 @@
-import { useState, KeyValueStore } from '@crawlee/core';
+import { useState, KeyValueStore, Configuration } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/core';
-import { Configuration } from 'apify';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 describe('useState', () => {

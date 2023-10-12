@@ -17,7 +17,7 @@ describe('dataset', () => {
     const storageClient = Configuration.getStorageClient();
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vitest.clearAllMocks();
     });
 
     describe('remote', () => {
@@ -29,9 +29,10 @@ describe('dataset', () => {
                 client: storageClient,
             });
 
-            const mockPushItems = jest
-                .spyOn(dataset.client, 'pushItems')
-                .mockResolvedValueOnce(null);
+            const pushItemSpy = vitest
+                .spyOn(dataset.client, 'pushItems');
+
+            const mockPushItems = pushItemSpy.mockResolvedValueOnce(null);
 
             await dataset.pushData({ foo: 'bar' });
 
@@ -40,9 +41,7 @@ describe('dataset', () => {
                 JSON.stringify({ foo: 'bar' }),
             );
 
-            const mockPushItems2 = jest
-                .spyOn(dataset.client, 'pushItems')
-                .mockResolvedValueOnce(null);
+            const mockPushItems2 = pushItemSpy.mockResolvedValueOnce(null);
 
             await dataset.pushData([
                 { foo: 'hotel;' },
@@ -54,7 +53,7 @@ describe('dataset', () => {
                 JSON.stringify([{ foo: 'hotel;' }, { foo: 'restaurant' }]),
             );
 
-            const mockDelete = jest
+            const mockDelete = vitest
                 .spyOn(dataset.client, 'delete')
                 .mockResolvedValueOnce(undefined);
 
@@ -72,7 +71,7 @@ describe('dataset', () => {
                 client: storageClient,
             });
 
-            const mockPushItems = jest.spyOn(dataset.client, 'pushItems');
+            const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
             mockPushItems.mockResolvedValueOnce(null);
             mockPushItems.mockResolvedValueOnce(null);
 
@@ -99,7 +98,7 @@ describe('dataset', () => {
                 client: storageClient,
             });
 
-            const mockPushItems = jest.spyOn(dataset.client, 'pushItems');
+            const mockPushItems = vitest.spyOn(dataset.client, 'pushItems');
             mockPushItems.mockResolvedValueOnce(null);
             mockPushItems.mockResolvedValueOnce(null);
 
@@ -157,7 +156,7 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockListItems = jest.spyOn(dataset.client, 'listItems');
+            const mockListItems = vitest.spyOn(dataset.client, 'listItems');
             mockListItems.mockResolvedValueOnce(expected);
 
             const result = await dataset.getData({ limit: 2, offset: 3 });
@@ -169,7 +168,7 @@ describe('dataset', () => {
 
             expect(result).toEqual(expected);
             let e;
-            const spy = jest.spyOn(dataset.client, 'listItems')
+            const spy = vitest.spyOn(dataset.client, 'listItems')
                 .mockImplementation(() => { throw new Error('Cannot create a string longer than 0x3fffffe7 characters'); });
             try {
                 await dataset.getData();
@@ -177,7 +176,6 @@ describe('dataset', () => {
                 e = err;
             }
             expect((e as Error).message).toEqual('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
-            spy.mockRestore();
         });
 
         test('getInfo() should work', async () => {
@@ -192,7 +190,7 @@ describe('dataset', () => {
                 itemCount: 14,
             };
 
-            const mockGetDataset = jest.spyOn(dataset.client, 'get');
+            const mockGetDataset = vitest.spyOn(dataset.client, 'get');
             mockGetDataset.mockResolvedValueOnce(expected);
 
             const result = await dataset.getInfo();
@@ -230,7 +228,7 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockListItems = jest.spyOn(dataset.client, 'listItems');
+            const mockListItems = vitest.spyOn(dataset.client, 'listItems');
             mockListItems.mockResolvedValueOnce(firstResolve);
             mockListItems.mockResolvedValueOnce(secondResolve);
 
@@ -361,7 +359,7 @@ describe('dataset', () => {
                 name: 'some-name',
                 client: storageClient,
             });
-            const mockListItems = jest.spyOn(dataset.client, 'listItems');
+            const mockListItems = vitest.spyOn(dataset.client, 'listItems');
             mockListItems.mockResolvedValueOnce({
                 items: [
                     { foo: 4 },

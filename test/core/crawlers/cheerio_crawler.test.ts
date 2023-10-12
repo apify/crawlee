@@ -36,7 +36,6 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-    jest.unmock('got-scraping');
     server.close();
 });
 
@@ -680,8 +679,8 @@ describe('CheerioCrawler', () => {
 
     describe('proxy', () => {
         beforeEach(async () => {
-            // Do not use clearAllMocks: https://github.com/facebook/jest/issues/7136
-            jest.restoreAllMocks();
+            // Do not use clearAllMocks: https://github.com/facebook/vitest/issues/7136
+            vitest.restoreAllMocks();
         });
 
         test('should work with Apify Proxy configuration', async () => {
@@ -746,7 +745,7 @@ describe('CheerioCrawler', () => {
         test('proxy rotation on error works as expected', async () => {
             const goodProxyUrl = 'http://good.proxy';
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl] });
-            const check = jest.fn();
+            const check = vitest.fn();
 
             const crawler = new class extends CheerioCrawler {
                 protected override async _requestFunction(...args: any[]): Promise<any> {
@@ -777,7 +776,7 @@ describe('CheerioCrawler', () => {
              * The first increment is the base case when the proxy is retrieved for the first time.
              */
             let numberOfRotations = -1;
-            const failedRequestHandler = jest.fn();
+            const failedRequestHandler = vitest.fn();
             const crawler = new CheerioCrawler({
                 proxyConfiguration,
                 maxSessionRotations: 5,
@@ -785,7 +784,7 @@ describe('CheerioCrawler', () => {
                 failedRequestHandler,
             });
 
-            jest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
+            vitest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
                 if (proxyUrl.includes('localhost')) {
                     numberOfRotations++;
                     throw new Error('Proxy responded with 400 - Bad request');
@@ -810,7 +809,7 @@ describe('CheerioCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            jest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
+            vitest.spyOn(crawler, '_requestAsBrowser' as any).mockImplementation(async ({ proxyUrl }: any) => {
                 if (proxyUrl.includes('localhost')) {
                     throw new Error(proxyError);
                 }
@@ -818,7 +817,7 @@ describe('CheerioCrawler', () => {
                 return null;
             });
 
-            const spy = jest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
+            const spy = vitest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});
 
             await crawler.run([serverAddress]);
 
@@ -929,14 +928,14 @@ describe('CheerioCrawler', () => {
                 // @ts-expect-error private symbol
                 expect(crawler.sessionPool.sessions.length).toBe(4);
                 // @ts-expect-error private symbol
-                // eslint-disable-next-line no-loop-func
+
                 crawler.sessionPool.sessions.forEach((session) => {
                     // @ts-expect-error Accessing private prop
                     expect(session.errorScore).toBeGreaterThanOrEqual(session.maxErrorScore);
                 });
 
                 expect(failed.length).toBe(4);
-                // eslint-disable-next-line no-loop-func
+
                 failed.forEach((request) => {
                     expect(request.errorMessages[0].includes(`Request blocked - received ${code} status code`)).toBeTruthy();
                 });
@@ -1011,7 +1010,7 @@ describe('CheerioCrawler', () => {
                 }],
             });
 
-            const sessSpy = jest.spyOn(Session.prototype, 'getCookieString');
+            const sessSpy = vitest.spyOn(Session.prototype, 'getCookieString');
             sessSpy.mockReturnValueOnce('foo=bar1; other=cookie1; coo=kie');
             await crawler.run();
             expect(responses).toHaveLength(1);
@@ -1086,7 +1085,7 @@ describe('CheerioCrawler', () => {
         });
 
         test('mergeCookies()', async () => {
-            const deprecatedSpy = jest.spyOn(Log.prototype, 'deprecated');
+            const deprecatedSpy = vitest.spyOn(Log.prototype, 'deprecated');
             const cookie1 = mergeCookies('https://example.com', [
                 'foo=bar1; other=cookie1 ; coo=kie',
                 'foo=bar2; baz=123',
@@ -1125,7 +1124,7 @@ describe('CheerioCrawler', () => {
             let usedSession: Session;
 
             const proxyConfiguration = new ProxyConfiguration({ proxyUrls: ['http://localhost:8080'] });
-            const newUrlSpy = jest.spyOn(proxyConfiguration, 'newUrl');
+            const newUrlSpy = vitest.spyOn(proxyConfiguration, 'newUrl');
             const cheerioCrawler = new CheerioCrawler({
                 requestList: requestListNew,
                 maxRequestRetries: 0,
