@@ -246,6 +246,20 @@ beforeAll(async () => {
 > Certain projects, like `puppeteer` declare `const enum`s in their typings. These are enums that do not actually exist at runtime, but enums that `tsc` (which is what we're currently using to compile Crawlee) can inline the values of
 > directly into the compiled code. You should avoid importing `const enums` as `vitest` will not inline them like `tsc` does and will throw an error, unless the enum is also present at runtime (check by importing the module and seeing if it's exported anywhere).
 
+## Testing for class names in stack traces
+
+Some tests may want to check for error stack traces and the presence of class names (a prime example is our tests for logging the stack traces for certain logger levels). In `jest`, you were able to do this:
+
+```ts
+expect(/at BasicCrawler\.requestHandler/.test(stackTrace)).toBe(true);
+```
+
+In `vitest`, at the time of writing this (2023/10/12), class names get an `_` prepended to them. In order to solve this, just add `_?` to your regular expression test (this will match both with and without the `_`).
+
+```ts
+expect(/at _?BasicCrawler\.requestHandler/.test(stackTrace)).toBe(true);
+```
+
 ## Code of Conduct
 
 ### Our Pledge
