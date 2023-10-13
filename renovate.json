@@ -35,6 +35,7 @@
         "every weekday"
     ],
     "ignoreDeps": [
-        "crawlee"
+        "crawlee",
+        "docusaurus-plugin-typedoc-api"
     ]
 }
