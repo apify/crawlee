@@ -35,6 +35,10 @@ async function getHash(source) {
 }
 
 async function encodeAndSign(source) {
+    if (!process.env.APIFY_SIGNING_TOKEN) {
+        return 'invalid-token';
+    }
+
     if (working) {
         return new Promise((resolve, reject) => {
             queue.push(() => {
