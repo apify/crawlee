@@ -307,8 +307,24 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                     break;
                 }
                 default: {
+                    // Skip non-JSON and files that start with a dot
+                    if (entry.name.startsWith('.') || !entry.name.endsWith('.json')) {
+                        continue;
+                    }
+
                     const entryName = entry.name.split('.')[0];
-                    entries.add(entryName);
+
+                    try {
+                        // Try parsing the file to ensure it's even valid to begin with
+                        const fileContent = await readFile(resolve(requestQueueDir, entry.name), 'utf8');
+                        JSON.parse(fileContent);
+
+                        entries.add(entryName);
+                    } catch (err) {
+                        memoryStorageLog.warning(
+                            `Request queue entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
+                        );
+                    }
                 }
             }
         }
