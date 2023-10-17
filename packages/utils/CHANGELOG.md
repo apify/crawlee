@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.5.8](https://github.com/apify/crawlee/compare/v3.5.7...v3.5.8) (2023-10-17)
+
+
+### Bug Fixes
+
+* refactor `extractUrls` to split the text line by line first ([#2122](https://github.com/apify/crawlee/issues/2122)) ([7265cd7](https://github.com/apify/crawlee/commit/7265cd7148bb4889d60434d671f153387fb5a4dd))
+
+
+
+
+
 ## [3.5.7](https://github.com/apify/crawlee/compare/v3.5.6...v3.5.7) (2023-10-05)
 
 **Note:** Version bump only for package @crawlee/utils
