@@ -2790,12 +2790,12 @@ __metadata:
   linkType: hard
 
 "@jridgewell/trace-mapping@npm:^0.3.17, @jridgewell/trace-mapping@npm:^0.3.9":
-  version: 0.3.19
-  resolution: "@jridgewell/trace-mapping@npm:0.3.19"
+  version: 0.3.20
+  resolution: "@jridgewell/trace-mapping@npm:0.3.20"
   dependencies:
     "@jridgewell/resolve-uri": ^3.1.0
     "@jridgewell/sourcemap-codec": ^1.4.14
-  checksum: 956a6f0f6fec060fb48c6bf1f5ec2064e13cd38c8be3873877d4b92b4a27ba58289a34071752671262a3e3c202abcc3fa2aac64d8447b4b0fa1ba3c9047f1c20
+  checksum: cd1a7353135f385909468ff0cf20bdd37e59f2ee49a13a966dedf921943e222082c583ade2b579ff6cd0d8faafcb5461f253e1bf2a9f48fec439211fdbe788f5
   languageName: node
   linkType: hard
 
@@ -3143,40 +3143,40 @@ __metadata:
   linkType: hard
 
 "@types/body-parser@npm:*":
-  version: 1.19.3
-  resolution: "@types/body-parser@npm:1.19.3"
+  version: 1.19.4
+  resolution: "@types/body-parser@npm:1.19.4"
   dependencies:
     "@types/connect": "*"
     "@types/node": "*"
-  checksum: 932fa71437c275023799123680ef26ffd90efd37f51a1abe405e6ae6e5b4ad9511b7a3a8f5a12877ed1444a02b6286c0a137a98e914b3c61932390c83643cc2c
+  checksum: 10accc30773319bd49af7d12d2cd5faf9a0293ea4764345297f26ba6ef31d5caa7609da7619584d6c61279e09b89d3ab13d28c5cb644807c5d9c722ae1454778
   languageName: node
   linkType: hard
 
 "@types/bonjour@npm:^3.5.9":
-  version: 3.5.11
-  resolution: "@types/bonjour@npm:3.5.11"
+  version: 3.5.12
+  resolution: "@types/bonjour@npm:3.5.12"
   dependencies:
     "@types/node": "*"
-  checksum: 12fb86a1bb4a610f16ef6d7d68f85e7c31070029f02b6622073794a271e75abcf58230ed205a2ae23c53be2c08b9e507d3b91fa0dc9dfe76c4b1f5e19e9370cb
+  checksum: d8ef676a2386f09ced670e8a04f9ea77d29d05c406ac15db97820d6feb49b2bb65d9e951565b4f7f744e0585650cae59feea284c5a330214025f708ed43bb7f5
   languageName: node
   linkType: hard
 
 "@types/connect-history-api-fallback@npm:^1.3.5":
-  version: 1.5.1
-  resolution: "@types/connect-history-api-fallback@npm:1.5.1"
+  version: 1.5.2
+  resolution: "@types/connect-history-api-fallback@npm:1.5.2"
   dependencies:
     "@types/express-serve-static-core": "*"
     "@types/node": "*"
-  checksum: bc5e46663300eba56eaf8ef242156256e2bdadc52bb7d6543f4b37f2945b6a810901c245711f8321fce7d94c7b588b308a86519f3e1f87a80eb87841d808dbdc
+  checksum: 588934d2b4877df8a8460315fd6d911749334c59cf2eba6a0aa167c4fb9b8c6789c9d9a0f5118464953634a3efad89eeb19de7d65d619d917f3a1f8d98276672
   languageName: node
   linkType: hard
 
 "@types/connect@npm:*":
-  version: 3.4.36
-  resolution: "@types/connect@npm:3.4.36"
+  version: 3.4.37
+  resolution: "@types/connect@npm:3.4.37"
   dependencies:
     "@types/node": "*"
-  checksum: 4dee3d966fb527b98f0cbbdcf6977c9193fc3204ed539b7522fe5e64dfa45f9017bdda4ffb1f760062262fce7701a0ee1c2f6ce2e50af36c74d4e37052303172
+  checksum: 79ef1f79a28235ea7cbefa153914318d7b46d60041a932681b613abd706591108f4f17ddd2072ee8ec23ba9a3fb068a6c3bbdca66b95de1a7e6039bd940ae988
   languageName: node
   linkType: hard
 
@@ -6103,9 +6103,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.556
-  resolution: "electron-to-chromium@npm:1.4.556"
-  checksum: 8c9aa48776d80c23d8709dcd4342f1b18ca5b63bdb233fb6913f0db7b382d69afa84d5f08ead84bde6378a6a7ab3d1127f7cb6f4d0642fa625e96de6559dc1d7
+  version: 1.4.557
+  resolution: "electron-to-chromium@npm:1.4.557"
+  checksum: 16f24e8d648489f0bfe7c2ffd4ada282bd68465862779f1f2e0afff5357e96536b075731c4b721dd27e2eae72008dc66d79e7bce6315e1c8f02947d41d988b78
   languageName: node
   linkType: hard
 
