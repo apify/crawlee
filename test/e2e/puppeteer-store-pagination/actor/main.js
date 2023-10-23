@@ -13,14 +13,14 @@ const crawler = new PuppeteerCrawler({
 
 crawler.router.addHandler('START', async ({ log, enqueueLinks, page }) => {
     log.info('Store opened');
-    const nextButtonSelector = '.data-tracking-actor-pagination-button-load-more:not([disabled])';
+    const nextButtonSelector = '[data-test="pagination-button-next"]:not([disabled])';
     // enqueue actor details from the first three pages of the store
     for (let pageNo = 1; pageNo <= 3; pageNo++) {
         // Wait for network events to finish
         await page.waitForNetworkIdle();
         // Enqueue all loaded links
         await enqueueLinks({
-            selector: '[data-test="actorCard"] > a',
+            selector: 'div.ActorStore-main div > a',
             label: 'DETAIL',
             globs: ['https://apify.com/*/*'],
         });
@@ -35,9 +35,10 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
 
     const uniqueIdentifier = url.split('/').slice(-2).join('/');
     const titleP = page.$eval('header h1', ((el) => el.textContent));
-    const descriptionP = page.$eval('header p.ActorHeader-description', ((el) => el.textContent));
-    const modifiedTimestampP = page.$eval('ul.ActorHeader-userMedallion time', (el) => el.getAttribute('datetime'));
-    const runCountTextP = page.$eval('ul.ActorHeader-userMedallion li:nth-of-type(4)', ((el) => el.textContent));
+    const descriptionP = page.$eval('div.Section-body > div > p', ((el) => el.textContent));
+    const modifiedTimestampP = page.$eval('div:nth-of-type(2) > ul > li:nth-of-type(3)', (el) => el.textContent);
+    const runCountTextP = page.$eval('div:nth-of-type(2) > ul > li:nth-of-type(2)', ((el) => el.textContent));
+
     const [
         title,
         description,
@@ -49,10 +50,8 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
         modifiedTimestampP,
         runCountTextP,
     ]);
-    const modifiedDate = new Date(Number(modifiedTimestamp));
-    const runCount = Number(runCountText.match(/[\d,]+/)[0].replace(/,/g, ''));
 
-    await Dataset.pushData({ url, uniqueIdentifier, title, description, modifiedDate, runCount });
+    await Dataset.pushData({ url, uniqueIdentifier, title, description, modifiedDate: modifiedTimestamp, runCount: runCountText });
 });
 
 await crawler.run([{ url: 'https://apify.com/store?page=1', userData: { label: 'START' } }]);

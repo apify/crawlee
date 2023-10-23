@@ -18,14 +18,14 @@ await Actor.main(async () => {
 
             if (label === 'START') {
                 log.info('Store opened');
-                const nextButtonSelector = '.data-tracking-actor-pagination-button-load-more:not([disabled])';
+                const nextButtonSelector = '[data-test="pagination-button-next"]:not([disabled])';
                 // enqueue actor details from the first three pages of the store
                 for (let pageNo = 1; pageNo <= 3; pageNo++) {
                     // Wait for network events to finish
                     await page.waitForNetworkIdle();
                     // Enqueue all loaded links
                     await enqueueLinks({
-                        selector: '[data-test="actorCard"] > a',
+                        selector: 'div.ActorStore-main div > a',
                         globs: [{ glob: 'https://apify.com/*/*', userData: { label: 'DETAIL' } }],
                     });
                     log.info(`Enqueued actors for page ${pageNo}`);
@@ -38,9 +38,9 @@ await Actor.main(async () => {
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');
                 const results = await page.evaluate(() => ({
                     title: $('header h1').text(), // eslint-disable-line
-                    description: $('p.ActorHeader-description').text(), // eslint-disable-line
-                    modifiedDate: new Date(Number($('ul.ActorHeader-userMedallion time').attr('datetime'))).toISOString(), // eslint-disable-line
-                    runCount: Number($('ul.ActorHeader-userMedallion li:nth-of-type(4)').text().match(/[\d,]+/)[0].replace(/,/g, '')), // eslint-disable-line
+                    description: $('div.Section-body > div > p').text(), // eslint-disable-line
+                    modifiedDate: $('div:nth-of-type(2) > ul > li:nth-of-type(3)').text(), // eslint-disable-line
+                    runCount: $('ul.ActorHeader-userMedallion li:nth-of-type(4)').text(), // eslint-disable-line
                 }));
 
                 await Dataset.pushData({ url, uniqueIdentifier, ...results });
