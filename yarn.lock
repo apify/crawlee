@@ -2782,7 +2782,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"array-includes@npm:^3.1.6":
+"array-includes@npm:^3.1.6, array-includes@npm:^3.1.7":
   version: 3.1.7
   resolution: "array-includes@npm:3.1.7"
   dependencies:
@@ -2802,7 +2802,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"array.prototype.findlastindex@npm:^1.2.2":
+"array.prototype.findlastindex@npm:^1.2.3":
   version: 1.2.3
   resolution: "array.prototype.findlastindex@npm:1.2.3"
   dependencies:
@@ -2815,7 +2815,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"array.prototype.flat@npm:^1.3.1":
+"array.prototype.flat@npm:^1.3.1, array.prototype.flat@npm:^1.3.2":
   version: 1.3.2
   resolution: "array.prototype.flat@npm:1.3.2"
   dependencies:
@@ -2827,7 +2827,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"array.prototype.flatmap@npm:^1.3.1":
+"array.prototype.flatmap@npm:^1.3.1, array.prototype.flatmap@npm:^1.3.2":
   version: 1.3.2
   resolution: "array.prototype.flatmap@npm:1.3.2"
   dependencies:
@@ -3307,9 +3307,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001541":
-  version: 1.0.30001551
-  resolution: "caniuse-lite@npm:1.0.30001551"
-  checksum: ffdee85b1c130cbebf0aa978ba839f3525f8e304855ba9bf0fbefaac8dd8c40051a7e19ac84a7cf4ba026410abcbe6f8b45560b22ee417c52daecaf955108e65
+  version: 1.0.30001553
+  resolution: "caniuse-lite@npm:1.0.30001553"
+  checksum: 45d6a2a3c3a098c8093a4c8883fceafb4bbf59d96f6fd5bb381ba4581d07eecbe0ede4f55383f0d49374154ff6a808bd90fbe32b17ccd1738034d2579787b33c
   languageName: node
   linkType: hard
 
@@ -4446,9 +4446,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.563
-  resolution: "electron-to-chromium@npm:1.4.563"
-  checksum: 50512b9662688291b1c4e921def7206bab1ebd57f5bf5bdbb7961842ae69b4baad5df1293084b62ea07686c578e42ed17546434d7c9102960914240770921a5b
+  version: 1.4.565
+  resolution: "electron-to-chromium@npm:1.4.565"
+  checksum: 5baa0ea0b53fea50f66668e5d61b0a5418f5925a88737fbfbb1cfb991e0b9b5de32479807d70413f8c46b9f3d08e87ad567c032bf36305f212da54fcb20bb355
   languageName: node
   linkType: hard
 
@@ -4828,7 +4828,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-import-resolver-node@npm:^0.3.7":
+"eslint-import-resolver-node@npm:^0.3.9":
   version: 0.3.9
   resolution: "eslint-import-resolver-node@npm:0.3.9"
   dependencies:
@@ -4886,29 +4886,29 @@ __metadata:
   linkType: hard
 
 "eslint-plugin-import@npm:^2.25.3, eslint-plugin-import@npm:^2.27.5":
-  version: 2.28.1
-  resolution: "eslint-plugin-import@npm:2.28.1"
+  version: 2.29.0
+  resolution: "eslint-plugin-import@npm:2.29.0"
   dependencies:
-    array-includes: ^3.1.6
-    array.prototype.findlastindex: ^1.2.2
-    array.prototype.flat: ^1.3.1
-    array.prototype.flatmap: ^1.3.1
+    array-includes: ^3.1.7
+    array.prototype.findlastindex: ^1.2.3
+    array.prototype.flat: ^1.3.2
+    array.prototype.flatmap: ^1.3.2
     debug: ^3.2.7
     doctrine: ^2.1.0
-    eslint-import-resolver-node: ^0.3.7
+    eslint-import-resolver-node: ^0.3.9
     eslint-module-utils: ^2.8.0
-    has: ^1.0.3
-    is-core-module: ^2.13.0
+    hasown: ^2.0.0
+    is-core-module: ^2.13.1
     is-glob: ^4.0.3
     minimatch: ^3.1.2
-    object.fromentries: ^2.0.6
-    object.groupby: ^1.0.0
-    object.values: ^1.1.6
+    object.fromentries: ^2.0.7
+    object.groupby: ^1.0.1
+    object.values: ^1.1.7
     semver: ^6.3.1
     tsconfig-paths: ^3.14.2
   peerDependencies:
     eslint: ^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8
-  checksum: e8ae6dd8f06d8adf685f9c1cfd46ac9e053e344a05c4090767e83b63a85c8421ada389807a39e73c643b9bff156715c122e89778169110ed68d6428e12607edf
+  checksum: 19ee541fb95eb7a796f3daebe42387b8d8262bbbcc4fd8a6e92f63a12035f3d2c6cb8bc0b6a70864fa14b1b50ed6b8e6eed5833e625e16cb6bb98b665beff269
   languageName: node
   linkType: hard
 
@@ -5312,11 +5312,11 @@ __metadata:
   linkType: hard
 
 "figlet@npm:^1.1.1":
-  version: 1.6.0
-  resolution: "figlet@npm:1.6.0"
+  version: 1.7.0
+  resolution: "figlet@npm:1.7.0"
   bin:
     figlet: bin/index.js
-  checksum: 7455df4198ab4e260310a2f0bbd8970b8a6c757de16b40f451944eac2a3299f6935b1f40d1cf54d3235c147c9f65ae465533c054ecb7656c076b5cc6037d9274
+  checksum: 3f61c2aeb13e48185a1b23598c005a6cd42cffcb01dd1ed0da80d692e14af5bfef774b99df6a840a6e4daa985b35d5ca0f085c471309bcdd6c06d6be58434ccf
   languageName: node
   linkType: hard
 
@@ -6696,7 +6696,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"is-core-module@npm:^2.11.0, is-core-module@npm:^2.13.0, is-core-module@npm:^2.5.0, is-core-module@npm:^2.8.1":
+"is-core-module@npm:^2.11.0, is-core-module@npm:^2.13.0, is-core-module@npm:^2.13.1, is-core-module@npm:^2.5.0, is-core-module@npm:^2.8.1":
   version: 2.13.1
   resolution: "is-core-module@npm:2.13.1"
   dependencies:
@@ -8765,7 +8765,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object.fromentries@npm:^2.0.6":
+"object.fromentries@npm:^2.0.6, object.fromentries@npm:^2.0.7":
   version: 2.0.7
   resolution: "object.fromentries@npm:2.0.7"
   dependencies:
@@ -8776,7 +8776,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object.groupby@npm:^1.0.0":
+"object.groupby@npm:^1.0.1":
   version: 1.0.1
   resolution: "object.groupby@npm:1.0.1"
   dependencies:
@@ -8798,7 +8798,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object.values@npm:^1.1.6":
+"object.values@npm:^1.1.6, object.values@npm:^1.1.7":
   version: 1.1.7
   resolution: "object.values@npm:1.1.7"
   dependencies:
@@ -11039,21 +11039,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.0.16":
-  version: 6.0.16
-  resolution: "tldts-core@npm:6.0.16"
-  checksum: 77f5e0841a0bb5df0ebcc7470463d7bc0c48421ea44a34cba68f26a967107e18624f5dbba37ac79a26372566f3ad52189e3572b2db4d780dce2903e110e599fd
+"tldts-core@npm:^6.0.17":
+  version: 6.0.17
+  resolution: "tldts-core@npm:6.0.17"
+  checksum: 9d976fb84d7754d0fdd133d13484fe22b2e6b6ca4b5f73abb1943656e82d26214cb339a32c39114af219f0b791ff21733520376400bb4e750eb848bbdf6a631b
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.0.16
-  resolution: "tldts@npm:6.0.16"
+  version: 6.0.17
+  resolution: "tldts@npm:6.0.17"
   dependencies:
-    tldts-core: ^6.0.16
+    tldts-core: ^6.0.17
   bin:
     tldts: bin/cli.js
-  checksum: 0fa7dbb76e1556ebcfda7a166094541e498900adbaf592fea83a723f999eef46086d990642ca1f5c1014b69adb2097c0772fff5a169dc8e9005ce223bce67ece
+  checksum: 97d59cb4b5ccd95e1d1e3665b390e004bffb58c5590e7badc1ffe97d718c8cd29bfd9ced1e9f4df0926a319ca378fad0ac807437a5eec065439b8a1b6d120a47
   languageName: node
   linkType: hard
 
@@ -11739,8 +11739,8 @@ __metadata:
   linkType: hard
 
 "vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0, vite@npm:^3.1.0 || ^4.0.0 || ^5.0.0-0":
-  version: 5.0.0-beta.11
-  resolution: "vite@npm:5.0.0-beta.11"
+  version: 5.0.0-beta.12
+  resolution: "vite@npm:5.0.0-beta.12"
   dependencies:
     esbuild: ^0.19.3
     fsevents: ~2.3.3
@@ -11774,7 +11774,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 4548d075812a3bef1619d3968586cb532fe7e2e4ad5f3eeb85f1331cfd3d91987781e9896828db29498c25b24f58377281fc9bd25ef383f8607663e2ac98ae87
+  checksum: 29a1c92eeb23fddefd5e31681ed01f82ba74a24dd51a3d6820ead5573897b42c70725f0699128871a2129092e3f43c2184d9f7d1014711c1f672ed01af42c2f6
   languageName: node
   linkType: hard
 
