@@ -68,7 +68,7 @@
         "@types/is-ci": "^3.0.1",
         "@types/lodash.merge": "^4.6.7",
         "@types/mime-types": "^2.1.1",
-        "@types/node": "^18.7.13",
+        "@types/node": "^20.0.0",
         "@types/proper-lockfile": "^4.1.2",
         "@types/ps-tree": "^1.1.2",
         "@types/rimraf": "^3.0.2",
@@ -109,7 +109,7 @@
     },
     "packageManager": "yarn@3.6.4",
     "volta": {
-        "node": "18.18.1",
+        "node": "20.9.0",
         "yarn": "3.6.4"
     }
 }

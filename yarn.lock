@@ -634,7 +634,7 @@ __metadata:
     "@types/is-ci": ^3.0.1
     "@types/lodash.merge": ^4.6.7
     "@types/mime-types": ^2.1.1
-    "@types/node": ^18.7.13
+    "@types/node": ^20.0.0
     "@types/proper-lockfile": ^4.1.2
     "@types/ps-tree": ^1.1.2
     "@types/rimraf": ^3.0.2
@@ -2034,10 +2034,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^18.11.9, @types/node@npm:^18.7.13":
+"@types/node@npm:^18.11.9":
   version: 18.18.6
   resolution: "@types/node@npm:18.18.6"
   checksum: a847639b8455fd3dfa6dbc2917274c82c9db789f1d41aaf69f94ac6c9e54c3c1dd29be6e1e1ccd7c17e54db3d78d7011bc4e70544c6447ceca253dccc0a187e1
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.0.0":
+  version: 20.8.8
+  resolution: "@types/node@npm:20.8.8"
+  dependencies:
+    undici-types: ~5.25.1
+  checksum: 028a9606e4ef594a4bc7b3310596499d7ce01b2e30f4d1d906ad8ec30c24cea7ec1b3dc181dd5df8d8d2bfe8de54bf3e28ae93be174b4c7d81c0db8326e4f35c
   languageName: node
   linkType: hard
 
