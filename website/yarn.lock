@@ -3342,11 +3342,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.8.7
-  resolution: "@types/node@npm:20.8.7"
+  version: 20.8.8
+  resolution: "@types/node@npm:20.8.8"
   dependencies:
     undici-types: ~5.25.1
-  checksum: 2173c0c03daefcb60c03a61b1371b28c8fe412e7a40dc6646458b809d14a85fbc7aeb369d957d57f0aaaafd99964e77436f29b3b579232d8f2b20c58abbd1d25
+  checksum: 028a9606e4ef594a4bc7b3310596499d7ce01b2e30f4d1d906ad8ec30c24cea7ec1b3dc181dd5df8d8d2bfe8de54bf3e28ae93be174b4c7d81c0db8326e4f35c
   languageName: node
   linkType: hard
 
@@ -6111,9 +6111,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.565
-  resolution: "electron-to-chromium@npm:1.4.565"
-  checksum: 5baa0ea0b53fea50f66668e5d61b0a5418f5925a88737fbfbb1cfb991e0b9b5de32479807d70413f8c46b9f3d08e87ad567c032bf36305f212da54fcb20bb355
+  version: 1.4.566
+  resolution: "electron-to-chromium@npm:1.4.566"
+  checksum: 29ff557cac31fe2e840b1a35ff91724d52f7c175b5c97806b583fb9741d23420769b787ca6c49ffc9894ade95497dc0ae60a01a1bba935dd5aaa69338b10234b
   languageName: node
   linkType: hard
 
@@ -11696,9 +11696,9 @@ __metadata:
   linkType: soft
 
 "rtl-detect@npm:^1.0.4":
-  version: 1.0.4
-  resolution: "rtl-detect@npm:1.0.4"
-  checksum: d562535baa0db62f57f0a1d4676297bff72fd6b94e88f0f0900d5c3e810ab512c5c4cadffd3e05fbe8d9c74310c919afa3ea8c1001c244e5555e8eef12d02d6f
+  version: 1.1.2
+  resolution: "rtl-detect@npm:1.1.2"
+  checksum: 4a43a1e5df0617eb86d5485640b318787d12b86acf53d840a3b2ff701ee941e95479d4e9ae97e907569ec763d1c47218cb87639bc87bcdad60a85747e5270cf0
   languageName: node
   linkType: hard
 

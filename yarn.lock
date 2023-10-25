@@ -2026,11 +2026,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.8.7
-  resolution: "@types/node@npm:20.8.7"
+  version: 20.8.8
+  resolution: "@types/node@npm:20.8.8"
   dependencies:
     undici-types: ~5.25.1
-  checksum: 2173c0c03daefcb60c03a61b1371b28c8fe412e7a40dc6646458b809d14a85fbc7aeb369d957d57f0aaaafd99964e77436f29b3b579232d8f2b20c58abbd1d25
+  checksum: 028a9606e4ef594a4bc7b3310596499d7ce01b2e30f4d1d906ad8ec30c24cea7ec1b3dc181dd5df8d8d2bfe8de54bf3e28ae93be174b4c7d81c0db8326e4f35c
   languageName: node
   linkType: hard
 
@@ -4264,9 +4264,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1212569
-  resolution: "devtools-protocol@npm:0.0.1212569"
-  checksum: 2c64d11d94d3b485faf6284a82641e29e7e0c06dc967c6637674405665cf3a8ae1b47c0d5a703547d409debc9fbe47ac2bcccdc69201eef878ada927476e8b00
+  version: 0.0.1213968
+  resolution: "devtools-protocol@npm:0.0.1213968"
+  checksum: d49b5c7ee5d1dccb3bd0039cb791eb6fa78486dec7aa4f27d31ecf4cf62b0ff6c3cb74e26e157378bbbf698c414dc30fca1415f5f0bf2b021cdf14c6f15721bb
   languageName: node
   linkType: hard
 
@@ -4446,9 +4446,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.565
-  resolution: "electron-to-chromium@npm:1.4.565"
-  checksum: 5baa0ea0b53fea50f66668e5d61b0a5418f5925a88737fbfbb1cfb991e0b9b5de32479807d70413f8c46b9f3d08e87ad567c032bf36305f212da54fcb20bb355
+  version: 1.4.566
+  resolution: "electron-to-chromium@npm:1.4.566"
+  checksum: 29ff557cac31fe2e840b1a35ff91724d52f7c175b5c97806b583fb9741d23420769b787ca6c49ffc9894ade95497dc0ae60a01a1bba935dd5aaa69338b10234b
   languageName: node
   linkType: hard
 
