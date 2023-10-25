@@ -142,7 +142,7 @@ describe.each([
             spy.mockReset();
 
             await expect(addTimeoutToPromise(
-                () => browserPool.newPage(),
+                async () => browserPool.newPage(),
                 10,
                 'opening new page timed out',
             )).rejects.toThrowError('opening new page timed out');
@@ -256,7 +256,7 @@ describe.each([
             clearInterval(browserPool['browserKillerInterval']!);
 
             browserPool['browserKillerInterval'] = setInterval(
-                () => browserPool['_closeInactiveRetiredBrowsers'](),
+                async () => browserPool['_closeInactiveRetiredBrowsers'](),
                 100,
             );
 
@@ -300,7 +300,7 @@ describe.each([
 
             describe('preLaunchHooks', () => {
                 test('should evaluate hook before launching browser with correct args', async () => {
-                    const myAsyncHook = () => Promise.resolve();
+                    const myAsyncHook = async () => Promise.resolve();
                     browserPool.preLaunchHooks.push(myAsyncHook);
 
                     // @ts-expect-error Private function
@@ -337,7 +337,7 @@ describe.each([
 
             describe('postLaunchHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = () => Promise.resolve();
+                    const myAsyncHook = async () => Promise.resolve();
                     browserPool.postLaunchHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
@@ -392,7 +392,7 @@ describe.each([
 
             describe('prePageCreateHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = () => Promise.resolve();
+                    const myAsyncHook = async () => Promise.resolve();
                     browserPool.prePageCreateHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
@@ -414,7 +414,7 @@ describe.each([
 
             describe('postPageCreateHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = () => Promise.resolve();
+                    const myAsyncHook = async () => Promise.resolve();
                     browserPool.postPageCreateHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
@@ -429,7 +429,7 @@ describe.each([
 
             describe('prePageCloseHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = () => Promise.resolve();
+                    const myAsyncHook = async () => Promise.resolve();
                     browserPool.prePageCloseHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function
@@ -445,7 +445,7 @@ describe.each([
 
             describe('postPageCloseHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = () => Promise.resolve();
+                    const myAsyncHook = async () => Promise.resolve();
                     browserPool.postPageCloseHooks = [myAsyncHook];
 
                     // @ts-expect-error Private function

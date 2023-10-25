@@ -34,7 +34,7 @@ export class StorageManager<T extends IStorage = IStorage> {
         this.name = this.StorageConstructor.name as 'Dataset' | 'KeyValueStore' | 'RequestQueue';
     }
 
-    static openStorage<T extends IStorage>(
+    static async openStorage<T extends IStorage>(
         storageClass: Constructor<T>,
         idOrName?: string,
         client?: StorageClient,

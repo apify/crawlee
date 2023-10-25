@@ -252,7 +252,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
 
         if (this.runScripts) {
             try {
-                await addTimeoutToPromise(() => {
+                await addTimeoutToPromise(async () => {
                     return new Promise<void>((resolve) => {
                         window.addEventListener('load', () => {
                             resolve();
@@ -285,7 +285,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     }
 
     override async _runRequestHandler(context: JSDOMCrawlingContext) {
-        context.parseWithCheerio = () => Promise.resolve(cheerio.load(context.body));
+        context.parseWithCheerio = async () => Promise.resolve(cheerio.load(context.body));
         await super._runRequestHandler(context);
     }
 }

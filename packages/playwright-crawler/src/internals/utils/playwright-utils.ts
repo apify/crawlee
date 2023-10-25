@@ -99,7 +99,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
 
     if (options.surviveNavigations) {
         page.on('framenavigated',
-            () => page.evaluate(contents)
+            async () => page.evaluate(contents)
                 .catch((error) => log.warning('An error occurred during the script injection!', { error })));
     }
 
@@ -132,7 +132,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
  * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
-export function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
+export async function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
     return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
@@ -752,7 +752,7 @@ export interface PlaywrightContextUtils {
 }
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
-    context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
+    context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = (async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
             log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
@@ -761,17 +761,18 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     });
-    context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.parseWithCheerio = () => parseWithCheerio(context.page);
-    context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
+    context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
+    context.parseWithCheerio = async () => parseWithCheerio(context.page);
+    context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
+    context.saveSnapshot = async (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
+    // eslint-disable-next-line max-len
+    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         ...options,
         page: context.page,
         requestQueue: context.crawler.requestQueue!,
     });
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.closeCookieModals = () => closeCookieModals(context.page);
+    context.closeCookieModals = async () => closeCookieModals(context.page);
 }
 
 export { enqueueLinksByClickingElements };

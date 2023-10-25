@@ -36,7 +36,7 @@ describe('BrowserPool - Using multiple plugins', () => {
             firefoxPlugin,
         ];
 
-        const pagePromises = correctPluginOrder.map(() => browserPool.newPage());
+        const pagePromises = correctPluginOrder.map(async () => browserPool.newPage());
 
         const pages = await Promise.all(pagePromises);
 

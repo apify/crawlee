@@ -1,6 +1,7 @@
-import { Actor } from 'apify';
-import { JSDOMCrawler, Dataset } from '@crawlee/jsdom';
 import assert from 'node:assert';
+
+import { JSDOMCrawler, Dataset } from '@crawlee/jsdom';
+import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     // @ts-ignore

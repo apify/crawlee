@@ -57,7 +57,7 @@ describe('PuppeteerCrawler', () => {
             createProxyServer('127.0.0.4', '', ''),
         ];
 
-        await Promise.all(servers.map((server) => server.listen()));
+        await Promise.all(servers.map(async (server) => server.listen()));
 
         proxyConfiguration = new ProxyConfiguration({
             proxyUrls: [
@@ -83,7 +83,7 @@ describe('PuppeteerCrawler', () => {
         log.setLevel(logLevel);
         process.env.CRAWLEE_HEADLESS = prevEnvHeadless;
 
-        await Promise.all(servers.map((server) => promisify(server.close.bind(server))(true)));
+        await Promise.all(servers.map(async (server) => promisify(server.close.bind(server))(true)));
         await promisify(target.close.bind(target))();
     });
 

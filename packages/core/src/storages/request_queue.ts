@@ -324,7 +324,7 @@ export class RequestQueue extends RequestProvider {
         this.lastActivity = new Date();
     }
 
-    static override open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
+    static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
         return super.open(...args) as Promise<RequestQueue>;
     }
 }

@@ -51,7 +51,7 @@
         "lint:fix": "eslint \"packages/**/*.ts\" \"test/**/*.ts\" --fix"
     },
     "devDependencies": {
-        "@apify/eslint-config-ts": "^0.3.0",
+        "@apify/eslint-config-ts": "^0.4.0",
         "@apify/log": "^2.4.0",
         "@apify/tsconfig": "^0.1.0",
         "@commitlint/config-conventional": "^18.0.0",
@@ -76,8 +76,8 @@
         "@types/stream-json": "^1.7.2",
         "@types/tough-cookie": "^4.0.2",
         "@types/yargs": "^17.0.26",
-        "@typescript-eslint/eslint-plugin": "6.7.5",
-        "@typescript-eslint/parser": "6.7.5",
+        "@typescript-eslint/eslint-plugin": "6.9.0",
+        "@typescript-eslint/parser": "6.9.0",
         "@vitest/coverage-v8": "^0.34.6",
         "apify": "*",
         "basic-auth-parser": "^0.0.2",
@@ -85,7 +85,7 @@
         "commitlint": "^18.0.0",
         "cross-env": "^7.0.3",
         "deep-equal": "^2.0.5",
-        "eslint": "^8.45.0",
+        "eslint": "^8.52.0",
         "express": "^4.18.1",
         "fs-extra": "^11.0.0",
         "gen-esm-wrapper": "^1.1.3",

@@ -75,7 +75,7 @@ testCases.forEach(({
 
         afterAll(async () => {
             await browser.close();
-            await server.close();
+            server.close();
         });
 
         beforeEach(async () => {

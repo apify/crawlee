@@ -362,7 +362,7 @@ export abstract class BrowserCrawler<
 
         super({
             ...basicCrawlerOptions,
-            requestHandler: (...args) => this._runRequestHandler(...args),
+            requestHandler: async (...args) => this._runRequestHandler(...args),
             requestHandlerTimeoutSecs: navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
         }, config);
 
@@ -518,7 +518,7 @@ export abstract class BrowserCrawler<
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
-                () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
+                async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
                 this.requestHandlerTimeoutInnerMillis,
                 `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
             );

@@ -259,7 +259,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      */
     async pushData(data: Data | Data[]): Promise<void> {
         ow(data, 'data', ow.object);
-        const dispatch = (payload: string) => this.client.pushItems(payload);
+        const dispatch = async (payload: string) => this.client.pushItems(payload);
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
 
         // Handle singular Objects
@@ -480,7 +480,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options: DatasetIteratorOptions = {}): Promise<T> {
         let currentMemo: T = memo;
 
-        const wrappedFunc: DatasetConsumer<Data> = (item, index) => {
+        const wrappedFunc: DatasetConsumer<Data> = async (item, index) => {
             return Promise
                 .resolve()
                 .then(() => {

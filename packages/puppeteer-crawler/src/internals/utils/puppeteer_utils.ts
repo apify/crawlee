@@ -131,7 +131,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     const evalP = page.evaluate(contents);
     if (options.surviveNavigations) {
         page.on('framenavigated',
-            () => page.evaluate(contents)
+            async () => page.evaluate(contents)
                 .catch((error) => log.warning('An error occurred during the script injection!', { error })));
     }
 
@@ -164,7 +164,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
-export function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
+export async function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
     return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
@@ -946,7 +946,7 @@ export interface PuppeteerContextUtils {
 
 /** @internal */
 export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
-    context.injectFile = (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
+    context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = (async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
             log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
@@ -955,23 +955,24 @@ export function registerUtilsToContext(context: PuppeteerCrawlingContext): void 
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     });
-    context.parseWithCheerio = () => parseWithCheerio(context.page);
-    context.enqueueLinksByClickingElements = (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
+    context.parseWithCheerio = async () => parseWithCheerio(context.page);
+    // eslint-disable-next-line max-len
+    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         page: context.page,
         requestQueue: context.crawler.requestQueue!,
         ...options,
     });
-    context.blockRequests = (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.blockResources = (resourceTypes?: string[]) => blockResources(context.page, resourceTypes);
-    context.cacheResponses = (cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]) => {
+    context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
+    context.blockResources = async (resourceTypes?: string[]) => blockResources(context.page, resourceTypes);
+    context.cacheResponses = async (cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]) => {
         return cacheResponses(context.page, cache, responseUrlRules);
     };
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.addInterceptRequestHandler = (handler: InterceptHandler) => addInterceptRequestHandler(context.page, handler);
-    context.removeInterceptRequestHandler = (handler: InterceptHandler) => removeInterceptRequestHandler(context.page, handler);
-    context.infiniteScroll = (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    context.closeCookieModals = () => closeCookieModals(context.page);
+    context.addInterceptRequestHandler = async (handler: InterceptHandler) => addInterceptRequestHandler(context.page, handler);
+    context.removeInterceptRequestHandler = async (handler: InterceptHandler) => removeInterceptRequestHandler(context.page, handler);
+    context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
+    context.saveSnapshot = async (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
+    context.closeCookieModals = async () => closeCookieModals(context.page);
 }
 
 export {

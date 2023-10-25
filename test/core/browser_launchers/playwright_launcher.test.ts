@@ -35,7 +35,7 @@ beforeAll(async () => {
     serverAddress += port;
 
     // Find free port for the proxy
-    return portastic.find({ min: 50000, max: 50099 }).then((ports: number[]) => {
+    return portastic.find({ min: 50000, max: 50099 }).then(async (ports: number[]) => {
         return new Promise<void>((resolve, reject) => {
             const httpServer = http.createServer();
 
@@ -166,7 +166,7 @@ describe('launchPlaywright()', () => {
             // where pages would not load at all with Chrome.
             await page.goto(serverAddress);
             const title = await page.title();
-            const version = await browser.version();
+            const version = browser.version();
 
             expect(title).toBe('Example Domain');
             expect(version).not.toMatch('Chromium');

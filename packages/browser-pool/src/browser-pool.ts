@@ -299,7 +299,7 @@ export class BrowserPool<
     fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
 
     private browserKillerInterval? = setInterval(
-        () => this._closeInactiveRetiredBrowsers(),
+        async () => this._closeInactiveRetiredBrowsers(),
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
@@ -454,7 +454,7 @@ export class BrowserPool<
     async newPageWithEachPlugin(
         optionsList: Omit<BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]>, 'browserPlugin'>[] = [],
     ): Promise<PageReturn[]> {
-        const pagePromises = this.browserPlugins.map((browserPlugin, idx) => {
+        const pagePromises = this.browserPlugins.map(async (browserPlugin, idx) => {
             const userOptions = optionsList[idx] || {};
             return this.newPage({
                 ...userOptions,
@@ -528,7 +528,7 @@ export class BrowserPool<
 
         try {
             page = await addTimeoutToPromise(
-                () => browserController.newPage(finalPageOptions),
+                async () => browserController.newPage(finalPageOptions),
                 this.operationTimeoutMillis,
                 'browserController.newPage() timed out.',
             ) as PageReturn;
@@ -598,7 +598,7 @@ export class BrowserPool<
         const controllers = this._getAllBrowserControllers();
         const promises = [...controllers]
             .filter((controller) => controller.isActive)
-            .map((controller) => controller.close());
+            .map(async (controller) => controller.close());
 
         await Promise.all(promises);
     }

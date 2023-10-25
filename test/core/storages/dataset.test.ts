@@ -292,7 +292,7 @@ describe('dataset', () => {
         test('map() should support promises', async () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();
 
-            const result = await dataset.map((item, index) => {
+            const result = await dataset.map(async (item, index) => {
                 const res = { index, bar: 'xxx', ...item };
                 return Promise.resolve(res);
             }, {
@@ -334,7 +334,7 @@ describe('dataset', () => {
         test('reduce() should support promises', async () => {
             const { dataset, restoreAndVerify } = getRemoteDataset();
 
-            const result = await dataset.reduce((memo, item, index) => {
+            const result = await dataset.reduce(async (memo, item, index) => {
                 item.index = index;
                 item.bar = 'xxx';
 
@@ -385,7 +385,7 @@ describe('dataset', () => {
 
             const calledForIndexes: number[] = [];
 
-            const result = await dataset.reduce((memo, item, index) => {
+            const result = await dataset.reduce(async (memo, item, index) => {
                 calledForIndexes.push(index);
                 return Promise.resolve(memo.foo > item.foo ? memo : item);
             }, undefined, {

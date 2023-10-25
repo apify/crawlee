@@ -8,7 +8,7 @@ import { entries } from 'crawlee';
 import express from 'express';
 import type { Application } from 'express';
 
-export const startExpressAppPromise = (app: Application, port: number) => {
+export const startExpressAppPromise = async (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {
         const server = app.listen(port, () => resolve(server));
     });

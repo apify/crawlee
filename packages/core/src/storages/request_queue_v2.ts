@@ -292,7 +292,7 @@ class RequestQueue extends RequestProvider {
         }
     }
 
-    static override open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
+    static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
         return super.open(...args) as Promise<RequestQueue>;
     }
 }

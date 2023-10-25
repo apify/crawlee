@@ -63,7 +63,7 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        readFileSpy.mockImplementation((path) => {
+        readFileSpy.mockImplementation(async (path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('333');
             }
@@ -121,7 +121,7 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        readFileSpy.mockImplementation((path) => {
+        readFileSpy.mockImplementation(async (path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('333');
             }
@@ -155,7 +155,7 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        readFileSpy.mockImplementation((path) => {
+        readFileSpy.mockImplementation(async (path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('333');
             }
@@ -179,7 +179,7 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockResolvedValueOnce();
 
-        readFileSpy.mockImplementation((path) => {
+        readFileSpy.mockImplementation(async (path) => {
             if (path === '/sys/fs/cgroup/memory/memory.limit_in_bytes') {
                 return Promise.resolve('9223372036854771712');
             }
@@ -205,7 +205,7 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockRejectedValueOnce(new Error('ENOENT'));
 
-        readFileSpy.mockImplementation((path) => {
+        readFileSpy.mockImplementation(async (path) => {
             if (path === '/sys/fs/cgroup/memory.max') {
                 return Promise.resolve('333\n');
             }
@@ -229,7 +229,7 @@ describe('getMemoryInfo()', () => {
         isDockerSpy.mockResolvedValueOnce(true);
         accessSpy.mockRejectedValueOnce(new Error('ENOENT'));
 
-        readFileSpy.mockImplementation((path) => {
+        readFileSpy.mockImplementation(async (path) => {
             if (path === '/sys/fs/cgroup/memory.max') {
                 return Promise.resolve('max\n');
             }

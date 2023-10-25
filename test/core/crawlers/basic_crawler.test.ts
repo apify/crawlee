@@ -254,7 +254,7 @@ describe('BasicCrawler', () => {
         void runPromise.then(() => { finished = true; });
 
         // need to monkeypatch the stats class, otherwise it will never finish
-        basicCrawler.stats.persistState = () => Promise.resolve();
+        basicCrawler.stats.persistState = async () => Promise.resolve();
         await persistPromise;
 
         expect(finished).toBe(false);
@@ -714,7 +714,7 @@ describe('BasicCrawler', () => {
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
         const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
-        requestQueue.isEmpty = () => Promise.resolve(true);
+        requestQueue.isEmpty = async () => Promise.resolve(true);
 
         const crawler = new BasicCrawler({
             requestQueue,
@@ -736,7 +736,7 @@ describe('BasicCrawler', () => {
             autoscaledPoolOptions: {
                 minConcurrency: 1,
                 maxConcurrency: 1,
-                isFinishedFunction: () => {
+                isFinishedFunction: async () => {
                     return Promise.resolve(isFinished);
                 },
             },
@@ -759,8 +759,8 @@ describe('BasicCrawler', () => {
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
-        requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
-        requestQueue.isEmpty = () => Promise.resolve(!queue.length);
+        requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop());
+        requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
         setTimeout(() => queue.push(request0), 10);
         setTimeout(() => queue.push(request1), 100);
@@ -805,8 +805,8 @@ describe('BasicCrawler', () => {
 
         const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
 
-        requestQueue.fetchNextRequest = () => Promise.resolve(queue.pop());
-        requestQueue.isEmpty = () => Promise.resolve(!queue.length);
+        requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop());
+        requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
 
         setTimeout(() => queue.push(request0), 10);
         setTimeout(() => queue.push(request1), 100);
@@ -959,7 +959,7 @@ describe('BasicCrawler', () => {
             requestList,
             handleRequestTimeoutSecs: 0.01,
             maxRequestRetries: 1,
-            requestHandler: () => sleep(1000),
+            requestHandler: async () => sleep(1000),
             failedRequestHandler: async ({ request }) => {
                 results.push(request);
             },
@@ -980,7 +980,7 @@ describe('BasicCrawler', () => {
             requestList,
             requestHandlerTimeoutSecs: Infinity,
             maxRequestRetries: 1,
-            requestHandler: () => sleep(1000),
+            requestHandler: async () => sleep(1000),
             failedRequestHandler: async ({ request }) => {
                 results.push(request);
             },
@@ -1001,7 +1001,7 @@ describe('BasicCrawler', () => {
             requestList,
             requestHandlerTimeoutSecs: 0.1,
             maxRequestRetries: 3,
-            requestHandler: () => sleep(1e3),
+            requestHandler: async () => sleep(1e3),
         });
 
         // @ts-expect-error Overriding protected method
@@ -1082,7 +1082,7 @@ describe('BasicCrawler', () => {
             requestList,
             requestHandlerTimeoutSecs: 0.1,
             maxRequestRetries: 3,
-            requestHandler: () => sleep(1e3),
+            requestHandler: async () => sleep(1e3),
         });
 
         // @ts-expect-error Overriding protected method
@@ -1397,7 +1397,7 @@ describe('BasicCrawler', () => {
 
         test('should expose pushData helper', async () => {
             const crawler = new BasicCrawler({
-                requestHandler: ({ pushData }) => pushData(payload),
+                requestHandler: async ({ pushData }) => pushData(payload),
             });
 
             await crawler.run([{

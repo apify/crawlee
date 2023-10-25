@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer';
 import net from 'net';
 
-export const loadFirefoxAddon = (port: number, host: string, addonPath: string) => {
+export const loadFirefoxAddon = async (port: number, host: string, addonPath: string) => {
     return new Promise<boolean>((resolve) => {
         const socket = net.connect({
             port,

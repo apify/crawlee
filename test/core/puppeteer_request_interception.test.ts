@@ -41,19 +41,19 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             const page = await browser.newPage();
 
             // Just collect all URLs.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 allUrls.push(request.url());
                 return request.continue();
             });
 
             // Abort images.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 if (request.resourceType() === 'image') return request.abort();
                 return request.continue();
             });
 
             // Abort scripts.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 if (request.resourceType() === 'script') return request.abort();
                 return request.continue();
             });
@@ -85,13 +85,13 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             const page = await browser.newPage();
 
             // Abort images.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 if (request.resourceType() === 'image') return request.abort();
                 return request.continue();
             });
 
             // Respond scripts.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 if (request.resourceType() === 'script') {
                     return request.respond({
                         status: 404,
@@ -101,7 +101,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             });
 
             // Just collect all URLs propagated to the last handler.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 propagatedUrls.push(request.url());
                 return request.continue();
             });
@@ -122,11 +122,11 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             const page = await browser.newPage();
 
             // Change all requests to DELETE.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 return request.continue({ method: 'DELETE' });
             });
             // Add some query parameters to request URLs.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 return request.continue({
                     headers: {
                         'Content-Type': 'application/json; charset=utf-8',
@@ -135,7 +135,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                 });
             });
             // Change all requests to POST and add payload.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 return request.continue({
                     method: 'POST',
                 });
@@ -229,14 +229,14 @@ describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
             page.on('response', (response) => loadedUrls.push(response.url()));
 
             // Abort images.
-            const abortImagesHandler = (request: HTTPRequest) => {
+            const abortImagesHandler = async (request: HTTPRequest) => {
                 if (request.resourceType() === 'image') return request.abort();
                 return request.continue();
             };
             await addInterceptRequestHandler(page, abortImagesHandler);
 
             // Abort scripts.
-            await addInterceptRequestHandler(page, (request) => {
+            await addInterceptRequestHandler(page, async (request) => {
                 if (request.resourceType() === 'script') return request.abort();
                 return request.continue();
             });

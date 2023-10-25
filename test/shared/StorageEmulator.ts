@@ -10,7 +10,7 @@ export abstract class StorageEmulator {
     }
 
     async destroy() {
-        const promises = this.localStorageDirectories.map((dir) => {
+        const promises = this.localStorageDirectories.map(async (dir) => {
             return rm(dir, { force: true, recursive: true });
         });
 

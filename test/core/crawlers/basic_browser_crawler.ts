@@ -8,7 +8,7 @@ export class BrowserCrawlerTest extends BrowserCrawler<{ browserPlugins: [Puppet
         super(options as any);
     }
 
-    protected _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
+    protected async _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
         return ctx.page.goto(ctx.request.url, gotoOptions);
     }
 }
