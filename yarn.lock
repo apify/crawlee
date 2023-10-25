@@ -36,28 +36,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/eslint-config-ts@npm:^0.3.0":
-  version: 0.3.0
-  resolution: "@apify/eslint-config-ts@npm:0.3.0"
+"@apify/eslint-config-ts@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "@apify/eslint-config-ts@npm:0.4.0"
   dependencies:
-    "@apify/eslint-config": ^0.3.3
-    eslint-import-resolver-typescript: ^3.5.5
-    eslint-plugin-import: ^2.27.5
+    "@apify/eslint-config": ^0.4.0
+    eslint-import-resolver-typescript: ^3.6.1
+    eslint-plugin-import: ^2.29.0
     eslint-plugin-jsx-a11y: ^6.7.1
-    eslint-plugin-react: ^7.32.2
+    eslint-plugin-react: ^7.33.2
     eslint-plugin-react-hooks: ^4.6.0
   peerDependencies:
     "@typescript-eslint/eslint-plugin": "*"
     "@typescript-eslint/parser": "*"
     eslint: "*"
     typescript: "*"
-  checksum: 34a77573f44f6aea5694fad9fa208bff840cda1fc9c97ad9503d00163d8219492856d7bc9c6ccb66fe1496b3db0c51f9dce2f8ec8b869cd11d8c4a743739405b
+  checksum: 5b1fb48f7c056e7871ee551e726aa7d109c3c7140f42357d506c23c2a7b335ff04a1cfd95f6ae9d25e6c786a8bf53afb623d23f286b6faa96daa2d8de6da22b4
   languageName: node
   linkType: hard
 
-"@apify/eslint-config@npm:^0.3.3":
-  version: 0.3.4
-  resolution: "@apify/eslint-config@npm:0.3.4"
+"@apify/eslint-config@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "@apify/eslint-config@npm:0.4.0"
   dependencies:
     eslint-config-airbnb: ^19.0.0
     eslint-config-airbnb-base: ^15.0.0
@@ -68,7 +68,7 @@ __metadata:
     eslint-plugin-react-hooks: ^4.3.0
   peerDependencies:
     eslint: "*"
-  checksum: 9e71c61e6ab8286d0f212bf49604358597f3cba8408d826ec5007cc67cd13849d7aee7e0642f2d560e5ef7400b0618a10a7b1e63270444d15eaba63a4e05dda0
+  checksum: 7148a097180c2eb42d702fa6533198e8a6cb4100f075ce6e0735ebacd88b43941318397dffb7c0b1ef87bbb0186d530fc89ddc1f4f3b3ad76e987f4ba5292aff
   languageName: node
   linkType: hard
 
@@ -617,7 +617,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/root@workspace:."
   dependencies:
-    "@apify/eslint-config-ts": ^0.3.0
+    "@apify/eslint-config-ts": ^0.4.0
     "@apify/log": ^2.4.0
     "@apify/tsconfig": ^0.1.0
     "@commitlint/config-conventional": ^18.0.0
@@ -4855,7 +4855,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-import-resolver-typescript@npm:^3.5.5":
+"eslint-import-resolver-typescript@npm:^3.6.1":
   version: 3.6.1
   resolution: "eslint-import-resolver-typescript@npm:3.6.1"
   dependencies:
@@ -4885,7 +4885,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-import@npm:^2.25.3, eslint-plugin-import@npm:^2.27.5":
+"eslint-plugin-import@npm:^2.25.3, eslint-plugin-import@npm:^2.29.0":
   version: 2.29.0
   resolution: "eslint-plugin-import@npm:2.29.0"
   dependencies:
@@ -4947,7 +4947,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react@npm:^7.27.0, eslint-plugin-react@npm:^7.32.2":
+"eslint-plugin-react@npm:^7.27.0, eslint-plugin-react@npm:^7.33.2":
   version: 7.33.2
   resolution: "eslint-plugin-react@npm:7.33.2"
   dependencies:
