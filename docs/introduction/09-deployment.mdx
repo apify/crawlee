@@ -1,7 +1,7 @@
 ---
 id: deployment
-title: "Running your crawler in the Cloud"
-sidebar_label: "Running in the Cloud"
+title: 'Running your crawler in the Cloud'
+sidebar_label: 'Running in the Cloud'
 description: Deploying Crawlee projects to the Apify Platform
 ---
 
@@ -23,12 +23,13 @@ We started this guide by using the Crawlee CLI to bootstrap the project - it off
 
 The first step will be installing two new dependencies:
 
-- Apify SDK, a toolkit for working with the Apify Platform. This will allow us to wire the storages (e.g. `RequestQueue` and `Dataset`) to the Apify cloud products. This will be a dependency of our Node.js project.
+-   Apify SDK, a toolkit for working with the Apify Platform. This will allow us to wire the storages (e.g. `RequestQueue` and `Dataset`) to the Apify cloud products. This will be a dependency of our Node.js project.
+
     ```bash
     npm install apify
     ```
 
-- Apify CLI, a command-line tool that will help us with authentication and deployment. This will be a globally installed tool, you will install it only once and use it in all your Crawlee/Apify projects.
+-   Apify CLI, a command-line tool that will help us with authentication and deployment. This will be a globally installed tool, you will install it only once and use it in all your Crawlee/Apify projects.
     ```bash
     npm install -g apify-cli
     ```
@@ -67,7 +68,7 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
 });
 
-await crawler.run(['https://apify.com/store']);
+await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
 
 // highlight-next-line
 await Actor.exit();

@@ -1,11 +1,11 @@
 ---
 id: crawling
-title: "Crawling the Store"
-sidebar_label: "Crawling"
+title: 'Crawling the Store'
+sidebar_label: 'Crawling'
 description: Your first steps into the world of scraping with Crawlee
 ---
 
-To crawl the whole [Apify Store](https://apify.com/store) and find all the data, you first need to visit all the pages with Actors - listing pages and also all the Actor detail pages.
+To crawl the whole [example Warehouse Store](https://warehouse-theme-metal.myshopify.com/collections) and find all the data, you first need to visit all the pages with products - going through all categories available and also all the product detail pages.
 
 ## Crawling the listing pages
 
@@ -22,67 +22,77 @@ import { PlaywrightCrawler } from 'crawlee';
 
 const crawler = new PlaywrightCrawler({
     requestHandler: async ({ page, request, enqueueLinks }) => {
-        console.log(`Processing: ${request.url}`)
-        // Wait for the Actor cards to render,
+        console.log(`Processing: ${request.url}`);
+        // Wait for the category cards to render,
         // otherwise enqueueLinks wouldn't enqueue anything.
-        await page.waitForSelector('.ActorStorePagination-buttons a');
+        await page.waitForSelector('.collection-block-item');
 
         // Add links to the queue, but only from
         // elements matching the provided selector.
         await enqueueLinks({
-            selector: '.ActorStorePagination-buttons a',
-            label: 'LIST',
-        })
+            selector: '.collection-block-item',
+            label: 'CATEGORY',
+        });
     },
 });
 
-await crawler.run(['https://apify.com/store']);
+await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
 ```
 
 The code should look pretty familiar to you. It's a very simple `requestHandler` where we log the currently processed URL to the console and enqueue more links. But there are also a few new, interesting additions. Let's break it down.
 
 ### The `selector` parameter of `enqueueLinks()`
 
-When you previously used `enqueueLinks()`, you were not providing any `selector` parameter, and it was fine, because you wanted to use the default value, which is `a` - finds all `<a>` elements. But now, you need to be more specific. There are multiple `<a>` links on the Store results page, and you're only interested in those that will take your crawler to the next page of results. Using the DevTools, you'll find that you can select the links you need using the `.ActorStorePagination-buttons a` selector, which selects all the `<a>` elements that are children of an element with `class=ActorStorePagination-buttons`.
+When you previously used `enqueueLinks()`, you were not providing any `selector` parameter, and it was fine, because you wanted to use the default value, which is `a` - finds all `<a>` elements. But now, you need to be more specific. There are multiple `<a>` links on the `Categories` page, and you're only interested in those that will take your crawler to the available list of results. Using the DevTools, you'll find that you can select the links you need using the `.collection-block-item` selector, which selects all the elements that have the `class=collection-block-item` attribute.
 
 ### The `label` of `enqueueLinks()`
 
-You will see `label` used often throughout Crawlee, as it's a convenient way of labelling a `Request` instance for quick identification later. You can access it with `request.label` and it's a `string`. You can name your requests any way you want. Here, we used the label `LIST` to note that we're enqueueing pages with lists of results. The `enqueueLinks()` function will add this label to all requests before enqueueing them to the `RequestQueue`. Why this is useful will become obvious in a minute.
+You will see `label` used often throughout Crawlee, as it's a convenient way of labelling a `Request` instance for quick identification later. You can access it with `request.label` and it's a `string`. You can name your requests any way you want. Here, we used the label `CATEGORY` to note that we're enqueueing pages that represent a category of products. The `enqueueLinks()` function will add this label to all requests before enqueueing them to the `RequestQueue`. Why this is useful will become obvious in a minute.
 
 ## Crawling the detail pages
 
-In a similar fashion, you need to collect all the URLs to the Actor detail pages, because only from there you can scrape all the data you need. The following code only repeats the concepts you already know for another set of links.
+In a similar fashion, you need to collect all the URLs to the product detail pages, because only from there you can scrape all the data you need. The following code only repeats the concepts you already know for another set of links.
 
 ```ts
 import { PlaywrightCrawler } from 'crawlee';
 
 const crawler = new PlaywrightCrawler({
     requestHandler: async ({ page, request, enqueueLinks }) => {
-        console.log(`Processing: ${request.url}`)
+        console.log(`Processing: ${request.url}`);
         if (request.label === 'DETAIL') {
             // We're not doing anything with the details yet.
-        } else {
-            // This means we're either on the start page, with no label,
-            // or on a list page, with LIST label.
+        } else if (request.label === 'CATEGORY') {
+            // We are now on a category page. We can use this to paginate through and enqueue all products,
+            // as well as any subsequent pages we find
 
-            await page.waitForSelector('.ActorStorePagination-buttons a');
+            await page.waitForSelector('.product-item > a');
             await enqueueLinks({
-                selector: '.ActorStorePagination-buttons a',
-                label: 'LIST',
-            })
-
-            // In addition to adding the listing URLs, we now also
-            // add the detail URLs from all the listing pages.
-            await page.waitForSelector('div[data-test="actorCard"] a');
-            await enqueueLinks({
-                selector: 'div[data-test="actorCard"] a',
+                selector: '.product-item > a',
                 label: 'DETAIL', // <= note the different label
-            })
+            });
+
+            // Now we need to find the "Next" button and enqueue the next page of results (if it exists)
+            const nextButton = await page.$('a.pagination__next');
+            if (nextButton) {
+                await enqueueLinks({
+                    selector: 'a.pagination__next',
+                    label: 'CATEGORY', // <= note the same label
+                });
+            }
+        } else {
+            // This means we're on the start page, with no label.
+            // On this page, we just want to enqueue all the category pages.
+
+            await page.waitForSelector('.collection-block-item');
+            await enqueueLinks({
+                selector: '.collection-block-item',
+                label: 'CATEGORY',
+            });
         }
     },
 });
 
-await crawler.run(['https://apify.com/store']);
+await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
 ```
 
 The crawling code is now complete. When you run the code, you'll see the crawler visit all the listing URLs and all the detail URLs.
