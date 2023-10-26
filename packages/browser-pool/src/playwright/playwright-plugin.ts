@@ -54,6 +54,11 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
             ...launchOptions!.proxy,
         };
 
+        // WebKit does not support --no-sandbox
+        if (this.library.name() === 'webkit') {
+            launchOptions!.args = launchOptions!.args?.filter((arg) => arg !== '--no-sandbox');
+        }
+
         const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
         if (anonymizedProxyUrl) {
             launchOptions!.proxy = {
