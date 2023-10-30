@@ -100,7 +100,7 @@ router.addHandler('DETAIL', async ({ request, page, log }) => {
     await Dataset.pushData(results);
 });
 
-router.addHandler('CATEGORY', async ({ page, enqueueLinks, request }) => {
+router.addHandler('CATEGORY', async ({ page, enqueueLinks, request, log }) => {
     log.debug(`Enqueueing pagination for: ${request.url}`);
     // We are now on a category page. We can use this to paginate through and enqueue all products,
     // as well as any subsequent pages we find
