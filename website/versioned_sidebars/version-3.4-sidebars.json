@@ -17,7 +17,8 @@
         "introduction/crawling",
         "introduction/scraping",
         "introduction/saving-data",
-        "introduction/refactoring"
+        "introduction/refactoring",
+        "introduction/deployment"
       ]
     },
     {
