@@ -9,24 +9,20 @@ const crawler = new CheerioCrawler({
         const title = $('title').text();
         console.log(`The title of "${request.url}" is: ${title}.`);
 
+        // Without enqueueLinks, we first have to extract all
+        // the URLs from the page with Cheerio.
         const links = $('a[href]')
             .map((_, el) => $(el).attr('href'))
             .get();
 
-        // Besides resolving the URLs, we now also need to
-        // grab their hostname for filtering.
-        const { hostname } = new URL(request.loadedUrl);
-        const absoluteUrls = links
-            .map((link) => new URL(link, request.loadedUrl));
-
-        // We use the hostname to filter links that point
-        // to a different domain, even subdomain.
-        const sameHostnameLinks = absoluteUrls
-            .filter((url) => url.hostname === hostname)
-            .map((url) => ({ url: url.href }));
+        // Then we need to resolve relative URLs,
+        // otherwise they would be unusable for crawling.
+        const absoluteUrls = links.map(
+            (link) => new URL(link, request.loadedUrl).href,
+        );
 
         // Finally, we have to add the URLs to the queue
-        await crawler.addRequests(sameHostnameLinks);
+        await crawler.addRequests(absoluteUrls);
     },
 });
 

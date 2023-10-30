@@ -15,7 +15,7 @@ const crawler = new CheerioCrawler({
         // grab their hostname for filtering.
         const { hostname } = new URL(request.loadedUrl);
         const absoluteUrls = links.map(
-            (link) => new URL(link, request.loadedUrl)
+            (link) => new URL(link, request.loadedUrl),
         );
 
         // We use the hostname to filter links that point
