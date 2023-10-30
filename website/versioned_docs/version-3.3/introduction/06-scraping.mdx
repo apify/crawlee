@@ -71,9 +71,9 @@ const title = await page.locator('.product-meta h1').textContent();
 
 ### SKU
 
-Using the DevTools, we find that the product SKU is inside a `<span>` tag with a class `product-meta__sku-number`. And since there's no other `<p>` with that class on the page, we can safely use it.
+Using the DevTools, we find that the product SKU is inside a `<span>` tag with a class `product-meta__sku-number`. And since there's no other `<span>` with that class on the page, we can safely use it.
 
-![product sku selector](/img/getting-started/sku.jpg 'Finding product sku in DevTools.')
+![product sku selector](/img/getting-started/sku.jpg 'Finding product SKU in DevTools.')
 
 ```js
 const sku = await page.locator('span.product-meta__sku-number').textContent();
