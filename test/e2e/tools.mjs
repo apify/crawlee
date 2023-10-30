@@ -438,7 +438,7 @@ function checkDatasetItem(item, propName) {
         case 'runCount':
             return Number.isInteger(item.runCount);
         default:
-            return typeof item[propName] === 'string';
+            return ['string', 'number', 'boolean'].includes(typeof item[propName]);
     }
 }
 
