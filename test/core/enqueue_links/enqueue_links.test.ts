@@ -189,6 +189,26 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({ label: 'COOL' });
         });
 
+        test('works with skipNavigation', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+
+            await browserCrawlerEnqueueLinks({
+                options: {
+                    selector: '.click',
+                    skipNavigation: true,
+                },
+                page,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(2);
+
+            for (const request of enqueued) {
+                expect(request.skipNavigation).toBe(true);
+            }
+        });
+
         test('works with exclude glob', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             const globs = [
@@ -940,33 +960,6 @@ describe('enqueueLinks()', () => {
 
             for (let i = 0; i < 5; i++) {
                 expect(enqueued[i].options.forefront).toBe(true);
-            }
-        });
-
-        test('accepts skipNavigation option', async () => {
-            const enqueued: { request: Source; options: RequestQueueOperationOptions }[] = [];
-            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-
-            requestQueue.addRequests = async (requests, options) => {
-                // copy the requests to the enqueued list, along with options that were passed to addRequests,
-                // so that it doesn't matter how many calls were made
-                enqueued.push(...requests.map((request) => ({ request, options })));
-                return { processedRequests: [], unprocessedRequests: [] };
-            };
-
-            await cheerioCrawlerEnqueueLinks({
-                options: {
-                    skipNavigation: true,
-                },
-                $,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            });
-
-            expect(enqueued).toHaveLength(5);
-
-            for (let i = 0; i < 5; i++) {
-                expect(enqueued[i].options.skipNavigation).toBe(true);
             }
         });
     });
