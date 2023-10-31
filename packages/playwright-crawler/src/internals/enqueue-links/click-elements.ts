@@ -233,6 +233,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         maxWaitForPageIdleSecs: ow.optional.number,
         label: ow.optional.string,
         forefront: ow.optional.boolean,
+        skipNavigation: ow.optional.boolean,
     }));
 
     const {
