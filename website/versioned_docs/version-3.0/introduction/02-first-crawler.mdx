@@ -40,7 +40,7 @@ We are using a JavaScript feature called [Top level await](https://blog.saeloun.
 
 Earlier you learned that the crawler uses a queue of requests as its source of URLs to crawl. Let's create it and add the first request.
 
-```ts title="src/main.mjs"
+```ts title="src/main.js"
 import { RequestQueue } from 'crawlee';
 
 // First you create the request queue instance.
@@ -65,7 +65,7 @@ Unless you have a good reason to start with a different one, you should try buil
 
 Let's continue with the earlier `RequestQueue` example.
 
-```ts title="src/main.mjs"
+```ts title="src/main.js"
 // Add import of CheerioCrawler
 import { RequestQueue, CheerioCrawler } from 'crawlee';
 
@@ -100,7 +100,7 @@ The title of "https://crawlee.dev" is: Crawlee · The scalable web crawling, scr
 
 Earlier we mentioned that you'll learn how to use the `crawler.addRequests()` method to skip the request queue initialization. It's simple. Every crawler has an implicit `RequestQueue` instance, and you can add requests to it with the `crawler.addRequests()` method. In fact, you can go even further and just use the first parameter of `crawler.run()`!
 
-```ts title="src/main.mjs"
+```ts title="src/main.js"
 // You don't need to import RequestQueue anymore
 import { CheerioCrawler } from 'crawlee';
 

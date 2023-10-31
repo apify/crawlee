@@ -6,7 +6,7 @@ description: Your first steps into the world of scraping with Crawlee
 
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
-import ExampleCode from '!!raw-loader!roa-loader!./07-example.ts';
+import Example from '!!raw-loader!roa-loader!./07-example.ts';
 
 A data extraction job would not be complete without saving the data for later use and processing. We've come to the final and most difficult part of this tutorial so make sure to pay attention very carefully!
 
@@ -25,7 +25,7 @@ await Dataset.pushData(results);
 and that's it. Unlike earlier, we are being serious now. That's it, we're done. The final code looks like this:
 
 <RunnableCodeBlock className="language-js" type="playwright">
-    {ExampleCode}
+    {Example}
 </RunnableCodeBlock>
 
 ## What's `Dataset.pushData()`

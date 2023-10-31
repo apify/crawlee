@@ -1,7 +1,7 @@
 ---
 id: scraping
-title: "Scraping the Store"
-sidebar_label: "Scraping"
+title: 'Scraping the Store'
+sidebar_label: 'Scraping'
 description: Your first steps into the world of scraping with Crawlee
 ---
 
@@ -9,21 +9,20 @@ import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
 import ApiLink from '@site/src/components/ApiLink';
 import ExampleCode from '!!raw-loader!roa-loader!./06-example.ts';
 
-In the [Real-world project chapter](./real-world-project#choosing-the-data-you-need), we created a list of the information we wanted to collect about the Actors in the Apify Store. Let's review that and figure out ways to access the data.
+In the [Real-world project chapter](./real-world-project#choosing-the-data-you-need), we created a list of the information we wanted to collect about the products in the example Warehouse store. Let's review that and figure out ways to access the data.
 
-- URL
-- Owner
-- Unique identifier (such as `apify/web-scraper`)
-- Title
-- Description
-- Last modification date
-- Number of runs
+-   URL
+-   Manufacturer
+-   SKU
+-   Title
+-   Current price
+-   Stock available
 
 ![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
 
-### Scraping the URL, Owner and Unique identifier
+### Scraping the URL, Manufacturer and SKU
 
-Some information is lying right there in front of us without even having to touch the Actor detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that it already includes the `owner` and the `unique identifier` too. We can just split the `string` and be on our way then!
+Some information is lying right there in front of us without even having to touch the product detail pages. The `URL` we already have - the `request.url`. And by looking at it carefully, we realize that we can also extract the manufacturer from the URL (as all product urls start with `/products/<manufacturer>`). We can just split the `string` and be on our way then!
 
 :::info
 
@@ -32,26 +31,31 @@ You can use `request.loadedUrl` as well. Remember the difference: `request.url` 
 :::
 
 ```js
-// request.url = https://apify.com/apify/web-scraper
+// request.url = https://warehouse-theme-metal.myshopify.com/products/sennheiser-mke-440-professional-stereo-shotgun-microphone-mke-440
 
-const urlParts = request.url.split('/').slice(-2); // ['apify', 'web-scraper']
-const uniqueIdentifier = urlParts.join('/'); // 'apify/web-scraper'
-const owner = urlParts[0]; // 'apify'
+const urlPart = request.url.split('/').slice(-1); // ['sennheiser-mke-440-professional-stereo-shotgun-microphone-mke-440']
+const manufacturer = urlPart[0].split('-')[0]; // 'sennheiser'
 ```
 
 :::tip
 
-It's a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `owner` from the `URL`, so should you duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's better to make the dataset as rich as possible. For example, someone might want to filter by `owner`.
+It's a matter of preference, whether to store this information separately in the resulting dataset, or not. Whoever uses the dataset can easily parse the `manufacturer` from the `URL`, so should you duplicate the data unnecessarily? Our opinion is that unless the increased data consumption would be too large to bear, it's better to make the dataset as rich as possible. For example, someone might want to filter by `manufacturer`.
 
 :::
 
-Now it's time to add more data to the results. Let's open one of the Actor detail pages, for example the [`apify/web-scraper`](https://apify.com/apify/web-scraper) page and use our DevTools-Fu 🥋 to figure out how to get the title of the Actor.
+:::caution
+
+One thing you may notice is that the `manufacturer` might have a `-` in its name. If that's the case, your best bet is extracting it from the details page instead, but it's not mandatory. At the end of the day, you should always adjust and pick the best solution for your use case, and website you are crawling.
+
+:::
+
+Now it's time to add more data to the results. Let's open one of the product detail pages, for example the [`Sony XBR-950G`](https://warehouse-theme-metal.myshopify.com/products/sony-xbr-65x950g-65-class-64-5-diag-bravia-4k-hdr-ultra-hd-tv) page and use our DevTools-Fu 🥋 to figure out how to get the title of the product.
 
 ### Title
 
-![actor title](/img/getting-started/title.jpg 'Finding actor title in DevTools.')
+![product title](/img/getting-started/title.jpg 'Finding product title in DevTools.')
 
-By using the element selector tool, you can see that the title is there under an `<h1>` tag, as titles should be. Web pages usually have only a single `<h1>` tag, but this one has two. Because of that, we have to extend the selector with more information. The `<h1>` tag is enclosed in a `<div>` with class `ActorHeader-identificator`. We can leverage this to create a combined selector `.ActorHeader-identificator h1`. It selects any `<h1>` element that is a child of a different element with the class `ActorHeader-identificator`.
+By using the element selector tool, you can see that the title is there under an `<h1>` tag, as titles should be. The `<h1>` tag is enclosed in a `<div>` with class `product-meta`. We can leverage this to create a combined selector `.product-meta h1`. It selects any `<h1>` element that is a child of a different element with the class `product-meta`.
 
 :::tip
 
@@ -59,66 +63,90 @@ Remember that you can press CTRL+F (or CMD+F on Mac) in the **Elements** tab of 
 
 :::
 
-To get the title, we need to find it using `Playwright` and a `.ActorHeader-identificator h1` locator, which selects the `<h1>` element we're looking for, or throws, if it finds more than one. That's good. It's usually better to crash the crawler than silently return bad data.
+To get the title, we need to find it using `Playwright` and a `.product-meta h1` locator, which selects the `<h1>` element we're looking for, or throws, if it finds more than one. That's good. It's usually better to crash the crawler than silently return bad data.
 
 ```js
-const title = await page.locator('.ActorHeader-identificator h1').textContent();
+const title = await page.locator('.product-meta h1').textContent();
 ```
 
-### Description
+### SKU
 
-Using the DevTools, we find that the Actor description is inside a `<p>` tag with a class `ActorHeader-description`. And since there's no other `<p>` with that class on the page, we can safely use it.
+Using the DevTools, we find that the product SKU is inside a `<span>` tag with a class `product-meta__sku-number`. And since there's no other `<span>` with that class on the page, we can safely use it.
 
-![actor description selector](/img/getting-started/description.jpg 'Finding actor description in DevTools.')
+![product sku selector](/img/getting-started/sku.jpg 'Finding product SKU in DevTools.')
 
 ```js
-const description = await page.locator('p.ActorHeader-description').textContent();
+const sku = await page.locator('span.product-meta__sku-number').textContent();
 ```
 
-### Last modification date
+### Current price
 
-DevTools tell us that the `modifiedDate` can be found in a `<time>` element with a `datetime` property. You can use the [attribute CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors) to get it.
+DevTools tell us that the `currentPrice` can be found in a `<span>` element tagged with the `price` class. But it also shows us that it is nested as raw text alongside another `<span>` element with the `visually-hidden` class. We don't want that, so we need to filter it out, and we can use the `hasText` helper for that.
 
-![actor last modification date selector](/img/getting-started/modified-date.jpg 'Finding actor last modification date in DevTools.')
+![product current price selector](/img/getting-started/current-price.jpg 'Finding product current price in DevTools.')
 
 ```js
-const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
-const modifiedDate = new Date(Number(modifiedTimestamp));
+const priceElement = page
+    .locator('span.price')
+    .filter({
+        hasText: '$',
+    })
+    .first();
+
+const currentPriceString = await priceElement.textContent();
+const rawPrice = currentPriceString.split('$')[1];
+const price = Number(rawPrice.replaceAll(',', ''));
 ```
 
-It might look a little too complex at first glance, but let's walk through it. We find the right `<time>` element, and then we read its `datetime` attribute, because that's where a unix timestamp is stored as a `string`.
+It might look a little too complex at first glance, but let's walk through what we did. First off, we find the right part of the `price` span (specifically the actual price) by filtering the element that has the `$` sign in it. When we do that, we will get a string similar to `Sale price$1,398.00`. This, by itself, is not that useful, so we extract the actual numeric part by splitting by the `$` sign.
 
-But we would much rather see a readable date in our results, not a unix timestamp, so we need to convert it. Unfortunately the `new Date()` constructor will not accept a `string`, so we cast the `string` to a `number` using the `Number()` function before actually calling `new Date()`. Phew!
+Once we do that, we receive a string that represents our price, but we will be converting it to a number. We do that by replacing all the commas with nothingness (so we can parse it into a number), then we parse it into a number using `Number()`.
 
-### Run count
+### Stock available
 
-We're finishing up with the `runCount`. There's no specific element like `<time>`, so we need to create a complex selector and then do a transformation on the result.
+We're finishing up with the `availableInStock`. We can see there is a span with the `product-form__inventory` class, and it contains the text `In stock`. We can use the `hasText` helper again to filter out the right element.
 
 ```js
-const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
-const runCountString = await runsRow.textContent();
-const runCount = runCountString.replace('Runs ', '');
+const inStockElement = await page
+    .locator('span.product-form__inventory')
+    .filter({
+        hasText: 'In stock',
+    })
+    .first();
+
+const inStock = (await inStockElement.count()) > 0;
 ```
 
-The code looks complicated, but it only reads that we're looking for an `<ul class="ActorHeader-userMedallion ...">` element and within that element we're looking for the `<li>` element that includes the text **Runs**. We're only interested in the number of runs. So we extract the count from the last (second) `<li>` element. But it contains the "Runs " string as well, so we remove the "Runs " by replacing the word with empty string.
+For this, all we care about is whether the element exists or not, so we can use the `count()` method to check if there are any elements that match our selector. If there are, we know that the product is in stock.
 
 And there we have it! All the data we needed. For the sake of completeness, let's add all the properties together, and we're good to go.
 
 ```js
-const urlParts = request.url.split('/').slice(-2);
-const uniqueIdentifier = urlParts.join('/');
-const owner = urlParts[0];
+const urlPart = request.url.split('/').slice(-1); // ['sennheiser-mke-440-professional-stereo-shotgun-microphone-mke-440']
+const manufacturer = urlPart.split('-')[0]; // 'sennheiser'
 
-const title = await page.locator('.ActorHeader-identificator h1').textContent();
+const title = await page.locator('.product-meta h1').textContent();
+const sku = await page.locator('span.product-meta__sku-number').textContent();
 
-const description = await page.locator('p.ActorHeader-description').textContent();
+const priceElement = page
+    .locator('span.price')
+    .filter({
+        hasText: '$',
+    })
+    .first();
 
-const modifiedTimestamp = await page.locator('time[datetime]').getAttribute('datetime');
-const modifiedDate = new Date(Number(modifiedTimestamp));
+const currentPriceString = await priceElement.textContent();
+const rawPrice = currentPriceString.split('$')[1];
+const price = Number(rawPrice.replaceAll(',', ''));
 
-const runsRow = page.locator('ul.ActorHeader-userMedallion > li').filter({ hasText: 'Runs' });
-const runCountString = await runsRow.textContent();
-const runCount = runCountString.replace('Runs ', '');
+const inStockElement = await page
+    .locator('span.product-form__inventory')
+    .filter({
+        hasText: 'In stock',
+    })
+    .first();
+
+const inStock = (await inStockElement.count()) > 0;
 ```
 
 ## Trying it out
@@ -133,17 +161,15 @@ When you run the crawler, you will see the crawled URLs and their scraped data p
 
 ```json
 {
-	"url": "https://apify.com/clockworks/tiktok-scraper",
-	"uniqueIdentifier": "clockworks/tiktok-scraper",
-	"owner": "clockworks",
-	"title": "TikTok Scraper",
-	"description": "Powerful TikTok scraper to extract data from TikTok videos, hashtags, and users. Use it to scrape TikTok profiles, hashtags, posts, URLs, numbers of shares, followers, hearts, names, video, and music-related data. Download TikTok data as a HTML, JSON, CSV, Excel, or XML doc.",
-	"modifiedDate": "2023-04-26T12:13:19.387Z",
-	"runCount": "1.6M"
+    "url": "https://warehouse-theme-metal.myshopify.com/products/sony-str-za810es-7-2-channel-hi-res-wi-fi-network-av-receiver",
+    "manufacturer": "sony",
+    "title": "Sony STR-ZA810ES 7.2-Ch Hi-Res Wi-Fi Network A/V Receiver",
+    "sku": "SON-692802-STR-DE",
+    "currentPrice": 698,
+    "availableInStock": true
 }
 ```
 
 ## Next lesson
 
 In the next lesson, we will show you how to save the data you scraped to the disk for further processing.
-

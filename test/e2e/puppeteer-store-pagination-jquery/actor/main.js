@@ -9,8 +9,10 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         maxRequestsPerCrawl: 10,
-        preNavigationHooks: [({ session, request }, goToOptions) => {
-            session?.setCookies([{ name: 'OptanonAlertBoxClosed', value: new Date().toISOString() }], request.url);
+        preNavigationHooks: [async ({ page }, goToOptions) => {
+            await page.evaluateOnNewDocument(() => {
+                localStorage.setItem('themeExitPopup', 'true');
+            });
             goToOptions.waitUntil = ['networkidle2'];
         }],
         async requestHandler({ page, request, log, enqueueLinks, injectJQuery }) {
@@ -18,15 +20,16 @@ await Actor.main(async () => {
 
             if (label === 'START') {
                 log.info('Store opened');
-                const nextButtonSelector = '[data-test="pagination-button-next"]:not([disabled])';
-                // enqueue actor details from the first three pages of the store
-                for (let pageNo = 1; pageNo <= 3; pageNo++) {
+                const nextButtonSelector = '.pagination__next';
+                // enqueue product details from the first three pages of the store
+                for (let pageNo = 1; pageNo < 3; pageNo++) {
                     // Wait for network events to finish
                     await page.waitForNetworkIdle();
                     // Enqueue all loaded links
                     await enqueueLinks({
-                        selector: 'div.ActorStore-main div > a',
-                        globs: [{ glob: 'https://apify.com/*/*', userData: { label: 'DETAIL' } }],
+                        selector: 'a.product-item__image-wrapper',
+                        label: 'DETAIL',
+                        globs: ['https://warehouse-theme-metal.myshopify.com/*/*'],
                     });
                     log.info(`Enqueued actors for page ${pageNo}`);
                     log.info('Loading the next page');
@@ -35,18 +38,38 @@ await Actor.main(async () => {
             } else if (label === 'DETAIL') {
                 log.info(`Scraping ${url}`);
                 await injectJQuery();
-                const uniqueIdentifier = url.split('/').slice(-2).join('/');
-                const results = await page.evaluate(() => ({
-                    title: $('header h1').text(), // eslint-disable-line
-                    description: $('div.Section-body > div > p').text(), // eslint-disable-line
-                    modifiedDate: $('div:nth-of-type(2) > ul > li:nth-of-type(3)').text(), // eslint-disable-line
-                    runCount: $('ul.ActorHeader-userMedallion li:nth-of-type(4)').text(), // eslint-disable-line
-                }));
+                const urlPart = url.split('/').slice(-1); // ['sennheiser-mke-440-professional-stereo-shotgun-microphone-mke-440']
+                const manufacturer = urlPart[0].split('-')[0]; // 'sennheiser'
 
-                await Dataset.pushData({ url, uniqueIdentifier, ...results });
+                /* eslint-disable no-undef */
+                const results = await page.evaluate(() => {
+                    const rawPrice = $('span.price')
+                        .filter((_, el) => $(el).text().includes('$'))
+                        .first()
+                        .text()
+                        .split('$')[1];
+
+                    const price = Number(rawPrice.replaceAll(',', ''));
+
+                    const inStock = $('span.product-form__inventory')
+                        .first()
+                        .filter((_, el) => $(el).text().includes('In stock'))
+                        .length !== 0;
+
+                    return {
+                        title: $('.product-meta h1').text(),
+                        sku: $('span.product-meta__sku-number').text(),
+                        currentPrice: price,
+                        availableInStock: inStock,
+                    };
+                });
+
+                /* eslint-enable no-undef */
+
+                await Dataset.pushData({ url, manufacturer, ...results });
             }
         },
     });
 
-    await crawler.run([{ url: 'https://apify.com/store', userData: { label: 'START' } }]);
+    await crawler.run([{ url: 'https://warehouse-theme-metal.myshopify.com/collections/all-tvs', userData: { label: 'START' } }]);
 }, mainOptions);
