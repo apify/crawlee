@@ -19,7 +19,12 @@ import {
 } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import ow from 'ow';
-import type { Page, Frame, Request, Route } from 'playwright';
+import type {
+    Page,
+    Frame,
+    Request,
+    Route,
+} from 'playwright';
 
 const STARTING_Z_INDEX = 2147400000;
 const log = log_.child({ prefix: 'Playwright Click Elements' });
@@ -161,6 +166,12 @@ export interface EnqueueLinksByClickingElementsOptions {
      * @default false
      */
     forefront?: boolean;
+
+    /**
+     * If set to `true`, tells the crawler to skip navigation and process the request directly:
+     * @default false
+     */
+    skipNavigation?: boolean;
 }
 
 /**
@@ -204,34 +215,32 @@ export interface EnqueueLinksByClickingElementsOptions {
  *
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
-export async function enqueueLinksByClickingElements(
-    options: EnqueueLinksByClickingElementsOptions,
-): Promise<BatchAddRequestsResult> {
-    ow(
-        options,
-        ow.object.exactShape({
-            page: ow.object.hasKeys('goto', 'evaluate'),
-            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-            selector: ow.string,
-            userData: ow.optional.object,
-            clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
-            pseudoUrls: ow.optional.array.ofType(
-                ow.any(ow.string, ow.object.hasKeys('purl')),
-            ),
-            globs: ow.optional.array.ofType(
-                ow.any(ow.string, ow.object.hasKeys('glob')),
-            ),
-            regexps: ow.optional.array.ofType(
-                ow.any(ow.regExp, ow.object.hasKeys('regexp')),
-            ),
-            transformRequestFunction: ow.optional.function,
-            waitForPageIdleSecs: ow.optional.number,
-            maxWaitForPageIdleSecs: ow.optional.number,
-            label: ow.optional.string,
-            forefront: ow.optional.boolean,
-            skipNavigation: ow.optional.boolean,
-        }),
-    );
+export async function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult> {
+    ow(options, ow.object.exactShape({
+        page: ow.object.hasKeys('goto', 'evaluate'),
+        requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+        selector: ow.string,
+        userData: ow.optional.object,
+        clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
+        pseudoUrls: ow.optional.array.ofType(ow.any(
+            ow.string,
+            ow.object.hasKeys('purl'),
+        )),
+        globs: ow.optional.array.ofType(ow.any(
+            ow.string,
+            ow.object.hasKeys('glob'),
+        )),
+        regexps: ow.optional.array.ofType(ow.any(
+            ow.regExp,
+            ow.object.hasKeys('regexp'),
+        )),
+        transformRequestFunction: ow.optional.function,
+        waitForPageIdleSecs: ow.optional.number,
+        maxWaitForPageIdleSecs: ow.optional.number,
+        label: ow.optional.string,
+        forefront: ow.optional.boolean,
+        skipNavigation: ow.optional.boolean,
+    }));
 
     const {
         page,
@@ -253,12 +262,8 @@ export async function enqueueLinksByClickingElements(
     const urlPatternObjects: UrlPatternObject[] = [];
 
     if (pseudoUrls?.length) {
-        log.deprecated(
-            '`pseudoUrls` option is deprecated, use `globs` or `regexps` instead',
-        );
-        urlPatternObjects.push(
-            ...constructRegExpObjectsFromPseudoUrls(pseudoUrls),
-        );
+        log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
+        urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
     }
 
     if (globs?.length) {
@@ -269,24 +274,19 @@ export async function enqueueLinksByClickingElements(
         urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
     }
 
-    const interceptedRequests =
-        await clickElementsAndInterceptNavigationRequests({
-            page,
-            selector,
-            waitForPageIdleMillis,
-            maxWaitForPageIdleMillis,
-            clickOptions,
-        });
+    const interceptedRequests = await clickElementsAndInterceptNavigationRequests({
+        page,
+        selector,
+        waitForPageIdleMillis,
+        maxWaitForPageIdleMillis,
+        clickOptions,
+    });
     let requestOptions = createRequestOptions(interceptedRequests, options);
     if (transformRequestFunction) {
-        requestOptions = requestOptions
-            .map(transformRequestFunction)
-            .filter((r) => !!r) as RequestOptions[];
+        requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
     }
     const requests = createRequests(requestOptions, urlPatternObjects);
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
-        forefront,
-    });
+    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }
@@ -297,8 +297,7 @@ interface WaitForPageIdleOptions {
     maxWaitForPageIdleMillis?: number;
 }
 
-interface ClickElementsAndInterceptNavigationRequestsOptions
-    extends WaitForPageIdleOptions {
+interface ClickElementsAndInterceptNavigationRequestsOptions extends WaitForPageIdleOptions {
     selector: string;
     clickOptions?: ClickOptions;
 }
@@ -309,9 +308,7 @@ interface ClickElementsAndInterceptNavigationRequestsOptions
  * Returns a list of all target URLs.
  * @ignore
  */
-export async function clickElementsAndInterceptNavigationRequests(
-    options: ClickElementsAndInterceptNavigationRequestsOptions,
-): Promise<Dictionary[]> {
+export async function clickElementsAndInterceptNavigationRequests(options: ClickElementsAndInterceptNavigationRequestsOptions): Promise<Dictionary[]> {
     const {
         page,
         selector,
@@ -323,10 +320,7 @@ export async function clickElementsAndInterceptNavigationRequests(
     const uniqueRequests = new Set<string>();
     const context = page.context();
 
-    const onInterceptedRequest = createInterceptRequestHandler(
-        page,
-        uniqueRequests,
-    );
+    const onInterceptedRequest = createInterceptRequestHandler(page, uniqueRequests);
     const onPopup = createTargetCreatedHandler(uniqueRequests);
     const onFrameNavigated = createFrameNavigatedHandler(page, uniqueRequests);
 
@@ -338,11 +332,7 @@ export async function clickElementsAndInterceptNavigationRequests(
     await preventHistoryNavigation(page);
 
     await clickElements(page, selector, clickOptions);
-    await waitForPageIdle({
-        page,
-        waitForPageIdleMillis,
-        maxWaitForPageIdleMillis,
-    });
+    await waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis });
 
     await restoreHistoryNavigationAndSaveCapturedUrls(page, uniqueRequests);
 
@@ -357,21 +347,15 @@ export async function clickElementsAndInterceptNavigationRequests(
 /**
  * @ignore
  */
-function createInterceptRequestHandler(
-    page: Page,
-    requests: Set<string>,
-): (route: Route, request: Request) => Promise<void> {
+function createInterceptRequestHandler(page: Page, requests: Set<string>): (route: Route, request: Request) => Promise<void> {
     return async function onInterceptedRequest(route, request) {
-        if (!isTopFrameNavigationRequest(page, request))
-            return route.continue();
-        requests.add(
-            JSON.stringify({
-                url: request.url(),
-                headers: request.headers(),
-                method: request.method(),
-                payload: request.postData() ?? undefined,
-            }),
-        );
+        if (!isTopFrameNavigationRequest(page, request)) return route.continue();
+        requests.add(JSON.stringify({
+            url: request.url(),
+            headers: request.headers(),
+            method: request.method(),
+            payload: request.postData() ?? undefined,
+        }));
 
         if (request.redirectedFrom()) {
             return route.fulfill({ body: '' }); // Prevents 301/302 redirect
@@ -383,9 +367,7 @@ function createInterceptRequestHandler(
 /**
  * @ignore
  */
-function createTargetCreatedHandler(
-    requests: Set<string>,
-): (popup: Page) => Promise<void> {
+function createTargetCreatedHandler(requests: Set<string>): (popup: Page) => Promise<void> {
     return async function onTargetCreated(popup) {
         const url = popup.url();
         requests.add(JSON.stringify({ url }));
@@ -395,10 +377,7 @@ function createTargetCreatedHandler(
         try {
             await popup.close();
         } catch (err) {
-            log.debug(
-                'enqueueLinksByClickingElements: Could not close spawned page.',
-                { error: (err as Error).stack },
-            );
+            log.debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: (err as Error).stack });
         }
     };
 }
@@ -407,16 +386,14 @@ function createTargetCreatedHandler(
  * @ignore
  */
 function isTopFrameNavigationRequest(page: Page, req: Request): boolean {
-    return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    return req.isNavigationRequest()
+        && req.frame() === page.mainFrame();
 }
 
 /**
  * @ignore
  */
-function createFrameNavigatedHandler(
-    page: Page,
-    requests: Set<string>,
-): (frame: Frame) => void {
+function createFrameNavigatedHandler(page: Page, requests: Set<string>): (frame: Frame) => void {
     return function onFrameNavigated(frame) {
         if (frame !== page.mainFrame()) return;
         const url = frame.url();
@@ -485,15 +462,9 @@ function updateElementCssToEnableMouseClick(el: Element, zIndex: number): void {
  * for large element sets, this will take considerable amount of time.
  * @ignore
  */
-export async function clickElements(
-    page: Page,
-    selector: string,
-    clickOptions?: ClickOptions,
-): Promise<void> {
+export async function clickElements(page: Page, selector: string, clickOptions?: ClickOptions): Promise<void> {
     const elementHandles = await page.$$(selector);
-    log.debug(
-        `enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`,
-    );
+    log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;
     let zIndex = STARTING_Z_INDEX;
     let shouldLogWarning = true;
@@ -504,25 +475,16 @@ export async function clickElements(
             clickedElementsCount++;
         } catch (err) {
             const e = err as Error;
-            if (
-                shouldLogWarning &&
-                e.stack!.includes('is detached from document')
-            ) {
-                log.warning(
-                    `An element with selector ${selector} that you're trying to click has been removed from the page. ` +
-                        'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
-                        'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
-                );
+            if (shouldLogWarning && e.stack!.includes('is detached from document')) {
+                log.warning(`An element with selector ${selector} that you're trying to click has been removed from the page. `
+                    + 'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. '
+                    + 'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.');
                 shouldLogWarning = false;
             }
-            log.debug('enqueueLinksByClickingElements: Click failed.', {
-                stack: e.stack,
-            });
+            log.debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
         }
     }
-    log.debug(
-        `enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`,
-    );
+    log.debug(`enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`);
 }
 
 /**
@@ -539,11 +501,7 @@ export async function clickElements(
  * when there's only a single element to click.
  * @ignore
  */
-async function waitForPageIdle({
-    page,
-    waitForPageIdleMillis,
-    maxWaitForPageIdleMillis,
-}: WaitForPageIdleOptions): Promise<void> {
+async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis }: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
         let maxTimeout: NodeJS.Timeout;
@@ -559,10 +517,8 @@ async function waitForPageIdle({
         }
 
         function maxTimeoutHandler() {
-            log.debug(
-                `enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. ` +
-                    'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
-            );
+            log.debug(`enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. `
+                + 'This is probably due to the website itself dispatching requests, but some links may also have been missed.');
             finish();
         }
 
@@ -583,16 +539,11 @@ async function waitForPageIdle({
 /**
  * @ignore
  */
-async function restoreHistoryNavigationAndSaveCapturedUrls(
-    page: Page,
-    requests: Set<string>,
-): Promise<void> {
+async function restoreHistoryNavigationAndSaveCapturedUrls(page: Page, requests: Set<string>): Promise<void> {
     /* istanbul ignore next */
     const state = await page.evaluate(() => {
         const { stateHistory } = window.history as unknown as ApifyWindow;
-        (window as unknown as Dictionary).history = (
-            window as unknown as Dictionary
-        ).__originalHistory__;
+        (window as unknown as Dictionary).history = (window as unknown as Dictionary).__originalHistory__;
         return stateHistory;
     });
 
@@ -602,9 +553,7 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(
             const url = new URL(stateUrl, page.url()).href;
             requests.add(JSON.stringify({ url }));
         } catch (err) {
-            log.debug('enqueueLinksByClickingElements: Failed to ', {
-                error: (err as Error).stack,
-            });
+            log.debug('enqueueLinksByClickingElements: Failed to ', { error: (err as Error).stack });
         }
     });
 }

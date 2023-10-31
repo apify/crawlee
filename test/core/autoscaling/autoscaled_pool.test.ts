@@ -541,5 +541,3 @@ describe('AutoscaledPool', () => {
         expect(Date.now() - now).toBeGreaterThanOrEqual(1e3);
     }, 10e3);
 });
-
-/* eslint-enable no-underscore-dangle */

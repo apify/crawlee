@@ -230,7 +230,7 @@ export function createRequestOptions(
                 };
             }
 
-            if(options.skipNavigation){
+            if (options.skipNavigation) {
                 requestOptions.skipNavigation = true;
             }
 
