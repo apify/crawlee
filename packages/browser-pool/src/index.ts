@@ -41,6 +41,8 @@ export {
     BrowserPlugin,
     BrowserPluginOptions,
     CreateLaunchContextOptions,
+    BrowserLaunchError,
+    DEFAULT_USER_AGENT,
 } from './abstract-classes/browser-plugin';
 export { LaunchContext, LaunchContextOptions } from './launch-context';
 export {

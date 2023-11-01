@@ -1,4 +1,3 @@
-import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
@@ -75,20 +74,13 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 }
             } catch (error: any) {
                 await close();
-                let debugMessage = `Failed to launch browser.`
-                    + `${launchContext.launchOptions?.executablePath
-                        ? ` Check whether the provided executable path is correct: ${launchContext.launchOptions?.executablePath}.` : ''}`;
-                if (process.env.APIFY_IS_AT_HOME) {
-                    debugMessage += ' Make sure your Dockerfile extends `apify/actor-node-puppeteer-chrome. Or install';
-                } else {
-                    debugMessage += ' Try installing';
-                }
-                debugMessage += ` a browser, if it's missing, by running \`npx @puppeteer/browsers install chromium --path [path]\``
-                    + ` and pointing \`executablePath\` to the downloaded executable (https://pptr.dev/browsers-api).`
-                    + ` The original error will be displayed at the bottom as the [cause].`;
-                throw new CriticalError(debugMessage, {
-                    cause: error,
-                });
+
+                this._throwAugmentedLaunchError(
+                    error,
+                    launchContext.launchOptions?.executablePath,
+                    '`apify/actor-node-puppeteer-chrome`',
+                    "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
+                );
             }
         }
 
