@@ -36,6 +36,15 @@ sudo ifconfig lo0 alias 127.0.0.3 up
 sudo ifconfig lo0 alias 127.0.0.4 up
 ```
 
+### Arch linux
+
+Arch linux is [not officially supported](https://github.com/microsoft/playwright/issues/8100) by Playwright, which causes problems in tests. You need to install dependencies manually:
+
+```
+yay -S libffi7 icu66 libwebp052 flite-unpatched
+sudo ln -s /usr/lib/libpcre.so /usr/lib/libpcre.so.3
+```
+
 ## Testing in Crawlee with vitest
 
 There are a few small differences between how testing in jest and vitest works. Mostly, they relate to what to do, and not do anymore.
