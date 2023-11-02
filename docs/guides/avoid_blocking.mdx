@@ -13,7 +13,7 @@ import PuppeteerSource from '!!raw-loader!./avoid_blocking_puppeteer';
 import PlaywrightFingerprintsOffSource from '!!raw-loader!./avoid_blocking_playwright_fingerprints_off.ts';
 import PuppeteerFingerprintsOffSource from '!!raw-loader!./avoid_blocking_puppeteer_fingerprints_off.ts';
 
-A scraper might get blocked for numerous reasons. Let's narrow it down to two main ones. The first one is a bad or blocked IP address. This topic is covered in the [proxy management guide](./proxy-management). The second reason we will explore more in this guide is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) (or signatures).
+A scraper might get blocked for numerous reasons. Let's narrow it down to the two main ones. The first is a bad or blocked IP address. You can learn about this topic in the [proxy management guide](./proxy-management). The second reason is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) (or signatures), which we will explore more in this guide. Check the [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping) to gain a deeper theoretical understanding of blocking and learn a few tips and tricks.
 
 Browser fingerprint is a collection of browser attributes and significant features that can show if our browser is a bot or a real user. Moreover, most browsers have these unique features that allow the website to track the browser even within different IP addresses. This is the main reason why scrapers should change browser fingerprints while doing browser-based scraping. In return, it should significantly reduce the blocking.
 
@@ -58,3 +58,4 @@ On the contrary, sometimes we want to entirely disable the usage of browser fing
 **Related links**
 
 - [Fingerprint Suite Docs](https://github.com/apify/fingerprint-suite)
+- [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping)
