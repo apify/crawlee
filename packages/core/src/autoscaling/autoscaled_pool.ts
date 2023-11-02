@@ -534,7 +534,7 @@ export class AutoscaledPool {
 
             if (this.taskTimeoutMillis > 0) {
                 await addTimeoutToPromise(
-                    () => this.runTaskFunction(),
+                    async () => this.runTaskFunction(),
                     this.taskTimeoutMillis,
                     `runTaskFunction timed out after ${this.taskTimeoutMillis / 1000} seconds.`,
                 );

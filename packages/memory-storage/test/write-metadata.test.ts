@@ -24,7 +24,7 @@ describe('writeMetadata option', () => {
             const expectedPath = resolve(storage.keyValueStoresDirectory, `${keyValueStore.id}`);
 
             // We check that reading the directory for the store throws an error, which means it wasn't created on disk
-            await expect(() => readdir(expectedPath)).rejects.toThrow();
+            await expect(async () => readdir(expectedPath)).rejects.toThrow();
         });
 
         test('creating a key-value pair in a key-value store should not write __metadata__.json file for the value', async () => {

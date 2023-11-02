@@ -144,7 +144,7 @@ describe('BrowserCrawler', () => {
         class TimeoutError extends Error {}
         let sessionGoto: Session;
         const browserCrawler = new class extends BrowserCrawlerTest {
-            protected override _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
+            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
                 vitest.spyOn(ctx.session, 'markBad');
                 sessionGoto = ctx.session;
                 throw new TimeoutError();
@@ -172,7 +172,8 @@ describe('BrowserCrawler', () => {
         let isEvaluated = false;
 
         const browserCrawler = new class extends BrowserCrawlerTest {
-            protected override _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
+            // eslint-disable-next-line max-len
+            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
                 isEvaluated = ctx.hookFinished as boolean;
                 return ctx.page.goto(ctx.request.url, gotoOptions);
             }
@@ -310,7 +311,8 @@ describe('BrowserCrawler', () => {
         });
         let optionsGoto: PuppeteerGoToOptions;
         const browserCrawler = new class extends BrowserCrawlerTest {
-            protected override _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
+            // eslint-disable-next-line max-len
+            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
                 optionsGoto = gotoOptions;
                 return ctx.page.goto(ctx.request.url, gotoOptions);
             }
@@ -348,7 +350,7 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                 },
                 requestList,
-                requestHandler: ({ page }) => {
+                requestHandler: async ({ page }) => {
                     page.close = async () => {
                         if (i === 0) {
                             throw new Error();
@@ -592,7 +594,7 @@ describe('BrowserCrawler', () => {
         });
         let called = false;
         const browserCrawler = new class extends BrowserCrawlerTest {
-            protected override _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
+            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext): Promise<HTTPResponse | null | undefined> {
                 ctx.crawler.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
                     resolve();
                     called = true;

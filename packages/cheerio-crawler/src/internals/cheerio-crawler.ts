@@ -201,7 +201,7 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
     }
 
     protected override async _runRequestHandler(context: CheerioCrawlingContext) {
-        context.parseWithCheerio = () => Promise.resolve(context.$);
+        context.parseWithCheerio = async () => Promise.resolve(context.$);
         await super._runRequestHandler(context);
     }
 }

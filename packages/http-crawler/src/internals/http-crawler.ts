@@ -495,7 +495,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
-                () => Promise.resolve(this.requestHandler(crawlingContext)),
+                async () => Promise.resolve(this.requestHandler(crawlingContext)),
                 this.userRequestHandlerTimeoutMillis,
                 `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
             );
@@ -533,7 +533,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         crawlingContext.response = await addTimeoutToPromise(
-            () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
+            async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
             this.navigationTimeoutMillis,
             `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -665,7 +665,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             return { ...parsed, isXml, response, contentType };
         } else {
             const body = await concatStreamToBuffer(response);
-            return { body, response, contentType, enqueueLinks: () => Promise.resolve({ processedRequests: [], unprocessedRequests: [] }) };
+            return { body, response, contentType, enqueueLinks: async () => Promise.resolve({ processedRequests: [], unprocessedRequests: [] }) };
         }
     }
 
@@ -799,7 +799,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = (options: OptionsInit & { isStream: true }, session?: Session) => {
+    private _requestAsBrowser = async (options: OptionsInit & { isStream: true }, session?: Session) => {
         return new Promise<PlainResponse>((resolve, reject) => {
             const stream = gotScraping(options);
 

@@ -103,7 +103,7 @@ export abstract class EventManager {
     /**
      * @internal
      */
-    waitForAllListenersToComplete() {
+    async waitForAllListenersToComplete() {
         return this.events.waitForAllListenersToComplete();
     }
 }

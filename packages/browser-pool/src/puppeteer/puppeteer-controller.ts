@@ -134,11 +134,11 @@ export class PuppeteerController extends BrowserController<
         }
     }
 
-    protected _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
+    protected async _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
         return page.cookies();
     }
 
-    protected _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
+    protected async _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
         return page.setCookie(...cookies);
     }
 }

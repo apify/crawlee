@@ -526,7 +526,7 @@ export class RequestList {
         let persistedRequests!: Buffer;
 
         if (this.initialState) {
-            state = await this.initialState;
+            state = this.initialState;
             this.log.debug('Loaded state from options.state argument.');
         } else if (this.persistStateKey) {
             state = await this._getPersistedState(this.persistStateKey);

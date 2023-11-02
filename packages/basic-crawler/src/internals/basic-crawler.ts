@@ -753,7 +753,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // just to be sure, this should be fast
         await addTimeoutToPromise(
-            () => client.setStatusMessage!(message, options),
+            async () => client.setStatusMessage!(message, options),
             1000,
             'Setting status message timed out after 1s',
         ).catch((e) => this.log.warning(e.message));
@@ -1183,13 +1183,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             request.state = RequestState.REQUEST_HANDLER;
             await addTimeoutToPromise(
-                () => this._runRequestHandler(crawlingContext),
+                async () => this._runRequestHandler(crawlingContext),
                 this.requestHandlerTimeoutMillis,
                 `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${request.id}).`,
             );
 
             await this._timeoutAndRetry(
-                () => source.markRequestHandled(request!),
+                async () => source.markRequestHandled(request!),
                 this.internalTimeoutMillis,
                 `Marking request ${request.url} (${request.id}) as handled timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
             );
@@ -1204,7 +1204,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
+                    async () => this._requestFunctionErrorHandler(err as Error, crawlingContext, source),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
                 );
@@ -1503,7 +1503,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return request.headers?.Cookie || request.headers?.cookie || '';
     }
 
-    private _getRequestQueue() {
+    private async _getRequestQueue() {
         if (this.experiments.requestLocking) {
             if (!this._experimentWarnings.requestLocking) {
                 this.log.warning([

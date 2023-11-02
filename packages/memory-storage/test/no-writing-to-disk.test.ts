@@ -26,7 +26,7 @@ describe('persistStorage option', () => {
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
             // We check that reading the directory for the store throws an error, which means it wasn't created on disk
-            await expect(() => readdir(localDataDirectory)).rejects.toThrow();
+            await expect(async () => readdir(localDataDirectory)).rejects.toThrow();
         });
     });
 

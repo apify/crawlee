@@ -119,7 +119,7 @@ export class MemoryStorage implements storage.StorageClient {
         return new RequestQueueClient({ id, baseStorageDirectory: this.requestQueuesDirectory, client: this, ...options });
     }
 
-    setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
+    async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
         s.string.parse(message);
         s.object({
             isStatusMessageTerminal: s.boolean.optional,
@@ -178,7 +178,7 @@ export class MemoryStorage implements storage.StorageClient {
      * This method should be called at the end of the process, to ensure all data is saved.
      */
     async teardown(): Promise<void> {
-        const promises = [...promiseMap.values()].map(({ promise }) => promise);
+        const promises = [...promiseMap.values()].map(async ({ promise }) => promise);
 
         await Promise.all(promises);
     }
@@ -232,7 +232,7 @@ export class MemoryStorage implements storage.StorageClient {
             return async () => (await this.batchRemoveFiles(tempPathForOldFolder))();
         }
 
-        return () => Promise.resolve();
+        return async () => Promise.resolve();
     }
 
     private async batchRemoveFiles(folder: string, counter = 0): Promise<() => Promise<void>> {
@@ -275,6 +275,6 @@ export class MemoryStorage implements storage.StorageClient {
             };
         }
 
-        return () => Promise.resolve();
+        return async () => Promise.resolve();
     }
 }

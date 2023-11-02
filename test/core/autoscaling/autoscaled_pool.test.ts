@@ -19,7 +19,7 @@ describe('AutoscaledPool', () => {
 
         let isFinished = false;
 
-        const runTaskFunction = () => {
+        const runTaskFunction = async () => {
             if (range.length === 1) {
                 isFinished = true;
             }
@@ -35,8 +35,8 @@ describe('AutoscaledPool', () => {
             minConcurrency: 1,
             maxConcurrency: 1,
             runTaskFunction,
-            isFinishedFunction: () => Promise.resolve(isFinished),
-            isTaskReadyFunction: () => Promise.resolve(!isFinished),
+            isFinishedFunction: async () => Promise.resolve(isFinished),
+            isTaskReadyFunction: async () => Promise.resolve(!isFinished),
         });
         await pool.run();
 
@@ -49,7 +49,7 @@ describe('AutoscaledPool', () => {
 
         let isFinished = false;
 
-        const runTaskFunction = () => {
+        const runTaskFunction = async () => {
             if (range.length === 1) {
                 isFinished = true;
             }
@@ -65,8 +65,8 @@ describe('AutoscaledPool', () => {
             minConcurrency: 10,
             maxConcurrency: 10,
             runTaskFunction,
-            isFinishedFunction: () => Promise.resolve(isFinished),
-            isTaskReadyFunction: () => Promise.resolve(!isFinished),
+            isFinishedFunction: async () => Promise.resolve(isFinished),
+            isTaskReadyFunction: async () => Promise.resolve(!isFinished),
         });
 
         await pool.run();
@@ -80,7 +80,7 @@ describe('AutoscaledPool', () => {
 
         let isFinished = false;
 
-        const runTaskFunction = () => {
+        const runTaskFunction = async () => {
             if (range.length === 1) {
                 isFinished = true;
             }
@@ -98,15 +98,15 @@ describe('AutoscaledPool', () => {
             maxConcurrency: 13,
             desiredConcurrency: 9,
             runTaskFunction,
-            isFinishedFunction: () => Promise.resolve(isFinished),
-            isTaskReadyFunction: () => Promise.resolve(!isFinished),
+            isFinishedFunction: async () => isFinished,
+            isTaskReadyFunction: async () => !isFinished,
         });
 
         expect(pool.minConcurrency).toBe(3);
         expect(pool.maxConcurrency).toBe(13);
         expect(pool.desiredConcurrency).toBe(9);
 
-        const promise = await pool.run();
+        const promise = pool.run();
 
         // Test setting concurrency
         pool.minConcurrency = 4;
@@ -387,9 +387,9 @@ describe('AutoscaledPool', () => {
         const pool = new AutoscaledPool({
             minConcurrency: 1,
             maxConcurrency: 100,
-            runTaskFunction: () => Promise.resolve(),
-            isFinishedFunction: () => Promise.resolve(false),
-            isTaskReadyFunction: () => Promise.resolve(true),
+            runTaskFunction: async () => Promise.resolve(),
+            isFinishedFunction: async () => Promise.resolve(false),
+            isTaskReadyFunction: async () => Promise.resolve(true),
             loggingIntervalSecs: null,
         });
         // @ts-expect-error Calling private method

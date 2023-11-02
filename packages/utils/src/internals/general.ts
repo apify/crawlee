@@ -13,7 +13,7 @@ export const URL_NO_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}
  */
 export const URL_WITH_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'giu'); // eslint-disable-line
 
-let isDockerPromiseCache: Promise<boolean>;
+let isDockerPromiseCache: Promise<boolean> | undefined;
 
 async function createIsDockerPromise() {
     const promise1 = fs.stat('/.dockerenv')
@@ -32,7 +32,7 @@ async function createIsDockerPromise() {
 /**
  * Returns a `Promise` that resolves to true if the code is running in a Docker container.
  */
-export function isDocker(forceReset?: boolean): Promise<boolean> {
+export async function isDocker(forceReset?: boolean): Promise<boolean> {
     // Parameter forceReset is just internal for unit tests.
     if (!isDockerPromiseCache || forceReset) isDockerPromiseCache = createIsDockerPromise();
 
@@ -70,7 +70,7 @@ export function weightedAvg(arrValues: number[], arrWeights: number[]): number {
  * ```
  * @param millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  */
-export function sleep(millis?: number): Promise<void> {
+export async function sleep(millis?: number): Promise<void> {
     return setTimeout(millis);
 }
 

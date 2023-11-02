@@ -5,8 +5,8 @@ import { isDocker, weightedAvg, sleep, snakeCaseToCamelCase } from '@crawlee/uti
 
 describe('isDocker()', () => {
     test('works for dockerenv && cgroup', async () => {
-        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(() => Promise.resolve(null));
-        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(() => Promise.resolve('something ... docker ... something'));
+        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => Promise.resolve(null));
+        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(async () => Promise.resolve('something ... docker ... something'));
 
         const is = await isDocker(true);
 
@@ -14,8 +14,8 @@ describe('isDocker()', () => {
     });
 
     test('works for dockerenv', async () => {
-        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(() => Promise.resolve(null));
-        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(() => Promise.resolve('something ... ... something'));
+        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => Promise.resolve(null));
+        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(async () => Promise.resolve('something ... ... something'));
 
         const is = await isDocker(true);
 
@@ -23,8 +23,8 @@ describe('isDocker()', () => {
     });
 
     test('works for cgroup', async () => {
-        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(() => Promise.reject(new Error('no.')));
-        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(() => Promise.resolve('something ... docker ... something'));
+        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => Promise.reject(new Error('no.')));
+        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(async () => Promise.resolve('something ... docker ... something'));
 
         const is = await isDocker(true);
 
@@ -32,8 +32,8 @@ describe('isDocker()', () => {
     });
 
     test('works for nothing', async () => {
-        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(() => Promise.reject(new Error('no.')));
-        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(() => Promise.resolve('something ... ... something'));
+        const statMock = vitest.spyOn(asyncFs, 'stat').mockImplementationOnce(async () => Promise.reject(new Error('no.')));
+        const readMock = vitest.spyOn(asyncFs, 'readFile').mockImplementationOnce(async () => Promise.resolve('something ... ... something'));
 
         const is = await isDocker(true);
 

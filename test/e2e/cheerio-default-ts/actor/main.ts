@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { Actor } from 'apify';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     // @ts-ignore
