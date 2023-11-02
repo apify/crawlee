@@ -94,7 +94,7 @@
         "husky": "^8.0.1",
         "is-ci": "^3.0.1",
         "lerna": "^7.0.0",
-        "lint-staged": "^14.0.0",
+        "lint-staged": "^15.0.0",
         "playwright": "1.39.0",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
