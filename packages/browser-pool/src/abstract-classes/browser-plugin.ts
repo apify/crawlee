@@ -1,3 +1,4 @@
+import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
@@ -206,6 +207,30 @@ export abstract class BrowserPlugin<
         return originalArgs;
     }
 
+    protected _throwAugmentedLaunchError(
+        cause: unknown,
+        executablePath: string | undefined,
+        dockerImage: string,
+        moduleInstallCommand: string,
+    ): never {
+        const errorMessage = ['Failed to launch browser. Please check the following:'];
+
+        if (executablePath) {
+            errorMessage.push(`- Check whether the provided executable path "${executablePath}" is correct.`);
+        }
+
+        if (process.env.APIFY_IS_AT_HOME) {
+            errorMessage.push(`- Make sure your Dockerfile extends ${dockerImage}.`);
+        }
+
+        errorMessage.push(`- ${moduleInstallCommand}`);
+
+        errorMessage.push('', 'The original error is available in the `cause` property. Below is the error received when trying to launch a browser:', '');
+
+        // Add in a zero-width space so we can remove it later when printing the error stack
+        throw new BrowserLaunchError(`${errorMessage.join('\n')}\u200b`, { cause });
+    }
+
     /**
      * @private
      */
@@ -234,5 +259,24 @@ export abstract class BrowserPlugin<
     // @ts-expect-error Give runtime error as well as compile time
     protected abstract _createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> {
         throwImplementationNeeded('_createController');
+    }
+}
+
+export class BrowserLaunchError extends CriticalError {
+    public constructor(...args: ConstructorParameters<typeof CriticalError>) {
+        super(...args);
+        this.name = 'BrowserLaunchError';
+
+        const [, oldStack] = this.stack?.split('\u200b') ?? [null, ''];
+
+        Object.defineProperty(this, 'stack', {
+            get: () => {
+                if (this.cause instanceof Error) {
+                    return `${this.message}\n${this.cause.stack}\nError thrown at:\n${oldStack}`;
+                }
+
+                return `${this.message}\n${oldStack}`;
+            },
+        });
     }
 }
