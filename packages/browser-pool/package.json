@@ -43,7 +43,7 @@
         "fingerprint-generator": "^2.0.6",
         "fingerprint-injector": "^2.0.5",
         "lodash.merge": "^4.6.2",
-        "nanoid": "^3.3.4",
+        "nanoid": "^5.0.0",
         "ow": "^0.28.1",
         "p-limit": "^3.1.0",
         "proxy-chain": "^2.0.1",
