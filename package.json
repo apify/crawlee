@@ -95,7 +95,6 @@
         "is-ci": "^3.0.1",
         "lerna": "^7.0.0",
         "lint-staged": "^14.0.0",
-        "node-gyp": "^9.1.0",
         "playwright": "1.39.0",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
@@ -107,9 +106,9 @@
         "vite-tsconfig-paths": "^4.2.1",
         "vitest": "^0.34.6"
     },
-    "packageManager": "yarn@3.6.4",
+    "packageManager": "yarn@4.0.1",
     "volta": {
         "node": "20.9.0",
-        "yarn": "3.6.4"
+        "yarn": "4.0.1"
     }
 }
