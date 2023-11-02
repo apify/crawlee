@@ -36,7 +36,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     label?: string;
 
     /**
-     * If set to `true`, tells the crawler to skip navigation and process the request directly:
+     * If set to `true`, tells the crawler to skip navigation and process the request directly.
      * @default false
      */
     skipNavigation?: boolean;
