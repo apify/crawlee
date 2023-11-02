@@ -182,8 +182,8 @@ export interface RequestListOptions {
  * `uniqueKey` properties. You can use the `keepDuplicateUrls` option to do this for you when initializing the
  * `RequestList` from sources.
  *
- * Once you create an instance of `RequestList`, you need to call the {@apilink RequestList.initialize} function
- * before the instance can be used. After that, no more URLs can be added to the list.
+ * `RequestList` doesn't have a public constructor, you need to create it with the asynchronous {@apilink RequestList.open} function. After
+ * the request list is created, no more URLs can be added to it.
  * Unlike {@apilink RequestQueue}, `RequestList` is static but it can contain even millions of URLs.
  * > Note that `RequestList` can be used together with `RequestQueue` by the same crawler.
  * > In such cases, each request from `RequestList` is enqueued into `RequestQueue` first and then consumed from the latter.
@@ -205,8 +205,6 @@ export interface RequestListOptions {
  *
  * **Basic usage:**
  * ```javascript
- * // Use a helper function to simplify request list initialization.
- * // State and sources are automatically persisted. This is a preferred usage.
  * const requestList = await RequestList.open('my-request-list', [
  *     'http://www.example.com/page-1',
  *     { url: 'http://www.example.com/page-2', method: 'POST', userData: { foo: 'bar' }},
@@ -216,7 +214,6 @@ export interface RequestListOptions {
  *
  * **Advanced usage:**
  * ```javascript
- * // Use the constructor to get more control over the initialization.
  * const requestList = await RequestList.open(null, [
  *     // Separate requests
  *     { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
@@ -851,9 +848,9 @@ export class RequestList {
 
         const rl = new RequestList({
             ...options,
-            persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : undefined,
-            persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : undefined,
-            sources,
+            persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : options.persistStateKey,
+            persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : options.persistRequestsKey,
+            sources: sources ?? options.sources,
         });
         await rl.initialize();
 
