@@ -36,6 +36,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     label?: string;
 
     /**
+     * If set to `true`, tells the crawler to skip navigation and process the request directly.
+     * @default false
+     */
+    skipNavigation?: boolean;
+
+    /**
      * A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
      * since the relative URL resolution is done inside the browser automatically.
      */
@@ -239,6 +245,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
         urls: ow.array.ofType(ow.string),
         requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
         forefront: ow.optional.boolean,
+        skipNavigation: ow.optional.boolean,
         limit: ow.optional.number,
         selector: ow.optional.string,
         baseUrl: ow.optional.string,

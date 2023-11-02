@@ -208,7 +208,7 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
  */
 export function createRequestOptions(
     sources: (string | Record<string, unknown>)[],
-    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl'> = {},
+    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation'> = {},
 ): RequestOptions[] {
     return sources
         .map((src) => (typeof src === 'string' ? { url: src } : src as unknown as RequestOptions))
@@ -228,6 +228,10 @@ export function createRequestOptions(
                     ...requestOptions.userData,
                     label: options.label,
                 };
+            }
+
+            if (options.skipNavigation) {
+                requestOptions.skipNavigation = true;
             }
 
             return requestOptions;

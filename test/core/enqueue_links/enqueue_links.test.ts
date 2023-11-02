@@ -189,6 +189,26 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({ label: 'COOL' });
         });
 
+        test('works with skipNavigation', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+
+            await browserCrawlerEnqueueLinks({
+                options: {
+                    selector: '.click',
+                    skipNavigation: true,
+                },
+                page,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(2);
+
+            for (const request of enqueued) {
+                expect(request.skipNavigation).toBe(true);
+            }
+        });
+
         test('works with exclude glob', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             const globs = [

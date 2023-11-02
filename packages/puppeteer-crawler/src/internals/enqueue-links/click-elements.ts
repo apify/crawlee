@@ -167,6 +167,12 @@ export interface EnqueueLinksByClickingElementsOptions {
      * @default false
      */
     forefront?: boolean;
+
+    /**
+     * If set to `true`, tells the crawler to skip navigation and process the request directly.
+     * @default false
+     */
+    skipNavigation?: boolean;
 }
 
 /**
@@ -234,6 +240,7 @@ export async function enqueueLinksByClickingElements(options: EnqueueLinksByClic
         maxWaitForPageIdleSecs: ow.optional.number,
         label: ow.optional.string,
         forefront: ow.optional.boolean,
+        skipNavigation: ow.optional.boolean,
     }));
 
     const {
