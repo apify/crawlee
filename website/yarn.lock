@@ -4523,7 +4523,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bn.js@npm:^5.0.0, bn.js@npm:^5.1.1":
+"bn.js@npm:^5.0.0, bn.js@npm:^5.2.1":
   version: 5.2.1
   resolution: "bn.js@npm:5.2.1"
   checksum: bed3d8bd34ec89dbcf9f20f88bd7d4a49c160fda3b561c7bb227501f974d3e435a48fb9b61bc3de304acab9215a3bda0803f7017ffb4d0016a0c3a740a283caa
@@ -4673,7 +4673,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"browserify-rsa@npm:^4.0.0, browserify-rsa@npm:^4.0.1":
+"browserify-rsa@npm:^4.0.0, browserify-rsa@npm:^4.1.0":
   version: 4.1.0
   resolution: "browserify-rsa@npm:4.1.0"
   dependencies:
@@ -4684,19 +4684,19 @@ __metadata:
   linkType: hard
 
 "browserify-sign@npm:^4.0.0":
-  version: 4.2.1
-  resolution: "browserify-sign@npm:4.2.1"
+  version: 4.2.2
+  resolution: "browserify-sign@npm:4.2.2"
   dependencies:
-    bn.js: "npm:^5.1.1"
-    browserify-rsa: "npm:^4.0.1"
+    bn.js: "npm:^5.2.1"
+    browserify-rsa: "npm:^4.1.0"
     create-hash: "npm:^1.2.0"
     create-hmac: "npm:^1.1.7"
-    elliptic: "npm:^6.5.3"
+    elliptic: "npm:^6.5.4"
     inherits: "npm:^2.0.4"
-    parse-asn1: "npm:^5.1.5"
-    readable-stream: "npm:^3.6.0"
-    safe-buffer: "npm:^5.2.0"
-  checksum: 8f00a370e3e97060977dc58e51251d3ca398ee73523994a44430321e8de2c7d85395362d59014b2b07efe4190f369baee2ff28eb8f405ff4660b776651cf052d
+    parse-asn1: "npm:^5.1.6"
+    readable-stream: "npm:^3.6.2"
+    safe-buffer: "npm:^5.2.1"
+  checksum: 4d1292e5c165d93455630515003f0e95eed9239c99e2d373920c5b56903d16296a3d23cd4bdc4d298f55ad9b83714a9e63bc4839f1166c303349a16e84e9b016
   languageName: node
   linkType: hard
 
@@ -6117,7 +6117,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"elliptic@npm:^6.5.3":
+"elliptic@npm:^6.5.3, elliptic@npm:^6.5.4":
   version: 6.5.4
   resolution: "elliptic@npm:6.5.4"
   dependencies:
@@ -10083,7 +10083,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"parse-asn1@npm:^5.0.0, parse-asn1@npm:^5.1.5":
+"parse-asn1@npm:^5.0.0, parse-asn1@npm:^5.1.6":
   version: 5.1.6
   resolution: "parse-asn1@npm:5.1.6"
   dependencies:
@@ -11261,7 +11261,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"readable-stream@npm:^3.0.6, readable-stream@npm:^3.5.0, readable-stream@npm:^3.6.0":
+"readable-stream@npm:^3.0.6, readable-stream@npm:^3.5.0, readable-stream@npm:^3.6.0, readable-stream@npm:^3.6.2":
   version: 3.6.2
   resolution: "readable-stream@npm:3.6.2"
   dependencies:
@@ -11753,7 +11753,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"safe-buffer@npm:5.2.1, safe-buffer@npm:>=5.1.0, safe-buffer@npm:^5.0.1, safe-buffer@npm:^5.1.0, safe-buffer@npm:^5.1.1, safe-buffer@npm:^5.1.2, safe-buffer@npm:^5.2.0, safe-buffer@npm:~5.2.0":
+"safe-buffer@npm:5.2.1, safe-buffer@npm:>=5.1.0, safe-buffer@npm:^5.0.1, safe-buffer@npm:^5.1.0, safe-buffer@npm:^5.1.1, safe-buffer@npm:^5.1.2, safe-buffer@npm:^5.2.0, safe-buffer@npm:^5.2.1, safe-buffer@npm:~5.2.0":
   version: 5.2.1
   resolution: "safe-buffer@npm:5.2.1"
   checksum: 6501914237c0a86e9675d4e51d89ca3c21ffd6a31642efeba25ad65720bce6921c9e7e974e5be91a786b25aa058b5303285d3c15dbabf983a919f5f630d349f3
