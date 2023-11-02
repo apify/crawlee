@@ -155,7 +155,7 @@ function ActorExample() {
 }
 
 const npmInstall = `npm install apify
-npm install -G apify-cli`;
+npm install -g apify-cli`;
 const exampleActor = `import { PlaywrightCrawler, Dataset } from 'crawlee';
 
 // import the \`Actor\` class from the Apify SDK
