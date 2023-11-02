@@ -543,7 +543,7 @@ __metadata:
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/http": "npm:3.5.8"
     "@crawlee/types": "npm:3.5.8"
-    linkedom: "npm:^0.15.0"
+    linkedom: "npm:^0.16.0"
     ow: "npm:^0.28.2"
     tslib: "npm:^2.4.0"
   languageName: unknown
@@ -7524,16 +7524,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"linkedom@npm:^0.15.0":
-  version: 0.15.6
-  resolution: "linkedom@npm:0.15.6"
+"linkedom@npm:^0.16.0":
+  version: 0.16.1
+  resolution: "linkedom@npm:0.16.1"
   dependencies:
     css-select: "npm:^5.1.0"
     cssom: "npm:^0.5.0"
     html-escaper: "npm:^3.0.3"
-    htmlparser2: "npm:^8.0.1"
+    htmlparser2: "npm:^9.0.0"
     uhyphen: "npm:^0.2.0"
-  checksum: d43eed5a3d5d0f5d50dff314d0ff60ed3d832a9cf0b3fcf17287037b435df914a21774eb2ca99285158867a80092be6cd4d37f69808e1c2c2e88e49e7d95e6b6
+  checksum: 39159aebfa1f40355c759abaca311af9e27166cb0f3c1652d319433243f429373b018bdae6f3b307cb180b332fbebb3d80057f83b90b93df875bf9150f0f5570
   languageName: node
   linkType: hard
 

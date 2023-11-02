@@ -57,7 +57,7 @@
         "@apify/utilities": "^2.7.10",
         "@crawlee/http": "3.5.8",
         "@crawlee/types": "3.5.8",
-        "linkedom": "^0.15.0",
+        "linkedom": "^0.16.0",
         "ow": "^0.28.2",
         "tslib": "^2.4.0"
     }
