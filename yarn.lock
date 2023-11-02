@@ -412,7 +412,7 @@ __metadata:
     ow: "npm:^0.28.1"
     p-limit: "npm:^3.1.0"
     proxy-chain: "npm:^2.0.1"
-    quick-lru: "npm:^5.1.1"
+    quick-lru: "npm:^7.0.0"
     tiny-typed-emitter: "npm:^2.1.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
@@ -9662,6 +9662,13 @@ __metadata:
   version: 5.1.1
   resolution: "quick-lru@npm:5.1.1"
   checksum: a24cba5da8cec30d70d2484be37622580f64765fb6390a928b17f60cd69e8dbd32a954b3ff9176fa1b86d86ff2ba05252fae55dc4d40d0291c60412b0ad096da
+  languageName: node
+  linkType: hard
+
+"quick-lru@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "quick-lru@npm:7.0.0"
+  checksum: d46e3dc6d2f79f83d3dc852b32b3d9fcf5337bf5b4016122c1b729aa7bcd54dd79b2f3cb36b59a5a3f5c30443ecfbc9e7d400cfc30feedd8d58d3d4213d08a18
   languageName: node
   linkType: hard
 
