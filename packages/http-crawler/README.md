@@ -2,7 +2,7 @@
 
 Provides a framework for the parallel crawling of web pages using plain HTTP requests. The URLs to crawl are fed either from a static list of URLs or from a dynamic queue of URLs enabling recursive crawling of websites.
 
-It is very fast and efficient on data bandwidth. However, if the target website requires JavaScript to display the content, you might need to use {[PuppeteerCrawler](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler) or [PlaywrightCrawler](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler) instead, because it loads the pages using full-featured headless Chrome browser. **This crawler downloads each URL using a plain HTTP request and doesn't do any HTML parsing.**
+It is very fast and efficient on data bandwidth. However, if the target website requires JavaScript to display the content, you might need to use [PuppeteerCrawler](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler) or [PlaywrightCrawler](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler) instead, because it loads the pages using full-featured headless Chrome browser. **This crawler downloads each URL using a plain HTTP request and doesn't do any HTML parsing.**
 
 The source URLs are represented using [Request](https://crawlee.dev/api/core/class/Request) objects that are fed from [RequestList](https://crawlee.dev/api/core/class/RequestList) or [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) instances provided by the [HttpCrawlerOptions.requestList](https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#requestList) or [HttpCrawlerOptions.requestQueue](https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#requestQueue) constructor options, respectively.
 

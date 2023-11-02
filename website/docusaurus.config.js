@@ -130,10 +130,10 @@ module.exports = {
                 id: 'GTM-5P7MCS7',
             },
         ],
-        async function runnableCodeBlock(context, options) {
+        async function runnableCodeBlock() {
             return {
                 name: 'runnable-code-block',
-                configureWebpack(config, isServer) {
+                configureWebpack() {
                     return {
                         resolveLoader: {
                             alias: {
@@ -225,9 +225,9 @@ module.exports = {
         },
         prism: {
             defaultLanguage: 'typescript',
-            theme: require('prism-react-renderer/themes/github'),
-            darkTheme: require('prism-react-renderer/themes/dracula'),
-            additionalLanguages: ['docker', 'log'],
+            theme: require('prism-react-renderer').themes.github,
+            darkTheme: require('prism-react-renderer').themes.dracula,
+            additionalLanguages: ['docker', 'log', 'bash', 'diff', 'json'],
         },
         metadata: [],
         image: 'img/crawlee-og.png',
