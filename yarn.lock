@@ -3399,9 +3399,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001541":
-  version: 1.0.30001559
-  resolution: "caniuse-lite@npm:1.0.30001559"
-  checksum: 32377e386580dcb977f552b488e7b56fb489aa0a83f4f43087af6e8fe1fe7fda529bc29e76ef38c0f9c56c964389d322059a0dd7a544859a7b88063f7fc761d7
+  version: 1.0.30001561
+  resolution: "caniuse-lite@npm:1.0.30001561"
+  checksum: 6e84c84026fee53edbdbb5aded7a04a036aae4c2e367cf6bdc90c6783a591e2fdcfcdebcc4e774aca61092e542a61200c8c16b06659396492426033c4dbcc618
   languageName: node
   linkType: hard
 
@@ -4366,9 +4366,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1218079
-  resolution: "devtools-protocol@npm:0.0.1218079"
-  checksum: 3bdfbc66406a9be5fcd2ada2512824f7c7ca8808489257779c5a251b4f11f46b5298c0338600282390ae9cf0b5995155a7689550f94872a69b340b3d6eb7b247
+  version: 0.0.1219864
+  resolution: "devtools-protocol@npm:0.0.1219864"
+  checksum: 335138c6926073ffad0fbc5f8e9f88792882004f72426aae26e5ca609482a8fc24d48af8a74cbdb7b01bdebfbd9d5c62923bea2354cfa5632106fbaed9d2dc6d
   languageName: node
   linkType: hard
 
@@ -11753,9 +11753,9 @@ __metadata:
   linkType: hard
 
 "universal-user-agent@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "universal-user-agent@npm:6.0.0"
-  checksum: ebeb0206963666c13bcf9ebc86d0577c7daed5870c05cd34d4972ee7a43b9ef20679baf2a8c83bf1b71d899bae67243ac4982d84ddaf9ba0355ff76595819961
+  version: 6.0.1
+  resolution: "universal-user-agent@npm:6.0.1"
+  checksum: 5c9c46ffe19a975e11e6443640ed4c9e0ce48fcc7203325757a8414ac49940ebb0f4667f2b1fa561489d1eb22cb2d05a0f7c82ec20c5cba42e58e188fb19b187
   languageName: node
   linkType: hard
 
