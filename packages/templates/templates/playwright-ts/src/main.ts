@@ -8,6 +8,8 @@ const startUrls = ['https://crawlee.dev'];
 const crawler = new PlaywrightCrawler({
     // proxyConfiguration: new ProxyConfiguration({ proxyUrls: ['...'] }),
     requestHandler: router,
+    // Comment this option to scrape the full website.
+    maxRequestsPerCrawl: 20,
 });
 
 await crawler.run(startUrls);
