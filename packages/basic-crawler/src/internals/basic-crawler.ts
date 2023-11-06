@@ -11,6 +11,7 @@ import type {
     CrawlingContext,
     EnqueueLinksOptions,
     EventManager,
+    DatasetExportOptions,
     FinalStatistics,
     GetUserDataFromRequest,
     ProxyInfo,
@@ -962,7 +963,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Retrieves all the data from the default crawler {@apilink Dataset} and exports them to the specified format.
      * Supported formats are currently 'json' and 'csv', and will be inferred from the `path` automatically.
      */
-    async exportData<Data>(path: string, format?: 'json' | 'csv'): Promise<Data[]> {
+    async exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]> {
         const supportedFormats = ['json', 'csv'];
 
         if (!format && path.match(/\.(json|csv)$/i)) {
@@ -978,7 +979,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         const dataset = await this.getDataset();
-        const items = await dataset.exportTo('', {}, 'object');
+        const items = await dataset.export(options);
 
         if (format === 'csv') {
             const value = stringify([

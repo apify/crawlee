@@ -6,6 +6,9 @@ on:
     pull_request:
         branches: [ master ]
 
+env:
+    YARN_IGNORE_NODE: 1
+
 jobs:
     # `yarn install` is done in a separate job and cached to speed up the following jobs.
     build_and_test:
@@ -54,18 +57,12 @@ jobs:
 
             -   name: Install Dependencies
                 run: yarn
-                env:
-                    YARN_IGNORE_NODE: 1
 
             -   name: Build
                 run: yarn ci:build
-                env:
-                    YARN_IGNORE_NODE: 1
 
             -   name: Tests
                 run: yarn test
-                env:
-                    YARN_IGNORE_NODE: 1
 
     docs:
         name: Docs build
@@ -97,8 +94,6 @@ jobs:
 
             -   name: Install Dependencies
                 run: yarn
-                env:
-                    YARN_IGNORE_NODE: 1
 
             -   name: Build & deploy docs
                 run: |
@@ -107,7 +102,6 @@ jobs:
                     yarn build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
-                    YARN_IGNORE_NODE: 1
 
     lint:
         name: Lint
@@ -139,13 +133,9 @@ jobs:
 
             -   name: Install Dependencies
                 run: yarn
-                env:
-                    YARN_IGNORE_NODE: 1
 
             -   name: ESLint
                 run: yarn lint
-                env:
-                    YARN_IGNORE_NODE: 1
 
     release_next:
         name: Release @next
@@ -179,13 +169,9 @@ jobs:
 
             -   name: Install Dependencies
                 run: yarn
-                env:
-                    YARN_IGNORE_NODE: 1
 
             -   name: Build
                 run: yarn ci:build
-                env:
-                    YARN_IGNORE_NODE: 1
 
             -   name: Generate changed packages list
                 id: changed-packages
@@ -211,7 +197,6 @@ jobs:
                     NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
                     GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    YARN_IGNORE_NODE: 1
 
             -   name: Collect versions for Docker images
                 id: versions
