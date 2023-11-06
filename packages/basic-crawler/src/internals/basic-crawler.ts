@@ -480,7 +480,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
     protected retryOnBlocked: boolean;
-    protected dataset!: Dataset;
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
@@ -940,26 +939,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Pushes data to the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
     async pushData(...args: Parameters<Dataset['pushData']>): Promise<void> {
-        this.dataset ??= await Dataset.open(undefined, { config: this.config });
-        return this.dataset.pushData(...args);
+        const dataset = await this.getDataset();
+        return dataset.pushData(...args);
     }
 
     /**
      * Retrieves the default crawler {@apilink Dataset}.
      */
-    getDataset(): Dataset {
-        if (!this.dataset) {
-            throw new Error(`This crawler instance does not have a default dataset yet, did you call \`crawler.run()\` first?`);
-        }
-
-        return this.dataset;
+    async getDataset(): Promise<Dataset> {
+        return Dataset.open(undefined, { config: this.config });
     }
 
     /**
      * Retrieves data from the default crawler {@apilink Dataset} by calling {@apilink Dataset.getData}.
      */
     async getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']> {
-        return this.getDataset().getData(...args);
+        const dataset = await this.getDataset();
+        return dataset.getData(...args);
     }
 
     /**
@@ -981,7 +977,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             throw new Error(`Unsupported format: '${format}'. Use one of ${supportedFormats.join(', ')}`);
         }
 
-        const items = await this.getDataset().exportTo('', {}, 'object');
+        const dataset = await this.getDataset();
+        const items = await dataset.exportTo('', {}, 'object');
 
         if (format === 'csv') {
             const value = stringify([
@@ -1020,7 +1017,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         await this._loadHandledRequestCount();
-        this.dataset = await Dataset.open(undefined, { config: this.config });
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
