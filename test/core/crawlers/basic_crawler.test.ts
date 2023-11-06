@@ -1385,7 +1385,7 @@ describe('BasicCrawler', () => {
         });
     });
 
-    describe.only('Dataset helpers, crawler paralellism', () => {
+    describe('Dataset helpers, crawler paralellism', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
