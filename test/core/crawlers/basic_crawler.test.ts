@@ -1,3 +1,4 @@
+import { mkdir, mkdtemp } from 'fs/promises';
 import type { Server } from 'http';
 import http from 'http';
 import type { AddressInfo } from 'net';
@@ -1388,7 +1389,15 @@ describe('BasicCrawler', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
-        const rootPath = join(__dirname, '..', '..', 'tmp');
+        const tmpDir: string = `${__dirname}/tmp`;
+
+        beforeAll(async () => {
+            await mkdir(tmpDir);
+        });
+
+        afterAll(async () => {
+            await rm(tmpDir, { recursive: true, force: true });
+        });
 
         test('should expose default Dataset methods', async () => {
             const crawler = new BasicCrawler();
@@ -1407,12 +1416,12 @@ describe('BasicCrawler', () => {
             await crawler.pushData(row);
             await crawler.pushData(row);
 
-            await crawler.exportData(`${rootPath}/result.csv`);
-            await crawler.exportData(`${rootPath}/result.json`);
+            await crawler.exportData(`${tmpDir}/result.csv`);
+            await crawler.exportData(`${tmpDir}/result.json`);
 
-            const csv = await readFile(`${rootPath}/result.csv`);
+            const csv = await readFile(`${tmpDir}/result.csv`);
             expect(csv.toString()).toBe('foo,baz\nbar,123\nbar,123\nbar,123\n');
-            const json = await readFile(`${rootPath}/result.json`);
+            const json = await readFile(`${tmpDir}/result.json`);
             expect(json.toString()).toBe('[\n'
                 + '    {\n'
                 + '        "foo": "bar",\n'
@@ -1428,8 +1437,8 @@ describe('BasicCrawler', () => {
                 + '    }\n'
                 + ']\n');
 
-            await rm(`${rootPath}/result.csv`);
-            await rm(`${rootPath}/result.json`);
+            await rm(`${tmpDir}/result.csv`);
+            await rm(`${tmpDir}/result.json`);
         });
 
         test('should expose pushData helper', async () => {
