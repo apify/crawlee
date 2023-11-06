@@ -938,10 +938,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Pushes data to the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
     async pushData(...args: Parameters<Dataset['pushData']>): Promise<void> {
-        if (this.dataset == null) {
-            this.dataset = await Dataset.open(undefined, { config: this.config });
-        }
-
+        this.dataset ??= await Dataset.open(undefined, { config: this.config });
         return this.dataset.pushData(...args);
     }
 

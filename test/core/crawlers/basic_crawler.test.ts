@@ -27,6 +27,7 @@ import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { startExpressAppPromise } from '../../shared/_helper';
+import * as process from 'process';
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -1404,15 +1405,14 @@ describe('BasicCrawler', () => {
             await crawler.pushData(row);
             await crawler.pushData(row);
 
-            await crawler.exportData('./storage/result.csv');
-            await crawler.exportData('./storage/result.json');
+            const root = process.cwd();
 
-            // try to wait a bit, otherwise the CI reports non-existent file
-            await sleep(500);
+            await crawler.exportData(`${root}/storage/result.csv`);
+            await crawler.exportData(`${root}/storage/result.json`);
 
-            const csv = await readFile('./storage/result.csv');
+            const csv = await readFile(`${root}/storage/result.csv`);
             expect(csv.toString()).toBe('foo,baz\nbar,123\nbar,123\nbar,123\n');
-            const json = await readFile('./storage/result.json');
+            const json = await readFile(`${root}/storage/result.json`);
             expect(json.toString()).toBe('[\n'
                 + '    {\n'
                 + '        "foo": "bar",\n'
@@ -1428,8 +1428,8 @@ describe('BasicCrawler', () => {
                 + '    }\n'
                 + ']\n');
 
-            await rm('./storage/result.csv');
-            await rm('./storage/result.json');
+            await rm(`${root}/storage/result.csv`);
+            await rm(`${root}/storage/result.json`);
         });
 
         test('should expose pushData helper', async () => {
