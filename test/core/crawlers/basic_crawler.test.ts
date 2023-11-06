@@ -2,6 +2,7 @@ import type { Server } from 'http';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { readFile, rm } from 'node:fs/promises';
+import { join } from 'path';
 
 import log from '@apify/log';
 import type {
@@ -1383,9 +1384,11 @@ describe('BasicCrawler', () => {
         });
     });
 
-    describe('Dataset helpers, crawler paralellism', () => {
+    describe.only('Dataset helpers, crawler paralellism', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
+
+        const rootPath = join(__dirname, '..', '..', 'tmp');
 
         test('should expose default Dataset methods', async () => {
             const crawler = new BasicCrawler();
@@ -1404,14 +1407,12 @@ describe('BasicCrawler', () => {
             await crawler.pushData(row);
             await crawler.pushData(row);
 
-            const root = process.cwd();
+            await crawler.exportData(`${rootPath}/result.csv`);
+            await crawler.exportData(`${rootPath}/result.json`);
 
-            await crawler.exportData(`${root}/storage/result.csv`);
-            await crawler.exportData(`${root}/storage/result.json`);
-
-            const csv = await readFile(`${root}/storage/result.csv`);
+            const csv = await readFile(`${rootPath}/result.csv`);
             expect(csv.toString()).toBe('foo,baz\nbar,123\nbar,123\nbar,123\n');
-            const json = await readFile(`${root}/storage/result.json`);
+            const json = await readFile(`${rootPath}/result.json`);
             expect(json.toString()).toBe('[\n'
                 + '    {\n'
                 + '        "foo": "bar",\n'
@@ -1427,8 +1428,8 @@ describe('BasicCrawler', () => {
                 + '    }\n'
                 + ']\n');
 
-            await rm(`${root}/storage/result.csv`);
-            await rm(`${root}/storage/result.json`);
+            await rm(`${rootPath}/result.csv`);
+            await rm(`${rootPath}/result.json`);
         });
 
         test('should expose pushData helper', async () => {
