@@ -16,6 +16,8 @@ const crawler = new PlaywrightCrawler({
         // and add them to the crawling queue.
         await enqueueLinks();
     },
+    // Comment this option to scrape the full website.
+    maxRequestsPerCrawl: 20,
     // Uncomment this option to see the browser window.
     // headless: false,
 });
