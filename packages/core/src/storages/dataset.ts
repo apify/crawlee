@@ -300,7 +300,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
      */
-    async exportTo(key: string, options?: ExportOptions, contentType?: string): Promise<void> {
+    async exportTo(key: string, options?: ExportOptions, contentType?: string): Promise<Data[]> {
         const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { config: this.config });
         const items: Data[] = [];
 
@@ -326,14 +326,20 @@ export class Dataset<Data extends Dictionary = Dictionary> {
                 Object.keys(items[0]),
                 ...items.map((item) => Object.values(item)),
             ]);
-            return kvStore.setValue(key, value, { contentType });
+            await kvStore.setValue(key, value, { contentType });
+            return items;
         }
 
         if (contentType === 'application/json') {
-            return kvStore.setValue(key, items);
+            await kvStore.setValue(key, items);
+            return items;
         }
 
-        throw new Error(`Unsupported content type: ${contentType}`);
+        if (contentType !== 'object') {
+            throw new Error(`Unsupported content type: ${contentType}`);
+        }
+
+        return items;
     }
 
     /**

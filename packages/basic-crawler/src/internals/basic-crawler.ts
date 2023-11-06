@@ -1,6 +1,6 @@
-import defaultLog, { LogLevel } from '@apify/log';
 import type { Log } from '@apify/log';
-import { addTimeoutToPromise, tryCancel, TimeoutError } from '@apify/timeout';
+import defaultLog, { LogLevel } from '@apify/log';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AddRequestsBatchedOptions,
@@ -24,28 +24,30 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
-    Dataset,
     AutoscaledPool,
     Configuration,
+    CriticalError,
+    Dataset,
+    enqueueLinks,
     EventType,
     KeyValueStore,
+    mergeCookies,
     NonRetryableError,
+    purgeDefaultStorages,
     RequestQueue,
     RequestQueueV2,
     RequestState,
     RetryRequestError,
     Router,
+    SessionError,
     SessionPool,
     Statistics,
-    enqueueLinks,
-    mergeCookies,
-    purgeDefaultStorages,
     validators,
-    SessionError,
-    CriticalError,
 } from '@crawlee/core';
-import type { Dictionary, Awaitable, BatchAddRequestsResult, SetStatusMessageOptions } from '@crawlee/types';
+import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { stringify } from 'csv-stringify/sync';
+import { writeFile, writeJSON } from 'fs-extra';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
@@ -476,6 +478,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
     protected retryOnBlocked: boolean;
+    protected dataset!: Dataset;
     private _closeEvents?: boolean;
 
     private experiments: CrawlerExperiments;
@@ -935,23 +938,63 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Pushes data to the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
     async pushData(...args: Parameters<Dataset['pushData']>): Promise<void> {
-        const dataset = await Dataset.open(undefined, { config: this.config });
-        return dataset.pushData(...args);
+        if (this.dataset == null) {
+            this.dataset = await Dataset.open(undefined, { config: this.config });
+        }
+
+        return this.dataset.pushData(...args);
     }
 
     /**
-     * Retrieves the default crawler {@apilink Dataset} by calling {@apilink Dataset.open}.
+     * Retrieves the default crawler {@apilink Dataset}.
      */
-    async getDataset(): Promise<Dataset> {
-        return Dataset.open(undefined, { config: this.config });
+    getDataset(): Dataset {
+        return this.dataset;
     }
 
     /**
      * Retrieves data from the default crawler {@apilink Dataset} by calling {@apilink Dataset.getData}.
      */
     async getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']> {
-        const dataset = await this.getDataset();
-        return dataset.getData(...args);
+        return this.getDataset().getData(...args);
+    }
+
+    /**
+     * Retrieves all the data from the default crawler {@apilink Dataset} and exports them to the specified format.
+     * Supported formats are currently 'json' and 'csv', and will be inferred from the `path` automatically.
+     */
+    async exportData<Data>(path: string, format?: 'json' | 'csv'): Promise<Data[]> {
+        const supportedFormats = ['json', 'csv'];
+
+        if (!format && path.match(/\.(json|csv)$/i)) {
+            format = path.toLowerCase().match(/\.(json|csv)$/)![1] as 'json' | 'csv';
+        }
+
+        if (!format) {
+            throw new Error(`Failed to infer format from the path: '${path}'. Supported formats: ${supportedFormats.join(', ')}`);
+        }
+
+        if (!supportedFormats.includes(format)) {
+            throw new Error(`Unsupported format: '${format}'. Use one of ${supportedFormats.join(', ')}`);
+        }
+
+        const items = await this.getDataset().exportTo('', {}, 'object');
+
+        if (format === 'csv') {
+            const value = stringify([
+                Object.keys(items[0]),
+                ...items.map((item) => Object.values(item)),
+            ]);
+            await writeFile(path, value);
+            this.log.info(`Export to ${path} finished!`);
+        }
+
+        if (format === 'json') {
+            await writeJSON(path, items, { spaces: 4 });
+            this.log.info(`Export to ${path} finished!`);
+        }
+
+        return items;
     }
 
     protected async _init(): Promise<void> {
@@ -972,6 +1015,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         await this._loadHandledRequestCount();
+        this.dataset = await Dataset.open(undefined, { config: this.config });
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {

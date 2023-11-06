@@ -1,6 +1,7 @@
 import type { Server } from 'http';
 import http from 'http';
 import type { AddressInfo } from 'net';
+import { readFile, rm } from 'node:fs/promises';
 
 import log from '@apify/log';
 import type {
@@ -1383,8 +1384,8 @@ describe('BasicCrawler', () => {
     });
 
     describe('Dataset helpers, crawler paralellism', () => {
-        const payload: Dictionary<any>[] = [{ foo: 'bar' }];
-        const getPayload: (id: string) => Dictionary<any>[] = (id) => [{ foo: id }];
+        const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
+        const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
         test('should expose default Dataset methods', async () => {
             const crawler = new BasicCrawler();
@@ -1393,6 +1394,42 @@ describe('BasicCrawler', () => {
 
             expect((await crawler.getData()).items)
                 .toEqual(payload);
+        });
+
+        test('export data', async () => {
+            const row: Dictionary = { foo: 'bar', baz: 123 };
+            const crawler = new BasicCrawler();
+
+            await crawler.pushData(row);
+            await crawler.pushData(row);
+            await crawler.pushData(row);
+
+            await crawler.exportData('./storage/result.csv');
+            await crawler.exportData('./storage/result.json');
+
+            // try to wait a bit, otherwise the CI reports non-existent file
+            await sleep(500);
+
+            const csv = await readFile('./storage/result.csv');
+            expect(csv.toString()).toBe('foo,baz\nbar,123\nbar,123\nbar,123\n');
+            const json = await readFile('./storage/result.json');
+            expect(json.toString()).toBe('[\n'
+                + '    {\n'
+                + '        "foo": "bar",\n'
+                + '        "baz": 123\n'
+                + '    },\n'
+                + '    {\n'
+                + '        "foo": "bar",\n'
+                + '        "baz": 123\n'
+                + '    },\n'
+                + '    {\n'
+                + '        "foo": "bar",\n'
+                + '        "baz": 123\n'
+                + '    }\n'
+                + ']\n');
+
+            await rm('./storage/result.csv');
+            await rm('./storage/result.json');
         });
 
         test('should expose pushData helper', async () => {
