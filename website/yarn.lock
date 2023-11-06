@@ -3245,13 +3245,13 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*, @types/react@npm:^18.0.28":
-  version: 18.2.34
-  resolution: "@types/react@npm:18.2.34"
+  version: 18.2.35
+  resolution: "@types/react@npm:18.2.35"
   dependencies:
     "@types/prop-types": "npm:*"
     "@types/scheduler": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 42a357e3ec8943fe433f647e60e1506ec7657e12a72847ca801f97a128778dff6011e57ae2eb53f6363cf4515cab60f6a47eca2f916bab27a85bd88c94ab72d3
+  checksum: dbc19612ab404f06c3c9f150954a377ab223db5724905d39e3468a61e2be0a9fd9240e935af5c13cb5b3307a13bbaf2e8c09a810d720118120a8d0ac5aa9ff10
   languageName: node
   linkType: hard
 

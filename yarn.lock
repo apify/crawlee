@@ -11248,21 +11248,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.0.18":
-  version: 6.0.18
-  resolution: "tldts-core@npm:6.0.18"
-  checksum: 009b691de309922b345cede50f38177c13ee35f995af4b124dececc03c3ceefded5fd207730eb649f7f850322aaa2817c777cdc26cbf92d2a17eeeda49fc12ad
+"tldts-core@npm:^6.0.19":
+  version: 6.0.19
+  resolution: "tldts-core@npm:6.0.19"
+  checksum: 8dbfc93535b321323e7094c62fbb1095aca632d38e1b5aa78d53cebf4a91a8b73f08f47ba007412d24c70e551bbf0d369bc58314a1b6d547ad69c0ed8b2fd196
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.0.18
-  resolution: "tldts@npm:6.0.18"
+  version: 6.0.19
+  resolution: "tldts@npm:6.0.19"
   dependencies:
-    tldts-core: "npm:^6.0.18"
+    tldts-core: "npm:^6.0.19"
   bin:
     tldts: bin/cli.js
-  checksum: 7009af93370f87669f507d3bde4e745fa21ab664cf53384401564a22897566cefc5a0330c40a3cc29f9f4a676b6525576f8c5762a9961399f9a64110a2783c23
+  checksum: 31ac9823cbd12757bfbb3cec918c22985525c65b3d3cc0f9efc048444095cd8516a2ac5c0a2bd4f612fc0c918815445950a904b9ca440233fc27587d2d51ffee
   languageName: node
   linkType: hard
 
