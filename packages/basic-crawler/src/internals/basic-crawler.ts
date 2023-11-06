@@ -1,3 +1,5 @@
+import { dirname } from 'node:path';
+
 import type { Log } from '@apify/log';
 import defaultLog, { LogLevel } from '@apify/log';
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
@@ -47,7 +49,7 @@ import {
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
-import { writeFile, writeJSON } from 'fs-extra';
+import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 import type { Method, OptionsInit } from 'got-scraping';
 import { gotScraping } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
@@ -986,11 +988,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 Object.keys(items[0]),
                 ...items.map((item) => Object.values(item)),
             ]);
+            await ensureDir(dirname(path));
             await writeFile(path, value);
             this.log.info(`Export to ${path} finished!`);
         }
 
         if (format === 'json') {
+            await ensureDir(dirname(path));
             await writeJSON(path, items, { spaces: 4 });
             this.log.info(`Export to ${path} finished!`);
         }

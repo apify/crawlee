@@ -1389,13 +1389,9 @@ describe('BasicCrawler', () => {
         const payload: Dictionary[] = [{ foo: 'bar', baz: 123 }];
         const getPayload: (id: string) => Dictionary[] = (id) => [{ foo: id }];
 
-        const tmpDir: string = `${__dirname}/tmp`;
+        const tmpDir: string = `${__dirname}/tmp/foo/bar`;
 
         beforeAll(async () => {
-            await mkdir(tmpDir);
-        });
-
-        afterAll(async () => {
             await rm(tmpDir, { recursive: true, force: true });
         });
 
