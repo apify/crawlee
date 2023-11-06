@@ -1,14 +1,15 @@
 /* eslint-disable max-len */
-import React from 'react';
-import clsx from 'clsx';
-import Admonition from '@theme/Admonition';
-import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import CodeBlock from '@theme/CodeBlock';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import Admonition from '@theme/Admonition';
+import CodeBlock from '@theme/CodeBlock';
+import Layout from '@theme/Layout';
+import clsx from 'clsx';
+import React from 'react';
 import LiteYouTubeEmbed from 'react-lite-youtube-embed';
-import Highlights from '../components/Highlights';
+
 import styles from './index.module.css';
+import Highlights from '../components/Highlights';
 import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
 import RunnableCodeBlock from '../components/RunnableCodeBlock';
 
@@ -66,7 +67,7 @@ function Features() {
                         Crawlee won't fix broken selectors for you (yet), but it helps you <b>build and maintain your crawlers faster</b>.
                     </p>
                     <p>
-                        When a website adds JavaScript rendering, you don't have to rewrite everything, only switch to
+                        When a website adds <a href="https://crawlee.dev/docs/guides/javascript-rendering">JavaScript rendering</a>, you don't have to rewrite everything, only switch to
                         one of the browser crawlers. When you later find a great API to speed up your crawls, flip the switch back.
                     </p>
                     <p>
@@ -95,29 +96,39 @@ function Features() {
     );
 }
 
-const example = `import { PlaywrightCrawler, Dataset } from 'crawlee';
+const example = `import { PlaywrightCrawler } from 'crawlee';
 
-// PlaywrightCrawler crawls the web using a headless
-// browser controlled by the Playwright library.
+// PlaywrightCrawler crawls the web using a headless browser controlled by the Playwright library.
 const crawler = new PlaywrightCrawler({
     // Use the requestHandler to process each of the crawled pages.
-    async requestHandler({ request, page, enqueueLinks, log }) {
+    async requestHandler({ request, page, enqueueLinks, pushData, log }) {
         const title = await page.title();
         log.info(\`Title of \${request.loadedUrl} is '\${title}'\`);
 
-        // Save results as JSON to ./storage/datasets/default
-        await Dataset.pushData({ title, url: request.loadedUrl });
+        // Save results as JSON to \`./storage/datasets/default\` directory.
+        await pushData({ title, url: request.loadedUrl });
 
-        // Extract links from the current page
-        // and add them to the crawling queue.
+        // Extract links from the current page and add them to the crawling queue.
         await enqueueLinks();
     },
+
     // Uncomment this option to see the browser window.
     // headless: false,
+
+    // Comment this option to scrape the full website.
+    maxRequestsPerCrawl: 20,
 });
 
 // Add first URL to the queue and start the crawl.
 await crawler.run(['https://crawlee.dev']);
+
+// Export the whole dataset to a single file in \`./storage/key_value_stores/result.csv\`.
+const dataset = await crawler.getDataset();
+await dataset.exportToCSV('result');
+
+// Or work with the data directly.
+const data = await crawler.getData();
+console.table(data.items);
 `;
 
 function ActorExample() {
@@ -129,7 +140,8 @@ function ActorExample() {
                     Crawlee requires <a href="https://nodejs.org/en/" target="_blank" rel="noreferrer"><b>Node.js 16 or higher</b></a>.
                 </Admonition>
                 <p>
-                    The fastest way to try Crawlee out is to use the <b>Crawlee CLI</b> and choose the <b>Getting started example</b>.
+                    The fastest way to try Crawlee out is to use the <b>Crawlee CLI</b> and choose
+                    the <b><a href="https://crawlee.dev/docs/quick-start">Getting started</a> example</b>.
                     The CLI will install all the necessary dependencies and add boilerplate code for you to play with.
                 </p>
                 <CodeBlock className="language-bash">
@@ -146,7 +158,7 @@ function ActorExample() {
                 <RunnableCodeBlock className="language-typescript" type="playwright">
                     {{
                         code: example,
-                        hash: 'eyJ1IjoiRWdQdHczb2VqNlRhRHQ1cW4iLCJ2IjoxfQ.eyJpbnB1dCI6IntcbiAgICBcImNvZGVcIjogXCJpbXBvcnQgeyBQbGF5d3JpZ2h0Q3Jhd2xlciwgRGF0YXNldCB9IGZyb20gJ2NyYXdsZWUnO1xcblxcbi8vIFBsYXl3cmlnaHRDcmF3bGVyIGNyYXdscyB0aGUgd2ViIHVzaW5nIGEgaGVhZGxlc3NcXG4vLyBicm93c2VyIGNvbnRyb2xsZWQgYnkgdGhlIFBsYXl3cmlnaHQgbGlicmFyeS5cXG5jb25zdCBjcmF3bGVyID0gbmV3IFBsYXl3cmlnaHRDcmF3bGVyKHtcXG4gICAgLy8gVXNlIHRoZSByZXF1ZXN0SGFuZGxlciB0byBwcm9jZXNzIGVhY2ggb2YgdGhlIGNyYXdsZWQgcGFnZXMuXFxuICAgIGFzeW5jIHJlcXVlc3RIYW5kbGVyKHsgcmVxdWVzdCwgcGFnZSwgZW5xdWV1ZUxpbmtzLCBsb2cgfSkge1xcbiAgICAgICAgY29uc3QgdGl0bGUgPSBhd2FpdCBwYWdlLnRpdGxlKCk7XFxuICAgICAgICBsb2cuaW5mbyhgVGl0bGUgb2YgJHtyZXF1ZXN0LmxvYWRlZFVybH0gaXMgJyR7dGl0bGV9J2ApO1xcblxcbiAgICAgICAgLy8gU2F2ZSByZXN1bHRzIGFzIEpTT04gdG8gLi9zdG9yYWdlL2RhdGFzZXRzL2RlZmF1bHRcXG4gICAgICAgIGF3YWl0IERhdGFzZXQucHVzaERhdGEoeyB0aXRsZSwgdXJsOiByZXF1ZXN0LmxvYWRlZFVybCB9KTtcXG5cXG4gICAgICAgIC8vIEV4dHJhY3QgbGlua3MgZnJvbSB0aGUgY3VycmVudCBwYWdlXFxuICAgICAgICAvLyBhbmQgYWRkIHRoZW0gdG8gdGhlIGNyYXdsaW5nIHF1ZXVlLlxcbiAgICAgICAgYXdhaXQgZW5xdWV1ZUxpbmtzKCk7XFxuICAgIH0sXFxuICAgIC8vIFVuY29tbWVudCB0aGlzIG9wdGlvbiB0byBzZWUgdGhlIGJyb3dzZXIgd2luZG93LlxcbiAgICAvLyBoZWFkbGVzczogZmFsc2UsXFxuXFxuICAgIC8vIExldCdzIGxpbWl0IG91ciBjcmF3bHMgdG8gbWFrZSBvdXIgdGVzdHMgc2hvcnRlciBhbmQgc2FmZXIuXFxuICAgIG1heFJlcXVlc3RzUGVyQ3Jhd2w6IDUwLFxcbn0pO1xcblxcbi8vIEFkZCBmaXJzdCBVUkwgdG8gdGhlIHF1ZXVlIGFuZCBzdGFydCB0aGUgY3Jhd2wuXFxuYXdhaXQgY3Jhd2xlci5ydW4oWydodHRwczovL2NyYXdsZWUuZGV2J10pO1xcblwiXG59Iiwib3B0aW9ucyI6eyJjb250ZW50VHlwZSI6ImFwcGxpY2F0aW9uL2pzb247IGNoYXJzZXQ9dXRmLTgiLCJtZW1vcnkiOjQwOTZ9fQ.92zzJDS3Ubm_4NxGOiChWEXzd8fWjI_es03xum3rEVo',
+                        hash: 'eyJ1IjoiRWdQdHczb2VqNlRhRHQ1cW4iLCJ2IjoxfQ.eyJpbnB1dCI6IntcbiAgICBcImNvZGVcIjogXCJpbXBvcnQgeyBQbGF5d3JpZ2h0Q3Jhd2xlciB9IGZyb20gJ2NyYXdsZWUnO1xcblxcbi8vIENyYXdsZXIgc2V0dXAgZnJvbSB0aGUgcHJldmlvdXMgZXhhbXBsZS5cXG5jb25zdCBjcmF3bGVyID0gbmV3IFBsYXl3cmlnaHRDcmF3bGVyKHtcXG4gICAgLy8gVXNlIHRoZSByZXF1ZXN0SGFuZGxlciB0byBwcm9jZXNzIGVhY2ggb2YgdGhlIGNyYXdsZWQgcGFnZXMuXFxuICAgIGFzeW5jIHJlcXVlc3RIYW5kbGVyKHsgcmVxdWVzdCwgcGFnZSwgZW5xdWV1ZUxpbmtzLCBwdXNoRGF0YSwgbG9nIH0pIHtcXG4gICAgICAgIGNvbnN0IHRpdGxlID0gYXdhaXQgcGFnZS50aXRsZSgpO1xcbiAgICAgICAgbG9nLmluZm8oYFRpdGxlIG9mICR7cmVxdWVzdC5sb2FkZWRVcmx9IGlzICcke3RpdGxlfSdgKTtcXG5cXG4gICAgICAgIC8vIFNhdmUgcmVzdWx0cyBhcyBKU09OIHRvIC4vc3RvcmFnZS9kYXRhc2V0cy9kZWZhdWx0XFxuICAgICAgICBhd2FpdCBwdXNoRGF0YSh7IHRpdGxlLCB1cmw6IHJlcXVlc3QubG9hZGVkVXJsIH0pO1xcblxcbiAgICAgICAgLy8gRXh0cmFjdCBsaW5rcyBmcm9tIHRoZSBjdXJyZW50IHBhZ2VcXG4gICAgICAgIC8vIGFuZCBhZGQgdGhlbSB0byB0aGUgY3Jhd2xpbmcgcXVldWUuXFxuICAgICAgICBhd2FpdCBlbnF1ZXVlTGlua3MoKTtcXG4gICAgfSxcXG5cXG4gICAgLy8gVW5jb21tZW50IHRoaXMgb3B0aW9uIHRvIHNlZSB0aGUgYnJvd3NlciB3aW5kb3cuXFxuICAgIC8vIGhlYWRsZXNzOiBmYWxzZSxcXG5cXG4gICAgLy8gQ29tbWVudCB0aGlzIG9wdGlvbiB0byBzY3JhcGUgdGhlIGZ1bGwgd2Vic2l0ZS5cXG4gICAgbWF4UmVxdWVzdHNQZXJDcmF3bDogMjAsXFxufSk7XFxuXFxuLy8gQWRkIGZpcnN0IFVSTCB0byB0aGUgcXVldWUgYW5kIHN0YXJ0IHRoZSBjcmF3bC5cXG5hd2FpdCBjcmF3bGVyLnJ1bihbJ2h0dHBzOi8vY3Jhd2xlZS5kZXYnXSk7XFxuXFxuLy8gRXhwb3J0IHRoZSBlbnRpcmV0eSBvZiB0aGUgZGF0YXNldCB0byBhIHNpbmdsZSBmaWxlIGluXFxuLy8gLi9zdG9yYWdlL2tleV92YWx1ZV9zdG9yZXMvcmVzdWx0LmNzdlxcbmNvbnN0IGRhdGFzZXQgPSBhd2FpdCBjcmF3bGVyLmdldERhdGFzZXQoKTtcXG5hd2FpdCBkYXRhc2V0LmV4cG9ydFRvQ1NWKCdyZXN1bHQnKTtcXG5cXG4vLyBPciB3b3JrIHdpdGggdGhlIGRhdGEgZGlyZWN0bHkuXFxuY29uc3QgZGF0YSA9IGF3YWl0IGNyYXdsZXIuZ2V0RGF0YSgpO1xcbmNvbnNvbGUudGFibGUoZGF0YS5pdGVtcyk7XFxuXCJcbn0iLCJvcHRpb25zIjp7ImNvbnRlbnRUeXBlIjoiYXBwbGljYXRpb24vanNvbjsgY2hhcnNldD11dGYtOCIsIm1lbW9yeSI6NDA5Nn19.WKB14SjgTceKYyhONw2oXTkiOao6X4-UAS7cIuwqGvo',
                     }}
                 </RunnableCodeBlock>
             </div>
@@ -158,19 +170,19 @@ const npmInstall = `npm install apify
 npm install -g apify-cli`;
 const exampleActor = `import { PlaywrightCrawler, Dataset } from 'crawlee';
 
-// import the \`Actor\` class from the Apify SDK
+// Import the \`Actor\` class from the Apify SDK.
 import { Actor } from 'apify';
 
-// set up the integration to Apify
+// Set up the integration to Apify.
 await Actor.init();
 
-// crawler setup from the previous example
+// Crawler setup from the previous example.
 const crawler = new PlaywrightCrawler({
     // ...
 });
 await crawler.run(['https://crawlee.dev']);
 
-// once finished, clean up the environment
+// Once finished, clean up the environment.
 await Actor.exit();
 `;
 
@@ -184,7 +196,7 @@ function Deployment() {
             <div className="col">
                 <h2>Deploy to the cloud ☁️</h2>
                 <p>
-                    Crawlee is developed by <a href="https://apify.com" rel="dofollow" target="_blank"><b>Apify</b></a>, the web scraping and automation platform.
+                    Crawlee is developed by <a href="https://apify.com" rel="dofollow noreferrer" target="_blank"><b>Apify</b></a>, the web scraping and automation platform.
                     You can deploy a <b>Crawlee</b> project wherever you want (see our deployment guides for <a href="https://crawlee.dev/docs/deployment/aws-cheerio"><b>AWS
                     Lambda</b></a> and <a href="https://crawlee.dev/docs/deployment/gcp-cheerio"><b>Google Cloud</b></a>), but using the&nbsp;
                     <a href="https://console.apify.com/" target="_blank"><b>Apify platform</b></a> will give you the best experience. With a few simple steps,
@@ -206,7 +218,7 @@ function Deployment() {
                 <RunnableCodeBlock className="language-typescript" type="playwright">
                     {{
                         code: exampleActor,
-                        hash: 'eyJ1IjoiRWdQdHczb2VqNlRhRHQ1cW4iLCJ2IjoxfQ.eyJpbnB1dCI6IntcbiAgICBcImNvZGVcIjogXCJpbXBvcnQgeyBQbGF5d3JpZ2h0Q3Jhd2xlciwgRGF0YXNldCB9IGZyb20gJ2NyYXdsZWUnO1xcblxcbi8vIGltcG9ydCB0aGUgYEFjdG9yYCBjbGFzcyBmcm9tIHRoZSBBcGlmeSBTREtcXG5pbXBvcnQgeyBBY3RvciB9IGZyb20gJ2FwaWZ5JztcXG5cXG4vLyBzZXQgdXAgdGhlIGludGVncmF0aW9uIHRvIEFwaWZ5XFxuYXdhaXQgQWN0b3IuaW5pdCgpO1xcblxcbi8vIGNyYXdsZXIgc2V0dXAgZnJvbSB0aGUgcHJldmlvdXMgZXhhbXBsZVxcbmNvbnN0IGNyYXdsZXIgPSBuZXcgUGxheXdyaWdodENyYXdsZXIoe1xcbiAgICAvLyBVc2UgdGhlIHJlcXVlc3RIYW5kbGVyIHRvIHByb2Nlc3MgZWFjaCBvZiB0aGUgY3Jhd2xlZCBwYWdlcy5cXG4gICAgYXN5bmMgcmVxdWVzdEhhbmRsZXIoeyByZXF1ZXN0LCBwYWdlLCBlbnF1ZXVlTGlua3MsIGxvZyB9KSB7XFxuICAgICAgICBjb25zdCB0aXRsZSA9IGF3YWl0IHBhZ2UudGl0bGUoKTtcXG4gICAgICAgIGxvZy5pbmZvKGBUaXRsZSBvZiAke3JlcXVlc3QubG9hZGVkVXJsfSBpcyAnJHt0aXRsZX0nYCk7XFxuXFxuICAgICAgICAvLyBTYXZlIHJlc3VsdHMgYXMgSlNPTiB0byAuL3N0b3JhZ2UvZGF0YXNldHMvZGVmYXVsdFxcbiAgICAgICAgYXdhaXQgRGF0YXNldC5wdXNoRGF0YSh7IHRpdGxlLCB1cmw6IHJlcXVlc3QubG9hZGVkVXJsIH0pO1xcblxcbiAgICAgICAgLy8gRXh0cmFjdCBsaW5rcyBmcm9tIHRoZSBjdXJyZW50IHBhZ2VcXG4gICAgICAgIC8vIGFuZCBhZGQgdGhlbSB0byB0aGUgY3Jhd2xpbmcgcXVldWUuXFxuICAgICAgICBhd2FpdCBlbnF1ZXVlTGlua3MoKTtcXG4gICAgfSxcXG4gICAgLy8gVW5jb21tZW50IHRoaXMgb3B0aW9uIHRvIHNlZSB0aGUgYnJvd3NlciB3aW5kb3cuXFxuICAgIC8vIGhlYWRsZXNzOiBmYWxzZSxcXG5cXG4gICAgLy8gTGV0J3MgbGltaXQgb3VyIGNyYXdscyB0byBtYWtlIG91ciB0ZXN0cyBzaG9ydGVyIGFuZCBzYWZlci5cXG4gICAgbWF4UmVxdWVzdHNQZXJDcmF3bDogNTAsXFxufSk7XFxuYXdhaXQgY3Jhd2xlci5ydW4oWydodHRwczovL2NyYXdsZWUuZGV2J10pO1xcblxcbi8vIG9uY2UgZmluaXNoZWQsIGNsZWFuIHVwIHRoZSBlbnZpcm9ubWVudFxcbmF3YWl0IEFjdG9yLmV4aXQoKTtcIlxufSIsIm9wdGlvbnMiOnsiY29udGVudFR5cGUiOiJhcHBsaWNhdGlvbi9qc29uOyBjaGFyc2V0PXV0Zi04IiwibWVtb3J5Ijo0MDk2fX0.GEq2sijM5gLMe4O8aT94EUihaKoCz1QLtqmLcNulmUA',
+                        hash: 'eyJ1IjoiRWdQdHczb2VqNlRhRHQ1cW4iLCJ2IjoxfQ.eyJpbnB1dCI6IntcbiAgICBcImNvZGVcIjogXCJpbXBvcnQgeyBQbGF5d3JpZ2h0Q3Jhd2xlciB9IGZyb20gJ2NyYXdsZWUnO1xcblxcbi8vIEltcG9ydCB0aGUgYEFjdG9yYCBjbGFzcyBmcm9tIHRoZSBBcGlmeSBTREsuXFxuaW1wb3J0IHsgQWN0b3IgfSBmcm9tICdhcGlmeSc7XFxuXFxuLy8gU2V0IHVwIHRoZSBpbnRlZ3JhdGlvbiB0byBBcGlmeS5cXG5hd2FpdCBBY3Rvci5pbml0KCk7XFxuXFxuLy8gQ3Jhd2xlciBzZXR1cCBmcm9tIHRoZSBwcmV2aW91cyBleGFtcGxlLlxcbmNvbnN0IGNyYXdsZXIgPSBuZXcgUGxheXdyaWdodENyYXdsZXIoe1xcbiAgICAvLyBVc2UgdGhlIHJlcXVlc3RIYW5kbGVyIHRvIHByb2Nlc3MgZWFjaCBvZiB0aGUgY3Jhd2xlZCBwYWdlcy5cXG4gICAgYXN5bmMgcmVxdWVzdEhhbmRsZXIoeyByZXF1ZXN0LCBwYWdlLCBlbnF1ZXVlTGlua3MsIHB1c2hEYXRhLCBsb2cgfSkge1xcbiAgICAgICAgY29uc3QgdGl0bGUgPSBhd2FpdCBwYWdlLnRpdGxlKCk7XFxuICAgICAgICBsb2cuaW5mbyhgVGl0bGUgb2YgJHtyZXF1ZXN0LmxvYWRlZFVybH0gaXMgJyR7dGl0bGV9J2ApO1xcblxcbiAgICAgICAgLy8gU2F2ZSByZXN1bHRzIGFzIEpTT04gdG8gLi9zdG9yYWdlL2RhdGFzZXRzL2RlZmF1bHRcXG4gICAgICAgIGF3YWl0IHB1c2hEYXRhKHsgdGl0bGUsIHVybDogcmVxdWVzdC5sb2FkZWRVcmwgfSk7XFxuXFxuICAgICAgICAvLyBFeHRyYWN0IGxpbmtzIGZyb20gdGhlIGN1cnJlbnQgcGFnZVxcbiAgICAgICAgLy8gYW5kIGFkZCB0aGVtIHRvIHRoZSBjcmF3bGluZyBxdWV1ZS5cXG4gICAgICAgIGF3YWl0IGVucXVldWVMaW5rcygpO1xcbiAgICB9LFxcblxcbiAgICAvLyBVbmNvbW1lbnQgdGhpcyBvcHRpb24gdG8gc2VlIHRoZSBicm93c2VyIHdpbmRvdy5cXG4gICAgLy8gaGVhZGxlc3M6IGZhbHNlLFxcblxcbiAgICAvLyBVbmNvbW1lbnQgdGhpcyBvcHRpb24gdG8gc2NyYXBlIHRoZSBmdWxsIHdlYnNpdGUuXFxuICAgIG1heFJlcXVlc3RzUGVyQ3Jhd2w6IDIwLFxcbn0pO1xcblxcbi8vIEFkZCBmaXJzdCBVUkwgdG8gdGhlIHF1ZXVlIGFuZCBzdGFydCB0aGUgY3Jhd2wuXFxuYXdhaXQgY3Jhd2xlci5ydW4oWydodHRwczovL2NyYXdsZWUuZGV2J10pO1xcblxcbi8vIEV4cG9ydCB0aGUgZW50aXJldHkgb2YgdGhlIGRhdGFzZXQgdG8gYSBzaW5nbGUgZmlsZSBpblxcbi8vIC4vc3RvcmFnZS9rZXlfdmFsdWVfc3RvcmVzL3Jlc3VsdC5jc3ZcXG5jb25zdCBkYXRhc2V0ID0gYXdhaXQgY3Jhd2xlci5nZXREYXRhc2V0KCk7XFxuYXdhaXQgZGF0YXNldC5leHBvcnRUb0NTVigncmVzdWx0Jyk7XFxuXFxuLy8gT3Igd29yayB3aXRoIHRoZSBkYXRhIGRpcmVjdGx5LlxcbmNvbnN0IGRhdGEgPSBhd2FpdCBjcmF3bGVyLmdldERhdGEoKTtcXG5jb25zb2xlLmxvZyhkYXRhLml0ZW1zLnNsaWNlKDAsIDUpKTtcXG5cXG4vLyBPbmNlIGZpbmlzaGVkLCBjbGVhbiB1cCB0aGUgZW52aXJvbm1lbnQuXFxuYXdhaXQgQWN0b3IuZXhpdCgpO1xcblwiXG59Iiwib3B0aW9ucyI6eyJjb250ZW50VHlwZSI6ImFwcGxpY2F0aW9uL2pzb247IGNoYXJzZXQ9dXRmLTgiLCJtZW1vcnkiOjQwOTZ9fQ.Te7qi0ocWNsH3ujFkgIv8AO9GQ5Wk4DZeQ9-zHTy7Vo',
                     }}
                 </RunnableCodeBlock>
                 <p>
