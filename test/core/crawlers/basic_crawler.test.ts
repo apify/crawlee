@@ -27,7 +27,6 @@ import express from 'express';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { startExpressAppPromise } from '../../shared/_helper';
-import * as process from 'process';
 
 describe('BasicCrawler', () => {
     let logLevel: number;

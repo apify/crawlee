@@ -946,6 +946,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Retrieves the default crawler {@apilink Dataset}.
      */
     getDataset(): Dataset {
+        if (!this.dataset) {
+            throw new Error(`This crawler instance does not have a default dataset yet, did you call \`crawler.run()\` first?`);
+        }
+
         return this.dataset;
     }
 
