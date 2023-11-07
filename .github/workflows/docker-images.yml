@@ -1,10 +1,7 @@
 name: Docker images
 
+# The action runs on pushes to master and new releases only if their respective flows pass
 on:
-    push:
-        branches: [master]
-    release:
-        types: [created]
     workflow_dispatch:
         inputs:
             crawlee_version:
