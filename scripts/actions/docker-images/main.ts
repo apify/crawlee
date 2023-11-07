@@ -28,17 +28,20 @@ interface StateFile {
 }
 
 const state = JSON.parse(await readFile(statePath, 'utf-8')) as StateFile;
-
 debug(`State file: ${inspect(state)}`);
+
 const crawleeVersion: string = JSON.parse(
     await readFile(new URL('../../../packages/crawlee/package.json', import.meta.url), 'utf-8'),
 ).version;
 debug(`Crawlee version: ${crawleeVersion}`);
+
 const apifyVersion: string = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf-8')).devDependencies?.apify
     ?? 'latest';
 debug(`Apify version: ${apifyVersion}`);
+
 const lastPlaywrightVersions = await fetchModuleVersions('playwright', 5);
 debug(`Last 5 playwright versions: ${lastPlaywrightVersions.join(', ')}`);
+
 const lastPuppeteerVersions = await fetchModuleVersions('puppeteer', 5);
 debug(`Last 5 puppeteer versions: ${lastPuppeteerVersions.join(', ')}`);
 
