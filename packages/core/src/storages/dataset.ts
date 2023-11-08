@@ -139,6 +139,8 @@ export interface DatasetDataOptions {
     skipEmpty?: boolean;
 }
 
+export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {}
+
 export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
     /** @internal */
     offset?: number;
@@ -162,7 +164,7 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
     format?: string;
 }
 
-export interface ExportOptions {
+export interface DatasetExportToOptions extends DatasetExportOptions {
     fromDataset?: string;
     toKVS?: string;
 }
@@ -294,19 +296,15 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     * Save the entirety of the dataset's contents into one file within a key-value store.
-     *
-     * @param key The name of the value to save the data in.
-     * @param [options] An optional options object where you can provide the dataset and target KVS name.
-     * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
+     * Returns all the data from the dataset. This will iterate through the whole dataset
+     * via the `listItems()` client method, which gives you only paginated results.
      */
-    async exportTo(key: string, options?: ExportOptions, contentType?: string): Promise<void> {
-        const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { config: this.config });
+    async export(options: DatasetExportOptions = {}): Promise<Data[]> {
         const items: Data[] = [];
 
         const fetchNextChunk = async (offset = 0): Promise<void> => {
             const limit = 1000;
-            const value = await this.client.listItems({ offset, limit });
+            const value = await this.client.listItems({ offset, limit, ...options });
 
             if (value.count === 0) {
                 return;
@@ -321,19 +319,37 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         await fetchNextChunk();
 
+        return items;
+    }
+
+    /**
+     * Save the entirety of the dataset's contents into one file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
+     */
+    async exportTo(key: string, options?: DatasetExportToOptions, contentType?: string): Promise<Data[]> {
+        const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { config: this.config });
+        const items = await this.export(options);
+
         if (contentType === 'text/csv') {
             const value = stringify([
                 Object.keys(items[0]),
                 ...items.map((item) => Object.values(item)),
             ]);
-            return kvStore.setValue(key, value, { contentType });
+            await kvStore.setValue(key, value, { contentType });
+            return items;
         }
 
         if (contentType === 'application/json') {
-            return kvStore.setValue(key, items);
+            await kvStore.setValue(key, items);
+            return items;
         }
 
         throw new Error(`Unsupported content type: ${contentType}`);
+
+        return items;
     }
 
     /**
@@ -342,7 +358,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param key The name of the value to save the data in.
      * @param [options] An optional options object where you can provide the target KVS name.
      */
-    async exportToJSON(key: string, options?: Omit<ExportOptions, 'fromDataset'>) {
+    async exportToJSON(key: string, options?: Omit<DatasetExportToOptions, 'fromDataset'>) {
         await this.exportTo(key, options, 'application/json');
     }
 
@@ -352,7 +368,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param key The name of the value to save the data in.
      * @param [options] An optional options object where you can provide the target KVS name.
      */
-    async exportToCSV(key: string, options?: Omit<ExportOptions, 'fromDataset'>) {
+    async exportToCSV(key: string, options?: Omit<DatasetExportToOptions, 'fromDataset'>) {
         await this.exportTo(key, options, 'text/csv');
     }
 
@@ -362,7 +378,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param key The name of the value to save the data in.
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      */
-    static async exportToJSON(key: string, options?: ExportOptions) {
+    static async exportToJSON(key: string, options?: DatasetExportToOptions) {
         const dataset = await this.open(options?.fromDataset);
         await dataset.exportToJSON(key, options);
     }
@@ -373,7 +389,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param key The name of the value to save the data in.
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      */
-    static async exportToCSV(key: string, options?: ExportOptions) {
+    static async exportToCSV(key: string, options?: DatasetExportToOptions) {
         const dataset = await this.open(options?.fromDataset);
         await dataset.exportToCSV(key, options);
     }

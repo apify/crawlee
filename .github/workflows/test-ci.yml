@@ -6,6 +6,9 @@ on:
     pull_request:
         branches: [ master ]
 
+env:
+    YARN_IGNORE_NODE: 1
+
 jobs:
     # `yarn install` is done in a separate job and cached to speed up the following jobs.
     build_and_test:
