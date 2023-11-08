@@ -282,8 +282,8 @@ export class Session {
     retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes?: number[]): boolean;
 
     retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes: number[] = []): boolean {
-        // @ts-expect-error
-        const isBlocked = this.sessionPool.blockedStatusCodes.concat(additionalBlockedStatusCodes).includes(statusCode);
+        // eslint-disable-next-line dot-notation -- accessing private property
+        const isBlocked = this.sessionPool['blockedStatusCodes'].concat(additionalBlockedStatusCodes).includes(statusCode);
         if (isBlocked) {
             this.retire();
         }
