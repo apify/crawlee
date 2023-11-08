@@ -457,7 +457,7 @@ __metadata:
     "@crawlee/templates": "npm:3.5.8"
     ansi-colors: "npm:^4.1.3"
     fs-extra: "npm:^11.0.0"
-    inquirer: "npm:^8.2.4"
+    inquirer: "npm:^9.0.0"
     tslib: "npm:^2.4.0"
     yargonaut: "npm:^1.1.4"
     yargs: "npm:^17.5.1"
@@ -628,7 +628,7 @@ __metadata:
     "@types/express": "npm:^4.17.13"
     "@types/fs-extra": "npm:^11.0.0"
     "@types/htmlparser2": "npm:^3.10.3"
-    "@types/inquirer": "npm:^8.2.1"
+    "@types/inquirer": "npm:^9.0.0"
     "@types/is-ci": "npm:^3.0.1"
     "@types/lodash.merge": "npm:^4.6.7"
     "@types/mime-types": "npm:^2.1.1"
@@ -1944,13 +1944,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/inquirer@npm:^8.2.1":
-  version: 8.2.10
-  resolution: "@types/inquirer@npm:8.2.10"
+"@types/inquirer@npm:^9.0.0":
+  version: 9.0.7
+  resolution: "@types/inquirer@npm:9.0.7"
   dependencies:
     "@types/through": "npm:*"
     rxjs: "npm:^7.2.0"
-  checksum: c39c3a792b5f95727842277c25ca4b2ce3f3f8e7897e51c571ba919ea35587fce81f2b0d1d75747f6f54a7d79b0efe95430fd1fe7f5b81d07af81b2c2fc1fb5d
+  checksum: b7138af41226c0457b99ff9b179da4a82078bc1674762e812d3cc3e3276936d7326b9fa6b98212b8eb055b2b6aaebe3c20359eebe176a6ca71061f4e08ce3a0f
   languageName: node
   linkType: hard
 
