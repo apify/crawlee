@@ -35,11 +35,12 @@ jobs:
             - name: Use Bun
               uses: oven-sh/setup-bun@v1
 
-            - name: Cache Bun Dependencies
-              uses: actions/cache@v3
-              with:
-                  path: ./scripts/actions/docker-images/node_modules
-                  key: actions-bun-${{ hashFiles('scripts/actions/docker-images/bun.lockb') }}
+            # No caching for now, bun's already mega fast
+            # - name: Cache Bun Dependencies
+            #   uses: actions/cache@v3
+            #   with:
+            #       path: ./scripts/actions/docker-images/node_modules
+            #       key: actions-bun-${{ hashFiles('scripts/actions/docker-images/bun.lockb') }}
 
             - name: Install Bun Dependencies
               run: |
