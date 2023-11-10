@@ -4366,9 +4366,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1220723
-  resolution: "devtools-protocol@npm:0.0.1220723"
-  checksum: 2e067e395934d0cdf21c64c7eba216c33744f0e47ac765292f6736ac1f91fa60ad3d1c3640fa1dbcb263939068fb220dc1c150a961113fabc171b6cf2e200c7d
+  version: 0.0.1222075
+  resolution: "devtools-protocol@npm:0.0.1222075"
+  checksum: be5175b6ac7935b4f67b4380ac4c7ec2f3a0bc83921f943ea9dae184cf2699761c413d14fa911d1b6efe6fd3c02fcfd6e4d205a481f11eb1b6854c491659c90e
   languageName: node
   linkType: hard
 
@@ -4548,9 +4548,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.578
-  resolution: "electron-to-chromium@npm:1.4.578"
-  checksum: 6b777e4a0e585da8b73b40bb8fd04b8867def5b5795b564cda8fa7b98912c68e4ecea24ffd5d928cdeedced5e2a7711b046ff69f09df082c1cc7b55b9d0cfa3a
+  version: 1.4.580
+  resolution: "electron-to-chromium@npm:1.4.580"
+  checksum: b0aa56873c8be54b7b34ce30551fda6872f2571d40080e8f3ceb779b48f3f1ab146b55896add89bf9629dde29dc0603bc1df6251d9052f3c918140669422047a
   languageName: node
   linkType: hard
 
@@ -10847,12 +10847,12 @@ __metadata:
   linkType: hard
 
 "streamx@npm:^2.15.0":
-  version: 2.15.2
-  resolution: "streamx@npm:2.15.2"
+  version: 2.15.3
+  resolution: "streamx@npm:2.15.3"
   dependencies:
     fast-fifo: "npm:^1.1.0"
     queue-tick: "npm:^1.0.1"
-  checksum: ff6b5a16dd6c378dc828dc5cd3e6df597ac6823bf140901d4343ec02c70409d6c50294c4a625c274e0300ca537ba7a01f2b475618d5aa74dc3ab4add24242a63
+  checksum: a3561b28c96effd2bc5a392535042c3482be5428aace4a1cd41899ad6ceaa577c29990ebf31066725ed2088f3f1364146a7c74ca8de2e85e1c2d0e937c799600
   languageName: node
   linkType: hard
 
@@ -11574,9 +11574,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^4.0.0":
-  version: 4.7.0
-  resolution: "type-fest@npm:4.7.0"
-  checksum: 1c7db059eb45b65b8ea9c8ee42853b390c321bc170d48bdf3bd54931b0d0cc987e4a7532adfa8b2bd310a4b32012508927a8a9e34ecead05c3d3fbfa518c96d9
+  version: 4.7.1
+  resolution: "type-fest@npm:4.7.1"
+  checksum: e2cae05a6a5be98e5e5cfecee8782db1eb74594ceb1d85b5bfdb9b9ca5e236342f97435d3ff9edddd8eb92898af7f13555f85d1a53a69c362b0f56f2cceb8151
   languageName: node
   linkType: hard
 
