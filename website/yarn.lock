@@ -6080,9 +6080,9 @@ __metadata:
   linkType: hard
 
 "es-module-lexer@npm:^1.2.1":
-  version: 1.4.0
-  resolution: "es-module-lexer@npm:1.4.0"
-  checksum: c12d08945b1ffc27df0942b79df6537381f5db792c03ad4a755e89120d60c0692ff8dddad46b99fe52c86cc99e1282664ca76f8c1276da0a0c40d28a9b742314
+  version: 1.4.1
+  resolution: "es-module-lexer@npm:1.4.1"
+  checksum: b7260a138668554d3f0ddcc728cb4b60c2fa463f15545cf155ecbdd5450a1348952d58298a7f48642e900ee579f21d7f5304b6b3c61b3d9fc2d4b2109b5a9dff
   languageName: node
   linkType: hard
 
@@ -9102,13 +9102,13 @@ __metadata:
   linkType: hard
 
 "marked-smartypants@npm:^1.1.3":
-  version: 1.1.3
-  resolution: "marked-smartypants@npm:1.1.3"
+  version: 1.1.4
+  resolution: "marked-smartypants@npm:1.1.4"
   dependencies:
     smartypants: "npm:^0.2.2"
   peerDependencies:
-    marked: ">=4 <10"
-  checksum: e6e3639edb4f9e4d4abfd9af77ee5f81fdd7894d1ed4cba6fbe54dc709142d7ad28155ba79558ee5def4ff4aff5db5f45c79ef4e940c5707c5eab143c665f10f
+    marked: ">=4 <11"
+  checksum: 484354a0782c754096d5c3afa6791f488d6f17eb9a85ed47ee6b636f0379553d93b904c65dc877b9d540fee21d3ae242af86e35bf4ae1ddeb09ecd794441ed81
   languageName: node
   linkType: hard
 
@@ -11369,14 +11369,14 @@ __metadata:
   linkType: hard
 
 "prism-react-renderer@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "prism-react-renderer@npm:2.1.0"
+  version: 2.2.0
+  resolution: "prism-react-renderer@npm:2.2.0"
   dependencies:
     "@types/prismjs": "npm:^1.26.0"
     clsx: "npm:^1.2.1"
   peerDependencies:
     react: ">=16.0.0"
-  checksum: 3785026a9399b6e178f097d856159d2305af094dea3ac221dd07aee1553cd0110c41414a75778f48512e87599f03500aacb74d26a70e07e5b71335389e713c56
+  checksum: 3ba1dbde06a146471ebe5880fc1136e375ef29d4ff3691263b4141bc064e481bb1a603f08d6af676231cc5570bb78e4b67d38ec7f8ad0e6b2a6ba2e1d28ac851
   languageName: node
   linkType: hard
 
