@@ -16,7 +16,7 @@ on:
 
 env:
     ACTIONS_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-    CRAWLEE_BETA_VERSION: ${{ inputs.crawlee_version || '' }}
+    CRAWLEE_BETA_VERSION: ${{ github.event.inputs.crawlee_version || github.event.client_payload.crawlee_version || '' }}
 
 jobs:
     trigger_ci:
@@ -34,13 +34,6 @@ jobs:
 
             - name: Use Bun
               uses: oven-sh/setup-bun@v1
-
-            # No caching for now, bun's already mega fast
-            # - name: Cache Bun Dependencies
-            #   uses: actions/cache@v3
-            #   with:
-            #       path: ./scripts/actions/docker-images/node_modules
-            #       key: actions-bun-${{ hashFiles('scripts/actions/docker-images/bun.lockb') }}
 
             - name: Install Bun Dependencies
               run: |
