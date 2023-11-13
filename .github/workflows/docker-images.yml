@@ -1,0 +1,69 @@
+name: Docker images
+
+# The action runs on pushes to master and new releases only if their respective flows pass
+on:
+    workflow_dispatch:
+        inputs:
+            crawlee_version:
+                description: Custom crawlee version to deploy
+                type: string
+                default: ''
+    repository_dispatch:
+        types:
+            - crawlee-docker-image-bump
+    schedule:
+        - cron: 0 */12 * * *
+
+env:
+    ACTIONS_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+    CRAWLEE_BETA_VERSION: ${{ inputs.crawlee_version || '' }}
+
+jobs:
+    trigger_ci:
+        name: Trigger CI
+        runs-on: ubuntu-latest
+
+        if: github.repository == 'apify/crawlee'
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                  fetch-depth: 0
+
+            - name: Use Bun
+              uses: oven-sh/setup-bun@v1
+
+            # No caching for now, bun's already mega fast
+            # - name: Cache Bun Dependencies
+            #   uses: actions/cache@v3
+            #   with:
+            #       path: ./scripts/actions/docker-images/node_modules
+            #       key: actions-bun-${{ hashFiles('scripts/actions/docker-images/bun.lockb') }}
+
+            - name: Install Bun Dependencies
+              run: |
+                  pushd ./scripts/actions/docker-images
+                  bun install
+                  popd
+
+            - name: Setup git user
+              run: |
+                  git config --global user.name "Apify Release Bot"
+                  git config --global user.email "noreply@apify.com"
+
+            - name: Run Docker Action
+              run: |
+                  pushd ./scripts/actions/docker-images
+                  bun run-ci
+                  popd
+              env:
+                  ACTIONS_TOKEN: ${{ env.ACTIONS_TOKEN }}
+                  CRAWLEE_BETA_VERSION: ${{ env.CRAWLEE_BETA_VERSION }}
+
+            - name: Update Docker state
+              run: |
+                  git add .
+                  git diff-index --quiet HEAD || git commit -m "chore(docker): update docker state [skip ci]"
+                  git push

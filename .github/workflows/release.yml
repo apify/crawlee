@@ -9,10 +9,10 @@ on:
                 default: 'patch'
                 type: choice
                 options:
-                    - "patch"
-                    - "minor"
-                    - "major"
-                    - "custom"
+                    - 'patch'
+                    - 'minor'
+                    - 'major'
+                    - 'custom'
             custom_version:
                 description: The custom version to bump to (only for "custom" type)
                 required: false
@@ -28,51 +28,51 @@ jobs:
             fail-fast: true
             matrix:
                 # We don't test on Windows as the tests are flaky
-                os: [ ubuntu-latest ]
-                node-version: [ 16, 18, 20 ]
+                os: [ubuntu-latest]
+                node-version: [16, 18, 20]
 
         runs-on: ${{ matrix.os }}
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.12.0
-                with:
-                    access_token: ${{ github.token }}
+            - name: Cancel Workflow Action
+              uses: styfle/cancel-workflow-action@0.12.0
+              with:
+                  access_token: ${{ github.token }}
 
-            -   name: Checkout repository
-                uses: actions/checkout@v4
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-            -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v4
-                with:
-                    node-version: ${{ matrix.node-version }}
-                    cache: 'yarn'
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'yarn'
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
+            - name: Enable corepack
+              run: |
+                  corepack enable
+                  corepack prepare yarn@stable --activate
 
-            -   name: Setup Playwright
-                uses: microsoft/playwright-github-action@v1
+            - name: Setup Playwright
+              uses: microsoft/playwright-github-action@v1
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+            - name: Turbo cache
+              id: turbo-cache
+              uses: actions/cache@v3
+              with:
+                  path: .turbo
+                  key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                  restore-keys: |
+                      turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            - name: Install Dependencies
+              run: yarn
 
-            -   name: Build
-                run: yarn ci:build
+            - name: Build
+              run: yarn ci:build
 
-            -   name: Tests
-                run: yarn test
+            - name: Tests
+              run: yarn test
 
     release:
         name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
@@ -81,100 +81,80 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            -   name: Checkout repository
-                uses: actions/checkout@v4
-                with:
-                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    fetch-depth: 0
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                  fetch-depth: 0
 
-            -   name: Use Node.js 18
-                uses: actions/setup-node@v4
-                with:
-                    node-version: 18
-                    cache: 'yarn'
+            - name: Use Node.js 18
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 18
+                  cache: 'yarn'
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
+            - name: Enable corepack
+              run: |
+                  corepack enable
+                  corepack prepare yarn@stable --activate
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+            - name: Turbo cache
+              id: turbo-cache
+              uses: actions/cache@v3
+              with:
+                  path: .turbo
+                  key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                  restore-keys: |
+                      turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            - name: Install Dependencies
+              run: yarn
 
-            -   name: Build
-                run: yarn ci:build
+            - name: Build
+              run: yarn ci:build
 
-            -   name: Setup git user and npm
-                run: |
-                    git config --global user.name "Apify Release Bot"
-                    git config --global user.email "noreply@apify.com"
+            - name: Setup git user and npm
+              run: |
+                  git config --global user.name "Apify Release Bot"
+                  git config --global user.email "noreply@apify.com"
 
-                    echo "access=public" > .npmrc
-                    echo "//registry.npmjs.org/:_authToken=${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}" >> .npmrc
+                  echo "access=public" > .npmrc
+                  echo "//registry.npmjs.org/:_authToken=${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}" >> .npmrc
 
-            -   name: Bump version to custom version
-                if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-                run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
-                env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+            - name: Bump version to custom version
+              if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
+              run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
+              env:
+                  NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
+                  GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
-            -   name: Bump version to ${{ github.event.inputs.version }} version
-                if: ${{ github.event.inputs.version != 'custom' }}
-                run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
-                env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+            - name: Bump version to ${{ github.event.inputs.version }} version
+              if: ${{ github.event.inputs.version != 'custom' }}
+              run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
+              env:
+                  NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
+                  GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
-            -   name: Pin versions in internal dependencies and update lockfile
-                run: |
-                    yarn release:pin-versions
-                    yarn install --no-immutable
-                    git add .
-                    git diff-index --quiet HEAD || git commit -m 'chore(release): update internal dependencies [skip ci]'
-                    git push
+            - name: Pin versions in internal dependencies and update lockfile
+              run: |
+                  yarn release:pin-versions
+                  yarn install --no-immutable
+                  git add .
+                  git diff-index --quiet HEAD || git commit -m 'chore(release): update internal dependencies [skip ci]'
+                  git push
 
-            -   name: Publish packages
-                run: yarn publish:prod --yes --no-verify-access
-                env:
-                    NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
-                    GIT_USER: "noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+            - name: Publish packages
+              run: yarn publish:prod --yes --no-verify-access
+              env:
+                  NPM_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_NPM_TOKEN }}
+                  GIT_USER: 'noreply@apify.com:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
-            -   name: Collect versions for Docker images
-                id: versions
-                run: |
-                    crawlee=`node -p "require('./packages/crawlee/package.json').version"`
-                    echo "crawlee=$crawlee" >> $GITHUB_OUTPUT
-                    apify=`node -p "require('./package.json').devDependencies.apify"`
-                    echo "apify=$apify" >> $GITHUB_OUTPUT
-                    puppeteer=`node -p "require('./package.json').devDependencies.puppeteer"`
-                    echo "puppeteer=$puppeteer" >> $GITHUB_OUTPUT
-                    playwright=`node -p "require('./package.json').devDependencies.playwright"`
-                    echo "playwright=$playwright" >> $GITHUB_OUTPUT
-
-            -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@v2
-                with:
-                    token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    repository: apify/apify-actor-docker
-                    event-type: build-node-images
-                    client-payload: >
-                        {
-                          "release_tag": "latest",
-                          "apify_version": "${{ steps.versions.outputs.apify }}",
-                          "crawlee_version": "${{ steps.versions.outputs.crawlee }}",
-                          "puppeteer_version": "${{ steps.versions.outputs.puppeteer }}",
-                          "playwright_version": "${{ steps.versions.outputs.playwright }}"
-                        }
+            - name: Trigger Docker image builds
+              uses: peter-evans/repository-dispatch@v2
+              with:
+                  token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                  repository: apify/crawlee
+                  event-type: crawlee-docker-image-bump
