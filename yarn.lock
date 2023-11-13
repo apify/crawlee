@@ -6386,8 +6386,8 @@ __metadata:
   linkType: hard
 
 "http2-wrapper@npm:^2.1.10, http2-wrapper@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "http2-wrapper@npm:2.2.0"
+  version: 2.2.1
+  resolution: "http2-wrapper@npm:2.2.1"
   dependencies:
     quick-lru: "npm:^5.1.1"
     resolve-alpn: "npm:^1.2.0"
