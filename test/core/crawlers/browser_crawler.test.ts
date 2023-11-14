@@ -17,21 +17,12 @@ import {
     Session,
 } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
-import { gotScraping } from 'got-scraping';
 import puppeteer from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import { BrowserCrawlerTest } from './basic_browser_crawler';
-
-vitest.mock('got-scraping', async () => {
-    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
-    return {
-        ...original,
-        gotScraping: vitest.fn(),
-    };
-});
 
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;

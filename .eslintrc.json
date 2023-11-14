@@ -8,7 +8,7 @@
     "extends": "@apify/eslint-config-ts",
     "parserOptions": {
         "project": "./tsconfig.eslint.json",
-        "ecmaVersion": 2020
+        "ecmaVersion": 2022
     },
     "ignorePatterns": [
         "node_modules",

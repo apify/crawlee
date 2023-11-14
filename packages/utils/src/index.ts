@@ -9,4 +9,6 @@ export * as social from './internals/social';
 export * from './internals/typedefs';
 export * from './internals/error_tracker';
 export * from './internals/open_graph_parser';
+export * from './internals/gotScraping';
+
 export { Dictionary, Awaitable, Constructor } from '@crawlee/types';

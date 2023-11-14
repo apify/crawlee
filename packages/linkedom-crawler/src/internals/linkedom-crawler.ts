@@ -15,6 +15,7 @@ import type {
 import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type * as cheerio from 'cheerio';
+// @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
 
 export type LinkeDOMErrorHandler<

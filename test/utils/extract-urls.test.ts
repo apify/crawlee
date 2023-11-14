@@ -6,23 +6,18 @@ import {
     extractUrls,
     URL_WITH_COMMAS_REGEX,
 } from '@crawlee/utils';
-import { gotScraping } from 'got-scraping';
 
-const baseDataPath = path.join(__dirname, '..', 'shared', 'data');
-
-vitest.mock('got-scraping', async () => {
-    const original: typeof import('got-scraping') = await vitest.importActual('got-scraping');
+vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     return {
-        ...original,
         gotScraping: vitest.fn(),
     };
 });
 
-const gotScrapingSpy = vitest.mocked(gotScraping);
+const { gotScraping } = await import('@crawlee/utils/src/internals/gotScraping');
 
-afterAll(() => {
-    vitest.doUnmock('got-scraping');
-});
+const baseDataPath = path.join(__dirname, '..', 'shared', 'data');
+
+const gotScrapingSpy = vitest.mocked(gotScraping);
 
 describe('downloadListOfUrls()', () => {
     test('downloads a list of URLs', async () => {

@@ -16,7 +16,7 @@ if (isCI) {
 export default defineConfig({
     plugins: [tsconfigPaths()],
     esbuild: {
-        target: 'es2021',
+        target: 'es2022',
         keepNames: true,
     },
     test: {

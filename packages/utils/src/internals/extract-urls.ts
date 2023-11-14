@@ -1,7 +1,7 @@
-import { gotScraping } from 'got-scraping';
 import ow from 'ow';
 
 import { URL_NO_COMMAS_REGEX } from './general';
+import { gotScraping } from './gotScraping';
 
 export interface DownloadListOfUrlsOptions {
     /**
