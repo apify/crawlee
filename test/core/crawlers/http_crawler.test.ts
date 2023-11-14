@@ -52,6 +52,12 @@ router.set('/500Error', (req, res) => {
     res.end();
 });
 
+router.set('/403-with-octet-stream', (req, res) => {
+    res.setHeader('content-type', 'application/octet-stream');
+    res.statusCode = 403;
+    res.end();
+});
+
 let server: http.Server;
 let url: string;
 
@@ -337,4 +343,30 @@ test('should work with delete requests', async () => {
     }]);
 
     expect(failed).toHaveLength(0);
+});
+
+test('should retry on 403 even with disallowed content-type', async () => {
+    const succeeded: any[] = [];
+
+    const crawler = new HttpCrawler({
+        maxConcurrency: 1,
+        maxRequestRetries: 1,
+        preNavigationHooks: [async ({ request }) => {
+            // mock 403 response with octet stream on first request attempt, but not on
+            // subsequent retries, so the request should eventually succeed
+            if (request.retryCount === 0) {
+                request.url = `${url}/403-with-octet-stream`;
+            } else {
+                request.url = url;
+            }
+        }],
+        requestHandler: async ({ request }) => {
+            succeeded.push(request);
+        },
+    });
+
+    await crawler.run([url]);
+
+    expect(succeeded).toHaveLength(1);
+    expect(succeeded[0].retryCount).toBe(1);
 });

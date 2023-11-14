@@ -795,7 +795,12 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             throw new Error(`Resource ${request.url} is not available in the format requested by the Accept header. Skipping resource.`);
         }
 
-        if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && statusCode! < 500) {
+        // eslint-disable-next-line dot-notation -- accessing private property
+        const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
+        // if we retry the request, can the Content-Type change?
+        const isTransientContentType = statusCode! >= 500 || blockedStatusCodes.includes(statusCode!);
+
+        if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;
             throw new Error(`Resource ${request.url} served Content-Type ${type}, `
                 + `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`);
