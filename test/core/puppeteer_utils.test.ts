@@ -4,7 +4,6 @@ import path from 'path';
 import log from '@apify/log';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/utils';
-import express from 'express';
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';

@@ -160,15 +160,15 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
                 + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
         }
 
-        // `browserPlugins` is working when it's not overriden by `launchContext`,
-        // which for crawlers it is always overriden. Hence the error to use the other option.
+        // `browserPlugins` is working when it's not overridden by `launchContext`,
+        // which for crawlers it is always overridden. Hence the error to use the other option.
         if (browserPoolOptions.browserPlugins) {
             throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
         }
 
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
-            launchContext.launchOptions.headless = headless;
+            launchContext.launchOptions.headless = headless as boolean;
         }
 
         const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
