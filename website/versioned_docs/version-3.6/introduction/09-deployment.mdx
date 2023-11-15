@@ -1,0 +1,115 @@
+---
+id: deployment
+title: 'Running your crawler in the Cloud'
+sidebar_label: 'Running in the Cloud'
+description: Deploying Crawlee projects to the Apify Platform
+---
+
+## Apify Platform
+
+Crawlee is developed by [**Apify**](https://apify.com), the web scraping and automation platform. You could say it is the **home of Crawlee projects**. In this section we will show you how to deploy the crawler there with just a few simple steps. You can deploy a **Crawlee** project wherever you want, but using the [**Apify Platform**](https://console.apify.com) will give you the best experience.
+
+In case you want to deploy your Crawlee project to other platforms, check out the [**Deployment**](../deployment) section of the documentation instead.
+
+With a few simple steps, you can convert your Crawlee project into a so-called **Actor**. Actors are serverless micro-apps that are easy to develop, run, share, and integrate. The infra, proxies, and storages are ready to go. [Learn more about Actors](https://apify.com/actors).
+
+:::info
+
+We started this guide by using the Crawlee CLI to bootstrap the project - it offers the basic Crawlee templates, including a ready-made `Dockerfile`. If you know you will be deploying your project to the Apify Platform, you might want to start with the Apify CLI instead. It also offers several project templates, and those are all set up to be used on the Apify Platform right ahead.
+
+:::
+
+## Dependencies
+
+The first step will be installing two new dependencies:
+
+-   Apify SDK, a toolkit for working with the Apify Platform. This will allow us to wire the storages (e.g. `RequestQueue` and `Dataset`) to the Apify cloud products. This will be a dependency of our Node.js project.
+
+    ```bash
+    npm install apify
+    ```
+
+-   Apify CLI, a command-line tool that will help us with authentication and deployment. This will be a globally installed tool, you will install it only once and use it in all your Crawlee/Apify projects.
+    ```bash
+    npm install -g apify-cli
+    ```
+
+## Logging in to the Apify Platform
+
+The next step will be [creating your Apify account](https://console.apify.com/sign-up). Don't worry, we have a **free tier**, so you can try things out before you buy in! Once you have that, it's time to log in with the just-installed [Apify CLI](https://docs.apify.com/cli/). You will need your personal access token, which you can find at https://console.apify.com/account#/integrations.
+
+```bash
+apify login
+```
+
+## Adjusting the code
+
+Now that you have your account set up, you will need to adjust the code a tiny bit. We will use the [Apify SDK](https://docs.apify.com/sdk/js/), which will help us to wire the Crawlee storages (like the `RequestQueue`) to their Apify Platform counterparts - otherwise Crawlee would keep things only in memory.
+
+Open your `src/main.js` file (or `src/main.ts` if you used a TypeScript template), and add `Actor.init()` to the beginning of your main script and `Actor.exit()` to the end of it. Don't forget to `await` those calls, as both functions are async. Your code should look like this:
+
+```ts title="src/main.js"
+// highlight-next-line
+import { Actor } from 'apify';
+import { PlaywrightCrawler, log } from 'crawlee';
+import { router } from './routes.mjs';
+
+// highlight-next-line
+await Actor.init();
+
+// This is better set with CRAWLEE_LOG_LEVEL env var
+// or a configuration option. This is just for show 😈
+log.setLevel(log.LEVELS.DEBUG);
+
+log.debug('Setting up crawler.');
+const crawler = new PlaywrightCrawler({
+    // Instead of the long requestHandler with
+    // if clauses we provide a router instance.
+    requestHandler: router,
+});
+
+await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
+
+// highlight-next-line
+await Actor.exit();
+```
+
+The `Actor.init()` call will configure Crawlee to use the Apify API instead of its default memory storage interface. It also sets up few other things, like listening to the platform events via websockets. The `Actor.exit()` call then handles graceful shutdown - it will close the open handles created by the `Actor.init()` call, as without that, the Node.js process would be stuck.
+
+:::info
+
+The `Actor.init()` call works conditionally based on the environment variables, namely based on the `APIFY_IS_AT_HOME` env var, which is set to `true` on the Apify Platform. This means that your project will remain working the same locally, but will use the Apify API when deployed to the Apify Platform.
+
+:::
+
+## Initializing the project
+
+We will also need to initialize the project for Apify, to do that, let's use the Apify CLI again:
+
+```bash
+apify init
+```
+
+This will create a folder called `.actor`, and an `actor.json` file inside it - this file contains the configuration relevant to the Apify Platform, namely the Actor name, version, build tag, and few other things. Check out the [relevant documentation](https://docs.apify.com/platform/actors/development/actor-definition/actor-json) to see all the different things you can set there up.
+
+## Ship it!
+
+And that's all, our project is now ready to be published on the Apify Platform. We will use the Apify CLI once more to do that:
+
+```bash
+apify push
+```
+
+This command will create an archive from your project, upload it to the Apify Platform and initiate a Docker build. Once finished, you will get a link to your new Actor on the platform.
+
+## Learning more about web scraping
+
+:::tip
+
+If you want to learn more about web scraping and browser automation, check out the [Apify Academy](https://developers.apify.com/academy). It's full of courses and tutorials on the topic. From beginner to advanced. And the best thing: **It's free and open source** ❤️
+
+:::
+
+## Thank you! 🎉
+
+That's it! Thanks for reading the whole introduction and if there's anything wrong, please 🙏 let us know on [GitHub](https://github.com/apify/crawlee) or in our [Discord community](https://discord.com/invite/jyEM2PRvMU). Happy scraping! 👋
