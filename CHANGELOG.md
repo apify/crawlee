@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.6.0](https://github.com/apify/crawlee/compare/v3.5.8...v3.6.0) (2023-11-15)
+
+
+### Bug Fixes
+
+* add `skipNavigation` option to `enqueueLinks` ([#2153](https://github.com/apify/crawlee/issues/2153)) ([118515d](https://github.com/apify/crawlee/commit/118515d2ba534b99be2f23436f6abe41d66a8e07))
+* **BrowserPool:** ignore `--no-sandbox` flag for webkit launcher ([#2148](https://github.com/apify/crawlee/issues/2148)) ([1eb2f08](https://github.com/apify/crawlee/commit/1eb2f08a3cdead5dd21ffde4162d403175a4594c)), closes [#1797](https://github.com/apify/crawlee/issues/1797)
+* **core:** respect some advanced options for `RequestList.open()` + improve docs ([#2158](https://github.com/apify/crawlee/issues/2158)) ([c5a1b07](https://github.com/apify/crawlee/commit/c5a1b07ad62957fbe2cf90938d1f27b1ca54534a))
+* declare missing dependency on got-scraping in the core package ([cd2fd4d](https://github.com/apify/crawlee/commit/cd2fd4d584c3c23ea4f74c9b2f363a55200594c9))
+* e2e cheerio-throw-on-ssl-errors ([#2154](https://github.com/apify/crawlee/issues/2154)) ([f2d333d](https://github.com/apify/crawlee/commit/f2d333de6c8b1679f534bb7b32257f079e55ccb9))
+* provide more detailed error messages for browser launch errors ([#2157](https://github.com/apify/crawlee/issues/2157)) ([f188ebe](https://github.com/apify/crawlee/commit/f188ebe0b4ae7594225ef37d8160d175d4535ccd))
+* retry incorrect Content-Type when response has blocked status code ([#2176](https://github.com/apify/crawlee/issues/2176)) ([b54fb8b](https://github.com/apify/crawlee/commit/b54fb8bb7bc3575195ee676d21e5feb8f898ef47)), closes [#1994](https://github.com/apify/crawlee/issues/1994)
+
+
+### Features
+
+* **core:** add `crawler.exportData()` helper ([#2166](https://github.com/apify/crawlee/issues/2166)) ([c8c09a5](https://github.com/apify/crawlee/commit/c8c09a54a712689969ff1f6bddf70f12a2a22670))
+* got-scraping v4 ([#2110](https://github.com/apify/crawlee/issues/2110)) ([2f05ed2](https://github.com/apify/crawlee/commit/2f05ed22b203f688095300400bb0e6d03a03283c))
+
+
+
+
+
 ## [3.5.8](https://github.com/apify/crawlee/compare/v3.5.7...v3.5.8) (2023-10-17)
 
 

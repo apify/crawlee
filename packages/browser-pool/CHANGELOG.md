@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.6.0](https://github.com/apify/crawlee/compare/v3.5.8...v3.6.0) (2023-11-15)
+
+
+### Bug Fixes
+
+* **BrowserPool:** ignore `--no-sandbox` flag for webkit launcher ([#2148](https://github.com/apify/crawlee/issues/2148)) ([1eb2f08](https://github.com/apify/crawlee/commit/1eb2f08a3cdead5dd21ffde4162d403175a4594c)), closes [#1797](https://github.com/apify/crawlee/issues/1797)
+* provide more detailed error messages for browser launch errors ([#2157](https://github.com/apify/crawlee/issues/2157)) ([f188ebe](https://github.com/apify/crawlee/commit/f188ebe0b4ae7594225ef37d8160d175d4535ccd))
+
+
+
+
+
 ## [3.5.8](https://github.com/apify/crawlee/compare/v3.5.7...v3.5.8) (2023-10-17)
 
 **Note:** Version bump only for package @crawlee/browser-pool
