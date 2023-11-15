@@ -70,7 +70,7 @@ export const responseSamples = {
     </div>
     </body>
     </html>`,
-    blocking: `
+    resources: `
     <html><body>
             <link rel="stylesheet" type="text/css" href="/style.css">
             <img src="/image.png">
@@ -184,8 +184,8 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             await setTimeout(32000);
             res.type('html').send('<div>TEST</div>');
         });
-        special.get('/blocking', async (_req, res) => {
-            res.type('html').send(responseSamples.blocking);
+        special.get('/resources', async (_req, res) => {
+            res.type('html').send(responseSamples.resources);
         });
     })();
 

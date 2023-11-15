@@ -173,9 +173,9 @@ describe('puppeteerUtils', () => {
                 const page = await browser.newPage();
                 await puppeteerUtils.blockRequests(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
                 expect(loadedUrls).toEqual([
-                    `${serverAddress}/special/blocking`,
+                    `${serverAddress}/special/resources`,
                     `${serverAddress}/script.js`,
                 ]);
             });
@@ -188,7 +188,7 @@ describe('puppeteerUtils', () => {
                     urlPatterns: ['.css'],
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/image.png`,
@@ -203,7 +203,7 @@ describe('puppeteerUtils', () => {
                 const page = await browser.newPage();
                 await puppeteerUtils.blockResources(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/script.js`,
@@ -216,7 +216,7 @@ describe('puppeteerUtils', () => {
                 const page = await browser.newPage();
                 await puppeteerUtils.blockResources(page, ['script']);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/style.css`,
