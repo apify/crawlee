@@ -16,8 +16,8 @@ for (const filepath of files) {
             output.push(`${match[1]} '${match[2]}`);
             changed = true;
         } else if (
-            // playwright/puppeteer import
-            line.match(/^([^']+)'(playwright|puppeteer)'/) ||
+            // playwright/puppeteer/got-scraping import
+            line.match(/^([^']+)'(playwright|puppeteer|got-scraping)'/) ||
             // proxy-per-page reexport of puppeteer
             line.match(/: Puppeteer\.\w+/) ||
             // don't ask me why, but this one is needed too ¯\_(ツ)_/¯
