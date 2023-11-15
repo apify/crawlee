@@ -45,8 +45,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         }
 
         if (launchOptions!.headless === true) {
-            // to disable deprecation warnings, we should switch to `new` after more testing
-            launchOptions!.headless = 'old' as unknown as boolean;
+            launchOptions!.headless = 'new';
         }
 
         let browser: PuppeteerTypes.Browser;

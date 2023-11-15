@@ -249,7 +249,7 @@ export interface BrowserCrawlerOptions<
      * Whether to run browser in headless mode. Defaults to `true`.
      * Can be also set via {@apilink Configuration}.
      */
-    headless?: boolean;
+    headless?: boolean | 'new' | 'old'; // `new`/`old` are for puppeteer only
 }
 
 /**
@@ -326,7 +326,7 @@ export abstract class BrowserCrawler<
         postNavigationHooks: ow.optional.array,
 
         launchContext: ow.optional.object,
-        headless: ow.optional.boolean,
+        headless: ow.optional.any(ow.boolean, ow.string),
         browserPoolOptions: ow.object,
         sessionPoolOptions: ow.optional.object,
         persistCookiesPerSession: ow.optional.boolean,

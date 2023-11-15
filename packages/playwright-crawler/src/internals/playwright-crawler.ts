@@ -223,7 +223,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
 
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
-            launchContext.launchOptions.headless = headless;
+            launchContext.launchOptions.headless = headless as boolean;
         }
 
         const playwrightLauncher = new PlaywrightLauncher(launchContext, config);

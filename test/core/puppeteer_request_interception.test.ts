@@ -1,17 +1,12 @@
 import type { Server } from 'http';
-import type { AddressInfo } from 'net';
 
 import { sleep } from '@crawlee/utils';
 import { launchPuppeteer, utils } from 'crawlee';
-import express from 'express';
 import type { HTTPRequest } from 'puppeteer';
 
 import { runExampleComServer } from '../shared/_helper';
 
 const { addInterceptRequestHandler, removeInterceptRequestHandler } = utils.puppeteer;
-
-// Simple page with image, script and stylesheet links.
-let HTML_PAGE = '';
 
 let serverAddress = 'http://localhost:';
 let port: number;
@@ -20,11 +15,6 @@ let server: Server;
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
     serverAddress += port;
-    HTML_PAGE = `<html><body>
-    <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-    <img src="${serverAddress}/image.png" />
-    <script src="${serverAddress}/script.js" defer="defer">></script>
-</body></html>`;
 });
 
 afterAll(() => {
@@ -61,7 +51,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             // Save all loaded URLs.
             page.on('response', (response) => loadedUrls.push(response.url()));
 
-            await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
+            await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
         } finally {
             await browser.close();
         }
@@ -105,7 +95,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                 propagatedUrls.push(request.url());
                 return request.continue();
             });
-            await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
+            await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
         } finally {
             await browser.close();
         }
@@ -242,15 +232,13 @@ describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
             });
 
             // Load with scripts and images disabled.
-            await page.setContent('<html><body></body></html>');
-            await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
+            await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
             expect(loadedUrls).toEqual(expect.arrayContaining([
                 `${serverAddress}/style.css`,
             ]));
 
             // Try it once again.
-            await page.setContent('<html><body></body></html>');
-            await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
+            await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
             expect(loadedUrls).toEqual(expect.arrayContaining([
                 `${serverAddress}/style.css`,
                 `${serverAddress}/style.css`,
@@ -260,8 +248,7 @@ describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
             await removeInterceptRequestHandler(page, abortImagesHandler);
 
             // Try to load once again if images appear there.
-            await page.setContent('<html><body></body></html>');
-            await page.setContent(HTML_PAGE, { waitUntil: 'networkidle0' });
+            await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
             expect(loadedUrls).toEqual(expect.arrayContaining([
                 `${serverAddress}/style.css`,
                 `${serverAddress}/style.css`,

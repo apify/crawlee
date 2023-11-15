@@ -70,6 +70,13 @@ export const responseSamples = {
     </div>
     </body>
     </html>`,
+    resources: `
+    <html><body>
+            <link rel="stylesheet" type="text/css" href="/style.css">
+            <img src="/image.png">
+            <img src="/image.gif">
+            <script src="/script.js" defer="defer"></script>
+        </body></html>`,
     cacheable: {
         html: `
 <!doctype html>
@@ -176,6 +183,9 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         special.get('/timeout', async (_req, res) => {
             await setTimeout(32000);
             res.type('html').send('<div>TEST</div>');
+        });
+        special.get('/resources', async (_req, res) => {
+            res.type('html').send(responseSamples.resources);
         });
     })();
 
