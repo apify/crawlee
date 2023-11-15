@@ -173,13 +173,11 @@ describe('puppeteerUtils', () => {
                 const page = await browser.newPage();
                 await puppeteerUtils.blockRequests(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-                <img src="${serverAddress}/image.png">
-                <img src="${serverAddress}/image.gif">
-                <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
-                expect(loadedUrls).toEqual([`${serverAddress}/script.js`]);
+                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
+                expect(loadedUrls).toEqual([
+                    `${serverAddress}/special/blocking`,
+                    `${serverAddress}/script.js`,
+                ]);
             });
 
             test('works with overridden values', async () => {
@@ -190,12 +188,8 @@ describe('puppeteerUtils', () => {
                     urlPatterns: ['.css'],
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-                <img src="${serverAddress}/image.png">
-                <img src="${serverAddress}/image.gif">
-                <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
+
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/image.png`,
                     `${serverAddress}/script.js`,
@@ -209,11 +203,7 @@ describe('puppeteerUtils', () => {
                 const page = await browser.newPage();
                 await puppeteerUtils.blockResources(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-                <img src="${serverAddress}/image.png" />
-                <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/script.js`,
@@ -226,11 +216,7 @@ describe('puppeteerUtils', () => {
                 const page = await browser.newPage();
                 await puppeteerUtils.blockResources(page, ['script']);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-                <img src="${serverAddress}/image.png" />
-                <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/blocking`, { waitUntil: 'load' });
 
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/style.css`,
