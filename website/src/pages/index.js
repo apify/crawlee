@@ -122,9 +122,8 @@ const crawler = new PlaywrightCrawler({
 // Add first URL to the queue and start the crawl.
 await crawler.run(['https://crawlee.dev']);
 
-// Export the whole dataset to a single file in \`./storage/key_value_stores/result.csv\`.
-const dataset = await crawler.getDataset();
-await dataset.exportToCSV('result');
+// Export the whole dataset to a single file in \`./result.csv\`.
+await crawler.exportData('./result.csv');
 
 // Or work with the data directly.
 const data = await crawler.getData();
