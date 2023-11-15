@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.6.1](https://github.com/apify/crawlee/compare/v3.6.0...v3.6.1) (2023-11-15)
+
+
+### Bug Fixes
+
+* **ts:** ignore import errors for `got-scraping` ([012fc9e](https://github.com/apify/crawlee/commit/012fc9eaf0fef886aac4fdde1f3061147fdc28b1))
+* **ts:** specify type explicitly for logger ([aec3550](https://github.com/apify/crawlee/commit/aec355022eb13f2624eeba20aeeb42dc0ad8365c))
+
+
+### Features
+
+* **puppeteer:** enable `new` headless mode ([#1910](https://github.com/apify/crawlee/issues/1910)) ([7fc999c](https://github.com/apify/crawlee/commit/7fc999cf4658ca69b97f16d434444081998470f4))
+
+
+
+
+
 # [3.6.0](https://github.com/apify/crawlee/compare/v3.5.8...v3.6.0) (2023-11-15)
 
 
