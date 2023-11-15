@@ -8,7 +8,7 @@ import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
-import { log } from '../log';
+import { log, type Log } from '../log';
 import type { Awaitable } from '../typedefs';
 
 /** @internal */
@@ -224,7 +224,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     client: DatasetClient<Data>;
-    log = log.child({ prefix: 'Dataset' });
+    log: Log = log.child({ prefix: 'Dataset' });
 
     /**
      * @internal
