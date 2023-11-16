@@ -212,8 +212,8 @@ __metadata:
   linkType: hard
 
 "@apify/eslint-config-ts@npm:^0.4.0":
-  version: 0.4.0
-  resolution: "@apify/eslint-config-ts@npm:0.4.0"
+  version: 0.4.1
+  resolution: "@apify/eslint-config-ts@npm:0.4.1"
   dependencies:
     "@apify/eslint-config": "npm:^0.4.0"
     eslint-import-resolver-typescript: "npm:^3.6.1"
@@ -226,7 +226,7 @@ __metadata:
     "@typescript-eslint/parser": "*"
     eslint: "*"
     typescript: "*"
-  checksum: 6dc7be6f93b80d9ffb070c69a1cd654597a01640a46216288444d4e9996479de0d1c0d258c6e79e82521f17ac12deee6f928eee7d7b1358895c4f47c547c44db
+  checksum: 4c3695634280fec8878cc6e43538be5913deec9b49cd4bfbe2e1b70a8eb4d449ec1bdde3e5b1826bff2558ef8a15afaf9730714156c1e622218d70523e467962
   languageName: node
   linkType: hard
 
@@ -5888,9 +5888,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.583
-  resolution: "electron-to-chromium@npm:1.4.583"
-  checksum: 48545d5d281d55e9ae32491bcbac6d8be016de55553ad75ba6154daa2d3db619f76d3730a846e3737e581537e39b2f176edd864463d16cb6211f2defa1be9464
+  version: 1.4.585
+  resolution: "electron-to-chromium@npm:1.4.585"
+  checksum: f5620c6038a84c7b76c11f3d176bfcaa8f157f5bd4469c6433631eefcc690fe0fc167bfed9ad7af2b6b62b492bc18f6a72e4628059dd83a25d14825772d8928e
   languageName: node
   linkType: hard
 
