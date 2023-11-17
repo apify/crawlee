@@ -62,7 +62,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
 
     apiCalls.push({
         eventType: EventType.AllImages,
-        apify_version: 'beta',
+        apify_version: 'next',
         crawlee_version: process.env.CRAWLEE_BETA_VERSION,
         playwright_version: lastPlaywrightVersions.at(-1)!,
         puppeteer_version: lastPuppeteerVersions.at(-1)!,
