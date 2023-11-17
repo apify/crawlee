@@ -30,6 +30,10 @@ export class PlaywrightBrowser extends EventEmitter implements Browser {
         });
     }
 
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.close();
+    }
+
     async close(): Promise<void> {
         await this._browserContext.close();
     }
