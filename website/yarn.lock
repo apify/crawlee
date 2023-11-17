@@ -3174,11 +3174,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.9.0
-  resolution: "@types/node@npm:20.9.0"
+  version: 20.9.1
+  resolution: "@types/node@npm:20.9.1"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 755d07de735eafda4e20af75ad9d03bdbfddef327d790e9a896142eac7493db5d8501591376e1c8227aa12eeb88e522bc727c6024504842ed40e539e8a466db9
+  checksum: 0cb52c0840fe9a2e8f988564da6823bb3141e34fef8cb7264762c851c0dac5d9ef4859db422dfa41cd1a864ad126a9bd3b588d0285bc9af6de814de3280da9b3
   languageName: node
   linkType: hard
 
@@ -5888,9 +5888,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.585
-  resolution: "electron-to-chromium@npm:1.4.585"
-  checksum: f5620c6038a84c7b76c11f3d176bfcaa8f157f5bd4469c6433631eefcc690fe0fc167bfed9ad7af2b6b62b492bc18f6a72e4628059dd83a25d14825772d8928e
+  version: 1.4.586
+  resolution: "electron-to-chromium@npm:1.4.586"
+  checksum: fd491b54701753c5c957f474a479b0eef95d3565509aab631d6a5508736f1ffdaaa148882ebb9c08da8766945f52eb594cab2b43ec94326ef59e4ad6345a1b92
   languageName: node
   linkType: hard
 
@@ -7907,9 +7907,9 @@ __metadata:
   linkType: hard
 
 "ignore@npm:^5.2.0, ignore@npm:^5.2.4":
-  version: 5.2.4
-  resolution: "ignore@npm:5.2.4"
-  checksum: 7c7cd90edd9fea6e037f9b9da4b01bf0a86b198ce78345f9bbd983929d68ff14830be31111edc5d70c264921f4962404d75b7262b4d9cc3bc12381eccbd03096
+  version: 5.3.0
+  resolution: "ignore@npm:5.3.0"
+  checksum: dc06bea5c23aae65d0725a957a0638b57e235ae4568dda51ca142053ed2c352de7e3bc93a69b2b32ac31966a1952e9a93c5ef2e2ab7c6b06aef9808f6b55b571
   languageName: node
   linkType: hard
 
@@ -13900,8 +13900,8 @@ __metadata:
   linkType: hard
 
 "webpack-bundle-analyzer@npm:^4.9.0":
-  version: 4.10.0
-  resolution: "webpack-bundle-analyzer@npm:4.10.0"
+  version: 4.10.1
+  resolution: "webpack-bundle-analyzer@npm:4.10.1"
   dependencies:
     "@discoveryjs/json-ext": "npm:0.5.7"
     acorn: "npm:^8.0.4"
@@ -13918,7 +13918,7 @@ __metadata:
     ws: "npm:^7.3.1"
   bin:
     webpack-bundle-analyzer: lib/bin/analyzer.js
-  checksum: f812a8d3c0198ce518baf742bff656526f3eae69fb7a64c7f0c9cff202f6fb3380cabf3baaae965b8d6ffbbb6fb802eacb373fca03a596a38b01b84cfb2e8329
+  checksum: 6a94c8f6aa03296fb2eb00d6ad3b27bd5c551590fd253772bc61debf3177414d42701014079d4f85c74ba1ca685ae9f0cb4063812b58c21f294d108e9908e5cd
   languageName: node
   linkType: hard
 
