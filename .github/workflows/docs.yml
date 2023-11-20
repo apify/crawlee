@@ -10,59 +10,60 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            -   uses: actions/checkout@v4
-            -   name: Use Node.js 18
-                uses: actions/setup-node@v2-beta
-                with:
-                    node-version: 18
+            - uses: actions/checkout@v4
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
+            - name: Use Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
 
-            -   name: Set git identity
-                run: |
-                    git config --global user.name "Martin Adámek"
-                    git config --global user.email "martin@apify.com"
+            - name: Enable corepack
+              run: |
+                  corepack enable
+                  corepack prepare yarn@stable --activate
 
-            -   name: Build & deploy docs
-                run: |
-                    # install project deps
-                    yarn
-                    # go to website dir
-                    cd website
-                    # install website deps
-                    yarn
-                    # build and deploy the docs
-                    yarn deploy
-                env:
-                    GIT_USER: "B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-                    APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
+            - name: Set git identity
+              run: |
+                  git config --global user.name "Martin Adámek"
+                  git config --global user.email "martin@apify.com"
+
+            - name: Build & deploy docs
+              run: |
+                  # install project deps
+                  yarn
+                  # go to website dir
+                  cd website
+                  # install website deps
+                  yarn
+                  # build and deploy the docs
+                  yarn deploy
+              env:
+                  GIT_USER: 'B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+                  APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
 
     squash:
         runs-on: ubuntu-latest
-        needs: [ build ]
+        needs: [build]
         steps:
-            -   uses: actions/checkout@v4
-                with:
-                    ref: 'gh-pages'
-                    fetch-depth: 0
+            - uses: actions/checkout@v4
+              with:
+                  ref: 'gh-pages'
+                  fetch-depth: 0
 
-            -   name: Set git identity
-                run: |
-                    git config --global user.name "Martin Adámek"
-                    git config --global user.email "martin@apify.com"
+            - name: Set git identity
+              run: |
+                  git config --global user.name "Martin Adámek"
+                  git config --global user.email "martin@apify.com"
 
-            -   name: Squash all commits to reduce repository size
-                run: |
-                    TOTAL_COMMITS="$(($(git rev-list --count HEAD)-1))"
-                    echo "squashing $TOTAL_COMMITS commits"
-                    git reset HEAD~$TOTAL_COMMITS
-                    git add .
-                    git commit --amend -m 'crawlee.dev docs'
-                    git push --force origin gh-pages
-                env:
-                    GIT_USER: "B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}"
-                    GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+            - name: Squash all commits to reduce repository size
+              run: |
+                  TOTAL_COMMITS="$(($(git rev-list --count HEAD)-1))"
+                  echo "squashing $TOTAL_COMMITS commits"
+                  git reset HEAD~$TOTAL_COMMITS
+                  git add .
+                  git commit --amend -m 'crawlee.dev docs'
+                  git push --force origin gh-pages
+              env:
+                  GIT_USER: 'B4nan:${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}'
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

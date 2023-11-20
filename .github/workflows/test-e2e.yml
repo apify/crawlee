@@ -15,50 +15,53 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                storage: [ LOCAL, MEMORY, PLATFORM ]
+                storage: [LOCAL, MEMORY, PLATFORM]
 
         steps:
-            -   name: Cancel Workflow Action
-                uses: styfle/cancel-workflow-action@0.12.0
-                with:
-                    access_token: ${{ github.token }}
+            - name: Cancel Workflow Action
+              uses: styfle/cancel-workflow-action@0.12.0
+              with:
+                  access_token: ${{ github.token }}
 
-            -   name: Checkout repository
-                uses: actions/checkout@v4
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-            -   name: Use Node.js 18
-                uses: actions/setup-node@v4
-                with:
-                    node-version: 18
-                    cache: 'yarn'
-                    cache-dependency-path: 'yarn.lock'
+            - name: Use Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
+            - name: Enable corepack
+              run: |
+                  corepack enable
+                  corepack prepare yarn@stable --activate
 
-            -   uses: microsoft/playwright-github-action@v1
+            - name: Activate cache for Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  cache: 'yarn'
 
-            -   name: Turbo cache
-                id: turbo-cache
-                uses: actions/cache@v3
-                with:
-                    path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                    restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+            - uses: microsoft/playwright-github-action@v1
 
-            -   name: Login to Apify
-                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
+            - name: Turbo cache
+              id: turbo-cache
+              uses: actions/cache@v3
+              with:
+                  path: .turbo
+                  key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                  restore-keys: |
+                      turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            - name: Login to Apify
+              run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
-            -   name: Build
-                run: yarn ci:build
+            - name: Install Dependencies
+              run: yarn
 
-            -   name: Test with storage ${{ matrix.storage }}
-                run: yarn test:e2e
-                env:
-                    STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
+            - name: Build
+              run: yarn ci:build
+
+            - name: Test with storage ${{ matrix.storage }}
+              run: yarn test:e2e
+              env:
+                  STORAGE_IMPLEMENTATION: ${{ matrix.storage }}

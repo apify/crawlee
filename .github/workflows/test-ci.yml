@@ -37,12 +37,16 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node-version }}
-                  cache: 'yarn'
 
             - name: Enable corepack
               run: |
                   corepack enable
                   corepack prepare yarn@stable --activate
+
+            - name: Activate cache for Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  cache: 'yarn'
 
             - uses: microsoft/playwright-github-action@v1
 
@@ -72,16 +76,20 @@ jobs:
             - name: Checkout Source code
               uses: actions/checkout@v4
 
-            - name: Use Node.js 18
+            - name: Use Node.js 20
               uses: actions/setup-node@v4
               with:
-                  node-version: 18
-                  cache: 'yarn'
+                  node-version: 20
 
             - name: Enable corepack
               run: |
                   corepack enable
                   corepack prepare yarn@stable --activate
+
+            - name: Activate cache for Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  cache: 'yarn'
 
             - name: Turbo cache
               id: turbo-cache
@@ -111,16 +119,20 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Use Node.js 18
+            - name: Use Node.js 20
               uses: actions/setup-node@v4
               with:
-                  node-version: 18
-                  cache: 'yarn'
+                  node-version: 20
 
             - name: Enable corepack
               run: |
                   corepack enable
                   corepack prepare yarn@stable --activate
+
+            - name: Activate cache for Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  cache: 'yarn'
 
             - name: Turbo cache
               id: turbo-cache
@@ -147,16 +159,20 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Use Node.js 18
+            - name: Use Node.js 20
               uses: actions/setup-node@v4
               with:
-                  node-version: 18
-                  cache: 'yarn'
+                  node-version: 20
 
             - name: Enable corepack
               run: |
                   corepack enable
                   corepack prepare yarn@stable --activate
+
+            - name: Activate cache for Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  cache: 'yarn'
 
             - name: Turbo cache
               id: turbo-cache
