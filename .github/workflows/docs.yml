@@ -12,7 +12,7 @@ jobs:
         steps:
             -   uses: actions/checkout@v4
             -   name: Use Node.js 18
-                uses: actions/setup-node@v2-beta
+                uses: actions/setup-node@v4
                 with:
                     node-version: 18
 
