@@ -40,7 +40,6 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   cache: 'yarn'
-                  cache-dependency-path: 'yarn.lock'
 
             - uses: microsoft/playwright-github-action@v1
 
