@@ -227,6 +227,15 @@ export class KeyValueStore {
         }
 
         const value = await this.getValue<T>(key, defaultValue);
+
+        // The await above could have run in parallel with another call to this function. If the other call finished more quickly,
+        // the value will in cache at this point, and returning the new fetched value would introduce two different instances of
+        // the auto-saved object, and only the latter one would be persisted.
+        // Therefore we re-check the cache here, and if such race condition happened, we drop the fetched value and return the cached one.
+        if (this.cache.has(key)) {
+            return this.cache.get(key) as T;
+        }
+
         this.cache.set(key, value!);
         this.ensurePersistStateEvent();
 
