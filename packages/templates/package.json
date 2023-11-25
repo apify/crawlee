@@ -42,7 +42,7 @@
         "build": "yarn clean && yarn validate && yarn compile && yarn copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
-        "copy": "ts-node -T ../../scripts/copy.ts",
+        "copy": "tsx ../../scripts/copy.ts",
         "validate": "node ./scripts/validate-manifest.mjs"
     },
     "publishConfig": {
