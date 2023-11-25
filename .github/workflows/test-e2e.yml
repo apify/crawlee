@@ -6,6 +6,9 @@ on:
         # Runs at 2 am every day
         - cron: '0 2 * * *'
 
+env:
+    YARN_IGNORE_NODE: 1
+
 jobs:
     # NPM install is done in a separate job and cached to speed up the following jobs.
     build_and_test:

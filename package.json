@@ -100,7 +100,7 @@
         "proxy": "^1.0.2",
         "puppeteer": "21.5.2",
         "rimraf": "^5.0.0",
-        "ts-node": "^10.9.1",
+        "tsx": "^4.4.0",
         "turbo": "1.10.16",
         "typescript": "^5.2.2",
         "vite-tsconfig-paths": "^4.2.1",
