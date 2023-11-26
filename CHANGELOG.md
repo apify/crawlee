@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.6.2](https://github.com/apify/crawlee/compare/v3.6.1...v3.6.2) (2023-11-26)
+
+
+### Bug Fixes
+
+* prevent race condition in KeyValueStore.getAutoSavedValue() ([#2193](https://github.com/apify/crawlee/issues/2193)) ([e340e2b](https://github.com/apify/crawlee/commit/e340e2b8764968d22a22bd67769676b9f2f1a2fb))
+
+
+
+
+
 ## [3.6.1](https://github.com/apify/crawlee/compare/v3.6.0...v3.6.1) (2023-11-15)
 
 

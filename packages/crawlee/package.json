@@ -1,6 +1,6 @@
 {
     "name": "crawlee",
-    "version": "3.6.1",
+    "version": "3.6.2",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=16.0.0"
@@ -54,18 +54,18 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/basic": "3.6.1",
-        "@crawlee/browser": "3.6.1",
-        "@crawlee/browser-pool": "3.6.1",
-        "@crawlee/cheerio": "3.6.1",
-        "@crawlee/cli": "3.6.1",
-        "@crawlee/core": "3.6.1",
-        "@crawlee/http": "3.6.1",
-        "@crawlee/jsdom": "3.6.1",
-        "@crawlee/linkedom": "3.6.1",
-        "@crawlee/playwright": "3.6.1",
-        "@crawlee/puppeteer": "3.6.1",
-        "@crawlee/utils": "3.6.1",
+        "@crawlee/basic": "^3.6.2",
+        "@crawlee/browser": "^3.6.2",
+        "@crawlee/browser-pool": "^3.6.2",
+        "@crawlee/cheerio": "^3.6.2",
+        "@crawlee/cli": "^3.6.2",
+        "@crawlee/core": "^3.6.2",
+        "@crawlee/http": "^3.6.2",
+        "@crawlee/jsdom": "^3.6.2",
+        "@crawlee/linkedom": "^3.6.2",
+        "@crawlee/playwright": "^3.6.2",
+        "@crawlee/puppeteer": "^3.6.2",
+        "@crawlee/utils": "^3.6.2",
         "import-local": "^3.1.0",
         "tslib": "^2.4.0"
     },
