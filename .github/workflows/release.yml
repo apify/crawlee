@@ -1,5 +1,8 @@
 name: Release @latest
 
+env:
+    YARN_IGNORE_NODE: 1
+
 on:
     workflow_dispatch:
         inputs:
