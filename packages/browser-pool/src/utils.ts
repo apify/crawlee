@@ -35,7 +35,7 @@ export type InferBrowserPluginArray<
         // Return the results
         ? Result
         // If the input is a general array of elements (not a tuple), infer it's values type
-        : Input extends (infer U)[]
+        : Input extends readonly (infer U)[]
             // If the values are a union of the plugins
             ? [U] extends [PuppeteerPlugin | PlaywrightPlugin]
                 // Return an array of the union

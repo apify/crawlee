@@ -63,8 +63,8 @@ export function createPrePageCreateHook() {
         const { fingerprint } = launchContext.fingerprint!;
 
         if (launchContext.useIncognitoPages && browserPlugin instanceof PlaywrightPlugin && pageOptions) {
-            pageOptions.userAgent = fingerprint.navigator.userAgent;
-            pageOptions.viewport = {
+            pageOptions.userAgent ??= fingerprint.navigator.userAgent;
+            pageOptions.viewport ??= {
                 width: fingerprint.screen.width,
                 height: fingerprint.screen.height,
             };
