@@ -67,6 +67,9 @@ module.exports = {
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
+                    editUrl: ({ docPath }) => {
+                        return `https://holocron.so/github/pr/apify/crawlee/master/editor/docs/${docPath}`
+                    },
                 },
                 theme: {
                     customCss: '/src/css/custom.css',
