@@ -75,22 +75,24 @@ export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: PseudoUrlInput[
  * @ignore
  */
 export function constructGlobObjectsFromGlobs(globs: GlobInput[]): GlobObject[] {
-    return globs.map((item) => {
+    return globs
+        .filter((glob) => ((glob as GlobObject).glob || (glob as string)).trim().length > 0)
+        .map((item) => {
         // Get glob object from cache.
-        let globObject = enqueueLinksPatternCache.get(item);
-        if (globObject) return globObject;
+            let globObject = enqueueLinksPatternCache.get(item);
+            if (globObject) return globObject;
 
-        if (typeof item === 'string') {
-            globObject = { glob: validateGlobPattern(item) };
-        } else {
-            const { glob, ...requestOptions } = item;
-            globObject = { glob: validateGlobPattern(glob), ...requestOptions };
-        }
+            if (typeof item === 'string') {
+                globObject = { glob: validateGlobPattern(item) };
+            } else {
+                const { glob, ...requestOptions } = item;
+                globObject = { glob: validateGlobPattern(glob), ...requestOptions };
+            }
 
-        updateEnqueueLinksPatternCache(item, globObject);
+            updateEnqueueLinksPatternCache(item, globObject);
 
-        return globObject;
-    });
+            return globObject;
+        });
 }
 
 /**
