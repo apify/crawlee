@@ -151,6 +151,25 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({ label: 'COOL' });
         });
 
+        test('does not throw with empty globs', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            const globs = [
+                'https://example.com/**/*',
+                '',
+                { glob: ' ' },
+                { glob: '?(http|https)://cool.com/', method: 'POST' as const },
+            ];
+
+            await expect(browserCrawlerEnqueueLinks({
+                options: { selector: '.click', globs },
+                page,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            })).resolves.not.toThrow();
+
+            expect(enqueued).toHaveLength(3);
+        });
+
         test('works with regexps', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             const regexps = [
@@ -607,6 +626,25 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].url).toBe('http://cool.com/');
             expect(enqueued[2].method).toBe('POST');
             expect(enqueued[2].userData).toEqual({ label: 'COOL' });
+        });
+
+        test('does not throw with empty globs', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            const globs = [
+                'https://example.com/**/*',
+                { glob: '?(http|https)://cool.com/', method: 'POST' as const, userData: { label: 'COOL' } },
+                '',
+                { glob: ' ' },
+            ];
+
+            await expect(cheerioCrawlerEnqueueLinks({
+                options: { selector: '.click', globs },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            })).resolves.not.toThrow();
+
+            expect(enqueued).toHaveLength(3);
         });
 
         test('works with RegExps', async () => {
