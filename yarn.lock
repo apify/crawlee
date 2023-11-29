@@ -139,12 +139,12 @@ __metadata:
   linkType: hard
 
 "@babel/code-frame@npm:^7.0.0":
-  version: 7.23.4
-  resolution: "@babel/code-frame@npm:7.23.4"
+  version: 7.23.5
+  resolution: "@babel/code-frame@npm:7.23.5"
   dependencies:
     "@babel/highlight": "npm:^7.23.4"
     chalk: "npm:^2.4.2"
-  checksum: 2ef6f5e10004c4e8b755961b68570db0ea556ccb17a37c13a7f1fed1f4e273aed6c1ae1fcb86abb991620d8be083e1472a7ea5429f05bc342de54c027b07ea83
+  checksum: a10e843595ddd9f97faa99917414813c06214f4d9205294013e20c70fbdf4f943760da37dec1d998bf3e6fc20fa2918a47c0e987a7e458663feb7698063ad7c6
   languageName: node
   linkType: hard
 
@@ -167,11 +167,11 @@ __metadata:
   linkType: hard
 
 "@babel/runtime@npm:^7.23.2":
-  version: 7.23.4
-  resolution: "@babel/runtime@npm:7.23.4"
+  version: 7.23.5
+  resolution: "@babel/runtime@npm:7.23.5"
   dependencies:
     regenerator-runtime: "npm:^0.14.0"
-  checksum: db2bf183cd0119599b903ca51ca0aeea8e0ab478a16be1aae10dd90473ed614159d3e5adfdd8f8f3d840402428ce0d90b5c01aae95da9e45a2dd83e02d85ca27
+  checksum: ca679cc91bb7e424bc2db87bb58cc3b06ade916b9adb21fbbdc43e54cdaacb3eea201ceba2a0464b11d2eb65b9fe6a6ffcf4d7521fa52994f19be96f1af14788
   languageName: node
   linkType: hard
 
@@ -4560,9 +4560,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.595
-  resolution: "electron-to-chromium@npm:1.4.595"
-  checksum: 4383430e18d4c4d1fd8876d286f00ddf107831b7ed6bae76d25cb4418c04940aec55f142f167c389c3e7270430402e234689901efd2431c384a9164a35b1c178
+  version: 1.4.596
+  resolution: "electron-to-chromium@npm:1.4.596"
+  checksum: 6e05fdbe0a77beda4eaad646c83143ccf4dcec5b15da7dc641bbd872ef62acff4cb31e1febf4bafdbe8e1f61720c2ff738690acce0b8dac980a331802633befd
   languageName: node
   linkType: hard
 
@@ -11983,8 +11983,8 @@ __metadata:
   linkType: hard
 
 "vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0, vite@npm:^3.1.0 || ^4.0.0 || ^5.0.0-0":
-  version: 5.0.2
-  resolution: "vite@npm:5.0.2"
+  version: 5.0.3
+  resolution: "vite@npm:5.0.3"
   dependencies:
     esbuild: "npm:^0.19.3"
     fsevents: "npm:~2.3.3"
@@ -12018,7 +12018,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: e596706cd3775e2300552364844b07024b5455eac03c822d681416dd981439176c397714c4ae91576d3641f812032488bd0e7ebdda50a7e776457a1a05c80db3
+  checksum: 3864b73586feb66abdc10e9fb21521a1c4ead9513a0b126cad3d59672e62687844ac60c087f61da82423ac3724b6254e0729c35d03840619b2a7d4a0a5cc0bff
   languageName: node
   linkType: hard
 
