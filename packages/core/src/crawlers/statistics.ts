@@ -92,6 +92,7 @@ export class Statistics {
     private instanceStart!: number;
     private logInterval: unknown;
     private events: EventManager;
+    private enablePersistence: boolean;
 
     /**
      * @internal
@@ -102,6 +103,7 @@ export class Statistics {
             logMessage: ow.optional.string,
             keyValueStore: ow.optional.object,
             config: ow.optional.object,
+            enablePersistence: ow.optional.boolean,
         }));
 
         const {
@@ -109,6 +111,7 @@ export class Statistics {
             logMessage = 'Statistics',
             keyValueStore,
             config = Configuration.getGlobalConfig(),
+            enablePersistence = true,
         } = options;
 
         this.logIntervalMillis = logIntervalSecs * 1000;
@@ -117,6 +120,7 @@ export class Statistics {
         this.listener = this.persistState.bind(this);
         this.events = config.getEventManager();
         this.config = config;
+        this.enablePersistence = enablePersistence;
 
         // initialize by "resetting"
         this.reset();
@@ -156,6 +160,16 @@ export class Statistics {
     }
 
     async resetStore() {
+        if (!this.enablePersistence) {
+            return;
+        }
+        return this.resetStoreForce();
+    }
+
+    /**
+     * Manually reset KV store entry for the statistics, ignoring the {@apilink StatisticsOptions.enablePersistence} flag
+     */
+    async resetStoreForce() {
         if (!this.keyValueStore) {
             return;
         }
@@ -247,13 +261,14 @@ export class Statistics {
     async startCapturing() {
         this.keyValueStore ??= await KeyValueStore.open(null, { config: this.config });
 
-        await this._maybeLoadStatistics();
-
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();
         }
 
-        this.events.on(EventType.PERSIST_STATE, this.listener);
+        if (this.enablePersistence) {
+            await this._maybeLoadStatistics();
+            this.events.on(EventType.PERSIST_STATE, this.listener);
+        }
 
         this.logInterval = setInterval(() => {
             this.log.info(this.logMessage, {
@@ -286,6 +301,17 @@ export class Statistics {
      * Persist internal state to the key value store
      */
     async persistState() {
+        // this might be called before startCapturing was called without using await, should not crash
+        if (!this.enablePersistence || !this.keyValueStore) {
+            return;
+        }
+        return this.persistStateForce();
+    }
+
+    /**
+     * Same as {@apilink Statistics.persistState}, but ignores the {@apilink StatisticsOptions.enablePersistence} flag
+     */
+    async persistStateForce() {
         // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
@@ -382,11 +408,40 @@ export class Statistics {
     }
 }
 
-interface StatisticsOptions {
+/**
+ * Configuration for the [Statistics](https://crawlee.dev/api/next/core/class/Statistics) instance used by the crawler
+ */
+export interface StatisticsOptions {
+    /**
+     * Interval in seconds to log the current statistics
+     * @default 60
+     */
     logIntervalSecs?: number;
+
+    /**
+     * Message to log with the current statistics
+     * @default 'Statistics'
+     */
     logMessage?: string;
+
+    /**
+     * Key value store instance to persist the statistics.
+     * If not provided, the default one will be used when capturing starts
+     */
     keyValueStore?: KeyValueStore;
+
+    /**
+     * Configuration instance to use
+     * @default Configuration.getGlobalConfig()
+     */
     config?: Configuration;
+
+    /**
+     * Use this flag to disable or enable periodic statistics persistence to key value store.
+     * You can persist to KV store or reset the record there manually by calling {@apilink Statistics.persistStateForce} or {@apilink Statistics.resetStoreForce}
+     * @default true
+     */
+    enablePersistence?: boolean;
 }
 
 /**
