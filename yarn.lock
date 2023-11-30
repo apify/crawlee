@@ -2146,20 +2146,20 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.10.0
-  resolution: "@types/node@npm:20.10.0"
+  version: 20.10.1
+  resolution: "@types/node@npm:20.10.1"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: f379e57d9d28cb5f3d8eab943de0c54a0ca2f95ee356e1fe2a1a4fa718b740103ae522c50ce107cffd52c3642ef3244cfc55bf5369081dd6c48369c8587b21ae
+  checksum: c1b4b5a33f57bd39a8a0d074f27e3e370fccc6cda6a1c46caa48cc4c1687677cfdbffd9dc93fc803c6d355696dd9c73cd6f6507c749f61f83beb7326aec077d2
   languageName: node
   linkType: hard
 
 "@types/node@npm:^18.11.9":
-  version: 18.18.13
-  resolution: "@types/node@npm:18.18.13"
+  version: 18.18.14
+  resolution: "@types/node@npm:18.18.14"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 5f1840f26b4c00e6b4945be678644a46e6689ef10d9d7795d587b76059045b99a14ca6075264296e6e91d73e098fe83df9580881278d9a6ce394b368d9c76700
+  checksum: 7ab33be7e9ed0501bbbf1e62006b441a1ec5a8969b4f4df796919f3fc851604e2119947b72696e4049dd638a10b27e6f6b4cfaa469787d548d4d9c09fb945968
   languageName: node
   linkType: hard
 
@@ -4560,9 +4560,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.535":
-  version: 1.4.596
-  resolution: "electron-to-chromium@npm:1.4.596"
-  checksum: 6e05fdbe0a77beda4eaad646c83143ccf4dcec5b15da7dc641bbd872ef62acff4cb31e1febf4bafdbe8e1f61720c2ff738690acce0b8dac980a331802633befd
+  version: 1.4.597
+  resolution: "electron-to-chromium@npm:1.4.597"
+  checksum: 55bce2bfb0c1fc6765b5cf1cac5b108cb055126aa001d5d57858a3b4e3f46d9341129465a6265d40dbd941f997b7775615dd35ec41ff3a35a7eeb8bb82b1a66f
   languageName: node
   linkType: hard
 
@@ -6224,8 +6224,8 @@ __metadata:
   linkType: hard
 
 "got-scraping@npm:^4.0.0":
-  version: 4.0.1
-  resolution: "got-scraping@npm:4.0.1"
+  version: 4.0.2
+  resolution: "got-scraping@npm:4.0.2"
   dependencies:
     got: "npm:^13.0.0"
     header-generator: "npm:^2.1.41"
@@ -6234,7 +6234,7 @@ __metadata:
     ow: "npm:^1.1.1"
     quick-lru: "npm:^7.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 392ee13ad4f2b6bc11244070c95fa5ae93ec3ada297abdbe2f31ed343c1aa8e69ffef4f2e5b63023f06a2498f5d42d21cfc2cbdd734b7a5f6180c1cca683b6e0
+  checksum: 041630bffc0f2c8e41c42b2f0d8e679b8813f407eebf1c3380f19b8d3adc75fbbc5ade610e51c1bb0e8a7d17d40fab4a96f1cf2287dde7486b655f302ba04f24
   languageName: node
   linkType: hard
 
@@ -6612,11 +6612,11 @@ __metadata:
   linkType: hard
 
 "ignore-walk@npm:^6.0.0":
-  version: 6.0.3
-  resolution: "ignore-walk@npm:6.0.3"
+  version: 6.0.4
+  resolution: "ignore-walk@npm:6.0.4"
   dependencies:
     minimatch: "npm:^9.0.0"
-  checksum: 327759df98c7b4d4039e4c4913507ca372b2a38bb44a1c2bd7ff2ffc7eee7a379025301e478d7640672f0007807c5ec5cc2e41c5226b9058aa58f00b600d3731
+  checksum: 6dd2ea369f3d32d90cb26ca6647bc6e112ed483433270ed89b8055dd708d00777c2cbc85b93b43f53e2100851277fd1539796a758ae4c64b84445d4f1da5fd8f
   languageName: node
   linkType: hard
 
@@ -11983,8 +11983,8 @@ __metadata:
   linkType: hard
 
 "vite@npm:^3.0.0 || ^4.0.0 || ^5.0.0-0, vite@npm:^3.1.0 || ^4.0.0 || ^5.0.0-0":
-  version: 5.0.3
-  resolution: "vite@npm:5.0.3"
+  version: 5.0.4
+  resolution: "vite@npm:5.0.4"
   dependencies:
     esbuild: "npm:^0.19.3"
     fsevents: "npm:~2.3.3"
@@ -12018,7 +12018,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 3864b73586feb66abdc10e9fb21521a1c4ead9513a0b126cad3d59672e62687844ac60c087f61da82423ac3724b6254e0729c35d03840619b2a7d4a0a5cc0bff
+  checksum: 67a0df248af042e75b1ecbf20098096df80a1068a832c5c964a20d7c06853e12b7310989c3c273cb88a9a3a37f4bada0a2115018b36df0fc09a6b6dba9a7d5b5
   languageName: node
   linkType: hard
 
