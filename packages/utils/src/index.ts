@@ -10,5 +10,6 @@ export * from './internals/typedefs';
 export * from './internals/error_tracker';
 export * from './internals/open_graph_parser';
 export * from './internals/gotScraping';
+export * from './internals/robots'
 
 export { Dictionary, Awaitable, Constructor } from '@crawlee/types';
