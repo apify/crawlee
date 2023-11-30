@@ -58,6 +58,14 @@ export interface SessionPoolOptions {
 
     /** @internal */
     log?: Log;
+
+    /**
+     * If set to true, `SessionPool` will periodically persist its state to the key-value store.
+     * Othewise, {@apilink SessionPool.persistState} and {@apilink SessionPool.resetStore} will have no effect,
+     * but you will still be able to call their "*Force" counterparts for manual resetting and persisting.
+     * @default true
+     */
+    enablePersistence?: boolean;
 }
 
 /**
@@ -138,6 +146,8 @@ export class SessionPool extends EventEmitter {
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
     protected readonly blockedStatusCodes: number[];
+    protected enablePersistence: boolean;
+    protected isInitialized = false;
 
     /**
      * @internal
@@ -153,6 +163,7 @@ export class SessionPool extends EventEmitter {
             sessionOptions: ow.optional.object,
             blockedStatusCodes: ow.optional.array.ofType(ow.number),
             log: ow.optional.object,
+            enablePersistence: ow.optional.boolean,
         }));
 
         const {
@@ -163,12 +174,14 @@ export class SessionPool extends EventEmitter {
             sessionOptions = {},
             blockedStatusCodes = [401, 403, 429],
             log = defaultLog,
+            enablePersistence = true,
         } = options;
 
         this.config = config;
         this.blockedStatusCodes = blockedStatusCodes;
         this.events = config.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
+        this.enablePersistence = enablePersistence;
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
@@ -206,7 +219,12 @@ export class SessionPool extends EventEmitter {
      * It is called automatically by the {@apilink SessionPool.open} function.
      */
     async initialize(): Promise<void> {
+        if (this.isInitialized) return;
         this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, { config: this.config });
+        if (!this.enablePersistence) {
+            this.isInitialized = true;
+            return;
+        }
 
         if (!this.persistStateKeyValueStoreId) {
             // eslint-disable-next-line max-len
@@ -219,6 +237,7 @@ export class SessionPool extends EventEmitter {
         this._listener = this.persistState.bind(this);
 
         this.events.on(EventType.PERSIST_STATE, this._listener);
+        this.isInitialized = true;
     }
 
     /**
@@ -291,6 +310,16 @@ export class SessionPool extends EventEmitter {
     }
 
     async resetStore() {
+        if (!this.enablePersistence) {
+            return;
+        }
+        return this.resetStoreForce();
+    }
+
+    /**
+     * Manually reset KV store entry for the the session pool state, ignoring the {@apilink SessionPoolOptions.enablePersistence} option.
+     */
+    async resetStoreForce() {
         await this.keyValueStore?.setValue(this.persistStateKey, null);
     }
 
@@ -311,6 +340,16 @@ export class SessionPool extends EventEmitter {
      * The state is persisted automatically in regular intervals.
      */
     async persistState(): Promise<void> {
+        if (!this.enablePersistence) {
+            return;
+        }
+        return this.persistStateForce();
+    }
+
+    /**
+     * Like {@apilink SessionPool.persistState}, but ignores the {@apilink SessionPoolOptions.enablePersistence} option.
+     */
+    async persistStateForce() {
         this.log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
@@ -331,7 +370,7 @@ export class SessionPool extends EventEmitter {
      * SessionPool should not work before initialization.
      */
     protected _throwIfNotInitialized() {
-        if (!this._listener) throw new Error('SessionPool is not initialized.');
+        if (!this.isInitialized) throw new Error('SessionPool is not initialized.');
     }
 
     /**
