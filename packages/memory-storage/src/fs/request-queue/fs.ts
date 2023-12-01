@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
 
-import { lockAndWrite } from '../../background-handler/fs-utils';
+import { lockAndCallback, lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalRequest } from '../../resource-clients/request-queue';
 import type { StorageImplementation } from '../common';
 
@@ -14,6 +14,7 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
     private filePath: string;
     private fsQueue = new AsyncQueue();
     private data?: InternalRequest;
+    private directoryExists = false;
 
     /**
      * A "sweep" timeout that is created/refreshed whenever this entry is accessed/updated.
@@ -25,20 +26,22 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
         this.filePath = resolve(options.storeDirectory, `${options.requestId}.json`);
     }
 
-    async get() {
+    async get(force = false) {
         await this.fsQueue.wait();
         this.setOrRefreshSweepTimeout();
 
-        if (this.data) {
+        if (this.data && !force) {
             this.fsQueue.shift();
             return this.data;
         }
 
         try {
-            const req = JSON.parse(await readFile(this.filePath, 'utf-8'));
-            this.data = req;
+            return await lockAndCallback(this.filePath, async () => {
+                const req = JSON.parse(await readFile(this.filePath, 'utf-8'));
+                this.data = req;
 
-            return req;
+                return req;
+            });
         } finally {
             this.fsQueue.shift();
         }
@@ -49,7 +52,11 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
         this.data = data;
 
         try {
-            await ensureDir(dirname(this.filePath));
+            if (!this.directoryExists) {
+                await ensureDir(dirname(this.filePath));
+                this.directoryExists = true;
+            }
+
             await lockAndWrite(this.filePath, data);
         } finally {
             this.setOrRefreshSweepTimeout();

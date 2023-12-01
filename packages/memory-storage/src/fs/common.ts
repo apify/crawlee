@@ -1,5 +1,5 @@
 export interface StorageImplementation<T> {
-    get(): Promise<T>;
+    get(force?: boolean): Promise<T>;
     update(data: T): void | Promise<void>;
     delete(): void | Promise<void>;
 }
