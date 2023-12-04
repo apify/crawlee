@@ -39,8 +39,7 @@ async function updateMetadata(message: BackgroundHandlerUpdateMetadataMessage) {
 }
 
 export async function lockAndWrite(filePath: string, data: unknown, stringify = true, retry = 10, timeout = 10): Promise<void> {
-    try {
-        const release = await lock(filePath, { realpath: false });
+    await lockAndCallback(filePath, async () => {
         await new Promise<void>((pResolve, reject) => {
             writeFile(filePath, stringify ? JSON.stringify(data, null, '\t') : data as Buffer, (err) => {
                 if (err) {
@@ -50,11 +49,30 @@ export async function lockAndWrite(filePath: string, data: unknown, stringify = 
                 }
             });
         });
-        await release();
+    }, retry, timeout);
+}
+
+export async function lockAndCallback<Callback extends () => Promise<any>>(
+    filePath: string,
+    callback: Callback,
+    retry = 10,
+    timeout = 10,
+): Promise<Awaited<ReturnType<Callback>>> {
+    let release: (() => Promise<void>) | null = null;
+    try {
+        release = await lock(filePath, { realpath: false });
+
+        return await callback();
     } catch (e: any) {
         if (e.code === 'ELOCKED' && retry > 0) {
             await setTimeout(timeout);
-            return lockAndWrite(filePath, data, stringify, retry - 1, timeout * 2);
+            return lockAndCallback(filePath, callback, retry - 1, timeout * 2);
+        }
+
+        throw e;
+    } finally {
+        if (release) {
+            await release();
         }
     }
 }

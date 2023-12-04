@@ -200,7 +200,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                     break;
                 }
 
-                const request = await storageEntry.get();
+                // Always fetch from fs, as this also locks and we do not want to end up in a state where another process locked the request but we have cached it as unlocked
+                const request = await storageEntry.get(true);
 
                 if (isLocked(request)) {
                     continue;
