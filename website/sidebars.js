@@ -44,6 +44,7 @@ module.exports = {
                 'guides/got-scraping',
                 'guides/typescript-project',
                 'guides/docker-images',
+                'guides/parallel-scraping/parallel-scraping-guide',
             ],
         },
         {

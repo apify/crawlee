@@ -1,0 +1,209 @@
+---
+id: parallel-scraping-guide
+title: Parallel Scraping Guide
+sidebar_label: Parallel Scraping
+description: Parallelizing your scrapers with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import SharedSource from '!!raw-loader!./shared.mjs';
+import AdaptedRoutesSource from '!!raw-loader!./adapted-routes.mjs';
+import ParallelScraperSource from '!!raw-loader!./parallel-scraper.mjs';
+import ModifiedDetailRouteSource from '!!raw-loader!./modified-detail-route.mjs';
+
+:::warning Experimental features ahead
+
+At the time of writing this guide (November 2023), request locking is still an experimental feature. You can read more about the experiment by visiting the [request locking experiment](../experiments/experiments-request-locking) page.
+
+:::
+
+In this guide, we will walk through how you can turn your single scraper into a scraper that can be parallelized and run in multiple instances. This guide
+assumes you've read and walked through our [introduction guide](../introduction/setting-up) (or have a fully-fledged scraper already built), but if you haven't done so yet,
+take a break, go read through all that, and come back. We'll be waiting...
+
+*Oh, you're back already! Let's proceed in making that scraper parallel!*
+
+## Things to consider before parallelizing
+
+Before you rush ahead and change your scraper to support parallelization, take a minute to consider the following factors:
+
+- do you plan on scraping so many pages that you need to parallelize your scraper?
+  > for example, if your scrape is less than 1000 pages, you probably don't need parallelization  
+  > but if you scrape a lot of pages, or you scrape pages that take a long time to load, you might want to consider parallelization
+- can you parallelize your scraper while not overloading the source website?
+  > for example, if you scrape a website that has a lot of traffic, you don't want to add to that traffic by running multiple scrapers in parallel
+  > as that might cause the website to go down for all its users
+- do you have the resources available to run multiple scrapers in parallel?
+  > when running locally, depending on your scraper type, do you have enough CPU and RAM available to sustain multiple scrapers running in parallel  
+  > when running in the cloud, will the extra speed from parallelization be worth the extra cost of running multiple scrapers in parallel?
+
+Let's assume you answered yes to all of those. Yes? Yes. Before we go ahead and get to the actual guide, we'd like to ask you to also take a read on [Apify's Ethical Web Scraping](https://blog.apify.com/what-is-ethical-web-scraping-and-how-do-you-do-it/)
+blog post!
+
+Now that we've gone through all that, the guide is split into two parts: converting the initial scraper we built in the [introduction guide](../introduction/setting-up) to one that prepares requests
+to be usable in parallel scrapers, and then running scrapers in parallel.
+
+:::note Want to see the final result?
+
+You can see it on the [Crawlee Parallel Scraping Example](https://github.com/apify/crawlee-parallel-scraping-example) repository! It's the same scraper we built in the [introduction guide](../introduction/setting-up), but in TypeScript and
+parallelized!
+
+:::
+
+## Preparing your scraper for parallelization
+
+One of the best parts of Crawlee is that, for the most part, we do not need to change much to make this happen! Just create the queue that supports locking, enqueue links to it from the initial scraper,
+then build scrapers that run in parallel that use that queue!
+
+### Creating the request queue with locking support
+
+The first step in our conversion process will be creating a common file (let's call it `shared.mjs`) that will store the request queue that supports request locking.
+
+<CodeBlock language="js" title="src/shared.mjs">{SharedSource}</CodeBlock>
+
+The exported function, `getOrInitQueue`, might seem like it does a lot. In essence, it just ensures the request queue is initialized, and if requested, ensures it starts off with an empty state.
+
+### Adapting our previous scraper to enqueue the product URLs to the new queue
+
+In the `src/routes.mjs` file of the scraper we previously built, we have a handler for the `CATEGORY` label. Let's adapt that handler to enqueue the product URLs to the new queue we created.
+
+Firstly, let's import the `getOrInitQueue` function from the `shared.mjs` file we created earlier. Add the following line at the start of the file:
+
+```javascript title="src/routes.mjs"
+import { getOrInitQueue } from './shared.mjs';
+```
+
+Then, replace the `CATEGORY` handler with the following:
+
+<CodeBlock language="js" title="src/routes.mjs">{AdaptedRoutesSource}</CodeBlock>
+
+Now, let's rename the file to `src/initial-scraper.mjs` and run it. You should see the crawler not scrape any detail pages, but now the URLs are being enqueued to the queue that supports locking!
+
+Before we wrap up, let's also add the following line before `crawler.run()`:
+
+```javascript title="src/initial-scraper.mjs"
+import { getOrInitQueue } from './shared.mjs';
+
+// Pre-initialize the queue so that we have a blank slate that will get filled out by the crawler
+await getOrInitQueue(true);
+```
+
+We need this to ensure the queue always starts on an empty slate when we run the scraper. But you may not need this in your use case - remember to always experiment and see what works best!
+
+And that's it with preparing our initial scraper to save all URLs we want to scrape to the queue that supports locking!
+
+### Creating the parallel scrapers
+
+Up next, let's build out another scraper that will schedule the URLs from the queue to be scraped in parallel! For this, we will be using child processes from Node.js,
+but you can use any other method you want to run multiple scrapers in parallel. You will need to adjust your code if you use other methods.
+
+The scraper will fork itself twice (but you can experiment with this), and each fork will re-use the queue we created earlier.
+The best part? We can re-use the previous router we built for the initial scraper! Yay for code re-use!
+
+<CodeBlock language="js" title="src/parallel-scraper.mjs">{ParallelScraperSource}</CodeBlock>
+
+We'll also need to do one small change in the `DETAIL` route handler. Instead of calling `Dataset.pushData`, we want to replace that with `process.send` instead.
+
+:::info But why?
+
+Since we use child processes, and each worker process has its own storage space, calling `Dataset.pushData` will not work as we want it to work.
+Instead, we need to send the data back to the parent process, which has the dataset where we want to store the data.
+
+This might not be needed depending on your use case! You'll need to experiment and see what works best for you
+
+:::
+
+<CodeBlock language="js" title="src/routes.mjs">{ModifiedDetailRouteSource}</CodeBlock>
+
+There is a lot of code, so let's break it down:
+
+#### The `if` check for `process.env.IS_WORKER_THREAD`
+
+This will check how the script is executed as. If this value has _any_ value, it will assume it's meant to start scraping. If not, it's considered the **parent** process
+and will fork copies of itself to do the scraping.
+
+#### Why do we create a Promise per worker process?
+
+We use this to ensure the parent process stays alive until all the worker processes exit. Otherwise, the worker processes would just get spawned, and lose the ability
+to communicate with the parent. You might not need this depending on your use case (maybe you just need to spawn workers and let them process).
+
+#### What's with all those `Configuration` calls?
+
+There are three steps we want to do for the worker processes:
+
+- ensure the default storages do **not** get purged on start, as otherwise we'd lose the queue we prepared
+- get the queue that supports locking from the same location as the parent process
+- initialize a special storage for worker processes so they do not collide with each other
+
+In order, that's what these lines do:
+
+```javascript title="src/parallel-scraper.mjs"
+// Disable the automatic purge on start (step 1)
+// This is needed when running locally, as otherwise multiple processes will try to clear the default storage (and that will cause clashes)
+Configuration.getGlobalConfig().set('purgeOnStart', false);
+
+// Get the request queue from the parent process (step 2)
+const requestQueue = await getOrInitQueue(false);
+
+// Configure crawlee to store the worker-specific data in a separate directory (needs to be done AFTER the queue is initialized when running locally) (step 3)
+const config = new Configuration({
+    storageClientOptions: {
+        localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
+    },
+});
+```
+
+#### Enabling the request locking experiment, and telling the crawler to use the worker configuration
+
+You might have noticed several lines highlighted in the code above. Those show how you can enable the request locking experiment, as well as how you provide the request queue to the crawler.
+You can read more about the experiment by visiting the [request locking experiment](../experiments/experiments-request-locking) page.
+
+You might have also noticed we passed in a second parameter to the constructor of the crawler, the `config` variable we created earlier.
+This is needed to ensure the crawler uses the worker-specific storages for internal states, and that they do not collide with each other.
+
+#### Why do we use `process.send` instead of `Dataset.pushData`?
+
+Since we use child processes, and each worker process has its own storage space, calling `Dataset.pushData` will not work as we want it to work (each worker would just
+push to it's own personal dataset that is considered the "default" one). Instead, we need to send the data back to the parent process, which has the dataset where we want to
+store the data, in a centralized place.
+
+:::tip Why don't we apply the same logic we did to the request queue to the dataset?
+
+This is a very valid question, but it has a simple answer: since each process tracks its own internal state of how a dataset looks like (when we are scrapping locally),
+the worker processes would get out of sync real fast and would either miss or override data. This is why we need to send the data back to the parent process, which has the dataset
+where we want to store the data, in a centralized place.
+
+Depending on your crawler, this might not be an issue! Each use case has its own quirks, but this is something you should keep in mind when building your scraper.
+
+:::
+
+#### Why did we limit the maximum concurrency to `5`?
+
+This question has a two-fold answer:
+
+- we don't want to overload the source website with requests, so we limit the number of concurrent requests to a reasonable number per worker process
+- we don't want to overload the machine that is running the scraper
+
+This circles back to the initial paragraph about if you should parallelize your scraper or not. Remember: scrape responsibly!
+
+## Other questions
+
+#### Couldn't the `initial-scraper` be merged into the `parallel-scraper`?
+
+Technically, it could! Nothing stops you from first enqueuing all the URLs in the parent process, and then run the worker process logic after to scrape them.
+We separated them so it's easier to follow and understand what each part does, but you can merge them if you want to.
+
+
+#### Will I benefit from this if I run XYZ scraper / want to scrape XYZ website?
+
+We don't know! 🤷
+
+What we do know is that first, you should build your scraper to work as a single scraper, then monitor it's performance. Do you see it being too slow?
+Do you scrape many pages, or do the few pages you scrape take a long time to load? If so, then you might benefit from parallelization.
+When in doubt, follow the list of things to consider before parallelizing at the start of this guide.
+
+And always remember: scrape responsibly!
