@@ -62,6 +62,7 @@ export class Sitemap {
     constructor(public readonly urls: string[]) {}
 
     static async load(url: string, proxyUrl?: string): Promise<Sitemap> {
-        return new Sitemap(await downloadListOfUrls({ url, proxyUrl }));
+        const urls = await downloadListOfUrls({ url, proxyUrl });
+        return new Sitemap(urls.filter((it) => new URL(it).host !== 'www.sitemaps.org'));
     }
 }
