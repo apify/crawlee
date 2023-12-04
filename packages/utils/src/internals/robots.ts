@@ -1,7 +1,12 @@
-import { downloadListOfUrls, gotScraping } from '@crawlee/utils';
-import { HTTPError } from 'got';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
+import type { HTTPError as HTTPErrorClass } from 'got';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
+
+import { downloadListOfUrls } from './extract-urls';
+import { gotScraping } from './gotScraping';
+
+let HTTPError: typeof HTTPErrorClass;
 
 export class RobotsFile {
     constructor(private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>, private proxyUrl?: string) {}
@@ -15,6 +20,10 @@ export class RobotsFile {
     }
 
     protected static async load(url: string, proxyUrl?: string): Promise<RobotsFile> {
+        if (!HTTPError) {
+            HTTPError = (await import('got')).HTTPError;
+        }
+
         try {
             const response = await gotScraping({
                 url,
