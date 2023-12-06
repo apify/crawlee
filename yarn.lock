@@ -4385,9 +4385,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1232444
-  resolution: "devtools-protocol@npm:0.0.1232444"
-  checksum: b46bde0e564c136582e4f51be568d39c11025293f23f94e42294cce01698c2e6b66694d7899605e6dce61ca216d4e49c2bf628e2c730f4aa4d72b657cd52a263
+  version: 0.0.1233178
+  resolution: "devtools-protocol@npm:0.0.1233178"
+  checksum: 3a28bca0775e855a4aa96906cbf89a9e8e273fc6c8a93c948678aaad1bb1f1cb4ab37633d9175657cbe3b770ad609f74ba749a10907689f9cc4028c8f00d5f44
   languageName: node
   linkType: hard
 
@@ -4560,9 +4560,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.603
-  resolution: "electron-to-chromium@npm:1.4.603"
-  checksum: 92287fb0780c05e98e2cc46ce0cb158e7f7f8a68b94b1418ec229746e7546e5661614b26afa31084bb893a073191b17799a61f5454937a8d3095b52c0bf6a835
+  version: 1.4.604
+  resolution: "electron-to-chromium@npm:1.4.604"
+  checksum: e034c25c2a98c166ed0d597f8667a053c1c91a6ca37543cc9e48c4bb07d23f783b371d70d8adee57d01dbdd2f33af57cbeebb11069cbf4541dec4f36336ce6c0
   languageName: node
   linkType: hard
 
@@ -11324,21 +11324,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.0.23":
-  version: 6.0.23
-  resolution: "tldts-core@npm:6.0.23"
-  checksum: 76eed26cc89507ba7e9a0c8892839dc01872dd9a5c2f1f8b9acc90b9fc87d0566da8ca72b6d7061c359c1bb7ebceefe2a5dfa971fe9fc395dfc1b043ca2a7074
+"tldts-core@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "tldts-core@npm:6.1.0"
+  checksum: ae582d6a40d3099872c26b3597711742bdc294f204a260d4671e3279b0bd83b19152116d080dd541260f418884ec87c09c8b0f7e6a8463d76f46607192bf3417
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.0.23
-  resolution: "tldts@npm:6.0.23"
+  version: 6.1.0
+  resolution: "tldts@npm:6.1.0"
   dependencies:
-    tldts-core: "npm:^6.0.23"
+    tldts-core: "npm:^6.1.0"
   bin:
     tldts: bin/cli.js
-  checksum: f816c91c44c5a2f02aba73bd1cc22b81b2592912bfe802b66eba5420e3810fe9c96169f7b96718b03e8654a45054f3f98e650228f8fd730d2173a6fb557ab05e
+  checksum: c4910e268652aa2800b37c18f18d48705a592de7dec7ce2089a819da8bc8d9ce7a7a474fb30dc10e24b60e3ba72298dd8127817283bcd45127f4a47baa47b4be
   languageName: node
   linkType: hard
 
