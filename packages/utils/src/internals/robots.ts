@@ -2,8 +2,8 @@
 import type { HTTPError as HTTPErrorClass } from 'got';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
+import sax from 'sax';
 
-import { downloadListOfUrls } from './extract-urls';
 import { gotScraping } from './gotScraping';
 
 let HTTPError: typeof HTTPErrorClass;
@@ -27,9 +27,9 @@ export class RobotsFile {
         try {
             const response = await gotScraping({
                 url,
+                proxyUrl,
                 method: 'GET',
                 responseType: 'text',
-                proxyUrl,
             });
 
             return new RobotsFile(robotsParser(url.toString(), response.body), proxyUrl);
@@ -62,7 +62,57 @@ export class Sitemap {
     constructor(public readonly urls: string[]) {}
 
     static async load(url: string, proxyUrl?: string): Promise<Sitemap> {
-        const urls = await downloadListOfUrls({ url, proxyUrl });
-        return new Sitemap(urls.filter((it) => new URL(it).host !== 'www.sitemaps.org'));
+        const parsingState: {
+            context: 'sitemapindex' | 'urlset' | undefined;
+            loc: boolean;
+            urls: string[];
+            sitemapUrls: string[];
+            visitedSitemapUrls: string[];
+        } = { context: undefined, loc: false, urls: [], sitemapUrls: [url], visitedSitemapUrls: [] };
+
+        while (parsingState.sitemapUrls.length > 0) {
+            const sitemapUrl = parsingState.sitemapUrls.pop()!;
+            parsingState.visitedSitemapUrls.push(sitemapUrl);
+
+            const response = await gotScraping({ url: sitemapUrl, proxyUrl, responseType: 'text', method: 'GET' });
+            const parser = sax.parser(true);
+
+            parser.onopentag = (node) => {
+                if (node.name === 'loc' && parsingState.context !== undefined) {
+                    parsingState.loc = true;
+                }
+                if (node.name === 'urlset') {
+                    parsingState.context = 'urlset';
+                }
+                if (node.name === 'sitemapindex') {
+                    parsingState.context = 'sitemapindex';
+                }
+            };
+
+            parser.onclosetag = (name) => {
+                if (name === 'loc') {
+                    parsingState.loc = false;
+                }
+            };
+
+            parser.ontext = (text) => {
+                if (parsingState.loc) {
+                    if (parsingState.context === 'sitemapindex') {
+                        if (!parsingState.visitedSitemapUrls.includes(text)) {
+                            parsingState.sitemapUrls.push(text);
+                        }
+                    }
+                    if (parsingState.context === 'urlset') {
+                        parsingState.urls.push(text);
+                    }
+                }
+            };
+
+            if (response.statusCode === 200) {
+                parser.write(response.body).close();
+            }
+        }
+
+        return new Sitemap(parsingState.urls);
     }
 }

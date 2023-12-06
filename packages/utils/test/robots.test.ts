@@ -54,7 +54,7 @@ describe('Sitemap', () => {
     beforeEach(() => {
         nock.disableNetConnect();
         nock('http://not-exists.com').persist()
-            .get('/sitemap_1.xml')
+            .get('/sitemap_child.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -84,6 +84,17 @@ describe('Sitemap', () => {
                 '</url>',
                 '</urlset>',
             ].join('\n'))
+            .get('/sitemap_parent.xml')
+            .reply(200, [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<sitemap>',
+                '<loc>http://not-exists.com/sitemap_child.xml</loc>',
+                '<lastmod>2004-12-23</lastmod>',
+                '</sitemap>',
+                '</sitemapindex>',
+                '</urlset>',
+            ].join('\n'))
             .get('*')
             .reply(404);
     });
@@ -94,13 +105,24 @@ describe('Sitemap', () => {
     });
 
     it('extracts urls from sitemaps', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_1.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml');
         expect(new Set(sitemap.urls)).toEqual(new Set([
             'http://not-exists.com/',
-            'http://not-exists.com/catalog?item=12&amp',
-            'http://not-exists.com/catalog?item=73&amp',
-            'http://not-exists.com/catalog?item=74&amp',
-            'http://not-exists.com/catalog?item=83&amp',
+            'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+            'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+            'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+            'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+        ]));
+    });
+
+    it('follows links in sitemap indexes', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml');
+        expect(new Set(sitemap.urls)).toEqual(new Set([
+            'http://not-exists.com/',
+            'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+            'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+            'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+            'http://not-exists.com/catalog?item=83&desc=vacation_usa',
         ]));
     });
 });
