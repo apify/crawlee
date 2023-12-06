@@ -93,7 +93,6 @@ describe('Sitemap', () => {
                 '<lastmod>2004-12-23</lastmod>',
                 '</sitemap>',
                 '</sitemapindex>',
-                '</urlset>',
             ].join('\n'))
             .get('*')
             .reply(404);
@@ -116,7 +115,7 @@ describe('Sitemap', () => {
     });
 
     it('follows links in sitemap indexes', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent.xml');
         expect(new Set(sitemap.urls)).toEqual(new Set([
             'http://not-exists.com/',
             'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
