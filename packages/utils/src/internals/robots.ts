@@ -1,5 +1,5 @@
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import log from '@apify/log';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { HTTPError as HTTPErrorClass } from 'got';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
