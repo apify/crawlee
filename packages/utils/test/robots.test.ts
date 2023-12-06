@@ -94,6 +94,15 @@ describe('Sitemap', () => {
                 '</sitemap>',
                 '</sitemapindex>',
             ].join('\n'))
+            .get('/not_actual_xml.xml')
+            .reply(200, [
+                '<HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">',
+                '<TITLE>301 Moved</TITLE></HEAD><BODY>',
+                '<H1>301 Moved</H1>',
+                'The document has moved',
+                '<A HREF="https://ads.google.com/home/">here</A>.',
+                '</BODY></HTML>',
+            ].join('\n'))
             .get('*')
             .reply(404);
     });
@@ -123,5 +132,10 @@ describe('Sitemap', () => {
             'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
             'http://not-exists.com/catalog?item=83&desc=vacation_usa',
         ]));
+    });
+
+    it('does not break on invalid xml', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
+        expect(sitemap.urls).toEqual([]);
     });
 });

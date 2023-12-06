@@ -1,4 +1,5 @@
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
+import { log } from 'crawlee';
 import type { HTTPError as HTTPErrorClass } from 'got';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
@@ -109,7 +110,11 @@ export class Sitemap {
             };
 
             if (response.statusCode === 200) {
-                parser.write(response.body).close();
+                try {
+                    parser.write(response.body).close();
+                } catch (e) {
+                    log.warning(`Malformed sitemap content: ${url}`);
+                }
             }
         }
 
