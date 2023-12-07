@@ -304,7 +304,7 @@ export class Statistics {
          */
         force?: boolean;
     }) {
-        if (!this.enablePersistence && opts?.force !== true) {
+        if (!this.enablePersistence && !opts?.force) {
             return;
         }
         // this might be called before startCapturing was called without using await, should not crash
