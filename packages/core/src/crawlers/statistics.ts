@@ -409,7 +409,7 @@ export class Statistics {
 }
 
 /**
- * Configuration for the [Statistics](https://crawlee.dev/api/next/core/class/Statistics) instance used by the crawler
+ * Configuration for the {@apilink Statistics} instance used by the crawler
  */
 export interface StatisticsOptions {
     /**
