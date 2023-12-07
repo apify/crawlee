@@ -204,10 +204,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.23.0":
-  version: 2.23.0
-  resolution: "@apify/consts@npm:2.23.0"
-  checksum: 036cd5c107de13da6b95c2974d203a4810d008916087b90750cfac2521c520f09fc94b1ac345c8dfbe48655e6e84bb549de8895d90cc01d987bb06390f6b9efc
+"@apify/consts@npm:^2.24.0":
+  version: 2.24.0
+  resolution: "@apify/consts@npm:2.24.0"
+  checksum: b60138c782d61ac2e08d960eaebf8b3c561c333218df0e5d1b531e0d3ca5be07f4e501117b5a4aa67534fde442f0c372173098f325c2c2d649bec49d0fac57fb
   languageName: node
   linkType: hard
 
@@ -247,13 +247,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.4.3":
-  version: 2.4.3
-  resolution: "@apify/log@npm:2.4.3"
+"@apify/log@npm:^2.4.4":
+  version: 2.4.4
+  resolution: "@apify/log@npm:2.4.4"
   dependencies:
-    "@apify/consts": "npm:^2.23.0"
+    "@apify/consts": "npm:^2.24.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: ba7dabbffd718ec7f5e04c50e56015267a6fe47c2744e5dc73dd5db0041315fe9ac34ea199b3d105ce0b42943357a1a49bf0535a886cb587ff340046d4037c12
+  checksum: 19710515d03867a0288aa73b7f9b6598ddcf715c68dd74c0bc9c993b8e1d6907dd57453ac62b28c42980d485aa39e1173462c8b289a2f6eed1b80226efdd8499
   languageName: node
   linkType: hard
 
@@ -265,12 +265,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.9.3
-  resolution: "@apify/utilities@npm:2.9.3"
+  version: 2.9.4
+  resolution: "@apify/utilities@npm:2.9.4"
   dependencies:
-    "@apify/consts": "npm:^2.23.0"
-    "@apify/log": "npm:^2.4.3"
-  checksum: 60e0f5891e3b85a4039e5ca18ad64f1519805c9765b07f82cbcae78cbb70ae8dc0a0e61b3f6b09e26589d28c7cd4c7da58d1e89b608fec9b26aae585005c3a5d
+    "@apify/consts": "npm:^2.24.0"
+    "@apify/log": "npm:^2.4.4"
+  checksum: a789de9c06d6b030769c8168f202638a0bc6cc1b42b18a32cab05af9ee6c2c389c7d18aa616de244a17a09d10931310c9d5e58b8fb343e85900938e9f2b6808d
   languageName: node
   linkType: hard
 
@@ -3209,13 +3209,13 @@ __metadata:
   linkType: hard
 
 "@types/react-router-config@npm:*, @types/react-router-config@npm:^5.0.7":
-  version: 5.0.10
-  resolution: "@types/react-router-config@npm:5.0.10"
+  version: 5.0.11
+  resolution: "@types/react-router-config@npm:5.0.11"
   dependencies:
     "@types/history": "npm:^4.7.11"
     "@types/react": "npm:*"
     "@types/react-router": "npm:^5.1.0"
-  checksum: a0ace3a1842be3843605ee9bc9d7ce9e275a45a44cca01b31640bac2bcd9e70bc2baae8fb9577985e11656b9d54fbef282d7921b94e8eb2e1e05e0dcf6a6aadf
+  checksum: 3fa4daf8c14689a05f34e289fc53c4a892e97f35715455c507a8048d9875b19cd3d3142934ca973effed6a6c38f33539b6e173cd254f67e2021ecd5458d551c8
   languageName: node
   linkType: hard
 
@@ -3703,9 +3703,9 @@ __metadata:
   linkType: hard
 
 "acorn-walk@npm:^8.0.0":
-  version: 8.3.0
-  resolution: "acorn-walk@npm:8.3.0"
-  checksum: 24346e595f507b6e704a60d35f3c5e1aa9891d4fb6a3fc3d856503ab718cc26cabb5e3e1ff0ff8da6ec03d60a8226ebdb602805a94f970e7f797ea3b8b09437f
+  version: 8.3.1
+  resolution: "acorn-walk@npm:8.3.1"
+  checksum: a23d2f7c6b6cad617f4c77f14dfeb062a239208d61753e9ba808d916c550add92b39535467d2e6028280761ac4f5a904cc9df21530b84d3f834e3edef74ddde5
   languageName: node
   linkType: hard
 
@@ -5842,9 +5842,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.604
-  resolution: "electron-to-chromium@npm:1.4.604"
-  checksum: e034c25c2a98c166ed0d597f8667a053c1c91a6ca37543cc9e48c4bb07d23f783b371d70d8adee57d01dbdd2f33af57cbeebb11069cbf4541dec4f36336ce6c0
+  version: 1.4.606
+  resolution: "electron-to-chromium@npm:1.4.606"
+  checksum: bedf5cde7bcdf3d926c56ff863a7ee79f44d81af22962f6e0e19d9de0b59dfe983c3205dd50287a3a3b390e6af34592009651b39d55654e8896dd8c93ca42766
   languageName: node
   linkType: hard
 
@@ -7639,8 +7639,8 @@ __metadata:
   linkType: hard
 
 "html-webpack-plugin@npm:^5.5.3":
-  version: 5.5.3
-  resolution: "html-webpack-plugin@npm:5.5.3"
+  version: 5.5.4
+  resolution: "html-webpack-plugin@npm:5.5.4"
   dependencies:
     "@types/html-minifier-terser": "npm:^6.0.0"
     html-minifier-terser: "npm:^6.0.2"
@@ -7649,7 +7649,7 @@ __metadata:
     tapable: "npm:^2.0.0"
   peerDependencies:
     webpack: ^5.20.0
-  checksum: 7ba0d0f87d08f5c4c51f821842d736ec1762940bc39798932528adaec1e9cca8f52944987b88789007f5706d15110edbdfa30df445d61c6628b02ebe163c4f42
+  checksum: fd7b9882a7b44b78711d3489fd571308372a915924c2e619ad8a08d9100a17ae8899a3d3bb1934c326d45bf942330a693206088ba80f292dd6574d9e33c67a43
   languageName: node
   linkType: hard
 
