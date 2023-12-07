@@ -313,7 +313,7 @@ export class SessionPool extends EventEmitter {
          */
         force?: boolean;
     }) {
-        if (!this.enablePersistence && opts?.force !== true) {
+        if (!this.enablePersistence && !opts?.force) {
             return;
         }
         await this.keyValueStore?.setValue(this.persistStateKey, null);
