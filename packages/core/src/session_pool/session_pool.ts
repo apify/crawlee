@@ -67,6 +67,13 @@ export interface SessionPoolOptions {
 }
 
 /**
+ * Override persistence-related options provided in {@apilink SessionPoolOptions} for a single method call
+ */
+interface PersistenceOptionsOverrides {
+    enablePersistence?: boolean;
+}
+
+/**
  * Handles the rotation, creation and persistence of user-like sessions.
  * Creates a pool of {@apilink Session} instances, that are randomly rotated.
  * When some session is marked as blocked, it is removed and new one is created instead (the pool never returns an unusable session).
@@ -307,13 +314,8 @@ export class SessionPool extends EventEmitter {
         return this._createSession();
     }
 
-    async resetStore(opts?: {
-        /**
-         * If true, manually reset KV store entry, ignoring the {@apilink SessionPoolOptions.enablePersistence} flag
-         */
-        force?: boolean;
-    }) {
-        if (!this.enablePersistence && !opts?.force) {
+    async resetStore(opts?: PersistenceOptionsOverrides) {
+        if (!(this.enablePersistence || opts?.enablePersistence)) {
             return;
         }
         await this.keyValueStore?.setValue(this.persistStateKey, null);
@@ -335,13 +337,8 @@ export class SessionPool extends EventEmitter {
      * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
      * The state is persisted automatically in regular intervals.
      */
-    async persistState(opts?: {
-        /**
-         * If true, ignore the {@apilink SessionPoolOptions.enablePersistence} flag
-         */
-        force?: boolean;
-    }): Promise<void> {
-        if (!this.enablePersistence && !opts?.force) {
+    async persistState(opts?: PersistenceOptionsOverrides): Promise<void> {
+        if (!(this.enablePersistence || opts?.enablePersistence)) {
             return;
         }
         this.log.debug('Persisting state', {

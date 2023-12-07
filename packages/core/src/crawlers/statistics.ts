@@ -40,6 +40,13 @@ const errorTrackerConfig = {
 };
 
 /**
+ * Override persistence-related options provided in {@apilink StatisticsOptions} for a single method call
+ */
+interface PersistenceOptionsOverrides {
+    enablePersistence?: boolean;
+}
+
+/**
  * The statistics class provides an interface to collecting and logging run
  * statistics for requests.
  *
@@ -159,13 +166,8 @@ export class Statistics {
         this._teardown();
     }
 
-    async resetStore(opts?: {
-        /**
-         * If true, manually reset KV store entry for the statistics, ignoring the {@apilink StatisticsOptions.enablePersistence} flag
-         */
-        force?: boolean;
-    }) {
-        if (!this.enablePersistence && !opts?.force) {
+    async resetStore(opts?: PersistenceOptionsOverrides) {
+        if (!(this.enablePersistence || opts?.enablePersistence)) {
             return;
         }
         if (!this.keyValueStore) {
@@ -298,13 +300,8 @@ export class Statistics {
     /**
      * Persist internal state to the key value store
      */
-    async persistState(opts?: {
-        /**
-         * If true, ignore the {@apilink StatisticsOptions.enablePersistence} flag
-         */
-        force?: boolean;
-    }) {
-        if (!this.enablePersistence && !opts?.force) {
+    async persistState(opts?: PersistenceOptionsOverrides) {
+        if (!(this.enablePersistence || opts?.enablePersistence)) {
             return;
         }
         // this might be called before startCapturing was called without using await, should not crash
