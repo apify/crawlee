@@ -165,7 +165,7 @@ export class Statistics {
          */
         force?: boolean;
     }) {
-        if (!this.enablePersistence && opts?.force !== true) {
+        if (!this.enablePersistence && !opts?.force) {
             return;
         }
         if (!this.keyValueStore) {
