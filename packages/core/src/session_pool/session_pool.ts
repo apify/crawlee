@@ -341,7 +341,7 @@ export class SessionPool extends EventEmitter {
          */
         force?: boolean;
     }): Promise<void> {
-        if (!this.enablePersistence && opts?.force !== true) {
+        if (!this.enablePersistence && !opts?.force) {
             return;
         }
         this.log.debug('Persisting state', {
