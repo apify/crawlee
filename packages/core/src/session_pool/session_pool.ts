@@ -61,8 +61,6 @@ export interface SessionPoolOptions {
 
     /**
      * If set to true, `SessionPool` will periodically persist its state to the key-value store.
-     * Othewise, {@apilink SessionPool.persistState} and {@apilink SessionPool.resetStore} will have no effect,
-     * but you will still be able to call their "*Force" counterparts for manual resetting and persisting.
      * @default true
      */
     enablePersistence?: boolean;
@@ -309,17 +307,15 @@ export class SessionPool extends EventEmitter {
         return this._createSession();
     }
 
-    async resetStore() {
-        if (!this.enablePersistence) {
+    async resetStore(opts?: {
+        /**
+         * If true, manually reset KV store entry, ignoring the {@apilink SessionPoolOptions.enablePersistence} flag
+         */
+        force?: boolean;
+    }) {
+        if (!this.enablePersistence && opts?.force !== true) {
             return;
         }
-        return this.resetStoreForce();
-    }
-
-    /**
-     * Manually reset KV store entry for the the session pool state, ignoring the {@apilink SessionPoolOptions.enablePersistence} option.
-     */
-    async resetStoreForce() {
         await this.keyValueStore?.setValue(this.persistStateKey, null);
     }
 
@@ -339,17 +335,15 @@ export class SessionPool extends EventEmitter {
      * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
      * The state is persisted automatically in regular intervals.
      */
-    async persistState(): Promise<void> {
-        if (!this.enablePersistence) {
+    async persistState(opts?: {
+        /**
+         * If true, ignore the {@apilink SessionPoolOptions.enablePersistence} flag
+         */
+        force?: boolean;
+    }): Promise<void> {
+        if (!this.enablePersistence && opts?.force !== true) {
             return;
         }
-        return this.persistStateForce();
-    }
-
-    /**
-     * Like {@apilink SessionPool.persistState}, but ignores the {@apilink SessionPoolOptions.enablePersistence} option.
-     */
-    async persistStateForce() {
         this.log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,

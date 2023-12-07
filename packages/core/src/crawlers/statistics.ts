@@ -159,17 +159,15 @@ export class Statistics {
         this._teardown();
     }
 
-    async resetStore() {
-        if (!this.enablePersistence) {
+    async resetStore(opts?: {
+        /**
+         * If true, manually reset KV store entry for the statistics, ignoring the {@apilink StatisticsOptions.enablePersistence} flag
+         */
+        force?: boolean;
+    }) {
+        if (!this.enablePersistence && opts?.force !== true) {
             return;
         }
-        return this.resetStoreForce();
-    }
-
-    /**
-     * Manually reset KV store entry for the statistics, ignoring the {@apilink StatisticsOptions.enablePersistence} flag
-     */
-    async resetStoreForce() {
         if (!this.keyValueStore) {
             return;
         }
@@ -300,18 +298,15 @@ export class Statistics {
     /**
      * Persist internal state to the key value store
      */
-    async persistState() {
-        // this might be called before startCapturing was called without using await, should not crash
-        if (!this.enablePersistence || !this.keyValueStore) {
+    async persistState(opts?: {
+        /**
+         * If true, ignore the {@apilink StatisticsOptions.enablePersistence} flag
+         */
+        force?: boolean;
+    }) {
+        if (!this.enablePersistence && opts?.force !== true) {
             return;
         }
-        return this.persistStateForce();
-    }
-
-    /**
-     * Same as {@apilink Statistics.persistState}, but ignores the {@apilink StatisticsOptions.enablePersistence} flag
-     */
-    async persistStateForce() {
         // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
@@ -438,7 +433,6 @@ export interface StatisticsOptions {
 
     /**
      * Use this flag to disable or enable periodic statistics persistence to key value store.
-     * You can persist to KV store or reset the record there manually by calling {@apilink Statistics.persistStateForce} or {@apilink Statistics.resetStoreForce}
      * @default true
      */
     enablePersistence?: boolean;
