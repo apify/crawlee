@@ -167,7 +167,7 @@ export class Statistics {
     }
 
     async resetStore(opts?: PersistenceOptionsOverrides) {
-        if (!(this.enablePersistence || opts?.enablePersistence)) {
+        if (!this.enablePersistence && !opts?.enablePersistence) {
             return;
         }
         if (!this.keyValueStore) {
@@ -301,7 +301,7 @@ export class Statistics {
      * Persist internal state to the key value store
      */
     async persistState(opts?: PersistenceOptionsOverrides) {
-        if (!(this.enablePersistence || opts?.enablePersistence)) {
+        if (!this.enablePersistence && !opts?.enablePersistence) {
             return;
         }
         // this might be called before startCapturing was called without using await, should not crash

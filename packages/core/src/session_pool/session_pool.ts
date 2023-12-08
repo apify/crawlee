@@ -315,7 +315,7 @@ export class SessionPool extends EventEmitter {
     }
 
     async resetStore(opts?: PersistenceOptionsOverrides) {
-        if (!(this.enablePersistence || opts?.enablePersistence)) {
+        if (!this.enablePersistence && !opts?.enablePersistence) {
             return;
         }
         await this.keyValueStore?.setValue(this.persistStateKey, null);
@@ -338,7 +338,7 @@ export class SessionPool extends EventEmitter {
      * The state is persisted automatically in regular intervals.
      */
     async persistState(opts?: PersistenceOptionsOverrides): Promise<void> {
-        if (!(this.enablePersistence || opts?.enablePersistence)) {
+        if (!this.enablePersistence && !opts?.enablePersistence) {
             return;
         }
         this.log.debug('Persisting state', {
