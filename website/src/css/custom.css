@@ -233,7 +233,7 @@ nav.navbar .dropdown__menu {
 }
 
 .main-wrapper > div {
-    max-width: calc(min(100%, var(--max-layout-width))) !important;
+    width: calc(min(100%, var(--max-layout-width))) !important;
 }
 
 .main-wrapper a[class*='sidebarLogo'] img {
