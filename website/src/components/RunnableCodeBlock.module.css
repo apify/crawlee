@@ -16,6 +16,12 @@
     width: 155px;
 }
 
+@media screen and (max-width: 768px) {
+    .button {
+        display: none;
+    }
+}
+
 .button svg {
     height: 20px;
     position: absolute;

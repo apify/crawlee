@@ -422,10 +422,12 @@ html.plugin-typedoc-api .theme-doc-sidebar-menu > li:nth-child(6)::before {
     cursor: pointer;
 }
 
-.runnable-code-block .code-block.no-title pre + div {
-    position: absolute;
-    right: 170px;
-    line-height: 28px;
+@media screen and (min-width: 768px) {
+    .runnable-code-block .code-block.no-title pre + div {
+        position: absolute;
+        right: 170px;
+        line-height: 28px;
+    }   
 }
 
 .runnable-code-block .code-block button {
