@@ -115,7 +115,7 @@ export class Sitemap {
             if (response.statusCode === 200) {
                 try {
                     parser.write(response.body).close();
-                } catch (e) {
+                } catch {
                     log.warning(`Malformed sitemap content: ${url}`);
                 }
             }
