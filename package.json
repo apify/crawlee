@@ -72,6 +72,7 @@
         "@types/proper-lockfile": "^4.1.2",
         "@types/ps-tree": "^1.1.2",
         "@types/rimraf": "^3.0.2",
+        "@types/sax": "^1.0.0",
         "@types/semver": "^7.3.12",
         "@types/stream-json": "^1.7.2",
         "@types/tough-cookie": "^4.0.2",
