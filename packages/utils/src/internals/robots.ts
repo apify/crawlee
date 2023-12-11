@@ -10,7 +10,10 @@ import { gotScraping } from './gotScraping';
 let HTTPError: typeof HTTPErrorClass;
 
 export class RobotsFile {
-    constructor(private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>, private proxyUrl?: string) {}
+    constructor(
+        private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
+        private proxyUrl?: string,
+    ) {}
 
     public static async find(url: string, proxyUrl?: string): Promise<RobotsFile> {
         const robotsFileUrl = new URL(url);
