@@ -1,6 +1,6 @@
 import log from '@apify/log';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { HTTPError as HTTPErrorClass } from 'got';
+import type { HTTPError as HTTPErrorClass } from 'got-scraping';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 import sax from 'sax';
@@ -25,7 +25,7 @@ export class RobotsFile {
 
     protected static async load(url: string, proxyUrl?: string): Promise<RobotsFile> {
         if (!HTTPError) {
-            HTTPError = (await import('got')).HTTPError;
+            HTTPError = (await import('got-scraping')).HTTPError;
         }
 
         try {
