@@ -40,10 +40,14 @@ const errorTrackerConfig = {
 };
 
 /**
- * Override persistence-related options provided in {@apilink StatisticsOptions} for a single method call
+ * Persistence-related options to control how and when crawler's data gets persisted.
  */
-interface PersistenceOptionsOverrides {
-    enablePersistence?: boolean;
+export interface PersistenceOptions {
+    /**
+     * Use this flag to disable or enable periodic persistence to key value store.
+     * @default true
+     */
+    enable?: boolean;
 }
 
 /**
@@ -99,7 +103,7 @@ export class Statistics {
     private instanceStart!: number;
     private logInterval: unknown;
     private events: EventManager;
-    private enablePersistence: boolean;
+    private persistenceOptions: PersistenceOptions;
 
     /**
      * @internal
@@ -110,7 +114,7 @@ export class Statistics {
             logMessage: ow.optional.string,
             keyValueStore: ow.optional.object,
             config: ow.optional.object,
-            enablePersistence: ow.optional.boolean,
+            persistenceOptions: ow.optional.object,
         }));
 
         const {
@@ -118,7 +122,7 @@ export class Statistics {
             logMessage = 'Statistics',
             keyValueStore,
             config = Configuration.getGlobalConfig(),
-            enablePersistence = true,
+            persistenceOptions = {},
         } = options;
 
         this.logIntervalMillis = logIntervalSecs * 1000;
@@ -127,7 +131,7 @@ export class Statistics {
         this.listener = this.persistState.bind(this);
         this.events = config.getEventManager();
         this.config = config;
-        this.enablePersistence = enablePersistence;
+        this.persistenceOptions = persistenceOptions;
 
         // initialize by "resetting"
         this.reset();
@@ -166,10 +170,14 @@ export class Statistics {
         this._teardown();
     }
 
-    async resetStore(opts?: PersistenceOptionsOverrides) {
-        if (!this.enablePersistence && !opts?.enablePersistence) {
+    /**
+     * @param options - Override the persistence options provided in the constructor
+     */
+    async resetStore(options?: PersistenceOptions) {
+        if (!this.persistenceOptions.enable && !options?.enable) {
             return;
         }
+
         if (!this.keyValueStore) {
             return;
         }
@@ -265,7 +273,7 @@ export class Statistics {
             this.state.crawlerStartedAt = new Date();
         }
 
-        if (this.enablePersistence) {
+        if (this.persistenceOptions.enable) {
             await this._maybeLoadStatistics();
             this.events.on(EventType.PERSIST_STATE, this.listener);
         }
@@ -299,11 +307,13 @@ export class Statistics {
 
     /**
      * Persist internal state to the key value store
+     * @param options - Override the persistence options provided in the constructor
      */
-    async persistState(opts?: PersistenceOptionsOverrides) {
-        if (!this.enablePersistence && !opts?.enablePersistence) {
+    async persistState(options?: PersistenceOptions) {
+        if (!this.persistenceOptions.enable && !options?.enable) {
             return;
         }
+
         // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
@@ -429,10 +439,9 @@ export interface StatisticsOptions {
     config?: Configuration;
 
     /**
-     * Use this flag to disable or enable periodic statistics persistence to key value store.
-     * @default true
+     * Control how and when to persist the statistics.
      */
-    enablePersistence?: boolean;
+    persistenceOptions?: PersistenceOptions;
 }
 
 /**

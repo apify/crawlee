@@ -7,6 +7,7 @@ import ow from 'ow';
 import type { SessionOptions } from './session';
 import { Session } from './session';
 import { Configuration } from '../configuration';
+import type { PersistenceOptions } from '../crawlers/statistics';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
@@ -60,17 +61,9 @@ export interface SessionPoolOptions {
     log?: Log;
 
     /**
-     * If set to true, `SessionPool` will periodically persist its state to the key-value store.
-     * @default true
+     * Control how and when to persist the state of the session pool.
      */
-    enablePersistence?: boolean;
-}
-
-/**
- * Override persistence-related options provided in {@apilink SessionPoolOptions} for a single method call
- */
-interface PersistenceOptionsOverrides {
-    enablePersistence?: boolean;
+     persistenceOptions?: PersistenceOptions;
 }
 
 /**
@@ -151,7 +144,7 @@ export class SessionPool extends EventEmitter {
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
     protected readonly blockedStatusCodes: number[];
-    protected enablePersistence: boolean;
+    protected persistenceOptions: PersistenceOptions;
     protected isInitialized = false;
 
     /**
@@ -168,7 +161,7 @@ export class SessionPool extends EventEmitter {
             sessionOptions: ow.optional.object,
             blockedStatusCodes: ow.optional.array.ofType(ow.number),
             log: ow.optional.object,
-            enablePersistence: ow.optional.boolean,
+            persistenceOptions: ow.optional.object,
         }));
 
         const {
@@ -179,14 +172,14 @@ export class SessionPool extends EventEmitter {
             sessionOptions = {},
             blockedStatusCodes = [401, 403, 429],
             log = defaultLog,
-            enablePersistence = true,
+            persistenceOptions = {},
         } = options;
 
         this.config = config;
         this.blockedStatusCodes = blockedStatusCodes;
         this.events = config.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
-        this.enablePersistence = enablePersistence;
+        this.persistenceOptions = persistenceOptions;
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
@@ -224,9 +217,12 @@ export class SessionPool extends EventEmitter {
      * It is called automatically by the {@apilink SessionPool.open} function.
      */
     async initialize(): Promise<void> {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {
+            return;
+        }
+
         this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, { config: this.config });
-        if (!this.enablePersistence) {
+        if (!this.persistenceOptions.enable) {
             this.isInitialized = true;
             return;
         }
@@ -314,10 +310,14 @@ export class SessionPool extends EventEmitter {
         return this._createSession();
     }
 
-    async resetStore(opts?: PersistenceOptionsOverrides) {
-        if (!this.enablePersistence && !opts?.enablePersistence) {
+    /**
+     * @param options - Override the persistence options provided in the constructor
+     */
+    async resetStore(options?: PersistenceOptions) {
+        if (!this.persistenceOptions.enable && !options?.enable) {
             return;
         }
+
         await this.keyValueStore?.setValue(this.persistStateKey, null);
     }
 
@@ -336,11 +336,13 @@ export class SessionPool extends EventEmitter {
     /**
      * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
      * The state is persisted automatically in regular intervals.
+     * @param options - Override the persistence options provided in the constructor
      */
-    async persistState(opts?: PersistenceOptionsOverrides): Promise<void> {
-        if (!this.enablePersistence && !opts?.enablePersistence) {
+    async persistState(options?: PersistenceOptions): Promise<void> {
+        if (!this.persistenceOptions.enable && !options?.enable) {
             return;
         }
+
         this.log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
