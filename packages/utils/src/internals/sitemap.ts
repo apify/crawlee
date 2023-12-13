@@ -1,3 +1,5 @@
+import { createGunzip } from 'node:zlib';
+
 import log from '@apify/log';
 import type { SAXStream } from 'sax';
 import sax from 'sax';
@@ -84,7 +86,11 @@ export class Sitemap {
                 if (sitemapStream.response!.statusCode === 200) {
                     await new Promise((resolve, reject) => {
                         const parser = Sitemap.createParser(parsingState, () => resolve(undefined), reject);
-                        sitemapStream.pipe(parser);
+                        let stream = sitemapStream;
+                        if (sitemapUrl.endsWith('.gz')) {
+                            stream = stream.pipe(createGunzip());
+                        }
+                        stream.pipe(parser);
                     });
                 }
             } catch (e) {
