@@ -1,4 +1,4 @@
-import { PuppeteerCrawler, downloadListOfUrls } from 'crawlee';
+import { PuppeteerCrawler, Sitemap } from 'crawlee';
 
 const crawler = new PuppeteerCrawler({
     // Function called for each URL
@@ -8,9 +8,9 @@ const crawler = new PuppeteerCrawler({
     maxRequestsPerCrawl: 10, // Limitation for only 10 requests (do not use if you want to crawl a sitemap)
 });
 
-const listOfUrls = await downloadListOfUrls({ url: 'https://crawlee.dev/sitemap.xml' });
+const { urls } = await Sitemap.load('https://crawlee.dev/sitemap.xml');
 
-await crawler.addRequests(listOfUrls);
+await crawler.addRequests(urls);
 
 // Run the crawler
 await crawler.run();
