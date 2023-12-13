@@ -690,7 +690,7 @@ __metadata:
     playwright: "npm:1.40.1"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
-    puppeteer: "npm:21.6.0"
+    puppeteer: "npm:21.6.1"
     rimraf: "npm:^5.0.0"
     tsx: "npm:^4.4.0"
     turbo: "npm:1.11.2"
@@ -9896,30 +9896,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:21.6.0":
-  version: 21.6.0
-  resolution: "puppeteer-core@npm:21.6.0"
+"puppeteer-core@npm:21.6.1":
+  version: 21.6.1
+  resolution: "puppeteer-core@npm:21.6.1"
   dependencies:
     "@puppeteer/browsers": "npm:1.9.0"
     chromium-bidi: "npm:0.5.1"
     cross-fetch: "npm:4.0.0"
     debug: "npm:4.3.4"
     devtools-protocol: "npm:0.0.1203626"
-    ws: "npm:8.14.2"
-  checksum: 735f08e8002dcafed95e22102967090da471998d9b7b09179490e7390f3b6e538cdc493bbcd3f5cc985f0050418b6f05f90614a1c9c7ab3109dd2387b16e4899
+    ws: "npm:8.15.1"
+  checksum: d4589a7e2491b2cde45e93fbd04727088249025b6d3dde7c2828886d810cc787941c4d686db47f26cef4ae70ca65b6e6f2495b42855225a26f199b71b255f52b
   languageName: node
   linkType: hard
 
-"puppeteer@npm:21.6.0":
-  version: 21.6.0
-  resolution: "puppeteer@npm:21.6.0"
+"puppeteer@npm:21.6.1":
+  version: 21.6.1
+  resolution: "puppeteer@npm:21.6.1"
   dependencies:
     "@puppeteer/browsers": "npm:1.9.0"
     cosmiconfig: "npm:8.3.6"
-    puppeteer-core: "npm:21.6.0"
+    puppeteer-core: "npm:21.6.1"
   bin:
     puppeteer: lib/esm/puppeteer/node/cli.js
-  checksum: f0efcde1a9fd784257be235e532b91a3901552963c16e1ac52b674325bb3efd85398a8bea6e31213ae846a43e2c010eb3c3c2f1f6e4e13f0b024e819749ee756
+  checksum: 6fe9f852fe92db5aeb8c29c85197944525b926706ce990ed9432f6f817f837f51d4e9f88c801d98acdf60cc899fa9004f6becf90173dda55b1b4ebcc65646761
   languageName: node
   linkType: hard
 
@@ -12438,9 +12438,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.14.2":
-  version: 8.14.2
-  resolution: "ws@npm:8.14.2"
+"ws@npm:8.15.1, ws@npm:^8.14.2":
+  version: 8.15.1
+  resolution: "ws@npm:8.15.1"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -12449,7 +12449,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 35b4c2da048b8015c797fd14bcb5a5766216ce65c8a5965616a5440ca7b6c3681ee3cbd0ea0c184a59975556e9d58f2002abf8485a14d11d3371770811050a16
+  checksum: 9964360dd5ab35c7376bd7c4295a3c8bd44ea0838c9413742548a6fb3ec371fc6c18552d5b8e76bdc21536db1909765612815bae072674b5ec69971605395a96
   languageName: node
   linkType: hard
 
@@ -12465,21 +12465,6 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: aec4ef4eb65821a7dde7b44790f8699cfafb7978c9b080f6d7a98a7f8fc0ce674c027073a78574c94786ba7112cc90fa2cc94fc224ceba4d4b1030cff9662494
-  languageName: node
-  linkType: hard
-
-"ws@npm:^8.14.2":
-  version: 8.15.1
-  resolution: "ws@npm:8.15.1"
-  peerDependencies:
-    bufferutil: ^4.0.1
-    utf-8-validate: ">=5.0.2"
-  peerDependenciesMeta:
-    bufferutil:
-      optional: true
-    utf-8-validate:
-      optional: true
-  checksum: 9964360dd5ab35c7376bd7c4295a3c8bd44ea0838c9413742548a6fb3ec371fc6c18552d5b8e76bdc21536db1909765612815bae072674b5ec69971605395a96
   languageName: node
   linkType: hard
 
