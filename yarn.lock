@@ -6267,22 +6267,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"got-scraping@npm:^4.0.0":
-  version: 4.0.3
-  resolution: "got-scraping@npm:4.0.3"
-  dependencies:
-    got: "npm:^13.0.0"
-    header-generator: "npm:^2.1.41"
-    http2-wrapper: "npm:^2.2.0"
-    mimic-response: "npm:^4.0.0"
-    ow: "npm:^1.1.1"
-    quick-lru: "npm:^7.0.0"
-    tslib: "npm:^2.6.2"
-  checksum: 6a28a7651e1da51301a56ce829b579f993243da887d491d843aabb6cffa56fb7997aaa3e99c35b6c1324737d86214451bb64d336fb904475b4f5abf0b73bf413
-  languageName: node
-  linkType: hard
-
-"got-scraping@npm:^4.0.3":
+"got-scraping@npm:^4.0.0, got-scraping@npm:^4.0.3":
   version: 4.0.3
   resolution: "got-scraping@npm:4.0.3"
   dependencies:
@@ -12471,7 +12456,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.15.1, ws@npm:^8.14.2":
+"ws@npm:8.15.1":
   version: 8.15.1
   resolution: "ws@npm:8.15.1"
   peerDependencies:
@@ -12498,6 +12483,21 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: aec4ef4eb65821a7dde7b44790f8699cfafb7978c9b080f6d7a98a7f8fc0ce674c027073a78574c94786ba7112cc90fa2cc94fc224ceba4d4b1030cff9662494
+  languageName: node
+  linkType: hard
+
+"ws@npm:^8.14.2":
+  version: 8.15.0
+  resolution: "ws@npm:8.15.0"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ">=5.0.2"
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: b778a405b2589ffbf549323e2f404f1f72e372a049d332d2f0b1f33057e9fbb14a05aa474cb156e4584b418cd95edf4297c0ca5263d6519e8009064bf8e0b80d
   languageName: node
   linkType: hard
 
