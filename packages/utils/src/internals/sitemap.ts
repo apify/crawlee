@@ -6,6 +6,11 @@ import { gotScraping } from './gotScraping';
 export class Sitemap {
     constructor(readonly urls: string[]) {}
 
+    /**
+     * Fetch sitemap content from given URL or URLs and return URLs of referenced pages.
+     * @param urls sitemap URL(s)
+     * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
+     */
     static async load(urls: string | string[], proxyUrl?: string): Promise<Sitemap> {
         const parsingState: {
             context: 'sitemapindex' | 'urlset' | undefined;

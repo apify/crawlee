@@ -14,6 +14,11 @@ export class RobotsFile {
         private proxyUrl?: string,
     ) {}
 
+    /**
+     * Determine the location of a robots.txt file for a URL and fetch it.
+     * @param url the URL to fetch robots.txt for
+     * @param proxyUrl a proxy to be used for fetching the robots.txt file
+     */
     static async find(url: string, proxyUrl?: string): Promise<RobotsFile> {
         const robotsFileUrl = new URL(url);
         robotsFileUrl.pathname = '/robots.txt';
@@ -44,18 +49,31 @@ export class RobotsFile {
         }
     }
 
+    /**
+     * Check if a URL should be crawled by robots.
+     * @param url the URL to check against the rules in robots.txt
+     */
     isAllowed(url: string): boolean {
         return this.robots.isAllowed(url, '*') ?? false;
     }
 
+    /**
+     * Get URLs of sitemaps referenced in the robots file.
+     */
     getSitemaps(): string[] {
         return this.robots.getSitemaps();
     }
 
+    /**
+     * Parse all the sitemaps referenced in the robots file.
+     */
     async parseSitemaps(): Promise<Sitemap> {
         return Sitemap.load(this.robots.getSitemaps(), this.proxyUrl);
     }
 
+    /**
+     * Get all URLs from all the sitemaps referenced in the robots file. A shorthand for `(await robots.parseSitemaps()).urls`.
+     */
     async parseUrlsFromSitemaps(): Promise<string[]> {
         return (await this.parseSitemaps()).urls;
     }
