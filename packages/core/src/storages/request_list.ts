@@ -681,7 +681,7 @@ export class RequestList {
 
         // Skip if resource contained no URLs.
         if (!urlsArr.length) {
-            this.log.warning('list fetched, but it is empty.', { requestsFromUrl, regex });
+            this.log.warning('The fetched list contains no valid URLs.', { requestsFromUrl, regex });
             return [];
         }
 
