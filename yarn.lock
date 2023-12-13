@@ -730,7 +730,7 @@ __metadata:
     "@apify/ps-tree": "npm:^1.2.0"
     "@crawlee/types": "npm:3.6.2"
     cheerio: "npm:^1.0.0-rc.12"
-    got-scraping: "npm:^4.0.0"
+    got-scraping: "npm:^4.0.3"
     ow: "npm:^0.28.1"
     robots-parser: "npm:^3.0.1"
     sax: "npm:^1.3.0"
@@ -6268,6 +6268,21 @@ __metadata:
   linkType: hard
 
 "got-scraping@npm:^4.0.0":
+  version: 4.0.3
+  resolution: "got-scraping@npm:4.0.3"
+  dependencies:
+    got: "npm:^13.0.0"
+    header-generator: "npm:^2.1.41"
+    http2-wrapper: "npm:^2.2.0"
+    mimic-response: "npm:^4.0.0"
+    ow: "npm:^1.1.1"
+    quick-lru: "npm:^7.0.0"
+    tslib: "npm:^2.6.2"
+  checksum: 6a28a7651e1da51301a56ce829b579f993243da887d491d843aabb6cffa56fb7997aaa3e99c35b6c1324737d86214451bb64d336fb904475b4f5abf0b73bf413
+  languageName: node
+  linkType: hard
+
+"got-scraping@npm:^4.0.3":
   version: 4.0.3
   resolution: "got-scraping@npm:4.0.3"
   dependencies:
