@@ -9,7 +9,7 @@ class ParsingState {
     urls: string[] = [];
     visitedSitemapUrls: string[] = [];
     context?: 'sitemapindex' | 'urlset';
-    loc: boolean = false;
+    loc = false;
 
     resetContext() {
         this.context = undefined;
