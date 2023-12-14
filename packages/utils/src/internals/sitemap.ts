@@ -8,7 +8,7 @@ class ParsingState {
     sitemapUrls: string[] = [];
     urls: string[] = [];
     visitedSitemapUrls: string[] = [];
-    context: 'sitemapindex' | 'urlset' | undefined = undefined;
+    context?: 'sitemapindex' | 'urlset';
     loc: boolean = false;
 
     resetContext() {
