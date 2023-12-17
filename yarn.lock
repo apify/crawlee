@@ -506,7 +506,7 @@ __metadata:
     "@crawlee/memory-storage": "npm:3.6.2"
     "@crawlee/types": "npm:3.6.2"
     "@crawlee/utils": "npm:3.6.2"
-    "@sapphire/async-queue": "npm:^1.5.0"
+    "@sapphire/async-queue": "npm:^1.5.1"
     "@types/tough-cookie": "npm:^4.0.2"
     "@vladfrangu/async_event_emitter": "npm:^2.2.2"
     csv-stringify: "npm:^6.2.0"
@@ -1777,7 +1777,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sapphire/async-queue@npm:^1.5.0":
+"@sapphire/async-queue@npm:^1.5.0, @sapphire/async-queue@npm:^1.5.1":
   version: 1.5.1
   resolution: "@sapphire/async-queue@npm:1.5.1"
   checksum: 176903d9763f93e27455ebb903d68fe8b96ba65eca78a1199ed6bec2260bb2e02c5f469d493aa8c8d796fc9647df22e41e912de73bfe3d4e3d55e4c3adbfb99b

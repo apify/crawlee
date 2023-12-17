@@ -285,7 +285,7 @@ export class SessionPool extends EventEmitter {
             }
 
             if (this._hasSpaceForSession()) {
-                return this._createSession();
+                return await this._createSession();
             }
 
             const pickedSession = this._pickSession();
@@ -294,7 +294,7 @@ export class SessionPool extends EventEmitter {
             }
 
             this._removeRetiredSessions();
-            return this._createSession();
+            return await this._createSession();
         } finally {
             this.queue.shift();
         }
