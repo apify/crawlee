@@ -250,7 +250,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         if (maxRetries != null) this.maxRetries = maxRetries;
 
         // If it's already set, don't override it (for instance when fetching from storage)
-        this.enqueueStrategy = this.userData.__crawlee?.enqueueStrategy ?? enqueueStrategy;
+        this.enqueueStrategy = this.enqueueStrategy ?? enqueueStrategy;
     }
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
