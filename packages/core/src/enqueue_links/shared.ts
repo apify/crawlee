@@ -134,10 +134,11 @@ export function createRequests(
     requestOptions: (string | RequestOptions)[],
     urlPatternObjects?: UrlPatternObject[],
     excludePatternObjects: UrlPatternObject[] = [],
+    strategy?: EnqueueLinksOptions['strategy'],
 ): Request[] {
     if (!urlPatternObjects || !urlPatternObjects.length) {
         return requestOptions
-            .map((opts) => new Request(typeof opts === 'string' ? { url: opts } : opts));
+            .map((opts) => new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts }));
     }
 
     const requests: Request[] = [];
@@ -167,8 +168,8 @@ export function createRequests(
                 (glob && minimatch(urlToMatch, glob, { nocase: true }))
             ) {
                 const request = typeof opts === 'string'
-                    ? { url: opts, ...requestRegExpOptions }
-                    : { ...opts, ...requestRegExpOptions };
+                    ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
+                    : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
                 requests.push(new Request(request));
 
                 // Stop checking other patterns for this request option as it was already matched
@@ -210,10 +211,14 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
  */
 export function createRequestOptions(
     sources: (string | Record<string, unknown>)[],
-    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation'> = {},
+    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'strategy'> = {},
 ): RequestOptions[] {
     return sources
-        .map((src) => (typeof src === 'string' ? { url: src } : src as unknown as RequestOptions))
+        .map(
+            (src) => (
+                typeof src === 'string' ? { url: src, enqueueStrategy: options.strategy } : { ...src, enqueueStrategy: options.strategy } as RequestOptions
+            ),
+        )
         .filter(({ url }) => {
             try {
                 return new URL(url, options.baseUrl).href;

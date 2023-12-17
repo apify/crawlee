@@ -457,6 +457,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             const sessionId = session ? session.id : undefined;
             crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId);
         }
+
         if (!request.skipNavigation) {
             await this._handleNavigation(crawlingContext);
             tryCancel();
@@ -478,6 +479,15 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             }
 
             request.loadedUrl = response.url;
+
+            if (!this.requestMatchesEnqueueStrategy(request)) {
+                this.log.debug(`Skipping request ${request.id} (${request.url}) because it does not match the enqueue strategy.`);
+
+                request.noRetry = true;
+                request.state = RequestState.SKIPPED;
+
+                return;
+            }
 
             Object.assign(crawlingContext, parsed);
 

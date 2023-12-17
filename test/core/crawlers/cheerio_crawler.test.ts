@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders, Server } from 'http';
 import { Readable } from 'stream';
 
-import log, { Log } from '@apify/log';
+import log, { Log, LogLevel } from '@apify/log';
 import type {
     CheerioRequestHandler,
     CheerioCrawlingContext,
@@ -13,6 +13,7 @@ import {
     CheerioCrawler,
     CrawlerExtension,
     createCheerioRouter,
+    EnqueueStrategy,
     mergeCookies,
     ProxyConfiguration,
     Request,
@@ -21,7 +22,6 @@ import {
 } from '@crawlee/cheerio';
 import { sleep } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/utils';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood\
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
 import { runExampleComServer, responseSamples } from 'test/shared/_helper';
@@ -30,6 +30,30 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 let server: Server;
 let port: number;
 let serverAddress = 'http://localhost:';
+
+async function getRequestListForMock(mockData: Dictionary, pathName = 'special/mock') {
+    const sources: Source[] = [1, 2, 3, 4].map((num) => {
+        return {
+            url: `${serverAddress}/${pathName}?a=${num}`,
+            payload: JSON.stringify(mockData),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        };
+    });
+    const requestList = await RequestList.open(null, sources);
+    return requestList;
+}
+
+async function getRequestListForMirror() {
+    const sources = [
+        { url: `${serverAddress}/special/mirror?a=12` },
+        { url: `${serverAddress}/special/mirror?a=23` },
+        { url: `${serverAddress}/special/mirror?a=33` },
+        { url: `${serverAddress}/special/mirror?a=43` },
+    ];
+    const requestList = await RequestList.open(null, sources);
+    return requestList;
+}
 
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
@@ -1318,28 +1342,22 @@ describe('CheerioCrawler', () => {
 
         expect(failed).toHaveLength(0);
     });
-});
 
-async function getRequestListForMock(mockData: Dictionary, pathName = 'special/mock') {
-    const sources: Source[] = [1, 2, 3, 4].map((num) => {
-        return {
-            url: `${serverAddress}/${pathName}?a=${num}`,
-            payload: JSON.stringify(mockData),
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
+    test("enqueueLinks() should skip links that don't match the strategy post redirect", async () => {
+        const succeeded: string[] = [];
+
+        const crawler = new CheerioCrawler({
+            maxConcurrency: 1,
+            maxRequestRetries: 0,
+            requestHandler: async ({ $, enqueueLinks }) => {
+                succeeded.push($('title').text());
+                await enqueueLinks({ strategy: EnqueueStrategy.SameOrigin });
+            },
+        });
+
+        await crawler.run([`${serverAddress}/special/redirect`]);
+
+        expect(succeeded).toHaveLength(1);
+        expect(succeeded[0]).toEqual('Redirecting outside');
     });
-    const requestList = await RequestList.open(null, sources);
-    return requestList;
-}
-
-async function getRequestListForMirror() {
-    const sources = [
-        { url: `${serverAddress}/special/mirror?a=12` },
-        { url: `${serverAddress}/special/mirror?a=23` },
-        { url: `${serverAddress}/special/mirror?a=33` },
-        { url: `${serverAddress}/special/mirror?a=43` },
-    ];
-    const requestList = await RequestList.open(null, sources);
-    return requestList;
-}
+});

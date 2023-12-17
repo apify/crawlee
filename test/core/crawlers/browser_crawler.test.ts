@@ -10,6 +10,7 @@ import type {
 } from '@crawlee/puppeteer';
 import {
     AutoscaledPool,
+    EnqueueStrategy,
     ProxyConfiguration,
     Request,
     RequestList,
@@ -105,6 +106,7 @@ describe('BrowserCrawler', () => {
             expect(request.userData.title).toBe('Example Domain');
         });
     });
+
     test('should teardown browser pool', async () => {
         const requestList = await RequestList.open({
             sources: [
@@ -950,5 +952,26 @@ describe('BrowserCrawler', () => {
 
             await browserCrawler.run();
         });
+    });
+
+    test("enqueueLinks() should skip links that don't match the strategy post redirect", async () => {
+        const succeeded: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            maxConcurrency: 1,
+            maxRequestRetries: 0,
+            requestHandler: async ({ page, enqueueLinks }) => {
+                succeeded.push(await page.title());
+                await enqueueLinks({ strategy: EnqueueStrategy.SameOrigin });
+            },
+        });
+
+        await crawler.run([`${serverAddress}/special/redirect`]);
+
+        expect(succeeded).toHaveLength(1);
+        expect(succeeded[0]).toEqual('Redirecting outside');
     });
 });

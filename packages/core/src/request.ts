@@ -7,6 +7,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
 import ow from 'ow';
 
+import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
 import { log as defaultLog } from './log';
 import type { AllowedHttpMethods } from './typedefs';
 import { keys } from './typedefs';
@@ -43,6 +44,7 @@ export enum RequestState {
     DONE,
     ERROR_HANDLER,
     ERROR,
+    SKIPPED,
 }
 
 /**
@@ -171,6 +173,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
             skipNavigation,
+            enqueueStrategy,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
@@ -245,6 +248,9 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
+
+        // If it's already set, don't override it (for instance when fetching from storage)
+        this.enqueueStrategy = this.userData.__crawlee?.enqueueStrategy ?? enqueueStrategy;
     }
 
     /** Tells the crawler processing this request to skip the navigation and process the request directly. */
@@ -310,6 +316,18 @@ export class Request<UserData extends Dictionary = Dictionary> {
             (this.userData as Dictionary).__crawlee = { state: value };
         } else {
             this.userData.__crawlee.state = value;
+        }
+    }
+
+    private get enqueueStrategy(): EnqueueLinksOptions['strategy'] | undefined {
+        return this.userData.__crawlee?.enqueueStrategy;
+    }
+
+    private set enqueueStrategy(value: EnqueueLinksOptions['strategy']) {
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { enqueueStrategy: value };
+        } else {
+            this.userData.__crawlee.enqueueStrategy = value;
         }
     }
 
@@ -483,6 +501,8 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     /** @internal */
     lockExpiresAt?: Date;
 
+    /** @internal */
+    enqueueStrategy?: EnqueueLinksOptions['strategy'];
 }
 
 export interface PushErrorMessageOptions {
