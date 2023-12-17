@@ -41,7 +41,7 @@ router.addHandler('DETAIL', async ({ request, page, log }) => {
     log.debug(`Saving data: ${request.url}`);
 
     // Send the data to the parent process
-    // Depending on how you build your crawler, this line could instead be something like `Dataset.pushData()`! Experiment, and see what you can build
+    // Depending on how you build your crawler, this line could instead be something like `context.pushData()`! Experiment, and see what you can build
     // highlight-next-line
     process.send(results);
 });

@@ -32,7 +32,7 @@ take a break, go read through all that, and come back. We'll be waiting...
 Before you rush ahead and change your scraper to support parallelization, take a minute to consider the following factors:
 
 - do you plan on scraping so many pages that you need to parallelize your scraper?
-  > for example, if your scrape is less than 1000 pages, you probably don't need parallelization  
+  > for example, if your scraper goes across few pages, you probably don't need parallelization  
   > but if you scrape a lot of pages, or you scrape pages that take a long time to load, you might want to consider parallelization
 - can you parallelize your scraper while not overloading the source website?
   > for example, if you scrape a website that has a lot of traffic, you don't want to add to that traffic by running multiple scrapers in parallel
@@ -54,6 +54,17 @@ parallelized!
 
 :::
 
+### But isn't Crawlee already concurrent? What's the difference between concurrency and parallelization?
+
+> *Hold on! I've used Crawlee before, and it has a `maxConcurrency` option on it! What's this for then?!*
+
+You're correct, Crawlee already supports scraping in "parallel" (more accurately called concurrent). What that enables is one process having multiple tasks that run in the background at the same time.
+But, as your scraping scales up in size, you will end up hitting bottlenecks, be them from the runtime simply not being able to process more requests at once, to resources like RAM and CPU being maxed out. You can only
+scale up resources so much before it stops providing a real benefit.
+
+This is what people refer to when saying vertical or horizontal scaling. Vertical scaling is when you increase the resources of a single process or machine, while horizontal scaling is when you increase the number of processes or machines.
+And horizontal scaling is the kind of scaling (or what we're referring to as "parallelization") we are showcasing in this guide!
+
 ## Preparing your scraper for parallelization
 
 One of the best parts of Crawlee is that, for the most part, we do not need to change much to make this happen! Just create the queue that supports locking, enqueue links to it from the initial scraper,
@@ -61,9 +72,9 @@ then build scrapers that run in parallel that use that queue!
 
 ### Creating the request queue with locking support
 
-The first step in our conversion process will be creating a common file (let's call it `shared.mjs`) that will store the request queue that supports request locking.
+The first step in our conversion process will be creating a common file (let's call it `requestQueue.mjs`) that will store the request queue that supports request locking.
 
-<CodeBlock language="js" title="src/shared.mjs">{SharedSource}</CodeBlock>
+<CodeBlock language="js" title="src/requestQueue.mjs">{SharedSource}</CodeBlock>
 
 The exported function, `getOrInitQueue`, might seem like it does a lot. In essence, it just ensures the request queue is initialized, and if requested, ensures it starts off with an empty state.
 
@@ -71,22 +82,22 @@ The exported function, `getOrInitQueue`, might seem like it does a lot. In essen
 
 In the `src/routes.mjs` file of the scraper we previously built, we have a handler for the `CATEGORY` label. Let's adapt that handler to enqueue the product URLs to the new queue we created.
 
-Firstly, let's import the `getOrInitQueue` function from the `shared.mjs` file we created earlier. Add the following line at the start of the file:
+Firstly, let's import the `getOrInitQueue` function from the `requestQueue.mjs` file we created earlier. Add the following line at the start of the file:
 
 ```javascript title="src/routes.mjs"
-import { getOrInitQueue } from './shared.mjs';
+import { getOrInitQueue } from './requestQueue.mjs';
 ```
 
 Then, replace the `CATEGORY` handler with the following:
 
 <CodeBlock language="js" title="src/routes.mjs">{AdaptedRoutesSource}</CodeBlock>
 
-Now, let's rename the file to `src/initial-scraper.mjs` and run it. You should see the crawler not scrape any detail pages, but now the URLs are being enqueued to the queue that supports locking!
+Now, let's rename our entry point file `src/main.mjs` to `src/initial-scraper.mjs` and run it. You should see the crawler not scrape any detail pages, but now the URLs are being enqueued to the queue that supports locking!
 
 Before we wrap up, let's also add the following line before `crawler.run()`:
 
 ```javascript title="src/initial-scraper.mjs"
-import { getOrInitQueue } from './shared.mjs';
+import { getOrInitQueue } from './requestQueue.mjs';
 
 // Pre-initialize the queue so that we have a blank slate that will get filled out by the crawler
 await getOrInitQueue(true);
@@ -106,12 +117,12 @@ The best part? We can re-use the previous router we built for the initial scrape
 
 <CodeBlock language="js" title="src/parallel-scraper.mjs">{ParallelScraperSource}</CodeBlock>
 
-We'll also need to do one small change in the `DETAIL` route handler. Instead of calling `Dataset.pushData`, we want to replace that with `process.send` instead.
+We'll also need to do one small change in the `DETAIL` route handler. Instead of calling `context.pushData`, we want to replace that with `process.send` instead.
 
 :::info But why?
 
-Since we use child processes, and each worker process has its own storage space, calling `Dataset.pushData` will not work as we want it to work.
-Instead, we need to send the data back to the parent process, which has the dataset where we want to store the data.
+Since we use child processes, and each worker process has its own storage space, calling `context.pushData` will not work as we want it to work.
+Instead, we need to send the data back to the parent process, which has the context where we want to store the data.
 
 This might not be needed depending on your use case! You'll need to experiment and see what works best for you
 
@@ -165,9 +176,9 @@ You can read more about the experiment by visiting the [request locking experime
 You might have also noticed we passed in a second parameter to the constructor of the crawler, the `config` variable we created earlier.
 This is needed to ensure the crawler uses the worker-specific storages for internal states, and that they do not collide with each other.
 
-#### Why do we use `process.send` instead of `Dataset.pushData`?
+#### Why do we use `process.send` instead of `context.pushData`?
 
-Since we use child processes, and each worker process has its own storage space, calling `Dataset.pushData` will not work as we want it to work (each worker would just
+Since we use child processes, and each worker process has its own storage space, calling `context.pushData` will not work as we want it to work (each worker would just
 push to its own personal dataset that is considered the "default" one). Instead, we need to send the data back to the parent process, which has the dataset where we want to
 store the data, in a centralized place.
 
