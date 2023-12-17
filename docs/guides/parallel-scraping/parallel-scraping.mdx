@@ -168,7 +168,7 @@ This is needed to ensure the crawler uses the worker-specific storages for inter
 #### Why do we use `process.send` instead of `Dataset.pushData`?
 
 Since we use child processes, and each worker process has its own storage space, calling `Dataset.pushData` will not work as we want it to work (each worker would just
-push to it's own personal dataset that is considered the "default" one). Instead, we need to send the data back to the parent process, which has the dataset where we want to
+push to its own personal dataset that is considered the "default" one). Instead, we need to send the data back to the parent process, which has the dataset where we want to
 store the data, in a centralized place.
 
 :::tip Why don't we apply the same logic we did to the request queue to the dataset?
