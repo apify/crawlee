@@ -98,7 +98,7 @@ And that's it with preparing our initial scraper to save all URLs we want to scr
 
 ### Creating the parallel scrapers
 
-Up next, let's build out another scraper that will schedule the URLs from the queue to be scraped in parallel! For this, we will be using child processes from Node.js,
+Up next, let's build another scraper that will schedule the URLs from the queue to be scraped in parallel! For this, we will be using child processes from Node.js,
 but you can use any other method you want to run multiple scrapers in parallel. You will need to adjust your code if you use other methods.
 
 The scraper will fork itself twice (but you can experiment with this), and each fork will re-use the queue we created earlier.
