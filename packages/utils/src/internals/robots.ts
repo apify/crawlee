@@ -8,6 +8,24 @@ import { Sitemap } from './sitemap';
 
 let HTTPError: typeof HTTPErrorClass;
 
+/**
+  * Loads and queries information from a robots.txt file.
+  *
+  * **Example usage:**
+  * ```javascript
+  * // Load the robots.txt file
+  * const robots = await RobotsFile.load("https://crawlee.dev/docs/introduction/first-crawler");
+  *
+  * // Check if a URL should be crawled according to robots.txt
+  * const url = "https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler";
+  * if (robots.isAllowed(url)) {
+  *   await crawler.addRequests([url]);
+  * }
+  *
+  * // Enqueue all links in the sitemap(s)
+  * await crawler.addRequests(await robots.parseUrlsFromSitemaps());
+  * ```
+  */
 export class RobotsFile {
     private constructor(
         private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
