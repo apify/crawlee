@@ -1,0 +1,3 @@
+export const BLOCKED_STATUS_CODES = [401, 403, 429];
+export const PERSIST_STATE_KEY = 'SDK_SESSION_POOL_STATE';
+export const MAX_POOL_SIZE = 1000;

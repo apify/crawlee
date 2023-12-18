@@ -25,6 +25,7 @@ import {
     resolveBaseUrlForEnqueueLinksFiltering,
     validators,
     SessionError,
+    BLOCKED_STATUS_CODES,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -448,9 +449,9 @@ export abstract class BrowserCrawler<
             await sleep(5000);
         }
 
-        return (
-            await Promise.all(RETRY_CSS_SELECTORS.map((selector) => (page as any).$(selector)))
-        ).some((el) => el !== null);
+        return (await Promise.all(RETRY_CSS_SELECTORS.map((selector) => (page as any).$(selector))))
+            .some((el) => el !== null)
+            || BLOCKED_STATUS_CODES.filter((x) => x !== 403).includes(response?.status() ?? 0);
     }
 
     /**
