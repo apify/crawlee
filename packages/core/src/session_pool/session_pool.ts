@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 
 import type { Log } from '@apify/log';
 import type { Dictionary } from '@crawlee/types';
+import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
 import type { SessionOptions } from './session';
@@ -139,6 +140,8 @@ export class SessionPool extends EventEmitter {
     protected events: EventManager;
     protected readonly blockedStatusCodes: number[];
 
+    private queue = new AsyncQueue();
+
     /**
      * @internal
      */
@@ -270,24 +273,31 @@ export class SessionPool extends EventEmitter {
      * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
      */
     async getSession(sessionId?: string): Promise<Session | undefined> {
-        this._throwIfNotInitialized();
-        if (sessionId) {
-            const session = this.sessionMap.get(sessionId);
-            if (session && session.isUsable()) return session;
-            return undefined;
-        }
+        await this.queue.wait();
 
-        if (this._hasSpaceForSession()) {
-            return this._createSession();
-        }
+        try {
+            this._throwIfNotInitialized();
 
-        const pickedSession = this._pickSession();
-        if (pickedSession.isUsable()) {
-            return pickedSession;
-        }
+            if (sessionId) {
+                const session = this.sessionMap.get(sessionId);
+                if (session && session.isUsable()) return session;
+                return undefined;
+            }
 
-        this._removeRetiredSessions();
-        return this._createSession();
+            if (this._hasSpaceForSession()) {
+                return await this._createSession();
+            }
+
+            const pickedSession = this._pickSession();
+            if (pickedSession.isUsable()) {
+                return pickedSession;
+            }
+
+            this._removeRetiredSessions();
+            return await this._createSession();
+        } finally {
+            this.queue.shift();
+        }
     }
 
     async resetStore() {
