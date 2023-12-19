@@ -68,8 +68,10 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
     maxOpenPagesPerBrowser?: number;
     /**
      * Browsers tend to get bloated after processing a lot of pages. This option
-     * configures the number of processed pages after which the browser will
+     * configures the maximum number of processed pages after which the browser will
      * automatically retire and close. A new browser will launch in its place.
+     * The browser might be retired sooner if the connected {@apilink Session} is retired.
+     * You can change session retirement behavior using {@apilink SessionPoolOptions}.
      *
      * @default 100
      */
