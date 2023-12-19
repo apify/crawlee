@@ -101,8 +101,66 @@ body {
 `,
         js: `
 console.log('Hello world!');
-`,
-    },
+`},
+    cloudflareBlocking: `
+<!DOCTYPE html>
+<head>
+    <title>Just a moment...</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="/cdn-cgi/styles/challenges.css" rel="stylesheet">
+    <meta http-equiv="refresh" content="375">
+    <script src="/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1?ray=837fec16d9534138"></script><script src="https://challenges.cloudflare.com/turnstile/v0/g/74bd6362/api.js?onload=AudPIu1&amp;render=explicit" async="" defer="" crossorigin="anonymous"></script>
+</head>
+<body class="no-js">
+    <div class="main-wrapper" role="main">
+        <div class="main-content">
+            <h1 class="zone-name-title h1">dummypage.co</h1>
+            <h2 id="challenge-running" class="h2">Checking if the site connection is secure</h2>
+            <div id="challenge-stage" style="display: flex;">
+                <div id="turnstile-wrapper" class="captcha-prompt spacer">
+                    <div><iframe style="border: medium; overflow: hidden; width: 300px; height: 65px;" src="https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/if/ov2/av0/rcv0/0/o9un1/0x4AAAAAAADnPIDROrmt1Wwj/dark/normal" allow="cross-origin-isolated; fullscreen" sandbox="allow-same-origin allow-scripts allow-popups" id="cf-chl-widget-o9un1" tabindex="0" title="Widget containing a Cloudflare security challenge"></iframe><input type="hidden" name="cf-turnstile-response" id="cf-chl-widget-o9un1_response"></div>
+                </div>
+            </div>
+            <div id="challenge-spinner" class="spacer loading-spinner" style="display: none; visibility: hidden;">
+                <div class="lds-ring">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
+            <div id="challenge-body-text" class="core-msg spacer">dummypage.co needs to review the security of your connection before proceeding.</div>
+            <div id="challenge-success" style="display: none;">
+                <div class="h2">
+                    <span class="icon-wrapper">
+                    </span>Connection is secure</div>
+                <div class="core-msg spacer">Proceeding...</div>
+            </div>
+            <noscript>
+                <div id="challenge-error-title">
+                    <div class="h2">
+                        <span class="icon-wrapper">
+                            <div class="heading-icon warning-icon"></div>
+                        </span>
+                        <span id="challenge-error-text">Enable JavaScript and cookies to continue</span>
+                    </div>
+                </div>
+            </noscript>
+        </div>
+    </div>
+    <div class="footer" role="contentinfo">
+        <div class="footer-inner">
+            <div class="clearfix diagnostic-wrapper">
+                <div class="ray-id">Ray ID: <code>837fec16d9534138</code></div>
+            </div>
+            <div class="text-center" id="footer-text">Performance &amp; security by <a rel="noopener noreferrer" href="https://www.cloudflare.com?utm_source=challenge&amp;utm_campaign=m" target="_blank">Cloudflare</a></div>
+        </div>
+    </div>
+</body>
+</html>`,
 };
 
 export async function runExampleComServer(): Promise<[Server, number]> {
@@ -186,6 +244,13 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         });
         special.get('/resources', async (_req, res) => {
             res.type('html').send(responseSamples.resources);
+        });
+
+        special.get('/cloudflareBlocking', async (_req, res) => {
+            res
+                .type('html')
+                .status(403)
+                .send(responseSamples.cloudflareBlocking);
         });
     })();
 

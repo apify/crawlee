@@ -25,7 +25,7 @@ import {
     resolveBaseUrlForEnqueueLinksFiltering,
     validators,
     SessionError,
-    BLOCKED_STATUS_CODES,
+    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -38,7 +38,7 @@ import type {
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
-import { RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
+import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { BrowserLaunchContext } from './browser-launcher';
@@ -441,17 +441,31 @@ export abstract class BrowserCrawler<
         }
     }
 
+    private async containsSelectors(page: CommonPage, selectors: string[]): Promise<boolean> {
+        return (await Promise.all(
+            selectors.map((selector) => (page as any).$(selector)))
+        ).some((el: any) => el !== null);
+    }
+
     protected override async isRequestBlocked(crawlingContext: Context): Promise<boolean> {
         const { page, response } = crawlingContext;
 
+        // eslint-disable-next-line dot-notation
+        const blockedStatusCodes = ((this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0)
+            // eslint-disable-next-line dot-notation
+            ? this.sessionPool!['blockedStatusCodes']
+            : DEFAULT_BLOCKED_STATUS_CODES;
+
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
-        if (response?.status() === 403) {
+        if (await this.containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS) && response?.status() === 403) {
             await sleep(5000);
+
+            // here we cannot test for response code, because we only have the original response, not the possible Cloudflare redirect on passed challenge.
+            return this.containsSelectors(page, RETRY_CSS_SELECTORS);
         }
 
-        return (await Promise.all(RETRY_CSS_SELECTORS.map((selector) => (page as any).$(selector))))
-            .some((el) => el !== null)
-            || BLOCKED_STATUS_CODES.filter((x) => x !== 403).includes(response?.status() ?? 0);
+        return await this.containsSelectors(page, RETRY_CSS_SELECTORS)
+        || blockedStatusCodes.includes(response?.status() ?? 0);
     }
 
     /**
