@@ -18,17 +18,17 @@ class ParsingState {
 }
 
 /**
-  * Loads one or more sitemaps from given URLs, following references in sitemap index files, and exposes the contained URLs.
-  *
-  * **Example usage:**
-  * ```javascript
-  * // Load a sitemap
-  * const sitemap = await Sitemap.load(["https://example.com/sitemap.xml", "https://example.com/sitemap_2.xml.gz"]);
-  *
-  * // Enqueue all the contained URLs (including those from sub-sitemaps from sitemap indexes)
-  * await crawler.addRequests(sitemap.urls);
-  * ```
-  */
+ * Loads one or more sitemaps from given URLs, following references in sitemap index files, and exposes the contained URLs.
+ *
+ * **Example usage:**
+ * ```javascript
+ * // Load a sitemap
+ * const sitemap = await Sitemap.load(['https://example.com/sitemap.xml', 'https://example.com/sitemap_2.xml.gz']);
+ *
+ * // Enqueue all the contained URLs (including those from sub-sitemaps from sitemap indexes)
+ * await crawler.addRequests(sitemap.urls);
+ * ```
+ */
 export class Sitemap {
     constructor(readonly urls: string[]) {}
 
