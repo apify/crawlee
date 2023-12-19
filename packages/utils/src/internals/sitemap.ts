@@ -1,3 +1,4 @@
+import type { Duplex } from 'node:stream';
 import { createGunzip } from 'node:zlib';
 
 import log from '@apify/log';
@@ -98,7 +99,7 @@ export class Sitemap {
                 if (sitemapStream.response!.statusCode === 200) {
                     await new Promise((resolve, reject) => {
                         const parser = Sitemap.createParser(parsingState, () => resolve(undefined), reject);
-                        let stream = sitemapStream;
+                        let stream: Duplex = sitemapStream;
                         if (sitemapUrl.endsWith('.gz')) {
                             stream = stream.pipe(createGunzip());
                         }
