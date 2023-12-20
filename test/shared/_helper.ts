@@ -101,7 +101,8 @@ body {
 `,
         js: `
 console.log('Hello world!');
-`},
+`,
+    },
     cloudflareBlocking: `
 <!DOCTYPE html>
 <head>
