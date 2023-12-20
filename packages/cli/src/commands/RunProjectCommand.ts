@@ -29,15 +29,13 @@ export class RunProjectCommand<T> implements CommandModule<T, RunProjectArgs> {
      * @inheritDoc
      */
     async handler(args: ArgumentsCamelCase<RunProjectArgs>) {
-        let cmd = '';
+        const env = { ...process.env };
 
         if (!args.purge) {
-            cmd += 'CRAWLEE_PURGE_ON_START=0 ';
+            env.CRAWLEE_PURGE_ON_START = '0';
         }
 
         // TODO detect the right package manager (e.g. based on package.json's `packageManager` field)
-        cmd += `npm run ${args.script}`;
-
-        execSync(cmd, { stdio: 'inherit' });
+        execSync(`npm run ${args.script}`, { stdio: 'inherit', env });
     }
 }
