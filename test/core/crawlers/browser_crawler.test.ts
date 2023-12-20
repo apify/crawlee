@@ -3,6 +3,7 @@ import type { Server } from 'http';
 import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';
 import { BROWSER_POOL_EVENTS, BrowserPool, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { BLOCKED_STATUS_CODES } from '@crawlee/core';
 import type {
     PuppeteerCrawlingContext,
     PuppeteerGoToOptions,
@@ -488,7 +489,7 @@ describe('BrowserCrawler', () => {
 
     test('should throw on "blocked" status codes', async () => {
         const baseUrl = 'https://example.com/';
-        const sources = [401, 403, 429].map((statusCode) => {
+        const sources = BLOCKED_STATUS_CODES.map((statusCode) => {
             return {
                 url: baseUrl + statusCode,
                 userData: { statusCode },
@@ -529,9 +530,77 @@ describe('BrowserCrawler', () => {
         expect(called).toBe(false);
     });
 
+    test('retryOnBlocked should retry on Cloudflare challenge', async () => {
+        const urls = [new URL('/special/cloudflareBlocking', serverAddress).href];
+        const maxSessionRotations = 1;
+
+        let processed = false;
+        const errorMessages: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            retryOnBlocked: true,
+            maxSessionRotations,
+            requestHandler: async ({ page, response }) => {
+                processed = true;
+            },
+            failedRequestHandler: async ({ request }) => {
+                errorMessages.push(...request.errorMessages);
+            },
+        });
+
+        await crawler.run(urls);
+
+        expect(errorMessages).toHaveLength(urls.length * (maxSessionRotations + 1));
+        expect(errorMessages.every((x) => x.includes('Detected a session error, rotating session...'))).toBe(true);
+        expect(processed).toBe(false);
+    });
+
+    test('retryOnBlocked throws on "blocked" status codes', async () => {
+        const baseUrl = 'https://example.com/';
+        const sources = BLOCKED_STATUS_CODES.map((statusCode) => {
+            return {
+                url: baseUrl + statusCode,
+                userData: { statusCode },
+            };
+        });
+        const requestList = await RequestList.open(null, sources);
+        const maxSessionRotations = 1;
+        const errorMessages: string[] = [];
+
+        let processed = false;
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            retryOnBlocked: true,
+            maxSessionRotations,
+            requestHandler: async () => {
+                processed = true;
+            },
+            failedRequestHandler: async ({ request }) => {
+                errorMessages.push(...request.errorMessages);
+            },
+        });
+
+        // @ts-expect-error Overriding protected method
+        crawler._navigationHandler = async ({ request }) => {
+            return { status: () => request.userData.statusCode };
+        };
+
+        await crawler.run();
+
+        expect(errorMessages.length).toBe(sources.length * (maxSessionRotations + 1));
+        expect(errorMessages.every((x) => x.includes('Detected a session error, rotating session...'))).toBe(true);
+        expect(processed).toBe(false);
+    });
+
     test('should throw on "blocked" status codes (retire session)', async () => {
         const baseUrl = 'https://example.com/';
-        const sources = [401, 403, 429].map((statusCode) => {
+        const sources = BLOCKED_STATUS_CODES.map((statusCode) => {
             return {
                 url: baseUrl + statusCode,
                 userData: { statusCode },

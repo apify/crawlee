@@ -5,6 +5,7 @@ import type { Dictionary } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import ow from 'ow';
 
+import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts';
 import type { SessionOptions } from './session';
 import { Session } from './session';
 import { Configuration } from '../configuration';
@@ -159,12 +160,12 @@ export class SessionPool extends EventEmitter {
         }));
 
         const {
-            maxPoolSize = 1000,
+            maxPoolSize = MAX_POOL_SIZE,
             persistStateKeyValueStoreId,
-            persistStateKey = 'SDK_SESSION_POOL_STATE',
+            persistStateKey = PERSIST_STATE_KEY,
             createSessionFunction,
             sessionOptions = {},
-            blockedStatusCodes = [401, 403, 429],
+            blockedStatusCodes = BLOCKED_STATUS_CODES,
             log = defaultLog,
         } = options;
 
