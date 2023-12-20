@@ -172,7 +172,9 @@ export class SessionPool extends EventEmitter {
             sessionOptions = {},
             blockedStatusCodes = [401, 403, 429],
             log = defaultLog,
-            persistenceOptions = {},
+            persistenceOptions = {
+                enable: true,
+            },
         } = options;
 
         this.config = config;

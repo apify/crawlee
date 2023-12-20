@@ -122,7 +122,9 @@ export class Statistics {
             logMessage = 'Statistics',
             keyValueStore,
             config = Configuration.getGlobalConfig(),
-            persistenceOptions = {},
+            persistenceOptions = {
+                enable: true,
+            },
         } = options;
 
         this.logIntervalMillis = logIntervalSecs * 1000;
