@@ -3804,13 +3804,13 @@ __metadata:
   linkType: hard
 
 "algoliasearch-helper@npm:^3.13.3":
-  version: 3.16.0
-  resolution: "algoliasearch-helper@npm:3.16.0"
+  version: 3.16.1
+  resolution: "algoliasearch-helper@npm:3.16.1"
   dependencies:
     "@algolia/events": "npm:^4.0.1"
   peerDependencies:
     algoliasearch: ">= 3.1 < 6"
-  checksum: cb77dc5dd68874c510b601b48255e6834d7eae9d057aa4679921709351824461ab59e85fb6ab848ecd6e580f4cbe58f87c36252f4d10c773db16c4f64d00d475
+  checksum: ebcd840722f6e37b2d5e73f0d7bf5217bf0002f95c086a2e0cbca73deb6ff19f8a785a936b230552ddbf5ff6d6fd727a2c18192d63599499cdfe36178ca86cc2
   languageName: node
   linkType: hard
 
@@ -7640,8 +7640,8 @@ __metadata:
   linkType: hard
 
 "html-webpack-plugin@npm:^5.5.3":
-  version: 5.5.4
-  resolution: "html-webpack-plugin@npm:5.5.4"
+  version: 5.6.0
+  resolution: "html-webpack-plugin@npm:5.6.0"
   dependencies:
     "@types/html-minifier-terser": "npm:^6.0.0"
     html-minifier-terser: "npm:^6.0.2"
@@ -7649,8 +7649,14 @@ __metadata:
     pretty-error: "npm:^4.0.0"
     tapable: "npm:^2.0.0"
   peerDependencies:
+    "@rspack/core": 0.x || 1.x
     webpack: ^5.20.0
-  checksum: fd7b9882a7b44b78711d3489fd571308372a915924c2e619ad8a08d9100a17ae8899a3d3bb1934c326d45bf942330a693206088ba80f292dd6574d9e33c67a43
+  peerDependenciesMeta:
+    "@rspack/core":
+      optional: true
+    webpack:
+      optional: true
+  checksum: 50d1a0f90d512463ea8d798985d91a7ccc9d5e461713dedb240125b2ff0671f58135dd9355f7969af341ff4725e73b2defbc0984cfdce930887a48506d970002
   languageName: node
   linkType: hard
 
