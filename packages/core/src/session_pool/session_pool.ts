@@ -9,6 +9,7 @@ import { BLOCKED_STATUS_CODES, MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts
 import type { SessionOptions } from './session';
 import { Session } from './session';
 import { Configuration } from '../configuration';
+import type { PersistenceOptions } from '../crawlers/statistics';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
@@ -60,6 +61,11 @@ export interface SessionPoolOptions {
 
     /** @internal */
     log?: Log;
+
+    /**
+     * Control how and when to persist the state of the session pool.
+     */
+     persistenceOptions?: PersistenceOptions;
 }
 
 /**
@@ -140,6 +146,8 @@ export class SessionPool extends EventEmitter {
     protected _listener!: () => Promise<void>;
     protected events: EventManager;
     protected readonly blockedStatusCodes: number[];
+    protected persistenceOptions: PersistenceOptions;
+    protected isInitialized = false;
 
     private queue = new AsyncQueue();
 
@@ -157,6 +165,7 @@ export class SessionPool extends EventEmitter {
             sessionOptions: ow.optional.object,
             blockedStatusCodes: ow.optional.array.ofType(ow.number),
             log: ow.optional.object,
+            persistenceOptions: ow.optional.object,
         }));
 
         const {
@@ -167,12 +176,16 @@ export class SessionPool extends EventEmitter {
             sessionOptions = {},
             blockedStatusCodes = BLOCKED_STATUS_CODES,
             log = defaultLog,
+            persistenceOptions = {
+                enable: true,
+            },
         } = options;
 
         this.config = config;
         this.blockedStatusCodes = blockedStatusCodes;
         this.events = config.getEventManager();
         this.log = log.child({ prefix: 'SessionPool' });
+        this.persistenceOptions = persistenceOptions;
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
@@ -210,7 +223,15 @@ export class SessionPool extends EventEmitter {
      * It is called automatically by the {@apilink SessionPool.open} function.
      */
     async initialize(): Promise<void> {
+        if (this.isInitialized) {
+            return;
+        }
+
         this.keyValueStore = await KeyValueStore.open(this.persistStateKeyValueStoreId, { config: this.config });
+        if (!this.persistenceOptions.enable) {
+            this.isInitialized = true;
+            return;
+        }
 
         if (!this.persistStateKeyValueStoreId) {
             // eslint-disable-next-line max-len
@@ -223,6 +244,7 @@ export class SessionPool extends EventEmitter {
         this._listener = this.persistState.bind(this);
 
         this.events.on(EventType.PERSIST_STATE, this._listener);
+        this.isInitialized = true;
     }
 
     /**
@@ -301,7 +323,14 @@ export class SessionPool extends EventEmitter {
         }
     }
 
-    async resetStore() {
+    /**
+     * @param options - Override the persistence options provided in the constructor
+     */
+    async resetStore(options?: PersistenceOptions) {
+        if (!this.persistenceOptions.enable && !options?.enable) {
+            return;
+        }
+
         await this.keyValueStore?.setValue(this.persistStateKey, null);
     }
 
@@ -320,8 +349,13 @@ export class SessionPool extends EventEmitter {
     /**
      * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
      * The state is persisted automatically in regular intervals.
+     * @param options - Override the persistence options provided in the constructor
      */
-    async persistState(): Promise<void> {
+    async persistState(options?: PersistenceOptions): Promise<void> {
+        if (!this.persistenceOptions.enable && !options?.enable) {
+            return;
+        }
+
         this.log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
@@ -342,7 +376,7 @@ export class SessionPool extends EventEmitter {
      * SessionPool should not work before initialization.
      */
     protected _throwIfNotInitialized() {
-        if (!this._listener) throw new Error('SessionPool is not initialized.');
+        if (!this.isInitialized) throw new Error('SessionPool is not initialized.');
     }
 
     /**

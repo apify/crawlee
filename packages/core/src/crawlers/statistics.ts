@@ -40,6 +40,17 @@ const errorTrackerConfig = {
 };
 
 /**
+ * Persistence-related options to control how and when crawler's data gets persisted.
+ */
+export interface PersistenceOptions {
+    /**
+     * Use this flag to disable or enable periodic persistence to key value store.
+     * @default true
+     */
+    enable?: boolean;
+}
+
+/**
  * The statistics class provides an interface to collecting and logging run
  * statistics for requests.
  *
@@ -92,6 +103,7 @@ export class Statistics {
     private instanceStart!: number;
     private logInterval: unknown;
     private events: EventManager;
+    private persistenceOptions: PersistenceOptions;
 
     /**
      * @internal
@@ -102,6 +114,7 @@ export class Statistics {
             logMessage: ow.optional.string,
             keyValueStore: ow.optional.object,
             config: ow.optional.object,
+            persistenceOptions: ow.optional.object,
         }));
 
         const {
@@ -109,6 +122,9 @@ export class Statistics {
             logMessage = 'Statistics',
             keyValueStore,
             config = Configuration.getGlobalConfig(),
+            persistenceOptions = {
+                enable: true,
+            },
         } = options;
 
         this.logIntervalMillis = logIntervalSecs * 1000;
@@ -117,6 +133,7 @@ export class Statistics {
         this.listener = this.persistState.bind(this);
         this.events = config.getEventManager();
         this.config = config;
+        this.persistenceOptions = persistenceOptions;
 
         // initialize by "resetting"
         this.reset();
@@ -155,7 +172,14 @@ export class Statistics {
         this._teardown();
     }
 
-    async resetStore() {
+    /**
+     * @param options - Override the persistence options provided in the constructor
+     */
+    async resetStore(options?: PersistenceOptions) {
+        if (!this.persistenceOptions.enable && !options?.enable) {
+            return;
+        }
+
         if (!this.keyValueStore) {
             return;
         }
@@ -247,13 +271,14 @@ export class Statistics {
     async startCapturing() {
         this.keyValueStore ??= await KeyValueStore.open(null, { config: this.config });
 
-        await this._maybeLoadStatistics();
-
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();
         }
 
-        this.events.on(EventType.PERSIST_STATE, this.listener);
+        if (this.persistenceOptions.enable) {
+            await this._maybeLoadStatistics();
+            this.events.on(EventType.PERSIST_STATE, this.listener);
+        }
 
         this.logInterval = setInterval(() => {
             this.log.info(this.logMessage, {
@@ -284,8 +309,13 @@ export class Statistics {
 
     /**
      * Persist internal state to the key value store
+     * @param options - Override the persistence options provided in the constructor
      */
-    async persistState() {
+    async persistState(options?: PersistenceOptions) {
+        if (!this.persistenceOptions.enable && !options?.enable) {
+            return;
+        }
+
         // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
@@ -382,11 +412,38 @@ export class Statistics {
     }
 }
 
-interface StatisticsOptions {
+/**
+ * Configuration for the {@apilink Statistics} instance used by the crawler
+ */
+export interface StatisticsOptions {
+    /**
+     * Interval in seconds to log the current statistics
+     * @default 60
+     */
     logIntervalSecs?: number;
+
+    /**
+     * Message to log with the current statistics
+     * @default 'Statistics'
+     */
     logMessage?: string;
+
+    /**
+     * Key value store instance to persist the statistics.
+     * If not provided, the default one will be used when capturing starts
+     */
     keyValueStore?: KeyValueStore;
+
+    /**
+     * Configuration instance to use
+     * @default Configuration.getGlobalConfig()
+     */
     config?: Configuration;
+
+    /**
+     * Control how and when to persist the statistics.
+     */
+    persistenceOptions?: PersistenceOptions;
 }
 
 /**
