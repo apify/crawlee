@@ -441,13 +441,18 @@ export abstract class BrowserCrawler<
         }
     }
 
-    private async containsSelectors(page: CommonPage, selectors: string[]): Promise<boolean> {
-        return (await Promise.all(
+    private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
+        const foundSelectors = (await Promise.all(
             selectors.map((selector) => (page as any).$(selector)))
-        ).some((el: any) => el !== null);
+        )
+            .map((x, i) => [x, selectors[i]] as [any, string])
+            .filter(([x]) => x !== null)
+            .map(([, selector]) => selector);
+
+        return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
-    protected override async isRequestBlocked(crawlingContext: Context): Promise<boolean> {
+    protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
         const { page, response } = crawlingContext;
 
         // eslint-disable-next-line dot-notation
@@ -461,11 +466,19 @@ export abstract class BrowserCrawler<
             await sleep(5000);
 
             // here we cannot test for response code, because we only have the original response, not the possible Cloudflare redirect on passed challenge.
-            return this.containsSelectors(page, RETRY_CSS_SELECTORS);
+            const foundSelectors = await this.containsSelectors(page, RETRY_CSS_SELECTORS);
+
+            if (!foundSelectors) return false;
+            return `Cloudflare challenge failed, found selectors: ${foundSelectors.join(', ')}`;
         }
 
-        return await this.containsSelectors(page, RETRY_CSS_SELECTORS)
-        || blockedStatusCodes.includes(response?.status() ?? 0);
+        const foundSelectors = await this.containsSelectors(page, RETRY_CSS_SELECTORS);
+        const blockedStatusCode = blockedStatusCodes.find((x) => x === (response?.status() ?? 0));
+
+        if (foundSelectors) return `Found selectors: ${foundSelectors.join(', ')}`;
+        if (blockedStatusCode) return `Received blocked status code: ${blockedStatusCode}`;
+
+        return false;
     }
 
     /**
@@ -534,9 +547,8 @@ export abstract class BrowserCrawler<
         }
 
         if (this.retryOnBlocked) {
-            if (await this.isRequestBlocked(crawlingContext)) {
-                throw new SessionError();
-            }
+            const error = await this.isRequestBlocked(crawlingContext);
+            if (error) throw new SessionError(error);
         }
 
         request.state = RequestState.REQUEST_HANDLER;
