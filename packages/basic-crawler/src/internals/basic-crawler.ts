@@ -25,6 +25,7 @@ import type {
     SessionPoolOptions,
     Source,
     StatisticState,
+    StatisticsOptions,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -339,6 +340,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * WARNING: these options are not guaranteed to be stable and may change or be removed at any time.
      */
     experiments?: CrawlerExperiments;
+
+    /**
+     * Customize the way statistics collecting works, such as logging interval or
+     * whether to output them to the Key-Value store.
+     */
+    statisticsOptions?: StatisticsOptions;
 }
 
 /**
@@ -525,6 +532,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // internal
         log: ow.optional.object,
         experiments: ow.optional.object,
+
+        statisticsOptions: ow.optional.object,
     };
 
     /**
@@ -570,6 +579,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             statusMessageLoggingInterval = 10,
             statusMessageCallback,
+
+            statisticsOptions,
         } = options;
 
         this.requestList = requestList;
@@ -651,7 +662,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
         this.maxSessionRotations = maxSessionRotations;
         this.handledRequestsCount = 0;
-        this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:`, config });
+        this.stats = new Statistics({ logMessage: `${log.getOptions().prefix} request statistics:`, config, ...statisticsOptions });
         this.sessionPoolOptions = {
             ...sessionPoolOptions,
             log,
