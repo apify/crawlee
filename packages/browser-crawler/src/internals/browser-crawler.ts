@@ -524,6 +524,15 @@ export abstract class BrowserCrawler<
             }
         }
 
+        if (!this.requestMatchesEnqueueStrategy(request)) {
+            this.log.debug(`Skipping request ${request.id} (${request.url}) because it does not match the enqueue strategy.`);
+
+            request.noRetry = true;
+            request.state = RequestState.SKIPPED;
+
+            return;
+        }
+
         if (this.retryOnBlocked) {
             if (await this.isRequestBlocked(crawlingContext)) {
                 throw new SessionError();

@@ -103,6 +103,15 @@ body {
 console.log('Hello world!');
 `,
     },
+    htmlWithOutsideRedirect: `
+<html>
+    <head>
+        <title>Redirecting outside</title>
+    </head>
+    <body>
+        <a href="/special/redirect-outside">click me</a>
+    </body>
+</html>`,
     cloudflareBlocking: `
 <!DOCTYPE html>
 <head>
@@ -245,6 +254,14 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         });
         special.get('/resources', async (_req, res) => {
             res.type('html').send(responseSamples.resources);
+        });
+
+        special.get('/redirect', (_req, res) => {
+            res.type('html').send(responseSamples.htmlWithOutsideRedirect);
+        });
+
+        special.get('/redirect-outside', (req, res) => {
+            res.redirect('https://example.com');
         });
 
         special.get('/cloudflareBlocking', async (_req, res) => {

@@ -366,11 +366,11 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
     function createFilteredRequests() {
         // No user provided patterns means we can skip an extra filtering step
         if (urlPatternObjects.length === 0) {
-            return createRequests(requestOptions, enqueueStrategyPatterns, urlExcludePatternObjects);
+            return createRequests(requestOptions, enqueueStrategyPatterns, urlExcludePatternObjects, options.strategy);
         }
 
         // Generate requests based on the user patterns first
-        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
+        const generatedRequestsFromUserFilters = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects, options.strategy);
         // ...then filter them by the enqueue links strategy (making this an AND check)
         return filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns);
     }

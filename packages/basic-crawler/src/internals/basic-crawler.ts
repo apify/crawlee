@@ -33,6 +33,7 @@ import {
     CriticalError,
     Dataset,
     enqueueLinks,
+    EnqueueStrategy,
     EventType,
     KeyValueStore,
     mergeCookies,
@@ -1574,6 +1575,52 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         return RequestQueue.open(null, { config: this.config });
+    }
+
+    protected requestMatchesEnqueueStrategy(request: Request) {
+        const { url, loadedUrl } = request;
+
+        // eslint-disable-next-line dot-notation -- private access
+        const strategy = request['enqueueStrategy'];
+
+        // No strategy set, so we assume it matches, or it was added outside of enqueueLinks
+        if (!strategy) {
+            return true;
+        }
+
+        // If we somehow don't have a loadedUrl, we can't check the strategy anyways, assume it matches
+        if (!loadedUrl) {
+            return true;
+        }
+
+        const baseUrl = new URL(url);
+        const loadedBaseUrl = new URL(loadedUrl);
+
+        switch (strategy) {
+            case EnqueueStrategy.SameHostname: {
+                return baseUrl.hostname === loadedBaseUrl.hostname;
+            }
+            case EnqueueStrategy.SameDomain: {
+                const baseUrlHostname = getDomain(baseUrl.hostname, { mixedInputs: false });
+
+                if (baseUrlHostname) {
+                    const loadedBaseUrlHostname = getDomain(loadedBaseUrl.hostname, { mixedInputs: false });
+
+                    return baseUrlHostname === loadedBaseUrlHostname;
+                }
+
+                // Can happen for IPs, we just check like same origin
+                return baseUrl.origin === loadedBaseUrl.origin;
+            }
+            case EnqueueStrategy.SameOrigin: {
+                // Same as hostname, but also checks protocol
+                return baseUrl.origin === loadedBaseUrl.origin;
+            }
+            case EnqueueStrategy.All:
+            default: {
+                return true;
+            }
+        }
     }
 }
 
