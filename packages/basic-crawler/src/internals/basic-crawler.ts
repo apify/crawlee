@@ -751,7 +751,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return ROTATE_PROXY_ERRORS.some((x: string) => (this._getMessageFromError(error) as any)?.includes(x));
     }
 
-    protected isRequestBlocked(_crawlingContext: Context) {
+    /**
+     * Checks whether the given crawling context is getting blocked by anti-bot protection using several heuristics.
+     * Returns `false` if the request is not blocked, otherwise returns a string with a description of the block reason.
+     * @param _crawlingContext The crawling context to check.
+     */
+    protected async isRequestBlocked(_crawlingContext: Context): Promise<string | false> {
         throw new Error('the "isRequestBlocked" method is not implemented in this crawler.');
     }
 

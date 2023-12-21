@@ -500,8 +500,9 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
             });
         }
 
-        if (this.retryOnBlocked && await this.isRequestBlocked(crawlingContext)) {
-            throw new SessionError();
+        if (this.retryOnBlocked) {
+            const error = await this.isRequestBlocked(crawlingContext);
+            if (error) throw new SessionError(error);
         }
 
         request.state = RequestState.REQUEST_HANDLER;
@@ -518,11 +519,15 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any, H
         }
     }
 
-    protected override async isRequestBlocked(crawlingContext: Context) {
+    protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
         if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
             const $ = await crawlingContext.parseWithCheerio();
 
-            return RETRY_CSS_SELECTORS.some((selector) => $(selector).length > 0);
+            const foundSelectors = RETRY_CSS_SELECTORS.filter((selector) => $(selector).length > 0);
+
+            if (foundSelectors.length > 0) {
+                return `Found selectors: ${foundSelectors.join(', ')}`;
+            }
         }
         return false;
     }
