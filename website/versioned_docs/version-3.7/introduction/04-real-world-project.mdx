@@ -1,0 +1,173 @@
+---
+id: real-world-project
+title: 'Getting some real-world data'
+sidebar_label: 'Real-world project'
+description: Your first steps into the world of scraping with Crawlee
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import PwSource from '!!raw-loader!./04-pw.ts';
+import PwWCheerioSource from '!!raw-loader!./04-pw-w-cheerio.ts';
+
+> _Hey, guys, you know, it's cool that we can scrape the `<title>` elements of web pages, but that's not very useful. Can we finally scrape some real data and save it somewhere in a machine-readable format? Because that's why I started reading this tutorial in the first place!_
+
+We hear you, young padawan! First, learn how to crawl, you must. Only then, walk through data, you can!
+
+## Making a production-grade crawler
+
+Making a production-grade crawler is not difficult, but there are many pitfalls of scraping that can catch you off guard. So for the real world project you'll learn how to scrape an [example Warehouse Store](https://warehouse-theme-metal.myshopify.com/collections) instead of the Crawlee website. It contains a list of products of different categories, and each product has its own detail page.
+
+The website requires JavaScript rendering, which allows us to showcase more features of Crawlee. We've also added some helpful tips that prepare you for the real-world issues that you will surely encounter when scraping at scale.
+
+:::tip
+
+If you're not interested in crawling theory, feel free to [skip to the next lesson](./crawling) and get right back to coding.
+
+:::
+
+## Drawing a plan
+
+Sometimes scraping is really straightforward, but most of the time, it really pays off to do a bit of research first and try to answer some of these questions:
+
+-   How is the website structured?
+-   Can I scrape it only with HTTP requests (read "with `CheerioCrawler`")?
+-   Do I need a headless browser for something?
+-   Are there any anti-scraping protections in place?
+-   Do I need to parse the HTML or can I get the data otherwise, such as directly from the website's API?
+
+For the purposes of this tutorial, let's assume that the website cannot be scraped with `CheerioCrawler`. It actually can, but we would have to dive a bit deeper than this introductory guide allows. So for now we will make things easier for you, scrape it with `PlaywrightCrawler`, and you'll learn about headless browsers in the process.
+
+## Choosing the data you need
+
+A good first step is to figure out what data you want to scrape and where to find it. For the time being, let's just agree that we want to scrape all products from all categories available on the [All collections page of the store](https://warehouse-theme-metal.myshopify.com/collections) and for each product we want to get its:
+
+-   URL
+-   Manufacturer
+-   SKU
+-   Title
+-   Current price
+-   Stock available
+
+You will notice that some information is available directly on the list page, but for details such as "SKU" we'll also need to open the product's detail page.
+
+![data to scrape](/img/getting-started/scraping-practice.jpg 'Overview of data to be scraped.')
+
+### The start URL(s)
+
+This is where you start your crawl. It's convenient to start as close to the data as possible. For example, it wouldn't make much sense to start at `https://warehouse-theme-metal.myshopify.com/` and look for a `collections` link there, when we already know that everything we want to extract can be found at the `https://warehouse-theme-metal.myshopify.com/collections` page.
+
+## Exploring the page
+
+Let's take a look at the `https://warehouse-theme-metal.myshopify.com/collections` page more carefully. There are some **categories** on the page, and each category has a list of **items**. On some category pages, at the bottom you will notice there are links to the next pages of results. This is usually called **the pagination**.
+
+### Categories and sorting
+
+When you click the categories, you'll see that they load a page of products filtered by that category. By going through a few categories and observing the behavior, we can also observe that we can sort by different conditions (such as `Best selling`, or `Price, low to high`), but for this example, we will not be looking into those.
+
+:::caution
+
+Be careful, because on some websites, like [amazon.com](https://amazon.com), this is not true and the sum of products in categories is actually larger than what's available without filters. Learn more in our [tutorial on scraping websites with limited pagination](https://docs.apify.com/tutorials/scrape-paginated-sites).
+
+:::
+
+### Pagination
+
+The pagination of the demo Warehouse Store is simple enough. When switching between pages, you will see that the URL changes to:
+
+```
+https://warehouse-theme-metal.myshopify.com/collections/headphones?page=2
+```
+
+Try clicking on the link to page 4. You'll see that the pagination links update and show more pages. But can you trust that this will include all pages and won't stop at some point?
+
+:::caution
+
+Similarly to the issue with filters explained above, the existence of pagination does not guarantee that you can simply paginate through all the results. Always test your assumptions about pagination. Otherwise, you might miss a chunk of results, and not even know about it.
+
+:::
+
+At the time of writing the `Headphones` collection results counter showed 75 results - products. Quick count of products on one page of results makes 24. 6 rows times 4 products. This means that there are 4 pages of results.
+
+If you're not convinced, you can visit a page somewhere in the middle, like `https://warehouse-theme-metal.myshopify.com/collections/headphones?page=2` and see how the pagination looks there.
+
+## The crawling strategy
+
+Now that you know where to start and how to find all the Actor details, let's look at the crawling process.
+
+1. Visit the store page containing the list of categories (our start URL).
+2. Enqueue all links to all categories.
+3. Enqueue all product pages from the current page.
+4. Enqueue links to next pages of results.
+5. Open the next page in queue.
+    - When it's a results list page, go to 2.
+    - When it's a product page, scrape the data.
+6. Repeat until all results pages and all products have been processed.
+
+`PlaywrightCrawler` will make sure to visit the pages for you, if you provide the correct requests, and you already know how to enqueue pages, so this should be fairly easy. Nevertheless, there are few more tricks that we'd like to showcase.
+
+## Sanity check
+
+Let's check that everything is set up correctly before writing the scraping logic itself. You might realize that something in your previous analysis doesn't quite add up, or the website might not behave exactly as you expected.
+
+The example below creates a new crawler that visits the start URL and prints the text content of all the categories on that page. When you run the code, you will see the _very badly formatted_ content of the individual category card.
+
+<Tabs groupId="sanity-check">
+    <TabItem value="playwright" label="Playwright" default>
+        <CodeBlock language="js" title="src/main.mjs">
+            {PwSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="playwright-with-cheerio" label="Playwright with Cheerio">
+        <CodeBlock language="js" title="src/main.mjs">
+            {PwWCheerioSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+If you're wondering how to get that `.collection-block-item` selector. We'll explain it in the next chapter on DevTools.
+
+## DevTools - the scraper's toolbox
+
+:::info
+
+We'll use Chrome DevTools here, since it's the most common browser, but feel free to use any other, they're all very similar.
+
+:::
+
+Let's open DevTools by going to https://warehouse-theme-metal.myshopify.com/collections in Chrome and then right-clicking anywhere in the page and selecting **Inspect**, or by pressing **F12** or whatever your system prefers. With DevTools, you can inspect or manipulate any aspect of the currently open web page. You can learn more about DevTools in their [official documentation](https://developer.chrome.com/docs/devtools/).
+
+## Selecting elements
+
+In the DevTools, choose the **Select an element** tool and try hovering over one of the Actor cards.
+
+![select an element](/img/getting-started/select-an-element.png 'Finding the select an element tool.')
+
+You'll see that you can select different elements inside the card. Instead, select the whole card, not just some of its contents, such as its title or description.
+
+![selected element](/img/getting-started/selected-element.png 'Selecting an element by hovering over it.')
+
+Selecting an element will highlight it in the DevTools HTML inspector. When carefully look at the elements, you'll see that there are some **classes** attached to the different HTML elements. Those are called **CSS classes**, and we can make a use of them in scraping.
+
+Conversely, by hovering over elements in the HTML inspector, you will see them highlight on the page. Inspect the page's structure around the collection card. You'll see that all the card's data is displayed in an `<a>` element with a `class` attribute that includes **collection-block-item**. It should now make sense how we got that `.collection-block-item` selector. It's just a way to find all elements that are annotated with the `collection-block-item`.
+
+It's always a good idea to double-check that you're not getting any unwanted elements with this class. To do that, go into the **Console** tab of DevTools and run:
+
+```ts
+document.querySelectorAll('.collection-block-item');
+```
+
+You will see that only the 31 collection cards will be returned, and nothing else.
+
+:::tip
+
+CSS selectors and DevTools are quite a big topic. If you want to learn more, visit the [Web scraping for beginners course](https://developers.apify.com/academy/web-scraping-for-beginners) in the Apify Academy. **It's free and open-source** ❤️.
+
+:::
+
+## Next lesson
+
+In the next lesson, we will crawl the whole store, including all the listing pages and all the product detail pages.
