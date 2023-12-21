@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.7.0](https://github.com/apify/crawlee/compare/v3.6.2...v3.7.0) (2023-12-21)
+
+
+### Bug Fixes
+
+* **MemoryStorage:** lock request JSON file when reading to support multiple process crawling ([#2215](https://github.com/apify/crawlee/issues/2215)) ([eb84ce9](https://github.com/apify/crawlee/commit/eb84ce9ce5540b72d5799b1f66c80938d57bc1cc))
+
+
+
+
+
 ## [3.6.2](https://github.com/apify/crawlee/compare/v3.6.1...v3.6.2) (2023-11-26)
 
 **Note:** Version bump only for package @crawlee/memory-storage

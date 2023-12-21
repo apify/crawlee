@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.7.0](https://github.com/apify/crawlee/compare/v3.6.2...v3.7.0) (2023-12-21)
+
+
+### Bug Fixes
+
+* `retryOnBlocked` doesn't override the blocked HTTP codes ([#2243](https://github.com/apify/crawlee/issues/2243)) ([81672c3](https://github.com/apify/crawlee/commit/81672c3d1db1dcdcffb868de5740addff82cf112))
+
+
+### Features
+
+* robots.txt and sitemap.xml utils ([#2214](https://github.com/apify/crawlee/issues/2214)) ([fdfec4f](https://github.com/apify/crawlee/commit/fdfec4f4d0a0f925b49015d2d63932c4a82555ba)), closes [#2187](https://github.com/apify/crawlee/issues/2187)
+
+
+
+
+
 ## [3.6.2](https://github.com/apify/crawlee/compare/v3.6.1...v3.6.2) (2023-11-26)
 
 **Note:** Version bump only for package @crawlee/utils

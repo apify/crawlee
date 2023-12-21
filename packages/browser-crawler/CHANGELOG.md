@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.7.0](https://github.com/apify/crawlee/compare/v3.6.2...v3.7.0) (2023-12-21)
+
+
+### Bug Fixes
+
+* `retryOnBlocked` doesn't override the blocked HTTP codes ([#2243](https://github.com/apify/crawlee/issues/2243)) ([81672c3](https://github.com/apify/crawlee/commit/81672c3d1db1dcdcffb868de5740addff82cf112))
+
+
+### Features
+
+* check enqueue link strategy post redirect ([#2238](https://github.com/apify/crawlee/issues/2238)) ([3c5f9d6](https://github.com/apify/crawlee/commit/3c5f9d6056158e042e12d75b2b1b21ef6c32e618)), closes [#2173](https://github.com/apify/crawlee/issues/2173)
+* log cause with `retryOnBlocked` ([#2252](https://github.com/apify/crawlee/issues/2252)) ([e19a773](https://github.com/apify/crawlee/commit/e19a773693cfc5e65c1e2321bfc8b73c9844ea8b)), closes [#2249](https://github.com/apify/crawlee/issues/2249)
+
+
+
+
+
 ## [3.6.2](https://github.com/apify/crawlee/compare/v3.6.1...v3.6.2) (2023-11-26)
 
 **Note:** Version bump only for package @crawlee/browser
