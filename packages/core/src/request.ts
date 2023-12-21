@@ -250,8 +250,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         if (maxRetries != null) this.maxRetries = maxRetries;
 
         // If it's already set, don't override it (for instance when fetching from storage)
-        if (!this.enqueueStrategy && enqueueStrategy) {
-            this.enqueueStrategy = this.enqueueStrategy ?? enqueueStrategy;
+        if (enqueueStrategy) {
+            this.enqueueStrategy ??= enqueueStrategy;
         }
     }
 
