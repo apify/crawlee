@@ -2082,9 +2082,9 @@ __metadata:
   linkType: hard
 
 "@types/qs@npm:*":
-  version: 6.9.10
-  resolution: "@types/qs@npm:6.9.10"
-  checksum: 6be12e5f062d1b41eb037d59bf9cb65bc9410cedd5e6da832dfd7c8e2b3f4c91e81c9b90b51811140770e5052c6c4e8361181bd9437ddcd4515dc128b7c00353
+  version: 6.9.11
+  resolution: "@types/qs@npm:6.9.11"
+  checksum: 657a50f05b694d6fd3916d24177cfa0f3b8b87d9deff4ffa4dddcb0b03583ebf7c47b424b8de400270fb9a5cc1e9cf790dd82c833c6935305851e7da8ede3ff5
   languageName: node
   linkType: hard
 
@@ -3317,9 +3317,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001565":
-  version: 1.0.30001570
-  resolution: "caniuse-lite@npm:1.0.30001570"
-  checksum: e47230d2016edea56e002fa462a5289f697b48dcfbf703fb01aecc6c98ad4ecaf945ab23c253cb7af056c2d05f266e4e4cbebf45132100e2c9367439cb95b95b
+  version: 1.0.30001571
+  resolution: "caniuse-lite@npm:1.0.30001571"
+  checksum: 632f476e39febbfb5dc91c236981f3d518dc0cf55c42cc2bba431a6b6f4cceae3f9cd74d26312f30e9de65a3cc92ccf80d964ba8de061e25f37b7f0518303dad
   languageName: node
   linkType: hard
 
@@ -4258,9 +4258,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1238944
-  resolution: "devtools-protocol@npm:0.0.1238944"
-  checksum: 921d37f19a9ecea3deafb1b8048a230f2a5a049d62c161b31dcc6a40efc0021494855215a36dbe3c8a99923fb8f9a9e383b14fc3bc734f8e1dae967fb38d1e6b
+  version: 0.0.1239539
+  resolution: "devtools-protocol@npm:0.0.1239539"
+  checksum: f04b92d53c6cbaecfa98975ba6985fe8571357f64943b20d82a1c56f813ee6a2a0d471abb97eb7542d5885547eb1b3a2481c14c07e859f72a66d6425f3ba0826
   languageName: node
   linkType: hard
 
@@ -4433,9 +4433,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.615
-  resolution: "electron-to-chromium@npm:1.4.615"
-  checksum: 6602172761e44ca1a6c010a010efd0c42710e1e08911e76dd2d3df72ae2a563fb75b0853387273d1e45a4befd314162b2b1debcf9055513f62c6d6a8df4de73a
+  version: 1.4.616
+  resolution: "electron-to-chromium@npm:1.4.616"
+  checksum: a02416f3293d28120d5132546a6aea614ebd2d820a684f41b1c20138331922ddc672c4a59bfc4b91bb5aee1ba608f6c10cd3f69c344cd434397e7f14a4c97348
   languageName: node
   linkType: hard
 
@@ -8637,11 +8637,11 @@ __metadata:
   linkType: hard
 
 "npm-run-path@npm:^5.1.0":
-  version: 5.1.0
-  resolution: "npm-run-path@npm:5.1.0"
+  version: 5.2.0
+  resolution: "npm-run-path@npm:5.2.0"
   dependencies:
     path-key: "npm:^4.0.0"
-  checksum: ff6d77514489f47fa1c3b1311d09cd4b6d09a874cc1866260f9dea12cbaabda0436ed7f8c2ee44d147bf99a3af29307c6f63b0f83d242b0b6b0ab25dff2629e3
+  checksum: 7963c1f98e42afebe9524a08b0881477ec145aab34f6018842a315422b25ad40e015bdee709b697571e5efda2ecfa2640ee917d92674e4de1166fa3532a211b1
   languageName: node
   linkType: hard
 
