@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
+
 import { globby } from 'globby';
 
 const files = await globby('packages/*/dist/**/*.d.ts');
@@ -17,13 +18,17 @@ for (const filepath of files) {
             changed = true;
         } else if (
             // playwright/puppeteer/got-scraping import
-            line.match(/^([^']+)'(playwright|puppeteer|got-scraping)'/) ||
+            line.match(/^([^']+)'(playwright|puppeteer|got-scraping)'/)
             // proxy-per-page reexport of puppeteer
-            line.match(/: Puppeteer\.\w+/) ||
+            || line.match(/: Puppeteer\.\w+/)
             // don't ask me why, but this one is needed too ¯\_(ツ)_/¯
-            line.match(/^export interface (PlaywrightHook|PuppeteerHook)/)
+            || line.match(/^export interface (PlaywrightHook|PuppeteerHook)/)
+            // /// <reference types="something" /> from newer nodenext resolutions
+            || line.match(/^\/\/\/ <reference types="[^"]+" \/>/)
+            // import("something") from compatibility with ES2022 module -.-
+            || line.match(/import\("([^"]+)"(?:.*)?\)/)
         ) {
-            output.push('// @ts-ignore optional peer dependency');
+            output.push('// @ts-ignore optional peer dependency or compatibility with es2022');
             output.push(line);
             changed = true;
         } else {
