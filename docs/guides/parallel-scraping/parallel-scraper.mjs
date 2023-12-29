@@ -34,12 +34,12 @@ if (!process.env.IN_WORKER_THREAD) {
 
             // Log out what the crawlers are doing
             // Note: we want to use console.log instead of log.info because we already get formatted output from the crawlers
-            proc.stdout!.on('data', (data) => {
+            proc.stdout.on('data', (data) => {
                 // eslint-disable-next-line no-console
                 console.log(data.toString());
             });
 
-            proc.stderr!.on('data', (data) => {
+            proc.stderr.on('data', (data) => {
                 // eslint-disable-next-line no-console
                 console.error(data.toString());
             });
@@ -73,7 +73,7 @@ if (!process.env.IN_WORKER_THREAD) {
 
     // Disable the automatic purge on start
     // This is needed when running locally, as otherwise multiple processes will try to clear the default storage (and that will cause clashes)
-    Configuration.getGlobalConfig().set('purgeOnStart', false);
+    Configuration.set('purgeOnStart', false);
 
     // Get the request queue
     const requestQueue = await getOrInitQueue(false);
