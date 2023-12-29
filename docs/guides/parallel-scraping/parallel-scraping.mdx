@@ -48,7 +48,7 @@ You can see it on the [Crawlee Parallel Scraping Example](https://github.com/api
 
 ### But isn't Crawlee already concurrent? What's the difference between concurrency and parallelization?
 
-> *Hold on! I've used Crawlee before, and it has a `maxConcurrency` option on it! What's this for then?!*
+> _Hold on! I've used Crawlee before, and it has a `maxConcurrency` option! What's this for then?!_
 
 You're correct, Crawlee already supports scraping in "parallel" (more accurately called concurrent). What that enables is one process having multiple tasks that run in the background at the same time. But, as your scraping scales up in size, you will end up hitting bottlenecks, be them from the runtime simply not being able to process more requests at once, to resources like RAM and CPU being maxed out. You can only scale up resources so much before it stops providing a real benefit.
 
@@ -101,7 +101,7 @@ Up next, let's build another scraper that will schedule the URLs from the queue 
 but you can use any other method you want to run multiple scrapers in parallel. You will need to adjust your code if you use other methods.
 
 The scraper will fork itself twice (but you can experiment with this), and each fork will re-use the queue we created earlier.
-The best part? We can re-use the previous router we built for the initial scraper! Yay for code re-use!
+The best part? We can re-use the previous router we built for the initial scraper! Yay for code reuse!
 
 <CodeBlock language="js" title="src/parallel-scraper.mjs">{ParallelScraperSource}</CodeBlock>
 
@@ -141,7 +141,7 @@ In order, that's what these lines do:
 ```javascript title="src/parallel-scraper.mjs"
 // Disable the automatic purge on start (step 1)
 // This is needed when running locally, as otherwise multiple processes will try to clear the default storage (and that will cause clashes)
-Configuration.getGlobalConfig().set('purgeOnStart', false);
+Configuration.set('purgeOnStart', false);
 
 // Get the request queue from the parent process (step 2)
 const requestQueue = await getOrInitQueue(false);
