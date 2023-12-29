@@ -5,9 +5,6 @@ sidebar_label: Parallel Scraping
 description: Parallelizing your scrapers with Crawlee
 ---
 
-import ApiLink from '@site/src/components/ApiLink';
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
 import SharedSource from '!!raw-loader!./shared.mjs';
@@ -21,9 +18,7 @@ At the time of writing this guide (December 2023), request locking is still an e
 
 :::
 
-In this guide, we will walk through how you can turn your single scraper into a scraper that can be parallelized and run in multiple instances. This guide
-assumes you've read and walked through our [introduction guide](../introduction/setting-up) (or have a fully-fledged scraper already built), but if you haven't done so yet,
-take a break, go read through all that, and come back. We'll be waiting...
+In this guide, we will walk you through how you can turn your single scraper into a scraper that can be parallelized and run in multiple instances. This guide assumes you've read and walked through our [introduction guide](../introduction/setting-up) (or have a fully-fledged scraper already built), but if you haven't done so yet, take a break, go read through all that, and come back. We'll be waiting...
 
 *Oh, you're back already! Let's proceed in making that scraper parallel!*
 
@@ -31,26 +26,23 @@ take a break, go read through all that, and come back. We'll be waiting...
 
 Before you rush ahead and change your scraper to support parallelization, take a minute to consider the following factors:
 
-- do you plan on scraping so many pages that you need to parallelize your scraper?
-  > for example, if your scraper goes across few pages, you probably don't need parallelization  
-  > but if you scrape a lot of pages, or you scrape pages that take a long time to load, you might want to consider parallelization
-- can you parallelize your scraper while not overloading the source website?
-  > for example, if you scrape a website that has a lot of traffic, you don't want to add to that traffic by running multiple scrapers in parallel
-  > as that might cause the website to go down for all its users
-- do you have the resources available to run multiple scrapers in parallel?
-  > when running locally, depending on your scraper type, do you have enough CPU and RAM available to sustain multiple scrapers running in parallel  
-  > when running in the cloud, will the extra speed from parallelization be worth the extra cost of running multiple scrapers in parallel?
+- Do you plan on scraping so many pages that you need to parallelize your scraper?
+  > For example, if your scraper goes across few pages, you probably don't need parallelization<br/>
+  > But if you scrape a lot of pages, or you scrape pages that take a long time to load, you might want to consider parallelization
+- Can you parallelize your scraper while not overloading the target website?
+  > For example, if you scrape a website that has a lot of traffic, you don't want to add to that traffic by running multiple scrapers in parallel as that might cause the website to go down for all its users
+- Do you have the resources available to run multiple scrapers in parallel?
+  > When running locally, depending on your scraper type, do you have enough CPU and RAM available to sustain multiple scrapers running in parallel<br/>
+  > When running in the cloud, will the extra speed from parallelization be worth the extra cost of running multiple scrapers in parallel?
 
 Let's assume you answered yes to all of those. Yes? Yes. Before we go ahead and get to the actual guide, we'd like to ask you to also take a read on [Apify's Ethical Web Scraping](https://blog.apify.com/what-is-ethical-web-scraping-and-how-do-you-do-it/)
 blog post!
 
-Now that we've gone through all that, the guide is split into two parts: converting the initial scraper we built in the [introduction guide](../introduction/setting-up) to one that prepares requests
-to be usable in parallel scrapers, and then running scrapers in parallel.
+Now that we've gone through all that, the guide is split into two parts: converting the initial scraper we built in the [introduction guide](../introduction/setting-up) to one that prepares requests to be usable in parallel scrapers, and then running scrapers in parallel.
 
 :::note Want to see the final result?
 
-You can see it on the [Crawlee Parallel Scraping Example](https://github.com/apify/crawlee-parallel-scraping-example) repository! It's the same scraper we built in the [introduction guide](../introduction/setting-up), but in TypeScript and
-parallelized!
+You can see it on the [Crawlee Parallel Scraping Example](https://github.com/apify/crawlee-parallel-scraping-example) repository! It's the same scraper we built in the [introduction guide](../introduction/setting-up), but in TypeScript and parallelized!
 
 :::
 
@@ -58,17 +50,13 @@ parallelized!
 
 > *Hold on! I've used Crawlee before, and it has a `maxConcurrency` option on it! What's this for then?!*
 
-You're correct, Crawlee already supports scraping in "parallel" (more accurately called concurrent). What that enables is one process having multiple tasks that run in the background at the same time.
-But, as your scraping scales up in size, you will end up hitting bottlenecks, be them from the runtime simply not being able to process more requests at once, to resources like RAM and CPU being maxed out. You can only
-scale up resources so much before it stops providing a real benefit.
+You're correct, Crawlee already supports scraping in "parallel" (more accurately called concurrent). What that enables is one process having multiple tasks that run in the background at the same time. But, as your scraping scales up in size, you will end up hitting bottlenecks, be them from the runtime simply not being able to process more requests at once, to resources like RAM and CPU being maxed out. You can only scale up resources so much before it stops providing a real benefit.
 
-This is what people refer to when saying vertical or horizontal scaling. Vertical scaling is when you increase the resources of a single process or machine, while horizontal scaling is when you increase the number of processes or machines.
-And horizontal scaling is the kind of scaling (or what we're referring to as "parallelization") we are showcasing in this guide!
+This is what people refer to when saying vertical or horizontal scaling. Vertical scaling is when you increase the resources of a single process or machine, while horizontal scaling is when you increase the number of processes or machines. And horizontal scaling is the kind of scaling (or what we're referring to as "parallelization") we are showcasing in this guide!
 
 ## Preparing your scraper for parallelization
 
-One of the best parts of Crawlee is that, for the most part, we do not need to change much to make this happen! Just create the queue that supports locking, enqueue links to it from the initial scraper,
-then build scrapers that run in parallel that use that queue!
+One of the best parts of Crawlee is that, for the most part, we do not need to change much to make this happen! Just create the queue that supports locking, enqueue links to it from the initial scraper, then build scrapers that run in parallel that use that queue!
 
 ### Creating the request queue with locking support
 
@@ -134,13 +122,11 @@ There is a lot of code, so let's break it down:
 
 #### The `if` check for `process.env.IS_WORKER_THREAD`
 
-This will check how the script is executed as. If this value has _any_ value, it will assume it's meant to start scraping. If not, it's considered the **parent** process
-and will fork copies of itself to do the scraping.
+This will check how the script is executed as. If this value has _any_ value, it will assume it's meant to start scraping. If not, it's considered the **parent** process and will fork copies of itself to do the scraping.
 
 #### Why do we create a Promise per worker process?
 
-We use this to ensure the parent process stays alive until all the worker processes exit. Otherwise, the worker processes would just get spawned, and lose the ability
-to communicate with the parent. You might not need this depending on your use case (maybe you just need to spawn workers and let them process).
+We use this to ensure the parent process stays alive until all the worker processes exit. Otherwise, the worker processes would just get spawned, and lose the ability to communicate with the parent. You might not need this depending on your use case (maybe you just need to spawn workers and let them process).
 
 #### What's with all those `Configuration` calls?
 
@@ -170,23 +156,17 @@ const config = new Configuration({
 
 #### Enabling the request locking experiment, and telling the crawler to use the worker configuration
 
-You might have noticed several lines highlighted in the code above. Those show how you can enable the request locking experiment, as well as how you provide the request queue to the crawler.
-You can read more about the experiment by visiting the [request locking experiment](../experiments/experiments-request-locking) page.
+You might have noticed several lines highlighted in the code above. Those show how you can enable the request locking experiment, as well as how you provide the request queue to the crawler. You can read more about the experiment by visiting the [request locking experiment](../experiments/experiments-request-locking) page.
 
-You might have also noticed we passed in a second parameter to the constructor of the crawler, the `config` variable we created earlier.
-This is needed to ensure the crawler uses the worker-specific storages for internal states, and that they do not collide with each other.
+You might have also noticed we passed in a second parameter to the constructor of the crawler, the `config` variable we created earlier. This is needed to ensure the crawler uses the worker-specific storages for internal states, and that they do not collide with each other.
 
 #### Why do we use `process.send` instead of `context.pushData`?
 
-Since we use child processes, and each worker process has its own storage space, calling `context.pushData` will not work as we want it to work (each worker would just
-push to its own personal dataset that is considered the "default" one). Instead, we need to send the data back to the parent process, which has the dataset where we want to
-store the data, in a centralized place.
+Since we use child processes, and each worker process has its own storage space, calling `context.pushData` will not work as we want it to work (each worker would just push to its own personal dataset that is considered the "default" one). Instead, we need to send the data back to the parent process, which has the dataset where we want to store the data, in a centralized place.
 
-:::tip Why don't we apply the same logic we did to the request queue to the dataset?
+:::info Why don't we apply the same logic we did to the request queue to the dataset?
 
-This is a very valid question, but it has a simple answer: since each process tracks its own internal state of how a dataset looks like (when we are scrapping locally),
-the worker processes would get out of sync real fast and would either miss or override data. This is why we need to send the data back to the parent process, which has the dataset
-where we want to store the data, in a centralized place.
+This is a very valid question, but it has a simple answer: since each process tracks its own internal state of how a dataset looks like (when we are scrapping locally), the worker processes would get out of sync real fast and would either miss or override data. This is why we need to send the data back to the parent process, which has the dataset where we want to store the data, in a centralized place.
 
 Depending on your crawler, this might not be an issue! Each use case has its own quirks, but this is something you should keep in mind when building your scraper.
 
@@ -196,25 +176,20 @@ Depending on your crawler, this might not be an issue! Each use case has its own
 
 This question has a two-fold answer:
 
-- we don't want to overload the source website with requests, so we limit the number of concurrent requests to a reasonable number per worker process
+- we don't want to overload the target website with requests, so we limit the number of concurrent requests to a reasonable number per worker process
 - we don't want to overload the machine that is running the scraper
 
-This circles back to the initial paragraph about whether you should parallelize your scraper or not. Remember: scrape responsibly!
+This circles back to the initial paragraph about whether you should parallelize your scraper or not.
 
 ## Other questions
 
 #### Couldn't the `initial-scraper` be merged into the `parallel-scraper`?
 
-Technically, it could! Nothing stops you from first enqueuing all the URLs in the parent process, and then run the worker process logic after to scrape them.
-We separated them so it's easier to follow and understand what each part does, but you can merge them if you want to.
+Technically, it could! Nothing stops you from first enqueuing all the URLs in the parent process, and then run the worker process logic after to scrape them. We separated them so it's easier to follow and understand what each part does, but you can merge them if you want to.
 
 
 #### Will I benefit from this if I run XYZ scraper / want to scrape XYZ website?
 
 We don't know! 🤷
 
-What we do know is that first, you should build your scraper to work as a single scraper, then monitor its performance. Do you see it being too slow?
-Do you scrape many pages, or do the few pages you scrape take a long time to load? If so, then you might benefit from parallelization.
-When in doubt, follow the list of things to consider before parallelizing at the start of this guide.
-
-And always remember: scrape responsibly!
+What we do know is that first, you should build your scraper to work as a single scraper, then monitor its performance. Do you see it being too slow? Do you scrape many pages, or do the few pages you scrape take a long time to load? If so, then you might benefit from parallelization. When in doubt, follow the list of things to consider before parallelizing at the start of this guide.
