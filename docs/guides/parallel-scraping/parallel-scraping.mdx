@@ -27,7 +27,7 @@ In this guide, we will walk you through how you can turn your single scraper int
 Before you rush ahead and change your scraper to support parallelization, take a minute to consider the following factors:
 
 - Do you plan on scraping so many pages that you need to parallelize your scraper?
-  > For example, if your scraper goes across few pages, you probably don't need parallelization<br/>
+  > For example, if your scraper goes across a few pages, you probably don't need parallelization<br/>
   > But if you scrape a lot of pages, or you scrape pages that take a long time to load, you might want to consider parallelization
 - Can you parallelize your scraper while not overloading the target website?
   > For example, if you scrape a website that has a lot of traffic, you don't want to add to that traffic by running multiple scrapers in parallel as that might cause the website to go down for all its users
@@ -50,9 +50,9 @@ You can see it on the [Crawlee Parallel Scraping Example](https://github.com/api
 
 > _Hold on! I've used Crawlee before, and it has a `maxConcurrency` option! What's this for then?!_
 
-You're correct, Crawlee already supports scraping in "parallel" (more accurately called concurrent). What that enables is one process having multiple tasks that run in the background at the same time. But, as your scraping scales up in size, you will end up hitting bottlenecks, be them from the runtime simply not being able to process more requests at once, to resources like RAM and CPU being maxed out. You can only scale up resources so much before it stops providing a real benefit.
+You're correct, Crawlee already supports scraping in "parallel" (more accurately called concurrent). What that enables is one process having multiple tasks that run in the background at the same time. But, as your scraping operation scales up, you are likely to encounter bottlenecks. These can range from the runtime environment's inability to process more requests simultaneously, to resources like RAM and CPU being maxed out. You can only scale up resources so much before it stops providing a real benefit.
 
-This is what people refer to when saying vertical or horizontal scaling. Vertical scaling is when you increase the resources of a single process or machine, while horizontal scaling is when you increase the number of processes or machines. And horizontal scaling is the kind of scaling (or what we're referring to as "parallelization") we are showcasing in this guide!
+This is what people refer to when saying vertical or horizontal scaling. Vertical scaling is when you increase the resources of a single process or machine, while horizontal scaling is when you increase the number of processes or machines. Horizontal scaling, on the other hand, is the kind of scaling (or what we're referring to as "parallelization") we are showcasing in this guide!
 
 ## Preparing your scraper for parallelization
 
