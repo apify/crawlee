@@ -1,7 +1,8 @@
-import { tryAbsoluteURL } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import type { load, CheerioAPI } from 'cheerio';
 import cheerio from 'cheerio';
+
+import { tryAbsoluteURL } from './extract-urls';
 
 export type CheerioRoot = ReturnType<typeof load>;
 
