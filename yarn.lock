@@ -471,6 +471,7 @@ __metadata:
   dependencies:
     "@crawlee/http": "npm:3.7.1"
     "@crawlee/types": "npm:3.7.1"
+    "@crawlee/utils": "npm:3.7.1"
     cheerio: "npm:^1.0.0-rc.12"
     htmlparser2: "npm:^9.0.0"
     tslib: "npm:^2.4.0"
