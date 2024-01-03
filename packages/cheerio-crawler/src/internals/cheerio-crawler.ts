@@ -17,9 +17,9 @@ import {
     enqueueLinks,
     Router,
     resolveBaseUrlForEnqueueLinksFiltering,
-    tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
+import { extractUrlsFromCheerio } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { DomHandler } from 'htmlparser2';
@@ -235,36 +235,6 @@ export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, ori
         baseUrl,
         ...options,
     });
-}
-
-/**
- * Extracts URLs from a given Cheerio object.
- * @ignore
- */
-function extractUrlsFromCheerio($: cheerio.CheerioAPI, selector: string, baseUrl: string): string[] {
-    const base = $('base').attr('href');
-    const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
-
-    if (absoluteBaseUrl) {
-        baseUrl = absoluteBaseUrl;
-    }
-
-    return $(selector)
-        .map((_i, el) => $(el).attr('href'))
-        .get()
-        .filter((href) => !!href)
-        .map((href) => {
-            // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
-            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
-            if (!isHrefAbsolute && !baseUrl) {
-                throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
-                    + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
-            }
-            return baseUrl
-                ? tryAbsoluteURL(href, baseUrl)
-                : href;
-        })
-        .filter((href) => !!href) as string[];
 }
 
 /**

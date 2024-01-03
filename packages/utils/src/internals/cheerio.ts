@@ -1,6 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
-import type { load } from 'cheerio';
+import type { load, CheerioAPI } from 'cheerio';
 import cheerio from 'cheerio';
+
+import { tryAbsoluteURL } from './extract-urls';
 
 export type CheerioRoot = ReturnType<typeof load>;
 
@@ -76,4 +78,39 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
     process($body.length > 0 ? $body : $.root());
 
     return text.trim();
+}
+
+/**
+ * Extracts URLs from a given Cheerio object.
+ *
+ * @param $ the Cheerio object to extract URLs from
+ * @param selector a CSS selector for matching link elements
+ * @param baseUrl a URL for resolving relative links
+ * @throws when a relative URL is encountered with no baseUrl set
+ * @return An array of absolute URLs
+ */
+export function extractUrlsFromCheerio($: CheerioAPI, selector: string = 'a', baseUrl: string = ''): string[] {
+    const base = $('base').attr('href');
+    const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
+
+    if (absoluteBaseUrl) {
+        baseUrl = absoluteBaseUrl;
+    }
+
+    return $(selector)
+        .map((_i, el) => $(el).attr('href'))
+        .get()
+        .filter(Boolean)
+        .map((href) => {
+            // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
+            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
+            if (!isHrefAbsolute && !baseUrl) {
+                throw new Error(`An extracted URL: ${href} is relative and baseUrl is not set. `
+                    + 'Provide a baseUrl to automatically resolve relative URLs.');
+            }
+            return baseUrl
+                ? tryAbsoluteURL(href, baseUrl)
+                : href;
+        })
+        .filter(Boolean) as string[];
 }
