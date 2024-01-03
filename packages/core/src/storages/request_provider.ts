@@ -445,13 +445,6 @@ export abstract class RequestProvider implements IStorage {
             this._maybeAddRequestToQueueHead(request.id, forefront);
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
-        // Finally, try to delete the request lock (even if the request is not using locks)
-        try {
-            await this.client.deleteRequestLock(request.id, { forefront });
-        } catch {
-            // Oh well
-        }
-
         return queueOperationInfo;
     }
 
