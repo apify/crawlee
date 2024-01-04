@@ -136,6 +136,23 @@ class RequestQueue extends RequestProvider {
         return request;
     }
 
+    override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>): ReturnType<RequestProvider['reclaimRequest']> {
+        const res = await super.reclaimRequest(...args);
+
+        if (res) {
+            const [request, options] = args;
+
+            // Try to delete the request lock if possible
+            try {
+                await this.client.deleteRequestLock(request.id!, { forefront: options?.forefront ?? false });
+            } catch (err) {
+                this.log.debug(`Failed to delete request lock for request ${request.id}`, { err });
+            }
+        }
+
+        return res;
+    }
+
     protected async ensureHeadIsNonEmpty() {
         // Stop fetching if we are paused for migration
         if (this.queuePausedForMigration) {
