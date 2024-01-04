@@ -1,11 +1,13 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
 import { addTimeoutToPromise } from '@apify/timeout';
+import { MemoryStorage } from '@crawlee/memory-storage';
+import type { BatchAddRequestsResult } from '@crawlee/types';
+import { extractUrlsFromCheerio } from '@crawlee/utils';
 import { load, type CheerioAPI } from 'cheerio';
 
 import { calculateChangeRatio, type RenderingType } from './rendering-type-detection';
 import { RenderingTypePredictor } from './rendering-type-prediction';
-import { PlaywrightCrawler, Configuration } from '../..';
-import { EnqueueLinksOptions, PlaywrightCrawlingContext, PlaywrightCrawlerOptions, type BasicCrawlerOptions, type Dictionary } from '../..';
+import type { Configuration, EnqueueLinksOptions, PlaywrightCrawlingContext, PlaywrightCrawlerOptions, BasicCrawlerOptions, Dictionary } from '../..';
+import { PlaywrightCrawler } from '../..';
 
 interface RequestHandlerRunResult {
   enqueuedLinks: string[];
@@ -81,11 +83,16 @@ export class AdaptiveCrawler extends PlaywrightCrawler {
         const renderingTypePrediction = this.renderingTypePredictor.predict(url);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
-        const httpOnlyRunResult = shouldDetectRenderingType ? await this._dryRunRequestWithCheerio(crawlingContext) : undefined;
-        const browserRunResult: RequestHandlerRunResult = { enqueuedLinks: [], datasetEntries: [] };
+        const httpOnlyRunResult = shouldDetectRenderingType ? await this._dryRunRequestHandlerWithPlainHTTP(crawlingContext) : undefined;
 
         crawlingContext.log.info(
-            `Rendering type prediction ${renderingTypePrediction.renderingType} (rec. detection probability ${renderingTypePrediction.detectionProbabilityRecommendation}): ${crawlingContext.request.url}`,
+            `Rendering type prediction ${
+                renderingTypePrediction.renderingType
+            } (rec. detection probability ${
+                renderingTypePrediction.detectionProbabilityRecommendation
+            }): ${
+                crawlingContext.request.url
+            }`,
         );
 
         if (renderingTypePrediction.renderingType === 'clientOnly' || shouldDetectRenderingType) {
@@ -95,38 +102,9 @@ export class AdaptiveCrawler extends PlaywrightCrawler {
                 crawlingContext.log.info(`Crawling with Playwright: ${crawlingContext.request.url}`);
             }
 
-            await super._runRequestHandler(
-                new Proxy(crawlingContext, {
-                    get: (target, prop, receiver) => {
-                        if (prop === 'enqueueLinks') {
-                            return async (options?: EnqueueLinksOptions) => {
-                                const temporaryStorage = createTemporaryStorageClient();
-                                const spy = new RequestQueueSpy({ id: 'requests', client: temporaryStorage }); // TODO find a way to pull URLs from a request queue (or, more precisely, from MemoryStorage)
+            const browserRunResult = await this._runRequestHandlerInBrowser(crawlingContext);
 
-                                await target.enqueueLinks({ ...options, requestQueue: spy });
-
-                                browserRunResult.enqueuedLinks.push(...spy.urls);
-                                return await target.enqueueLinks(options);
-                            };
-                        }
-
-                        if (prop === 'pushData') {
-                            return async (data: Dictionary | Dictionary[]) => {
-                                if (Array.isArray(data)) {
-                                    browserRunResult.datasetEntries.push(...data);
-                                } else {
-                                    browserRunResult.datasetEntries.push(data);
-                                }
-                                return await target.pushData(data);
-                            };
-                        }
-
-                        return Reflect.get(target, prop, receiver);
-                    },
-                }),
-            );
-
-            if (shouldDetectRenderingType && httpOnlyRunResult !== undefined) {
+            if (shouldDetectRenderingType && httpOnlyRunResult !== undefined && browserRunResult !== undefined) {
                 const playwright$ = load(await crawlingContext.page.content());
                 const staticToDynamicChangeRatio = calculateChangeRatio(httpOnlyRunResult.$, playwright$);
                 const mutationCount: number = (crawlingContext.request.userData as Record<string, any>).mutationCount ?? 0;
@@ -146,37 +124,21 @@ export class AdaptiveCrawler extends PlaywrightCrawler {
                 this.renderingTypePredictor.storeResult(url, detectionResult);
             }
         } else {
-            crawlingContext.log.info(`Crawling with Cheerio: ${crawlingContext.request.url}`);
+            crawlingContext.log.info(`Crawling with plain HTTP: ${crawlingContext.request.url}`);
 
-            const datasetEntries: Dictionary[] = [];
+            const dryRunResult = await this._dryRunRequestHandlerWithPlainHTTP(crawlingContext);
 
-            await this.cheerioCrawler._runRequestHandler(  // TODO it should be possible to unify this with _dryRunRequestWithCheerio
-                new Proxy(crawlingContext, {
-                    get: (target, prop, receiver) => {
-                        if (prop === 'pushData') {
-                            return async (data: Dictionary | Dictionary[]) => {
-                                if (Array.isArray(data)) {
-                                    datasetEntries.push(...data);
-                                } else {
-                                    datasetEntries.push(data);
-                                }
-                            };
-                        }
-                        return Reflect.get(target, prop, receiver);
-                    },
-                }),
-            );
-
-            if (datasetEntries.some((entry) => !this.datasetEntryChecker(entry))) {
+            if (dryRunResult === undefined || dryRunResult.datasetEntries.some((entry) => !this.datasetEntryChecker(entry))) {
                 crawlingContext.log.info(`Suspicious dataset entry detected, restarting with Playwright: ${crawlingContext.request.url}`);
-                super._runRequestHandler(crawlingContext);
+                await super._runRequestHandler(crawlingContext);
             } else {
-                datasetEntries.forEach(async (entry) => this.pushData(entry));
+                dryRunResult.datasetEntries.forEach(async (entry) => this.pushData(entry));
+                // TODO insert enqueued links as well
             }
         }
     }
 
-    protected async _dryRunRequestWithCheerio(crawlingContext: PlaywrightCrawlingContext): Promise<DryRunResult | undefined> {
+    protected async _dryRunRequestHandlerWithPlainHTTP(crawlingContext: PlaywrightCrawlingContext): Promise<DryRunResult | undefined> {
         const response = await crawlingContext.sendRequest();
         const $ = load(response.body);
 
@@ -186,8 +148,6 @@ export class AdaptiveCrawler extends PlaywrightCrawler {
             datasetEntries: [],
         };
 
-        const temporaryStorage = createTemporaryStorageClient();
-
         try {
             await addTimeoutToPromise(
                 async () => Promise.resolve(
@@ -196,17 +156,13 @@ export class AdaptiveCrawler extends PlaywrightCrawler {
                 request: { ...crawlingContext.request, loadedUrl: crawlingContext.request.url } as any,
                 log: crawlingContext.log,
                 enqueueLinks: async (options: EnqueueLinksOptions) => {
-                    const spy = new RequestQueueSpy({ id: 'requests', client: temporaryStorage });
-                    const enqueueLinksResult = await cheerioCrawlerEnqueueLinks({ // TODO this reaches deep into internal code (extractUrlsFromCheerio), but duplicating it seems wrong
-                        $,
-                        options: { ...options, requestQueue: spy },
-                        requestQueue: spy,
-                        originalRequestUrl: crawlingContext.request.url,
-                        finalRequestUrl: crawlingContext.request.url,
-                    });
-                    result.enqueuedLinks.push(...spy.urls);
+                    const urls = extractUrlsFromCheerio($, options.selector, crawlingContext.request.url);
+                    result.enqueuedLinks.push(...urls);
 
-                    return enqueueLinksResult;
+                    return {
+                        processedRequests: [],
+                        unprocessedRequests: [],
+                    } satisfies BatchAddRequestsResult;
                 },
                 sendRequest: crawlingContext.sendRequest,
                 pushData: async (data: Dictionary | Dictionary[]) => {
@@ -235,5 +191,39 @@ export class AdaptiveCrawler extends PlaywrightCrawler {
             crawlingContext.log.exception(e as Error, 'Exception while probing');
             return undefined;
         }
+    }
+
+    protected async _runRequestHandlerInBrowser(crawlingContext: PlaywrightCrawlingContext): Promise<DryRunResult | undefined> {
+        const browserRunResult: RequestHandlerRunResult = { enqueuedLinks: [], datasetEntries: [] };
+
+        await super._runRequestHandler(
+            new Proxy(crawlingContext, {
+                get: (target, propertyName, receiver) => {
+                    if (propertyName === 'enqueueLinks') {
+                        return async (options?: EnqueueLinksOptions) => {
+                            const urls = extractUrlsFromCheerio(await crawlingContext.parseWithCheerio(), options?.selector)
+                            browserRunResult.enqueuedLinks.push(...urls)
+
+                            return await target.enqueueLinks(options);
+                        };
+                    }
+
+                    if (propertyName === 'pushData') {
+                        return async (data: Dictionary | Dictionary[]) => {
+                            if (Array.isArray(data)) {
+                                browserRunResult.datasetEntries.push(...data);
+                            } else {
+                                browserRunResult.datasetEntries.push(data);
+                            }
+                            return await target.pushData(data);
+                        };
+                    }
+
+                    return Reflect.get(target, propertyName, receiver);
+                },
+            }),
+        );
+
+        return { ...browserRunResult, $: await crawlingContext.parseWithCheerio() };
     }
 }
