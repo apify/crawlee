@@ -70,7 +70,7 @@ jobs:
 
     docs:
         name: Docs build
-        if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Source code
