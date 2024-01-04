@@ -247,13 +247,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.4.4":
-  version: 2.4.4
-  resolution: "@apify/log@npm:2.4.4"
+"@apify/log@npm:^2.4.5":
+  version: 2.4.5
+  resolution: "@apify/log@npm:2.4.5"
   dependencies:
     "@apify/consts": "npm:^2.24.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 19710515d03867a0288aa73b7f9b6598ddcf715c68dd74c0bc9c993b8e1d6907dd57453ac62b28c42980d485aa39e1173462c8b289a2f6eed1b80226efdd8499
+  checksum: 0bdfa4c3827f4333681af48ad37e1529e1ef5e46e82904dd9154ae1bbe23dfb07fcaf944d75b42b6c0c2e83367d32b081c649fd5e3125548e382ae3d28bb5db8
   languageName: node
   linkType: hard
 
@@ -265,12 +265,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.9.4
-  resolution: "@apify/utilities@npm:2.9.4"
+  version: 2.9.5
+  resolution: "@apify/utilities@npm:2.9.5"
   dependencies:
     "@apify/consts": "npm:^2.24.0"
-    "@apify/log": "npm:^2.4.4"
-  checksum: a789de9c06d6b030769c8168f202638a0bc6cc1b42b18a32cab05af9ee6c2c389c7d18aa616de244a17a09d10931310c9d5e58b8fb343e85900938e9f2b6808d
+    "@apify/log": "npm:^2.4.5"
+  checksum: 53fc6bbcbf11dcf427b9ab4ce245e2d7e19bfade99dfd5fc6034cc41079804b3415ac59a894ad207f96194831e740308bce78f12fb876020e7d2a418a9fad026
   languageName: node
   linkType: hard
 
@@ -3967,13 +3967,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"array-flatten@npm:^2.1.2":
-  version: 2.1.2
-  resolution: "array-flatten@npm:2.1.2"
-  checksum: bdc1cee68e41bec9cfc1161408734e2269428ef371445606bce4e6241001e138a94b9a617cc9a5b4b7fe6a3a51e3d5a942646975ce82a2e202ccf3e9b478c82f
-  languageName: node
-  linkType: hard
-
 "array-includes@npm:^3.1.6, array-includes@npm:^3.1.7":
   version: 3.1.7
   resolution: "array-includes@npm:3.1.7"
@@ -4143,13 +4136,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.5.0":
-  version: 1.6.3
-  resolution: "axios@npm:1.6.3"
+  version: 1.6.4
+  resolution: "axios@npm:1.6.4"
   dependencies:
-    follow-redirects: "npm:^1.15.0"
+    follow-redirects: "npm:^1.15.4"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: dcc6d982353db33e6893ef01cdf81d0a0548dbd8fba0cb046dc4aee1a6a16226721faa4c2a13b2673d47130509629cdb93bb991b3a2bd4ef17a5ac27a8bba0da
+  checksum: daac697fa1ea9865cb48e9edb7eacd99e8a9214997f2d8e886cb61c380a613e5c270078bfc153ac96206680106c223f005f0e4bf2f3b2ddd88e559ecf970521f
   languageName: node
   linkType: hard
 
@@ -4297,14 +4290,12 @@ __metadata:
   linkType: hard
 
 "bonjour-service@npm:^1.0.11":
-  version: 1.1.1
-  resolution: "bonjour-service@npm:1.1.1"
+  version: 1.2.0
+  resolution: "bonjour-service@npm:1.2.0"
   dependencies:
-    array-flatten: "npm:^2.1.2"
-    dns-equal: "npm:^1.0.0"
     fast-deep-equal: "npm:^3.1.3"
     multicast-dns: "npm:^7.2.5"
-  checksum: 8dd3fef3ff8a11678d8f586be03c85004a45bae4353c55d7dbffe288cad73ddb38dee08b57425b9945c9a3a840d50bd40ae5aeda0066186dabe4b84a315b4e05
+  checksum: f933010d15cc885864678cd1bca5ca615379a039b4420d8af07f97d7cc368bf294db8d3855a35213cba148bb83a704f8c6c92879d5d8536c8aa4f5210284ade0
   languageName: node
   linkType: hard
 
@@ -5665,13 +5656,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dns-equal@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "dns-equal@npm:1.0.0"
-  checksum: da966e5275ac50546e108af6bc29aaae2164d2ae96d60601b333c4a3aff91f50b6ca14929cf91f20a9cad1587b356323e300cea3ff6588a6a816988485f445f1
-  languageName: node
-  linkType: hard
-
 "dns-packet@npm:^5.2.2":
   version: 5.6.1
   resolution: "dns-packet@npm:5.6.1"
@@ -5844,9 +5828,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.617
-  resolution: "electron-to-chromium@npm:1.4.617"
-  checksum: ffc594fdf605abe613ef94e2baefec135f21971ff977207bbcb978e5dc0f2684d6667f549c125e064ff8972dec26a74f1447c9eca1c00c2279a51172dc6451c3
+  version: 1.4.619
+  resolution: "electron-to-chromium@npm:1.4.619"
+  checksum: f8c96f3100f48235e45dc1d40f91813d3499ab89153ddfa6d60ea0fa5a0c4067314d5ac93b9f5785ab0d7829d5bb34d7d47729aa5443a773b8d2393c36d214ff
   languageName: node
   linkType: hard
 
@@ -6817,7 +6801,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.15.0":
+"follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.15.4":
   version: 1.15.4
   resolution: "follow-redirects@npm:1.15.4"
   peerDependenciesMeta:
