@@ -22,10 +22,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.19.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@apify/consts@npm:2.24.0"
-  checksum: b60138c782d61ac2e08d960eaebf8b3c561c333218df0e5d1b531e0d3ca5be07f4e501117b5a4aa67534fde442f0c372173098f325c2c2d649bec49d0fac57fb
+"@apify/consts@npm:^2.19.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0":
+  version: 2.25.0
+  resolution: "@apify/consts@npm:2.25.0"
+  checksum: c047f1300448c5eebb1f9865be768990969d7d0b21a15d9ae5e44878fc2286d868e49a6bbbfedd1656d3ee45e20b9d3a84a08384982cb9034114078f3e498880
   languageName: node
   linkType: hard
 
@@ -73,23 +73,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.42
-  resolution: "@apify/input_secrets@npm:1.1.42"
+  version: 1.1.43
+  resolution: "@apify/input_secrets@npm:1.1.43"
   dependencies:
-    "@apify/log": "npm:^2.4.5"
-    "@apify/utilities": "npm:^2.9.5"
+    "@apify/log": "npm:^2.4.6"
+    "@apify/utilities": "npm:^2.9.6"
     ow: "npm:^0.28.2"
-  checksum: 2debe30505ebde41ea14fab0a686a60676a1d22be36c71fe5bcc495a60794d1232f5f2325767432374ca15396964fef48409494b4a142239d9c08e1d7bd58100
+  checksum: dda8905d69cff6b694a87003e2a89a47250f7ce33a04bfe698d1fa899c2ee28ff663fdccd0c9e9ceb968fe4a9bc9d98556a35d502eec2a274b43a3c5afa62f6c
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.4.5":
-  version: 2.4.5
-  resolution: "@apify/log@npm:2.4.5"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.4.6":
+  version: 2.4.6
+  resolution: "@apify/log@npm:2.4.6"
   dependencies:
-    "@apify/consts": "npm:^2.24.0"
+    "@apify/consts": "npm:^2.25.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 0bdfa4c3827f4333681af48ad37e1529e1ef5e46e82904dd9154ae1bbe23dfb07fcaf944d75b42b6c0c2e83367d32b081c649fd5e3125548e382ae3d28bb5db8
+  checksum: 56e8c416dfa9e58641c625ef9ac1a54ce914c2c2de593ebce5335238e679bd3b6df646fda51c16c42c48052f15fc74196a6802fdc9d11884f091b5b87c10cd48
   languageName: node
   linkType: hard
 
@@ -105,12 +105,12 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.35
-  resolution: "@apify/pseudo_url@npm:2.0.35"
+  version: 2.0.36
+  resolution: "@apify/pseudo_url@npm:2.0.36"
   dependencies:
-    "@apify/log": "npm:^2.4.5"
+    "@apify/log": "npm:^2.4.6"
     "@sapphire/shapeshift": "npm:^3.6.0"
-  checksum: 14904a24c72d369bbddb3752094b292256c9e98dc15b9424160abf7d26587b8a451534b9262d9d85d35cbc8676453ae89c29abb3b05613d7622b6ce35a701d21
+  checksum: fc7a27ec8703da01467468bd14f02929b3f72655432104ebd4c0b1c638fb654547bba8a9002d2c3271da460ce4dfc196a3c5a3d95253f623d927c99becfbcc8d
   languageName: node
   linkType: hard
 
@@ -128,13 +128,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3, @apify/utilities@npm:^2.9.5":
-  version: 2.9.5
-  resolution: "@apify/utilities@npm:2.9.5"
+"@apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3, @apify/utilities@npm:^2.9.6":
+  version: 2.9.6
+  resolution: "@apify/utilities@npm:2.9.6"
   dependencies:
-    "@apify/consts": "npm:^2.24.0"
-    "@apify/log": "npm:^2.4.5"
-  checksum: 53fc6bbcbf11dcf427b9ab4ce245e2d7e19bfade99dfd5fc6034cc41079804b3415ac59a894ad207f96194831e740308bce78f12fb876020e7d2a418a9fad026
+    "@apify/consts": "npm:^2.25.0"
+    "@apify/log": "npm:^2.4.6"
+  checksum: bee52a5f872d1fda4a500a9169c9f307bbe2eca9a5b1025ef881184bc360f2c0f5201e47c88c9e312fac49ab133a299547372c68951aa1ee64cd67f51643633c
   languageName: node
   linkType: hard
 
@@ -194,11 +194,11 @@ __metadata:
   linkType: hard
 
 "@babel/runtime@npm:^7.23.2":
-  version: 7.23.7
-  resolution: "@babel/runtime@npm:7.23.7"
+  version: 7.23.8
+  resolution: "@babel/runtime@npm:7.23.8"
   dependencies:
     regenerator-runtime: "npm:^0.14.0"
-  checksum: 3e304133ee55b0750e03e53cb4efb47fb2bdcdb5795f85bbffa10595196c34b9be60eb65bd6d833c87f49fc827f0365f86f95f51d85b188004d3128bb5129c93
+  checksum: ba5e8fbb32ef04f6cab5e89c54a0497c2fde7b730595cc1af93496270314f13ff2c6a9360fdb2f0bdd4d6b376752ce3cf85642bd6b876969a6a62954934c2df8
   languageName: node
   linkType: hard
 
@@ -2706,8 +2706,8 @@ __metadata:
   linkType: hard
 
 "apify@npm:*":
-  version: 3.1.14
-  resolution: "apify@npm:3.1.14"
+  version: 3.1.15
+  resolution: "apify@npm:3.1.15"
   dependencies:
     "@apify/consts": "npm:^2.23.0"
     "@apify/input_secrets": "npm:^1.1.40"
@@ -2722,7 +2722,7 @@ __metadata:
     semver: "npm:^7.5.4"
     tslib: "npm:^2.6.2"
     ws: "npm:^7.5.9"
-  checksum: 15ce2277f269c28c3abf87275682426be894497fa35bde648d175cd11cf0d88bdb9421dd802bfbe79e1b36114fe5d9c7baf73907290c955db138dadb7825c234
+  checksum: c4e8f4efa82fe9688a2a06096ad85aad4ff8f05f59d87a34d34cac179191856bf6e4c1813a76a4c998fadf010371f01845e22bef48f08fab9f603ecb91532a33
   languageName: node
   linkType: hard
 
@@ -4476,9 +4476,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.623
-  resolution: "electron-to-chromium@npm:1.4.623"
-  checksum: 3faa47df308936b4820f642d7957417bdcc8f81f2446adee73147e543653f81be3dcfa973d5e287ed1481a281d4926114c287967d75798f35b3af8ddad169875
+  version: 1.4.625
+  resolution: "electron-to-chromium@npm:1.4.625"
+  checksum: 81df3118f944307f0f7ddc2933bcd966f3aecf2a71e45b6609a9618d06c7a5cdaeef4dd04f1d0874d214fabc59ecd356ae1b171147fc477be133400def403d4d
   languageName: node
   linkType: hard
 
@@ -8636,11 +8636,11 @@ __metadata:
   linkType: hard
 
 "npm-packlist@npm:^8.0.0":
-  version: 8.0.1
-  resolution: "npm-packlist@npm:8.0.1"
+  version: 8.0.2
+  resolution: "npm-packlist@npm:8.0.2"
   dependencies:
     ignore-walk: "npm:^6.0.4"
-  checksum: 40a61e7c4ee3d7ae29314b554cba00d8ce7f934c2949043fe137b48a69f8c6dbec222b45bc3176667ea78aae275764e0e2d659017833f47673324ddc2abfd50e
+  checksum: ac3140980b1475c2e9acd3d0ca1acd0f8660c357aed357f1a4ebff2270975e0280a3b1c4938e2f16bd68217853ceb5725cf8779ec3752dfcc546582751ceedff
   languageName: node
   linkType: hard
 
