@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.7.2](https://github.com/apify/crawlee/compare/v3.7.1...v3.7.2) (2024-01-09)
+
+
+### Bug Fixes
+
+* **RequestQueue:** always clear locks when a request is reclaimed ([#2263](https://github.com/apify/crawlee/issues/2263)) ([0fafe29](https://github.com/apify/crawlee/commit/0fafe290103655d450c61da78522491efde8a866)), closes [#2262](https://github.com/apify/crawlee/issues/2262)
+
+
+
+
+
 ## [3.7.1](https://github.com/apify/crawlee/compare/v3.7.0...v3.7.1) (2024-01-02)
 
 
