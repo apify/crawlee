@@ -45,7 +45,8 @@
         "guides/jsdom-crawler-guide",
         "guides/got-scraping",
         "guides/typescript-project",
-        "guides/docker-images"
+        "guides/docker-images",
+        "guides/parallel-scraping/parallel-scraping-guide"
       ]
     },
     {

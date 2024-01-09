@@ -1,5 +1,6 @@
-const { urlToRequest } = require('loader-utils');
 const { inspect } = require('util');
+
+const { urlToRequest } = require('loader-utils');
 
 const signingUrl = new URL('https://api.apify.com/v2/tools/encode-and-sign');
 signingUrl.searchParams.set('token', process.env.APIFY_SIGNING_TOKEN);
@@ -22,16 +23,23 @@ async function getHash(source) {
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
         },
-    })).json();
+    }));
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    if (!res.data || !res.data.encoded) {
-        console.error(`Signing failed:' ${inspect(res.error) || 'Unknown error'}`, res);
+    if (!res.ok) {
+        console.error(`Signing failed: ${res.status} ${res.statusText}`, await res.text());
         return 'invalid-token';
     }
 
-    return res.data.encoded;
+    const body = await res.json();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    if (!body.data || !body.data.encoded) {
+        console.error(`Signing failed:' ${inspect(body.error) || 'Unknown error'}`, body);
+        return 'invalid-token';
+    }
+
+    return body.data.encoded;
 }
 
 async function encodeAndSign(source) {
@@ -67,6 +75,7 @@ module.exports = async function (code) {
     if (process.env.CRAWLEE_DOCS_FAST) {
         return { code, hash: 'fast' };
     }
+
     console.log(`Signing ${urlToRequest(this.resourcePath)}...`, { working, queue: queue.length });
     const hash = await encodeAndSign(code);
     return { code, hash };
