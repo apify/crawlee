@@ -37,6 +37,9 @@ function Hero() {
                         <div className="col">
                             <div className={styles.heroButtons}>
                                 <Link to="docs/introduction" className={styles.getStarted}>Get Started</Link>
+                                <a href="https://www.ycombinator.com/launches/H3J-crawlee-the-web-scraping-and-browser-automation-library" target="_blank" rel="noreferrer" style={{ height: 52 }}>
+                                    <img alt="Launch YC: Crawlee 🕸 The web scraping and browser automation library" style={{ width: 240, height: 52 }} src="https://www.ycombinator.com/launches/H3J-crawlee-the-web-scraping-and-browser-automation-library/upvote_embed.svg/"/>
+                                </a>
                                 <iframe src="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large" frameBorder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
                             </div>
                         </div>
@@ -198,9 +201,9 @@ function Deployment() {
                     Crawlee is developed by <a href="https://apify.com" rel="dofollow noreferrer" target="_blank"><b>Apify</b></a>, the web scraping and automation platform.
                     You can deploy a <b>Crawlee</b> project wherever you want (see our deployment guides for <a href="https://crawlee.dev/docs/deployment/aws-cheerio"><b>AWS
                     Lambda</b></a> and <a href="https://crawlee.dev/docs/deployment/gcp-cheerio"><b>Google Cloud</b></a>), but using the&nbsp;
-                    <a href="https://console.apify.com/" target="_blank"><b>Apify platform</b></a> will give you the best experience. With a few simple steps,
+                    <a href="https://console.apify.com/" target="_blank" rel="noreferrer"><b>Apify platform</b></a> will give you the best experience. With a few simple steps,
                     you can convert your <b>Crawlee</b> project into a so-called <b>Actor</b>. Actors are serverless micro-apps that are easy to develop, run,
-                    share, and integrate. The infra, proxies, and storages are ready to go. <a href="https://apify.com/actors" target="_blank">Learn more about Actors</a>.
+                    share, and integrate. The infra, proxies, and storages are ready to go. <a href="https://apify.com/actors" target="_blank" rel="noreferrer">Learn more about Actors</a>.
                 </p>
                 <p>
                     1️⃣ First, install the <b>Apify SDK</b> to your project, as well as the <b>Apify CLI</b>. The SDK will help with the Apify integration,
@@ -211,7 +214,7 @@ function Deployment() {
                 </CodeBlock>
                 <p>
                     2️⃣ The next step is to add <code>Actor.init()</code> to the beginning of your main script and <code>Actor.exit()</code> to the end of it.
-                    This will enable the integration to the Apify Platform, so the <a href="https://apify.com/storage" target="_blank">cloud
+                    This will enable the integration to the Apify Platform, so the <a href="https://apify.com/storage" target="_blank" rel="noreferrer">cloud
                     storages</a> (e.g. <code>RequestQueue</code>) will be used. The code should look like this:
                 </p>
                 <RunnableCodeBlock className="language-typescript" type="playwright">
@@ -221,7 +224,7 @@ function Deployment() {
                     }}
                 </RunnableCodeBlock>
                 <p>
-                    3️⃣ Then you will need to <a href="https://console.apify.com/sign-up" target="_blank">sign up for the Apify account</a>. Once you have it,
+                    3️⃣ Then you will need to <a href="https://console.apify.com/sign-up" target="_blank" rel="noreferrer">sign up for the Apify account</a>. Once you have it,
                     use the Apify CLI to log in via <code>apify login</code>. The last two steps also involve the Apify CLI. Call the <code>apify
                     init</code> first, which will add Apify config to your project, and finally run the <code>apify push</code> to deploy it.
                 </p>
