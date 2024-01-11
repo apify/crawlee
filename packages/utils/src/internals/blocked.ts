@@ -1,5 +1,5 @@
 export const CLOUDFLARE_RETRY_CSS_SELECTORS = [
-    'iframe[src^="https://challenges.cloudflare.com"]',
+    '#turnstile-wrapper iframe[src^="https://challenges.cloudflare.com"]',
 ];
 
 /**
