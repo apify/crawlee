@@ -5,9 +5,9 @@ import type { Response as GotResponse, OptionsInit } from 'got-scraping';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links';
 import type { Log } from '../log';
 import type { ProxyInfo } from '../proxy_configuration';
-import type { Request } from '../request';
+import type { Request, Source } from '../request';
 import type { Session } from '../session_pool/session';
-import { type Dataset } from '../storages';
+import { RequestQueueOperationOptions, type Dataset } from '../storages';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
@@ -80,4 +80,18 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * ```
      */
     sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
+}
+
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
+    request: Request<UserData>;
+    pushData: (record: Dictionary, datasetName?: string) => Promise<void>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<void>;
+    addRequests: (
+        requestsLike: Source[],
+        options?: RequestQueueOperationOptions,
+    ) => Promise<void>;
+    getStoreValue: <Value = unknown>(key: string, defaultValue?: Value) => Promise<Value>
+    setStoreValue: <Value = unknown>(key: string, value: Value) => Promise<void>
+    useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>
+    log: Log
 }
