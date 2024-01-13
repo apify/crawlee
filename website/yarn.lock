@@ -247,13 +247,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.4.6":
-  version: 2.4.6
-  resolution: "@apify/log@npm:2.4.6"
+"@apify/log@npm:^2.4.7":
+  version: 2.4.7
+  resolution: "@apify/log@npm:2.4.7"
   dependencies:
     "@apify/consts": "npm:^2.25.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 56e8c416dfa9e58641c625ef9ac1a54ce914c2c2de593ebce5335238e679bd3b6df646fda51c16c42c48052f15fc74196a6802fdc9d11884f091b5b87c10cd48
+  checksum: e1254d35441d03ca02d1c0b86432d92495ed1f490bc172624e3136f54694ce3d43301a5b93629d56ab54095b47dbe3d544bd87e770d72adf801bbed7687d1dc5
   languageName: node
   linkType: hard
 
@@ -265,12 +265,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.9.6
-  resolution: "@apify/utilities@npm:2.9.6"
+  version: 2.9.7
+  resolution: "@apify/utilities@npm:2.9.7"
   dependencies:
     "@apify/consts": "npm:^2.25.0"
-    "@apify/log": "npm:^2.4.6"
-  checksum: bee52a5f872d1fda4a500a9169c9f307bbe2eca9a5b1025ef881184bc360f2c0f5201e47c88c9e312fac49ab133a299547372c68951aa1ee64cd67f51643633c
+    "@apify/log": "npm:^2.4.7"
+  checksum: 36de2663b0e5ff45f26c7db5026f19c6ab8e0b37aa41b1a84bdcecf02b4cd897be6970da3f8bce0a3c83dab3c2f2c4d2ab75bef3f3a830ab1f9503bbed09cc72
   languageName: node
   linkType: hard
 
@@ -2501,12 +2501,12 @@ __metadata:
   linkType: hard
 
 "@jridgewell/trace-mapping@npm:^0.3.17, @jridgewell/trace-mapping@npm:^0.3.20, @jridgewell/trace-mapping@npm:^0.3.9":
-  version: 0.3.20
-  resolution: "@jridgewell/trace-mapping@npm:0.3.20"
+  version: 0.3.21
+  resolution: "@jridgewell/trace-mapping@npm:0.3.21"
   dependencies:
     "@jridgewell/resolve-uri": "npm:^3.1.0"
     "@jridgewell/sourcemap-codec": "npm:^1.4.14"
-  checksum: 0ea0b2675cf513ec44dc25605616a3c9b808b9832e74b5b63c44260d66b58558bba65764f81928fc1033ead911f8718dca1134049c3e7a93937faf436671df31
+  checksum: 4ae1c862ca0a12e1fb08ee48bb2fd65667a5258a97cc37a8708ff1e1d6a351e6a1166f2f806a9d9b9680f841da9fbde35fe6bd971eee3bdf1c10ea669ba5707a
   languageName: node
   linkType: hard
 
@@ -5828,9 +5828,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.628
-  resolution: "electron-to-chromium@npm:1.4.628"
-  checksum: f6acc6b18eaa22e946d47dce25c194ff0f3aa4d1ca95e8a02f5a6d9bb99d25a6fadcb1da64fa6a6ea2de5b01cd3892f395a3f547b0ef1b4758087bf842e7e123
+  version: 1.4.630
+  resolution: "electron-to-chromium@npm:1.4.630"
+  checksum: dbe3b3437b00f978aa261e1ee9c80eebaba70dea601866b0d64e36f7146328c79bce8416652e4713cfeb0e22428cc7ec1751881860ec892fa32ec8de015d1a9e
   languageName: node
   linkType: hard
 
@@ -6802,12 +6802,12 @@ __metadata:
   linkType: hard
 
 "follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.15.4":
-  version: 1.15.4
-  resolution: "follow-redirects@npm:1.15.4"
+  version: 1.15.5
+  resolution: "follow-redirects@npm:1.15.5"
   peerDependenciesMeta:
     debug:
       optional: true
-  checksum: 5f37ed9170c9eb19448c5418fdb0f2b73f644b5364834e70791a76ecc7db215246f9773bbef4852cfae4067764ffc852e047f744b661b0211532155b73556a6a
+  checksum: 418d71688ceaf109dfd6f85f747a0c75de30afe43a294caa211def77f02ef19865b547dfb73fde82b751e1cc507c06c754120b848fe5a7400b0a669766df7615
   languageName: node
   linkType: hard
 
@@ -11199,11 +11199,11 @@ __metadata:
   linkType: hard
 
 "prettier@npm:^3.0.0":
-  version: 3.1.1
-  resolution: "prettier@npm:3.1.1"
+  version: 3.2.1
+  resolution: "prettier@npm:3.2.1"
   bin:
     prettier: bin/prettier.cjs
-  checksum: facc944ba20e194ff4db765e830ffbcb642803381f0d2033ed397e79904fa4ccc877dc25ad68f42d36985c01d051c990ca1b905fb83d2d7d65fe69e4386fa1a3
+  checksum: e01284f25c1e9a96dfaf4f7d0bfdf0726b26afc732b0e645a2653174d4ad5a1e85ae21ec4d327c71536f1acf8fee1dff5ea35c5b4b8e5b83ff00fe1dd6fef146
   languageName: node
   linkType: hard
 
