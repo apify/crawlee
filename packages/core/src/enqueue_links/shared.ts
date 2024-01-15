@@ -78,7 +78,7 @@ export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: PseudoUrlInput[
  */
 export function constructGlobObjectsFromGlobs(globs: GlobInput[]): GlobObject[] {
     return globs
-        .filter((glob) => ((glob as GlobObject).glob || (glob as string)).trim().length > 0)
+        .filter((glob) => glob && ((glob as GlobObject).glob || (glob as string) || '').trim().length > 0)
         .map((item) => {
         // Get glob object from cache.
             let globObject = enqueueLinksPatternCache.get(item);
