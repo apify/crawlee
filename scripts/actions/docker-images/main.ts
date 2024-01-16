@@ -4,6 +4,7 @@ The main entry point of the docker action.
 The following env variables are available:
 - ACTIONS_TOKEN - required; a GitHub PAT
 - CRAWLEE_BETA_VERSION - if set, the action will deploy to the beta channel, and for the specified crawlee version
+- TRIGGER_LATEST - if set to true, the action will trigger a full deploy of all images based on the current state (useful if the base images from apify have been updated for instance)
 - CUSTOM_DISPATCH_REPOSITORY - if set, the action will dispatch to the specified repository instead of apify/apify-actor-docker
 
 Run with `bun run-ci` in the actions/docker-images directory.
@@ -55,7 +56,7 @@ const newState: StateFile = {
 if (process.env.CRAWLEE_BETA_VERSION) {
     info(`👀 Crawlee beta version detected, deploying to beta channel`);
     debug(
-        `Crawlee:${process.env.CRAWLEE_BETA_VERSION} Puppeteer:${lastPuppeteerVersions.at(
+        `  Crawlee:${process.env.CRAWLEE_BETA_VERSION} Puppeteer:${lastPuppeteerVersions.at(
             -1,
         )} Playwright:${lastPlaywrightVersions.at(-1)} Apify:${apifyVersion}`,
     );
@@ -73,6 +74,54 @@ if (process.env.CRAWLEE_BETA_VERSION) {
     // Keep the old state in place
     newState.playwrightVersions = state.playwrightVersions;
     newState.puppeteerVersions = state.puppeteerVersions;
+} else if (process.env.TRIGGER_LATEST === 'true') {
+    info(`👀 Re-triggering a full Docker build`);
+    debug(
+        `  Crawlee:${crawleeVersion} Apify:${apifyVersion}`,
+    );
+
+    // Keep the old state in place
+    newState.playwrightVersions = state.playwrightVersions;
+    newState.puppeteerVersions = state.puppeteerVersions;
+
+    for (const [index, puppeteerVersion] of lastPuppeteerVersions.entries()) {
+        info(`  👀 Scheduling deploy for puppeteer: ${puppeteerVersion}`);
+        apiCalls.push({
+            eventType: EventType.Puppeteer,
+            apify_version: apifyVersion,
+            crawlee_version: crawleeVersion,
+            // Doesn't matter as this will only trigger puppeteer images
+            playwright_version: '0.0.0',
+            puppeteer_version: puppeteerVersion,
+            release_tag: 'latest',
+            is_latest_browser_image: index === lastPuppeteerVersions.length - 1,
+        });
+    }
+
+    for (const [index, playwrightVersion] of lastPlaywrightVersions.entries()) {
+        info(`  👀 Scheduling deploy for playwright: ${playwrightVersion}`);
+        apiCalls.push({
+            eventType: EventType.Playwright,
+            apify_version: apifyVersion,
+            crawlee_version: crawleeVersion,
+            playwright_version: playwrightVersion,
+            // Doesn't matter as this will only trigger playwright images
+            puppeteer_version: '0.0.0',
+            release_tag: 'latest',
+            is_latest_browser_image: index === lastPlaywrightVersions.length - 1,
+        });
+    }
+
+    info(`  👀 Scheduling deploy for node image`);
+    apiCalls.push({
+        eventType: EventType.Node,
+        apify_version: apifyVersion,
+        crawlee_version: crawleeVersion,
+        is_latest_browser_image: true,
+        playwright_version: '0.0.0',
+        puppeteer_version: '0.0.0',
+        release_tag: 'latest',
+    });
 } else {
     // Step 1. Adjust the playwright/puppeteer versions to the latest 5
     newState.playwrightVersions = lastPlaywrightVersions;
@@ -85,7 +134,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
         // Step 3. Find all versions that are not yet deployed for each browser
         for (const [index, newPlaywrightVersion] of lastPlaywrightVersions.entries()) {
             if (!state.playwrightVersions?.includes(newPlaywrightVersion)) {
-                info(`👀 New playwright version detected: ${newPlaywrightVersion}, scheduling for deploy`);
+                info(`  👀 New playwright version detected: ${newPlaywrightVersion}, scheduling for deploy`);
                 apiCalls.push({
                     eventType: EventType.Playwright,
                     apify_version: apifyVersion,
@@ -101,7 +150,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
 
         for (const [index, newPuppeteerVersion] of lastPuppeteerVersions.entries()) {
             if (!state.puppeteerVersions?.includes(newPuppeteerVersion)) {
-                info(`👀 New puppeteer version detected: ${newPuppeteerVersion}, scheduling for deploy`);
+                info(`  👀 New puppeteer version detected: ${newPuppeteerVersion}, scheduling for deploy`);
                 apiCalls.push({
                     eventType: EventType.Puppeteer,
                     apify_version: apifyVersion,
@@ -116,7 +165,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
         }
     } else {
         for (const [index, newPuppeteerVersion] of lastPuppeteerVersions.entries()) {
-            info(`👀 Scheduling build for puppeteer: ${newPuppeteerVersion} and crawlee ${crawleeVersion} for deploy`);
+            info(`  👀 Scheduling build for puppeteer: ${newPuppeteerVersion} and crawlee ${crawleeVersion} for deploy`);
 
             apiCalls.push({
                 eventType: EventType.Puppeteer,
@@ -132,7 +181,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
 
         for (const [index, newPlaywrightVersion] of lastPlaywrightVersions.entries()) {
             info(
-                `👀 Scheduling build for playwright: ${newPlaywrightVersion} and crawlee ${crawleeVersion} for deploy`,
+                `  👀 Scheduling build for playwright: ${newPlaywrightVersion} and crawlee ${crawleeVersion} for deploy`,
             );
 
             apiCalls.push({
@@ -147,7 +196,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
             });
         }
 
-        info(`👀 Scheduling build for node image with crawlee ${crawleeVersion} for deploy`);
+        info(`  👀 Scheduling build for node image with crawlee ${crawleeVersion} for deploy`);
         apiCalls.push({
             eventType: EventType.Node,
             apify_version: apifyVersion,

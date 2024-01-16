@@ -5,9 +5,13 @@ on:
     workflow_dispatch:
         inputs:
             crawlee_version:
-                description: Custom crawlee version to deploy
+                description: Custom crawlee version to deploy (takes precedence over trigger_latest)
                 type: string
                 default: ''
+            trigger_latest:
+                description: Rebuilds all images with the latest crawlee version
+                type: boolean
+                default: false
     repository_dispatch:
         types:
             - crawlee-docker-image-bump
@@ -17,6 +21,7 @@ on:
 env:
     ACTIONS_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
     CRAWLEE_BETA_VERSION: ${{ github.event.inputs.crawlee_version || github.event.client_payload.crawlee_version || '' }}
+    TRIGGER_LATEST: ${{ github.event.inputs.trigger_latest || github.event.client_payload.trigger_latest || false }}
 
 jobs:
     trigger_ci:
@@ -54,6 +59,7 @@ jobs:
               env:
                   ACTIONS_TOKEN: ${{ env.ACTIONS_TOKEN }}
                   CRAWLEE_BETA_VERSION: ${{ env.CRAWLEE_BETA_VERSION }}
+                  TRIGGER_LATEST: ${{ env.TRIGGER_LATEST }}
 
             - name: Update Docker state
               run: |
