@@ -7,7 +7,7 @@ import type { Log } from '../log';
 import type { ProxyInfo } from '../proxy_configuration';
 import type { Request, Source } from '../request';
 import type { Session } from '../session_pool/session';
-import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
+import type { RequestQueueOperationOptions, Dataset, KeyValueStore } from '../storages';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
@@ -90,8 +90,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
         requestsLike: Source[],
         options?: RequestQueueOperationOptions,
     ) => Promise<void>;
-    getStoreValue: <Value = unknown>(key: string, defaultValue?: Value) => Promise<Value>;
-    setStoreValue: <Value = unknown>(key: string, value: Value, options?: RecordOptions) => Promise<void>;
     useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>;
+    getKeyValueStore: () => Promise<Pick<KeyValueStore, "getValue" | "getAutoSavedValue" | "setValue" | "id" | "name">>
     log: Log;
 }
