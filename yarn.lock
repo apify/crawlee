@@ -22,17 +22,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.19.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0":
-  version: 2.25.0
-  resolution: "@apify/consts@npm:2.25.0"
-  checksum: c047f1300448c5eebb1f9865be768990969d7d0b21a15d9ae5e44878fc2286d868e49a6bbbfedd1656d3ee45e20b9d3a84a08384982cb9034114078f3e498880
+"@apify/consts@npm:^2.19.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.1":
+  version: 2.25.1
+  resolution: "@apify/consts@npm:2.25.1"
+  checksum: fddbe51d0f7bc9ea0401f903af4b442df8fd5d6e6f8b99c29c5ae1b34b3ff7f80c190b0fbcc84bc06ce57650a34dde5e9fc86aa7451b71ff962c5d6482ce35b7
   languageName: node
   linkType: hard
 
 "@apify/datastructures@npm:^2.0.0":
-  version: 2.0.1
-  resolution: "@apify/datastructures@npm:2.0.1"
-  checksum: 1552937b4df112f72e6299ad5ce3d822e499959c5ec6c965de8481f32c9b7ad47b8320dd7514cdd485eb25cce1dcc9a9f55adcc25f91385d237c0d3520fa9d3a
+  version: 2.0.2
+  resolution: "@apify/datastructures@npm:2.0.2"
+  checksum: d52b852bdc72be5e7debe72a90bd15deede574ae0d6313556fa8da148c87e36a3028105423e8b498569fd52c7b71579e5c517d1a3e89a7ffc6c6df512add0335
   languageName: node
   linkType: hard
 
@@ -73,23 +73,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.44
-  resolution: "@apify/input_secrets@npm:1.1.44"
+  version: 1.1.45
+  resolution: "@apify/input_secrets@npm:1.1.45"
   dependencies:
-    "@apify/log": "npm:^2.4.7"
-    "@apify/utilities": "npm:^2.9.7"
+    "@apify/log": "npm:^2.4.8"
+    "@apify/utilities": "npm:^2.9.8"
     ow: "npm:^0.28.2"
-  checksum: 4075e1241f2244f5573418461be3f390525866701893435c4c947e33619ba803fed7c04cf9fffa24b5d0d9f5a4d2b3d0c947dd58e80e62c875f1076ca0c395f7
+  checksum: 366c793864817e8b079708b488afe1bad0a20106b7131568a272b9f76ac694470c3506bd7db6623c81f770d2987bc2656599d46e086e1dc7b99131b6ff107459
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.4.7":
-  version: 2.4.7
-  resolution: "@apify/log@npm:2.4.7"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.4.8":
+  version: 2.4.8
+  resolution: "@apify/log@npm:2.4.8"
   dependencies:
-    "@apify/consts": "npm:^2.25.0"
+    "@apify/consts": "npm:^2.25.1"
     ansi-colors: "npm:^4.1.1"
-  checksum: e1254d35441d03ca02d1c0b86432d92495ed1f490bc172624e3136f54694ce3d43301a5b93629d56ab54095b47dbe3d544bd87e770d72adf801bbed7687d1dc5
+  checksum: 0f211d9f71cf91d00465fc04f308b0c834ce3f811219e8bac63122eba034011e8f1aedd23777d24c94f7ffc1feb874df7174b5e4a946e813d852c8d98f38db7e
   languageName: node
   linkType: hard
 
@@ -105,19 +105,19 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.37
-  resolution: "@apify/pseudo_url@npm:2.0.37"
+  version: 2.0.38
+  resolution: "@apify/pseudo_url@npm:2.0.38"
   dependencies:
-    "@apify/log": "npm:^2.4.7"
+    "@apify/log": "npm:^2.4.8"
     "@sapphire/shapeshift": "npm:^3.6.0"
-  checksum: 1369d5b6066b47c6fea70ec127230ef7151e3f6c3aca8ad2d393904638d24e93240d7adbefa25e52e55d0f8f40a1c6e13a81edd5f844b408ddf80193aa60c0ed
+  checksum: 21a2e0ace32df1b4a2b49ec7ad41a7182473ad3b26f222202e8733129e0261afb8dc4834fe171d65fc35da6436c940a6207833e42404b87e0f1af7a777c04d90
   languageName: node
   linkType: hard
 
 "@apify/timeout@npm:^0.3.0":
-  version: 0.3.0
-  resolution: "@apify/timeout@npm:0.3.0"
-  checksum: a540be4da372a9da3c9d0a6761ff408e27c51c2582708a4ae6f026edf130906b8fcc93bd63d750fff87c3958d33ea3c0c1e4027edc1ac370bffe82291ca11e86
+  version: 0.3.1
+  resolution: "@apify/timeout@npm:0.3.1"
+  checksum: 3019f9ef14bad1e3675553e85032f87ef5a2552dcbb1d4b26305e00591647999000641a0660d30838ea1a6aaab558881bc9f5514e52614969bca9bdccaf96fa6
   languageName: node
   linkType: hard
 
@@ -128,13 +128,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3, @apify/utilities@npm:^2.9.7":
-  version: 2.9.7
-  resolution: "@apify/utilities@npm:2.9.7"
+"@apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3, @apify/utilities@npm:^2.9.8":
+  version: 2.9.8
+  resolution: "@apify/utilities@npm:2.9.8"
   dependencies:
-    "@apify/consts": "npm:^2.25.0"
-    "@apify/log": "npm:^2.4.7"
-  checksum: 36de2663b0e5ff45f26c7db5026f19c6ab8e0b37aa41b1a84bdcecf02b4cd897be6970da3f8bce0a3c83dab3c2f2c4d2ab75bef3f3a830ab1f9503bbed09cc72
+    "@apify/consts": "npm:^2.25.1"
+    "@apify/log": "npm:^2.4.8"
+  checksum: 7623d91f2d1569d882616bf13a773262231ae6222f7ed6e527769c585b192ac41f3c322c4d249d8f0509f00983f9288237144a67b03c00f85dd5a38af855eefe
   languageName: node
   linkType: hard
 
@@ -2091,11 +2091,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.11.0
-  resolution: "@types/node@npm:20.11.0"
+  version: 20.11.3
+  resolution: "@types/node@npm:20.11.3"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 560aa850dfccb83326f9cba125459f6c3fb0c71ec78f22c61e4d248f1df78bd25fd6792cef573dfbdc49c882f8e38bb1a82ca87e0e28ff2513629c704c2b02af
+  checksum: 10e58b526efc73ac6e6a54466ec9e8f39a6a24aba902abc91cc2f85dbbe2bf1b4c84d941106036275b335a867d664009679136345c491dd642b953217d859ebb
   languageName: node
   linkType: hard
 
@@ -4495,9 +4495,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.630
-  resolution: "electron-to-chromium@npm:1.4.630"
-  checksum: dbe3b3437b00f978aa261e1ee9c80eebaba70dea601866b0d64e36f7146328c79bce8416652e4713cfeb0e22428cc7ec1751881860ec892fa32ec8de015d1a9e
+  version: 1.4.631
+  resolution: "electron-to-chromium@npm:1.4.631"
+  checksum: cd3b282d843c056a9c0210195e969857105f9046c7c384ede661c744c6268ba029099fc0bcff2aeb2f5d41c2bb128ad3e2f29cacaa860b19e5c8cb0556fa6d12
   languageName: node
   linkType: hard
 
@@ -10329,14 +10329,14 @@ __metadata:
   linkType: hard
 
 "safe-array-concat@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "safe-array-concat@npm:1.0.1"
+  version: 1.1.0
+  resolution: "safe-array-concat@npm:1.1.0"
   dependencies:
-    call-bind: "npm:^1.0.2"
-    get-intrinsic: "npm:^1.2.1"
+    call-bind: "npm:^1.0.5"
+    get-intrinsic: "npm:^1.2.2"
     has-symbols: "npm:^1.0.3"
     isarray: "npm:^2.0.5"
-  checksum: 4b15ce5fce5ce4d7e744a63592cded88d2f27806ed229eadb2e42629cbcd40e770f7478608e75f455e7fe341acd8c0a01bdcd7146b10645ea7411c5e3c1d1dd8
+  checksum: 833d3d950fc7507a60075f9bfaf41ec6dac7c50c7a9d62b1e6b071ecc162185881f92e594ff95c1a18301c881352dd6fd236d56999d5819559db7b92da9c28af
   languageName: node
   linkType: hard
 
