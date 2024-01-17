@@ -67,7 +67,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      */
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string): Promise<void>;
 
-    getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>
+    getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>;
 
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/docs/guides/got-scraping), allowing to override the request
@@ -92,12 +92,12 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     request: Request<UserData>;
     pushData: (record: Dictionary, datasetIdOrName?: string) => Promise<void>;
-    enqueueLinks: (options?: Omit<EnqueueLinksOptions, "requestQueue">) => Promise<void>;
+    enqueueLinks: (options?: Omit<EnqueueLinksOptions, 'requestQueue'>) => Promise<void>;
     addRequests: (
         requestsLike: Source[],
         options?: RequestQueueOperationOptions,
     ) => Promise<void>;
     useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>;
-    getKeyValueStore: (idOrName?: string) => Promise<Pick<KeyValueStore, "id" | "name" | "getValue" | "getAutoSavedValue" | "setValue">>
+    getKeyValueStore: (idOrName?: string) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
     log: Log;
 }

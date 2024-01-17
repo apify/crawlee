@@ -1240,7 +1240,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     cookieJar,
                 });
             },
-            getKeyValueStore: KeyValueStore.open
+            getKeyValueStore: KeyValueStore.open,
         };
 
         this.crawlingContexts.set(crawlingContext.id, crawlingContext);
