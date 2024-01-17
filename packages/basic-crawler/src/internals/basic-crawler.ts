@@ -1213,7 +1213,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     ...options,
                 });
             },
-            addRequests: this.addRequests,
+            addRequests: this.addRequests.bind(this),
             pushData: async (data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string) => {
                 return this.pushData(data, datasetIdOrName);
             },
