@@ -13,7 +13,7 @@ export interface FingerprintGeneratorOptions {
     * List of `BrowserSpecification` objects
     * or one of `chrome`, `edge`, `firefox` and `safari`.
     */
-    browsers?: BrowserSpecification[] | BrowserName[];
+    browsers?: BrowserSpecification[] | (typeof BrowserName[keyof typeof BrowserName])[];
     /**
     * Browser generation query based on the real world data.
     *  For more info see the [query docs](https://github.com/browserslist/browserslist#full-list).
@@ -61,18 +61,18 @@ const SUPPORTED_HTTP_VERSIONS = ['1', '2'] as const;
  */
 type HttpVersion = typeof SUPPORTED_HTTP_VERSIONS[number];
 
-export const enum BrowserName {
-    chrome = 'chrome',
-    firefox = 'firefox',
-    safari = 'safari',
-    edge = 'edge',
-}
+export const BrowserName = {
+    chrome: 'chrome',
+    firefox: 'firefox',
+    safari: 'safari',
+    edge: 'edge',
+} as const;
 
 export interface BrowserSpecification {
     /**
     * String representing the browser name.
     */
-    name: BrowserName;
+    name: typeof BrowserName[keyof typeof BrowserName];
     /**
     * Minimum version of browser used.
     */

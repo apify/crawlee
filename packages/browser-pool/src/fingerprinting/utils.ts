@@ -18,7 +18,7 @@ export const getGeneratorDefaultOptions = (launchContext: LaunchContext): Finger
     return options;
 };
 
-const getBrowserName = (browserPlugin: BrowserPlugin, launchOptions: any): BrowserName => {
+const getBrowserName = (browserPlugin: BrowserPlugin, launchOptions: any): typeof BrowserName[keyof typeof BrowserName] => {
     const { library } = browserPlugin;
     let browserName;
 
