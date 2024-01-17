@@ -53,6 +53,11 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      */
     enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
 
+    addRequests: (
+        requestsLike: Source[],
+        options?: RequestQueueOperationOptions,
+    ) => Promise<void>;
+
     /**
      * This function allows you to push data to the default {@apilink Dataset} currently used by the crawler.
      *
@@ -60,7 +65,9 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      *
      * @param [data] Data to be pushed to the default dataset.
      */
-    pushData(...args: Parameters<Dataset['pushData']>): Promise<void>;
+    pushData(data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string): Promise<void>;
+
+    getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>
 
     /**
      * Fires HTTP request via [`got-scraping`](https://crawlee.dev/docs/guides/got-scraping), allowing to override the request
@@ -84,13 +91,13 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     request: Request<UserData>;
-    pushData: (record: Dictionary, datasetName?: string) => Promise<void>;
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<void>;
+    pushData: (record: Dictionary, datasetIdOrName?: string) => Promise<void>;
+    enqueueLinks: (options?: Omit<EnqueueLinksOptions, "requestQueue">) => Promise<void>;
     addRequests: (
         requestsLike: Source[],
         options?: RequestQueueOperationOptions,
     ) => Promise<void>;
     useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>;
-    getKeyValueStore: () => Promise<Pick<KeyValueStore, "getValue" | "getAutoSavedValue" | "setValue" | "id" | "name">>
+    getKeyValueStore: (idOrName?: string) => Promise<Pick<KeyValueStore, "id" | "name" | "getValue" | "getAutoSavedValue" | "setValue">>
     log: Log;
 }
