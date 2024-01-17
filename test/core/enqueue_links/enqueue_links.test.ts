@@ -157,6 +157,8 @@ describe('enqueueLinks()', () => {
                 'https://example.com/**/*',
                 '',
                 { glob: ' ' },
+                // Empty string used to throw an error (https://console.apify.com/actors/aYG0l9s7dbB7j3gbS/issues/Wd0Ahfk9Vd2OPk4Uf)
+                { glob: '' },
                 { glob: '?(http|https)://cool.com/', method: 'POST' as const },
             ];
 
