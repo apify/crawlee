@@ -2091,11 +2091,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.11.3
-  resolution: "@types/node@npm:20.11.3"
+  version: 20.11.4
+  resolution: "@types/node@npm:20.11.4"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10e58b526efc73ac6e6a54466ec9e8f39a6a24aba902abc91cc2f85dbbe2bf1b4c84d941106036275b335a867d664009679136345c491dd642b953217d859ebb
+  checksum: af6e1ad4d8f210d06d6db6c85b9aba25b022b493a4f2289e5ac693b418de746db812ab1537096e10e7cb7b78f1d835a06e61f31d93ebe36ef116bfbbf8f04c97
   languageName: node
   linkType: hard
 
@@ -3369,9 +3369,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001565":
-  version: 1.0.30001576
-  resolution: "caniuse-lite@npm:1.0.30001576"
-  checksum: 79cf666f9139c542bdf75eab76171534dc638d2f8efacd325649c8ec6be59de400f0e9d6dc02504f12125626b306c0a848fe86904c01722218b2a479be82a9c1
+  version: 1.0.30001577
+  resolution: "caniuse-lite@npm:1.0.30001577"
+  checksum: 3f94957756227c39477ac3498aa8e975e5e22a24680d49f3cb85239e21b31012e436958621508ffa240201e356e1a680428be320732fc69a8de7163756db42b8
   languageName: node
   linkType: hard
 
@@ -4320,9 +4320,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1245094
-  resolution: "devtools-protocol@npm:0.0.1245094"
-  checksum: 7d0d11512a4bdd700a068773118291da88edf3f148061771d4329a468b17f5268a592e11d5020fb1000b9e93d836b034f291c11e0821d639138e30bce88bc054
+  version: 0.0.1247362
+  resolution: "devtools-protocol@npm:0.0.1247362"
+  checksum: 94d2a1ef73cc9424dc7e4fc3995e9e3ac6a765dfc4f59c17f0d4c4c4b58dd64b15af3b0bdd29ac31cc0bbbba6665b6bd4e180491254e06404859b2928ea67f17
   languageName: node
   linkType: hard
 
@@ -4495,9 +4495,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.631
-  resolution: "electron-to-chromium@npm:1.4.631"
-  checksum: cd3b282d843c056a9c0210195e969857105f9046c7c384ede661c744c6268ba029099fc0bcff2aeb2f5d41c2bb128ad3e2f29cacaa860b19e5c8cb0556fa6d12
+  version: 1.4.633
+  resolution: "electron-to-chromium@npm:1.4.633"
+  checksum: 56dd45a862641c9f11147c07cf0f3a465e1571dbad04f7d9acb1e8262b3391ede24acb6a0c777998cb8931f54b2b61e8dd4755e754fe4c0782b1fa587b7d3475
   languageName: node
   linkType: hard
 
@@ -11222,9 +11222,9 @@ __metadata:
   linkType: hard
 
 "tinybench@npm:^2.5.1":
-  version: 2.5.1
-  resolution: "tinybench@npm:2.5.1"
-  checksum: 9c55ef25ce1689c3e2fdb89cacbf27dada4d04f846cac70023fe97fc35d2122816d8bbc5b20253e071d13688cf006355d59f0096d22958b818e1e2fe60e5165b
+  version: 2.6.0
+  resolution: "tinybench@npm:2.6.0"
+  checksum: 60ea35699bf8bac9bc8cf279fa5877ab5b335b4673dcd07bf0fbbab9d7953a02c0ccded374677213eaa13aa147f54eb75d3230139ddbeec3875829ebe73db310
   languageName: node
   linkType: hard
 
@@ -11345,17 +11345,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsconfck@npm:^2.1.0":
-  version: 2.1.2
-  resolution: "tsconfck@npm:2.1.2"
+"tsconfck@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "tsconfck@npm:3.0.1"
   peerDependencies:
-    typescript: ^4.3.5 || ^5.0.0
+    typescript: ^5.0.0
   peerDependenciesMeta:
     typescript:
       optional: true
   bin:
     tsconfck: bin/tsconfck.js
-  checksum: 6efc9cbbccdbbcafc86a744a1804fcd8438097c2beaac370444cc413fa1582a019a74002a111e3005b89ca0b0169ace730161864628fc751754e29b335c3c79f
+  checksum: 7b56c5bf8f683fafdf51cb7f00ed94e8cb87b9ea457a07d87868ac2c383a09f7277e14b4f479e88b4bfc621e3c12de13daff00a552d7296b3df735ff0ab7c8e1
   languageName: node
   linkType: hard
 
@@ -11921,18 +11921,18 @@ __metadata:
   linkType: hard
 
 "vite-tsconfig-paths@npm:^4.2.1":
-  version: 4.2.3
-  resolution: "vite-tsconfig-paths@npm:4.2.3"
+  version: 4.3.1
+  resolution: "vite-tsconfig-paths@npm:4.3.1"
   dependencies:
     debug: "npm:^4.1.1"
     globrex: "npm:^0.1.2"
-    tsconfck: "npm:^2.1.0"
+    tsconfck: "npm:^3.0.1"
   peerDependencies:
     vite: "*"
   peerDependenciesMeta:
     vite:
       optional: true
-  checksum: 1083ae98e02b8f120cfc0fa2793fbafa77165b02ffd7936ea9979ac612df5f138f6f8f2f909ab372c0a54018ddea34c95c2eb0d51072852848498d8b1c13f2ff
+  checksum: 47d95952ebcf99e25aa35b6cf5522ae7d1314386d4baa84b6121128425c6337d43330ec8365070b27e1745278cbaad40728016f9dfde96b3d53f6113d30e1872
   languageName: node
   linkType: hard
 
