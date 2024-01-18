@@ -8,7 +8,7 @@ import type { Configuration } from '../configuration';
  * Represents the current status of the system.
  */
 export interface SystemInfo {
-    /** If true, system is being overloaded. */
+    /** If false, system is being overloaded. */
     isSystemIdle: boolean;
     memInfo: ClientInfo;
     eventLoopInfo: ClientInfo;
