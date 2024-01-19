@@ -22,10 +22,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.19.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.1":
-  version: 2.25.1
-  resolution: "@apify/consts@npm:2.25.1"
-  checksum: fddbe51d0f7bc9ea0401f903af4b442df8fd5d6e6f8b99c29c5ae1b34b3ff7f80c190b0fbcc84bc06ce57650a34dde5e9fc86aa7451b71ff962c5d6482ce35b7
+"@apify/consts@npm:^2.19.0, @apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.26.0":
+  version: 2.26.0
+  resolution: "@apify/consts@npm:2.26.0"
+  checksum: 34fea5e981432b98192f52e2d03b3322966ea0e6b136513079cad8dbbbea85b1a80ed07f3cacc7386dd17ef971dd1772758983087a58643d4d2a69ff26e4a6db
   languageName: node
   linkType: hard
 
@@ -73,23 +73,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.45
-  resolution: "@apify/input_secrets@npm:1.1.45"
+  version: 1.1.46
+  resolution: "@apify/input_secrets@npm:1.1.46"
   dependencies:
-    "@apify/log": "npm:^2.4.8"
-    "@apify/utilities": "npm:^2.9.8"
+    "@apify/log": "npm:^2.4.9"
+    "@apify/utilities": "npm:^2.9.9"
     ow: "npm:^0.28.2"
-  checksum: 366c793864817e8b079708b488afe1bad0a20106b7131568a272b9f76ac694470c3506bd7db6623c81f770d2987bc2656599d46e086e1dc7b99131b6ff107459
+  checksum: 9f7b122f2606b04cdba981f97eb76e10c3da1d4a8a2a9d803ed16cc71b8b617697eab1bfc8ed53a4b939093cda0169fd99a6676b19d3ccf37deaea614b17e296
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.4.8":
-  version: 2.4.8
-  resolution: "@apify/log@npm:2.4.8"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.4.9":
+  version: 2.4.9
+  resolution: "@apify/log@npm:2.4.9"
   dependencies:
-    "@apify/consts": "npm:^2.25.1"
+    "@apify/consts": "npm:^2.26.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 0f211d9f71cf91d00465fc04f308b0c834ce3f811219e8bac63122eba034011e8f1aedd23777d24c94f7ffc1feb874df7174b5e4a946e813d852c8d98f38db7e
+  checksum: 2cc8ac30bcf540f6e3729701e8965941a6fb02eee2965237a2c53380efac64015a57a2017f3ca6380e8b7352b21bc8ee4ce3adcf565b069c0598d07b5feba9f0
   languageName: node
   linkType: hard
 
@@ -105,12 +105,12 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.38
-  resolution: "@apify/pseudo_url@npm:2.0.38"
+  version: 2.0.39
+  resolution: "@apify/pseudo_url@npm:2.0.39"
   dependencies:
-    "@apify/log": "npm:^2.4.8"
+    "@apify/log": "npm:^2.4.9"
     "@sapphire/shapeshift": "npm:^3.6.0"
-  checksum: 21a2e0ace32df1b4a2b49ec7ad41a7182473ad3b26f222202e8733129e0261afb8dc4834fe171d65fc35da6436c940a6207833e42404b87e0f1af7a777c04d90
+  checksum: 477a7b6f608239c01bbef83ae7d6ebf7649d6985771a5509a4b249d6760dbadb8d79dc53332d6a868864714cdacf2774449465b7cb9b33f186df2ef4f232506f
   languageName: node
   linkType: hard
 
@@ -128,13 +128,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3, @apify/utilities@npm:^2.9.8":
-  version: 2.9.8
-  resolution: "@apify/utilities@npm:2.9.8"
+"@apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3, @apify/utilities@npm:^2.9.9":
+  version: 2.9.9
+  resolution: "@apify/utilities@npm:2.9.9"
   dependencies:
-    "@apify/consts": "npm:^2.25.1"
-    "@apify/log": "npm:^2.4.8"
-  checksum: 7623d91f2d1569d882616bf13a773262231ae6222f7ed6e527769c585b192ac41f3c322c4d249d8f0509f00983f9288237144a67b03c00f85dd5a38af855eefe
+    "@apify/consts": "npm:^2.26.0"
+    "@apify/log": "npm:^2.4.9"
+  checksum: 7c31ca9b8bb85e7eaa5026b9e39a059bd8536f37a837c1410ca08730d9ddcc33fd895d1f599f47c3d1bc7019f2c1169ee57de6d9c628256e35c1ef3c0cf0e233
   languageName: node
   linkType: hard
 
@@ -3369,9 +3369,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001565":
-  version: 1.0.30001578
-  resolution: "caniuse-lite@npm:1.0.30001578"
-  checksum: c3bd9c08a945cee4f0cc284a217ebe9c2613e04d5aef4b48f1871a779b1875c34286469eb8d7d94bd028b5a354613e676ad503b6bf8db20a2f154574bd5fde48
+  version: 1.0.30001579
+  resolution: "caniuse-lite@npm:1.0.30001579"
+  checksum: 4003970f8d01a5fa314e39f4a21751dc750a530f3d19aed225e18e8e02892b590b8b0debfa0961eae9bc0e49b77bfb17cf30d2469540e428a8305e3cc9164fb8
   languageName: node
   linkType: hard
 
@@ -4320,9 +4320,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1247362
-  resolution: "devtools-protocol@npm:0.0.1247362"
-  checksum: 94d2a1ef73cc9424dc7e4fc3995e9e3ac6a765dfc4f59c17f0d4c4c4b58dd64b15af3b0bdd29ac31cc0bbbba6665b6bd4e180491254e06404859b2928ea67f17
+  version: 0.0.1248698
+  resolution: "devtools-protocol@npm:0.0.1248698"
+  checksum: 5f32782a5b64cddad591e2818b73918d98768b7def627179f35f5bb4b5742d04f33828673fcc5fab8d7a456982a9aef390d37e3ac1aa28bd23ec86f685b0878c
   languageName: node
   linkType: hard
 
@@ -4495,9 +4495,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.637
-  resolution: "electron-to-chromium@npm:1.4.637"
-  checksum: ff3c338034d846fe9d912864dd597eecaab61d1bdc0de9f9f39f2e87127af9d069492789a7a920b6c10a83f1d511ce6474d248b3e5a34d38c5ce788b0e862ae6
+  version: 1.4.638
+  resolution: "electron-to-chromium@npm:1.4.638"
+  checksum: 96f0e75298eea5c11144a458a301cba4f455ef96893c83a604cb06a83881b7d69eac266e8f603b827410bdf3f38153c0da4fb80ca53766103eb479f644be5905
   languageName: node
   linkType: hard
 
@@ -11229,9 +11229,9 @@ __metadata:
   linkType: hard
 
 "tinypool@npm:^0.8.1":
-  version: 0.8.1
-  resolution: "tinypool@npm:0.8.1"
-  checksum: d965c057a1866c9d83716f4e434f7be18b2a067ed3b32cc2de3b3bf34ca1756ac1c35bd04433e2086c8cc2afa75b328e4b17baa6b4e6292dba2ce31cc76770e0
+  version: 0.8.2
+  resolution: "tinypool@npm:0.8.2"
+  checksum: 8998626614172fc37c394e9a14e701dc437727fc6525488a4d4fd42044a4b2b59d6f076d750cbf5c699f79c58dd4e40599ab09e2f1ae0df4b23516b98c9c3055
   languageName: node
   linkType: hard
 
