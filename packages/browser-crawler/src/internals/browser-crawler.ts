@@ -538,7 +538,10 @@ export abstract class BrowserCrawler<
         }
 
         if (!this.requestMatchesEnqueueStrategy(request)) {
-            this.log.debug(`Skipping request ${request.id} (${request.url}) because it does not match the enqueue strategy.`);
+            this.log.debug(
+                // eslint-disable-next-line max-len, dot-notation
+                `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+            );
 
             request.noRetry = true;
             request.state = RequestState.SKIPPED;
