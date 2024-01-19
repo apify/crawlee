@@ -61,7 +61,7 @@ const SUPPORTED_HTTP_VERSIONS = ['1', '2'] as const;
  */
 type HttpVersion = typeof SUPPORTED_HTTP_VERSIONS[number];
 
-export const enum BrowserName {
+export enum BrowserName {
     chrome = 'chrome',
     firefox = 'firefox',
     safari = 'safari',
