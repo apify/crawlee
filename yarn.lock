@@ -4320,9 +4320,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1248698
-  resolution: "devtools-protocol@npm:0.0.1248698"
-  checksum: 5f32782a5b64cddad591e2818b73918d98768b7def627179f35f5bb4b5742d04f33828673fcc5fab8d7a456982a9aef390d37e3ac1aa28bd23ec86f685b0878c
+  version: 0.0.1249784
+  resolution: "devtools-protocol@npm:0.0.1249784"
+  checksum: ef5c1616b018d574b440eb39c07f6d070b34d2889d4ab21a2564b58296c975e4d208b3bbdab8823c56576bb1facc7a8d4ddd26adcc825bdf5ae53ac4f10fee7b
   languageName: node
   linkType: hard
 
