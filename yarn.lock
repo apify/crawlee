@@ -657,9 +657,9 @@ __metadata:
     "@apify/log": "npm:^2.4.0"
     "@apify/tsconfig": "npm:^0.1.0"
     "@commitlint/config-conventional": "npm:^18.0.0"
-    "@playwright/browser-chromium": "npm:1.41.0"
-    "@playwright/browser-firefox": "npm:1.41.0"
-    "@playwright/browser-webkit": "npm:1.41.0"
+    "@playwright/browser-chromium": "npm:1.41.1"
+    "@playwright/browser-firefox": "npm:1.41.1"
+    "@playwright/browser-webkit": "npm:1.41.1"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
     "@types/domhandler": "npm:^2.4.2"
@@ -699,7 +699,7 @@ __metadata:
     lerna: "npm:^8.0.0"
     lint-staged: "npm:^15.0.0"
     nock: "npm:^13.4.0"
-    playwright: "npm:1.41.0"
+    playwright: "npm:1.41.1"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
     puppeteer: "npm:21.7.0"
@@ -1523,30 +1523,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/browser-chromium@npm:1.41.0":
-  version: 1.41.0
-  resolution: "@playwright/browser-chromium@npm:1.41.0"
+"@playwright/browser-chromium@npm:1.41.1":
+  version: 1.41.1
+  resolution: "@playwright/browser-chromium@npm:1.41.1"
   dependencies:
-    playwright-core: "npm:1.41.0"
-  checksum: 5da74d05f3557abb197f46b42e8b02377a90328cf68befe61da4e8e1abd00b7d4f5b681ae3dd4759ebeeac1dace33bf0df06bdaa809fe0c7e0eaa345f262aa00
+    playwright-core: "npm:1.41.1"
+  checksum: 660f11772b24733a2b6fcb69a73296278083864259526b297bae93886bbe4ad9364484da526b983ffd36ceeda351129bba9743f560e8061e309b2e365982d587
   languageName: node
   linkType: hard
 
-"@playwright/browser-firefox@npm:1.41.0":
-  version: 1.41.0
-  resolution: "@playwright/browser-firefox@npm:1.41.0"
+"@playwright/browser-firefox@npm:1.41.1":
+  version: 1.41.1
+  resolution: "@playwright/browser-firefox@npm:1.41.1"
   dependencies:
-    playwright-core: "npm:1.41.0"
-  checksum: 4838042b06980a3214c0587b3ec7bb504e281de9e627de5ed1f4f755995a042eeda750cd935d32c03d70e1ef956edfdf48bed1d710341704d66732808b797812
+    playwright-core: "npm:1.41.1"
+  checksum: 5ceb7f4923d8f0afb2ff627b09493b181c3ebaf7603c2132d2fbbbf5bbf9bde9d1d44bf30b8552a11c840beef9c50ffada593db07959ba467d19af3039b81a9e
   languageName: node
   linkType: hard
 
-"@playwright/browser-webkit@npm:1.41.0":
-  version: 1.41.0
-  resolution: "@playwright/browser-webkit@npm:1.41.0"
+"@playwright/browser-webkit@npm:1.41.1":
+  version: 1.41.1
+  resolution: "@playwright/browser-webkit@npm:1.41.1"
   dependencies:
-    playwright-core: "npm:1.41.0"
-  checksum: eb22301068fbb8c0ec60bdd48989b53eadcad6685870525c8ee27cb94385acd16396cdbc4aedc939f85473a18ce750b2a31c57ccf2946a474865bfd494106022
+    playwright-core: "npm:1.41.1"
+  checksum: cbed543ff96b40818b036677cd085a5d86cff916a1a73f12c8bda89357ed2509d71c0397c0313e5f0c38ae75d650121881e464793980d0ebf2084675d57b6f6b
   languageName: node
   linkType: hard
 
@@ -9506,27 +9506,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.41.0":
-  version: 1.41.0
-  resolution: "playwright-core@npm:1.41.0"
+"playwright-core@npm:1.41.1":
+  version: 1.41.1
+  resolution: "playwright-core@npm:1.41.1"
   bin:
     playwright-core: cli.js
-  checksum: ea74d755c9c8cfec53566fb8ca689b55b493bf67d49ad631c39669006d018e1127688d31a689ef05672d7ae7f9ebb8c3aef92dbe31636c3c3826d4cb90c14cf2
+  checksum: cdd91267ca23e3f65d519100e956859c70e3e9ca29e3fe00e700b457903129e41dfa17752f1ea37ad0a8a7c6330baf9f3be503e4cbfa3e8833e80a037f899aee
   languageName: node
   linkType: hard
 
-"playwright@npm:1.41.0":
-  version: 1.41.0
-  resolution: "playwright@npm:1.41.0"
+"playwright@npm:1.41.1":
+  version: 1.41.1
+  resolution: "playwright@npm:1.41.1"
   dependencies:
     fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.41.0"
+    playwright-core: "npm:1.41.1"
   dependenciesMeta:
     fsevents:
       optional: true
   bin:
     playwright: cli.js
-  checksum: db12f408c02326ba9efdd7d6c10b9d7509e85cddf99d8043a2fe0d24322a4129ed6c958c301cc99b39c28b335fe659e9dc30b31f2af7fc1428207aa0ba1c9180
+  checksum: 32d48c1f8ff881770a19c9245fb4191fc36b5e97ab5f48effa0b1cf5e83fa958f6fdd7e4268dd984aa306ac5fe9e4324510211910751fb52cebb9bae819d13ca
   languageName: node
   linkType: hard
 
