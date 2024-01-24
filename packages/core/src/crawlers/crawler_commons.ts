@@ -58,7 +58,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * @param options Options for the request queue
      */
     addRequests: (
-        requestsLike: Source[],
+        requestsLike: (string | Source)[],
         options?: RequestQueueOperationOptions,
     ) => Promise<void>;
 
