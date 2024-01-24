@@ -65,7 +65,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     /**
      * Returns the state - a piece of mutable persistent data shared across all the request handler runs.
      */
-    useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>;
+    useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
 
     /**
      * Get a key-value store with given name or id, or the default one for the crawler.
