@@ -1,13 +1,13 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { Actor } from 'apify';
+import fs from 'fs-extra';
+import { got } from 'got';
+import { execSync as execSyncOriginal } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
-import { execSync as execSyncOriginal } from 'node:child_process';
-import { got } from 'got';
-import fs from 'fs-extra';
-import { Actor } from 'apify';
+import { fileURLToPath } from 'node:url';
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
@@ -126,7 +126,7 @@ export async function runActor(dirName, memory = 4096) {
                 },
                 headers: {
                     'content-type': contentType,
-                    authorization: `Bearer ${client.token}`,
+                    'authorization': `Bearer ${client.token}`,
                 },
                 body: input,
                 retry: {

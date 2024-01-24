@@ -33,7 +33,7 @@ const crawler = new BasicCrawler({
         await Dataset.pushData({
             url: request.url,
             html: body,
-        })
+        });
     },
 });
 
@@ -42,3 +42,4 @@ await crawler.run([
     'http://www.example.com/page-1',
     'http://www.example.com/page-2',
 ]);
+```

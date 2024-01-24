@@ -28,7 +28,7 @@ const crawler = new PlaywrightCrawler({
             title: await page.title(),
             url: request.url,
             succeeded: true,
-        })
+        });
     },
     async failedRequestHandler({ request }) {
         // This function is called when the crawling of a request failed too many times
@@ -36,7 +36,7 @@ const crawler = new PlaywrightCrawler({
             url: request.url,
             succeeded: false,
             errors: request.errorMessages,
-        })
+        });
     },
 });
 

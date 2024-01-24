@@ -8,9 +8,9 @@ import type { MemoryStorageOptions } from '@crawlee/memory-storage';
 import type { Dictionary, StorageClient } from '@crawlee/types';
 import { pathExistsSync, readFileSync } from 'fs-extra';
 
-import { LocalEventManager, type EventManager } from './events';
+import { type EventManager, LocalEventManager } from './events';
 import type { StorageManager } from './storages';
-import { entries, type Constructor } from './typedefs';
+import { type Constructor, entries } from './typedefs';
 
 export interface ConfigurationOptions {
     /**

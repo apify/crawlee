@@ -3,7 +3,7 @@ import path from 'path';
 import util from 'util';
 import zlib from 'zlib';
 
-import { serializeArray, deserializeArray, createDeserialize } from '@crawlee/core';
+import { createDeserialize, deserializeArray, serializeArray } from '@crawlee/core';
 
 const TEST_JSON_PATH = path.join(__dirname, '..', 'shared', 'data', 'sample.json.gz');
 

@@ -322,7 +322,9 @@ describe('AutoscaledPool', () => {
             let count = 0;
             const pool = new AutoscaledPool({
                 maxConcurrency: 1,
-                runTaskFunction: async () => { count++; },
+                runTaskFunction: async () => {
+                    count++;
+                },
                 isFinishedFunction: async () => false,
                 isTaskReadyFunction: async () => {
                     if (count > 1) throw new Error('some-ready-error');
@@ -341,7 +343,10 @@ describe('AutoscaledPool', () => {
         // Run the pool and close it after 3s.
         const pool = new AutoscaledPool({
             minConcurrency: 3,
-            runTaskFunction: async () => sleep(1).then(() => { count++; }),
+            runTaskFunction: async () =>
+                sleep(1).then(() => {
+                    count++;
+                }),
             isFinishedFunction: isFinished,
             isTaskReadyFunction: async () => !await isFinished(),
         });
@@ -366,8 +371,16 @@ describe('AutoscaledPool', () => {
             maxConcurrency: 1,
             runTaskFunction: async () => {
                 await sleep(1);
-                if (counter === 10) { isTaskReady = false; setTimeout(() => { isTaskReady = true; }, 10); }
-                if (counter === 19) { isTaskReady = false; isFinished = true; }
+                if (counter === 10) {
+                    isTaskReady = false;
+                    setTimeout(() => {
+                        isTaskReady = true;
+                    }, 10);
+                }
+                if (counter === 19) {
+                    isTaskReady = false;
+                    isFinished = true;
+                }
                 counter++;
                 finished.push(Date.now());
             },
@@ -409,7 +422,10 @@ describe('AutoscaledPool', () => {
                     return null;
                 }
             },
-            isFinishedFunction: async () => { finished = true; return true; },
+            isFinishedFunction: async () => {
+                finished = true;
+                return true;
+            },
             isTaskReadyFunction: async () => !aborted,
         });
         await pool.run();
@@ -445,7 +461,9 @@ describe('AutoscaledPool', () => {
         let count = 0;
         const results: number[] = [];
         let pauseResolve: (value: unknown) => void;
-        const pausePromise = new Promise((res) => { pauseResolve = res; });
+        const pausePromise = new Promise((res) => {
+            pauseResolve = res;
+        });
 
         const pool = new AutoscaledPool({
             maybeRunIntervalSecs: 0.01,
@@ -462,7 +480,9 @@ describe('AutoscaledPool', () => {
 
         let finished = false;
         const runPromise = pool.run();
-        void runPromise.then(() => { finished = true; });
+        void runPromise.then(() => {
+            finished = true;
+        });
         await pausePromise;
         expect(count).toBe(20);
         expect(finished).toBe(false);

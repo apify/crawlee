@@ -24,7 +24,7 @@ import vm from 'vm';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { validators, KeyValueStore, RequestState, Configuration } from '@crawlee/browser';
+import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { CheerioRoot, Dictionary } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -98,8 +98,8 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     const evalP = page.evaluate(contents);
 
     if (options.surviveNavigations) {
-        page.on('framenavigated',
-            async () => page.evaluate(contents)
+        page.on('framenavigated', async () =>
+            page.evaluate(contents)
                 .catch((error) => log.warning('An error occurred during the script injection!', { error })));
     }
 
@@ -718,31 +718,31 @@ export interface PlaywrightContextUtils {
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
 
     /**
-    * Compiles a Playwright script into an async function that may be executed at any time
-    * by providing it with the following object:
-    * ```
-    * {
-    *    page: Page,
-    *    request: Request,
-    * }
-    * ```
-    * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
-    * and `request` is a {@apilink Request}.
-    *
-    * The function is compiled by using the `scriptString` parameter as the function's body,
-    * so any limitations to function bodies apply. Return value of the compiled function
-    * is the return value of the function body = the `scriptString` parameter.
-    *
-    * As a security measure, no globals such as `process` or `require` are accessible
-    * from within the function body. Note that the function does not provide a safe
-    * sandbox and even though globals are not easily accessible, malicious code may
-    * still execute in the main process via prototype manipulation. Therefore you
-    * should only use this function to execute sanitized or safe code.
-    *
-    * Custom context may also be provided using the `context` parameter. To improve security,
-    * make sure to only pass the really necessary objects to the context. Preferably making
-    * secured copies beforehand.
-    */
+     * Compiles a Playwright script into an async function that may be executed at any time
+     * by providing it with the following object:
+     * ```
+     * {
+     *    page: Page,
+     *    request: Request,
+     * }
+     * ```
+     * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
+     * and `request` is a {@apilink Request}.
+     *
+     * The function is compiled by using the `scriptString` parameter as the function's body,
+     * so any limitations to function bodies apply. Return value of the compiled function
+     * is the return value of the function body = the `scriptString` parameter.
+     *
+     * As a security measure, no globals such as `process` or `require` are accessible
+     * from within the function body. Note that the function does not provide a safe
+     * sandbox and even though globals are not easily accessible, malicious code may
+     * still execute in the main process via prototype manipulation. Therefore you
+     * should only use this function to execute sanitized or safe code.
+     *
+     * Custom context may also be provided using the `context` parameter. To improve security,
+     * make sure to only pass the really necessary objects to the context. Preferably making
+     * secured copies beforehand.
+     */
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
 
     /**
@@ -753,24 +753,25 @@ export interface PlaywrightContextUtils {
 
 export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
     context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = (async () => {
+    context.injectJQuery = async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
             log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
             await injectJQuery(context.page);
             return;
         }
         await injectJQuery(context.page, { surviveNavigations: false });
-    });
+    };
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = async () => parseWithCheerio(context.page);
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = async (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
     // eslint-disable-next-line max-len
-    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
-        ...options,
-        page: context.page,
-        requestQueue: context.crawler.requestQueue!,
-    });
+    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) =>
+        enqueueLinksByClickingElements({
+            ...options,
+            page: context.page,
+            requestQueue: context.crawler.requestQueue!,
+        });
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
     context.closeCookieModals = async () => closeCookieModals(context.page);
 }

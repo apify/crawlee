@@ -3,7 +3,7 @@ import { inspect } from 'node:util';
 /**
  * Node.js Error interface
  */
- interface ErrnoException extends Error {
+interface ErrnoException extends Error {
     errno?: number | undefined;
     code?: string | number | undefined;
     path?: string | undefined;

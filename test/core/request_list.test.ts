@@ -6,7 +6,7 @@ import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)
  */
-function shuffle(array: unknown[]) : unknown[] {
+function shuffle(array: unknown[]): unknown[] {
     const out = [...array];
     for (let i = out.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));

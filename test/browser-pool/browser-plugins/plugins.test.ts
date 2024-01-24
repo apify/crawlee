@@ -3,8 +3,8 @@ import http from 'http';
 import type { AddressInfo } from 'net';
 import { promisify } from 'util';
 
-import { PuppeteerPlugin, PlaywrightPlugin, PuppeteerController, PlaywrightController, PlaywrightBrowser, LaunchContext } from '@crawlee/browser-pool';
-import type { UnwrapPromise, CommonLibrary } from '@crawlee/browser-pool';
+import { LaunchContext, PlaywrightBrowser, PlaywrightController, PlaywrightPlugin, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { CommonLibrary, UnwrapPromise } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
@@ -334,14 +334,16 @@ describe('Plugins', () => {
                 const proxyUrl = `http://127.0.0.2:${unprotectedProxy.port}`;
                 const plugin = new PlaywrightPlugin(playwright[browserName]);
 
-                const launchOptions = browserName === 'chromium' ? {
-                    args: [
-                        // Exclude loopback interface from proxy bypass list,
-                        // so the request to localhost goes through proxy.
-                        // This way there's no need for a 3rd party server.
-                        '--proxy-bypass-list=<-loopback>',
-                    ],
-                } : undefined;
+                const launchOptions = browserName === 'chromium'
+                    ? {
+                        args: [
+                            // Exclude loopback interface from proxy bypass list,
+                            // so the request to localhost goes through proxy.
+                            // This way there's no need for a 3rd party server.
+                            '--proxy-bypass-list=<-loopback>',
+                        ],
+                    }
+                    : undefined;
 
                 const context = plugin.createLaunchContext({
                     proxyUrl,
@@ -364,14 +366,16 @@ describe('Plugins', () => {
                 const proxyUrl = `http://foo:bar@127.0.0.3:${protectedProxy.port}`;
                 const plugin = new PlaywrightPlugin(playwright[browserName]);
 
-                const launchOptions = browserName === 'chromium' ? {
-                    args: [
-                        // Exclude loopback interface from proxy bypass list,
-                        // so the request to localhost goes through proxy.
-                        // This way there's no need for a 3rd party server.
-                        '--proxy-bypass-list=<-loopback>',
-                    ],
-                } : undefined;
+                const launchOptions = browserName === 'chromium'
+                    ? {
+                        args: [
+                            // Exclude loopback interface from proxy bypass list,
+                            // so the request to localhost goes through proxy.
+                            // This way there's no need for a 3rd party server.
+                            '--proxy-bypass-list=<-loopback>',
+                        ],
+                    }
+                    : undefined;
 
                 const context = plugin.createLaunchContext({
                     proxyUrl,

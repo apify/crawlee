@@ -7,11 +7,11 @@ import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/ty
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
+import { Configuration } from '../configuration';
+import type { Awaitable } from '../typedefs';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
-import { Configuration } from '../configuration';
-import type { Awaitable } from '../typedefs';
 
 /**
  * Helper function to possibly stringify value if options.contentType is not set.
@@ -37,7 +37,7 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 
         if (value === undefined) {
             throw new Error('The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify an undefined value.');
+                + "Make sure you're not trying to stringify an undefined value.");
         }
     }
 
@@ -148,7 +148,7 @@ export class KeyValueStore {
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
-    async getValue<T = unknown>(key: string): Promise<T | null>
+    async getValue<T = unknown>(key: string): Promise<T | null>;
     /**
      * Gets a value from the key-value store.
      *
@@ -181,7 +181,7 @@ export class KeyValueStore {
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record, or the default value if the key is missing from the store.
      */
-    async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>
+    async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
     /**
      * Gets a value from the key-value store.
      *
@@ -306,7 +306,8 @@ export class KeyValueStore {
             message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
         })));
         if (options.contentType
-           && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function'))) {
+            && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')))
+        {
             throw new ArgumentError('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.', this.setValue);
         }
         ow(options, ow.object.exactShape({
@@ -461,7 +462,7 @@ export class KeyValueStore {
      *   if the record is missing.
      * @ignore
      */
-    static async getValue<T = unknown>(key: string): Promise<T | null>
+    static async getValue<T = unknown>(key: string): Promise<T | null>;
     /**
      * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *
@@ -490,7 +491,7 @@ export class KeyValueStore {
      *   on the MIME content type of the record, or the provided default value.
      * @ignore
      */
-    static async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>
+    static async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
     /**
      * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *

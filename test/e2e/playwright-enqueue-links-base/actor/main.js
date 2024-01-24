@@ -1,5 +1,5 @@
+import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
 import { Actor } from 'apify';
-import { PlaywrightCrawler, Dataset } from '@crawlee/playwright';
 
 const mainOptions = {
     exit: Actor.isAtHome(),

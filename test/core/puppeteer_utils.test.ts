@@ -110,7 +110,7 @@ describe('puppeteerUtils', () => {
 
                 await puppeteerUtils.injectJQuery(page);
                 const result2 = await page.evaluate(() => {
-                /* global $ */
+                    /* global $ */
                     return {
                         // @ts-expect-error
                         isDefined: window.jQuery === window.$,
@@ -241,7 +241,7 @@ describe('puppeteerUtils', () => {
                         const buffer = await response.buffer();
                         downloadedBytes += buffer.byteLength;
                     } catch (e) {
-                    // do nothing
+                        // do nothing
                     }
                 });
                 await page.goto(`${serverAddress}/cacheable`, { waitUntil: 'networkidle0', timeout: 60e3 });

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 /** @ignore */
-export type Constructor<T = unknown> = new (...args: any[]) => T;
+export type Constructor<T = unknown> = new(...args: any[]) => T;
 
 /** @ignore */
 export type Awaitable<T> = T | PromiseLike<T>;

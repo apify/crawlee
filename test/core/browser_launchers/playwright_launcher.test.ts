@@ -41,7 +41,7 @@ beforeAll(async () => {
 
             // Setup proxy authorization
             // @ts-expect-error
-            httpServer.authenticate = function (req, fn) {
+            httpServer.authenticate = function(req, fn) {
                 // parse the "Proxy-Authorization" header
                 const auth = req.headers['proxy-authorization'];
                 if (!auth) {

@@ -18,7 +18,7 @@ import { inspect } from 'node:util';
 
 import { debug, info } from '@actions/core';
 
-import { fetchModuleVersions, type ActionInputs, EventType, triggerAction } from './api.ts';
+import { type ActionInputs, EventType, fetchModuleVersions, triggerAction } from './api.ts';
 
 const statePath = join(import.meta.dir, 'state.json');
 
@@ -56,9 +56,11 @@ const newState: StateFile = {
 if (process.env.CRAWLEE_BETA_VERSION) {
     info(`👀 Crawlee beta version detected, deploying to beta channel`);
     debug(
-        `  Crawlee:${process.env.CRAWLEE_BETA_VERSION} Puppeteer:${lastPuppeteerVersions.at(
-            -1,
-        )} Playwright:${lastPlaywrightVersions.at(-1)} Apify:${apifyVersion}`,
+        `  Crawlee:${process.env.CRAWLEE_BETA_VERSION} Puppeteer:${
+            lastPuppeteerVersions.at(
+                -1,
+            )
+        } Playwright:${lastPlaywrightVersions.at(-1)} Apify:${apifyVersion}`,
     );
 
     apiCalls.push({

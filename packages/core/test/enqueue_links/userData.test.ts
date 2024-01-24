@@ -1,6 +1,6 @@
 import log from '@apify/log';
 import type { Source } from '@crawlee/cheerio';
-import { Configuration, cheerioCrawlerEnqueueLinks, RequestQueue } from '@crawlee/cheerio';
+import { cheerioCrawlerEnqueueLinks, Configuration, RequestQueue } from '@crawlee/cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
 
@@ -25,7 +25,7 @@ function createRequestQueueMock() {
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
     // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
+    requestQueue.addRequests = async function(requests) {
         enqueued.push(...requests);
         return { processedRequests: requests, unprocessedRequests: [] as never[] };
     };
@@ -33,7 +33,7 @@ function createRequestQueueMock() {
     return { enqueued, requestQueue };
 }
 
-describe('enqueueLinks() - userData shouldn\'t be changed and outer label must take priority', () => {
+describe("enqueueLinks() - userData shouldn't be changed and outer label must take priority", () => {
     let ll: number;
     beforeAll(() => {
         ll = log.getLevel();
@@ -83,7 +83,7 @@ describe('enqueueLinks() - userData shouldn\'t be changed and outer label must t
         expect(enqueued[1].userData.label).toBe('second');
     });
 
-    test('JSON string of userData shouldn\'t change, but enqueued label should be different', async () => {
+    test("JSON string of userData shouldn't change, but enqueued label should be different", async () => {
         const { enqueued, requestQueue } = createRequestQueueMock();
 
         const userData = { foo: 'bar', label: 'bogus' };

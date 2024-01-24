@@ -1,9 +1,9 @@
 {
-	"extends": "../tsconfig.json",
-	"compilerOptions": {
-		"noEmit": true,
-		"incremental": false,
-		"types": ["vitest/globals"]
-	},
-	"include": ["./"]
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "incremental": false,
+        "types": ["vitest/globals"]
+    },
+    "include": ["./"]
 }

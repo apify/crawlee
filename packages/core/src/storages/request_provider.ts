@@ -13,16 +13,16 @@ import type {
 import { chunk, downloadListOfUrls, sleep } from '@crawlee/utils';
 import ow from 'ow';
 
-import type { IStorage, StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
 import { Request } from '../request';
-import type { RequestOptions, InternalSource, Source } from '../request';
+import type { InternalSource, RequestOptions, Source } from '../request';
 import type { Constructor } from '../typedefs';
+import type { IStorage, StorageManagerOptions } from './storage_manager';
+import { StorageManager } from './storage_manager';
+import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS } from './utils';
 
 export abstract class RequestProvider implements IStorage {
     id: string;

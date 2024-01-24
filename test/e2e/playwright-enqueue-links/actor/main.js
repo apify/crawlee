@@ -1,5 +1,5 @@
+import { log, PlaywrightCrawler } from '@crawlee/playwright';
 import { Actor } from 'apify';
-import { PlaywrightCrawler, log } from '@crawlee/playwright';
 
 process.env.APIFY_LOG_LEVEL = 'DEBUG';
 

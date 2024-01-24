@@ -45,6 +45,5 @@ RUN npm --quiet set progress=false \
 # for most source file changes.
 COPY . ./
 
-
 # Run the image.
 CMD npm run start:prod --silent

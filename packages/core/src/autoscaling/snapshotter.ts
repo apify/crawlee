@@ -5,11 +5,11 @@ import type { StorageClient } from '@crawlee/types';
 import { getMemoryInfo } from '@crawlee/utils';
 import ow from 'ow';
 
-import type { SystemInfo } from './system_status';
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';
 import { log as defaultLog } from '../log';
+import type { SystemInfo } from './system_status';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
@@ -67,10 +67,27 @@ export interface SnapshotterOptions {
     config?: Configuration;
 }
 
-interface MemorySnapshot { createdAt: Date; isOverloaded: boolean; usedBytes?: number }
-interface CpuSnapshot { createdAt: Date; isOverloaded: boolean; usedRatio: number; ticks?: { idle: number; total: number } }
-interface EventLoopSnapshot { createdAt: Date; isOverloaded: boolean; exceededMillis: number }
-interface ClientSnapshot { createdAt: Date; isOverloaded: boolean; rateLimitErrorCount: number }
+interface MemorySnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    usedBytes?: number;
+}
+interface CpuSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    usedRatio: number;
+    ticks?: { idle: number; total: number };
+}
+interface EventLoopSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    exceededMillis: number;
+}
+interface ClientSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    rateLimitErrorCount: number;
+}
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource

@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
+import { Actor } from 'apify';
 
 const expectedCookies = [
     {

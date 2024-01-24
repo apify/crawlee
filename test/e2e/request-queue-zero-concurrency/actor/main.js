@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { CheerioCrawler, log, RequestQueue } from '@crawlee/cheerio';
+import { Actor } from 'apify';
 
 log.setLevel(log.LEVELS.DEBUG);
 

@@ -1,8 +1,8 @@
-import { Worker, workerData } from 'worker_threads';
-import { URL } from 'url';
-import { once } from 'events';
-import { Actor } from 'apify';
 import { CheerioCrawler, Configuration, Dataset } from '@crawlee/cheerio';
+import { Actor } from 'apify';
+import { once } from 'events';
+import { URL } from 'url';
+import { Worker, workerData } from 'worker_threads';
 
 process.env.CRAWLEE_PURGE_ON_START = '0';
 

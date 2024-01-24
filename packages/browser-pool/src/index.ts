@@ -22,33 +22,17 @@
  *
  * @module browser-pool
  */
-export * from './browser-pool';
-export * from './playwright/playwright-plugin';
-export * from './puppeteer/puppeteer-plugin';
-export * from './events';
-export {
-    BrowserName,
-    DeviceCategory,
-    OperatingSystemsName,
-} from './fingerprinting/types';
 export { BrowserController, BrowserControllerEvents } from './abstract-classes/browser-controller';
-export { PuppeteerController } from './puppeteer/puppeteer-controller';
-export { PlaywrightController } from './playwright/playwright-controller';
-export { PlaywrightBrowser } from './playwright/playwright-browser';
-export {
-    CommonPage,
-    CommonLibrary,
-    BrowserPlugin,
-    BrowserPluginOptions,
-    CreateLaunchContextOptions,
-    BrowserLaunchError,
-    DEFAULT_USER_AGENT,
-} from './abstract-classes/browser-plugin';
+export { BrowserLaunchError, BrowserPlugin, BrowserPluginOptions, CommonLibrary, CommonPage, CreateLaunchContextOptions,
+    DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin';
+export * from './browser-pool';
+export * from './events';
+export { BrowserName, DeviceCategory, OperatingSystemsName } from './fingerprinting/types';
+export { BrowserSpecification, FingerprintGenerator, FingerprintGeneratorOptions, GetFingerprintReturn } from './fingerprinting/types';
 export { LaunchContext, LaunchContextOptions } from './launch-context';
-export {
-    BrowserSpecification,
-    FingerprintGenerator,
-    FingerprintGeneratorOptions,
-    GetFingerprintReturn,
-} from './fingerprinting/types';
+export { PlaywrightBrowser } from './playwright/playwright-browser';
+export { PlaywrightController } from './playwright/playwright-controller';
+export * from './playwright/playwright-plugin';
+export { PuppeteerController } from './puppeteer/puppeteer-controller';
+export * from './puppeteer/puppeteer-plugin';
 export { InferBrowserPluginArray, UnwrapPromise } from './utils';

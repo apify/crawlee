@@ -4,20 +4,8 @@ import { ENV_VARS } from '@apify/consts';
 import log from '@apify/log';
 import { BROWSER_POOL_EVENTS, BrowserPool, OperatingSystemsName, PuppeteerPlugin } from '@crawlee/browser-pool';
 import { BLOCKED_STATUS_CODES } from '@crawlee/core';
-import type {
-    PuppeteerCrawlingContext,
-    PuppeteerGoToOptions,
-    PuppeteerRequestHandler,
-} from '@crawlee/puppeteer';
-import {
-    AutoscaledPool,
-    EnqueueStrategy,
-    ProxyConfiguration,
-    Request,
-    RequestList,
-    RequestState,
-    Session,
-} from '@crawlee/puppeteer';
+import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, PuppeteerRequestHandler } from '@crawlee/puppeteer';
+import { AutoscaledPool, EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import puppeteer from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
@@ -167,7 +155,9 @@ describe('BrowserCrawler', () => {
 
         const browserCrawler = new class extends BrowserCrawlerTest {
             // eslint-disable-next-line max-len
-            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
+            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext,
+                gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined>
+            {
                 isEvaluated = ctx.hookFinished as boolean;
                 return ctx.page.goto(ctx.request.url, gotoOptions);
             }
@@ -306,7 +296,9 @@ describe('BrowserCrawler', () => {
         let optionsGoto: PuppeteerGoToOptions;
         const browserCrawler = new class extends BrowserCrawlerTest {
             // eslint-disable-next-line max-len
-            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
+            protected override async _navigationHandler(ctx: PuppeteerCrawlingContext,
+                gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined>
+            {
                 optionsGoto = gotoOptions;
                 return ctx.page.goto(ctx.request.url, gotoOptions);
             }
@@ -404,7 +396,6 @@ describe('BrowserCrawler', () => {
             requestList,
             useSessionPool: false,
             requestHandler: async () => {},
-
         });
 
         expect(browserCrawler).toBeDefined();
@@ -948,7 +939,9 @@ describe('BrowserCrawler', () => {
 
             expect(spy).toBeCalled();
             // eslint-disable-next-line max-len
-            expect(spy.mock.calls[0][0]).toEqual('When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.');
+            expect(spy.mock.calls[0][0]).toEqual(
+                'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
+            );
             expect(spy.mock.calls[1][0]).toEqual(expect.stringContaining(proxyError));
         });
     });
@@ -997,7 +990,7 @@ describe('BrowserCrawler', () => {
                 expect(crawlingContext.session).toBeInstanceOf(Session);
                 expect(typeof crawlingContext.page).toBe('object');
                 expect(crawlingContext.crawler).toBeInstanceOf(BrowserCrawlerTest);
-                expect((crawlingContext.crawler).browserPool).toBeInstanceOf(BrowserPool);
+                expect(crawlingContext.crawler.browserPool).toBeInstanceOf(BrowserPool);
                 expect(crawlingContext.hasOwnProperty('response')).toBe(true);
 
                 expect(crawlingContext.error).toBeInstanceOf(Error);

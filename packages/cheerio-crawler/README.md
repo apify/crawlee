@@ -44,7 +44,7 @@ const crawler = new CheerioCrawler({
             url: request.url,
             html: body,
             data,
-        })
+        });
     },
 });
 

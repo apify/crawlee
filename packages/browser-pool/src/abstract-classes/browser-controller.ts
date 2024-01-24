@@ -3,12 +3,12 @@ import type { Cookie, Dictionary } from '@crawlee/types';
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
-import { throwImplementationNeeded } from './utils';
 import { BROWSER_CONTROLLER_EVENTS } from '../events';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import type { UnwrapPromise } from '../utils';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
+import { throwImplementationNeeded } from './utils';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
@@ -19,8 +19,7 @@ export interface BrowserControllerEvents<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
-    [BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED]:
-        (controller: BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) => void;
+    [BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED]: (controller: BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) => void;
 }
 
 /**

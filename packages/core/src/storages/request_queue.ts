@@ -1,21 +1,20 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
-import type { Dictionary,
-} from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 
+import { Configuration } from '../configuration';
+import type { Request } from '../request';
 import type { RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
+    getRequestId,
     MAX_QUERIES_FOR_CONSISTENCY,
     QUERY_HEAD_BUFFER,
     QUERY_HEAD_MIN_LENGTH,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
-    getRequestId,
 } from './utils';
-import { Configuration } from '../configuration';
-import type { Request } from '../request';
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 

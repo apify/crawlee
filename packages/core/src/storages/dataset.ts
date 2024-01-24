@@ -3,13 +3,13 @@ import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@cra
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
+import { Configuration } from '../configuration';
+import { type Log, log } from '../log';
+import type { Awaitable } from '../typedefs';
 import { KeyValueStore } from './key_value_store';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
-import { Configuration } from '../configuration';
-import { log, type Log } from '../log';
-import type { Awaitable } from '../typedefs';
 
 /** @internal */
 export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
@@ -596,41 +596,35 @@ export class Dataset<Data extends Dictionary = Dictionary> {
  * User-function used in the `Dataset.forEach()` API.
  */
 export interface DatasetConsumer<Data> {
-
     /**
      * @param item Current {@apilink Dataset} entry being processed.
      * @param index Position of current {@apilink Dataset} entry.
      */
     (item: Data, index: number): Awaitable<void>;
-
 }
 
 /**
  * User-function used in the `Dataset.map()` API.
  */
 export interface DatasetMapper<Data, R> {
-
     /**
      * User-function used in the `Dataset.map()` API.
      * @param item Current {@apilink Dataset} entry being processed.
      * @param index Position of current {@apilink Dataset} entry.
      */
     (item: Data, index: number): Awaitable<R>;
-
 }
 
 /**
  * User-function used in the `Dataset.reduce()` API.
  */
 export interface DatasetReducer<T, Data> {
-
     /**
      * @param memo Previous state of the reduction.
      * @param item Current {@apilink Dataset} entry being processed.
      * @param index Position of current {@apilink Dataset} entry.
      */
     (memo: T, item: Data, index: number): Awaitable<T>;
-
 }
 
 export interface DatasetOptions {

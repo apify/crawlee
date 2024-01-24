@@ -1,9 +1,9 @@
-import type { FingerprintGeneratorOptions } from './types';
-import { BrowserName, DeviceCategory, OperatingSystemsName } from './types';
 import type { BrowserPlugin } from '../abstract-classes/browser-plugin';
 import type { LaunchContext } from '../launch-context';
 import { PlaywrightPlugin } from '../playwright/playwright-plugin';
 import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin';
+import type { FingerprintGeneratorOptions } from './types';
+import { BrowserName, DeviceCategory, OperatingSystemsName } from './types';
 
 export const getGeneratorDefaultOptions = (launchContext: LaunchContext): FingerprintGeneratorOptions => {
     const { browserPlugin, launchOptions } = launchContext;
@@ -24,7 +24,8 @@ const getBrowserName = (browserPlugin: BrowserPlugin, launchOptions: any): Brows
 
     if (browserPlugin instanceof PlaywrightPlugin) {
         browserName = library.name!();
-    } if (browserPlugin instanceof PuppeteerPlugin) {
+    }
+    if (browserPlugin instanceof PuppeteerPlugin) {
         browserName = launchOptions.product || library.product;
     }
 

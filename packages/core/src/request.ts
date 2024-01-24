@@ -408,7 +408,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
  * Specifies required and optional fields for constructing a {@apilink Request}.
  */
 export interface RequestOptions<UserData extends Dictionary = Dictionary> {
-
     /** URL of the web page to crawl. It must be a non-empty string. */
     url: string;
 

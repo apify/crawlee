@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { PlaywrightCrawler } from '@crawlee/playwright';
+import { Actor } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),

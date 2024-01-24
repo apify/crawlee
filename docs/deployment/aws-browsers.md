@@ -38,7 +38,7 @@ const startUrls = ['https://crawlee.dev'];
 
 const crawler = new PlaywrightCrawler({
     requestHandler: router,
-// highlight-start
+    // highlight-start
 }, new Configuration({
     persistStorage: false,
 }));
@@ -63,24 +63,23 @@ const crawler = new PlaywrightCrawler({
     // highlight-start
     launchContext: {
         launchOptions: {
-             executablePath: await aws_chromium.executablePath(),
-             args: aws_chromium.args,
-             headless: true
-        }
-    }
+            executablePath: await aws_chromium.executablePath(),
+            args: aws_chromium.args,
+            headless: true,
+        },
+    },
     // highlight-end
 }, new Configuration({
     persistStorage: false,
 }));
-
 ```
 
 - Last but not least, we have to wrap the code in the exported `handler` function - this will become the Lambda AWS will be executing.
 
 ```javascript title="src/main.js"
+import aws_chromium from '@sparticuz/chromium';
 import { Configuration, PlaywrightCrawler } from 'crawlee';
 import { router } from './routes.js';
-import aws_chromium from '@sparticuz/chromium';
 
 const startUrls = ['https://crawlee.dev'];
 
@@ -92,9 +91,9 @@ export const handler = async (event, context) => {
             launchOptions: {
                 executablePath: await aws_chromium.executablePath(),
                 args: aws_chromium.args,
-                headless: true
-            }
-        }
+                headless: true,
+            },
+        },
     }, new Configuration({
         persistStorage: false,
     }));
@@ -106,9 +105,8 @@ export const handler = async (event, context) => {
         statusCode: 200,
         body: await crawler.getData(),
     };
-}
+};
 // highlight-end
-
 ```
 
 ## Deploying the code
@@ -117,7 +115,7 @@ Now we can simply pack the code into a zip archive (minus the `node_modules` fol
 
 :::tip Memory settings
 
-Since we’re using full-size browsers here, we have to update the Lambda configurations a bit. Most importantly, make sure to set the memory setting to **1024 MB or more** and update the **Lambda timeout**. 
+Since we’re using full-size browsers here, we have to update the Lambda configurations a bit. Most importantly, make sure to set the memory setting to **1024 MB or more** and update the **Lambda timeout**.
 
 The target timeout value depends on how long your crawler will be running. Try measuring the execution time when running your crawler locally and set the timeout accordingly.
 

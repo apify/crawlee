@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream';
 
-import { maybeStringify, Configuration, KeyValueStore } from '@crawlee/core';
+import { Configuration, KeyValueStore, maybeStringify } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
@@ -153,7 +153,7 @@ describe('KeyValueStore', () => {
             circularObj.xxx = circularObj;
             const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
             const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify an undefined value.';
+                + "Make sure you're not trying to stringify an undefined value.";
             await expect(store.setValue('key', circularObj)).rejects.toThrow(circularErrMsg);
             await expect(store.setValue('key', undefined)).rejects.toThrow(undefinedErrMsg);
             // @ts-expect-error JS-side validation
@@ -304,7 +304,7 @@ describe('KeyValueStore', () => {
             });
 
             const mockSetRecord = vitest
-            // @ts-expect-error Accessing private property
+                // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
 

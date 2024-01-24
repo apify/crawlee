@@ -4,17 +4,17 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
+import type { RequestOptions } from '../request';
+import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 import type { GlobInput, PseudoUrlInput, RegExpInput, RequestTransform, UrlPatternObject } from './shared';
 import {
-    filterRequestsByPatterns,
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
     createRequests,
+    filterRequestsByPatterns,
 } from './shared';
-import type { RequestOptions } from '../request';
-import type { RequestProvider, RequestQueueOperationOptions } from '../storages';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
@@ -146,7 +146,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * │                         │
      * └─────────────────────────┘
      *          Origin
-     *```
+     * ```
      *
      * @default EnqueueStrategy.SameHostname
      */
@@ -167,7 +167,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
  * │                         │
  * └─────────────────────────┘
  *          Origin
- *```
+ * ```
  *
  * - The `Protocol` is usually `http` or `https`
  * - The `Domain` represents the path without any possible subdomains to a website. For example, `crawlee.dev` is the domain of `https://example.crawlee.dev/`

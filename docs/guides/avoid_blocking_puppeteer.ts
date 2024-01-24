@@ -1,5 +1,5 @@
-import { PuppeteerCrawler } from 'crawlee';
 import { BrowserName, DeviceCategory } from '@crawlee/browser-pool';
+import { PuppeteerCrawler } from 'crawlee';
 
 const crawler = new PuppeteerCrawler({
     browserPoolOptions: {

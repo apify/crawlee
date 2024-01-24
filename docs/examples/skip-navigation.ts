@@ -1,4 +1,4 @@
-import { PlaywrightCrawler, KeyValueStore } from 'crawlee';
+import { KeyValueStore, PlaywrightCrawler } from 'crawlee';
 
 // Create a key value store for all images we find
 const imageStore = await KeyValueStore.open('images');

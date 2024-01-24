@@ -24,20 +24,20 @@ import vm from 'vm';
 import { LruCache } from '@apify/datastructures';
 import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
-import { KeyValueStore, RequestState, validators, Configuration } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import { getInjectableScript } from 'idcac-playwright';
 import ow from 'ow';
-import type { Page, HTTPResponse, ResponseForRequest, HTTPRequest as PuppeteerRequest } from 'puppeteer';
+import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
 
-import type { InterceptHandler } from './puppeteer_request_interception';
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PuppeteerCrawlingContext } from '../puppeteer-crawler';
+import type { InterceptHandler } from './puppeteer_request_interception';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 
 const jqueryPath = require.resolve('jquery');
 
@@ -130,8 +130,8 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     }
     const evalP = page.evaluate(contents);
     if (options.surviveNavigations) {
-        page.on('framenavigated',
-            async () => page.evaluate(contents)
+        page.on('framenavigated', async () =>
+            page.evaluate(contents)
                 .catch((error) => log.warning('An error occurred during the script injection!', { error })));
     }
 
@@ -271,7 +271,9 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
 
     // eslint-disable-next-line max-len
-    throw new Error(`Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`);
+    throw new Error(
+        `Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`,
+    );
 }
 
 /**
@@ -311,7 +313,7 @@ export async function cacheResponses(page: Page, cache: Dictionary<Partial<Respo
     ow(responseUrlRules, ow.array.ofType(ow.any(ow.string, ow.regExp)));
 
     log.deprecated('utils.puppeteer.cacheResponses() has a high impact on performance '
-        + 'in recent versions of Puppeteer so it\'s use is discouraged until this issue resolves.');
+        + "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.");
 
     await addInterceptRequestHandler(page, async (request) => {
         const url = request.url();
@@ -883,7 +885,6 @@ export interface PuppeteerContextUtils {
      * If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
      * to any of the remaining handlers.
      *
-     *
      * **Example usage:**
      *
      * ```javascript
@@ -947,21 +948,22 @@ export interface PuppeteerContextUtils {
 /** @internal */
 export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
     context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = (async () => {
+    context.injectJQuery = async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
             log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
             await injectJQuery(context.page);
             return;
         }
         await injectJQuery(context.page, { surviveNavigations: false });
-    });
+    };
     context.parseWithCheerio = async () => parseWithCheerio(context.page);
     // eslint-disable-next-line max-len
-    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
-        page: context.page,
-        requestQueue: context.crawler.requestQueue!,
-        ...options,
-    });
+    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) =>
+        enqueueLinksByClickingElements({
+            page: context.page,
+            requestQueue: context.crawler.requestQueue!,
+            ...options,
+        });
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.blockResources = async (resourceTypes?: string[]) => blockResources(context.page, resourceTypes);
     context.cacheResponses = async (cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]) => {
@@ -975,11 +977,7 @@ export function registerUtilsToContext(context: PuppeteerCrawlingContext): void 
     context.closeCookieModals = async () => closeCookieModals(context.page);
 }
 
-export {
-    enqueueLinksByClickingElements,
-    addInterceptRequestHandler,
-    removeInterceptRequestHandler,
-};
+export { addInterceptRequestHandler, enqueueLinksByClickingElements, removeInterceptRequestHandler };
 
 /** @internal */
 export const puppeteerUtils = {

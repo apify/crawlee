@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { KeyValueStoreClient } from './key-value-store';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findOrCacheKeyValueStoreByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
+import { KeyValueStoreClient } from './key-value-store';
 
 export interface KeyValueStoreCollectionClientOptions {
     baseStorageDirectory: string;
@@ -30,7 +30,8 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
             limit: this.client.keyValueStoresHandled.length,
             desc: false,
             items: this.client.keyValueStoresHandled.map(
-                (store) => store.toKeyValueStoreInfo())
+                (store) => store.toKeyValueStoreInfo(),
+            )
                 .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }

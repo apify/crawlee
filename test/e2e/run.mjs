@@ -1,10 +1,10 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import { once } from 'node:events';
 import { readdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { isMainThread, Worker, workerData } from 'node:worker_threads';
-import { execSync } from 'node:child_process';
-import { colors, getApifyToken, clearPackages, clearStorage, SKIPPED_TEST_CLOSE_CODE } from './tools.mjs';
+import { clearPackages, clearStorage, colors, getApifyToken, SKIPPED_TEST_CLOSE_CODE } from './tools.mjs';
 
 const basePath = dirname(fileURLToPath(import.meta.url));
 

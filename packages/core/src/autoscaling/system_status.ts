@@ -1,8 +1,8 @@
 import { weightedAvg } from '@crawlee/utils';
 import ow from 'ow';
 
-import { Snapshotter } from './snapshotter';
 import type { Configuration } from '../configuration';
+import { Snapshotter } from './snapshotter';
 
 /**
  * Represents the current status of the system.

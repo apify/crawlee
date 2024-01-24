@@ -247,15 +247,15 @@ export class ProxyConfiguration {
         }
     }
 
-    protected _throwNewUrlFunctionInvalid(err: Error) : never {
+    protected _throwNewUrlFunctionInvalid(err: Error): never {
         throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
     }
 
-    protected _throwCannotCombineCustomMethods() : never {
+    protected _throwCannotCombineCustomMethods(): never {
         throw new Error('Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".');
     }
 
-    protected _throwNoOptionsProvided() : never {
+    protected _throwNoOptionsProvided(): never {
         throw new Error('One of "options.proxyUrls" or "options.newUrlFunction" needs to be provided.');
     }
 }

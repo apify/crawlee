@@ -1,5 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
-import type { load, CheerioAPI } from 'cheerio';
+import type { CheerioAPI, load } from 'cheerio';
 import cheerio from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls';

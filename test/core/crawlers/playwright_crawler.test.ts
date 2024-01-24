@@ -3,15 +3,8 @@ import type { AddressInfo } from 'net';
 import os from 'os';
 
 import log from '@apify/log';
-import type {
-    PlaywrightGotoOptions,
-    PlaywrightRequestHandler,
-    Request,
-} from '@crawlee/playwright';
-import {
-    PlaywrightCrawler,
-    RequestList,
-} from '@crawlee/playwright';
+import type { PlaywrightGotoOptions, PlaywrightRequestHandler, Request } from '@crawlee/playwright';
+import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';

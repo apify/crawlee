@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { RequestQueueClient } from './request-queue';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
+import { RequestQueueClient } from './request-queue';
 
 export interface RequestQueueCollectionClientOptions {
     baseStorageDirectory: string;
@@ -30,7 +30,8 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
             limit: this.client.requestQueuesHandled.length,
             desc: false,
             items: this.client.requestQueuesHandled.map(
-                (store) => store.toRequestQueueInfo())
+                (store) => store.toRequestQueueInfo(),
+            )
                 .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }

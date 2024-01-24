@@ -1,5 +1,5 @@
-import { Actor, KeyValueStore } from 'apify';
 import { BasicCrawler } from '@crawlee/basic';
+import { Actor, KeyValueStore } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),

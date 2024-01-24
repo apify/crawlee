@@ -1,5 +1,5 @@
-import { Actor, LogLevel, log as Logger } from 'apify';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { Actor, log as Logger, LogLevel } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),

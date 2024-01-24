@@ -2,13 +2,7 @@ import log from '@apify/log';
 import { cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
-import {
-    browserCrawlerEnqueueLinks,
-    Configuration,
-    EnqueueStrategy,
-    launchPuppeteer,
-    RequestQueue,
-} from '@crawlee/puppeteer';
+import { browserCrawlerEnqueueLinks, Configuration, EnqueueStrategy, launchPuppeteer, RequestQueue } from '@crawlee/puppeteer';
 import type { CheerioRoot } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
@@ -48,7 +42,7 @@ function createRequestQueueMock() {
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
     // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
+    requestQueue.addRequests = async function(requests) {
         enqueued.push(...requests);
         return { processedRequests: requests, unprocessedRequests: [] as never[] };
     };

@@ -2,10 +2,10 @@ import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
 import type { Browser, BrowserType, Page } from 'playwright';
 
-import type { PlaywrightPlugin } from './playwright-plugin';
 import { BrowserController } from '../abstract-classes/browser-controller';
 import { anonymizeProxySugar } from '../anonymize-proxy';
 import type { SafeParameters } from '../utils';
+import type { PlaywrightPlugin } from './playwright-plugin';
 
 const tabIds = new WeakMap<Page, number>();
 const keyFromTabId = (tabId: string | number) => `.${tabId}.`;

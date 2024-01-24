@@ -1,5 +1,5 @@
+import { createPlaywrightRouter, Dataset, PlaywrightCrawler } from '@crawlee/playwright';
 import { Actor } from 'apify';
-import { Dataset, createPlaywrightRouter, PlaywrightCrawler } from '@crawlee/playwright';
 
 await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined });
 

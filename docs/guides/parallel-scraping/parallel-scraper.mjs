@@ -1,6 +1,6 @@
 import { fork } from 'node:child_process';
 
-import { Configuration, Dataset, PlaywrightCrawler, log } from 'crawlee';
+import { Configuration, Dataset, log, PlaywrightCrawler } from 'crawlee';
 
 import { router } from './routes.mjs';
 import { getOrInitQueue } from './shared.mjs';

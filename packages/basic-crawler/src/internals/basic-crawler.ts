@@ -9,9 +9,9 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     CrawlingContext,
+    DatasetExportOptions,
     EnqueueLinksOptions,
     EventManager,
-    DatasetExportOptions,
     FinalStatistics,
     GetUserDataFromRequest,
     ProxyInfo,
@@ -24,8 +24,8 @@ import type {
     Session,
     SessionPoolOptions,
     Source,
-    StatisticState,
     StatisticsOptions,
+    StatisticState,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -50,11 +50,11 @@ import {
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
+import { gotScraping, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { OptionsInit, Method } from 'got-scraping';
+import type { Method, OptionsInit } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -671,7 +671,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
             if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
                 // eslint-disable-next-line max-len
-                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`);
+                log.warning(
+                    `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
+                );
             }
         }
         this.useSessionPool = useSessionPool;
@@ -728,7 +730,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
                 if (isFinished) {
                     const reason = isFinishedFunction
-                        ? 'Crawler\'s custom isFinishedFunction() returned true, the crawler will shut down.'
+                        ? "Crawler's custom isFinishedFunction() returned true, the crawler will shut down."
                         : 'All requests from the queue have been processed, the crawler will shut down.';
                     log.info(reason);
                 }
@@ -803,7 +805,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             if (operationMode === 'ERROR') {
                 // eslint-disable-next-line max-len
-                message = `Experiencing problems, ${this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed} failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
+                message = `Experiencing problems, ${
+                    this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
+                } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = this.requestQueue?.getTotalCount() || this.requestList?.length();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${this.stats.state.requestsFailed} failed requests.`;
@@ -917,7 +921,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         periodicLogger.stop();
         // eslint-disable-next-line max-len
-        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true, level: 'INFO' });
+        await this.setStatusMessage(
+            `Finished! Total ${
+                this.stats.state.requestsFinished + this.stats.state.requestsFailed
+            } requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`,
+            { isStatusMessageTerminal: true, level: 'INFO' },
+        );
         this.running = false;
 
         return stats;
@@ -926,7 +935,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     async getRequestQueue() {
         if (!this.requestQueue && this.requestList) {
             // eslint-disable-next-line max-len
-            this.log.warningOnce('When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.');
+            this.log.warningOnce(
+                'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
+            );
         }
 
         this.requestQueue ??= await this._getRequestQueue();
@@ -1059,7 +1070,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 .catch((err) => {
                     if (err.message.includes('running tasks did not finish')) {
                         this.log.error('The crawler was paused due to migration to another host, '
-                            + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
+                            + "but some requests did not finish in time. Those requests' results may be duplicated.");
                     } else {
                         throw err;
                     }
@@ -1072,12 +1083,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 await this.requestList.persistState()
                     .catch((err) => {
                         if (err.message.includes('Cannot persist state.')) {
-                            this.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
+                            this.log.error("The crawler attempted to persist its request list's state and failed due to missing or "
                                 + 'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList '
                                 + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
                         } else {
                             this.log.exception(err, 'An unexpected error occurred when the crawler '
-                                + 'attempted to persist its request list\'s state.');
+                                + "attempted to persist its request list's state.");
                         }
                     });
             }
@@ -1217,11 +1228,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return this.pushData(...args);
             },
             sendRequest: async (overrideOptions?: OptionsInit) => {
-                const cookieJar = session ? {
-                    getCookieString: async (url: string) => session!.getCookieString(url),
-                    setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
-                    ...overrideOptions?.cookieJar,
-                } : overrideOptions?.cookieJar;
+                const cookieJar = session
+                    ? {
+                        getCookieString: async (url: string) => session!.getCookieString(url),
+                        setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
+                        ...overrideOptions?.cookieJar,
+                    }
+                    : overrideOptions?.cookieJar;
 
                 return gotScraping({
                     url: request!.url,
@@ -1275,9 +1288,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             } catch (secondaryError: any) {
                 if (!secondaryError.triggeredFromUserHandler
                     // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-                    && !(secondaryError instanceof CriticalError)) {
+                    && !(secondaryError instanceof CriticalError))
+                {
                     const apifySpecific = process.env.APIFY_IS_AT_HOME
-                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.` : '';
+                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
+                        : '';
                     this.log.exception(secondaryError as Error, 'An exception occurred during handling of failed request. '
                         + `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`);
                 }
@@ -1453,8 +1468,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // Request should never be retried, or the error encountered makes it not able to be retried, or the session rotation limit has been reached
         if (request.noRetry
             || (error instanceof NonRetryableError)
-            || (error instanceof SessionError && (this.maxSessionRotations <= (request.sessionRotationCount ?? 0)))
-        ) {
+            || (error instanceof SessionError && (this.maxSessionRotations <= (request.sessionRotationCount ?? 0))))
+        {
             return false;
         }
 
@@ -1472,7 +1487,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         Object.defineProperty(context, 'error', {
             get: () => {
                 // eslint-disable-next-line max-len
-                this.log.deprecated("The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.");
+                this.log.deprecated(
+                    "The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.",
+                );
 
                 return error;
             },

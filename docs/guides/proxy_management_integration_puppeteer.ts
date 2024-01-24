@@ -1,4 +1,4 @@
-import { PuppeteerCrawler, ProxyConfiguration } from 'crawlee';
+import { ProxyConfiguration, PuppeteerCrawler } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
     proxyUrls: [

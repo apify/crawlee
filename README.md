@@ -44,6 +44,7 @@ npm start
 ```
 
 ### Manual installation
+
 If you prefer adding Crawlee **into your own project**, try the example below. Because it uses `PlaywrightCrawler` we also need to install [Playwright](https://playwright.dev). It's not bundled with Crawlee to reduce install size.
 
 ```bash
@@ -51,7 +52,7 @@ npm install crawlee playwright
 ```
 
 ```js
-import { PlaywrightCrawler, Dataset } from 'crawlee';
+import { Dataset, PlaywrightCrawler } from 'crawlee';
 
 // PlaywrightCrawler crawls the web using a headless
 // browser controlled by the Playwright library.

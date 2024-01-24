@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { BasicCrawler, log as defaultLog, LogLevel } from '@crawlee/basic';
+import { Actor } from 'apify';
 
 const crawlerLogger = defaultLog.child({
     prefix: 'AutoscalingTest',

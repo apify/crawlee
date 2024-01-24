@@ -62,15 +62,16 @@ async function downloadTemplateFilesToDisk(template: Template, destinationDirect
     const promises: Promise<void>[] = [];
 
     for (const file of template.files) {
-        const promise = async () => downloadFile(file.url).then(async (buffer) => {
-            // Make sure the folder for the file exists
-            const fileDirName = dirname(file.path);
-            const fileFolder = resolve(destinationDirectory, fileDirName);
-            await ensureDir(fileFolder);
+        const promise = async () =>
+            downloadFile(file.url).then(async (buffer) => {
+                // Make sure the folder for the file exists
+                const fileDirName = dirname(file.path);
+                const fileFolder = resolve(destinationDirectory, fileDirName);
+                await ensureDir(fileFolder);
 
-            // Write the actual file
-            await writeFile(resolve(destinationDirectory, file.path), buffer);
-        });
+                // Write the actual file
+                await writeFile(resolve(destinationDirectory, file.path), buffer);
+            });
 
         promises.push(withRetries(promise, 3, `Template: ${template.name}, file: ${file.path}`));
     }

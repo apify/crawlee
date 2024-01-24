@@ -1,5 +1,5 @@
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
-import { Dataset, checkAndSerialize, chunkBySize, Configuration, KeyValueStore } from '@crawlee/core';
+import { checkAndSerialize, chunkBySize, Configuration, Dataset, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
@@ -169,7 +169,9 @@ describe('dataset', () => {
             expect(result).toEqual(expected);
             let e;
             const spy = vitest.spyOn(dataset.client, 'listItems')
-                .mockImplementation(() => { throw new Error('Cannot create a string longer than 0x3fffffe7 characters'); });
+                .mockImplementation(() => {
+                    throw new Error('Cannot create a string longer than 0x3fffffe7 characters');
+                });
             try {
                 await dataset.getData();
             } catch (err) {

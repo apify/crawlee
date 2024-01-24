@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { Dataset, KeyValueStore, PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Actor } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),

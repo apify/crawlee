@@ -13,11 +13,12 @@ The crawler finishes when there are no more [Request](https://crawlee.dev/api/co
 We can use the `preNavigationHooks` to adjust `gotOptions`:
 
 ```javascript
-preNavigationHooks: [
+preNavigationHooks:
+[
     (crawlingContext, gotOptions) => {
         // ...
     },
-]
+];
 ```
 
 By default, `HttpCrawler` only processes web pages with the `text/html` and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header), and skips pages with other content types. If you want the crawler to process other content types, use the [HttpCrawlerOptions.additionalMimeTypes](https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#additionalMimeTypes) constructor option. Beware that the parsing behavior differs for HTML, XML, JSON and other types of content. For more details, see [HttpCrawlerOptions.requestHandler](https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#requestHandler).
@@ -27,7 +28,7 @@ New requests are only dispatched when there is enough free CPU and memory availa
 ## Example usage
 
 ```javascript
-import { HttpCrawler, Dataset } from '@crawlee/http';
+import { Dataset, HttpCrawler } from '@crawlee/http';
 
 const crawler = new HttpCrawler({
     requestList,

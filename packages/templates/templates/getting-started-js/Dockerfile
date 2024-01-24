@@ -24,6 +24,5 @@ RUN npm --quiet set progress=false \
 # for most source file changes.
 COPY --chown=myuser . ./
 
-
 # Run the image.
 CMD npm start --silent

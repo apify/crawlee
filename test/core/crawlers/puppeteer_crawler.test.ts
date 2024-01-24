@@ -6,18 +6,8 @@ import os from 'os';
 import { promisify } from 'util';
 
 import log from '@apify/log';
-import type {
-    PuppeteerCrawlingContext,
-    PuppeteerGoToOptions,
-    Request,
-} from '@crawlee/puppeteer';
-import {
-    ProxyConfiguration,
-    PuppeteerCrawler,
-    RequestList,
-    RequestQueue,
-    Session,
-} from '@crawlee/puppeteer';
+import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
+import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
@@ -157,7 +147,7 @@ describe('PuppeteerCrawler', () => {
 
     test('should throw if launchOptions.proxyUrl is supplied', async () => {
         try {
-            new PuppeteerCrawler({ //eslint-disable-line
+            new PuppeteerCrawler({ // eslint-disable-line
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,

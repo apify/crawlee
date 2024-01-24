@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { CheerioCrawler, Dataset, log, Request } from '@crawlee/cheerio';
+import { Actor } from 'apify';
 
 log.setLevel(log.LEVELS.DEBUG);
 
@@ -30,7 +30,9 @@ await Actor.main(async () => {
     let navigationCounter = 0;
 
     const crawler = new CheerioCrawler({
-        preNavigationHooks: [() => { navigationCounter++; }],
+        preNavigationHooks: [() => {
+            navigationCounter++;
+        }],
         async requestHandler({ request }) {
             requestCounter++;
             if (request.skipNavigation) {

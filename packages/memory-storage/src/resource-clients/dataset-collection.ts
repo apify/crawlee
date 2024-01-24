@@ -3,10 +3,10 @@ import { resolve } from 'path';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { DatasetClient } from './dataset';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findOrCacheDatasetByPossibleId } from '../cache-helpers';
 import type { MemoryStorage } from '../index';
+import { DatasetClient } from './dataset';
 
 export interface DatasetCollectionClientOptions {
     baseStorageDirectory: string;
@@ -30,7 +30,8 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
             limit: this.client.datasetClientsHandled.length,
             desc: false,
             items: this.client.datasetClientsHandled.map(
-                (store) => store.toDatasetInfo())
+                (store) => store.toDatasetInfo(),
+            )
                 .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }

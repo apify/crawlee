@@ -1,5 +1,5 @@
 import type { PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { PuppeteerCrawlingContext, PuppeteerCrawlerOptions, PuppeteerGoToOptions } from '@crawlee/puppeteer';
+import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext, PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { BrowserCrawler } from '@crawlee/puppeteer';
 import type { HTTPResponse, LaunchOptions } from 'puppeteer';
 

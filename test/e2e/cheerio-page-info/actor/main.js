@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { CheerioCrawler, createCheerioRouter, Dataset } from '@crawlee/cheerio';
+import { Actor } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),

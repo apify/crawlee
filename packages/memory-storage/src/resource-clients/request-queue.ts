@@ -7,7 +7,6 @@ import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
 
-import { BaseClient } from './common/base-client';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
@@ -15,6 +14,7 @@ import type { StorageImplementation } from '../fs/common';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 import type { MemoryStorage } from '../index';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
+import { BaseClient } from './common/base-client';
 
 const requestShape = s.object({
     id: s.string,
@@ -70,7 +70,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         this.client = options.client;
     }
 
-    private async getQueue() : Promise<RequestQueueClient> {
+    private async getQueue(): Promise<RequestQueueClient> {
         const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
         if (!existingQueueById) {
@@ -225,7 +225,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
-    async prolongRequestLock(id: string, options: storage.ProlongRequestLockOptions) : Promise<storage.ProlongRequestLockResult> {
+    async prolongRequestLock(id: string, options: storage.ProlongRequestLockOptions): Promise<storage.ProlongRequestLockResult> {
         s.string.parse(id);
         const { lockSecs, forefront } = s.object({
             lockSecs: s.number,
@@ -257,7 +257,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}) : Promise<void> {
+    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}): Promise<void> {
         s.string.parse(id);
         const { forefront } = s.object({
             forefront: s.boolean.optional.default(false),

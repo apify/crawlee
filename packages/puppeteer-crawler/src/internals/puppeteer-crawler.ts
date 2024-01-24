@@ -1,11 +1,4 @@
-import type {
-    BrowserCrawlerOptions,
-    BrowserCrawlingContext,
-    BrowserHook,
-    BrowserRequestHandler,
-    GetUserDataFromRequest,
-    RouterRoutes,
-} from '@crawlee/browser';
+import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserHook, BrowserRequestHandler, GetUserDataFromRequest, RouterRoutes } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
@@ -17,8 +10,9 @@ import { PuppeteerLauncher } from './puppeteer-launcher';
 import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
 import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
 
-export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends
-    BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
+export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
+    extends BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils
+{}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
 export interface PuppeteerRequestHandler extends BrowserRequestHandler<PuppeteerCrawlingContext> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];

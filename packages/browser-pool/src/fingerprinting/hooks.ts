@@ -1,12 +1,12 @@
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { FingerprintInjector } from 'fingerprint-injector';
 
-import { getGeneratorDefaultOptions } from './utils';
 import type { BrowserPool } from '..';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import type { LaunchContext } from '../launch-context';
 import { PlaywrightPlugin } from '../playwright/playwright-plugin';
 import { PuppeteerPlugin } from '../puppeteer/puppeteer-plugin';
+import { getGeneratorDefaultOptions } from './utils';
 
 /**
  * @internal
@@ -27,7 +27,7 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
 
         // If no options are passed we try to pass best default options as possible to match browser and OS.
         const fingerprintGeneratorFinalOptions = fingerprintGeneratorOptions || getGeneratorDefaultOptions(launchContext);
-        let fingerprint : BrowserFingerprintWithHeaders;
+        let fingerprint: BrowserFingerprintWithHeaders;
 
         if (cacheKey && fingerprintCache?.has(cacheKey)) {
             fingerprint = fingerprintCache.get(cacheKey)!;

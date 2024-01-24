@@ -1,13 +1,13 @@
 /* eslint-disable dot-notation */
 
 import {
-    QUERY_HEAD_MIN_LENGTH,
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-    RequestQueue,
-    Request,
     Configuration,
     ProxyConfiguration,
+    QUERY_HEAD_MIN_LENGTH,
+    Request,
+    RequestQueue,
+    STORAGE_CONSISTENCY_DELAY_MILLIS,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
@@ -95,9 +95,11 @@ describe('RequestQueue remote', () => {
         await queue.reclaimRequest(new Request({ id: 'XXX', url: 'https://example.com' }))
             .catch((err) => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
         await queue.addRequest(new Request({ id: 'id-already-set', url: 'https://example.com' }))
-            .catch((err) => expect(err.message).toMatch(
-                'Expected property `id` to be of type `undefined` but received type `string` in object',
-            ));
+            .catch((err) =>
+                expect(err.message).toMatch(
+                    'Expected property `id` to be of type `undefined` but received type `string` in object',
+                )
+            );
 
         // getRequest() returns null if object was not found.
         mockGetRequest.mockResolvedValueOnce(null);
@@ -838,7 +840,7 @@ describe('RequestQueue with requestsFromUrl', () => {
 describe('RequestQueue v2', () => {
     const totalRequestsPerTest = 50;
 
-    function calculateHistogram(requests: { uniqueKey: string }[]) : number[] {
+    function calculateHistogram(requests: { uniqueKey: string }[]): number[] {
         const histogram: number[] = [];
         for (const item of requests) {
             const key = item.uniqueKey;

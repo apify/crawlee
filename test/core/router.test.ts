@@ -93,10 +93,10 @@ describe('Router', () => {
         const logs: string[] = [];
         // it should be possible to define router inline when creating router
         const router = Router.create({
-            'A': async (ctx) => {
+            A: async (ctx) => {
                 logs.push(`label A handled with url ${ctx.request.loadedUrl}`);
             },
-            'B': async (ctx) => {
+            B: async (ctx) => {
                 logs.push(`label B handled with url ${ctx.request.loadedUrl}`);
             },
         });
@@ -141,7 +141,7 @@ describe('Router', () => {
     test('addHandler accepts userdata generic', async () => {
         const testType = <T>(t: T): void => {};
 
-        const router: Router<CrawlingContext<{foo: 'foo'}>> = {
+        const router: Router<CrawlingContext<{ foo: 'foo' }>> = {
             addHandler: () => {},
             addDefaultHandler: () => {},
         } as any;
@@ -150,7 +150,7 @@ describe('Router', () => {
             testType<'foo'>(ctx.request.userData.foo);
         });
 
-        router.addHandler<{foo: 'bar'}>('2', (ctx) => {
+        router.addHandler<{ foo: 'bar' }>('2', (ctx) => {
             testType<'bar'>(ctx.request.userData.foo);
         });
 
@@ -158,7 +158,7 @@ describe('Router', () => {
             testType<'foo'>(ctx.request.userData.foo);
         });
 
-        router.addDefaultHandler<{foo: 'bar'}>((ctx) => {
+        router.addDefaultHandler<{ foo: 'bar' }>((ctx) => {
             testType<'bar'>(ctx.request.userData.foo);
         });
     });

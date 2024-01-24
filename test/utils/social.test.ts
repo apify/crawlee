@@ -64,13 +64,14 @@ describe('utils.social', () => {
                   not @ an.email.com
                   @also.not.an.email
                   `, [
-                'this\'is\'also\'valid\'email@EXAMPLE.travel',
+                "this'is'also'valid'email@EXAMPLE.travel",
                 'easy-address@some-domain.co.uk',
                 'easy-address@some-domain.co.uk',
             ]);
 
-            testEmailsFromText(' some.super.long.email.address@some.super.long.domain.name.co.br ',
-                ['some.super.long.email.address@some.super.long.domain.name.co.br']);
+            testEmailsFromText(' some.super.long.email.address@some.super.long.domain.name.co.br ', [
+                'some.super.long.email.address@some.super.long.domain.name.co.br',
+            ]);
         });
     });
 
@@ -1025,7 +1026,9 @@ describe('utils.social', () => {
             expect('https://discord.gg/discord-developers'.match(DISCORD_REGEX)[1]).toBe('discord.gg/discord-developers');
             expect('https://discord.com/invite/jyEM2PRvMU'.match(DISCORD_REGEX)[1]).toBe('discord.com/invite/jyEM2PRvMU');
             expect('https://discordapp.com/channels/231496023303957476'.match(DISCORD_REGEX)[1]).toBe('discordapp.com/channels/231496023303957476');
-            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(DISCORD_REGEX)[1]).toBe('discord.com/channels/231496023303957476/2332823543826404586');
+            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(DISCORD_REGEX)[1]).toBe(
+                'discord.com/channels/231496023303957476/2332823543826404586',
+            );
 
             expect(`
                     https://discord.gg/discord-developers/

@@ -8,9 +8,9 @@ import ow from 'ow';
 import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
-import { EVENT_SESSION_RETIRED } from './events';
 import { browserPoolCookieToToughCookie, getCookiesFromResponse, getDefaultCookieExpirationDate, toughCookieToBrowserPoolCookie } from '../cookie_utils';
 import { log as defaultLog } from '../log';
+import { EVENT_SESSION_RETIRED } from './events';
 
 /**
  * Persistable {@apilink Session} state.
@@ -29,7 +29,6 @@ export interface SessionState {
 }
 
 export interface SessionOptions {
-
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
     id?: string;
 
@@ -84,7 +83,6 @@ export interface SessionOptions {
     log?: Log;
     errorScore?: number;
     cookieJar?: CookieJar;
-
 }
 
 /**

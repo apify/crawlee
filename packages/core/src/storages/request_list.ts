@@ -2,8 +2,6 @@ import type { Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
-import { KeyValueStore } from './key_value_store';
-import { purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events';
 import { EventType } from '../events';
@@ -12,6 +10,8 @@ import type { ProxyConfiguration } from '../proxy_configuration';
 import type { InternalSource, RequestOptions, Source } from '../request';
 import { Request } from '../request';
 import { createDeserialize, serializeArray } from '../serialization';
+import { KeyValueStore } from './key_value_store';
+import { purgeDefaultStorages } from './utils';
 
 /** @internal */
 export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
@@ -98,10 +98,10 @@ export interface RequestListOptions {
     sourcesFunction?: RequestListSourcesFunction;
 
     /**
-    * Used to pass the proxy configuration for the `requestsFromUrl` objects.
-    * Takes advantage of the internal address rotation and authentication process.
-    * If undefined, the `requestsFromUrl` requests will be made without proxy.
-    */
+     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+     * Takes advantage of the internal address rotation and authentication process.
+     * If undefined, the `requestsFromUrl` requests will be made without proxy.
+     */
     proxyConfiguration?: ProxyConfiguration;
 
     /**
@@ -473,7 +473,8 @@ export class RequestList {
             throw new Error('The state object is not consistent with RequestList, too few requests loaded.');
         }
         if (state.nextIndex < this.requests.length
-            && this.requests[state.nextIndex].uniqueKey !== state.nextUniqueKey) {
+            && this.requests[state.nextIndex].uniqueKey !== state.nextUniqueKey)
+        {
             throw new Error('The state object is not consistent with RequestList the order of URLs seems to have changed.');
         }
 
@@ -505,7 +506,7 @@ export class RequestList {
         // As a workaround, we just remove all inProgress requests whose index >= nextIndex,
         // since they will be crawled again.
         if (deleteFromInProgress.length) {
-            this.log.warning('RequestList\'s in-progress field is not consistent, skipping invalid in-progress entries', {
+            this.log.warning("RequestList's in-progress field is not consistent, skipping invalid in-progress entries", {
                 deleteFromInProgress,
             });
             for (const uniqueKey of deleteFromInProgress) {
@@ -731,7 +732,7 @@ export class RequestList {
      */
     protected _ensureUniqueKeyValid(uniqueKey: string): void {
         if (typeof uniqueKey !== 'string' || !uniqueKey) {
-            throw new Error('Request object\'s uniqueKey must be a non-empty string');
+            throw new Error("Request object's uniqueKey must be a non-empty string");
         }
     }
 
@@ -882,7 +883,6 @@ export class RequestList {
  * ```
  */
 export interface RequestListState {
-
     /** Position of the next request to be processed. */
     nextIndex: number;
 
@@ -891,7 +891,6 @@ export interface RequestListState {
 
     /** Array of request keys representing those that being processed at the moment. */
     inProgress: string[];
-
 }
 
 type RequestListSource = string | Source;

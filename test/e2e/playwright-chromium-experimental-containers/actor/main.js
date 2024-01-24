@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
+import { Actor } from 'apify';
 
 // fails after update to playwright 1.29.0, looks like issue the chromium extension, maybe the manifest_version 2 vs 3?
 process.exit(404);

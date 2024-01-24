@@ -363,17 +363,18 @@ const createStorage = ({ storage, prefix }) => {
 
 const toHide = new WeakMap();
 for (const Type of [Function, Object, Array]) {
-    const create = (fallback) => function () {
-        if (this instanceof FakeStorage) {
-            return '[object Storage]';
-        }
+    const create = (fallback) =>
+        function() {
+            if (this instanceof FakeStorage) {
+                return '[object Storage]';
+            }
 
-        if (WeakMapPrototype.has.call(toHide, this)) {
-            return `function ${WeakMapPrototype.get.call(toHide, this)}() { [native code] }`;
-        }
+            if (WeakMapPrototype.has.call(toHide, this)) {
+                return `function ${WeakMapPrototype.get.call(toHide, this)}() { [native code] }`;
+            }
 
-        return fallback.call(this);
-    };
+            return fallback.call(this);
+        };
 
     const toString = create(Type.prototype.toString);
     const toLocaleString = create(Type.prototype.toLocaleString);
@@ -400,8 +401,12 @@ try {
     const fakeLocalStorage = createStorage({ storage: sessionStorage, prefix: 'l.' });
     const fakeSessionStorage = createStorage({ storage: sessionStorage, prefix: 's.' });
 
-    const getLocalStorage = function localStorage() { return fakeLocalStorage; };
-    const getSessionStorage = function sessionStorage() { return fakeSessionStorage; };
+    const getLocalStorage = function localStorage() {
+        return fakeLocalStorage;
+    };
+    const getSessionStorage = function sessionStorage() {
+        return fakeSessionStorage;
+    };
 
     WeakMapPrototype.set.call(toHide, FakeStorage, 'Storage');
     WeakMapPrototype.set.call(toHide, FakeStoragePrototype.key, 'key');

@@ -2,11 +2,11 @@ import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
-import type { BrowserController } from './browser-controller';
-import { throwImplementationNeeded } from './utils';
 import type { LaunchContextOptions } from '../launch-context';
 import { LaunchContext } from '../launch-context';
 import type { UnwrapPromise } from '../utils';
+import type { BrowserController } from './browser-controller';
+import { throwImplementationNeeded } from './utils';
 
 /**
  * The default User Agent used by `PlaywrightCrawler`, `launchPlaywright`, 'PuppeteerCrawler' and 'launchPuppeteer'
@@ -236,7 +236,9 @@ export abstract class BrowserPlugin<
      */
     // @ts-expect-error Give runtime error as well as compile time
     // eslint-disable-next-line max-len
-    protected abstract _addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void> {
+    protected abstract _addProxyToLaunchOptions(
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): Promise<void> {
         throwImplementationNeeded('_addProxyToLaunchOptions');
     }
 

@@ -6,21 +6,18 @@ import { readFile, rm } from 'node:fs/promises';
 import { join } from 'path';
 
 import log from '@apify/log';
-import type {
-    CrawlingContext,
-    ErrorHandler,
-    RequestHandler } from '@crawlee/basic';
+import type { CrawlingContext, ErrorHandler, RequestHandler } from '@crawlee/basic';
 import {
-    Request,
-    RequestQueue,
-    RequestList,
-    Configuration,
     BasicCrawler,
-    KeyValueStore,
-    EventType,
-    NonRetryableError,
+    Configuration,
     CriticalError,
+    EventType,
+    KeyValueStore,
     MissingRouteError,
+    NonRetryableError,
+    Request,
+    RequestList,
+    RequestQueue,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
@@ -228,7 +225,9 @@ describe('BasicCrawler', () => {
         const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
 
         let persistResolve: (value?: unknown) => void;
-        const persistPromise = new Promise((res) => { persistResolve = res; });
+        const persistPromise = new Promise((res) => {
+            persistResolve = res;
+        });
 
         // Mock the calls to persist sources.
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
@@ -254,7 +253,9 @@ describe('BasicCrawler', () => {
         setValueSpy.mockImplementationOnce(persistResolve as any);
         // The crawler will pause after 200 requests
         const runPromise = basicCrawler.run();
-        void runPromise.then(() => { finished = true; });
+        void runPromise.then(() => {
+            finished = true;
+        });
 
         // need to monkeypatch the stats class, otherwise it will never finish
         basicCrawler.stats.persistState = async () => Promise.resolve();
@@ -767,7 +768,9 @@ describe('BasicCrawler', () => {
 
         setTimeout(() => queue.push(request0), 10);
         setTimeout(() => queue.push(request1), 100);
-        setTimeout(() => { isFinished = true; }, 150);
+        setTimeout(() => {
+            isFinished = true;
+        }, 150);
 
         await basicCrawler.run();
 
@@ -813,7 +816,9 @@ describe('BasicCrawler', () => {
 
         setTimeout(() => queue.push(request0), 10);
         setTimeout(() => queue.push(request1), 100);
-        setTimeout(() => { void basicCrawler.teardown(); }, 300);
+        setTimeout(() => {
+            void basicCrawler.teardown();
+        }, 300);
 
         await basicCrawler.run();
 

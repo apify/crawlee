@@ -1,11 +1,4 @@
-import type {
-    BrowserCrawlerOptions,
-    BrowserCrawlingContext,
-    BrowserHook,
-    BrowserRequestHandler,
-    GetUserDataFromRequest,
-    RouterRoutes,
-} from '@crawlee/browser';
+import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserHook, BrowserRequestHandler, GetUserDataFromRequest, RouterRoutes } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
@@ -17,8 +10,9 @@ import { PlaywrightLauncher } from './playwright-launcher';
 import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
 import { gotoExtended, registerUtilsToContext } from './utils/playwright-utils';
 
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> extends
-    BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
+    extends BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils
+{}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export interface PlaywrightRequestHandler extends BrowserRequestHandler<PlaywrightCrawlingContext> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];

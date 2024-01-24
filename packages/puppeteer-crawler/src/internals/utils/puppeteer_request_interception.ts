@@ -120,7 +120,6 @@ async function handleRequest(request: PuppeteerRequest, interceptRequestHandlers
  * If one the handlers calls `request.abort()` or `request.respond()` then request is not propagated further
  * to any of the remaining handlers.
  *
- *
  * **Example usage:**
  *
  * ```javascript

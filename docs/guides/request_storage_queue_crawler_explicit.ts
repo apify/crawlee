@@ -1,4 +1,4 @@
-import { RequestQueue, CheerioCrawler } from 'crawlee';
+import { CheerioCrawler, RequestQueue } from 'crawlee';
 
 // Open the default request queue associated with the current run
 const requestQueue = await RequestQueue.open();

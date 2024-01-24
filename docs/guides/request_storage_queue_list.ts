@@ -2,7 +2,7 @@
 // we need to explicitly open/use both the request queue and the request list.
 // We suggest using the request queue and batch add the requests instead.
 
-import { RequestList, RequestQueue, PuppeteerCrawler } from 'crawlee';
+import { PuppeteerCrawler, RequestList, RequestQueue } from 'crawlee';
 
 // Prepare the sources array with URLs to visit (it can contain millions of URLs)
 const sources = [

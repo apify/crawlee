@@ -1,4 +1,4 @@
-import { PlaywrightCrawler, Dataset } from 'crawlee';
+import { Dataset, PlaywrightCrawler } from 'crawlee';
 
 // PlaywrightCrawler crawls the web using a headless
 // browser controlled by the Playwright library.

@@ -1,7 +1,7 @@
 import asyncFs from 'node:fs/promises';
 import type { IncomingMessage } from 'node:http';
 
-import { isDocker, weightedAvg, sleep, snakeCaseToCamelCase } from '@crawlee/utils';
+import { isDocker, sleep, snakeCaseToCamelCase, weightedAvg } from '@crawlee/utils';
 
 describe('isDocker()', () => {
     test('works for dockerenv && cgroup', async () => {

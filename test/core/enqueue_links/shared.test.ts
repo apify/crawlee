@@ -3,8 +3,8 @@ import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
-    createRequests,
     createRequestOptions,
+    createRequests,
     validateGlobPattern,
 } from '@crawlee/core';
 

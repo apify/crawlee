@@ -4,7 +4,8 @@ import { htmlToText } from './cheerio';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 // eslint-disable-next-line max-len
-const EMAIL_REGEX_STRING = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
+const EMAIL_REGEX_STRING =
+    '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
 
 /**
  * Regular expression to exactly match a single email address.
@@ -167,31 +168,40 @@ export function phonesFromUrls(urls: string[]): string[] {
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
 // eslint-disable-next-line max-len
-const LINKEDIN_REGEX_STRING = '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=])))(?:\\/)?';
+const LINKEDIN_REGEX_STRING =
+    '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=])))(?:\\/)?';
 
 // eslint-disable-next-line max-len
-const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
+const INSTAGRAM_REGEX_STRING =
+    '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
 const TWITTER_RESERVED_PATHS = 'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct';
 // eslint-disable-next-line max-len
-const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
+const TWITTER_REGEX_STRING =
+    `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:twitter.com)\\/(?!(?:${TWITTER_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))([a-z0-9_]{1,15})(?![a-z0-9_])(?:/)?`;
 
 // eslint-disable-next-line max-len
-const FACEBOOK_RESERVED_PATHS = 'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
+const FACEBOOK_RESERVED_PATHS =
+    'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
 // eslint-disable-next-line max-len
-const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
+const FACEBOOK_REGEX_STRING =
+    `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|(?!profile\\.php)[a-z0-9\\.]{5,51})(?![a-z0-9\\.])(?:/)?`;
 
 // eslint-disable-next-line max-len
-const YOUTUBE_REGEX_STRING = '(?<!\\w)(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(?:\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
+const YOUTUBE_REGEX_STRING =
+    '(?<!\\w)(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(?:\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))([a-zA-Z0-9\\-_]{2,100})';
 
 // eslint-disable-next-line max-len
-const TIKTOK_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m)\\.)?(?:tiktok\\.com)\\/(((?:(?:v|embed|trending)(?:\\?shareId=|\\/))[0-9]{2,50}(?![0-9]))|(?:@)[a-z0-9\\-_\\.]+((?:\\/video\\/)[0-9]{2,50}(?![0-9]))?)(?:\\/)?';
+const TIKTOK_REGEX_STRING =
+    '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www|m)\\.)?(?:tiktok\\.com)\\/(((?:(?:v|embed|trending)(?:\\?shareId=|\\/))[0-9]{2,50}(?![0-9]))|(?:@)[a-z0-9\\-_\\.]+((?:\\/video\\/)[0-9]{2,50}(?![0-9]))?)(?:\\/)?';
 
 // eslint-disable-next-line max-len
-const PINTEREST_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:(?:(?:www\\.)?pinterest(?:\\.com|(?:\\.[a-z]{2}){1,2}))|(?:[a-z]{2})\\.pinterest\\.com)(?:\\/))((pin\\/[0-9]{2,50})|((?!pin)[a-z0-9\\-_\\.]+(\\/[a-z0-9\\-_\\.]+)?))(?:\\/)?';
+const PINTEREST_REGEX_STRING =
+    '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:(?:(?:www\\.)?pinterest(?:\\.com|(?:\\.[a-z]{2}){1,2}))|(?:[a-z]{2})\\.pinterest\\.com)(?:\\/))((pin\\/[0-9]{2,50})|((?!pin)[a-z0-9\\-_\\.]+(\\/[a-z0-9\\-_\\.]+)?))(?:\\/)?';
 
 // eslint-disable-next-line max-len
-const DISCORD_REGEX_STRING = '(?<!\\w)(?:https?:\\/\\/)?(?:www\\.)?((?:(?:(?:canary|ptb).)?(?:discord|discordapp)\\.com\\/channels(?:\\/)[0-9]{2,50}(\\/[0-9]{2,50})*)|(?:(?:(?:canary|ptb).)?(?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-z0-9\\-_]{2,50})(?:\\/)?';
+const DISCORD_REGEX_STRING =
+    '(?<!\\w)(?:https?:\\/\\/)?(?:www\\.)?((?:(?:(?:canary|ptb).)?(?:discord|discordapp)\\.com\\/channels(?:\\/)[0-9]{2,50}(\\/[0-9]{2,50})*)|(?:(?:(?:canary|ptb).)?(?:discord\\.(?:com|me|li|gg|io)|discordapp\\.com)(?:\\/invite)?)\\/(?!channels)[a-z0-9\\-_]{2,50})(?:\\/)?';
 
 /**
  * Representation of social handles parsed from a HTML page.
@@ -393,22 +403,22 @@ export const INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
  * instagr.am/old_prague
  * ```
  *
-* If the profile URL contains subdirectories or query parameters, the regular expression
-* extracts just the base part of the profile URL. For example, from text such as:
-* ```
-* https://www.instagram.com/cristiano/followers
-* ```
-* the expression extracts just the following base URL:
-* ```
-* https://www.instagram.com/cristiano
-* ```
-*
-* The regular expression does NOT match the following URLs:
-* ```
-* https://www.instagram.com/explore/
-* https://www.instagram.com/_n/
-* https://www.instagram.com/_u/
-* ```
+ * If the profile URL contains subdirectories or query parameters, the regular expression
+ * extracts just the base part of the profile URL. For example, from text such as:
+ * ```
+ * https://www.instagram.com/cristiano/followers
+ * ```
+ * the expression extracts just the following base URL:
+ * ```
+ * https://www.instagram.com/cristiano
+ * ```
+ *
+ * The regular expression does NOT match the following URLs:
+ * ```
+ * https://www.instagram.com/explore/
+ * https://www.instagram.com/_n/
+ * https://www.instagram.com/_u/
+ * ```
  *
  * Example usage:
  * ```

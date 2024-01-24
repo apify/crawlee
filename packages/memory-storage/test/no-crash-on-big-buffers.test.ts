@@ -30,7 +30,7 @@ describe('MemoryStorage should not crash when saving a big buffer', () => {
         let zip: Buffer;
 
         if (process.env.CRAWLEE_DIFFICULT_TESTS) {
-            const numbers = Array.from(([...Array(18_100_000).keys()]).map((i) => i * 3_000_000));
+            const numbers = Array.from([...Array(18_100_000).keys()].map((i) => i * 3_000_000));
 
             zip = Buffer.from([...numbers]);
         } else {

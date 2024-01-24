@@ -1,4 +1,4 @@
-import { readFile, readdir, access } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { URL } from 'node:url';
 
 const colors = {

@@ -1,4 +1,4 @@
-import { readFile, access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';

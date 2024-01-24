@@ -11,7 +11,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import type { BrowserController } from './abstract-classes/browser-controller';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
 import { BROWSER_POOL_EVENTS } from './events';
-import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
+import { createFingerprintPreLaunchHook, createPostPageCreateHook, createPrePageCreateHook } from './fingerprinting/hooks';
 import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 import type { LaunchContext } from './launch-context';
 import { log } from './logger';
@@ -44,11 +44,11 @@ export interface FingerprintOptions {
      */
     useFingerprintCache?: boolean;
     /**
-    * The maximum number of fingerprints that can be stored in the cache.
-    *
-    * Only relevant if `useFingerprintCache` is set to `true`.
-    * @default 10000
-    */
+     * The maximum number of fingerprints that can be stored in the cache.
+     *
+     * Only relevant if `useFingerprintCache` is set to `true`.
+     * @default 10000
+     */
     fingerprintCacheSize?: number;
 }
 
@@ -354,7 +354,9 @@ export class BrowserPool<
                 const providedPluginName = (providedPlugin as BrowserPlugin).constructor.name;
 
                 // eslint-disable-next-line max-len
-                throw new Error(`Browser plugin at index ${i} (${providedPluginName}) is not an instance of the same plugin as the first plugin provided (${firstPluginName}).`);
+                throw new Error(
+                    `Browser plugin at index ${i} (${providedPluginName}) is not an instance of the same plugin as the first plugin provided (${firstPluginName}).`,
+                );
             }
         }
 
@@ -562,7 +564,6 @@ export class BrowserPool<
     /**
      * Removes a browser controller from the pool. The underlying
      * browser will be closed after all its pages are closed.
-     *
      */
     retireBrowserController(browserController: BrowserControllerReturn): void {
         const hasBeenRetiredOrKilled = !this.activeBrowserControllers.has(browserController);

@@ -1,6 +1,6 @@
 import { HttpCrawler, ProxyConfiguration } from 'crawlee';
 
-const proxyConfiguration = new ProxyConfiguration({ /* opts */ });
+const proxyConfiguration = new ProxyConfiguration({/* opts */});
 
 const crawler = new HttpCrawler({
     // To use the proxy IP session rotation logic, you must turn the proxy usage on.

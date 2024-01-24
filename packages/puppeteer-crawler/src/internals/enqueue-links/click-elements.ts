@@ -1,31 +1,17 @@
 import { URL } from 'url';
 
 import log_ from '@apify/log';
-import type {
-    GlobInput,
-    PseudoUrlInput,
-    RegExpInput,
-    RequestTransform,
-    UrlPatternObject,
-    RequestOptions,
-    RequestProvider,
-} from '@crawlee/browser';
+import type { GlobInput, PseudoUrlInput, RegExpInput, RequestOptions, RequestProvider, RequestTransform, UrlPatternObject } from '@crawlee/browser';
 import {
     constructGlobObjectsFromGlobs,
     constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
-    createRequests,
     createRequestOptions,
+    createRequests,
 } from '@crawlee/browser';
-import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
-import type {
-    ClickOptions,
-    Frame,
-    HTTPRequest as PuppeteerRequest,
-    Page,
-    Target,
-} from 'puppeteer';
+import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception';
 

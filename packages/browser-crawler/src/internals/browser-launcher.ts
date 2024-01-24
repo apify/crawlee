@@ -3,7 +3,7 @@ import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import type { Dictionary, Constructor } from '@crawlee/utils';
+import type { Constructor, Dictionary } from '@crawlee/utils';
 import ow from 'ow';
 
 const DEFAULT_VIEWPORT = {
@@ -32,10 +32,10 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useChrome?: boolean;
 
     /**
-    * With this option selected, all pages will be opened in a new incognito browser context.
-    * This means they will not share cookies nor cache and their resources will not be throttled by one another.
-    * @default false
-    */
+     * With this option selected, all pages will be opened in a new incognito browser context.
+     * This means they will not share cookies nor cache and their resources will not be throttled by one another.
+     * @default false
+     */
     useIncognitoPages?: boolean;
 
     /**
@@ -46,10 +46,10 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     experimentalContainers?: boolean;
 
     /**
-    * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
-    * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
-    * If not specified, a temporary directory is used instead.
-    */
+     * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
+     * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
+     * If not specified, a temporary directory is used instead.
+     */
     userDataDir?: string;
 
     /**

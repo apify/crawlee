@@ -5,9 +5,6 @@ import path from 'path';
 
 import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
-import { loadFirefoxAddon } from './load-firefox-addon';
-import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
-import { PlaywrightController } from './playwright-controller';
 import type { BrowserController } from '../abstract-classes/browser-controller';
 import { BrowserPlugin } from '../abstract-classes/browser-plugin';
 import { anonymizeProxySugar } from '../anonymize-proxy';
@@ -16,6 +13,9 @@ import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
 import { getLocalProxyAddress } from '../proxy-server';
 import type { SafeParameters } from '../utils';
+import { loadFirefoxAddon } from './load-firefox-addon';
+import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser';
+import { PlaywrightController } from './playwright-controller';
 
 const getFreePort = async () => {
     return new Promise<number>((resolve, reject) => {

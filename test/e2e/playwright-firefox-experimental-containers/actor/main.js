@@ -1,6 +1,6 @@
+import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
 import { Actor } from 'apify';
 import playwright from 'playwright';
-import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
 
 // timeouts nowadays, hard to say why
 process.exit(404);

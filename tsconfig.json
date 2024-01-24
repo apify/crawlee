@@ -12,7 +12,7 @@
             "@crawlee/cheerio": ["packages/cheerio-crawler/src"],
             "@crawlee/playwright": ["packages/playwright-crawler/src"],
             "@crawlee/puppeteer": ["packages/puppeteer-crawler/src"],
-            "@crawlee/*": ["packages/*/src"],
+            "@crawlee/*": ["packages/*/src"]
         }
     }
 }

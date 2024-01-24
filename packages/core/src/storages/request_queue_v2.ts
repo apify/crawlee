@@ -1,14 +1,11 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
-import { RequestProvider } from './request_provider';
-import {
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-    getRequestId,
-} from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import type { Request } from '../request';
+import type { RequestProviderOptions, RequestQueueOperationInfo } from './request_provider';
+import { RequestProvider } from './request_provider';
+import { getRequestId, STORAGE_CONSISTENCY_DELAY_MILLIS } from './utils';
 
 // Double the limit of RequestQueue v1 (1_000_000) as we also store keyed by request.id, not just from uniqueKey
 const MAX_CACHED_REQUESTS = 2_000_000;

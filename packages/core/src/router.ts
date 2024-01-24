@@ -15,7 +15,7 @@ export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
 
 export type RouterRoutes<Context, UserData extends Dictionary> = {
     [label in string | symbol]: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>;
-}
+};
 
 /**
  * Simple router that works based on request labels. This instance can then serve as a `requestHandler` of your crawler.
@@ -135,8 +135,8 @@ export class Router<Context extends CrawlingContext> {
 
         throw new MissingRouteError(
             `Route not found for label '${String(label)}'.`
-            + ' You must set up a route for this label or a default route.'
-            + ' Use `requestHandler`, `router.addHandler` or `router.addDefaultHandler`.',
+                + ' You must set up a route for this label or a default route.'
+                + ' Use `requestHandler`, `router.addHandler` or `router.addDefaultHandler`.',
         );
     }
 
@@ -188,7 +188,7 @@ export class Router<Context extends CrawlingContext> {
             router.addHandler(label, handler);
         }
 
-        const func = async function (context: Context) {
+        const func = async function(context: Context) {
             const { url, loadedUrl, label } = context.request;
             context.log.debug('Page opened.', { label, url: loadedUrl ?? url });
 

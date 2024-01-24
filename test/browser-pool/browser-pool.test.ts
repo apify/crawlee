@@ -9,13 +9,13 @@ import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Page } from 'puppeteer';
 import puppeteer from 'puppeteer';
 
-import { createProxyServer } from './browser-plugins/create-proxy-server';
 import type { BrowserController } from '../../packages/browser-pool/src/abstract-classes/browser-controller';
 import { BrowserPool } from '../../packages/browser-pool/src/browser-pool';
 import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events';
 import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types';
 import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin';
 import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin';
+import { createProxyServer } from './browser-plugins/create-proxy-server';
 
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [
@@ -271,9 +271,11 @@ describe.each([
             expect(browserPool.retiredBrowserControllers.size).toBe(1);
             await page.close();
 
-            await new Promise<void>((resolve) => setTimeout(() => {
-                resolve();
-            }, 1000));
+            await new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    resolve();
+                }, 1000)
+            );
 
             expect(browserPool['_closeRetiredBrowserWithNoPages']).toHaveBeenCalled();
             expect(controller.close).toHaveBeenCalled();
@@ -318,7 +320,9 @@ describe.each([
                 test('error in hook does not leave browser stuck in limbo', async () => {
                     const errorMessage = 'pre-launch failed';
                     browserPool.preLaunchHooks = [
-                        async () => { throw new Error(errorMessage); },
+                        async () => {
+                            throw new Error(errorMessage);
+                        },
                     ];
 
                     const attempts = 5;

@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'node:http';
 
-import type { BrowserLikeResponse, Dictionary, Cookie as CookieObject } from '@crawlee/types';
+import type { BrowserLikeResponse, Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
 import { log } from './log';

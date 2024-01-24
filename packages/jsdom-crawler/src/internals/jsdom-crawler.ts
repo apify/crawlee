@@ -3,6 +3,7 @@ import type { IncomingMessage } from 'http';
 import { addTimeoutToPromise } from '@apify/timeout';
 import { concatStreamToBuffer } from '@apify/utilities';
 import type {
+    Configuration,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -10,17 +11,10 @@ import type {
     InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
-    RouterRoutes,
-    Configuration,
     RequestProvider,
+    RouterRoutes,
 } from '@crawlee/http';
-import {
-    HttpCrawler,
-    enqueueLinks,
-    Router,
-    resolveBaseUrlForEnqueueLinksFiltering,
-    tryAbsoluteURL,
-} from '@crawlee/http';
+import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
@@ -30,12 +24,12 @@ import ow from 'ow';
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+> = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
+> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
     /**
      * Download and run scripts.
      */
@@ -49,12 +43,12 @@ export interface JSDOMCrawlerOptions<
 export type JSDOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
     window: DOMWindow;
     document: Document;
 
@@ -75,7 +69,7 @@ export interface JSDOMCrawlingContext<
 export type JSDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = RequestHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and

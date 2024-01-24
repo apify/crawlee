@@ -1,4 +1,4 @@
-import { initialize, getActorTestDir, runActor, expect, validateDataset } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor, validateDataset } from '../tools.mjs';
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);

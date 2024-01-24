@@ -1,13 +1,13 @@
 {
-	"extends": "../tsconfig.json",
-	"compilerOptions": {
-		"module": "ESNext",
-		"target": "ESNext",
-		"allowJs": true,
-		"checkJs": true
-	},
-	"include": [
-		"./**/*.mjs",
-		"./**/*.ts"
-	]
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ESNext",
+        "allowJs": true,
+        "checkJs": true
+    },
+    "include": [
+        "./**/*.mjs",
+        "./**/*.ts"
+    ]
 }

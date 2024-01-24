@@ -15,17 +15,17 @@ import type {
 import {
     BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
+    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
     Configuration,
     cookieStringToToughCookie,
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    tryAbsoluteURL,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
-    validators,
     SessionError,
-    BLOCKED_STATUS_CODES as DEFAULT_BLOCKED_STATUS_CODES,
+    tryAbsoluteURL,
+    validators,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -75,10 +75,8 @@ export interface BrowserCrawlerOptions<
     // Overridden with browser context
     | 'requestHandler'
     | 'handleRequestFunction'
-
     | 'failedRequestHandler'
     | 'handleFailedRequestFunction'
-
     | 'errorHandler'
 > {
     launchContext?: BrowserLaunchContext<any, any>;
@@ -443,8 +441,8 @@ export abstract class BrowserCrawler<
 
     private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
         const foundSelectors = (await Promise.all(
-            selectors.map((selector) => (page as any).$(selector)))
-        )
+            selectors.map((selector) => (page as any).$(selector)),
+        ))
             .map((x, i) => [x, selectors[i]] as [any, string])
             .filter(([x]) => x !== null)
             .map(([, selector]) => selector);
@@ -540,7 +538,9 @@ export abstract class BrowserCrawler<
         if (!this.requestMatchesEnqueueStrategy(request)) {
             this.log.debug(
                 // eslint-disable-next-line max-len, dot-notation
-                `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
+                `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${
+                    request['enqueueStrategy']
+                }).`,
             );
 
             request.noRetry = true;

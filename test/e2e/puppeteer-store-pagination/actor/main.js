@@ -1,5 +1,5 @@
-import { Actor } from 'apify';
 import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Actor } from 'apify';
 
 await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined });
 

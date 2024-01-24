@@ -1,4 +1,4 @@
-import { Dataset, CheerioCrawler, log, LogLevel } from 'crawlee';
+import { CheerioCrawler, Dataset, log, LogLevel } from 'crawlee';
 
 // Crawlers come with various utilities, e.g. for logging.
 // Here we use debug level of logging to improve the debugging experience.

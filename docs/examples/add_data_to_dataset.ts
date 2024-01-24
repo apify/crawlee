@@ -1,4 +1,4 @@
-import { Dataset, CheerioCrawler } from 'crawlee';
+import { CheerioCrawler, Dataset } from 'crawlee';
 
 const crawler = new CheerioCrawler({
     // Function called for each URL

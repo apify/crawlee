@@ -1,7 +1,7 @@
 import log from '@apify/log';
 import { load } from 'cheerio';
 import type { CheerioRoot, Source } from 'crawlee';
-import { Configuration, cheerioCrawlerEnqueueLinks, RequestQueue, EnqueueStrategy } from 'crawlee';
+import { cheerioCrawlerEnqueueLinks, Configuration, EnqueueStrategy, RequestQueue } from 'crawlee';
 
 const apifyClient = Configuration.getStorageClient();
 
@@ -36,7 +36,7 @@ function createRequestQueueMock() {
     const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
 
     // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
+    requestQueue.addRequests = async function(requests) {
         enqueued.push(...requests);
         return { processedRequests: requests, unprocessedRequests: [] as never[] };
     };

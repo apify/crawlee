@@ -2,8 +2,8 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { promisify } from 'node:util';
 
-import type { PrePageCreateHook, PuppeteerController, PlaywrightController } from '@crawlee/browser-pool';
-import { BrowserPool, PuppeteerPlugin, PlaywrightPlugin } from '@crawlee/browser-pool';
+import type { PlaywrightController, PrePageCreateHook, PuppeteerController } from '@crawlee/browser-pool';
+import { BrowserPool, PlaywrightPlugin, PuppeteerPlugin } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import puppeteer from 'puppeteer';

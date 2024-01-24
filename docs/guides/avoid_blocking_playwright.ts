@@ -1,5 +1,5 @@
-import { PlaywrightCrawler } from 'crawlee';
 import { BrowserName, DeviceCategory, OperatingSystemsName } from '@crawlee/browser-pool';
+import { PlaywrightCrawler } from 'crawlee';
 
 const crawler = new PlaywrightCrawler({
     browserPoolOptions: {

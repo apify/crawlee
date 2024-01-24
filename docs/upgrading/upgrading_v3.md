@@ -123,13 +123,13 @@ Previously we had a magical `stealth` option in the puppeteer crawler that enabl
 
 In case we don't want to have dynamic fingerprints, we can disable this behaviour via `useFingerprints` in `browserPoolOptions`:
 
- ```ts
+```ts
 const crawler = new PlaywrightCrawler({
     browserPoolOptions: {
         useFingerprints: false,
     },
 });
- ```
+```
 
 ## Session cookie method renames
 
@@ -146,10 +146,12 @@ We can still use the `@apify/storage-local`, to do it, first install it pass it 
 > `@apify/storage-local` v2.1.0+ is required for Crawlee
 
 ```ts
-import { Actor } from 'apify';
 import { ApifyStorageLocal } from '@apify/storage-local';
+import { Actor } from 'apify';
 
-const storage = new ApifyStorageLocal(/* options like `enableWalMode` belong here */);
+const storage = new ApifyStorageLocal(
+    /* options like `enableWalMode` belong here */
+);
 await Actor.init({ storage });
 ```
 
@@ -161,18 +163,18 @@ Previously the state was preserved between local runs, and we had to use `--purg
 
 Some options were renamed to better reflect what they do. We still support all the old parameter names too, but not at the TS level.
 
-* `handleRequestFunction` -> `requestHandler`
-* `handlePageFunction` -> `requestHandler`
-* `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
-* `handlePageTimeoutSecs` -> `requestHandlerTimeoutSecs`
-* `requestTimeoutSecs` -> `navigationTimeoutSecs`
-* `handleFailedRequestFunction` -> `failedRequestHandler`
+- `handleRequestFunction` -> `requestHandler`
+- `handlePageFunction` -> `requestHandler`
+- `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
+- `handlePageTimeoutSecs` -> `requestHandlerTimeoutSecs`
+- `requestTimeoutSecs` -> `navigationTimeoutSecs`
+- `handleFailedRequestFunction` -> `failedRequestHandler`
 
 We also renamed the crawling context interfaces, so they follow the same convention and are more meaningful:
 
-* `CheerioHandlePageInputs` -> `CheerioCrawlingContext`
-* `PlaywrightHandlePageFunction` -> `PlaywrightCrawlingContext`
-* `PuppeteerHandlePageFunction` -> `PuppeteerCrawlingContext`
+- `CheerioHandlePageInputs` -> `CheerioCrawlingContext`
+- `PlaywrightHandlePageFunction` -> `PlaywrightCrawlingContext`
+- `PuppeteerHandlePageFunction` -> `PuppeteerCrawlingContext`
 
 ## Context aware helpers
 
@@ -182,9 +184,9 @@ Some utilities previously available under `Apify.utils` namespace are now moved 
 
 One common helper that received more attention is the `enqueueLinks`. As mentioned above, it is context aware - we no longer need pass in the `requestQueue` or `page` arguments (or the cheerio handle `$`). In addition to that, it now offers 3 enqueuing strategies:
 
-* `EnqueueStrategy.All` (`'all'`): Matches any URLs found
-* `EnqueueStrategy.SameHostname` (`'same-hostname'`) Matches any URLs that have the same subdomain as the base URL (default)
-* `EnqueueStrategy.SameDomain` (`'same-domain'`) Matches any URLs that have the same domain name. For example, `https://wow.an.example.com` and `https://example.com` will both be matched for a base url of `https://example.com`.
+- `EnqueueStrategy.All` (`'all'`): Matches any URLs found
+- `EnqueueStrategy.SameHostname` (`'same-hostname'`) Matches any URLs that have the same subdomain as the base URL (default)
+- `EnqueueStrategy.SameDomain` (`'same-domain'`) Matches any URLs that have the same domain name. For example, `https://wow.an.example.com` and `https://example.com` will both be matched for a base url of `https://example.com`.
 
 This means we can even call `enqueueLinks()` without any parameters. By default, it will go through all the links found on current page and filter only those targeting the same subdomain.
 
@@ -213,7 +215,9 @@ We can now add multiple requests in batches. The newly added `addRequests` metho
 
 ```ts
 // will resolve right after the initial batch of 1000 requests is added
-const result = await crawler.addRequests([/* many requests, can be even millions */]);
+const result = await crawler.addRequests([
+    /* many requests, can be even millions */
+]);
 
 // if we want to wait for all the requests to be added, we can await the `waitForAllRequestsToBeAdded` promise
 await result.waitForAllRequestsToBeAdded;
@@ -419,11 +423,11 @@ const crawler = new CheerioCrawler({
 
 The Apify platform helpers can be now found in the Apify SDK (`apify` NPM package). It exports the `Actor` class that offers following static helpers:
 
-* `ApifyClient` shortcuts: `addWebhook()`, `call()`, `callTask()`, `metamorph()`
-* helpers for running on Apify platform: `init()`, `exit()`, `fail()`, `main()`, `isAtHome()`, `createProxyConfiguration()`
-* storage support: `getInput()`, `getValue()`, `openDataset()`, `openKeyValueStore()`, `openRequestQueue()`, `pushData()`, `setValue()`
-* events support: `on()`, `off()`
-* other utilities: `getEnv()`, `newClient()`, `reboot()`
+- `ApifyClient` shortcuts: `addWebhook()`, `call()`, `callTask()`, `metamorph()`
+- helpers for running on Apify platform: `init()`, `exit()`, `fail()`, `main()`, `isAtHome()`, `createProxyConfiguration()`
+- storage support: `getInput()`, `getValue()`, `openDataset()`, `openKeyValueStore()`, `openRequestQueue()`, `pushData()`, `setValue()`
+- events support: `on()`, `off()`
+- other utilities: `getEnv()`, `newClient()`, `reboot()`
 
 `Actor.main` is now just a syntax sugar around calling `Actor.init()` at the beginning and `Actor.exit()` at the end (plus wrapping the user function in try/catch block). All those methods are async and should be awaited - with node 16 we can use the top level await for that. In other words, following is equivalent:
 
@@ -447,38 +451,38 @@ await Actor.main(async () => {
 
 ### Events
 
-Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by <ApiLink to="core/class/EventManager">`EventManager`</ApiLink> class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
+Apify SDK (v2) exports `Apify.events`, which is an `EventEmitter` instance. With Crawlee, the events are managed by <ApiLink to="core/class/EventManager"> `EventManager`</ApiLink> class instead. We can either access it via `Actor.eventManager` getter, or use `Actor.on` and `Actor.off` shortcuts instead.
 
 ```diff
 -Apify.events.on(...);
 +Actor.on(...);
 ```
 
-> We can also get the <ApiLink to="core/class/EventManager">`EventManager`</ApiLink> instance via `Configuration.getEventManager()`.
+> We can also get the <ApiLink to="core/class/EventManager"> `EventManager`</ApiLink> instance via `Configuration.getEventManager()`.
 
 In addition to the existing events, we now have an `exit` event fired when calling `Actor.exit()` (which is called at the end of `Actor.main()`). This event allows you to gracefully shut down any resources when `Actor.exit` is called.
 
 ## Smaller/internal breaking changes
 
-* `Apify.call()` is now just a shortcut for running `ApifyClient.actor(actorId).call(input, options)`, while also taking the token inside env vars into account
-* `Apify.callTask()` is now just a shortcut for running `ApifyClient.task(taskId).call(input, options)`, while also taking the token inside env vars into account
-* `Apify.metamorph()` is now just a shortcut for running `ApifyClient.task(taskId).metamorph(input, options)`, while also taking the ACTOR_RUN_ID inside env vars into account
-* `Apify.waitForRunToFinish()` has been removed, use `ApifyClient.waitForFinish()` instead
-* `Actor.main/init` purges the storage by default
-* remove `purgeLocalStorage` helper, move purging to the storage class directly
-    * `StorageClient` interface now has optional `purge` method
-    * purging happens automatically via `Actor.init()` (you can opt out via `purge: false` in the options of `init/main` methods)
-* `QueueOperationInfo.request` is no longer available
-* `Request.handledAt` is now string date in ISO format
-* `Request.inProgress` and `Request.reclaimed` are now `Set`s instead of POJOs
-* `injectUnderscore` from puppeteer utils has been removed
-* `APIFY_MEMORY_MBYTES` is no longer taken into account, use `CRAWLEE_AVAILABLE_MEMORY_RATIO` instead
-* some `AutoscaledPool` options are no longer available:
-    * `cpuSnapshotIntervalSecs` and `memorySnapshotIntervalSecs` has been replaced with top level `systemInfoIntervalMillis` configuration
-    * `maxUsedCpuRatio` has been moved to the top level configuration
-* `ProxyConfiguration.newUrlFunction` can be async. `.newUrl()` and `.newProxyInfo()` now return promises.
-* `prepareRequestFunction` and `postResponseFunction` options are removed, use navigation hooks instead
-* `gotoFunction` and `gotoTimeoutSecs` are removed
-* removed compatibility fix for old/broken request queues with null `Request` props
-* `fingerprintsOptions` renamed to `fingerprintOptions` (`fingerprints` -> `fingerprint`).
-* `fingerprintOptions` now accept `useFingerprintCache` and `fingerprintCacheSize` (instead of `useFingerprintPerProxyCache` and `fingerprintPerProxyCacheSize`, which are now no longer available). This is because the cached fingerprints are no longer connected to proxy URLs but to sessions.
+- `Apify.call()` is now just a shortcut for running `ApifyClient.actor(actorId).call(input, options)`, while also taking the token inside env vars into account
+- `Apify.callTask()` is now just a shortcut for running `ApifyClient.task(taskId).call(input, options)`, while also taking the token inside env vars into account
+- `Apify.metamorph()` is now just a shortcut for running `ApifyClient.task(taskId).metamorph(input, options)`, while also taking the ACTOR_RUN_ID inside env vars into account
+- `Apify.waitForRunToFinish()` has been removed, use `ApifyClient.waitForFinish()` instead
+- `Actor.main/init` purges the storage by default
+- remove `purgeLocalStorage` helper, move purging to the storage class directly
+  - `StorageClient` interface now has optional `purge` method
+  - purging happens automatically via `Actor.init()` (you can opt out via `purge: false` in the options of `init/main` methods)
+- `QueueOperationInfo.request` is no longer available
+- `Request.handledAt` is now string date in ISO format
+- `Request.inProgress` and `Request.reclaimed` are now `Set`s instead of POJOs
+- `injectUnderscore` from puppeteer utils has been removed
+- `APIFY_MEMORY_MBYTES` is no longer taken into account, use `CRAWLEE_AVAILABLE_MEMORY_RATIO` instead
+- some `AutoscaledPool` options are no longer available:
+  - `cpuSnapshotIntervalSecs` and `memorySnapshotIntervalSecs` has been replaced with top level `systemInfoIntervalMillis` configuration
+  - `maxUsedCpuRatio` has been moved to the top level configuration
+- `ProxyConfiguration.newUrlFunction` can be async. `.newUrl()` and `.newProxyInfo()` now return promises.
+- `prepareRequestFunction` and `postResponseFunction` options are removed, use navigation hooks instead
+- `gotoFunction` and `gotoTimeoutSecs` are removed
+- removed compatibility fix for old/broken request queues with null `Request` props
+- `fingerprintsOptions` renamed to `fingerprintOptions` (`fingerprints` -> `fingerprint`).
+- `fingerprintOptions` now accept `useFingerprintCache` and `fingerprintCacheSize` (instead of `useFingerprintPerProxyCache` and `fingerprintPerProxyCacheSize`, which are now no longer available). This is because the cached fingerprints are no longer connected to proxy URLs but to sessions.

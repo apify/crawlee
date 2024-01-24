@@ -182,7 +182,9 @@ describe('Session - testing session behaviour ', () => {
         sessionPool.blockedStatusCodes.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
-            const call = () => { isCalled = true; };
+            const call = () => {
+                isCalled = true;
+            };
             sess.retire = call;
             expect(sess.retireOnBlockedStatusCodes(status)).toBeTruthy();
             expect(isCalled).toBeTruthy();

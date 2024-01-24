@@ -1,7 +1,7 @@
 import { BasicCrawler, ProxyConfiguration } from 'crawlee';
 import { gotScraping } from 'got-scraping';
 
-const proxyConfiguration = new ProxyConfiguration({ /* opts */ });
+const proxyConfiguration = new ProxyConfiguration({/* opts */});
 
 const crawler = new BasicCrawler({
     // Activates the Session pool (default is true).

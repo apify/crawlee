@@ -2,12 +2,7 @@ import type { IncomingHttpHeaders, Server } from 'http';
 import { Readable } from 'stream';
 
 import log, { Log, LogLevel } from '@apify/log';
-import type {
-    CheerioRequestHandler,
-    CheerioCrawlingContext,
-    ProxyInfo,
-    Source,
-} from '@crawlee/cheerio';
+import type { CheerioCrawlingContext, CheerioRequestHandler, ProxyInfo, Source } from '@crawlee/cheerio';
 import {
     AutoscaledPool,
     CheerioCrawler,
@@ -24,7 +19,7 @@ import { sleep } from '@crawlee/utils';
 import type { Dictionary } from '@crawlee/utils';
 import type { OptionsInit } from 'got-scraping';
 import iconv from 'iconv-lite';
-import { runExampleComServer, responseSamples } from 'test/shared/_helper';
+import { responseSamples, runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 let server: Server;
@@ -197,7 +192,9 @@ describe('CheerioCrawler', () => {
         });
 
         // eslint-disable-next-line max-len
-        await expect(cheerioCrawler.run()).rejects.toThrow("Route not found for label 'undefined'. You must set up a route for this label or a default route. Use `requestHandler`, `router.addHandler` or `router.addDefaultHandler`.");
+        await expect(cheerioCrawler.run()).rejects.toThrow(
+            "Route not found for label 'undefined'. You must set up a route for this label or a default route. Use `requestHandler`, `router.addHandler` or `router.addDefaultHandler`.",
+        );
     });
 
     test('should ignore ssl by default', async () => {
@@ -454,10 +451,12 @@ describe('CheerioCrawler', () => {
 
                 expect(handlePageInvocationCount).toBe(0);
                 expect(errorMessages).toHaveLength(4);
-                errorMessages.forEach((msg) => expect(msg).toMatch(
-                    ' Content-Type text/plain, but only text/html, text/xml, application/xhtml+xml, application/xml, application/json are allowed.'
-                    + ' Skipping resource.',
-                ));
+                errorMessages.forEach((msg) =>
+                    expect(msg).toMatch(
+                        ' Content-Type text/plain, but only text/html, text/xml, application/xhtml+xml, application/xml, application/json are allowed.'
+                            + ' Skipping resource.',
+                    )
+                );
             });
 
             test('when statusCode >= 500 and text/html is received', async () => {
@@ -1001,7 +1000,6 @@ describe('CheerioCrawler', () => {
                 requestHandler: ({ request }) => {
                     requests.push(request);
                 },
-
             });
 
             await crawler.run();

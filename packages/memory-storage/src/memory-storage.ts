@@ -1,5 +1,5 @@
 /* eslint-disable import/no-duplicates */
-import { rm, readdir } from 'node:fs/promises';
+import { readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
