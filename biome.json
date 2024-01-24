@@ -1,0 +1,17 @@
+{
+	"formatter": {
+		"ignore": ["website/**", "packages/*/dist/**", "package.json"],
+		"formatWithErrors": true
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"semicolons": "always",
+			"trailingComma": "all",
+			"lineWidth": 120,
+			"indentStyle": "space",
+			"indentWidth": 4,
+			"quoteProperties": "preserve"
+		}
+	}
+}
