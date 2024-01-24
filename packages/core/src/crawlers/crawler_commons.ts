@@ -10,12 +10,76 @@ import type { Session } from '../session_pool/session';
 import type { RequestQueueOperationOptions, Dataset, KeyValueStore } from '../storages';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
-    id: string;
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown>{
     /**
      * The original {@apilink Request} object.
      */
     request: Request<UserData>;
+
+    /**
+     * This function allows you to push data to a {@apilink Dataset} specified by name, or the one currently used by the crawler.
+     *
+     * Shortcut for `crawler.pushData()`.
+     *
+     * @param [data] Data to be pushed to the default dataset.
+     */
+    pushData(data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string): Promise<void>;
+
+    /**
+     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
+     * currently used by the crawler.
+     *
+     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
+     * and override settings of the enqueued {@apilink Request} objects.
+     *
+     * Check out the [Crawl a website with relative links](https://crawlee.dev/docs/examples/crawl-relative-links) example
+     * for more details regarding its usage.
+     *
+     * **Example usage**
+     *
+     * ```ts
+     * async requestHandler({ enqueueLinks }) {
+     *     await enqueueLinks({
+     *       globs: [
+     *           'https://www.example.com/handbags/*',
+     *       ],
+     *     });
+     * },
+     * ```
+     *
+     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
+     */
+    enqueueLinks: (options?: Omit<EnqueueLinksOptions, 'requestQueue'>) => Promise<unknown>;
+
+    /**
+     * Add requests directly to the request queue.
+     *
+     * @param requests The requests to add
+     * @param options Options for the request queue
+     */
+    addRequests: (
+        requestsLike: Source[],
+        options?: RequestQueueOperationOptions,
+    ) => Promise<void>;
+
+    /**
+     * Returns the state - a piece of mutable persistent data shared across all the request handler runs.
+     */
+    useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>;
+
+    /**
+     * Get a key-value store with given name or id, or the default one for the crawler.
+     */
+    getKeyValueStore: (idOrName?: string) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
+
+    /**
+     * A preconfigured logger for the request handler.
+     */
+    log: Log;
+}
+
+export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
+    id: string;
     session?: Session;
 
     /**
@@ -23,7 +87,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * and configured by the {@apilink ProxyConfiguration} class.
      */
     proxyInfo?: ProxyInfo;
-    log: Log;
+
     crawler: Crawler;
 
     /**
@@ -53,20 +117,9 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      */
     enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
 
-    addRequests: (
-        requestsLike: Source[],
-        options?: RequestQueueOperationOptions,
-    ) => Promise<void>;
-
     /**
-     * This function allows you to push data to the default {@apilink Dataset} currently used by the crawler.
-     *
-     * Shortcut for `crawler.pushData()`.
-     *
-     * @param [data] Data to be pushed to the default dataset.
+     * Get a key-value store with given name or id, or the default one for the crawler.
      */
-    pushData(data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string): Promise<void>;
-
     getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>;
 
     /**
@@ -87,17 +140,4 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * ```
      */
     sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
-}
-
-export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
-    request: Request<UserData>;
-    pushData: (record: Dictionary, datasetIdOrName?: string) => Promise<void>;
-    enqueueLinks: (options?: Omit<EnqueueLinksOptions, 'requestQueue'>) => Promise<void>;
-    addRequests: (
-        requestsLike: Source[],
-        options?: RequestQueueOperationOptions,
-    ) => Promise<void>;
-    useState: <State = Dictionary<unknown>>(defaultValue?: State) => Promise<State>;
-    getKeyValueStore: (idOrName?: string) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
-    log: Log;
 }
