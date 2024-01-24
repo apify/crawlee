@@ -1214,9 +1214,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 });
             },
             addRequests: this.addRequests.bind(this),
-            pushData: async (data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string) => {
-                return this.pushData(data, datasetIdOrName);
-            },
+            pushData: this.pushData.bind(this),
             sendRequest: async (overrideOptions?: OptionsInit) => {
                 const cookieJar = session ? {
                     getCookieString: async (url: string) => session!.getCookieString(url),
@@ -1240,7 +1238,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     cookieJar,
                 });
             },
-            getKeyValueStore: KeyValueStore.open,
+            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
         this.crawlingContexts.set(crawlingContext.id, crawlingContext);
