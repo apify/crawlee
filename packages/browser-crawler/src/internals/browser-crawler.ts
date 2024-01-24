@@ -540,7 +540,7 @@ export abstract class BrowserCrawler<
 
         if (!this.requestMatchesEnqueueStrategy(request)) {
             this.log.debug(
-                // eslint-disable-next-line max-len, dot-notation
+                // eslint-disable-next-line dot-notation
                 `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
             );
 

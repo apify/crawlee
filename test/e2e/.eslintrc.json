@@ -1,6 +1,6 @@
 {
 	"root": true,
-	"extends": "@apify/eslint-config-ts",
+	"extends": ["@apify/eslint-config-ts", "prettier"],
 	"parserOptions": {
         "project": null,
 		"ecmaVersion": 2022

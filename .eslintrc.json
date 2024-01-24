@@ -5,7 +5,7 @@
         "es2020": true,
         "node": true
     },
-    "extends": "@apify/eslint-config-ts",
+    "extends": ["@apify/eslint-config-ts", "prettier"],
     "parserOptions": {
         "project": "./tsconfig.eslint.json",
         "ecmaVersion": 2022
@@ -52,11 +52,7 @@
         "no-console": "error",
         "no-underscore-dangle": 0,
         "no-void": 0,
-        "max-len": ["error", {
-            "code": 160,
-            "ignoreUrls": true,
-            "ignoreComments": true
-        }],
+        "max-len": "off",
         "import/order": ["error", {
             "groups": ["builtin", "external", ["parent", "sibling"], "index", "object"],
             "alphabetize": { "order": "asc", "caseInsensitive": true },
