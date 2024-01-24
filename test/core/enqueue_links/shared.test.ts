@@ -11,10 +11,7 @@ import {
 describe('Enqueue links shared functions', () => {
     describe('constructGlobObjectsFromGlobs()', () => {
         test('should work', () => {
-            const globs = [
-                'https://example.com/**/*',
-                { glob: '?(http|https)://cool.com/', userData: { foo: 'bar' }, label: 'foobar' },
-            ];
+            const globs = ['https://example.com/**/*', { glob: '?(http|https)://cool.com/', userData: { foo: 'bar' }, label: 'foobar' }];
             const globObjects = constructGlobObjectsFromGlobs(globs);
             expect(globObjects).toHaveLength(2);
             expect(globObjects[0].glob).toEqual('https://example.com/**/*');
@@ -27,10 +24,7 @@ describe('Enqueue links shared functions', () => {
 
     describe('constructRegExpObjectsFromRegExps()', () => {
         test('should work', () => {
-            const regexps = [
-                /^https:\/\/example\.com\/(\w|\/)+/,
-                { regexp: /^(http|https):\/\/cool\.com\//, userData: { foo: 'bar' } },
-            ];
+            const regexps = [/^https:\/\/example\.com\/(\w|\/)+/, { regexp: /^(http|https):\/\/cool\.com\//, userData: { foo: 'bar' } }];
             const regexpObjects = constructRegExpObjectsFromRegExps(regexps);
             expect(regexpObjects).toHaveLength(2);
             expect(regexpObjects[0].regexp.test('https://example.com/')).toBe(false);
@@ -42,10 +36,7 @@ describe('Enqueue links shared functions', () => {
 
     describe('constructRegExpObjectsFromPseudoUrls()', () => {
         test('should work', () => {
-            const pseudoUrls = [
-                'http[s?]://example.com/',
-                { purl: 'http[s?]://example.com[.*]', userData: { foo: 'bar' } },
-            ];
+            const pseudoUrls = ['http[s?]://example.com/', { purl: 'http[s?]://example.com[.*]', userData: { foo: 'bar' } }];
             const urlPatternObjects = constructRegExpObjectsFromPseudoUrls(pseudoUrls);
             expect(urlPatternObjects).toHaveLength(2);
             urlPatternObjects.forEach((urlPatternObject) => {
@@ -74,11 +65,7 @@ describe('Enqueue links shared functions', () => {
 
     describe('createRequests()', () => {
         test('should work', () => {
-            const sources = [
-                'http://example.com/foo',
-                { url: 'https://example.com/bar', method: 'POST', label: 'POST-REQUEST' },
-                'https://apify.com',
-            ];
+            const sources = ['http://example.com/foo', { url: 'https://example.com/bar', method: 'POST', label: 'POST-REQUEST' }, 'https://apify.com'];
             const pseudoUrls = [{ purl: 'http[s?]://example.com/[.*]', userData: { one: 1 } }];
             const urlPatternObjects = constructRegExpObjectsFromPseudoUrls(pseudoUrls);
 
@@ -88,7 +75,9 @@ describe('Enqueue links shared functions', () => {
             };
 
             const requestOptions = createRequestOptions(sources);
-            const requests = createRequests(requestOptions, urlPatternObjects).map(transformRequestFunction).filter((r) => !!r);
+            const requests = createRequests(requestOptions, urlPatternObjects)
+                .map(transformRequestFunction)
+                .filter((r) => !!r);
 
             expect(requests).toHaveLength(2);
             requests.forEach((r) => {

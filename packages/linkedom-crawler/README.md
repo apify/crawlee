@@ -40,7 +40,5 @@ const crawler = new LinkeDOMCrawler({
     },
 });
 
-await crawler.run([
-    'http://crawlee.dev',
-]);
+await crawler.run(['http://crawlee.dev']);
 ```

@@ -44,6 +44,7 @@ npm start
 ```
 
 ### Manual installation
+
 If you prefer adding Crawlee **into your own project**, try the example below. Because it uses `PlaywrightCrawler` we also need to install [Playwright](https://playwright.dev). It's not bundled with Crawlee to reduce install size.
 
 ```bash
@@ -80,33 +81,33 @@ By default, Crawlee stores data to `./storage` in the current working directory.
 
 ## 🛠 Features
 
-- Single interface for **HTTP and headless browser** crawling
-- Persistent **queue** for URLs to crawl (breadth & depth first)
-- Pluggable **storage** of both tabular data and files
-- Automatic **scaling** with available system resources
-- Integrated **proxy rotation** and session management
-- Lifecycles customizable with **hooks**
-- **CLI** to bootstrap your projects
-- Configurable **routing**, **error handling** and **retries**
-- **Dockerfiles** ready to deploy
-- Written in **TypeScript** with generics
+-   Single interface for **HTTP and headless browser** crawling
+-   Persistent **queue** for URLs to crawl (breadth & depth first)
+-   Pluggable **storage** of both tabular data and files
+-   Automatic **scaling** with available system resources
+-   Integrated **proxy rotation** and session management
+-   Lifecycles customizable with **hooks**
+-   **CLI** to bootstrap your projects
+-   Configurable **routing**, **error handling** and **retries**
+-   **Dockerfiles** ready to deploy
+-   Written in **TypeScript** with generics
 
 ### 👾 HTTP crawling
 
-- Zero config **HTTP2 support**, even for proxies
-- Automatic generation of **browser-like headers**
-- Replication of browser **TLS fingerprints**
-- Integrated fast **HTML parsers**. Cheerio and JSDOM
-- Yes, you can scrape **JSON APIs** as well
+-   Zero config **HTTP2 support**, even for proxies
+-   Automatic generation of **browser-like headers**
+-   Replication of browser **TLS fingerprints**
+-   Integrated fast **HTML parsers**. Cheerio and JSDOM
+-   Yes, you can scrape **JSON APIs** as well
 
 ### 💻 Real browser crawling
 
-- JavaScript **rendering** and **screenshots**
-- **Headless** and **headful** support
-- Zero-config generation of **human-like fingerprints**
-- Automatic **browser management**
-- Use **Playwright** and **Puppeteer** with the same interface
-- **Chrome**, **Firefox**, **Webkit** and many others
+-   JavaScript **rendering** and **screenshots**
+-   **Headless** and **headful** support
+-   Zero-config generation of **human-like fingerprints**
+-   Automatic **browser management**
+-   Use **Playwright** and **Puppeteer** with the same interface
+-   **Chrome**, **Firefox**, **Webkit** and many others
 
 ## Usage on the Apify platform
 

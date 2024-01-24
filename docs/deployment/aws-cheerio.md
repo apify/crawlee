@@ -10,7 +10,7 @@ Locally, we can conveniently create a Crawlee project with `npx crawlee create`.
 Whenever we instantiate a new crawler, we have to pass a unique `Configuration` instance to it. By default, all the Crawlee crawler instances share the same storage - this can be convenient, but would also cause “statefulness” of our Lambda, which would lead to hard-to-debug problems.
 
 Also, when creating this Configuration instance, make sure to pass the `persistStorage: false` option. This tells Crawlee to use in-memory storage, as the Lambda filesystem is read-only.
-    
+
 ```javascript title="src/main.js"
 // For more information, see https://crawlee.dev/
 import { CheerioCrawler, Configuration, ProxyConfiguration } from 'crawlee';
@@ -18,18 +18,21 @@ import { router } from './routes.js';
 
 const startUrls = ['https://crawlee.dev'];
 
-const crawler = new CheerioCrawler({
-    requestHandler: router,
-// highlight-start
-}, new Configuration({
-    persistStorage: false,
-}));
+const crawler = new CheerioCrawler(
+    {
+        requestHandler: router,
+        // highlight-start
+    },
+    new Configuration({
+        persistStorage: false,
+    }),
+);
 // highlight-end
 
 await crawler.run(startUrls);
 ```
 
-Now, we wrap all the logic in a `handler` function. This is the actual “Lambda” that AWS will be executing later on. 
+Now, we wrap all the logic in a `handler` function. This is the actual “Lambda” that AWS will be executing later on.
 
 ```javascript title="src/main.js"
 // For more information, see https://crawlee.dev/
@@ -40,14 +43,17 @@ const startUrls = ['https://crawlee.dev'];
 
 // highlight-next-line
 export const handler = async (event, context) => {
-    const crawler = new CheerioCrawler({
-        requestHandler: router,
-    }, new Configuration({
-        persistStorage: false,
-    }));
+    const crawler = new CheerioCrawler(
+        {
+            requestHandler: router,
+        },
+        new Configuration({
+            persistStorage: false,
+        }),
+    );
 
     await crawler.run(startUrls);
-// highlight-next-line
+    // highlight-next-line
 };
 ```
 
@@ -58,7 +64,6 @@ Make sure to always instantiate a **new crawler instance for every Lambda**. AWS
 **TLDR: Keep your Lambda stateless.**
 
 :::
-
 
 Last things last, we also want to return the scraped data from the Lambda when the crawler run ends.
 
@@ -72,11 +77,14 @@ import { router } from './routes.js';
 const startUrls = ['https://crawlee.dev'];
 
 export const handler = async (event, context) => {
-    const crawler = new CheerioCrawler({
-        requestHandler: router,
-    }, new Configuration({
-        persistStorage: false,
-    }));
+    const crawler = new CheerioCrawler(
+        {
+            requestHandler: router,
+        },
+        new Configuration({
+            persistStorage: false,
+        }),
+    );
 
     await crawler.run(startUrls);
 
@@ -84,7 +92,7 @@ export const handler = async (event, context) => {
     return {
         statusCode: 200,
         body: await crawler.getData(),
-    }
+    };
     // highlight-end
 };
 ```
@@ -101,11 +109,11 @@ AWS has a limit of 50MB for direct file upload. Usually, our Crawlee projects wo
 
 A better way to install your project dependencies is by using Lambda Layers. With Layers, we can also share files between multiple Lambdas - and keep the actual “code” part of the Lambdas as slim as possible.
 
-**To create a Lambda Layer, we need to:** 
+**To create a Lambda Layer, we need to:**
 
-- Pack the `node_modules` folder into a separate zip file (the archive should contain one folder named `node_modules`).
-- Create a new Lambda layer from this archive. We’ll probably need to upload this file to AWS S3 storage and create the Lambda Layer like this.
-- After creating it, we simply tell our new Lambda function to use this layer.
+-   Pack the `node_modules` folder into a separate zip file (the archive should contain one folder named `node_modules`).
+-   Create a new Lambda layer from this archive. We’ll probably need to upload this file to AWS S3 storage and create the Lambda Layer like this.
+-   After creating it, we simply tell our new Lambda function to use this layer.
 
 :::
 
@@ -117,9 +125,9 @@ Now we’re all set! By clicking the **Test** button, we can send an example tes
 
 :::tip
 
-In the Configuration tab in the AWS Lambda dashboard, you can configure the amount of memory the Lambda is running with or the size of the ephemeral storage. 
+In the Configuration tab in the AWS Lambda dashboard, you can configure the amount of memory the Lambda is running with or the size of the ephemeral storage.
 
-The memory size can greatly affect the execution speed of your Lambda. 
+The memory size can greatly affect the execution speed of your Lambda.
 
 See the [official documentation](https://docs.aws.amazon.com/lambda/latest/operatorguide/computing-power.html) to see how the performance and cost scale with more memory.
 

@@ -38,7 +38,5 @@ const crawler = new JSDOMCrawler({
     },
 });
 
-await crawler.run([
-    'http://crawlee.dev',
-]);
+await crawler.run(['http://crawlee.dev']);
 ```

@@ -22,12 +22,7 @@ const crawler = new BasicCrawler({
 });
 
 // The initial list of URLs to crawl. Here we use just a few hard-coded URLs.
-await crawler.addRequests([
-    'https://www.google.com',
-    'https://www.example.com',
-    'https://www.bing.com',
-    'https://www.wikipedia.com',
-]);
+await crawler.addRequests(['https://www.google.com', 'https://www.example.com', 'https://www.bing.com', 'https://www.wikipedia.com']);
 
 // Run the crawler and wait for it to finish.
 await crawler.run();

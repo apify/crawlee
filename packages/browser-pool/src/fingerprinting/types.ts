@@ -10,36 +10,36 @@ export interface GetFingerprintReturn {
 
 export interface FingerprintGeneratorOptions {
     /**
-    * List of `BrowserSpecification` objects
-    * or one of `chrome`, `edge`, `firefox` and `safari`.
-    */
+     * List of `BrowserSpecification` objects
+     * or one of `chrome`, `edge`, `firefox` and `safari`.
+     */
     browsers?: BrowserSpecification[] | BrowserName[];
     /**
-    * Browser generation query based on the real world data.
-    *  For more info see the [query docs](https://github.com/browserslist/browserslist#full-list).
-    *
-    * > Note: If `browserListQuery` is passed, the `browsers` array is ignored.
-    */
+     * Browser generation query based on the real world data.
+     *  For more info see the [query docs](https://github.com/browserslist/browserslist#full-list).
+     *
+     * > Note: If `browserListQuery` is passed, the `browsers` array is ignored.
+     */
     browserListQuery?: string;
     /**
-    * List of operating systems to generate the headers for.
-    */
+     * List of operating systems to generate the headers for.
+     */
     operatingSystems?: OperatingSystemsName[];
     /**
-    * List of device types to generate the fingerprints for.
-    */
+     * List of device types to generate the fingerprints for.
+     */
     devices?: DeviceCategory[];
     /**
-    * List of at most 10 languages to include in the
-    *  [Accept-Language](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language) request header
-    *  in the language format accepted by that header, for example `en`, `en-US` or `de`.
-    */
+     * List of at most 10 languages to include in the
+     *  [Accept-Language](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language) request header
+     *  in the language format accepted by that header, for example `en`, `en-US` or `de`.
+     */
     locales?: string[];
     /**
-    * Http version to be used to generate headers (the headers differ depending on the version).
-    *
-    * Can be either 1 or 2. Default value is 2.
-    */
+     * Http version to be used to generate headers (the headers differ depending on the version).
+     *
+     * Can be either 1 or 2. Default value is 2.
+     */
     httpVersion?: HttpVersion;
     /**
      * Defines the screen dimensions of the generated fingerprint.
@@ -59,7 +59,7 @@ const SUPPORTED_HTTP_VERSIONS = ['1', '2'] as const;
 /**
  * String specifying the HTTP version to use.
  */
-type HttpVersion = typeof SUPPORTED_HTTP_VERSIONS[number];
+type HttpVersion = (typeof SUPPORTED_HTTP_VERSIONS)[number];
 
 export enum BrowserName {
     chrome = 'chrome',
@@ -70,20 +70,20 @@ export enum BrowserName {
 
 export interface BrowserSpecification {
     /**
-    * String representing the browser name.
-    */
+     * String representing the browser name.
+     */
     name: BrowserName;
     /**
-    * Minimum version of browser used.
-    */
+     * Minimum version of browser used.
+     */
     minVersion?: number;
     /**
-    * Maximum version of browser used.
-    */
+     * Maximum version of browser used.
+     */
     maxVersion?: number;
     /**
-    * HTTP version to be used for header generation (the headers differ depending on the version).
-    */
+     * HTTP version to be used for header generation (the headers differ depending on the version).
+     */
     httpVersion?: HttpVersion;
 }
 

@@ -98,10 +98,10 @@ export interface RequestListOptions {
     sourcesFunction?: RequestListSourcesFunction;
 
     /**
-    * Used to pass the proxy configuration for the `requestsFromUrl` objects.
-    * Takes advantage of the internal address rotation and authentication process.
-    * If undefined, the `requestsFromUrl` requests will be made without proxy.
-    */
+     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
+     * Takes advantage of the internal address rotation and authentication process.
+     * If undefined, the `requestsFromUrl` requests will be made without proxy.
+     */
     proxyConfiguration?: ProxyConfiguration;
 
     /**
@@ -302,19 +302,22 @@ export class RequestList {
         if (!(sources || sourcesFunction)) {
             throw new ArgumentError('At least one of "sources" or "sourcesFunction" must be provided.', this.constructor);
         }
-        ow(options, ow.object.exactShape({
-            sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
-            sourcesFunction: ow.optional.function,
-            persistStateKey: ow.optional.string,
-            persistRequestsKey: ow.optional.string,
-            state: ow.optional.object.exactShape({
-                nextIndex: ow.number,
-                nextUniqueKey: ow.string,
-                inProgress: ow.object,
+        ow(
+            options,
+            ow.object.exactShape({
+                sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
+                sourcesFunction: ow.optional.function,
+                persistStateKey: ow.optional.string,
+                persistRequestsKey: ow.optional.string,
+                state: ow.optional.object.exactShape({
+                    nextIndex: ow.number,
+                    nextUniqueKey: ow.string,
+                    inProgress: ow.object,
+                }),
+                keepDuplicateUrls: ow.optional.boolean,
+                proxyConfiguration: ow.optional.object,
             }),
-            keepDuplicateUrls: ow.optional.boolean,
-            proxyConfiguration: ow.optional.object,
-        }));
+        );
 
         this.persistStateKey = persistStateKey ? `SDK_${persistStateKey}` : persistStateKey;
         this.persistRequestsKey = persistRequestsKey ? `SDK_${persistRequestsKey}` : persistRequestsKey;
@@ -472,8 +475,7 @@ export class RequestList {
         if (state.nextIndex > this.requests.length) {
             throw new Error('The state object is not consistent with RequestList, too few requests loaded.');
         }
-        if (state.nextIndex < this.requests.length
-            && this.requests[state.nextIndex].uniqueKey !== state.nextUniqueKey) {
+        if (state.nextIndex < this.requests.length && this.requests[state.nextIndex].uniqueKey !== state.nextUniqueKey) {
             throw new Error('The state object is not consistent with RequestList the order of URLs seems to have changed.');
         }
 
@@ -505,7 +507,7 @@ export class RequestList {
         // As a workaround, we just remove all inProgress requests whose index >= nextIndex,
         // since they will be crawled again.
         if (deleteFromInProgress.length) {
-            this.log.warning('RequestList\'s in-progress field is not consistent, skipping invalid in-progress entries', {
+            this.log.warning("RequestList's in-progress field is not consistent, skipping invalid in-progress entries", {
                 deleteFromInProgress,
             });
             for (const uniqueKey of deleteFromInProgress) {
@@ -550,9 +552,7 @@ export class RequestList {
 
         return {
             nextIndex: this.nextIndex,
-            nextUniqueKey: this.nextIndex < this.requests.length
-                ? this.requests[this.nextIndex].uniqueKey
-                : null,
+            nextUniqueKey: this.nextIndex < this.requests.length ? this.requests[this.nextIndex].uniqueKey : null,
             inProgress: [...this.inProgress],
         };
     }
@@ -731,7 +731,7 @@ export class RequestList {
      */
     protected _ensureUniqueKeyValid(uniqueKey: string): void {
         if (typeof uniqueKey !== 'string' || !uniqueKey) {
-            throw new Error('Request object\'s uniqueKey must be a non-empty string');
+            throw new Error("Request object's uniqueKey must be a non-empty string");
         }
     }
 
@@ -844,7 +844,10 @@ export class RequestList {
 
         ow(listName, ow.optional.any(ow.string, ow.null));
         ow(sources, ow.array);
-        ow(options, ow.object.is((v) => !Array.isArray(v)));
+        ow(
+            options,
+            ow.object.is((v) => !Array.isArray(v)),
+        );
 
         const rl = new RequestList({
             ...options,
@@ -882,7 +885,6 @@ export class RequestList {
  * ```
  */
 export interface RequestListState {
-
     /** Position of the next request to be processed. */
     nextIndex: number;
 
@@ -891,7 +893,6 @@ export interface RequestListState {
 
     /** Array of request keys representing those that being processed at the moment. */
     inProgress: string[];
-
 }
 
 type RequestListSource = string | Source;

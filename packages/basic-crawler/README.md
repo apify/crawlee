@@ -33,12 +33,10 @@ const crawler = new BasicCrawler({
         await Dataset.pushData({
             url: request.url,
             html: body,
-        })
+        });
     },
 });
 
 // Enqueue the initial requests and run the crawler
-await crawler.run([
-    'http://www.example.com/page-1',
-    'http://www.example.com/page-2',
-]);
+await crawler.run(['http://www.example.com/page-1', 'http://www.example.com/page-2']);
+```

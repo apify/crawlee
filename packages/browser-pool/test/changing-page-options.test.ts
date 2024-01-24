@@ -12,17 +12,20 @@ import { createProxyServer } from '../../../test/browser-pool/browser-plugins/cr
 
 describe.each([
     ['Puppeteer', new PuppeteerPlugin(puppeteer, { useIncognitoPages: true })],
-    ['Playwright', new PlaywrightPlugin(playwright.chromium, {
-        useIncognitoPages: true,
-        launchOptions: {
-            args: [
-                // Exclude loopback interface from proxy bypass list,
-                // so the request to localhost goes through proxy.
-                // This way there's no need for a 3rd party server.
-                '--proxy-bypass-list=<-loopback>',
-            ],
-        },
-    })], // Chromium is faster than firefox and webkit
+    [
+        'Playwright',
+        new PlaywrightPlugin(playwright.chromium, {
+            useIncognitoPages: true,
+            launchOptions: {
+                args: [
+                    // Exclude loopback interface from proxy bypass list,
+                    // so the request to localhost goes through proxy.
+                    // This way there's no need for a 3rd party server.
+                    '--proxy-bypass-list=<-loopback>',
+                ],
+            },
+        }),
+    ], // Chromium is faster than firefox and webkit
 ])('BrowserPool - %s - prePageCreateHooks > should allow changing pageOptions', (_, plugin) => {
     let target: http.Server;
     let protectedProxy: ProxyChainServer;

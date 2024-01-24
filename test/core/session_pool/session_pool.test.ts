@@ -45,16 +45,17 @@ describe('SessionPool - testing session pool', () => {
             persistStateKeyValueStoreId: 'TEST',
             persistStateKey: 'SESSION_POOL_STATE2',
 
-            createSessionFunction: () => ({} as never),
-
+            createSessionFunction: () => ({}) as never,
         };
         sessionPool = new SessionPool(opts);
         await sessionPool.initialize();
         await sessionPool.teardown();
 
-        entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
-            expect(sessionPool[key]).toEqual(value);
-        });
+        entries(opts)
+            .filter(([key]) => key !== 'sessionOptions')
+            .forEach(([key, value]) => {
+                expect(sessionPool[key]).toEqual(value);
+            });
         // log is appended to sessionOptions after sessionPool instantiation
         // @ts-expect-error private symbol
         expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
@@ -72,15 +73,16 @@ describe('SessionPool - testing session pool', () => {
             persistStateKeyValueStoreId: 'TEST',
             persistStateKey: 'SESSION_POOL_STATE2',
 
-            createSessionFunction: () => ({} as never),
-
+            createSessionFunction: () => ({}) as never,
         };
         sessionPool = await SessionPool.open(opts);
         await sessionPool.teardown();
 
-        entries(opts).filter(([key]) => key !== 'sessionOptions').forEach(([key, value]) => {
-            expect(sessionPool[key]).toEqual(value);
-        });
+        entries(opts)
+            .filter(([key]) => key !== 'sessionOptions')
+            .forEach(([key, value]) => {
+                expect(sessionPool[key]).toEqual(value);
+            });
         // log is appended to sessionOptions after sessionPool instantiation
         // @ts-expect-error private symbol
         expect(sessionPool.sessionOptions).toEqual({ ...opts.sessionOptions, log: expect.any(Log) });
@@ -111,7 +113,8 @@ describe('SessionPool - testing session pool', () => {
             const oldPick = sessionPool._pickSession; //eslint-disable-line
 
             // @ts-expect-error Overriding private property
-            sessionPool._pickSession = () => { //eslint-disable-line
+            sessionPool._pickSession = () => {
+                //eslint-disable-line
                 isCalled = true;
                 return oldPick.bind(sessionPool)();
             };

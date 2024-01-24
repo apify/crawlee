@@ -19,10 +19,13 @@ import type { SafeParameters } from '../utils';
 
 const getFreePort = async () => {
     return new Promise<number>((resolve, reject) => {
-        const server = net.createServer().once('error', reject).listen(() => {
-            resolve((server.address() as net.AddressInfo).port);
-            server.close();
-        });
+        const server = net
+            .createServer()
+            .once('error', reject)
+            .listen(() => {
+                resolve((server.address() as net.AddressInfo).port);
+                server.close();
+            });
     });
 };
 
@@ -35,15 +38,9 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
-        const {
-            launchOptions,
-            useIncognitoPages,
-            proxyUrl,
-        } = launchContext;
+        const { launchOptions, useIncognitoPages, proxyUrl } = launchContext;
 
-        let {
-            userDataDir,
-        } = launchContext;
+        let { userDataDir } = launchContext;
 
         let browser: PlaywrightBrowser;
 
@@ -82,9 +79,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                 let firefoxPort: number | undefined;
 
                 if (experimentalContainers) {
-                    launchOptions!.args = [
-                        ...(launchOptions!.args ?? []),
-                    ];
+                    launchOptions!.args = [...(launchOptions!.args ?? [])];
 
                     // Use native headless mode so we can load an extension
                     if (launchOptions!.headless && this.library.name() === 'chromium') {

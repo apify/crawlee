@@ -234,56 +234,37 @@ export enum EnqueueStrategy {
  */
 export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 'requestQueue' | 'urls'>): Promise<BatchAddRequestsResult> {
     if (!options || Object.keys(options).length === 0) {
-        throw new RangeError([
-            // eslint-disable-next-line max-len
-            'enqueueLinks() was called without the required options. You can only do that when you use the `crawlingContext.enqueueLinks()` method in request handlers.',
-            'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/docs/examples/crawl-relative-links',
-        ].join('\n'));
+        throw new RangeError(
+            [
+                // eslint-disable-next-line max-len
+                'enqueueLinks() was called without the required options. You can only do that when you use the `crawlingContext.enqueueLinks()` method in request handlers.',
+                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/docs/examples/crawl-relative-links',
+            ].join('\n'),
+        );
     }
 
-    ow(options, ow.object.exactShape({
-        urls: ow.array.ofType(ow.string),
-        requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-        forefront: ow.optional.boolean,
-        skipNavigation: ow.optional.boolean,
-        limit: ow.optional.number,
-        selector: ow.optional.string,
-        baseUrl: ow.optional.string,
-        userData: ow.optional.object,
-        label: ow.optional.string,
-        pseudoUrls: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.object.hasKeys('purl'),
-        )),
-        globs: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.object.hasKeys('glob'),
-        )),
-        exclude: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.regExp,
-            ow.object.hasKeys('glob'),
-            ow.object.hasKeys('regexp'),
-        )),
-        regexps: ow.optional.array.ofType(ow.any(
-            ow.regExp,
-            ow.object.hasKeys('regexp'),
-        )),
-        transformRequestFunction: ow.optional.function,
-        strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            urls: ow.array.ofType(ow.string),
+            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            forefront: ow.optional.boolean,
+            skipNavigation: ow.optional.boolean,
+            limit: ow.optional.number,
+            selector: ow.optional.string,
+            baseUrl: ow.optional.string,
+            userData: ow.optional.object,
+            label: ow.optional.string,
+            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
+            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
+            exclude: ow.optional.array.ofType(ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp'))),
+            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+            transformRequestFunction: ow.optional.function,
+            strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
+        }),
+    );
 
-    const {
-        requestQueue,
-        limit,
-        urls,
-        pseudoUrls,
-        exclude,
-        globs,
-        regexps,
-        transformRequestFunction,
-        forefront,
-    } = options;
+    const { requestQueue, limit, urls, pseudoUrls, exclude, globs, regexps, transformRequestFunction, forefront } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
@@ -391,12 +372,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
  *   request domain, or a redirected one
  * - In all other cases, we return the domain of the original request as that's the one we need to use for filtering
  */
-export function resolveBaseUrlForEnqueueLinksFiltering({
-    enqueueStrategy,
-    finalRequestUrl,
-    originalRequestUrl,
-    userProvidedBaseUrl,
-}: ResolveBaseUrl) {
+export function resolveBaseUrlForEnqueueLinksFiltering({ enqueueStrategy, finalRequestUrl, originalRequestUrl, userProvidedBaseUrl }: ResolveBaseUrl) {
     // User provided base url takes priority
     if (userProvidedBaseUrl) {
         return userProvidedBaseUrl;

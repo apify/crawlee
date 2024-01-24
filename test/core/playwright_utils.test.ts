@@ -39,9 +39,7 @@ describe('playwrightUtils', () => {
         await localStorageEmulator.destroy();
     });
 
-    describe.each([
-        [launchPlaywright, { launchOptions: { headless: true } }],
-    ] as const)('with %s', (launchName, launchContext) => {
+    describe.each([[launchPlaywright, { launchOptions: { headless: true } }]] as const)('with %s', (launchName, launchContext) => {
         test('injectFile()', async () => {
             const browser2 = await launchName(launchContext);
             const survive = async (browser: Browser) => {
@@ -174,12 +172,15 @@ describe('playwrightUtils', () => {
                 const page = await browser.newPage();
                 await playwrightUtils.blockRequests(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
+                await page.setContent(
+                    `<html><body>
                 <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
                 <img src="${serverAddress}/image.png">
                 <img src="${serverAddress}/image.gif">
                 <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
+            </body></html>`,
+                    { waitUntil: 'load' },
+                );
                 expect(loadedUrls).toEqual([`${serverAddress}/script.js`]);
             });
 
@@ -191,17 +192,16 @@ describe('playwrightUtils', () => {
                     urlPatterns: ['.css'],
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
+                await page.setContent(
+                    `<html><body>
                 <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
                 <img src="${serverAddress}/image.png">
                 <img src="${serverAddress}/image.gif">
                 <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/image.png`,
-                    `${serverAddress}/script.js`,
-                    `${serverAddress}/image.gif`,
-                ]));
+            </body></html>`,
+                    { waitUntil: 'load' },
+                );
+                expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/image.png`, `${serverAddress}/script.js`, `${serverAddress}/image.gif`]));
             });
         });
 
@@ -232,7 +232,7 @@ describe('playwrightUtils', () => {
 
         describe('infiniteScroll()', () => {
             function isAtBottom() {
-                return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
+                return window.innerHeight + window.pageYOffset >= document.body.offsetHeight;
             }
 
             let browser: Browser;
@@ -247,9 +247,11 @@ describe('playwrightUtils', () => {
             beforeEach(async () => {
                 page = await browser.newPage();
                 let count = 0;
-                const content = Array(1000).fill(null).map(() => {
-                    return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
-                });
+                const content = Array(1000)
+                    .fill(null)
+                    .map(() => {
+                        return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+                    });
                 const contentHTML = `<html><body>${content}</body></html>`;
                 await page.setContent(contentHTML);
             });

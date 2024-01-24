@@ -18,12 +18,15 @@ automatically find links and add them to the crawler's <ApiLink to="core/class/R
 
 We provide 3 different strategies for crawling relative links:
 
-- <ApiLink to="core/enum/EnqueueStrategy#All"><inlineCode>All</inlineCode> (or the string <inlineCode>"all"</inlineCode>)</ApiLink> which will
-enqueue all links found, regardless of the domain they point to.
-- <ApiLink to="core/enum/EnqueueStrategy#SameHostname"><inlineCode>SameHostname</inlineCode> (or the string <inlineCode>"same-hostname"</inlineCode>)</ApiLink> which
-will enqueue all links found for the same hostname. This is the default strategy.
-- <ApiLink to="core/enum/EnqueueStrategy#SameDomain"><inlineCode>SameDomain</inlineCode> (or the string <inlineCode>"same-domain"</inlineCode>)</ApiLink> which
-will enqueue all links found that have the same domain name, including links from any possible subdomain.
+-   <ApiLink to="core/enum/EnqueueStrategy#All">
+        <inlineCode>All</inlineCode> (or the string <inlineCode>"all"</inlineCode>)
+    </ApiLink> which will enqueue all links found, regardless of the domain they point to.
+-   <ApiLink to="core/enum/EnqueueStrategy#SameHostname">
+        <inlineCode>SameHostname</inlineCode> (or the string <inlineCode>"same-hostname"</inlineCode>)
+    </ApiLink> which will enqueue all links found for the same hostname. This is the default strategy.
+-   <ApiLink to="core/enum/EnqueueStrategy#SameDomain">
+        <inlineCode>SameDomain</inlineCode> (or the string <inlineCode>"same-domain"</inlineCode>)
+    </ApiLink> which will enqueue all links found that have the same domain name, including links from any possible subdomain.
 
 :::note
 
@@ -45,7 +48,7 @@ Any urls found will be matched by this strategy, even if they go off of the site
 :::
 
 <RunnableCodeBlock className="language-js" type="cheerio">
-	{AllLinksSource}
+    {AllLinksSource}
 </RunnableCodeBlock>
 
 </TabItem>

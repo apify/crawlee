@@ -5,12 +5,14 @@ await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new
 
 const crawler = new PuppeteerCrawler({
     maxRequestsPerCrawl: 10,
-    preNavigationHooks: [async ({ page }, goToOptions) => {
-        await page.evaluateOnNewDocument(() => {
-            localStorage.setItem('themeExitPopup', 'true');
-        });
-        goToOptions.waitUntil = ['networkidle2'];
-    }],
+    preNavigationHooks: [
+        async ({ page }, goToOptions) => {
+            await page.evaluateOnNewDocument(() => {
+                localStorage.setItem('themeExitPopup', 'true');
+            });
+            goToOptions.waitUntil = ['networkidle2'];
+        },
+    ],
 });
 
 crawler.router.addHandler('START', async ({ log, enqueueLinks, page }) => {
@@ -38,8 +40,14 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
     const urlPart = url.split('/').slice(-1); // ['sennheiser-mke-440-professional-stereo-shotgun-microphone-mke-440']
     const manufacturer = urlPart[0].split('-')[0]; // 'sennheiser'
 
-    const title = await page.locator('.product-meta h1').map((el) => el.textContent).wait();
-    const sku = await page.locator('span.product-meta__sku-number').map((el) => el.textContent).wait();
+    const title = await page
+        .locator('.product-meta h1')
+        .map((el) => el.textContent)
+        .wait();
+    const sku = await page
+        .locator('span.product-meta__sku-number')
+        .map((el) => el.textContent)
+        .wait();
 
     const rawPriceString = await page
         .locator('span.price')
@@ -53,7 +61,7 @@ crawler.router.addHandler('DETAIL', async ({ log, page, request: { url } }) => {
     const inStock = await page
         .locator('span.product-form__inventory')
         .filter((el) => el.textContent.includes('In stock'))
-        .map((el) => (!!el))
+        .map((el) => !!el)
         .wait();
 
     const results = {

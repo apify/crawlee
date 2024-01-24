@@ -41,7 +41,7 @@ async function withRetries<F extends (...args: unknown[]) => unknown>(func: F, r
 
     while (attempt < retries) {
         try {
-            return await func() as Awaited<ReturnType<F>>;
+            return (await func()) as Awaited<ReturnType<F>>;
         } catch (error: any) {
             attempt++;
             lastError = error;
@@ -51,7 +51,7 @@ async function withRetries<F extends (...args: unknown[]) => unknown>(func: F, r
             }
 
             // Wait 2500ms + (2500 * retries) before giving up to give it some time between retries
-            await setTimeout(2500 + (2500 * attempt));
+            await setTimeout(2500 + 2500 * attempt);
         }
     }
 
@@ -62,15 +62,16 @@ async function downloadTemplateFilesToDisk(template: Template, destinationDirect
     const promises: Promise<void>[] = [];
 
     for (const file of template.files) {
-        const promise = async () => downloadFile(file.url).then(async (buffer) => {
-            // Make sure the folder for the file exists
-            const fileDirName = dirname(file.path);
-            const fileFolder = resolve(destinationDirectory, fileDirName);
-            await ensureDir(fileFolder);
+        const promise = async () =>
+            downloadFile(file.url).then(async (buffer) => {
+                // Make sure the folder for the file exists
+                const fileDirName = dirname(file.path);
+                const fileFolder = resolve(destinationDirectory, fileDirName);
+                await ensureDir(fileFolder);
 
-            // Write the actual file
-            await writeFile(resolve(destinationDirectory, file.path), buffer);
-        });
+                // Write the actual file
+                await writeFile(resolve(destinationDirectory, file.path), buffer);
+            });
 
         promises.push(withRetries(promise, 3, `Template: ${template.name}, file: ${file.path}`));
     }
@@ -127,19 +128,21 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
 
         // Check proper format of projectName
         if (!projectName) {
-            const projectNamePrompt = await prompt([{
-                name: 'projectName',
-                message: 'Name of the new project folder:',
-                type: 'input',
-                validate: (promptText) => {
-                    try {
-                        validateProjectName(promptText);
-                    } catch (err: any) {
-                        return err.message;
-                    }
-                    return true;
+            const projectNamePrompt = await prompt([
+                {
+                    name: 'projectName',
+                    message: 'Name of the new project folder:',
+                    type: 'input',
+                    validate: (promptText) => {
+                        try {
+                            validateProjectName(promptText);
+                        } catch (err: any) {
+                            return err.message;
+                        }
+                        return true;
+                    },
                 },
-            }]);
+            ]);
             ({ projectName } = projectNamePrompt);
         } else {
             validateProjectName(projectName);
@@ -152,13 +155,15 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         }));
 
         if (!template) {
-            const answer = await prompt([{
-                type: 'list',
-                name: 'template',
-                message: 'Please select the template for your new Crawlee project',
-                default: choices[0],
-                choices,
-            }]);
+            const answer = await prompt([
+                {
+                    type: 'list',
+                    name: 'template',
+                    message: 'Please select the template for your new Crawlee project',
+                    default: choices[0],
+                    choices,
+                },
+            ]);
             template = answer.template;
         }
 

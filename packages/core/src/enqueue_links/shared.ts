@@ -95,7 +95,7 @@ export function constructGlobObjectsFromGlobs(globs: GlobInput[]): GlobObject[] 
             return false;
         })
         .map((item) => {
-        // Get glob object from cache.
+            // Get glob object from cache.
             let globObject = enqueueLinksPatternCache.get(item);
             if (globObject) return globObject;
 
@@ -154,8 +154,7 @@ export function createRequests(
     strategy?: EnqueueLinksOptions['strategy'],
 ): Request[] {
     if (!urlPatternObjects || !urlPatternObjects.length) {
-        return requestOptions
-            .map((opts) => new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts }));
+        return requestOptions.map((opts) => new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts }));
     }
 
     const requests: Request[] = [];
@@ -167,10 +166,7 @@ export function createRequests(
         for (const excludePatternObject of excludePatternObjects) {
             const { regexp, glob } = excludePatternObject;
 
-            if (
-                (regexp && urlToMatch.match(regexp)) || // eslint-disable-line
-                (glob && minimatch(urlToMatch, glob, { nocase: true }))
-            ) {
+            if ((regexp && urlToMatch.match(regexp)) || (glob && minimatch(urlToMatch, glob, { nocase: true }))) {
                 isExcluded = true;
                 break;
             }
@@ -180,13 +176,11 @@ export function createRequests(
 
         for (const urlPatternObject of urlPatternObjects) {
             const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
-            if (
-                (regexp && urlToMatch.match(regexp)) || // eslint-disable-line
-                (glob && minimatch(urlToMatch, glob, { nocase: true }))
-            ) {
-                const request = typeof opts === 'string'
-                    ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
-                    : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
+            if ((regexp && urlToMatch.match(regexp)) || (glob && minimatch(urlToMatch, glob, { nocase: true }))) {
+                const request =
+                    typeof opts === 'string' ?
+                        { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
+                    :   { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
                 requests.push(new Request(request));
 
                 // Stop checking other patterns for this request option as it was already matched
@@ -209,10 +203,7 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
         for (const urlPatternObject of patterns) {
             const { regexp, glob } = urlPatternObject;
 
-            if (
-                (regexp && request.url.match(regexp)) || // eslint-disable-line
-                (glob && minimatch(request.url, glob, { nocase: true }))
-            ) {
+            if ((regexp && request.url.match(regexp)) || (glob && minimatch(request.url, glob, { nocase: true }))) {
                 filtered.push(request);
                 // Break the pattern loop, as we already matched this request once
                 break;
@@ -231,10 +222,8 @@ export function createRequestOptions(
     options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'strategy'> = {},
 ): RequestOptions[] {
     return sources
-        .map(
-            (src) => (
-                typeof src === 'string' ? { url: src, enqueueStrategy: options.strategy } : { ...src, enqueueStrategy: options.strategy } as RequestOptions
-            ),
+        .map((src) =>
+            typeof src === 'string' ? { url: src, enqueueStrategy: options.strategy } : ({ ...src, enqueueStrategy: options.strategy } as RequestOptions),
         )
         .filter(({ url }) => {
             try {

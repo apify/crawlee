@@ -30,7 +30,11 @@ await Actor.main(async () => {
     let navigationCounter = 0;
 
     const crawler = new CheerioCrawler({
-        preNavigationHooks: [() => { navigationCounter++; }],
+        preNavigationHooks: [
+            () => {
+                navigationCounter++;
+            },
+        ],
         async requestHandler({ request }) {
             requestCounter++;
             if (request.skipNavigation) {

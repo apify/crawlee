@@ -2,10 +2,7 @@ import type { Dictionary } from '@crawlee/types';
 
 import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
-import {
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-    getRequestId,
-} from './utils';
+import { STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import type { Request } from '../request';
@@ -24,12 +21,15 @@ class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
-        super({
-            ...options,
-            logPrefix: 'RequestQueue2',
-            recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
-            requestCacheMaxSize: MAX_CACHED_REQUESTS,
-        }, config);
+        super(
+            {
+                ...options,
+                logPrefix: 'RequestQueue2',
+                recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
+                requestCacheMaxSize: MAX_CACHED_REQUESTS,
+            },
+            config,
+        );
 
         const eventManager = config.getEventManager();
 

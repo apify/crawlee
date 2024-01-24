@@ -14,13 +14,7 @@ import type {
     Configuration,
     RequestProvider,
 } from '@crawlee/http';
-import {
-    HttpCrawler,
-    enqueueLinks,
-    Router,
-    resolveBaseUrlForEnqueueLinksFiltering,
-    tryAbsoluteURL,
-} from '@crawlee/http';
+import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering, tryAbsoluteURL } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
@@ -30,12 +24,12 @@ import ow from 'ow';
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+> = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
+> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>> {
     /**
      * Download and run scripts.
      */
@@ -49,12 +43,12 @@ export interface JSDOMCrawlerOptions<
 export type JSDOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
 
 export interface JSDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData, JSDOMCrawler> {
     window: DOMWindow;
     document: Document;
 
@@ -75,7 +69,7 @@ export interface JSDOMCrawlingContext<
 export type JSDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = RequestHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<JSDOMCrawlingContext<UserData, JSONData>>;
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -168,11 +162,7 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
     protected virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions = {}, config?: Configuration) {
-        const {
-            runScripts = false,
-            hideInternalConsole = false,
-            ...httpOptions
-        } = options;
+        const { runScripts = false, hideInternalConsole = false, ...httpOptions } = options;
 
         super(httpOptions, config);
 
@@ -245,20 +235,28 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
         });
         window.document.createRange = () => {
             const range = new window.Range();
-            range.getBoundingClientRect = () => ({} as any);
+            range.getBoundingClientRect = () => ({}) as any;
             range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
             return range;
         };
 
         if (this.runScripts) {
             try {
-                await addTimeoutToPromise(async () => {
-                    return new Promise<void>((resolve) => {
-                        window.addEventListener('load', () => {
-                            resolve();
-                        }, false);
-                    }).catch();
-                }, 10_000, 'Window.load event not fired after 10 seconds.').catch();
+                await addTimeoutToPromise(
+                    async () => {
+                        return new Promise<void>((resolve) => {
+                            window.addEventListener(
+                                'load',
+                                () => {
+                                    resolve();
+                                },
+                                false,
+                            );
+                        }).catch();
+                    },
+                    10_000,
+                    'Window.load event not fired after 10 seconds.',
+                ).catch();
             } catch (e) {
                 this.log.debug((e as Error).message);
             }

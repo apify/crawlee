@@ -123,9 +123,7 @@ So, for example 1:
 
 ```ts
 vitest.mock('node:os', async (importActual) => {
-    const original = await importActual<
-        typeof import('node:os') & { default: typeof import('node:os') }
-    >();
+    const original = await importActual<typeof import('node:os') & { default: typeof import('node:os') }>();
 
     const platformMock = () => 'darwin';
     const freememMock = vitest.fn();

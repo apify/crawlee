@@ -12,9 +12,8 @@ export async function createProxyServerForContainers(fallbackProxyUrl?: string) 
     const proxyServer = new ProxyChainServer({
         prepareRequestFunction({ request }) {
             const prefix4to6 = '::ffff:';
-            const localAddress = request.socket.localAddress!.startsWith(prefix4to6)
-                ? request.socket.localAddress!.slice(prefix4to6.length)
-                : request.socket.localAddress!;
+            const localAddress =
+                request.socket.localAddress!.startsWith(prefix4to6) ? request.socket.localAddress!.slice(prefix4to6.length) : request.socket.localAddress!;
 
             const upstreamProxyUrl = ipToProxy.get(localAddress);
 

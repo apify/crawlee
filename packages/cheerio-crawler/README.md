@@ -44,12 +44,9 @@ const crawler = new CheerioCrawler({
             url: request.url,
             html: body,
             data,
-        })
+        });
     },
 });
 
-await crawler.run([
-    'http://www.example.com/page-1',
-    'http://www.example.com/page-2',
-]);
+await crawler.run(['http://www.example.com/page-1', 'http://www.example.com/page-2']);
 ```

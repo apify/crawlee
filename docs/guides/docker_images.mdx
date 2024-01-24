@@ -23,12 +23,12 @@ All images can be found in their [GitHub repo](https://github.com/apify/apify-ac
 
 Browsers are pretty big, so we try to provide a wide variety of images to suit the specific needs. Here's a full list of our Docker images.
 
-- [`apify/actor-node`](#actor-node)
-- [`apify/actor-node-puppeteer-chrome`](#actor-node-puppeteer-chrome)
-- [`apify/actor-node-playwright`](#actor-node-playwright)
-- [`apify/actor-node-playwright-chrome`](#actor-node-playwright-chrome)
-- [`apify/actor-node-playwright-firefox`](#actor-node-playwright-firefox)
-- [`apify/actor-node-playwright-webkit`](#actor-node-playwright-webkit)
+-   [`apify/actor-node`](#actor-node)
+-   [`apify/actor-node-puppeteer-chrome`](#actor-node-puppeteer-chrome)
+-   [`apify/actor-node-playwright`](#actor-node-playwright)
+-   [`apify/actor-node-playwright-chrome`](#actor-node-playwright-chrome)
+-   [`apify/actor-node-playwright-firefox`](#actor-node-playwright-firefox)
+-   [`apify/actor-node-playwright-webkit`](#actor-node-playwright-webkit)
 
 ## Versioning
 
@@ -69,9 +69,9 @@ FROM apify/actor-node-playwright-chrome:16-1.10.0-beta
 
 ## Best practices
 
-- Node.js version tag should **always** be used.
-- The automation library version tag should be used for **added security**.
-- Asterisk `*` should be used as the automation library version in our `package.json` files.
+-   Node.js version tag should **always** be used.
+-   The automation library version tag should be used for **added security**.
+-   Asterisk `*` should be used as the automation library version in our `package.json` files.
 
 It makes sure the pre-installed version of Puppeteer or Playwright is not re-installed on build. This is important, because those libraries are only guaranteed to work with specific versions of browsers, and those browsers come pre-installed in the image.
 
@@ -162,27 +162,19 @@ To use the above images, it's necessary to have a [`Dockerfile`](https://docs.do
 
 <Tabs>
     <TabItem value="node+js" label="Node+JavaScript">
-        <CodeBlock language="dockerfile">
-            {jsNodeDocker}
-        </CodeBlock>
+        <CodeBlock language="dockerfile">{jsNodeDocker}</CodeBlock>
     </TabItem>
     <TabItem value="node+ts" label="Node+TypeScript">
-        <CodeBlock language="dockerfile">
-            {tsNodeDocker}
-        </CodeBlock>
+        <CodeBlock language="dockerfile">{tsNodeDocker}</CodeBlock>
     </TabItem>
     <TabItem value="browser+js" label="Browser+JavaScript">
         This example is for Playwright. If you want to use Puppeteer, simply replace <b>playwright</b>
         with <b>puppeteer</b> in the <code>FROM</code> declaration.
-        <CodeBlock language="dockerfile">
-            {jsBrowserDocker}
-        </CodeBlock>
+        <CodeBlock language="dockerfile">{jsBrowserDocker}</CodeBlock>
     </TabItem>
     <TabItem value="browser+ts" label="Browser+TypeScript">
         This example is for Playwright. If you want to use Puppeteer, simply replace <b>playwright</b>
         with <b>puppeteer</b> in both <code>FROM</code> declarations.
-        <CodeBlock language="dockerfile">
-            {tsBrowserDocker}
-        </CodeBlock>
+        <CodeBlock language="dockerfile">{tsBrowserDocker}</CodeBlock>
     </TabItem>
 </Tabs>

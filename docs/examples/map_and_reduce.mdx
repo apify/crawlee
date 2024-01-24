@@ -47,7 +47,7 @@ array through a transformation function and an options parameter.
 The `map` method used to check if are there more than 5 header elements on each page:
 
 <RunnableCodeBlock className="language-js" type="cheerio">
-	{MapSource}
+    {MapSource}
 </RunnableCodeBlock>
 
 The `moreThan5headers` variable is an array of `headingCount` attributes where the number of headers is greater than 5.
@@ -55,7 +55,7 @@ The `moreThan5headers` variable is an array of `headingCount` attributes where t
 The `map` method's result value saved to the <ApiLink to="core/class/KeyValueStore">`key-value store`</ApiLink> should be:
 
 ```javascript
-[11, 8]
+[11, 8];
 ```
 
 ### Reduce
@@ -67,7 +67,7 @@ calculation, the `memo` is sent to the next iteration, while the item just proce
 Using the `reduce` method to get the total number of headers scraped (all items in the dataset):
 
 <RunnableCodeBlock className="language-js" type="cheerio">
-	{ReduceSource}
+    {ReduceSource}
 </RunnableCodeBlock>
 
 The original dataset will be reduced to a single value, `pagesHeadingCount`, which contains the count of all headers for all scraped pages (all
@@ -76,5 +76,5 @@ dataset items).
 The `reduce` method's result value saved to the <ApiLink to="core/class/KeyValueStore">`key-value store`</ApiLink> should be:
 
 ```javascript
-23
+23;
 ```

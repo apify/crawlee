@@ -128,11 +128,9 @@ describe('KeyValueStore', () => {
             await expect(store.setValue('', null)).rejects.toThrow('Expected string `key` to not be empty');
             await expect(store.setValue('', 'some value')).rejects.toThrow('Expected string `key` to not be empty');
             // @ts-expect-error JS-side validation
-            await expect(store.setValue({}, 'some value'))
-                .rejects.toThrow('Expected `key` to be of type `string` but received type `Object`');
+            await expect(store.setValue({}, 'some value')).rejects.toThrow('Expected `key` to be of type `string` but received type `Object`');
             // @ts-expect-error JS-side validation
-            await expect(store.setValue(123, 'some value'))
-                .rejects.toThrow('Expected `key` to be of type `string` but received type `number`');
+            await expect(store.setValue(123, 'some value')).rejects.toThrow('Expected `key` to be of type `string` but received type `number`');
 
             const valueErrMsg = 'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified';
             await expect(store.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
@@ -140,44 +138,47 @@ describe('KeyValueStore', () => {
             await expect(store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
 
             // @ts-expect-error JS-side validation
-            await expect(store.setValue('key', {}, 123))
-                .rejects.toThrow('Expected argument to be of type `object` but received type `number`');
+            await expect(store.setValue('key', {}, 123)).rejects.toThrow('Expected argument to be of type `object` but received type `number`');
             // @ts-expect-error JS-side validation
-            await expect(store.setValue('key', {}, 'bla/bla'))
-                .rejects.toThrow('Expected argument to be of type `object` but received type `string`');
+            await expect(store.setValue('key', {}, 'bla/bla')).rejects.toThrow('Expected argument to be of type `object` but received type `string`');
             // @ts-expect-error JS-side validation
-            await expect(store.setValue('key', {}, true))
-                .rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
+            await expect(store.setValue('key', {}, true)).rejects.toThrow('Expected argument to be of type `object` but received type `boolean`');
 
             const circularObj = {} as Dictionary;
             circularObj.xxx = circularObj;
             const circularErrMsg = 'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON';
-            const undefinedErrMsg = 'The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify an undefined value.';
+            const undefinedErrMsg =
+                'The "value" parameter was stringified to JSON and returned undefined. ' + "Make sure you're not trying to stringify an undefined value.";
             await expect(store.setValue('key', circularObj)).rejects.toThrow(circularErrMsg);
             await expect(store.setValue('key', undefined)).rejects.toThrow(undefinedErrMsg);
             // @ts-expect-error JS-side validation
             await expect(store.setValue('key')).rejects.toThrow(undefinedErrMsg);
 
             const contTypeRedundantErrMsg = 'Expected property string `contentType` to not be empty in object';
-            await expect(store.setValue('key', null, { contentType: 'image/png' }))
-                .rejects.toThrow('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.');
+            await expect(store.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow(
+                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+            );
             await expect(store.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
             // @ts-expect-error Type '{}' is not assignable to type 'string'.
-            await expect(store.setValue('key', null, { contentType: {} }))
-                .rejects.toThrow('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.');
+            await expect(store.setValue('key', null, { contentType: {} })).rejects.toThrow(
+                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+            );
 
             // @ts-expect-error Type 'number' is not assignable to type 'string'.
-            await expect(store.setValue('key', 'value', { contentType: 123 }))
-                .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `number` in object');
+            await expect(store.setValue('key', 'value', { contentType: 123 })).rejects.toThrow(
+                'Expected property `contentType` to be of type `string` but received type `number` in object',
+            );
             // @ts-expect-error Type '{}' is not assignable to type 'string'.
-            await expect(store.setValue('key', 'value', { contentType: {} }))
-                .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `Object` in object');
+            await expect(store.setValue('key', 'value', { contentType: {} })).rejects.toThrow(
+                'Expected property `contentType` to be of type `string` but received type `Object` in object',
+            );
             // @ts-expect-error Type 'Date' is not assignable to type 'string'.
-            await expect(store.setValue('key', 'value', { contentType: new Date() }))
-                .rejects.toThrow('Expected property `contentType` to be of type `string` but received type `Date` in object');
-            await expect(store.setValue('key', 'value', { contentType: '' }))
-                .rejects.toThrow('Expected property string `contentType` to not be empty in object');
+            await expect(store.setValue('key', 'value', { contentType: new Date() })).rejects.toThrow(
+                'Expected property `contentType` to be of type `string` but received type `Date` in object',
+            );
+            await expect(store.setValue('key', 'value', { contentType: '' })).rejects.toThrow(
+                'Expected property string `contentType` to not be empty in object',
+            );
         });
 
         test('throws on invalid key', async () => {
@@ -304,7 +305,7 @@ describe('KeyValueStore', () => {
             });
 
             const mockSetRecord = vitest
-            // @ts-expect-error Accessing private property
+                // @ts-expect-error Accessing private property
                 .spyOn(store.client, 'setRecord')
                 .mockResolvedValueOnce(null);
 
@@ -424,9 +425,12 @@ describe('KeyValueStore', () => {
             });
 
             const results: [string, number, { size: number }][] = [];
-            await store.forEachKey(async (key, index, info) => {
-                results.push([key, index, info]);
-            }, { exclusiveStartKey: 'key0' });
+            await store.forEachKey(
+                async (key, index, info) => {
+                    results.push([key, index, info]);
+                },
+                { exclusiveStartKey: 'key0' },
+            );
 
             expect(mockListKeys).toBeCalledTimes(3);
             expect(mockListKeys).toHaveBeenNthCalledWith(1, { exclusiveStartKey: 'key0' });

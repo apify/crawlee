@@ -1,4 +1,3 @@
-/* eslint-disable no-multi-spaces */
 import exp from 'node:constants';
 
 import { ErrorTracker } from '../../packages/utils/src/internals/error_tracker';
@@ -20,7 +19,11 @@ const s = (stack: string) => {
     const atIndex = stack.indexOf('at ');
     const index = evalIndex === -1 ? atIndex : evalIndex;
 
-    return stack.slice(index).split('\n').map((line) => line.trim()).join('\n');
+    return stack
+        .slice(index)
+        .split('\n')
+        .map((line) => line.trim())
+        .join('\n');
 };
 
 // A case for
@@ -100,10 +103,14 @@ test('works', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            [e.code]: {            // code
-                [e.name]: {        // name
-                    [e.message]: { // message
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message]: {
+                        // message
                         count: 1,
                     },
                 },
@@ -115,10 +122,14 @@ test('works', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            [e.code]: {            // code
-                [e.name]: {        // name
-                    [e.message]: { // message
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message]: {
+                        // message
                         count: 2,
                     },
                 },
@@ -144,10 +155,14 @@ test('no code is null code', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {       // source
-            'missing error code': { // code
-                [e.name]: {         // name
-                    [e.message]: {  // message
+        'myscript.js:10:3': {
+            // source
+            'missing error code': {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message]: {
+                        // message
                         count: 2,
                     },
                 },
@@ -173,9 +188,12 @@ test('can hide error code', () => {
     tracker.add(g(errorRandomCode));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            [e.name]: {            // name
-                [e.message]: {     // message
+        'myscript.js:10:3': {
+            // source
+            [e.name]: {
+                // name
+                [e.message]: {
+                    // message
                     count: 2,
                 },
             },
@@ -200,9 +218,12 @@ test('can hide error name', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            [e.code]: {            // code
-                [e.message]: {     // message
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.message]: {
+                    // message
                     count: 2,
                 },
             },
@@ -227,9 +248,12 @@ test('can hide error message', () => {
     tracker.add(g(errorRandomMessage));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            [e.code]: {            // code
-                [e.name]: {        // name
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
                     count: 2,
                 },
             },
@@ -252,9 +276,12 @@ test('can hide error stack', () => {
     tracker.add(g(errorRandomStack));
 
     expect(tracker.result).toMatchObject({
-        'ERR_INVALID_URL': {      // code
-            'TypeError': {        // name
-                'Invalid URL': {  // message
+        ERR_INVALID_URL: {
+            // code
+            TypeError: {
+                // name
+                'Invalid URL': {
+                    // message
                     count: 2,
                 },
             },
@@ -279,10 +306,14 @@ test('can display full stack', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        [s(e.stack)]: {            // source
-            [e.code]: {            // code
-                [e.name]: {        // name
-                    [e.message]: { // message
+        [s(e.stack)]: {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message]: {
+                        // message
                         count: 2,
                     },
                 },
@@ -308,10 +339,14 @@ test('stack looks for user files first', () => {
     tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {      // source
-            [e.code]: {            // code
-                [e.name]: {        // name
-                    [e.message]: { // message
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message]: {
+                        // message
                         count: 2,
                     },
                 },
@@ -336,10 +371,14 @@ test('can shorten the message to the first line', () => {
     tracker.add(e);
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {                     // source
-            [e.code]: {                           // code
-                [e.name]: {                       // name
-                    [e.message.split('\n')[0]]: { // message
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message.split('\n')[0]]: {
+                        // message
                         count: 1,
                     },
                 },
@@ -365,10 +404,14 @@ test('supports error.cause', () => {
     tracker.add(e);
 
     expect(tracker.result).toMatchObject({
-        'myscript.js:10:3': {                     // source
-            [e.code]: {                           // code
-                [e.name]: {                       // name
-                    [e.message.split('\n')[0]]: { // message
+        'myscript.js:10:3': {
+            // source
+            [e.code]: {
+                // code
+                [e.name]: {
+                    // name
+                    [e.message.split('\n')[0]]: {
+                        // message
                         count: 1,
                     },
                     [e.cause.message]: {
@@ -407,10 +450,14 @@ test('placeholder #1', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                 // source
-            'missing error code': {              // code
-                Error: {                         // name
-                    'Expected boolean, got _': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'Expected boolean, got _': {
+                        // message
                         count: 3,
                     },
                 },
@@ -446,10 +493,14 @@ test('placeholder #2', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                   // source
-            'missing error code': {                // code
-                Error: {                           // name
-                    'Expected `boolean`, got _': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'Expected `boolean`, got _': {
+                        // message
                         count: 3,
                     },
                 },
@@ -485,10 +536,14 @@ test('placeholder #3', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                   // source
-            'missing error code': {                // code
-                Error: {                           // name
-                    '1 _ 3': {                     // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    '1 _ 3': {
+                        // message
                         count: 3,
                     },
                 },
@@ -524,10 +579,14 @@ test('placeholder #4', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                   // source
-            'missing error code': {                // code
-                Error: {                           // name
-                    '1 2 _': {                     // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    '1 2 _': {
+                        // message
                         count: 3,
                     },
                 },
@@ -563,10 +622,14 @@ test('placeholder #5', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                   // source
-            'missing error code': {                // code
-                Error: {                           // name
-                    '_ 2 3': {                     // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    '_ 2 3': {
+                        // message
                         count: 3,
                     },
                 },
@@ -602,10 +665,14 @@ test('placeholder #6', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                                  // source
-            'missing error code': {                               // code
-                Error: {                                          // name
-                    'The weather is _ today, _ the grass is _': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'The weather is _ today, _ the grass is _': {
+                        // message
                         count: 3,
                     },
                 },
@@ -636,10 +703,14 @@ test('placeholder #7', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                          // source
-            'missing error code': {                       // code
-                Error: {                                  // name
-                    'Expected `boolean`, got `number`': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'Expected `boolean`, got `number`': {
+                        // message
                         count: 2,
                     },
                 },
@@ -654,10 +725,14 @@ test('placeholder #7', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                   // source
-            'missing error code': {                // code
-                Error: {                           // name
-                    'Expected `boolean`, got _': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'Expected `boolean`, got _': {
+                        // message
                         count: 3,
                     },
                 },
@@ -688,10 +763,14 @@ test('placeholder #8', () => {
     });
 
     expect(tracker.result).toMatchObject({
-        'missing stack trace': {                          // source
-            'missing error code': {                       // code
-                Error: {                                  // name
-                    'Expected `boolean`, got `number`': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'Expected `boolean`, got `number`': {
+                        // message
                         count: 1,
                     },
                     'Expected `string`, got `null`': {
@@ -725,10 +804,14 @@ test('placeholder #9', () => {
     });
 
     const expected = {
-        'missing stack trace': {                                         // source
-            'missing error code': {                                      // code
-                Error: {                                                 // name
-                    'Unexpected `show` property in `options` object': { // message
+        'missing stack trace': {
+            // source
+            'missing error code': {
+                // code
+                Error: {
+                    // name
+                    'Unexpected `show` property in `options` object': {
+                        // message
                         count: 1,
                     },
                     'Missing `display` in style': {

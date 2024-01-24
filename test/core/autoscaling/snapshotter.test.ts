@@ -125,12 +125,14 @@ describe('Snapshotter', () => {
 
     test('correctly marks CPU overloaded using OS metrics', async () => {
         const cpusMock = vitest.spyOn(os, 'cpus');
-        const fakeCpu = [{
-            times: {
-                idle: 0,
-                other: 0,
+        const fakeCpu = [
+            {
+                times: {
+                    idle: 0,
+                    other: 0,
+                },
             },
-        }];
+        ];
         const { times } = fakeCpu[0];
 
         cpusMock.mockReturnValue(fakeCpu as any);
@@ -322,8 +324,8 @@ describe('Snapshotter', () => {
             const snapshot = eventLoopSnapshots[eventLoopSnapshots.length - 1 - i];
             expect(sample).toEqual(snapshot);
         }
-        const diffBetween = eventLoopSample[eventLoopSample.length - 1].createdAt.getTime()
-            - eventLoopSnapshots[eventLoopSnapshots.length - 1].createdAt.getTime();
+        const diffBetween =
+            eventLoopSample[eventLoopSample.length - 1].createdAt.getTime() - eventLoopSnapshots[eventLoopSnapshots.length - 1].createdAt.getTime();
         const diffWithin = eventLoopSample[0].createdAt.getTime() - eventLoopSample[eventLoopSample.length - 1].createdAt.getTime();
         expect(diffBetween).toBeLessThan(SAMPLE_SIZE_MILLIS);
         expect(diffWithin).toBeLessThan(SAMPLE_SIZE_MILLIS);

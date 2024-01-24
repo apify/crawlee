@@ -23,17 +23,22 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
-        preNavigationHooks: [({ session, request }, goToOptions) => {
-            session.setCookies([
-                {
-                    name: 'session',
-                    value: 'true',
-                },
-            ], request.url);
-            request.headers.cookie = 'hook_request=true';
+        preNavigationHooks: [
+            ({ session, request }, goToOptions) => {
+                session.setCookies(
+                    [
+                        {
+                            name: 'session',
+                            value: 'true',
+                        },
+                    ],
+                    request.url,
+                );
+                request.headers.cookie = 'hook_request=true';
 
-            goToOptions.waitUntil = ['networkidle2'];
-        }],
+                goToOptions.waitUntil = ['networkidle2'];
+            },
+        ],
         async requestHandler({ page }) {
             const initialCookiesLength = expectedCookies.length;
 

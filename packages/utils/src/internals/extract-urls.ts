@@ -31,12 +31,15 @@ export interface DownloadListOfUrlsOptions {
  * Optionally, custom regular expression and encoding may be provided.
  */
 export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
-    ow(options, ow.object.exactShape({
-        url: ow.string.url,
-        encoding: ow.optional.string,
-        urlRegExp: ow.optional.regExp,
-        proxyUrl: ow.optional.string,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            url: ow.string.url,
+            encoding: ow.optional.string,
+            urlRegExp: ow.optional.regExp,
+            proxyUrl: ow.optional.string,
+        }),
+    );
     const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX, proxyUrl } = options;
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
@@ -69,10 +72,13 @@ export interface ExtractUrlsOptions {
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  */
 export function extractUrls(options: ExtractUrlsOptions): string[] {
-    ow(options, ow.object.exactShape({
-        string: ow.string,
-        urlRegExp: ow.optional.regExp,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            string: ow.string,
+            urlRegExp: ow.optional.regExp,
+        }),
+    );
     const lines = options.string.split('\n');
     const result: string[] = [];
     const urlRegExp = options.urlRegExp ?? URL_NO_COMMAS_REGEX;
@@ -89,7 +95,7 @@ export function extractUrls(options: ExtractUrlsOptions): string[] {
  */
 export function tryAbsoluteURL(href: string, baseUrl: string): string | undefined {
     try {
-        return (new URL(href, baseUrl)).href;
+        return new URL(href, baseUrl).href;
     } catch {
         return undefined;
     }

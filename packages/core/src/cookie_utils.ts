@@ -14,9 +14,7 @@ export function getCookiesFromResponse(response: IncomingMessage | BrowserLikeRe
     const cookieHeader = headers['set-cookie'] || '';
 
     try {
-        return Array.isArray(cookieHeader)
-            ? cookieHeader.map((cookie) => Cookie.parse(cookie)!)
-            : [Cookie.parse(cookieHeader)!];
+        return Array.isArray(cookieHeader) ? cookieHeader.map((cookie) => Cookie.parse(cookie)!) : [Cookie.parse(cookieHeader)!];
     } catch (e) {
         throw new CookieParseError(cookieHeader);
     }
@@ -29,7 +27,7 @@ export function getCookiesFromResponse(response: IncomingMessage | BrowserLikeRe
  * @internal
  */
 export function getDefaultCookieExpirationDate(maxAgeSecs: number) {
-    return new Date(Date.now() + (maxAgeSecs * 1000));
+    return new Date(Date.now() + maxAgeSecs * 1000);
 }
 
 /**
@@ -60,9 +58,7 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
 export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs: number) {
     const isExpiresValid = cookieObject.expires && typeof cookieObject.expires === 'number' && cookieObject.expires > 0;
     const expires = isExpiresValid ? new Date(cookieObject.expires! * 1000) : getDefaultCookieExpirationDate(maxAgeSecs);
-    const domain = typeof cookieObject.domain === 'string' && cookieObject.domain.startsWith('.')
-        ? cookieObject.domain.slice(1)
-        : cookieObject.domain;
+    const domain = typeof cookieObject.domain === 'string' && cookieObject.domain.startsWith('.') ? cookieObject.domain.slice(1) : cookieObject.domain;
 
     return new Cookie({
         key: cookieObject.name,

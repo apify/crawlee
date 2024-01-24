@@ -31,7 +31,7 @@ import InspectionPuppeteerSource from '!!raw-loader!./proxy_management_inspectio
 and most effective ways of preventing access to a website. It is therefore paramount for
 a good web scraping library to provide easy to use but powerful tools which can work around
 IP blocking. The most powerful weapon in our anti IP blocking arsenal is a
-[proxy server](https://en.wikipedia.org/wiki/Proxy_server). 
+[proxy server](https://en.wikipedia.org/wiki/Proxy_server).
 
 With Crawlee we can use our own proxy servers or proxy servers acquired from
 third-party providers.
@@ -47,10 +47,7 @@ them immediately in only a few lines of code.
 import { ProxyConfiguration } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
-    proxyUrls: [
-        'http://proxy-1.com',
-        'http://proxy-2.com',
-    ]
+    proxyUrls: ['http://proxy-1.com', 'http://proxy-2.com'],
 });
 const proxyUrl = await proxyConfiguration.newUrl();
 ```
@@ -67,29 +64,19 @@ All our proxy needs are managed by the <ApiLink to="core/class/ProxyConfiguratio
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
-        <CodeBlock language="js">
-            {HttpSource}
-        </CodeBlock>
+        <CodeBlock language="js">{HttpSource}</CodeBlock>
     </TabItem>
     <TabItem value="cheerio" label="CheerioCrawler" default>
-        <CodeBlock language="js">
-            {CheerioSource}
-        </CodeBlock>
+        <CodeBlock language="js">{CheerioSource}</CodeBlock>
     </TabItem>
     <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {JSDOMSource}
-        </CodeBlock>
+        <CodeBlock language="js">{JSDOMSource}</CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js">
-            {PlaywrightSource}
-        </CodeBlock>
+        <CodeBlock language="js">{PlaywrightSource}</CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js">
-            {PuppeteerSource}
-        </CodeBlock>
+        <CodeBlock language="js">{PuppeteerSource}</CodeBlock>
     </TabItem>
 </Tabs>
 
@@ -103,34 +90,22 @@ When no `sessionId` is provided, our proxy URLs are rotated round-robin.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
-        <CodeBlock language="js">
-            {SessionHttpSource}
-        </CodeBlock>
+        <CodeBlock language="js">{SessionHttpSource}</CodeBlock>
     </TabItem>
     <TabItem value="cheerio" label="CheerioCrawler" default>
-        <CodeBlock language="js">
-            {SessionCheerioSource}
-        </CodeBlock>
+        <CodeBlock language="js">{SessionCheerioSource}</CodeBlock>
     </TabItem>
     <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {SessionJSDOMSource}
-        </CodeBlock>
+        <CodeBlock language="js">{SessionJSDOMSource}</CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js">
-            {SessionPlaywrightSource}
-        </CodeBlock>
+        <CodeBlock language="js">{SessionPlaywrightSource}</CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js">
-            {SessionPuppeteerSource}
-        </CodeBlock>
+        <CodeBlock language="js">{SessionPuppeteerSource}</CodeBlock>
     </TabItem>
     <TabItem value="standalone" label="Standalone">
-        <CodeBlock language="js">
-            {SessionStandaloneSource}
-        </CodeBlock>
+        <CodeBlock language="js">{SessionStandaloneSource}</CodeBlock>
     </TabItem>
 </Tabs>
 
@@ -142,28 +117,18 @@ With the `proxyInfo` object, we can easily access the proxy URL.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
-        <CodeBlock language="js">
-            {InspectionHttpSource}
-        </CodeBlock>
+        <CodeBlock language="js">{InspectionHttpSource}</CodeBlock>
     </TabItem>
     <TabItem value="cheerio" label="CheerioCrawler" default>
-        <CodeBlock language="js">
-            {InspectionCheerioSource}
-        </CodeBlock>
+        <CodeBlock language="js">{InspectionCheerioSource}</CodeBlock>
     </TabItem>
     <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {InspectionJSDOMSource}
-        </CodeBlock>
+        <CodeBlock language="js">{InspectionJSDOMSource}</CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js">
-            {InspectionPlaywrightSource}
-        </CodeBlock>
+        <CodeBlock language="js">{InspectionPlaywrightSource}</CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js">
-            {InspectionPuppeteerSource}
-        </CodeBlock>
+        <CodeBlock language="js">{InspectionPuppeteerSource}</CodeBlock>
     </TabItem>
 </Tabs>

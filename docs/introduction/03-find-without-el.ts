@@ -17,9 +17,7 @@ const crawler = new CheerioCrawler({
 
         // Then we need to resolve relative URLs,
         // otherwise they would be unusable for crawling.
-        const absoluteUrls = links.map(
-            (link) => new URL(link, request.loadedUrl).href,
-        );
+        const absoluteUrls = links.map((link) => new URL(link, request.loadedUrl).href);
 
         // Finally, we have to add the URLs to the queue
         await crawler.addRequests(absoluteUrls);

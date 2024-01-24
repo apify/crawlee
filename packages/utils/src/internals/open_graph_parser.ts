@@ -371,15 +371,18 @@ const parseOpenGraphProperty = (property: OpenGraphProperty, $: CheerioAPI): str
         // "Value" is appended to the end of the property name to make it more clear, and to prevent things such
         // as `videoInfo.actor.actor` to grab the actor's name.
         ...optionalSpread(`${property.outputName}Value`, content),
-        ...property.children.reduce((acc, curr) => {
-            const parsed = parseOpenGraphProperty(curr, $);
-            if (parsed === undefined) return acc;
+        ...property.children.reduce(
+            (acc, curr) => {
+                const parsed = parseOpenGraphProperty(curr, $);
+                if (parsed === undefined) return acc;
 
-            return {
-                ...acc,
-                ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
-            };
-        }, {} as Dictionary<string | Dictionary>),
+                return {
+                    ...acc,
+                    ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
+                };
+            },
+            {} as Dictionary<string | Dictionary>,
+        ),
     };
 };
 

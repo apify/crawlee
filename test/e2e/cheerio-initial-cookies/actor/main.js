@@ -32,19 +32,24 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         additionalMimeTypes: ['application/json'],
-        preNavigationHooks: [({ session, request }, gotOptions) => {
-            session.setCookies([
-                {
-                    name: 'session',
-                    value: 'true',
-                },
-            ], request.url);
-            request.headers.cookie = 'hook_request=true';
+        preNavigationHooks: [
+            ({ session, request }, gotOptions) => {
+                session.setCookies(
+                    [
+                        {
+                            name: 'session',
+                            value: 'true',
+                        },
+                    ],
+                    request.url,
+                );
+                request.headers.cookie = 'hook_request=true';
 
-            gotOptions.headers ??= {};
-            gotOptions.headers.Cookie = 'got_options_upper_case=true';
-            gotOptions.headers.cookie = 'got_options_lower_case=true';
-        }],
+                gotOptions.headers ??= {};
+                gotOptions.headers.Cookie = 'got_options_upper_case=true';
+                gotOptions.headers.cookie = 'got_options_lower_case=true';
+            },
+        ],
         async requestHandler({ json }) {
             const initialCookiesLength = expectedCookies.length;
 

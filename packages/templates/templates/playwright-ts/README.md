@@ -4,5 +4,5 @@ This template is a production ready boilerplate for developing with `PlaywrightC
 
 If you're looking for examples or want to learn more visit:
 
-- [Documentation](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler)
-- [Examples](https://crawlee.dev/docs/examples/playwright-crawler)
+-   [Documentation](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler)
+-   [Examples](https://crawlee.dev/docs/examples/playwright-crawler)

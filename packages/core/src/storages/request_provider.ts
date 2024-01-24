@@ -51,7 +51,10 @@ export abstract class RequestProvider implements IStorage {
 
     protected queuePausedForMigration = false;
 
-    constructor(options: InternalRequestProviderOptions, readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: InternalRequestProviderOptions,
+        readonly config = Configuration.getGlobalConfig(),
+    ) {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client.requestQueue(this.id, {
@@ -104,9 +107,12 @@ export abstract class RequestProvider implements IStorage {
      */
     async addRequest(requestLike: Source, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo> {
         ow(requestLike, ow.object);
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            }),
+        );
 
         const { forefront = false } = options;
 
@@ -117,14 +123,15 @@ export abstract class RequestProvider implements IStorage {
             return processedRequests[0];
         }
 
-        ow(requestLike, ow.object.partialShape({
-            url: ow.string,
-            id: ow.undefined,
-        }));
+        ow(
+            requestLike,
+            ow.object.partialShape({
+                url: ow.string,
+                id: ow.undefined,
+            }),
+        );
 
-        const request = requestLike instanceof Request
-            ? requestLike
-            : new Request(requestLike);
+        const request = requestLike instanceof Request ? requestLike : new Request(requestLike);
 
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestCache.get(cacheKey);
@@ -141,7 +148,7 @@ export abstract class RequestProvider implements IStorage {
             };
         }
 
-        const queueOperationInfo = await this.client.addRequest(request, { forefront }) as RequestQueueOperationInfo;
+        const queueOperationInfo = (await this.client.addRequest(request, { forefront })) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
@@ -168,14 +175,14 @@ export abstract class RequestProvider implements IStorage {
      * Note that the function sets the `uniqueKey` and `id` fields to the passed requests if missing.
      * @param [options] Request queue operation options.
      */
-    async addRequests(
-        requestsLike: Source[],
-        options: RequestQueueOperationOptions = {},
-    ): Promise<BatchAddRequestsResult> {
+    async addRequests(requestsLike: Source[], options: RequestQueueOperationOptions = {}): Promise<BatchAddRequestsResult> {
         ow(requestsLike, ow.array);
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            }),
+        );
 
         const { forefront = false } = options;
 
@@ -271,29 +278,34 @@ export abstract class RequestProvider implements IStorage {
      * @param options Options for the request queue
      */
     async addRequestsBatched(requests: (string | Source)[], options: AddRequestsBatchedOptions = {}): Promise<AddRequestsBatchedResult> {
-        ow(requests, ow.array.ofType(ow.any(
-            ow.string,
-            ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
-        )));
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-            waitForAllRequestsToBeAdded: ow.optional.boolean,
-            batchSize: ow.optional.number,
-            waitBetweenBatchesMillis: ow.optional.number,
-        }));
+        ow(
+            requests,
+            ow.array.ofType(
+                ow.any(
+                    ow.string,
+                    ow.object.partialShape({ url: ow.string, id: ow.undefined }),
+                    ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
+                ),
+            ),
+        );
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+                waitForAllRequestsToBeAdded: ow.optional.boolean,
+                batchSize: ow.optional.number,
+                waitBetweenBatchesMillis: ow.optional.number,
+            }),
+        );
 
-        const {
-            batchSize = 1000,
-            waitBetweenBatchesMillis = 1000,
-        } = options;
+        const { batchSize = 1000, waitBetweenBatchesMillis = 1000 } = options;
         const builtRequests: Request[] = [];
 
         for (const opts of requests) {
             if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
                 await this.addRequest(opts, { forefront: options.forefront });
             } else {
-                builtRequests.push(new Request(typeof opts === 'string' ? { url: opts } : opts as RequestOptions));
+                builtRequests.push(new Request(typeof opts === 'string' ? { url: opts } : (opts as RequestOptions)));
             }
         }
 
@@ -305,9 +317,11 @@ export abstract class RequestProvider implements IStorage {
             if (apiResult.unprocessedRequests.length) {
                 await sleep(waitBetweenBatchesMillis);
 
-                resultsToReturn.push(...await attemptToAddToQueueAndAddAnyUnprocessed(
-                    providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
-                ));
+                resultsToReturn.push(
+                    ...(await attemptToAddToQueueAndAddAnyUnprocessed(
+                        providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
+                    )),
+                );
             }
 
             return resultsToReturn;
@@ -332,7 +346,7 @@ export abstract class RequestProvider implements IStorage {
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for (const requestChunk of chunks) {
-                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk));
+                finalAddedRequests.push(...(await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk)));
 
                 await sleep(waitBetweenBatchesMillis);
             }
@@ -342,7 +356,7 @@ export abstract class RequestProvider implements IStorage {
 
         // If the user wants to wait for all the requests to be added, we wait for the promise to resolve for them
         if (options.waitForAllRequestsToBeAdded) {
-            addedRequests.push(...await promise);
+            addedRequests.push(...(await promise));
         }
 
         return {
@@ -375,11 +389,14 @@ export abstract class RequestProvider implements IStorage {
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
-        ow(request, ow.object.partialShape({
-            id: ow.string,
-            uniqueKey: ow.string,
-            handledAt: ow.optional.string,
-        }));
+        ow(
+            request,
+            ow.object.partialShape({
+                id: ow.string,
+                uniqueKey: ow.string,
+                handledAt: ow.optional.string,
+            }),
+        );
 
         if (!this.inProgress.has(request.id)) {
             this.log.debug(`Cannot mark request ${request.id} as handled, because it is not in progress!`, { requestId: request.id });
@@ -387,7 +404,7 @@ export abstract class RequestProvider implements IStorage {
         }
 
         const handledAt = request.handledAt ?? new Date().toISOString();
-        const queueOperationInfo = await this.client.updateRequest({ ...request, handledAt }) as RequestQueueOperationInfo;
+        const queueOperationInfo = (await this.client.updateRequest({ ...request, handledAt })) as RequestQueueOperationInfo;
         request.handledAt = handledAt;
         queueOperationInfo.uniqueKey = request.uniqueKey;
 
@@ -410,13 +427,19 @@ export abstract class RequestProvider implements IStorage {
      * For example, this lets you store the number of retries or error messages for the request.
      */
     async reclaimRequest(request: Request, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo | null> {
-        ow(request, ow.object.partialShape({
-            id: ow.string,
-            uniqueKey: ow.string,
-        }));
-        ow(options, ow.object.exactShape({
-            forefront: ow.optional.boolean,
-        }));
+        ow(
+            request,
+            ow.object.partialShape({
+                id: ow.string,
+                uniqueKey: ow.string,
+            }),
+        );
+        ow(
+            options,
+            ow.object.exactShape({
+                forefront: ow.optional.boolean,
+            }),
+        );
 
         const { forefront = false } = options;
 
@@ -427,7 +450,7 @@ export abstract class RequestProvider implements IStorage {
 
         // TODO: If request hasn't been changed since the last getRequest(),
         //   we don't need to call updateRequest() and thus improve performance.
-        const queueOperationInfo = await this.client.updateRequest(request, { forefront }) as RequestQueueOperationInfo;
+        const queueOperationInfo = (await this.client.updateRequest(request, { forefront })) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
@@ -528,7 +551,7 @@ export abstract class RequestProvider implements IStorage {
      */
     async handledCount(): Promise<number> {
         // NOTE: We keep this function for compatibility with RequestList.handledCount()
-        const { handledRequestCount } = await this.getInfo() ?? {};
+        const { handledRequestCount } = (await this.getInfo()) ?? {};
         return handledRequestCount ?? 0;
     }
 
@@ -627,11 +650,14 @@ export abstract class RequestProvider implements IStorage {
      */
     static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestProvider> {
         ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
-        ow(options, ow.object.exactShape({
-            config: ow.optional.object.instanceOf(Configuration),
-            storageClient: ow.optional.object,
-            proxyConfiguration: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                config: ow.optional.object.instanceOf(Configuration),
+                storageClient: ow.optional.object,
+                proxyConfiguration: ow.optional.object,
+            }),
+        );
 
         options.config ??= Configuration.getGlobalConfig();
         options.storageClient ??= options.config.getStorageClient();

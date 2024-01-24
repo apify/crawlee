@@ -10,12 +10,12 @@ import ApiLink from '@site/src/components/ApiLink';
 
 There are three ways of changing the configuration parameters:
 
-- adding `crawlee.json` file to your project
-- setting environment variables
-- using the `Configuration` class
+-   adding `crawlee.json` file to your project
+-   setting environment variables
+-   using the `Configuration` class
 
 You could also combine all the above, but you should keep in mind, that the precedence for these 3 options is the following:
-***`crawlee.json`*** < ***constructor options*** < ***environment variables***.
+**_`crawlee.json`_** < **_constructor options_** < **_environment variables_**.
 
 `crawlee.json` is a baseline. The options provided in the `Configuration` constructor will override the options provided in the JSON. Environment variables will override both.
 
@@ -25,8 +25,8 @@ The first option you could use for configuring Crawlee is `crawlee.json` file. T
 
 ```json title="crawlee.json"
 {
-  "persistStateIntervalMillis": 10000,
-  "logLevel": "DEBUG"
+    "persistStateIntervalMillis": 10000,
+    "logLevel": "DEBUG"
 }
 ```
 
@@ -44,7 +44,7 @@ crawler.router.addDefaultHandler(async ({ request }) => {
     // and add the second request to the queue
     if (request.url === 'https://www.example.com/1') {
         await sleep(5_000);
-        await crawler.addRequests(['https://www.example.com/2'])
+        await crawler.addRequests(['https://www.example.com/2']);
     }
     // for the second request we wait for 10 seconds,
     // and abort the run
@@ -147,7 +147,7 @@ crawler.router.addDefaultHandler(async ({ request }) => {
     // and add the second request to the queue
     if (request.url === 'https://www.example.com/1') {
         await sleep(5_000);
-        await crawler.addRequests(['https://www.example.com/2'])
+        await crawler.addRequests(['https://www.example.com/2']);
     }
     // For the second request we wait for 10 seconds,
     // and abort the run
@@ -196,7 +196,7 @@ crawler.router.addDefaultHandler(async ({ request }) => {
     // and add the second request to the queue
     if (request.url === 'https://www.example.com/1') {
         await sleep(5_000);
-        await crawler.addRequests(['https://www.example.com/2'])
+        await crawler.addRequests(['https://www.example.com/2']);
     }
     // for the second request we wait for 10 seconds,
     // and abort the run

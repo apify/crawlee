@@ -1,9 +1,6 @@
 {
     "extends": "../tsconfig.json",
-    "include": [
-        "**/*",
-        "../packages/*/src/**/*"
-    ],
+    "include": ["**/*", "../packages/*/src/**/*"],
     "compilerOptions": {
         "sourceMap": true,
         "noUnusedLocals": false,
@@ -13,7 +10,7 @@
         "module": "Node16",
         "moduleResolution": "Bundler",
         "paths": {
-            "@crawlee/utils/src/*": ["packages/utils/src/*"]
-        }
-    }
+            "@crawlee/utils/src/*": ["packages/utils/src/*"],
+        },
+    },
 }

@@ -10,7 +10,9 @@ await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         ignoreSslErrors: false,
         async requestHandler({ $, enqueueLinks, request, log }) {
-            const { userData: { label } } = request;
+            const {
+                userData: { label },
+            } = request;
 
             if (label === 'START') {
                 log.info('Bad ssl page opened!');

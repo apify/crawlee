@@ -67,10 +67,7 @@ describe('htmlToText()', () => {
         checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
         checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');
 
-        checkHtmlToText(
-            '<h1>Heading 1</h1><div><div><div><div>Deep  Div</div></div></div></div><h2>Heading       2</h2>',
-            'Heading 1\nDeep Div\nHeading 2',
-        );
+        checkHtmlToText('<h1>Heading 1</h1><div><div><div><div>Deep  Div</div></div></div></div><h2>Heading       2</h2>', 'Heading 1\nDeep Div\nHeading 2');
 
         checkHtmlToText('<a>this_word</a>_should_<b></b>be_<span>one</span>', 'this_word_should_be_one');
         checkHtmlToText('<span attributes="should" be="ignored">some <span>text</span></span>', 'some text');

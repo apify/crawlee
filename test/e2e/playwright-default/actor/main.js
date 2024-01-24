@@ -8,9 +8,11 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
-        preNavigationHooks: [(_ctx, goToOptions) => {
-            goToOptions.waitUntil = 'networkidle';
-        }],
+        preNavigationHooks: [
+            (_ctx, goToOptions) => {
+                goToOptions.waitUntil = 'networkidle';
+            },
+        ],
         async requestHandler({ page, enqueueLinks, request }) {
             const { url } = request;
             const pageTitle = await page.title();

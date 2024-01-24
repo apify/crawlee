@@ -49,19 +49,13 @@ The following code demonstrates the usage of the request queue:
 
 <Tabs groupId="request_queue">
     <TabItem value="crawler" label="Usage with Crawler" default>
-        <CodeBlock language="js">
-            {CrawlerSource}
-        </CodeBlock>
+        <CodeBlock language="js">{CrawlerSource}</CodeBlock>
     </TabItem>
     <TabItem value="crawler_explicit" label="Explicit usage with Crawler">
-        <CodeBlock language="js">
-            {CrawlerExplicitSource}
-        </CodeBlock>
+        <CodeBlock language="js">{CrawlerExplicitSource}</CodeBlock>
     </TabItem>
     <TabItem value="basic_operations" label="Basic Operations" default>
-        <CodeBlock language="js">
-            {BasicOperationsSource}
-        </CodeBlock>
+        <CodeBlock language="js">{BasicOperationsSource}</CodeBlock>
     </TabItem>
 </Tabs>
 
@@ -81,11 +75,7 @@ The following code demonstrates basic operations of the request list:
 import { RequestList, PuppeteerCrawler } from 'crawlee';
 
 // Prepare the sources array with URLs to visit
-const sources = [
-    { url: 'http://www.example.com/page-1' },
-    { url: 'http://www.example.com/page-2' },
-    { url: 'http://www.example.com/page-3' },
-];
+const sources = [{ url: 'http://www.example.com/page-1' }, { url: 'http://www.example.com/page-2' }, { url: 'http://www.example.com/page-3' }];
 
 // Open the request list.
 // List name is used to persist the sources and the list state in the key-value store
@@ -122,14 +112,10 @@ However, now we could use the <ApiLink to="core/class/RequestQueue#addRequests">
 
 <Tabs groupId="queue_list">
     <TabItem value="add_requests" label="Request Queue" default>
-        <CodeBlock language="js">
-            {RequestQueueAddRequestsSource}
-        </CodeBlock>
+        <CodeBlock language="js">{RequestQueueAddRequestsSource}</CodeBlock>
     </TabItem>
     <TabItem value="queue_list" label="Request Queue + Request List">
-        <CodeBlock language="js">
-            {RequestQueueListSource}
-        </CodeBlock>
+        <CodeBlock language="js">{RequestQueueListSource}</CodeBlock>
     </TabItem>
 </Tabs>
 

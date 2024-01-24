@@ -12,10 +12,10 @@
             "@crawlee/cheerio": ["packages/cheerio-crawler/src"],
             "@crawlee/playwright": ["packages/playwright-crawler/src"],
             "@crawlee/puppeteer": ["packages/puppeteer-crawler/src"],
-            "@crawlee/*": ["packages/*/src"]
+            "@crawlee/*": ["packages/*/src"],
         },
         "target": "ES2022",
         "module": "ES2022",
-        "noUnusedParameters": false
-    }
+        "noUnusedParameters": false,
+    },
 }

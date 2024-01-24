@@ -21,24 +21,24 @@ import { DOMParser } from 'linkedom/cached';
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = ErrorHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
+> = ErrorHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
 export interface LinkeDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>> {}
+> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>> {}
 
 export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestQueue'> {}
 
 export type LinkeDOMHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
 export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData, LinkeDOMCrawler> {
     window: Window;
     // Technically the document is not of type Document but of type either HTMLDocument or XMLDocument
     // from linkedom/types/{html/xml}/document, depending on the content type of the response
@@ -64,7 +64,7 @@ export interface LinkeDOMCrawlingContext<
 export type LinkeDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = RequestHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and

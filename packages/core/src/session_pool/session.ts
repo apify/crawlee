@@ -29,7 +29,6 @@ export interface SessionState {
 }
 
 export interface SessionOptions {
-
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
     id?: string;
 
@@ -84,7 +83,6 @@ export interface SessionOptions {
     log?: Log;
     errorScore?: number;
     cookieJar?: CookieJar;
-
 }
 
 /**
@@ -112,21 +110,24 @@ export class Session {
      * Session configuration.
      */
     constructor(options: SessionOptions) {
-        ow(options, ow.object.exactShape({
-            sessionPool: ow.object.instanceOf(EventEmitter),
-            id: ow.optional.string,
-            cookieJar: ow.optional.object,
-            maxAgeSecs: ow.optional.number,
-            userData: ow.optional.object,
-            maxErrorScore: ow.optional.number,
-            errorScoreDecrement: ow.optional.number,
-            createdAt: ow.optional.date,
-            expiresAt: ow.optional.date,
-            usageCount: ow.optional.number,
-            errorScore: ow.optional.number,
-            maxUsageCount: ow.optional.number,
-            log: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                sessionPool: ow.object.instanceOf(EventEmitter),
+                id: ow.optional.string,
+                cookieJar: ow.optional.object,
+                maxAgeSecs: ow.optional.number,
+                userData: ow.optional.object,
+                maxErrorScore: ow.optional.number,
+                errorScoreDecrement: ow.optional.number,
+                createdAt: ow.optional.date,
+                expiresAt: ow.optional.date,
+                usageCount: ow.optional.number,
+                errorScore: ow.optional.number,
+                maxUsageCount: ow.optional.number,
+                log: ow.optional.object,
+            }),
+        );
 
         const {
             sessionPool,
@@ -147,7 +148,7 @@ export class Session {
 
         this.log = log.child({ prefix: 'Session' });
 
-        this.cookieJar = cookieJar.setCookie as unknown ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this.cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
         this.id = id;
         this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;

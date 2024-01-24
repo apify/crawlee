@@ -182,7 +182,9 @@ describe('Session - testing session behaviour ', () => {
         sessionPool.blockedStatusCodes.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
-            const call = () => { isCalled = true; };
+            const call = () => {
+                isCalled = true;
+            };
             sess.retire = call;
             expect(sess.retireOnBlockedStatusCodes(status)).toBeTruthy();
             expect(isCalled).toBeTruthy();
@@ -214,9 +216,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('setCookies should work for session (with expiration date: -1) cookies', () => {
         const url = 'https://example.com';
-        const cookies = [
-            { name: 'session_cookie', value: 'session-cookie-value', expires: -1 },
-        ];
+        const cookies = [{ name: 'session_cookie', value: 'session-cookie-value', expires: -1 }];
 
         session = new Session({ sessionPool });
         session.setCookies(cookies, url);
@@ -239,10 +239,7 @@ describe('Session - testing session behaviour ', () => {
         test('should set and update cookies from "set-cookie" header', () => {
             const headers: Dictionary<string | string[]> = {};
 
-            headers['set-cookie'] = [
-                'CSRF=e8b667; Domain=example.com; Secure ',
-                'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT',
-            ];
+            headers['set-cookie'] = ['CSRF=e8b667; Domain=example.com; Secure ', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT'];
             const newSession = new Session({ sessionPool: new SessionPool() });
             const url = 'https://example.com';
             newSession.setCookiesFromResponse({ headers, url });
@@ -260,10 +257,7 @@ describe('Session - testing session behaviour ', () => {
     test('should correctly persist and init cookieJar', () => {
         const headers: Dictionary<string | string[]> = {};
 
-        headers['set-cookie'] = [
-            'CSRF=e8b667; Domain=example.com; Secure ',
-            'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT',
-        ];
+        headers['set-cookie'] = ['CSRF=e8b667; Domain=example.com; Secure ', 'id=a3fWa; Expires=Wed, Domain=example.com; 21 Oct 2015 07:28:00 GMT'];
         const newSession = new Session({ sessionPool: new SessionPool() });
         const url = 'https://example.com';
         newSession.setCookiesFromResponse({ headers, url });

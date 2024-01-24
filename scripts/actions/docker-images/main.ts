@@ -31,13 +31,10 @@ interface StateFile {
 const state = JSON.parse(await readFile(statePath, 'utf-8')) as StateFile;
 debug(`State file: ${inspect(state)}`);
 
-const crawleeVersion: string = JSON.parse(
-    await readFile(new URL('../../../packages/crawlee/package.json', import.meta.url), 'utf-8'),
-).version;
+const crawleeVersion: string = JSON.parse(await readFile(new URL('../../../packages/crawlee/package.json', import.meta.url), 'utf-8')).version;
 debug(`Crawlee version: ${crawleeVersion}`);
 
-const apifyVersion: string = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf-8')).devDependencies?.apify
-    ?? 'latest';
+const apifyVersion: string = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf-8')).devDependencies?.apify ?? 'latest';
 debug(`Apify version: ${apifyVersion}`);
 
 const lastPlaywrightVersions = await fetchModuleVersions('playwright', 5);
@@ -76,9 +73,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
     newState.puppeteerVersions = state.puppeteerVersions;
 } else if (process.env.TRIGGER_LATEST === 'true') {
     info(`👀 Re-triggering a full Docker build`);
-    debug(
-        `  Crawlee:${crawleeVersion} Apify:${apifyVersion}`,
-    );
+    debug(`  Crawlee:${crawleeVersion} Apify:${apifyVersion}`);
 
     // Keep the old state in place
     newState.playwrightVersions = state.playwrightVersions;
@@ -180,9 +175,7 @@ if (process.env.CRAWLEE_BETA_VERSION) {
         }
 
         for (const [index, newPlaywrightVersion] of lastPlaywrightVersions.entries()) {
-            info(
-                `  👀 Scheduling build for playwright: ${newPlaywrightVersion} and crawlee ${crawleeVersion} for deploy`,
-            );
+            info(`  👀 Scheduling build for playwright: ${newPlaywrightVersion} and crawlee ${crawleeVersion} for deploy`);
 
             apiCalls.push({
                 eventType: EventType.Playwright,

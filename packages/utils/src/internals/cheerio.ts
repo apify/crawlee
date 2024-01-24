@@ -105,12 +105,9 @@ export function extractUrlsFromCheerio($: CheerioAPI, selector: string = 'a', ba
             // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
             const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
             if (!isHrefAbsolute && !baseUrl) {
-                throw new Error(`An extracted URL: ${href} is relative and baseUrl is not set. `
-                    + 'Provide a baseUrl to automatically resolve relative URLs.');
+                throw new Error(`An extracted URL: ${href} is relative and baseUrl is not set. ` + 'Provide a baseUrl to automatically resolve relative URLs.');
             }
-            return baseUrl
-                ? tryAbsoluteURL(href, baseUrl)
-                : href;
+            return baseUrl ? tryAbsoluteURL(href, baseUrl) : href;
         })
         .filter(Boolean) as string[];
 }

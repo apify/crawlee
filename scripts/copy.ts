@@ -67,9 +67,7 @@ function getNextVersion() {
     }
 
     const preid = options.preid ?? 'alpha';
-    const prereleaseNumbers = versions
-        .filter((v) => v.startsWith(`${version}-${preid}.`))
-        .map((v) => Number(v.match(/\.(\d+)$/)?.[1]));
+    const prereleaseNumbers = versions.filter((v) => v.startsWith(`${version}-${preid}.`)).map((v) => Number(v.match(/\.(\d+)$/)?.[1]));
     const lastPrereleaseNumber = Math.max(-1, ...prereleaseNumbers);
 
     return `${version}-${preid}.${lastPrereleaseNumber + 1}`;

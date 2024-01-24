@@ -8,9 +8,11 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
-        preNavigationHooks: [(_ctx, goToOptions) => {
-            goToOptions.waitUntil = ['networkidle2'];
-        }],
+        preNavigationHooks: [
+            (_ctx, goToOptions) => {
+                goToOptions.waitUntil = ['networkidle2'];
+            },
+        ],
         async requestHandler({ page, enqueueLinks, request }) {
             const { url } = request;
             const pageTitle = await page.title();

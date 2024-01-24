@@ -2,7 +2,7 @@ import { CrawlerExtension } from '@crawlee/core';
 
 describe('CrawlerExtension', () => {
     test('should work', () => {
-        class MyExtension extends CrawlerExtension { }
+        class MyExtension extends CrawlerExtension {}
         const myExtension = new MyExtension();
         expect(myExtension.name).toEqual('MyExtension');
         expect(() => myExtension.getCrawlerOptions()).toThrow(`${myExtension.name} has not implemented "getCrawlerOptions" method.`);

@@ -65,9 +65,11 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
     }
 
     async update(newFields: storage.DatasetClientUpdateOptions = {}): Promise<storage.DatasetInfo> {
-        const parsed = s.object({
-            name: s.string.lengthGreaterThan(0).optional,
-        }).parse(newFields);
+        const parsed = s
+            .object({
+                name: s.string.lengthGreaterThan(0).optional,
+            })
+            .parse(newFields);
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
@@ -123,11 +125,13 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             limit = LIST_ITEMS_LIMIT,
             offset = 0,
             desc,
-        } = s.object({
-            desc: s.boolean.optional,
-            limit: s.number.int.optional,
-            offset: s.number.int.optional,
-        }).parse(options);
+        } = s
+            .object({
+                desc: s.boolean.optional,
+                limit: s.number.int.optional,
+                offset: s.number.int.optional,
+            })
+            .parse(options);
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
@@ -136,10 +140,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             this.throwOnNonExisting(StorageTypes.Dataset);
         }
 
-        const [start, end] = existingStoreById.getStartAndEndIndexes(
-            desc ? Math.max(existingStoreById.itemCount - offset - limit, 0) : offset,
-            limit,
-        );
+        const [start, end] = existingStoreById.getStartAndEndIndexes(desc ? Math.max(existingStoreById.itemCount - offset - limit, 0) : offset, limit);
 
         const items: Data[] = [];
 
@@ -161,11 +162,9 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
     }
 
     async pushItems(items: string | Data | string[] | Data[]): Promise<void> {
-        const rawItems = s.union(
-            s.string,
-            s.object<Data>({} as Data).passthrough,
-            s.array(s.union(s.string, s.object<Data>({} as Data).passthrough)),
-        ).parse(items) as Data[];
+        const rawItems = s
+            .union(s.string, s.object<Data>({} as Data).passthrough, s.array(s.union(s.string, s.object<Data>({} as Data).passthrough)))
+            .parse(items) as Data[];
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
@@ -228,9 +227,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             items = JSON.parse(items);
         }
 
-        return Array.isArray(items)
-            ? items.map((item) => this.normalizeItem(item))
-            : [this.normalizeItem(items)];
+        return Array.isArray(items) ? items.map((item) => this.normalizeItem(item)) : [this.normalizeItem(items)];
     }
 
     private normalizeItem(item: string | Data): Data {

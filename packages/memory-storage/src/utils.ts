@@ -34,11 +34,7 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
 
 export function isBuffer(value: unknown): boolean {
     try {
-        s.union(
-            s.instance(Buffer),
-            s.instance(ArrayBuffer),
-            s.typedArray(),
-        ).parse(value);
+        s.union(s.instance(Buffer), s.instance(ArrayBuffer), s.typedArray()).parse(value);
 
         return true;
     } catch {

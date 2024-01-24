@@ -29,9 +29,7 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
             offset: 0,
             limit: this.client.requestQueuesHandled.length,
             desc: false,
-            items: this.client.requestQueuesHandled.map(
-                (store) => store.toRequestQueueInfo())
-                .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+            items: this.client.requestQueuesHandled.map((store) => store.toRequestQueueInfo()).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }
 

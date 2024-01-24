@@ -13,22 +13,11 @@ import { noop } from '../utils';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
 
-export class PuppeteerPlugin extends BrowserPlugin<
-    typeof Puppeteer,
-    PuppeteerTypes.PuppeteerLaunchOptions,
-    PuppeteerTypes.Browser,
-    PuppeteerNewPageOptions
-> {
+export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
     protected async _launch(
         launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
     ): Promise<PuppeteerTypes.Browser> {
-        const {
-            launchOptions,
-            userDataDir,
-            useIncognitoPages,
-            experimentalContainers,
-            proxyUrl,
-        } = launchContext;
+        const { launchOptions, userDataDir, useIncognitoPages, experimentalContainers, proxyUrl } = launchContext;
 
         if (experimentalContainers) {
             throw new Error('Experimental containers are only available with Playwright');
@@ -98,16 +87,15 @@ export class PuppeteerPlugin extends BrowserPlugin<
             }
         });
 
-        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'version', 'on'] as const)
-            .reduce((map, method) => {
-                map[method] = browser[method]?.bind(browser);
-                return map;
-            }, {} as Dictionary);
+        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'version', 'on'] as const).reduce((map, method) => {
+            map[method] = browser[method]?.bind(browser);
+            return map;
+        }, {} as Dictionary);
 
         browser = new Proxy(browser, {
             get: (target, property: keyof typeof browser, receiver) => {
                 if (property === 'newPage') {
-                    return (async (...args: Parameters<PuppeteerTypes.BrowserContext['newPage']>) => {
+                    return async (...args: Parameters<PuppeteerTypes.BrowserContext['newPage']>) => {
                         let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
@@ -152,7 +140,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         */
 
                         return page;
-                    });
+                    };
                 }
 
                 if (property in boundMethods) {

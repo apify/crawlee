@@ -119,7 +119,9 @@ export async function runActor(dirName, memory = 4096) {
         let runId;
 
         try {
-            const { data: { id: foundRunId } } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
+            const {
+                data: { id: foundRunId },
+            } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
                 method: 'POST',
                 searchParams: {
                     memory,
@@ -166,14 +168,16 @@ export async function runActor(dirName, memory = 4096) {
                     console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvResult.id}`);
                 }
 
-                const entries = await Promise.all(keyValueItems.map(async ({ key }) => {
-                    const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
+                const entries = await Promise.all(
+                    keyValueItems.map(async ({ key }) => {
+                        const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
 
-                    return {
-                        name: record.key,
-                        raw: record.value,
-                    };
-                }));
+                        return {
+                            name: record.key,
+                            raw: record.value,
+                        };
+                    }),
+                );
 
                 return entries.filter(({ name }) => !isPrivateEntry(name));
             }
@@ -181,10 +185,7 @@ export async function runActor(dirName, memory = 4096) {
             return undefined;
         };
 
-        const {
-            startedAt: buildStartedAt,
-            finishedAt: buildFinishedAt,
-        } = await client.build(buildId).get();
+        const { startedAt: buildStartedAt, finishedAt: buildFinishedAt } = await client.build(buildId).get();
 
         const buildTook = (buildFinishedAt.getTime() - buildStartedAt.getTime()) / 1000;
         console.log(`[build] View build log: https://api.apify.com/v2/logs/${buildId} [build took ${buildTook}s]`);

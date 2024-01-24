@@ -15,9 +15,11 @@ await Actor.main(async () => {
         launchContext: {
             experimentalContainers: true,
         },
-        preNavigationHooks: [(_ctx, goToOptions) => {
-            goToOptions.waitUntil = 'networkidle';
-        }],
+        preNavigationHooks: [
+            (_ctx, goToOptions) => {
+                goToOptions.waitUntil = 'networkidle';
+            },
+        ],
         async requestHandler({ page }) {
             const content = await page.content();
             await Dataset.pushData({ ip: content.match(/"clientIp":\s*"(.*)"/)?.[1] });

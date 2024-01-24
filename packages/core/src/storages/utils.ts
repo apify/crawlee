@@ -43,18 +43,15 @@ export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions)
  * it will call the `purge` method of the underlying storage implementation we are currently using.
  */
 export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
-export async function purgeDefaultStorages(
-    configOrOptions?: Configuration | PurgeDefaultStorageOptions,
-    client?: StorageClient,
-) {
-    const options: PurgeDefaultStorageOptions = configOrOptions instanceof Configuration ? {
-        client,
-        config: configOrOptions,
-    } : configOrOptions ?? {};
-    const {
-        config = Configuration.getGlobalConfig(),
-        onlyPurgeOnce = false,
-    } = options;
+export async function purgeDefaultStorages(configOrOptions?: Configuration | PurgeDefaultStorageOptions, client?: StorageClient) {
+    const options: PurgeDefaultStorageOptions =
+        configOrOptions instanceof Configuration ?
+            {
+                client,
+                config: configOrOptions,
+            }
+        :   configOrOptions ?? {};
+    const { config = Configuration.getGlobalConfig(), onlyPurgeOnce = false } = options;
     ({ client = config.getStorageClient() } = options);
 
     const casted = client as StorageClient & { __purged?: boolean };
@@ -84,11 +81,7 @@ export interface UseStateOptions {
  * @param defaultValue If the store does not yet have a value in it, the value will be initialized with the `defaultValue` you provide.
  * @param options An optional object parameter where a custom `keyValueStoreName` and `config` can be passed in.
  */
-export async function useState<State extends Dictionary = Dictionary>(
-    name?: string,
-    defaultValue = {} as State,
-    options?: UseStateOptions,
-) {
+export async function useState<State extends Dictionary = Dictionary>(name?: string, defaultValue = {} as State, options?: UseStateOptions) {
     const kvStore = await KeyValueStore.open(options?.keyValueStoreName, { config: options?.config || Configuration.getGlobalConfig() });
     return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
 }
@@ -103,11 +96,7 @@ export async function useState<State extends Dictionary = Dictionary>(
  * @internal
  */
 export function getRequestId(uniqueKey: string) {
-    const str = crypto
-        .createHash('sha256')
-        .update(uniqueKey)
-        .digest('base64')
-        .replace(/[+/=]/g, '');
+    const str = crypto.createHash('sha256').update(uniqueKey).digest('base64').replace(/[+/=]/g, '');
 
     return str.slice(0, 15);
 }

@@ -39,9 +39,7 @@ describe('puppeteerUtils', () => {
         await localStorageEmulator.destroy();
     });
 
-    describe.each([
-        [launchPuppeteer, { launchOptions: { headless: true } }],
-    ] as const)('with %s', (method, launchContext) => {
+    describe.each([[launchPuppeteer, { launchOptions: { headless: true } }]] as const)('with %s', (method, launchContext) => {
         test('injectFile()', async () => {
             const browser2 = await method(launchContext);
             const survive = async (browser: Browser) => {
@@ -110,7 +108,7 @@ describe('puppeteerUtils', () => {
 
                 await puppeteerUtils.injectJQuery(page);
                 const result2 = await page.evaluate(() => {
-                /* global $ */
+                    /* global $ */
                     return {
                         // @ts-expect-error
                         isDefined: window.jQuery === window.$,
@@ -174,10 +172,7 @@ describe('puppeteerUtils', () => {
                 await puppeteerUtils.blockRequests(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
-                expect(loadedUrls).toEqual([
-                    `${serverAddress}/special/resources`,
-                    `${serverAddress}/script.js`,
-                ]);
+                expect(loadedUrls).toEqual([`${serverAddress}/special/resources`, `${serverAddress}/script.js`]);
             });
 
             test('works with overridden values', async () => {
@@ -190,11 +185,7 @@ describe('puppeteerUtils', () => {
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/image.png`,
-                    `${serverAddress}/script.js`,
-                    `${serverAddress}/image.gif`,
-                ]));
+                expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/image.png`, `${serverAddress}/script.js`, `${serverAddress}/image.gif`]));
             });
 
             test('blockResources() supports default values', async () => {
@@ -205,9 +196,7 @@ describe('puppeteerUtils', () => {
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/script.js`,
-                ]));
+                expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/script.js`]));
             });
 
             test('blockResources() supports nondefault values', async () => {
@@ -218,10 +207,7 @@ describe('puppeteerUtils', () => {
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/style.css`,
-                    `${serverAddress}/image.png`,
-                ]));
+                expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/style.css`, `${serverAddress}/image.png`]));
             });
         });
 
@@ -241,7 +227,7 @@ describe('puppeteerUtils', () => {
                         const buffer = await response.buffer();
                         downloadedBytes += buffer.byteLength;
                     } catch (e) {
-                    // do nothing
+                        // do nothing
                     }
                 });
                 await page.goto(`${serverAddress}/cacheable`, { waitUntil: 'networkidle0', timeout: 60e3 });
@@ -343,7 +329,7 @@ describe('puppeteerUtils', () => {
 
         describe('infiniteScroll()', () => {
             function isAtBottom() {
-                return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
+                return window.innerHeight + window.pageYOffset >= document.body.offsetHeight;
             }
 
             let browser: Browser;
@@ -358,9 +344,11 @@ describe('puppeteerUtils', () => {
             beforeEach(async () => {
                 page = await browser.newPage();
                 let count = 0;
-                const content = Array(1000).fill(null).map(() => {
-                    return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
-                });
+                const content = Array(1000)
+                    .fill(null)
+                    .map(() => {
+                        return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+                    });
                 const contentHTML = `<html><body>${content}</body></html>`;
                 await page.setContent(contentHTML);
             });

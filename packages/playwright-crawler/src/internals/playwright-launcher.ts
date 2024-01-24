@@ -49,17 +49,17 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
     useChrome?: boolean;
 
     /**
-    * With this option selected, all pages will be opened in a new incognito browser context.
-    * This means they will not share cookies nor cache and their resources will not be throttled by one another.
-    * @default false
-    */
+     * With this option selected, all pages will be opened in a new incognito browser context.
+     * This means they will not share cookies nor cache and their resources will not be throttled by one another.
+     * @default false
+     */
     useIncognitoPages?: boolean;
 
     /**
-    * @experimental
-    * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-    * Works best with Firefox. Unstable on Chromium.
-    */
+     * @experimental
+     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
+     * Works best with Firefox. Unstable on Chromium.
+     */
     experimentalContainers?: boolean;
 
     /**
@@ -95,20 +95,22 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
     ) {
         ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
 
-        const {
-            launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>('playwright', 'apify/actor-node-playwright-*').chromium,
-        } = launchContext;
+        const { launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>('playwright', 'apify/actor-node-playwright-*').chromium } =
+            launchContext;
 
         const { launchOptions = {}, ...rest } = launchContext;
 
-        super({
-            ...rest,
-            launchOptions: {
-                ...launchOptions,
-                executablePath: getDefaultExecutablePath(launchContext, config),
+        super(
+            {
+                ...rest,
+                launchOptions: {
+                    ...launchOptions,
+                    executablePath: getDefaultExecutablePath(launchContext, config),
+                },
+                launcher,
             },
-            launcher,
-        }, config);
+            config,
+        );
 
         this.Plugin = PlaywrightPlugin;
     }

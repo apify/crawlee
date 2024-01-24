@@ -12,12 +12,7 @@ async function makeQueue(name: string, numOfRequestsToAdd = 0) {
     const queue = new RequestQueueV2({ id: queueData.id, client: storage });
 
     if (numOfRequestsToAdd) {
-        await queue.addRequests(
-            Array.from(
-                { length: numOfRequestsToAdd },
-                (_, i) => ({ url: 'https://example.com', uniqueKey: `${i}` }),
-            ),
-        );
+        await queue.addRequests(Array.from({ length: numOfRequestsToAdd }, (_, i) => ({ url: 'https://example.com', uniqueKey: `${i}` })));
     }
 
     return queue;

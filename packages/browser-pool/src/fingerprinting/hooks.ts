@@ -15,9 +15,7 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
     const {
         fingerprintGenerator,
         fingerprintCache,
-        fingerprintOptions: {
-            fingerprintGeneratorOptions,
-        },
+        fingerprintOptions: { fingerprintGeneratorOptions },
     } = browserPool;
 
     return (_pageId: string, launchContext: LaunchContext) => {
@@ -27,7 +25,7 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
 
         // If no options are passed we try to pass best default options as possible to match browser and OS.
         const fingerprintGeneratorFinalOptions = fingerprintGeneratorOptions || getGeneratorDefaultOptions(launchContext);
-        let fingerprint : BrowserFingerprintWithHeaders;
+        let fingerprint: BrowserFingerprintWithHeaders;
 
         if (cacheKey && fingerprintCache?.has(cacheKey)) {
             fingerprint = fingerprintCache.get(cacheKey)!;
@@ -43,7 +41,10 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
         if (useIncognitoPages) {
             return;
         }
-        const { navigator: { userAgent }, screen } = fingerprint.fingerprint!;
+        const {
+            navigator: { userAgent },
+            screen,
+        } = fingerprint.fingerprint!;
 
         launchOptions.userAgent = userAgent;
 

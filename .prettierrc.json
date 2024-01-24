@@ -1,8 +1,7 @@
 {
-  "singleQuote": true,
-  "semi": true,
-  "trailingComma": "all",
-  "printWidth": 160,
-  "experimentalTernaries": true
+    "singleQuote": true,
+    "semi": true,
+    "trailingComma": "all",
+    "printWidth": 160,
+    "experimentalTernaries": true
 }
-

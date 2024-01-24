@@ -1,11 +1,4 @@
-import type {
-    BrowserCrawlerOptions,
-    BrowserCrawlingContext,
-    BrowserHook,
-    BrowserRequestHandler,
-    GetUserDataFromRequest,
-    RouterRoutes,
-} from '@crawlee/browser';
+import type { BrowserCrawlerOptions, BrowserCrawlingContext, BrowserHook, BrowserRequestHandler, GetUserDataFromRequest, RouterRoutes } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
@@ -17,16 +10,14 @@ import { PlaywrightLauncher } from './playwright-launcher';
 import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
 import { gotoExtended, registerUtilsToContext } from './utils/playwright-utils';
 
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> extends
-    BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>, PlaywrightContextUtils {}
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
+    extends BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>,
+        PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
 export interface PlaywrightRequestHandler extends BrowserRequestHandler<PlaywrightCrawlingContext> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
-export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<
-    PlaywrightCrawlingContext,
-    { browserPlugins: [PlaywrightPlugin] }
-> {
+export interface PlaywrightCrawlerOptions extends BrowserCrawlerOptions<PlaywrightCrawlingContext, { browserPlugins: [PlaywrightPlugin] }> {
     /**
      * The same options as used by {@apilink launchPlaywright}.
      */
@@ -197,22 +188,22 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options: PlaywrightCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: PlaywrightCrawlerOptions = {},
+        override readonly config = Configuration.getGlobalConfig(),
+    ) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
-        const {
-            launchContext = {},
-            headless,
-            ...browserCrawlerOptions
-        } = options;
+        const { launchContext = {}, headless, ...browserCrawlerOptions } = options;
 
         const browserPoolOptions = {
             ...options.browserPoolOptions,
         } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
-            throw new Error('PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.'
-                + 'Use PlaywrightCrawlerOptions.proxyConfiguration');
+            throw new Error(
+                'PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.' + 'Use PlaywrightCrawlerOptions.proxyConfiguration',
+            );
         }
 
         // `browserPlugins` is working when it's not overriden by `launchContext`,
@@ -228,9 +219,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
 
         const playwrightLauncher = new PlaywrightLauncher(launchContext, config);
 
-        browserPoolOptions.browserPlugins = [
-            playwrightLauncher.createBrowserPlugin(),
-        ];
+        browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 
         super({ ...browserCrawlerOptions, launchContext, browserPoolOptions }, config);
     }

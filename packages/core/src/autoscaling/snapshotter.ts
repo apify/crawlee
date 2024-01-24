@@ -67,10 +67,27 @@ export interface SnapshotterOptions {
     config?: Configuration;
 }
 
-interface MemorySnapshot { createdAt: Date; isOverloaded: boolean; usedBytes?: number }
-interface CpuSnapshot { createdAt: Date; isOverloaded: boolean; usedRatio: number; ticks?: { idle: number; total: number } }
-interface EventLoopSnapshot { createdAt: Date; isOverloaded: boolean; exceededMillis: number }
-interface ClientSnapshot { createdAt: Date; isOverloaded: boolean; rateLimitErrorCount: number }
+interface MemorySnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    usedBytes?: number;
+}
+interface CpuSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    usedRatio: number;
+    ticks?: { idle: number; total: number };
+}
+interface EventLoopSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    exceededMillis: number;
+}
+interface ClientSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    rateLimitErrorCount: number;
+}
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
@@ -124,17 +141,20 @@ export class Snapshotter {
      * @param [options] All `Snapshotter` configuration options.
      */
     constructor(options: SnapshotterOptions = {}) {
-        ow(options, ow.object.exactShape({
-            eventLoopSnapshotIntervalSecs: ow.optional.number,
-            clientSnapshotIntervalSecs: ow.optional.number,
-            snapshotHistorySecs: ow.optional.number,
-            maxBlockedMillis: ow.optional.number,
-            maxUsedMemoryRatio: ow.optional.number,
-            maxClientErrors: ow.optional.number,
-            log: ow.optional.object,
-            client: ow.optional.object,
-            config: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                eventLoopSnapshotIntervalSecs: ow.optional.number,
+                clientSnapshotIntervalSecs: ow.optional.number,
+                snapshotHistorySecs: ow.optional.number,
+                maxBlockedMillis: ow.optional.number,
+                maxUsedMemoryRatio: ow.optional.number,
+                maxClientErrors: ow.optional.number,
+                log: ow.optional.object,
+                client: ow.optional.object,
+                config: ow.optional.object,
+            }),
+        );
 
         const {
             eventLoopSnapshotIntervalSecs = 0.5,
@@ -176,8 +196,10 @@ export class Snapshotter {
         } else {
             const { totalBytes } = await this._getMemoryInfo();
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
-            this.log.debug(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. `
-                + 'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.');
+            this.log.debug(
+                `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
+                    'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
+            );
         }
 
         // Start snapshotting.
@@ -287,9 +309,11 @@ export class Snapshotter {
 
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes! / this.maxMemoryBytes!) * 100);
-            const toMb = (bytes: number) => Math.round(bytes / (1024 ** 2));
-            this.log.warning('Memory is critically overloaded. '
-                + `Using ${toMb(memCurrentBytes!)} MB of ${toMb(this.maxMemoryBytes!)} MB (${usedPercentage}%). Consider increasing available memory.`);
+            const toMb = (bytes: number) => Math.round(bytes / 1024 ** 2);
+            this.log.warning(
+                'Memory is critically overloaded. ' +
+                    `Using ${toMb(memCurrentBytes!)} MB of ${toMb(this.maxMemoryBytes!)} MB (${usedPercentage}%). Consider increasing available memory.`,
+            );
             this.lastLoggedCriticalMemoryOverloadAt = createdAt;
         }
     }

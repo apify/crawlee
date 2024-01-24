@@ -1,7 +1,7 @@
 ---
 id: cheerio-crawler-guide
-title: "CheerioCrawler guide"
-sidebar_label: "CheerioCrawler"
+title: 'CheerioCrawler guide'
+sidebar_label: 'CheerioCrawler'
 description: Your first steps into the world of scraping with Crawlee
 ---
 
@@ -33,7 +33,7 @@ document.querySelector('title').textContent; // plain JS
 $('title').text(); // Cheerio
 
 // Return an array of all 'href' links on the page.
-Array.from(document.querySelectorAll('[href]')).map(el => el.href); // plain JS
+Array.from(document.querySelectorAll('[href]')).map((el) => el.href); // plain JS
 $('[href]')
     .map((i, el) => $(el).attr('href'))
     .get(); // Cheerio
@@ -69,7 +69,7 @@ This is not to show that Cheerio is better than plain browser JavaScript. Some m
 Finds the first `<h2>` element and returns its text content.
 
 ```js
-$('h2').text()
+$('h2').text();
 ```
 
 ### Find all links on a page

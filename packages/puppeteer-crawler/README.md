@@ -35,7 +35,7 @@ const crawler = new PuppeteerCrawler({
             title: await page.title(),
             url: request.url,
             succeeded: true,
-        })
+        });
     },
     async failedRequestHandler({ request }) {
         // This function is called when the crawling of a request failed too many times
@@ -43,12 +43,9 @@ const crawler = new PuppeteerCrawler({
             url: request.url,
             succeeded: false,
             errors: request.errorMessages,
-        })
+        });
     },
 });
 
-await crawler.run([
-    'http://www.example.com/page-1',
-    'http://www.example.com/page-2',
-]);
+await crawler.run(['http://www.example.com/page-1', 'http://www.example.com/page-2']);
 ```

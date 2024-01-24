@@ -86,22 +86,23 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
     ) {
         ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
 
-        const {
-            launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
-            ...browserLauncherOptions
-        } = launchContext;
+        const { launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'), ...browserLauncherOptions } =
+            launchContext;
 
-        super({
-            ...browserLauncherOptions,
-            launcher,
-        }, config);
+        super(
+            {
+                ...browserLauncherOptions,
+                launcher,
+            },
+            config,
+        );
 
         this.Plugin = PuppeteerPlugin;
     }
 
     protected override _getDefaultHeadlessOption(): boolean {
         const headless = super._getDefaultHeadlessOption();
-        return headless ? 'new' as any : headless;
+        return headless ? ('new' as any) : headless;
     }
 }
 

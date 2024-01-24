@@ -59,9 +59,7 @@ import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-export interface BasicCrawlingContext<
-    UserData extends Dictionary = Dictionary,
-> extends CrawlingContext<BasicCrawler, UserData> {
+export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<BasicCrawler, UserData> {
     /**
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.
@@ -113,10 +111,9 @@ export interface StatusMessageCallbackParams<
     message: string;
 }
 
-export type StatusMessageCallback<
-    Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
-> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
+export type StatusMessageCallback<Context extends CrawlingContext = BasicCrawlingContext, Crawler extends BasicCrawler<any> = BasicCrawler<Context>> = (
+    params: StatusMessageCallbackParams<Context, Crawler>,
+) => Awaitable<void>;
 
 export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCrawlingContext> {
     /**
@@ -539,7 +536,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * All `BasicCrawler` parameters are passed via an options object.
      */
-    constructor(options: BasicCrawlerOptions<Context> = {}, readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: BasicCrawlerOptions<Context> = {},
+        readonly config = Configuration.getGlobalConfig(),
+    ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
 
         const {
@@ -593,11 +593,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.experiments = experiments;
 
         if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.requestLocking) {
-            throw new Error([
-                'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
-                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { requestLocking: true }` "
-                + 'in your crawler options, and try again.',
-            ].join('\n'));
+            throw new Error(
+                [
+                    'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
+                    "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { requestLocking: true }` " +
+                        'in your crawler options, and try again.',
+                ].join('\n'),
+            );
         }
 
         this._handlePropertyNameChange({
@@ -670,8 +672,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.retryOnBlocked) {
             this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
             if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                // eslint-disable-next-line max-len
-                log.warning(`Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`);
+                log.warning(
+                    `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
+                );
             }
         }
         this.useSessionPool = useSessionPool;
@@ -679,8 +682,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const maxSignedInteger = 2 ** 31 - 1;
         if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
-            log.warning(`requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}`
-                + ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`);
+            log.warning(
+                `requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}` +
+                    ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
+            );
 
             this.requestHandlerTimeoutMillis = maxSignedInteger;
         }
@@ -705,8 +710,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             isTaskReadyFunction: async () => {
                 if (isMaxPagesExceeded()) {
                     if (shouldLogMaxPagesExceeded) {
-                        log.info('Crawler reached the maxRequestsPerCrawl limit of '
-                            + `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`);
+                        log.info(
+                            'Crawler reached the maxRequestsPerCrawl limit of ' +
+                                `${maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                        );
                         shouldLogMaxPagesExceeded = false;
                     }
                     return false;
@@ -716,20 +723,21 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             },
             isFinishedFunction: async () => {
                 if (isMaxPagesExceeded()) {
-                    log.info(`Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests `
-                        + 'and all requests that were in progress at that time have now finished. '
-                        + `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`);
+                    log.info(
+                        `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${maxRequestsPerCrawl} requests ` +
+                            'and all requests that were in progress at that time have now finished. ' +
+                            `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
+                    );
                     return true;
                 }
 
-                const isFinished = isFinishedFunction
-                    ? await isFinishedFunction()
-                    : await this._defaultIsFinishedFunction();
+                const isFinished = isFinishedFunction ? await isFinishedFunction() : await this._defaultIsFinishedFunction();
 
                 if (isFinished) {
-                    const reason = isFinishedFunction
-                        ? 'Crawler\'s custom isFinishedFunction() returned true, the crawler will shut down.'
-                        : 'All requests from the queue have been processed, the crawler will shut down.';
+                    const reason =
+                        isFinishedFunction ?
+                            "Crawler's custom isFinishedFunction() returned true, the crawler will shut down."
+                        :   'All requests from the queue have been processed, the crawler will shut down.';
                     log.info(reason);
                 }
 
@@ -765,7 +773,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data = options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
-        this.log.internal(LogLevel[options.level as 'DEBUG' ?? 'DEBUG'], message, data);
+        this.log.internal(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
         const client = this.config.getStorageClient();
 
@@ -774,11 +782,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         // just to be sure, this should be fast
-        await addTimeoutToPromise(
-            async () => client.setStatusMessage!(message, options),
-            1000,
-            'Setting status message timed out after 1s',
-        ).catch((e) => this.log.warning(e.message));
+        await addTimeoutToPromise(async () => client.setStatusMessage!(message, options), 1000, 'Setting status message timed out after 1s').catch((e) =>
+            this.log.warning(e.message),
+        );
     }
 
     private getPeriodicLogger() {
@@ -916,8 +922,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         periodicLogger.stop();
-        // eslint-disable-next-line max-len
-        await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true, level: 'INFO' });
+
+        await this.setStatusMessage(
+            `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`,
+            { isStatusMessageTerminal: true, level: 'INFO' },
+        );
         this.running = false;
 
         return stats;
@@ -925,8 +934,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     async getRequestQueue() {
         if (!this.requestQueue && this.requestList) {
-            // eslint-disable-next-line max-len
-            this.log.warningOnce('When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.');
+            this.log.warningOnce(
+                'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
+            );
         }
 
         this.requestQueue ??= await this._getRequestQueue();
@@ -999,10 +1009,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const items = await dataset.export(options);
 
         if (format === 'csv') {
-            const value = stringify([
-                Object.keys(items[0]),
-                ...items.map((item) => Object.values(item)),
-            ]);
+            const value = stringify([Object.keys(items[0]), ...items.map((item) => Object.values(item))]);
             await ensureDir(dirname(path));
             await writeFile(path, value);
             this.log.info(`Export to ${path} finished!`);
@@ -1055,38 +1062,36 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _pauseOnMigration() {
         if (this.autoscaledPool) {
             // if run wasn't called, this is going to crash
-            await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS)
-                .catch((err) => {
-                    if (err.message.includes('running tasks did not finish')) {
-                        this.log.error('The crawler was paused due to migration to another host, '
-                            + 'but some requests did not finish in time. Those requests\' results may be duplicated.');
-                    } else {
-                        throw err;
-                    }
-                });
+            await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
+                if (err.message.includes('running tasks did not finish')) {
+                    this.log.error(
+                        'The crawler was paused due to migration to another host, ' +
+                            "but some requests did not finish in time. Those requests' results may be duplicated.",
+                    );
+                } else {
+                    throw err;
+                }
+            });
         }
 
         const requestListPersistPromise = (async () => {
             if (this.requestList) {
                 if (await this.requestList.isFinished()) return;
-                await this.requestList.persistState()
-                    .catch((err) => {
-                        if (err.message.includes('Cannot persist state.')) {
-                            this.log.error('The crawler attempted to persist its request list\'s state and failed due to missing or '
-                                + 'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList '
-                                + 'constructor to ensure your crawling state is persisted through host migrations and restarts.');
-                        } else {
-                            this.log.exception(err, 'An unexpected error occurred when the crawler '
-                                + 'attempted to persist its request list\'s state.');
-                        }
-                    });
+                await this.requestList.persistState().catch((err) => {
+                    if (err.message.includes('Cannot persist state.')) {
+                        this.log.error(
+                            "The crawler attempted to persist its request list's state and failed due to missing or " +
+                                'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
+                                'constructor to ensure your crawling state is persisted through host migrations and restarts.',
+                        );
+                    } else {
+                        this.log.exception(err, 'An unexpected error occurred when the crawler ' + "attempted to persist its request list's state.");
+                    }
+                });
             }
         })();
 
-        await Promise.all([
-            requestListPersistPromise,
-            this.stats.persistState(),
-        ]);
+        await Promise.all([requestListPersistPromise, this.stats.persistState()]);
     }
 
     /**
@@ -1116,9 +1121,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Executed when `errorHandler` finishes or the request is successful.
      * Can be used to clean up orphaned browser pages.
      */
-    protected async _cleanupContext(
-        _crawlingContext: Context,
-    ) {}
+    protected async _cleanupContext(_crawlingContext: Context) {}
 
     /**
      * Delays processing of the request based on the `sameDomainDelaySecs` option,
@@ -1135,7 +1138,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const now = Date.now();
         const lastAccessTime = this.domainAccessedTime.get(domain);
 
-        if (!lastAccessTime || (now - lastAccessTime) >= this.sameDomainDelayMillis) {
+        if (!lastAccessTime || now - lastAccessTime >= this.sameDomainDelayMillis) {
             this.domainAccessedTime.set(domain, now);
             return false;
         }
@@ -1159,7 +1162,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * then retries them in a case of an error, etc.
      */
     protected async _runTaskFunction() {
-        const source = this.requestQueue || this.requestList || await this.getRequestQueue();
+        const source = this.requestQueue || this.requestList || (await this.getRequestQueue());
 
         let request: Request | null | undefined;
         let session: Session | undefined;
@@ -1217,11 +1220,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return this.pushData(...args);
             },
             sendRequest: async (overrideOptions?: OptionsInit) => {
-                const cookieJar = session ? {
-                    getCookieString: async (url: string) => session!.getCookieString(url),
-                    setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
-                    ...overrideOptions?.cookieJar,
-                } : overrideOptions?.cookieJar;
+                const cookieJar =
+                    session ?
+                        {
+                            getCookieString: async (url: string) => session!.getCookieString(url),
+                            setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
+                            ...overrideOptions?.cookieJar,
+                        }
+                    :   overrideOptions?.cookieJar;
 
                 return gotScraping({
                     url: request!.url,
@@ -1273,13 +1279,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 );
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
-                if (!secondaryError.triggeredFromUserHandler
+                if (
+                    !secondaryError.triggeredFromUserHandler &&
                     // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-                    && !(secondaryError instanceof CriticalError)) {
-                    const apifySpecific = process.env.APIFY_IS_AT_HOME
-                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.` : '';
-                    this.log.exception(secondaryError as Error, 'An exception occurred during handling of failed request. '
-                        + `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`);
+                    !(secondaryError instanceof CriticalError)
+                ) {
+                    const apifySpecific =
+                        process.env.APIFY_IS_AT_HOME ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.` : '';
+                    this.log.exception(
+                        secondaryError as Error,
+                        'An exception occurred during handling of failed request. ' +
+                            `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
+                    );
                 }
                 request.state = RequestState.ERROR;
                 throw secondaryError;
@@ -1301,7 +1312,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await addTimeoutToPromise(handler, timeout, error);
         } catch (e) {
-            if (retried <= maxRetries) { // we retry on any error, not just timeout
+            if (retried <= maxRetries) {
+                // we retry on any error, not just timeout
                 this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
                 return this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
             }
@@ -1315,7 +1327,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     protected async _isTaskReadyFunction() {
         // First check RequestList, since it's only in memory.
-        const isRequestListEmpty = this.requestList ? (await this.requestList.isEmpty()) : true;
+        const isRequestListEmpty = this.requestList ? await this.requestList.isEmpty() : true;
         // If RequestList is not empty, task is ready, no reason to check RequestQueue.
         if (!isRequestListEmpty) return true;
         // If RequestQueue is not empty, task is ready, return true, otherwise false.
@@ -1326,10 +1338,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Returns true if both RequestList and RequestQueue have all requests finished.
      */
     protected async _defaultIsFinishedFunction() {
-        const [
-            isRequestListFinished,
-            isRequestQueueFinished,
-        ] = await Promise.all([
+        const [isRequestListFinished, isRequestQueueFinished] = await Promise.all([
             this.requestList ? this.requestList.isFinished() : true,
             this.requestQueue ? this.requestQueue.isFinished() : true,
         ]);
@@ -1348,11 +1357,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * Handles errors thrown by user provided requestHandler()
      */
-    protected async _requestFunctionErrorHandler(
-        error: Error,
-        crawlingContext: Context,
-        source: RequestList | RequestProvider,
-    ): Promise<void> {
+    protected async _requestFunctionErrorHandler(error: Error, crawlingContext: Context, source: RequestList | RequestProvider): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);
 
@@ -1379,10 +1384,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 // We don't want to see the stack trace in the logs by default, when we are going to retry the request.
                 // Thus, we print the full stack trace only when CRAWLEE_VERBOSE_LOG environment variable is set to true.
                 const message = this._getMessageFromError(error);
-                this.log.warning(
-                    `Reclaiming failed request back to the list or queue. ${message}`,
-                    { id, url, retryCount },
-                );
+                this.log.warning(`Reclaiming failed request back to the list or queue. ${message}`, { id, url, retryCount });
 
                 await source.reclaimRequest(request);
                 return;
@@ -1403,7 +1405,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     protected async _tagUserHandlerError<T>(cb: () => unknown): Promise<T> {
         try {
-            return await cb() as T;
+            return (await cb()) as T;
         } catch (e: any) {
             Object.defineProperty(e, 'triggeredFromUserHandler', { value: true });
             throw e;
@@ -1415,10 +1417,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const { id, url, method, uniqueKey } = crawlingContext.request;
         const message = this._getMessageFromError(error, true);
 
-        this.log.error(
-            `Request failed and reached maximum retries. ${message}`,
-            { id, url, method, uniqueKey },
-        );
+        this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
         if (this.failedRequestHandler) {
             await this._tagUserHandlerError(() => this.failedRequestHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error));
@@ -1444,16 +1443,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error; // stack in timeout errors does not really help
         }
 
-        return (process.env.CRAWLEE_VERBOSE_LOG || forceStack)
-            ? error.stack ?? ([error.message || error, ...stackLines].join('\n'))
-            : [error.message || error, userLine].join('\n');
+        return process.env.CRAWLEE_VERBOSE_LOG || forceStack ?
+                error.stack ?? [error.message || error, ...stackLines].join('\n')
+            :   [error.message || error, userLine].join('\n');
     }
 
     protected _canRequestBeRetried(request: Request, error: Error) {
         // Request should never be retried, or the error encountered makes it not able to be retried, or the session rotation limit has been reached
-        if (request.noRetry
-            || (error instanceof NonRetryableError)
-            || (error instanceof SessionError && (this.maxSessionRotations <= (request.sessionRotationCount ?? 0)))
+        if (
+            request.noRetry ||
+            error instanceof NonRetryableError ||
+            (error instanceof SessionError && this.maxSessionRotations <= (request.sessionRotationCount ?? 0))
         ) {
             return false;
         }
@@ -1471,8 +1471,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected _augmentContextWithDeprecatedError(context: Context, error: Error) {
         Object.defineProperty(context, 'error', {
             get: () => {
-                // eslint-disable-next-line max-len
-                this.log.deprecated("The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.");
+                this.log.deprecated(
+                    "The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.",
+                );
 
                 return error;
             },
@@ -1533,19 +1534,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         allowUndefined = false,
     }: HandlePropertyNameChangeData<New, Old>) {
         if (newProperty && oldProperty) {
-            this.log.warning([
-                `Both "${newName}" and "${oldName}" were provided in the crawler options.`,
-                `"${oldName}" has been renamed to "${newName}", and will be removed in a future version.`,
-                `As such, "${newName}" will be used instead.`,
-            ].join('\n'));
+            this.log.warning(
+                [
+                    `Both "${newName}" and "${oldName}" were provided in the crawler options.`,
+                    `"${oldName}" has been renamed to "${newName}", and will be removed in a future version.`,
+                    `As such, "${newName}" will be used instead.`,
+                ].join('\n'),
+            );
 
             // @ts-expect-error Assigning to possibly readonly properties
             this[propertyKey] = newProperty;
         } else if (oldProperty) {
-            this.log.warning([
-                `"${oldName}" has been renamed to "${newName}", and will be removed in a future version.`,
-                `The provided value will be used, but you should rename "${oldName}" to "${newName}" in your crawler options.`,
-            ].join('\n'));
+            this.log.warning(
+                [
+                    `"${oldName}" has been renamed to "${newName}", and will be removed in a future version.`,
+                    `The provided value will be used, but you should rename "${oldName}" to "${newName}" in your crawler options.`,
+                ].join('\n'),
+            );
 
             // @ts-expect-error Assigning to possibly readonly properties
             this[propertyKey] = oldProperty;
@@ -1569,10 +1574,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     private async _getRequestQueue() {
         if (this.experiments.requestLocking) {
             if (!this._experimentWarnings.requestLocking) {
-                this.log.warning([
-                    'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
-                    'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
-                ].join('\n'));
+                this.log.warning(
+                    [
+                        'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
+                        'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
+                    ].join('\n'),
+                );
                 this._experimentWarnings.requestLocking = true;
             }
 

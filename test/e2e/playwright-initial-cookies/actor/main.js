@@ -23,17 +23,22 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
-        preNavigationHooks: [({ session, request }, goToOptions) => {
-            session.setCookies([
-                {
-                    name: 'session',
-                    value: 'true',
-                },
-            ], request.url);
-            request.headers.cookie = 'hook_request=true';
+        preNavigationHooks: [
+            ({ session, request }, goToOptions) => {
+                session.setCookies(
+                    [
+                        {
+                            name: 'session',
+                            value: 'true',
+                        },
+                    ],
+                    request.url,
+                );
+                request.headers.cookie = 'hook_request=true';
 
-            goToOptions.waitUntil = 'networkidle';
-        }],
+                goToOptions.waitUntil = 'networkidle';
+            },
+        ],
         async requestHandler({ page }) {
             const initialCookiesLength = expectedCookies.length;
 

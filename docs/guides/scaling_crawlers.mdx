@@ -23,9 +23,7 @@ All of these options are available on all crawlers Crawlee provides, but for thi
 
 This controls how many total requests can be made per minute. It counts the amount of requests done every second, to ensure there is not a burst of requests at the `maxConcurrency` limit followed by a long period of waiting. By default, it is set to `Infinity` which means the crawler will keep going up to the `maxConcurrency`. We would set this if we wanted our crawler to work at full throughput, but also not keep hitting the website we're crawling with non-stop requests.
 
-<CodeBlock language="js">
-	{MaxRequestsPerMinuteSource}
-</CodeBlock>
+<CodeBlock language="js">{MaxRequestsPerMinuteSource}</CodeBlock>
 
 ## `minConcurrency` and `maxConcurrency`
 
@@ -39,9 +37,7 @@ It's recommended to leave it at the default value that is provided and letting t
 
 :::
 
-<CodeBlock language="js">
-	{MinMaxConcurrencySource}
-</CodeBlock>
+<CodeBlock language="js">{MinMaxConcurrencySource}</CodeBlock>
 
 ## Advanced options
 
@@ -55,9 +51,7 @@ This section is super advanced and, unless you test the changes extensively and 
 
 With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler:
 
-<CodeBlock language="js">
-	{AutoscaledPoolOptionsSource}
-</CodeBlock>
+<CodeBlock language="js">{AutoscaledPoolOptionsSource}</CodeBlock>
 
 ### `desiredConcurrency`
 

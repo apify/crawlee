@@ -72,8 +72,8 @@ export class MemoryStorage implements storage.StorageClient {
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
         this.writeMetadata = options.writeMetadata ?? process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false;
-        this.persistStorage = options.persistStorage
-            ?? (process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true);
+        this.persistStorage =
+            options.persistStorage ?? (process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true);
     }
 
     datasets(): storage.DatasetCollectionClient {
@@ -188,12 +188,7 @@ export class MemoryStorage implements storage.StorageClient {
         const temporaryPath = resolve(folder, '../__CRAWLEE_MIGRATING_KEY_VALUE_STORE__');
 
         // For optimization, we want to only attempt to copy a few files from the default key-value store
-        const possibleInputKeys = [
-            'INPUT',
-            'INPUT.json',
-            'INPUT.bin',
-            'INPUT.txt',
-        ];
+        const possibleInputKeys = ['INPUT', 'INPUT.json', 'INPUT.bin', 'INPUT.txt'];
 
         if (storagePathExists) {
             // Create temporary folder to save important files in

@@ -17,9 +17,11 @@ await Actor.main(async () => {
             launcher: playwright.firefox,
             experimentalContainers: true,
         },
-        preNavigationHooks: [(_ctx, goToOptions) => {
-            goToOptions.waitUntil = 'networkidle';
-        }],
+        preNavigationHooks: [
+            (_ctx, goToOptions) => {
+                goToOptions.waitUntil = 'networkidle';
+            },
+        ],
         async requestHandler({ page }) {
             const content = await page.content();
             await Dataset.pushData({ ip: content.match(/"clientIp":\s*"(.*)"/)?.[1] });

@@ -9,14 +9,19 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         maxRequestsPerCrawl: 10,
-        preNavigationHooks: [async ({ page }, goToOptions) => {
-            await page.evaluateOnNewDocument(() => {
-                localStorage.setItem('themeExitPopup', 'true');
-            });
-            goToOptions.waitUntil = ['networkidle2'];
-        }],
+        preNavigationHooks: [
+            async ({ page }, goToOptions) => {
+                await page.evaluateOnNewDocument(() => {
+                    localStorage.setItem('themeExitPopup', 'true');
+                });
+                goToOptions.waitUntil = ['networkidle2'];
+            },
+        ],
         async requestHandler({ page, request, log, enqueueLinks, injectJQuery }) {
-            const { url, userData: { label } } = request;
+            const {
+                url,
+                userData: { label },
+            } = request;
 
             if (label === 'START') {
                 log.info('Store opened');
@@ -51,10 +56,10 @@ await Actor.main(async () => {
 
                     const price = Number(rawPrice.replaceAll(',', ''));
 
-                    const inStock = $('span.product-form__inventory')
-                        .first()
-                        .filter((_, el) => $(el).text().includes('In stock'))
-                        .length !== 0;
+                    const inStock =
+                        $('span.product-form__inventory')
+                            .first()
+                            .filter((_, el) => $(el).text().includes('In stock')).length !== 0;
 
                     return {
                         title: $('.product-meta h1').text(),

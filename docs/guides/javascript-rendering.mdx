@@ -1,6 +1,6 @@
 ---
 id: javascript-rendering
-title: "JavaScript rendering"
+title: 'JavaScript rendering'
 description: Your first steps into the world of scraping with Crawlee
 ---
 
@@ -25,8 +25,8 @@ const crawler = new CheerioCrawler({
         // Extract text content of an actor card
         const actorText = $('.ActorStoreItem').text();
         console.log(`ACTOR: ${actorText}`);
-    }
-})
+    },
+});
 
 await crawler.run(['https://apify.com/store']);
 ```
@@ -53,10 +53,14 @@ No matter which library you pick, here's example code for both. Playwright is a 
 
 <Tabs groupId="javascript-rendering">
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PlaywrightSource}</CodeBlock>
+        <CodeBlock language="js" title="src/main.mjs">
+            {PlaywrightSource}
+        </CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PuppeteerSource}</CodeBlock>
+        <CodeBlock language="js" title="src/main.mjs">
+            {PuppeteerSource}
+        </CodeBlock>
     </TabItem>
 </Tabs>
 
@@ -72,10 +76,14 @@ If you don't believe us that the elements need to be waited for, run the followi
 
 <Tabs groupId="javascript-rendering">
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PlaywrightNoWaitSource}</CodeBlock>
+        <CodeBlock language="js" title="src/main.mjs">
+            {PlaywrightNoWaitSource}
+        </CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js" title="src/main.mjs">{PuppeteerNoWaitSource}</CodeBlock>
+        <CodeBlock language="js" title="src/main.mjs">
+            {PuppeteerNoWaitSource}
+        </CodeBlock>
     </TabItem>
 </Tabs>
 

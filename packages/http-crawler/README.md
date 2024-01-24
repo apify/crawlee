@@ -17,7 +17,7 @@ preNavigationHooks: [
     (crawlingContext, gotOptions) => {
         // ...
     },
-]
+];
 ```
 
 By default, `HttpCrawler` only processes web pages with the `text/html` and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header), and skips pages with other content types. If you want the crawler to process other content types, use the [HttpCrawlerOptions.additionalMimeTypes](https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#additionalMimeTypes) constructor option. Beware that the parsing behavior differs for HTML, XML, JSON and other types of content. For more details, see [HttpCrawlerOptions.requestHandler](https://crawlee.dev/api/http-crawler/interface/HttpCrawlerOptions#requestHandler).
@@ -40,8 +40,5 @@ const crawler = new HttpCrawler({
     },
 });
 
-await crawler.run([
-    'http://www.example.com/page-1',
-    'http://www.example.com/page-2',
-]);
+await crawler.run(['http://www.example.com/page-1', 'http://www.example.com/page-2']);
 ```

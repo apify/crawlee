@@ -1,6 +1,6 @@
 ---
 id: first-crawler
-title: "First crawler"
+title: 'First crawler'
 description: Your first steps into the world of scraping with Crawlee
 ---
 
@@ -83,8 +83,8 @@ const crawler = new CheerioCrawler({
         // See Cheerio documentation for API docs.
         const title = $('title').text();
         console.log(`The title of "${request.url}" is: ${title}.`);
-    }
-})
+    },
+});
 
 // Start the crawler and wait for it to finish
 await crawler.run();
@@ -108,8 +108,8 @@ const crawler = new CheerioCrawler({
     async requestHandler({ $, request }) {
         const title = $('title').text();
         console.log(`The title of "${request.url}" is: ${title}.`);
-    }
-})
+    },
+});
 
 // Start the crawler with the provided URLs
 await crawler.run(['https://crawlee.dev']);
@@ -118,4 +118,5 @@ await crawler.run(['https://crawlee.dev']);
 When you run this code, you'll see exactly the same output as with the earlier, longer example. The `RequestQueue` is still there, it's just managed by the crawler automatically.
 
 ## Next lesson
+
 In the next lesson you'll learn about crawling links. That means finding new URLs on the pages you crawl and adding them to the `RequestQueue` for the crawler to visit.

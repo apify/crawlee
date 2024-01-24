@@ -10,11 +10,7 @@ const crawler = new PuppeteerCrawler({
     },
 });
 
-await crawler.addRequests([
-    { url: 'http://www.example.com/page-1' },
-    { url: 'http://www.example.com/page-2' },
-    { url: 'http://www.example.com/page-3' },
-]);
+await crawler.addRequests([{ url: 'http://www.example.com/page-1' }, { url: 'http://www.example.com/page-2' }, { url: 'http://www.example.com/page-3' }]);
 
 // Run the crawler
 await crawler.run();

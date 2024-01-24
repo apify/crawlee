@@ -24,55 +24,42 @@ The main benefit of using Session pool is that we can filter out blocked or non-
 so our actor does not retry requests over known blocked/non-working proxies.
 Another benefit of using SessionPool is that we can store information tied tightly to an IP address,
 such as cookies, auth tokens, and particular headers. Having our cookies and other identifiers used only with a specific IP will reduce the chance of being blocked.
-The last but not least benefit is the even rotation of IP addresses - SessionPool  picks the session randomly,
+The last but not least benefit is the even rotation of IP addresses - SessionPool picks the session randomly,
 which should prevent burning out a small pool of available IPs.
 
 Check out the [avoid blocking guide](./avoid-blocking) for more information about blocking.
 
 Now let's take a look at the examples of how to use Session pool:
-- with <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>;
-- with <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>;
-- with <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>;
-- with <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>;
-- with <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>;
-- with <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>;
-- without a crawler (standalone usage to manage sessions manually).
+
+-   with <ApiLink to="basic-crawler/class/BasicCrawler">`BasicCrawler`</ApiLink>;
+-   with <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>;
+-   with <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>;
+-   with <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>;
+-   with <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>;
+-   with <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>;
+-   without a crawler (standalone usage to manage sessions manually).
 
 <Tabs groupId="session_pool">
     <TabItem value="basic" label="BasicCrawler">
-        <CodeBlock language="js">
-            {BasicSource}
-        </CodeBlock>
+        <CodeBlock language="js">{BasicSource}</CodeBlock>
     </TabItem>
     <TabItem value="http" label="HttpCrawler">
-        <CodeBlock language="js">
-            {HttpSource}
-        </CodeBlock>
+        <CodeBlock language="js">{HttpSource}</CodeBlock>
     </TabItem>
     <TabItem value="cheerio" label="CheerioCrawler" default>
-        <CodeBlock language="js">
-            {CheerioSource}
-        </CodeBlock>
+        <CodeBlock language="js">{CheerioSource}</CodeBlock>
     </TabItem>
     <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {JSDOMSource}
-        </CodeBlock>
+        <CodeBlock language="js">{JSDOMSource}</CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
-        <CodeBlock language="js">
-            {PlaywrightSource}
-        </CodeBlock>
+        <CodeBlock language="js">{PlaywrightSource}</CodeBlock>
     </TabItem>
     <TabItem value="puppeteer" label="PuppeteerCrawler">
-        <CodeBlock language="js">
-            {PuppeteerSource}
-        </CodeBlock>
+        <CodeBlock language="js">{PuppeteerSource}</CodeBlock>
     </TabItem>
     <TabItem value="standalone" label="Standalone">
-        <CodeBlock language="js">
-            {StandaloneSource}
-        </CodeBlock>
+        <CodeBlock language="js">{StandaloneSource}</CodeBlock>
     </TabItem>
 </Tabs>
 

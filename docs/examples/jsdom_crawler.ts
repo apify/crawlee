@@ -57,8 +57,6 @@ const crawler = new JSDOMCrawler({
 });
 
 // Run the crawler and wait for it to finish.
-await crawler.run([
-    'https://crawlee.dev',
-]);
+await crawler.run(['https://crawlee.dev']);
 
 log.debug('Crawler finished.');

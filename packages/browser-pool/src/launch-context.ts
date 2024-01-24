@@ -73,15 +73,7 @@ export class LaunchContext<
     [K: PropertyKey]: unknown;
 
     constructor(options: LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {
-        const {
-            id,
-            browserPlugin,
-            launchOptions,
-            proxyUrl,
-            useIncognitoPages,
-            experimentalContainers,
-            userDataDir = '',
-        } = options;
+        const { id, browserPlugin, launchOptions, proxyUrl, useIncognitoPages, experimentalContainers, userDataDir = '' } = options;
 
         this.id = id;
         this.browserPlugin = browserPlugin;

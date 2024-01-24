@@ -113,13 +113,7 @@ export abstract class BrowserPlugin<
     experimentalContainers: boolean;
 
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
-        const {
-            launchOptions = {} as LibraryOptions,
-            proxyUrl,
-            userDataDir,
-            useIncognitoPages = false,
-            experimentalContainers = false,
-        } = options;
+        const { launchOptions = {} as LibraryOptions, proxyUrl, userDataDir, useIncognitoPages = false, experimentalContainers = false } = options;
 
         this.library = library;
         this.launchOptions = launchOptions;
@@ -207,12 +201,7 @@ export abstract class BrowserPlugin<
         return originalArgs;
     }
 
-    protected _throwAugmentedLaunchError(
-        cause: unknown,
-        executablePath: string | undefined,
-        dockerImage: string,
-        moduleInstallCommand: string,
-    ): never {
+    protected _throwAugmentedLaunchError(cause: unknown, executablePath: string | undefined, dockerImage: string, moduleInstallCommand: string): never {
         const errorMessage = ['Failed to launch browser. Please check the following:'];
 
         if (executablePath) {
@@ -235,8 +224,10 @@ export abstract class BrowserPlugin<
      * @private
      */
     // @ts-expect-error Give runtime error as well as compile time
-    // eslint-disable-next-line max-len
-    protected abstract _addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void> {
+
+    protected abstract _addProxyToLaunchOptions(
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): Promise<void> {
         throwImplementationNeeded('_addProxyToLaunchOptions');
     }
 

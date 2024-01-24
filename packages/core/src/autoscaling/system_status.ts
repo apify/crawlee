@@ -126,15 +126,18 @@ export class SystemStatus {
     private readonly snapshotter: Snapshotter;
 
     constructor(options: SystemStatusOptions = {}) {
-        ow(options, ow.object.exactShape({
-            currentHistorySecs: ow.optional.number,
-            maxMemoryOverloadedRatio: ow.optional.number,
-            maxEventLoopOverloadedRatio: ow.optional.number,
-            maxCpuOverloadedRatio: ow.optional.number,
-            maxClientOverloadedRatio: ow.optional.number,
-            snapshotter: ow.optional.object,
-            config: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                currentHistorySecs: ow.optional.number,
+                maxMemoryOverloadedRatio: ow.optional.number,
+                maxEventLoopOverloadedRatio: ow.optional.number,
+                maxCpuOverloadedRatio: ow.optional.number,
+                maxClientOverloadedRatio: ow.optional.number,
+                snapshotter: ow.optional.object,
+                config: ow.optional.object,
+            }),
+        );
 
         const {
             currentHistorySecs = 5,

@@ -2,11 +2,7 @@ import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
 
 type PromiseVoid = () => Promise<void>;
 
-export const anonymizeProxySugar = async (
-    proxyUrl?: string,
-    username?: string,
-    password?: string,
-): Promise<[string | undefined, PromiseVoid]> => {
+export const anonymizeProxySugar = async (proxyUrl?: string, username?: string, password?: string): Promise<[string | undefined, PromiseVoid]> => {
     if (proxyUrl) {
         const url = new URL(proxyUrl);
 
@@ -26,14 +22,8 @@ export const anonymizeProxySugar = async (
             ];
         }
 
-        return [
-            undefined,
-            async () => {},
-        ];
+        return [undefined, async () => {}];
     }
 
-    return [
-        undefined,
-        async () => {},
-    ];
+    return [undefined, async () => {}];
 };

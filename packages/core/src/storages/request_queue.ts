@@ -1,8 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
-import type { Dictionary,
-} from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 
 import type { RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
@@ -87,12 +86,15 @@ export class RequestQueue extends RequestProvider {
      * @internal
      */
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
-        super({
-            ...options,
-            logPrefix: 'RequestQueue',
-            recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
-            requestCacheMaxSize: MAX_CACHED_REQUESTS,
-        }, config);
+        super(
+            {
+                ...options,
+                logPrefix: 'RequestQueue',
+                recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
+                requestCacheMaxSize: MAX_CACHED_REQUESTS,
+            },
+            config,
+        );
     }
 
     /**
@@ -204,33 +206,31 @@ export class RequestQueue extends RequestProvider {
         if (!this.queryQueueHeadPromise) {
             const queryStartedAt = new Date();
 
-            this.queryQueueHeadPromise = this.client
-                .listHead({ limit })
-                .then(({ items, queueModifiedAt, hadMultipleClients }) => {
-                    items.forEach(({ id: requestId, uniqueKey }) => {
-                        // Queue head index might be behind the main table, so ensure we don't recycle requests
-                        if (!requestId || !uniqueKey || this.inProgress.has(requestId) || this.recentlyHandledRequestsCache.get(requestId!)) return;
+            this.queryQueueHeadPromise = this.client.listHead({ limit }).then(({ items, queueModifiedAt, hadMultipleClients }) => {
+                items.forEach(({ id: requestId, uniqueKey }) => {
+                    // Queue head index might be behind the main table, so ensure we don't recycle requests
+                    if (!requestId || !uniqueKey || this.inProgress.has(requestId) || this.recentlyHandledRequestsCache.get(requestId!)) return;
 
-                        this.queueHeadIds.add(requestId, requestId, false);
-                        this._cacheRequest(getRequestId(uniqueKey), {
-                            requestId,
-                            wasAlreadyHandled: false,
-                            wasAlreadyPresent: true,
-                            uniqueKey,
-                        });
+                    this.queueHeadIds.add(requestId, requestId, false);
+                    this._cacheRequest(getRequestId(uniqueKey), {
+                        requestId,
+                        wasAlreadyHandled: false,
+                        wasAlreadyPresent: true,
+                        uniqueKey,
                     });
-
-                    // This is needed so that the next call to _ensureHeadIsNonEmpty() will fetch the queue head again.
-                    this.queryQueueHeadPromise = null;
-
-                    return {
-                        wasLimitReached: items.length >= limit,
-                        prevLimit: limit,
-                        queueModifiedAt: new Date(queueModifiedAt),
-                        queryStartedAt,
-                        hadMultipleClients,
-                    };
                 });
+
+                // This is needed so that the next call to _ensureHeadIsNonEmpty() will fetch the queue head again.
+                this.queryQueueHeadPromise = null;
+
+                return {
+                    wasLimitReached: items.length >= limit,
+                    prevLimit: limit,
+                    queueModifiedAt: new Date(queueModifiedAt),
+                    queryStartedAt,
+                    hadMultipleClients,
+                };
+            });
         }
 
         const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } = await this.queryQueueHeadPromise;
@@ -247,9 +247,7 @@ export class RequestQueue extends RequestProvider {
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
             this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
-        const shouldRepeatWithHigherLimit = this.queueHeadIds.length() === 0
-            && wasLimitReached
-            && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
+        const shouldRepeatWithHigherLimit = this.queueHeadIds.length() === 0 && wasLimitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
 
         // If ensureConsistency=true then we must ensure that either:
         // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
@@ -266,9 +264,7 @@ export class RequestQueue extends RequestProvider {
         // If this is reached then we return false so that empty() and finished() returns possibly false negative.
         if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
 
-        const nextLimit = shouldRepeatWithHigherLimit
-            ? Math.round(prevLimit * 1.5)
-            : prevLimit;
+        const nextLimit = shouldRepeatWithHigherLimit ? Math.round(prevLimit * 1.5) : prevLimit;
 
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
@@ -282,7 +278,7 @@ export class RequestQueue extends RequestProvider {
 
     // RequestQueue v1 behavior overrides below
     override async isFinished(): Promise<boolean> {
-        if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
+        if (Date.now() - +this.lastActivity > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();

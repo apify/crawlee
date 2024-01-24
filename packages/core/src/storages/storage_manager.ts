@@ -43,10 +43,7 @@ export class StorageManager<T extends IStorage = IStorage> {
         return this.getManager(storageClass, config).openStorage(idOrName, client);
     }
 
-    static getManager<T extends IStorage>(
-        storageClass: Constructor<T>,
-        config = Configuration.getGlobalConfig(),
-    ): StorageManager<T> {
+    static getManager<T extends IStorage>(storageClass: Constructor<T>, config = Configuration.getGlobalConfig()): StorageManager<T> {
         if (!config.storageManagers.has(storageClass)) {
             const manager = new StorageManager(storageClass, config);
             config.storageManagers.set(storageClass, manager);
@@ -109,10 +106,7 @@ export class StorageManager<T extends IStorage = IStorage> {
      * Helper function that first requests storage by ID and if storage doesn't exist then gets it by name.
      */
     protected async _getOrCreateStorage(storageIdOrName: string, storageConstructorName: string, apiClient: StorageClient) {
-        const {
-            createStorageClient,
-            createStorageCollectionClient,
-        } = this._getStorageClientFactories(apiClient, storageConstructorName);
+        const { createStorageClient, createStorageCollectionClient } = this._getStorageClientFactories(apiClient, storageConstructorName);
 
         const storageClient = createStorageClient(storageIdOrName);
         const existingStorage = await storageClient.get();
@@ -124,7 +118,7 @@ export class StorageManager<T extends IStorage = IStorage> {
 
     protected _getStorageClientFactories(client: StorageClient, storageConstructorName: string) {
         // Dataset => dataset
-        const clientName = storageConstructorName[0].toLowerCase() + storageConstructorName.slice(1) as ClientNames;
+        const clientName = (storageConstructorName[0].toLowerCase() + storageConstructorName.slice(1)) as ClientNames;
         // dataset => datasets
         const collectionClientName = `${clientName}s` as ClientCollectionNames;
 

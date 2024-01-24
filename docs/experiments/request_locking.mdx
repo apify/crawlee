@@ -65,11 +65,7 @@ Previously, you would import `RequestQueue` from `crawlee`. To switch to the que
 import { RequestQueue2 } from 'crawlee';
 
 const queue = await RequestQueue2.open('my-locking-queue');
-await queue.addRequests([
-    { url: 'https://crawlee.dev' },
-    { url: 'https://crawlee.dev/docs' },
-    { url: 'https://crawlee.dev/api' },
-]);
+await queue.addRequests([{ url: 'https://crawlee.dev' }, { url: 'https://crawlee.dev/docs' }, { url: 'https://crawlee.dev/api' }]);
 ```
 
 ### Using the new request queue in crawlers

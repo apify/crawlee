@@ -109,13 +109,16 @@ export class Statistics {
      * @internal
      */
     constructor(options: StatisticsOptions = {}) {
-        ow(options, ow.object.exactShape({
-            logIntervalSecs: ow.optional.number,
-            logMessage: ow.optional.string,
-            keyValueStore: ow.optional.object,
-            config: ow.optional.object,
-            persistenceOptions: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                logIntervalSecs: ow.optional.number,
+                logMessage: ow.optional.string,
+                keyValueStore: ow.optional.object,
+                config: ow.optional.object,
+                persistenceOptions: ow.optional.object,
+            }),
+        );
 
         const {
             logIntervalSecs = 60,
@@ -244,12 +247,7 @@ export class Statistics {
      * Calculate the current statistics
      */
     calculate() {
-        const {
-            requestsFailed,
-            requestsFinished,
-            requestTotalFailedDurationMillis,
-            requestTotalFinishedDurationMillis,
-        } = this.state;
+        const { requestsFailed, requestsFinished, requestTotalFailedDurationMillis, requestTotalFinishedDurationMillis } = this.state;
         const totalMillis = Date.now() - this.instanceStart;
         const totalMinutes = totalMillis / 1000 / 60;
 
@@ -302,9 +300,7 @@ export class Statistics {
     protected _saveRetryCountForJob(job: Job) {
         const retryCount = job.retryCount();
         if (retryCount > 0) this.state.requestsRetries++;
-        this.requestRetryHistogram[retryCount] = this.requestRetryHistogram[retryCount]
-            ? this.requestRetryHistogram[retryCount] + 1
-            : 1;
+        this.requestRetryHistogram[retryCount] = this.requestRetryHistogram[retryCount] ? this.requestRetryHistogram[retryCount] + 1 : 1;
     }
 
     /**

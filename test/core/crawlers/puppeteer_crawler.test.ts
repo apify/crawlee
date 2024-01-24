@@ -6,18 +6,8 @@ import os from 'os';
 import { promisify } from 'util';
 
 import log from '@apify/log';
-import type {
-    PuppeteerCrawlingContext,
-    PuppeteerGoToOptions,
-    Request,
-} from '@crawlee/puppeteer';
-import {
-    ProxyConfiguration,
-    PuppeteerCrawler,
-    RequestList,
-    RequestQueue,
-    Session,
-} from '@crawlee/puppeteer';
+import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
+import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
@@ -51,20 +41,12 @@ describe('PuppeteerCrawler', () => {
 
         serverUrl = `http://127.0.0.1:${(target.address() as AddressInfo).port}`;
 
-        servers = [
-            createProxyServer('127.0.0.2', '', ''),
-            createProxyServer('127.0.0.3', '', ''),
-            createProxyServer('127.0.0.4', '', ''),
-        ];
+        servers = [createProxyServer('127.0.0.2', '', ''), createProxyServer('127.0.0.3', '', ''), createProxyServer('127.0.0.4', '', '')];
 
         await Promise.all(servers.map(async (server) => server.listen()));
 
         proxyConfiguration = new ProxyConfiguration({
-            proxyUrls: [
-                `http://127.0.0.2:${servers[0].port}`,
-                `http://127.0.0.3:${servers[1].port}`,
-                `http://127.0.0.4:${servers[2].port}`,
-            ],
+            proxyUrls: [`http://127.0.0.2:${servers[0].port}`, `http://127.0.0.3:${servers[1].port}`, `http://127.0.0.4:${servers[2].port}`],
         });
     });
 
@@ -106,7 +88,12 @@ describe('PuppeteerCrawler', () => {
             asserts.push(response.status() === 200);
             request.userData.title = await page.title();
             processed.push(request);
-            asserts.push(!response.request().headers()['user-agent'].match(/headless/i));
+            asserts.push(
+                !response
+                    .request()
+                    .headers()
+                    ['user-agent'].match(/headless/i),
+            );
             asserts.push(!(await page.evaluate(() => window.navigator.webdriver)));
         };
 
@@ -145,9 +132,11 @@ describe('PuppeteerCrawler', () => {
             maxRequestRetries: 0,
             maxConcurrency: 1,
             requestHandler: () => {},
-            preNavigationHooks: [(_context, gotoOptions) => {
-                options = gotoOptions;
-            }],
+            preNavigationHooks: [
+                (_context, gotoOptions) => {
+                    options = gotoOptions;
+                },
+            ],
             navigationTimeoutSecs: timeoutSecs,
         });
 
@@ -157,7 +146,8 @@ describe('PuppeteerCrawler', () => {
 
     test('should throw if launchOptions.proxyUrl is supplied', async () => {
         try {
-            new PuppeteerCrawler({ //eslint-disable-line
+            new PuppeteerCrawler({
+                //eslint-disable-line
                 requestList,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
@@ -250,27 +240,13 @@ describe('PuppeteerCrawler', () => {
         expect(requestHandler).not.toBeCalled();
         const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1].retryCount]);
         expect(warnings).toEqual([
-            [
-                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
-                1,
-            ],
-            [
-                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
-                2,
-            ],
-            [
-                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
-                3,
-            ],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 1],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 2],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 3],
         ]);
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
-        expect(errors).toEqual([
-            [
-                'Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.',
-                undefined,
-            ],
-        ]);
+        expect(errors).toEqual([['Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.', undefined]]);
     });
 
     test('timeout in preLaunchHooks will abort the page function as early as possible (gh #1216)', async () => {
@@ -307,27 +283,13 @@ describe('PuppeteerCrawler', () => {
         expect(requestHandler).not.toBeCalled();
         const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1].retryCount]);
         expect(warnings).toEqual([
-            [
-                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
-                1,
-            ],
-            [
-                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
-                2,
-            ],
-            [
-                'Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.',
-                3,
-            ],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 1],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 2],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 3],
         ]);
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1].retryCount]);
-        expect(errors).toEqual([
-            [
-                'Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.',
-                undefined,
-            ],
-        ]);
+        expect(errors).toEqual([['Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.', undefined]]);
     });
 
     test('should set cookies assigned to session to page', async () => {
@@ -369,11 +331,7 @@ describe('PuppeteerCrawler', () => {
         const proxies = new Set();
         const sessions = new Set();
         const puppeteerCrawler = new PuppeteerCrawler({
-            requestList: await RequestList.open(null, [
-                { url: `${serverUrl}/?q=1` },
-                { url: `${serverUrl}/?q=2` },
-                { url: `${serverUrl}/?q=3` },
-            ]),
+            requestList: await RequestList.open(null, [{ url: `${serverUrl}/?q=1` }, { url: `${serverUrl}/?q=2` }, { url: `${serverUrl}/?q=3` }]),
             launchContext: {
                 launchOptions: {
                     headless: true,

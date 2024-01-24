@@ -36,26 +36,26 @@ export interface TemplateFile {
 
 export async function fetchManifest(): Promise<Manifest> {
     const rawManifest = await new Promise<RawManifest>((resolve, reject) => {
-        https.get(MANIFEST_URL, (res) => {
-            let json = '';
-            res
-                .on('data', (chunk) => {
+        https
+            .get(MANIFEST_URL, (res) => {
+                let json = '';
+                res.on('data', (chunk) => {
                     json += chunk;
                 })
-                .once('end', () => {
-                    if (res.statusCode === 200) {
-                        try {
-                            const data = JSON.parse(json);
-                            resolve(data);
-                        } catch (e) {
-                            reject(e);
+                    .once('end', () => {
+                        if (res.statusCode === 200) {
+                            try {
+                                const data = JSON.parse(json);
+                                resolve(data);
+                            } catch (e) {
+                                reject(e);
+                            }
+                        } else {
+                            reject(new Error(`Status: ${res.statusCode}\n${json}`));
                         }
-                    } else {
-                        reject(new Error(`Status: ${res.statusCode}\n${json}`));
-                    }
-                })
-                .on('error', (err) => reject(err));
-        })
+                    })
+                    .on('error', (err) => reject(err));
+            })
             .on('error', (err) => reject(err));
     });
 

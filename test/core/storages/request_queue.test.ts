@@ -37,9 +37,7 @@ describe('RequestQueue remote', () => {
             wasAlreadyHandled: false,
             wasAlreadyPresent: false,
         };
-        const mockAddRequest = vitest
-            .spyOn(queue.client, 'addRequest')
-            .mockResolvedValueOnce(firstResolveValue);
+        const mockAddRequest = vitest.spyOn(queue.client, 'addRequest').mockResolvedValueOnce(firstResolveValue);
 
         const requestOptions = { url: 'http://example.com/a' };
         const queueOperationInfo1 = await queue.addRequest(requestOptions);
@@ -90,14 +88,15 @@ describe('RequestQueue remote', () => {
         expect(queue.inProgressCount()).toBe(1);
 
         // Test validations
-        await queue.markRequestHandled(new Request({ id: 'XXX', url: 'https://example.com' }))
+        await queue
+            .markRequestHandled(new Request({ id: 'XXX', url: 'https://example.com' }))
             .catch((err) => expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/));
-        await queue.reclaimRequest(new Request({ id: 'XXX', url: 'https://example.com' }))
+        await queue
+            .reclaimRequest(new Request({ id: 'XXX', url: 'https://example.com' }))
             .catch((err) => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
-        await queue.addRequest(new Request({ id: 'id-already-set', url: 'https://example.com' }))
-            .catch((err) => expect(err.message).toMatch(
-                'Expected property `id` to be of type `undefined` but received type `string` in object',
-            ));
+        await queue
+            .addRequest(new Request({ id: 'id-already-set', url: 'https://example.com' }))
+            .catch((err) => expect(err.message).toMatch('Expected property `id` to be of type `undefined` but received type `string` in object'));
 
         // getRequest() returns null if object was not found.
         mockGetRequest.mockResolvedValueOnce(null);
@@ -340,9 +339,7 @@ describe('RequestQueue remote', () => {
         // Query queue head with request A
         const listHeadMock = vitest.spyOn(queue.client, 'listHead');
         listHeadMock.mockResolvedValueOnce({
-            items: [
-                { id: 'a', uniqueKey: 'aaa' },
-            ],
+            items: [{ id: 'a', uniqueKey: 'aaa' }],
         } as never);
 
         expect(await queue.isEmpty()).toBe(false);
@@ -403,9 +400,7 @@ describe('RequestQueue remote', () => {
         });
 
         listHeadMock.mockResolvedValueOnce({
-            items: [
-                { id: 'a', uniqueKey: 'aaa' },
-            ],
+            items: [{ id: 'a', uniqueKey: 'aaa' }],
         } as never);
 
         const fetchedRequest2 = await queue.fetchNextRequest();
@@ -646,9 +641,7 @@ describe('RequestQueue remote', () => {
             hadMultipleClients: false,
         };
 
-        const getMock = vitest
-            .spyOn(queue.client, 'get')
-            .mockResolvedValueOnce(expected);
+        const getMock = vitest.spyOn(queue.client, 'get').mockResolvedValueOnce(expected);
 
         const result = await queue.getInfo();
         expect(result).toEqual(expected);
@@ -658,9 +651,7 @@ describe('RequestQueue remote', () => {
 
     test('drop() works', async () => {
         const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
-        const deleteMock = vitest
-            .spyOn(queue.client, 'delete')
-            .mockResolvedValueOnce(undefined);
+        const deleteMock = vitest.spyOn(queue.client, 'delete').mockResolvedValueOnce(undefined);
 
         await queue.drop();
         expect(deleteMock).toBeCalledTimes(1);
@@ -717,15 +708,8 @@ describe('RequestQueue with requestsFromUrl', () => {
 
     test('should correctly load list from hosted files in correct order', async () => {
         const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
-        const list1 = [
-            'https://example.com',
-            'https://google.com',
-            'https://wired.com',
-        ];
-        const list2 = [
-            'https://another.com',
-            'https://page.com',
-        ];
+        const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
+        const list2 = ['https://another.com', 'https://page.com'];
         spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve(list1) as any, 100)) as any);
         spy.mockResolvedValueOnce(list2);
 
@@ -767,11 +751,7 @@ describe('RequestQueue with requestsFromUrl', () => {
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = [
-            'https://example.com',
-            'https://google.com',
-            'https://wired.com',
-        ];
+        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const wrongUrls = [
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
@@ -812,10 +792,7 @@ describe('RequestQueue with requestsFromUrl', () => {
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
-        const proxyUrls = [
-            'http://proxyurl.usedforthe.download',
-            'http://another.proxy.url',
-        ];
+        const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
         const spy = vitest.spyOn(RequestQueue.prototype as any, '_downloadListOfUrls');
         spy.mockResolvedValue([]);
@@ -838,7 +815,7 @@ describe('RequestQueue with requestsFromUrl', () => {
 describe('RequestQueue v2', () => {
     const totalRequestsPerTest = 50;
 
-    function calculateHistogram(requests: { uniqueKey: string }[]) : number[] {
+    function calculateHistogram(requests: { uniqueKey: string }[]): number[] {
         const histogram: number[] = [];
         for (const item of requests) {
             const key = item.uniqueKey;
