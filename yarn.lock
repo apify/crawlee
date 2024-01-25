@@ -694,7 +694,7 @@ __metadata:
     gen-esm-wrapper: "npm:^1.1.3"
     globby: "npm:^14.0.0"
     got: "npm:^13.0.0"
-    husky: "npm:^8.0.1"
+    husky: "npm:^9.0.0"
     is-ci: "npm:^3.0.1"
     lerna: "npm:^8.0.0"
     lint-staged: "npm:^15.0.0"
@@ -6486,12 +6486,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"husky@npm:^8.0.1":
-  version: 8.0.3
-  resolution: "husky@npm:8.0.3"
+"husky@npm:^9.0.0":
+  version: 9.0.1
+  resolution: "husky@npm:9.0.1"
   bin:
-    husky: lib/bin.js
-  checksum: 6722591771c657b91a1abb082e07f6547eca79144d678e586828ae806499d90dce2a6aee08b66183fd8b085f19d20e0990a2ad396961746b4c8bd5bdb619d668
+    husky: bin.js
+  checksum: d7f3d158fffc8cc91211172637f7069b2173dbf5e732f46596a2a512e5f5f17ddebd895202cc67b0f159b747b698e2cc5601282b198d9cb5d97a5671fcb2afb7
   languageName: node
   linkType: hard
 
