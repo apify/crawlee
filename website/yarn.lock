@@ -3004,7 +3004,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/estree@npm:*, @types/estree@npm:^1.0.0":
+"@types/estree@npm:*, @types/estree@npm:^1.0.0, @types/estree@npm:^1.0.5":
   version: 1.0.5
   resolution: "@types/estree@npm:1.0.5"
   checksum: b3b0e334288ddb407c7b3357ca67dbee75ee22db242ca7c56fe27db4e1a31989cb8af48a84dd401deb787fe10cc6b2ab1ee82dc4783be87ededbe3d53c79c70d
@@ -3174,11 +3174,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.11.5
-  resolution: "@types/node@npm:20.11.5"
+  version: 20.11.6
+  resolution: "@types/node@npm:20.11.6"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 6d18cec852f5cfbed3ec42b5c01c026e7a3f9da540d6e3d6738d4cee9979fb308cf27b6df7ba40a6553e7bc82e678f0ef53ba6e6ad52e5b86bd97b7783c2a42c
+  checksum: 922bc1e78076bb79fd168902c80321b54487181e3be3386e183fc535d102d91c8902da25148eaec841410fab7fb872fd4a93ec9ac9299cedf0ebcbf16b442aa1
   languageName: node
   linkType: hard
 
@@ -3820,13 +3820,13 @@ __metadata:
   linkType: hard
 
 "algoliasearch-helper@npm:^3.13.3":
-  version: 3.16.1
-  resolution: "algoliasearch-helper@npm:3.16.1"
+  version: 3.16.2
+  resolution: "algoliasearch-helper@npm:3.16.2"
   dependencies:
     "@algolia/events": "npm:^4.0.1"
   peerDependencies:
     algoliasearch: ">= 3.1 < 6"
-  checksum: ebcd840722f6e37b2d5e73f0d7bf5217bf0002f95c086a2e0cbca73deb6ff19f8a785a936b230552ddbf5ff6d6fd727a2c18192d63599499cdfe36178ca86cc2
+  checksum: 20588c55d3307dee175f65a1839c17d8a94973eed1e5cd52c4e5eb00d4469be45f1f7be5d8dd5474762f8795c184c018b4e742126499bbd1de689dffd2623353
   languageName: node
   linkType: hard
 
@@ -4151,13 +4151,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.5.0":
-  version: 1.6.5
-  resolution: "axios@npm:1.6.5"
+  version: 1.6.6
+  resolution: "axios@npm:1.6.6"
   dependencies:
     follow-redirects: "npm:^1.15.4"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: aeb9acf87590d8aa67946072ced38e01ca71f5dfe043782c0ccea667e5dd5c45830c08afac9be3d7c894f09684b8ab2a458f497d197b73621233bcf202d9d468
+  checksum: 974f54cfade94fd4c0191309122a112c8d233089cecb0070cd8e0904e9bd9c364ac3a6fd0f981c978508077249788950427c565f54b7b2110e5c3426006ff343
   languageName: node
   linkType: hard
 
@@ -4452,7 +4452,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"browserslist@npm:^4.0.0, browserslist@npm:^4.14.5, browserslist@npm:^4.18.1, browserslist@npm:^4.21.4, browserslist@npm:^4.22.2":
+"browserslist@npm:^4.0.0, browserslist@npm:^4.18.1, browserslist@npm:^4.21.10, browserslist@npm:^4.21.4, browserslist@npm:^4.22.2":
   version: 4.22.2
   resolution: "browserslist@npm:4.22.2"
   dependencies:
@@ -5843,9 +5843,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.643
-  resolution: "electron-to-chromium@npm:1.4.643"
-  checksum: 3a5d836089b220a9da7ebaf4ac8817f021aa11e71b81d055c3bdde7276d8e60f691de6dcb0afe0eda4014923638b3fd74c0e548ba36d747e1eb51027d276ed9b
+  version: 1.4.645
+  resolution: "electron-to-chromium@npm:1.4.645"
+  checksum: a77ad457b960fae4ca109eda9e0d6263686c9868ded5c02029ad18cd69387376395ab113104b01a3355ae5efd4a4d63deb3d00af41c52b48c1408aa7719aec75
   languageName: node
   linkType: hard
 
@@ -13067,7 +13067,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"terser-webpack-plugin@npm:^5.3.7, terser-webpack-plugin@npm:^5.3.9":
+"terser-webpack-plugin@npm:^5.3.10, terser-webpack-plugin@npm:^5.3.9":
   version: 5.3.10
   resolution: "terser-webpack-plugin@npm:5.3.10"
   dependencies:
@@ -13803,17 +13803,17 @@ __metadata:
   linkType: hard
 
 "webpack@npm:^5.88.1":
-  version: 5.89.0
-  resolution: "webpack@npm:5.89.0"
+  version: 5.90.0
+  resolution: "webpack@npm:5.90.0"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.3"
-    "@types/estree": "npm:^1.0.0"
+    "@types/estree": "npm:^1.0.5"
     "@webassemblyjs/ast": "npm:^1.11.5"
     "@webassemblyjs/wasm-edit": "npm:^1.11.5"
     "@webassemblyjs/wasm-parser": "npm:^1.11.5"
     acorn: "npm:^8.7.1"
     acorn-import-assertions: "npm:^1.9.0"
-    browserslist: "npm:^4.14.5"
+    browserslist: "npm:^4.21.10"
     chrome-trace-event: "npm:^1.0.2"
     enhanced-resolve: "npm:^5.15.0"
     es-module-lexer: "npm:^1.2.1"
@@ -13827,7 +13827,7 @@ __metadata:
     neo-async: "npm:^2.6.2"
     schema-utils: "npm:^3.2.0"
     tapable: "npm:^2.1.1"
-    terser-webpack-plugin: "npm:^5.3.7"
+    terser-webpack-plugin: "npm:^5.3.10"
     watchpack: "npm:^2.4.0"
     webpack-sources: "npm:^3.2.3"
   peerDependenciesMeta:
@@ -13835,7 +13835,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 2562bf48788d651634fb7db6a5378c2fe3fce7f66831af38468da3944bd98756d68efea94a6909593993fb57b2d14cf802cbef2c83c6ef0047f7f606d59bec50
+  checksum: 4acec1a719a9c5b890a30a9fb18519e671e55382f2c51120b76a2c1c1c521285b6510327faf79f85a4b11c7a2c5c01e1d2e7bf73e5cddbada1503f4d51a63441
   languageName: node
   linkType: hard
 

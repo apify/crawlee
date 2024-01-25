@@ -2106,11 +2106,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.11.5
-  resolution: "@types/node@npm:20.11.5"
+  version: 20.11.6
+  resolution: "@types/node@npm:20.11.6"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 6d18cec852f5cfbed3ec42b5c01c026e7a3f9da540d6e3d6738d4cee9979fb308cf27b6df7ba40a6553e7bc82e678f0ef53ba6e6ad52e5b86bd97b7783c2a42c
+  checksum: 922bc1e78076bb79fd168902c80321b54487181e3be3386e183fc535d102d91c8902da25148eaec841410fab7fb872fd4a93ec9ac9299cedf0ebcbf16b442aa1
   languageName: node
   linkType: hard
 
@@ -3033,13 +3033,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.5.1":
-  version: 1.6.5
-  resolution: "axios@npm:1.6.5"
+  version: 1.6.6
+  resolution: "axios@npm:1.6.6"
   dependencies:
     follow-redirects: "npm:^1.15.4"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: aeb9acf87590d8aa67946072ced38e01ca71f5dfe043782c0ccea667e5dd5c45830c08afac9be3d7c894f09684b8ab2a458f497d197b73621233bcf202d9d468
+  checksum: 974f54cfade94fd4c0191309122a112c8d233089cecb0070cd8e0904e9bd9c364ac3a6fd0f981c978508077249788950427c565f54b7b2110e5c3426006ff343
   languageName: node
   linkType: hard
 
@@ -4527,9 +4527,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.601":
-  version: 1.4.643
-  resolution: "electron-to-chromium@npm:1.4.643"
-  checksum: 3a5d836089b220a9da7ebaf4ac8817f021aa11e71b81d055c3bdde7276d8e60f691de6dcb0afe0eda4014923638b3fd74c0e548ba36d747e1eb51027d276ed9b
+  version: 1.4.645
+  resolution: "electron-to-chromium@npm:1.4.645"
+  checksum: a77ad457b960fae4ca109eda9e0d6263686c9868ded5c02029ad18cd69387376395ab113104b01a3355ae5efd4a4d63deb3d00af41c52b48c1408aa7719aec75
   languageName: node
   linkType: hard
 
@@ -5510,22 +5510,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.46":
-  version: 2.1.46
-  resolution: "fingerprint-generator@npm:2.1.46"
+"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.47":
+  version: 2.1.47
+  resolution: "fingerprint-generator@npm:2.1.47"
   dependencies:
-    generative-bayesian-network: "npm:^2.1.46"
-    header-generator: "npm:^2.1.46"
+    generative-bayesian-network: "npm:^2.1.47"
+    header-generator: "npm:^2.1.47"
     tslib: "npm:^2.4.0"
-  checksum: d1a97afaed47af191a16207db3481c0fb7d4ca1d2d7c59db8c24a7f81baa8ceb233300b51ba46ee23397c7997cce8082712119d74c4d308e6184f9ad02f48b1a
+  checksum: 83e919d24c2245378eb4f41c62ccd76f02429ad5f1ace76103dd3f0de2710c07f0bf89fe5c5ff24c770761433515a0e5018f6fff6ef5fe485e811debd7d9d02d
   languageName: node
   linkType: hard
 
 "fingerprint-injector@npm:^2.0.5":
-  version: 2.1.46
-  resolution: "fingerprint-injector@npm:2.1.46"
+  version: 2.1.47
+  resolution: "fingerprint-injector@npm:2.1.47"
   dependencies:
-    fingerprint-generator: "npm:^2.1.46"
+    fingerprint-generator: "npm:^2.1.47"
     tslib: "npm:^2.4.0"
   peerDependencies:
     playwright: ^1.22.2
@@ -5535,7 +5535,7 @@ __metadata:
       optional: true
     puppeteer:
       optional: true
-  checksum: 33d09b0eeb0a7b6c9c3144dbe3116c1f138bdd0e1034b66b06e4ad2f866fb536b843d37317aa4d45a3bef68a092e0bdc6f622f62d34f945c312a1489a039b320
+  checksum: 17095dedfe9d4341b963f3e10216dbdec963aeff47e64a588e5d2dcd136f9bd4cb71294f2d6ab6cf3395838490884f37c0e0c27b8465052d2276b72e0c60bef3
   languageName: node
   linkType: hard
 
@@ -5779,13 +5779,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"generative-bayesian-network@npm:^2.1.46":
-  version: 2.1.46
-  resolution: "generative-bayesian-network@npm:2.1.46"
+"generative-bayesian-network@npm:^2.1.47":
+  version: 2.1.47
+  resolution: "generative-bayesian-network@npm:2.1.47"
   dependencies:
     adm-zip: "npm:^0.5.9"
     tslib: "npm:^2.4.0"
-  checksum: bf2b590fae4faa91dd719e639b659c854feb14b4d691e8c245102863ac8480139d03d249dff993a01c8eecbbbcd062ba31158acc0852d0d06fc1b1879d8946a9
+  checksum: 06f96c72f2b1a755702ebff5c2e69606208482b1a961b61b0d42990d1a2575c3a7144b64a70242576fc9591244a56a5e369d9d3d4bd4e28528668e3ad6303ead
   languageName: node
   linkType: hard
 
@@ -6290,15 +6290,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"header-generator@npm:^2.1.41, header-generator@npm:^2.1.46":
-  version: 2.1.46
-  resolution: "header-generator@npm:2.1.46"
+"header-generator@npm:^2.1.41, header-generator@npm:^2.1.47":
+  version: 2.1.47
+  resolution: "header-generator@npm:2.1.47"
   dependencies:
     browserslist: "npm:^4.21.1"
-    generative-bayesian-network: "npm:^2.1.46"
+    generative-bayesian-network: "npm:^2.1.47"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
-  checksum: 6b050bacd7ab47e74772fc3324d186d4dce7db7103a96734c42617a1b45e699409480aef65c1fa3398fb2846cf0998ba9cb4dd6e8a6b1cc0eb5e394446426b68
+  checksum: 5f1ce7685348756fe93d4aff95d198c673e32f1110a7aac5721bdb29311b3c868cd8e10f4cc02975c1f0f4cfbfb2749e41feab38290d5d3e1e2399d1abc72482
   languageName: node
   linkType: hard
 
@@ -10731,9 +10731,9 @@ __metadata:
   linkType: hard
 
 "spdx-exceptions@npm:^2.1.0":
-  version: 2.3.0
-  resolution: "spdx-exceptions@npm:2.3.0"
-  checksum: 83089e77d2a91cb6805a5c910a2bedb9e50799da091f532c2ba4150efdef6e53f121523d3e2dc2573a340dc0189e648b03157097f65465b3a0c06da1f18d7e8a
+  version: 2.4.0
+  resolution: "spdx-exceptions@npm:2.4.0"
+  checksum: a6f76ce27fd4ae6b5dd41f61b6ab2665b2b1ed285947c8e2f0df34873e0ac4a79be4a8ed64485cd0350e73d4a2308342960f8c8aca215701dbaeaece7d241f29
   languageName: node
   linkType: hard
 
@@ -11281,21 +11281,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.2":
-  version: 6.1.2
-  resolution: "tldts-core@npm:6.1.2"
-  checksum: 181fdeab1176b631bcdb25e39c8aa9392041b065035c95c7c9efd73359cecb55bc7adfce80a1b042b117f07e557d90b60ab52dbbec02eb94f27a182bb925e81e
+"tldts-core@npm:^6.1.3":
+  version: 6.1.3
+  resolution: "tldts-core@npm:6.1.3"
+  checksum: cad8ca1fab92036d9645faa10afaf09eb804032fa22d54ec46e6e5f77dd5274f123c419839e82cc9374154f1fcbb17bbfbc753ac3269326fa717269f9350176e
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.1.2
-  resolution: "tldts@npm:6.1.2"
+  version: 6.1.3
+  resolution: "tldts@npm:6.1.3"
   dependencies:
-    tldts-core: "npm:^6.1.2"
+    tldts-core: "npm:^6.1.3"
   bin:
     tldts: bin/cli.js
-  checksum: db8ac845814c8d2f00eb8720b9fee8d41b7afca74ada26bac29c8529868685d0a9b31f3d038f80ec442c965df18118d9296323385c2e27dae72bc120d2ed1380
+  checksum: 27924562a59a8403547d433137617f9f71c7bd272e431df3c7de6205c42b099712ce55fa848a800cec2debf9067473dae1f9a1c5110183368f7768b8dc6bccc9
   languageName: node
   linkType: hard
 
@@ -11610,9 +11610,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^4.0.0":
-  version: 4.10.0
-  resolution: "type-fest@npm:4.10.0"
-  checksum: 59b9142389817812eab3ce6d5001673087c105e5279b378ecde327b73b90fe9aefc5e4200848280c6a8adab3159da52caa0756a72c0ddf45308e1a076ff090fe
+  version: 4.10.1
+  resolution: "type-fest@npm:4.10.1"
+  checksum: 0523bc1a407cdc03fe20ee78698646e36fd40c99cb2c5b115e72d5a7e4d236f1e7fbf15b3b7b8e703f9108467a8e69aa2df268feefa65847bf37a89555703352
   languageName: node
   linkType: hard
 
