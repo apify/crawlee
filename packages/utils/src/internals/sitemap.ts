@@ -1,4 +1,6 @@
 import type { Duplex } from 'node:stream';
+import { Writable } from 'node:stream';
+import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import log from '@apify/log';
@@ -18,6 +20,42 @@ class ParsingState {
     }
 }
 
+class SitemapTxtParser extends Writable {
+    private decoder: StringDecoder = new StringDecoder('utf8');
+    private buffer: string = '';
+
+    constructor(private parsingState: ParsingState, private onEnd: () => void) {
+        super();
+    }
+
+    private processBuffer(input: string, finalize: boolean): void {
+        this.buffer += input;
+
+        if (finalize || this.buffer.includes('\n')) {
+            const parts = this.buffer.split('\n').filter((part) => part.length > 0);
+
+            if (finalize) {
+                this.parsingState.urls.push(...parts);
+                this.buffer = '';
+            } else if (parts.length > 0) {
+                this.parsingState.urls.push(...parts.slice(0, -1));
+                this.buffer = parts.at(-1)!;
+            }
+        }
+    }
+
+    override _write(chunk: any, _encoding: BufferEncoding, callback: (error?: Error | null | undefined) => void): void {
+        this.processBuffer(this.decoder.write(chunk), false);
+        callback();
+    }
+
+    override _final(callback: (error?: Error | null | undefined) => void): void {
+        this.processBuffer(this.decoder.end(), true);
+        callback();
+        this.onEnd();
+    }
+}
+
 /**
  * Loads one or more sitemaps from given URLs, following references in sitemap index files, and exposes the contained URLs.
  *
@@ -33,7 +71,7 @@ class ParsingState {
 export class Sitemap {
     constructor(readonly urls: string[]) {}
 
-    protected static createParser(parsingState: ParsingState, onEnd: () => void, onError: (error: Error) => void): SAXStream {
+    protected static createXmlParser(parsingState: ParsingState, onEnd: () => void, onError: (error: Error) => void): SAXStream {
         const parser = sax.createStream(true);
 
         parser.on('opentag', (node) => {
@@ -85,7 +123,7 @@ export class Sitemap {
         parsingState.sitemapUrls = Array.isArray(urls) ? urls : [urls];
 
         while (parsingState.sitemapUrls.length > 0) {
-            const sitemapUrl = parsingState.sitemapUrls.pop()!;
+            let sitemapUrl = parsingState.sitemapUrls.pop()!;
             parsingState.visitedSitemapUrls.push(sitemapUrl);
             parsingState.resetContext();
 
@@ -98,11 +136,26 @@ export class Sitemap {
 
                 if (sitemapStream.response!.statusCode === 200) {
                     await new Promise((resolve, reject) => {
-                        const parser = Sitemap.createParser(parsingState, () => resolve(undefined), reject);
                         let stream: Duplex = sitemapStream;
                         if (sitemapUrl.endsWith('.gz')) {
                             stream = stream.pipe(createGunzip());
+                            sitemapUrl = sitemapUrl.substring(0, sitemapUrl.length - 3);
                         }
+
+                        const parser = (() => {
+                            const contentType = sitemapStream.response!.headers['content-type'];
+
+                            if (contentType === 'text/xml' || sitemapUrl.endsWith('.xml')) {
+                                return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
+                            }
+
+                            if (contentType === 'text/plain' || sitemapUrl.endsWith('.txt')) {
+                                return new SitemapTxtParser(parsingState, () => resolve(undefined));
+                            }
+
+                            throw new Error('Unsupported sitemap content type');
+                        })();
+
                         stream.pipe(parser);
                     });
                 }
