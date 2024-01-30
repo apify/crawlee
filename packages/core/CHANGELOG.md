@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
+
+
+### Bug Fixes
+
+* **enqueueLinks:** filter out empty/nullish globs ([#2286](https://github.com/apify/crawlee/issues/2286)) ([84319b3](https://github.com/apify/crawlee/commit/84319b39efb5a921d0d5ec785db0147ec47f1243))
+
+
+
+
+
 ## [3.7.2](https://github.com/apify/crawlee/compare/v3.7.1...v3.7.2) (2024-01-09)
 
 
