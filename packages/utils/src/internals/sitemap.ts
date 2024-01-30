@@ -74,6 +74,26 @@ export class Sitemap {
     }
 
     /**
+     * Determine the location of a sitemap file for a URL and fetch it.
+     * @param url the URL to fetch the sitemap for
+     * @param proxyUrl a proxy to be used for fetching the sitemap file
+     */
+    static async find(url: string, proxyUrl?: string): Promise<Sitemap> {
+        const sitemapUrls: string[] = [];
+
+        const sitemapUrl = new URL(url);
+        sitemapUrl.search = '';
+
+        sitemapUrl.pathname = '/sitemap.xml';
+        sitemapUrls.push(sitemapUrl.toString());
+
+        sitemapUrl.pathname = '/sitemap.txt';
+        sitemapUrls.push(sitemapUrl.toString());
+
+        return Sitemap.load(sitemapUrls, proxyUrl);
+    }
+
+    /**
      * Fetch sitemap content from given URL or URLs and return URLs of referenced pages.
      * @param urls sitemap URL(s)
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
