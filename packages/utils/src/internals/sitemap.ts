@@ -32,7 +32,10 @@ class SitemapTxtParser extends Writable {
         this.buffer += input;
 
         if (finalize || this.buffer.includes('\n')) {
-            const parts = this.buffer.split('\n').filter((part) => part.length > 0);
+            const parts = this.buffer
+                .split('\n')
+                .map((part) => part.trim())
+                .filter((part) => part.length > 0);
 
             if (finalize) {
                 this.parsingState.urls.push(...parts);
