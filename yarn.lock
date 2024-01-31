@@ -2096,11 +2096,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.11.10
-  resolution: "@types/node@npm:20.11.10"
+  version: 20.11.13
+  resolution: "@types/node@npm:20.11.13"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: aced8595c2786d4e60471772659add1e2e0d1f2b73d119820b2e1815426d6e52c6a77f1c7fca8ea46490c36f7959cc46b0dc609fa2e80b7fd24f9a7d696c2210
+  checksum: 8ff8526fa0dbabcf4e9c538c6a7220675f750c39d0794e34998daa0656d7e0dfdf3e47403d2ab8beb756422a517e1f2646b4494afa59ef330495d65fc58fa4d8
   languageName: node
   linkType: hard
 
@@ -4323,9 +4323,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1253004
-  resolution: "devtools-protocol@npm:0.0.1253004"
-  checksum: abdfe5b7ad72625235ad1ad10ffb30502ea00f7164ac637c5ea5e090c1e2b75eea9a20f9395c3fdabfa2ef3500a9a39fadfd643130b93f1121891e6fe27366a2
+  version: 0.0.1253724
+  resolution: "devtools-protocol@npm:0.0.1253724"
+  checksum: 04675ef2a8097b42fd9a1d7d852f14bb95596296b5cb2eb87869b0f594debf9d0009108e3b6d8175687fb8370452f5aa426e9ce70fe1cb4b49c12f77dba92b8c
   languageName: node
   linkType: hard
 
@@ -4498,9 +4498,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.648":
-  version: 1.4.650
-  resolution: "electron-to-chromium@npm:1.4.650"
-  checksum: 30633acb595e2b59ac9212aa93cfaf52e74bbe398ae651117b4d8da8d9be6df554af88530cf54c2eed184b9e30c01ef2284752a6bc971b8c1b5eda9d34bb1f44
+  version: 1.4.651
+  resolution: "electron-to-chromium@npm:1.4.651"
+  checksum: be68418d2e13470d676f6ea09bd8f2456bf278bb169ddab6da6b8bc7ab9b2ab1df6c8ed3e31b9664f3ad44f4dd1318e7bd88bf227cd1e9e0db691e9a92fd90ee
   languageName: node
   linkType: hard
 
@@ -11559,9 +11559,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^4.0.0":
-  version: 4.10.1
-  resolution: "type-fest@npm:4.10.1"
-  checksum: 0523bc1a407cdc03fe20ee78698646e36fd40c99cb2c5b115e72d5a7e4d236f1e7fbf15b3b7b8e703f9108467a8e69aa2df268feefa65847bf37a89555703352
+  version: 4.10.2
+  resolution: "type-fest@npm:4.10.2"
+  checksum: 740f7d30da742ff413e8690ec10a24df054bfd87575cf92691b77f5a6b8185c582da529b84ceb13771482599e085712beec51492feaef2a1adc8661c0a47ecba
   languageName: node
   linkType: hard
 
