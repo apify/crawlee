@@ -608,6 +608,7 @@ __metadata:
     idcac-playwright: "npm:^0.1.2"
     jquery: "npm:^3.6.0"
     ow: "npm:^0.28.1"
+    portadom: "npm:^1.0.4"
     tslib: "npm:^2.4.0"
   peerDependencies:
     playwright: "*"
@@ -9576,6 +9577,15 @@ __metadata:
   bin:
     playwright: cli.js
   checksum: 10c0/1b487387c1bc003291a9dbd098e8e3c6a31efbb4d7a2ce4f2bf9d5e7f9fbf4a406352ab70e5266eab9a2a858bd42d8955343ea30c0286c3912e81984aa0220a3
+  languageName: node
+  linkType: hard
+
+"portadom@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "portadom@npm:1.0.4"
+  bin:
+    portadom: dist/cjs/cli/index.js
+  checksum: 64637e7072e6a8b6d7ec9a94b6ace5c6ff24cea308bc4a8675a435af2224a341281878ab0d27af710227539976dd1db25c837b2c39cfda3430e2c24b34799fe7
   languageName: node
   linkType: hard
 
