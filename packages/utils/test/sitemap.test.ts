@@ -65,6 +65,11 @@ describe('Sitemap', () => {
                 '<A HREF="https://ads.google.com/home/">here</A>.',
                 '</BODY></HTML>',
             ].join('\n'))
+            .get('/sitemap.txt')
+            .reply(200, [
+                'http://not-exists.com/catalog?item=78&desc=vacation_crete',
+                'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
+            ].join('\n'))
             .get('*')
             .reply(404);
     });
@@ -110,5 +115,13 @@ describe('Sitemap', () => {
     it('does not break on invalid xml', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
         expect(sitemap.urls).toEqual([]);
+    });
+
+    it('handles sitemap.txt correctly', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt');
+        expect(new Set(sitemap.urls)).toEqual(new Set([
+            'http://not-exists.com/catalog?item=78&desc=vacation_crete',
+            'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
+        ]));
     });
 });
