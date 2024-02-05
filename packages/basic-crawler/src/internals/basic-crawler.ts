@@ -954,18 +954,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Pushes data to the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
+     * Pushes data to the specified {@apilink Dataset}, or the default crawler {@apilink Dataset} by calling {@apilink Dataset.pushData}.
      */
-    async pushData(...args: Parameters<Dataset['pushData']>): Promise<void> {
-        const dataset = await this.getDataset();
-        return dataset.pushData(...args);
+    async pushData(data: Parameters<Dataset['pushData']>[0], datasetIdOrName?: string): Promise<void> {
+        const dataset = await this.getDataset(datasetIdOrName);
+        return dataset.pushData(data);
     }
 
     /**
-     * Retrieves the default crawler {@apilink Dataset}.
+     * Retrieves the specified {@apilink Dataset}, or the default crawler {@apilink Dataset}.
      */
-    async getDataset(): Promise<Dataset> {
-        return Dataset.open(undefined, { config: this.config });
+    async getDataset(idOrName?: string): Promise<Dataset> {
+        return Dataset.open(idOrName, { config: this.config });
     }
 
     /**
@@ -1213,9 +1213,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     ...options,
                 });
             },
-            pushData: async (...args: Parameters<Dataset['pushData']>) => {
-                return this.pushData(...args);
-            },
+            addRequests: this.addRequests.bind(this),
+            pushData: this.pushData.bind(this),
             sendRequest: async (overrideOptions?: OptionsInit) => {
                 const cookieJar = session ? {
                     getCookieString: async (url: string) => session!.getCookieString(url),
@@ -1239,6 +1238,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     cookieJar,
                 });
             },
+            getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
         this.crawlingContexts.set(crawlingContext.id, crawlingContext);

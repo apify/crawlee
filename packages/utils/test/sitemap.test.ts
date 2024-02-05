@@ -140,4 +140,12 @@ describe('Sitemap', () => {
             'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
         ]));
     });
+
+    it('handles sitemap.txt correctly', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt');
+        expect(new Set(sitemap.urls)).toEqual(new Set([
+            'http://not-exists.com/catalog?item=78&desc=vacation_crete',
+            'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
+        ]));
+    });
 });
