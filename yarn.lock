@@ -6606,8 +6606,8 @@ __metadata:
   linkType: hard
 
 "inquirer@npm:^9.0.0":
-  version: 9.2.13
-  resolution: "inquirer@npm:9.2.13"
+  version: 9.2.14
+  resolution: "inquirer@npm:9.2.14"
   dependencies:
     "@ljharb/through": "npm:^2.3.12"
     ansi-escapes: "npm:^4.3.2"
@@ -6624,7 +6624,7 @@ __metadata:
     string-width: "npm:^4.2.3"
     strip-ansi: "npm:^6.0.1"
     wrap-ansi: "npm:^6.2.0"
-  checksum: 652329bdc380df627abd5edbe81444d39b08c9377c7e839b258679aa2025aa9c30178a5e23691b70018291c3c601b0b6d96f77ac24eae7ab9ec1816f32d68db4
+  checksum: de4fc9054e4816835bfc1cee1db254b0b8df816fb57fc13d694cd4e80c13e43230b01bde0526e74f620910a64e3ad0f99ec89869f88e1cf50aa70d4958ef62cb
   languageName: node
   linkType: hard
 
@@ -11226,21 +11226,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.7":
-  version: 6.1.7
-  resolution: "tldts-core@npm:6.1.7"
-  checksum: 3bb72a4e2231fe661e7380666f72d356f19be07af0f70dc601104caa39124b5795321c5a28dbe7cce60188fd7272867fcdf126198234c93b73fe3b9ffca701f4
+"tldts-core@npm:^6.1.8":
+  version: 6.1.8
+  resolution: "tldts-core@npm:6.1.8"
+  checksum: 07ccde4dd832f873208239eb6caef9a2a6ec6f331a39a4b5bb2080eff7c2619fd101c1c371cf5d9c2716d5e5e3dda2292c2f27e577507565f16d2569a3e74782
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.1.7
-  resolution: "tldts@npm:6.1.7"
+  version: 6.1.8
+  resolution: "tldts@npm:6.1.8"
   dependencies:
-    tldts-core: "npm:^6.1.7"
+    tldts-core: "npm:^6.1.8"
   bin:
     tldts: bin/cli.js
-  checksum: ec00d951c8fb0668dbcb7b154efb276b2d4c58aaa9810d65a78d86b26f97e32f2acec607a5bb86b3a8748f83628299db236c85fdd8bc8cf5b5b792cf0d27860f
+  checksum: 31c6b5f5a87e50c900ab4600555320e0679d655c59cf2ff3a726fcd121475a40b5c88f61b9145b474f60b71f2013755467ed8bd47d0c0703f0eef6eda148c3c8
   languageName: node
   linkType: hard
 
