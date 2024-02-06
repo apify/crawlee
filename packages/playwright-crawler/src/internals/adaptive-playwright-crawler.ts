@@ -7,17 +7,17 @@ import { cheerioPortadom, playwrightLocatorPortadom, type CheerioPortadom, type 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
 import { RenderingTypePredictor, type RenderingType } from './rendering-type-prediction';
+import type { Source, Awaitable, Dictionary, RestrictedCrawlingContext, Configuration, RecordOptions } from '..';
 import { BasicCrawler, KeyValueStore } from '..';
-import { Source, type Awaitable, type Dictionary, type RestrictedCrawlingContext, type Configuration, type RecordOptions } from '..';
 
 type Result<TResult> = NonNullable<{result: TResult; ok: true} | {error: unknown; ok: false}>
 
 class RequestHandlerResult {
-    private datasetItems: {item: Dictionary; datasetIdOrName?: string}[] = [];
-    private requestListUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
-    private requestUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
-    private enqueuedUrls: {url?: string; label?: string; options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0]}[] = [];
-    private keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};
+    datasetItems: {item: Dictionary; datasetIdOrName?: string}[] = [];
+    requestListUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
+    requestUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
+    enqueuedUrls: {url?: string; label?: string; options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0]}[] = [];
+    keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};
 
     constructor(private config: Configuration) {}
 
@@ -169,8 +169,22 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         }
     }
 
-    protected async commitResult(crawlingContext: PlaywrightCrawlingContext<Dictionary>, result: RequestHandlerResult): Promise<void> {
-
+    protected async commitResult(
+        crawlingContext: PlaywrightCrawlingContext<Dictionary>,
+        { datasetItems, enqueuedUrls, requestUrls, requestListUrls, keyValueStoreChanges } : RequestHandlerResult,
+    ): Promise<void> {
+        await Promise.all([
+            ...datasetItems.map(async ({ item, datasetIdOrName }) => crawlingContext.pushData(item, datasetIdOrName)),
+            ...enqueuedUrls.map(async ({ options }) => crawlingContext.enqueueLinks(options)),
+            ...requestUrls.map(async ({ request, options }) => crawlingContext.addRequests([request], options)),
+            ...requestListUrls.map(async ({ request, options }) => crawlingContext.addRequests([request], options)),
+            ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
+                const store = await crawlingContext.getKeyValueStore(storeIdOrName);
+                await Promise.all(
+                    Object.entries(changes).map(async ([key, { changedValue, options }]) => store.setValue(key, changedValue, options))
+                );
+            }),
+        ]);
     }
 
     protected async runRequestHandlerInBrowser(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
