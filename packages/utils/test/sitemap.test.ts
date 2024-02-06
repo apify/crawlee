@@ -132,7 +132,7 @@ describe('Sitemap', () => {
     });
 
     it('autodetects sitemaps', async () => {
-        const sitemap = await Sitemap.find('http://not-exists.com/arbitrary_url?search=xyz');
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists.com/arbitrary_url?search=xyz');
         expect(new Set(sitemap.urls)).toEqual(new Set([
             'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
             'http://not-exists.com/catalog?item=81&desc=vacation_maledives',

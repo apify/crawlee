@@ -115,11 +115,12 @@ export class Sitemap {
     }
 
     /**
-     * Determine the location of a sitemap file for a URL and fetch it.
+     * Try to load sitemap from the most common locations - `/sitemap.xml` and `/sitemap.txt`.
+     * For loading based on `Sitemap` entries in `robots.txt`, the {@apilink RobotsFile} class should be used.
      * @param url the URL to fetch the sitemap for
      * @param proxyUrl a proxy to be used for fetching the sitemap file
      */
-    static async find(url: string, proxyUrl?: string): Promise<Sitemap> {
+    static async tryCommonNames(url: string, proxyUrl?: string): Promise<Sitemap> {
         const sitemapUrls: string[] = [];
 
         const sitemapUrl = new URL(url);
