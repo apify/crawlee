@@ -1,4 +1,8 @@
 import { addTimeoutToPromise } from '@apify/timeout';
+import { BasicCrawler } from '@crawlee/basic';
+import type { Source, Configuration, RecordOptions, RestrictedCrawlingContext } from '@crawlee/core';
+import { KeyValueStore } from '@crawlee/core';
+import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
 import type { Cheerio, Document } from 'cheerio';
 import { load } from 'cheerio';
@@ -7,8 +11,6 @@ import { cheerioPortadom, playwrightLocatorPortadom, type CheerioPortadom, type 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
 import { RenderingTypePredictor, type RenderingType } from './rendering-type-prediction';
-import type { Source, Awaitable, Dictionary, RestrictedCrawlingContext, Configuration, RecordOptions } from '..';
-import { BasicCrawler, KeyValueStore } from '..';
 
 type Result<TResult> = NonNullable<{result: TResult; ok: true} | {error: unknown; ok: false}>
 
@@ -181,7 +183,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
                 const store = await crawlingContext.getKeyValueStore(storeIdOrName);
                 await Promise.all(
-                    Object.entries(changes).map(async ([key, { changedValue, options }]) => store.setValue(key, changedValue, options))
+                    Object.entries(changes).map(async ([key, { changedValue, options }]) => store.setValue(key, changedValue, options)),
                 );
             }),
         ]);
