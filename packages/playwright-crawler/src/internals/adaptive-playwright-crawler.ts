@@ -7,35 +7,80 @@ import { cheerioPortadom, playwrightLocatorPortadom, type CheerioPortadom, type 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
 import { RenderingTypePredictor, type RenderingType } from './rendering-type-prediction';
-import type { Awaitable, Dictionary, RestrictedCrawlingContext } from '..';
+import { BasicCrawler, KeyValueStore } from '..';
+import { Source, type Awaitable, type Dictionary, type RestrictedCrawlingContext, type Configuration, type RecordOptions } from '..';
 
 type Result<TResult> = NonNullable<{result: TResult; ok: true} | {error: unknown; ok: false}>
 
 class RequestHandlerResult {
-    pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
+    private datasetItems: {item: Dictionary; datasetIdOrName?: string}[] = [];
+    private requestListUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
+    private requestUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
+    private enqueuedUrls: {url?: string; label?: string; options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0]}[] = [];
+    private keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};
 
+    constructor(private config: Configuration) {}
+
+    pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
+        this.datasetItems.push(...(Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })));
     };
 
     enqueueLinks: RestrictedCrawlingContext['enqueueLinks'] = async (options) => {
-
+        this.enqueuedUrls.push(...(options?.urls?.map((url) => ({ url, label: options.label, options })) ?? []));
     };
 
-    addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options) => {
-
+    addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
+        for (const request of requests) {
+            if (typeof request === 'object' && 'requestsFromUrl' in request) {
+                this.requestListUrls.push({ url: request.url, label: request.label, request, options });
+            } else if (typeof request === 'string') {
+                this.requestUrls.push({ url: request, request: { url: request }, options });
+            } else {
+                this.requestUrls.push({ url: request.url, label: request.label, request, options });
+            }
+        }
     };
 
     useState: RestrictedCrawlingContext['useState'] = async (defaultValue) => {
+        // @ts-ignore
+        const key = BasicCrawler.CRAWLEE_STATE_KEY;
+        const store = await this.getKeyValueStore(undefined);
 
+        return await store.getAutoSavedValue(key, defaultValue);
+    };
+
+    private idOrDefault = (idOrName?: string): string => idOrName ?? this.config.get('defaultKeyValueStoreId');
+
+    private getKeyValueStoreChangedValue = (idOrName: string | undefined, key: string) => {
+        const id = this.idOrDefault(idOrName);
+        this.keyValueStoreChanges[id] ??= {};
+        return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
+    };
+
+    private setKeyValueStoreChangedValue = (idOrName: string | undefined, key: string, changedValue: unknown, options?: RecordOptions) => {
+        const id = this.idOrDefault(idOrName);
+        this.keyValueStoreChanges[id] ??= {};
+        this.keyValueStoreChanges[id][key] = { changedValue, options };
     };
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (idOrName) => {
-        return {
-            id: idOrName,
-            name: idOrName,
-            getValue: (key) => {},
-            getAutoSavedValue: (key, defaultValue) => {},
-            setValue: (key, value, options) => {
+        const store = await KeyValueStore.open(idOrName, { config: this.config });
 
+        return {
+            id: this.idOrDefault(idOrName),
+            name: idOrName,
+            getValue: async (key) => this.getKeyValueStoreChangedValue(idOrName, key) ?? await store.getValue(key),
+            getAutoSavedValue: async <T extends Dictionary = Dictionary>(key: string, defaultValue: T = {} as T) => {
+                let value = this.getKeyValueStoreChangedValue(idOrName, key);
+                if (value === null) {
+                    value = await store.getValue(key) ?? defaultValue;
+                    this.setKeyValueStoreChangedValue(idOrName, key, value);
+                }
+
+                return value as T;
+            },
+            setValue: async (key, value, options) => {
+                this.setKeyValueStoreChangedValue(idOrName, key, value, options);
             },
         };
     };
@@ -129,7 +174,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     }
 
     protected async runRequestHandlerInBrowser(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
-        const result = new RequestHandlerResult();
+        const result = new RequestHandlerResult(this.config);
         const instrumentedContext = {
             ...crawlingContext,
             pushData: result.pushData,
@@ -147,7 +192,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     }
 
     protected async runRequestHandlerWithPlainHTTP(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
-        const result = new RequestHandlerResult();
+        const result = new RequestHandlerResult(this.config);
 
         const response = await crawlingContext.sendRequest({});
         const loadedUrl = response.url;
