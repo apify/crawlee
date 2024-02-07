@@ -100,19 +100,14 @@ interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions
 }
 
 export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
-    private _requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
+    private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
     private renderingTypePredictor: RenderingTypePredictor;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
 
     constructor({ requestHandler, renderingTypeDetectionRatio, resultChecker, resultComparator, ...options }: AdaptivePlaywrightCrawlerOptions) {
-        super({
-            ...options,
-            requestHandler: async (context) => {
-                await this._requestHandler({ ...context, dom: playwrightLocatorPortadom(context.page.locator(':root'), context.page) });
-            },
-        });
-        this._requestHandler = requestHandler;
+        super(options);
+        this.adaptiveRequestHandler = requestHandler;
         this.renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
         this.resultComparator = resultComparator ?? (() => true); // TODO
@@ -125,10 +120,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
-            crawlingContext.log.info(`Predicted rendering type ${renderingTypePrediction} for ${crawlingContext.request.url}`);
+            crawlingContext.log.info(`Predicted rendering type ${renderingTypePrediction.renderingType} for ${crawlingContext.request.url}`);
         }
 
-        if (renderingTypePrediction.renderingType === 'static' || !shouldDetectRenderingType) {
+        if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
             crawlingContext.log.info(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
 
             const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext);
@@ -152,6 +147,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         await this.commitResult(crawlingContext, browserRun.result);
 
         if (shouldDetectRenderingType) {
+            crawlingContext.log.info(`Detecting rendering type for ${crawlingContext.request.url}`);
             const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext);
 
             const detectionResult: RenderingType = (() => {
@@ -173,34 +169,56 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
     protected async commitResult(
         crawlingContext: PlaywrightCrawlingContext<Dictionary>,
-        { datasetItems, enqueuedUrls, requestUrls, requestListUrls, keyValueStoreChanges } : RequestHandlerResult,
+        { datasetItems, enqueuedUrls, requestUrls, requestListUrls, keyValueStoreChanges }: RequestHandlerResult,
     ): Promise<void> {
-        await Promise.all([
-            ...datasetItems.map(async ({ item, datasetIdOrName }) => crawlingContext.pushData(item, datasetIdOrName)),
-            ...enqueuedUrls.map(async ({ options }) => crawlingContext.enqueueLinks(options)),
-            ...requestUrls.map(async ({ request, options }) => crawlingContext.addRequests([request], options)),
-            ...requestListUrls.map(async ({ request, options }) => crawlingContext.addRequests([request], options)),
-            ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
-                const store = await crawlingContext.getKeyValueStore(storeIdOrName);
-                await Promise.all(
-                    Object.entries(changes).map(async ([key, { changedValue, options }]) => store.setValue(key, changedValue, options)),
-                );
-            }),
-        ]);
+        for (const {item, datasetIdOrName} of datasetItems) {
+            await crawlingContext.pushData(item, datasetIdOrName)
+        }
+        for (const {options} of enqueuedUrls) {
+            await crawlingContext.enqueueLinks(options)
+        }
+        for (const {request, options} of requestUrls) {
+            await crawlingContext.addRequests([request], options)
+        }
+        for (const {request, options} of requestListUrls) {
+            await crawlingContext.addRequests([request], options)
+        }
+        for (const [storeIdOrName, changes] of Object.entries(keyValueStoreChanges)) {
+            const store = await crawlingContext.getKeyValueStore(storeIdOrName);
+            for (const [key, { changedValue, options }] of Object.entries(changes)) {
+                await store.setValue(key, changedValue, options)
+            }
+        }
     }
 
     protected async runRequestHandlerInBrowser(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
         const result = new RequestHandlerResult(this.config);
-        const instrumentedContext = {
-            ...crawlingContext,
-            pushData: result.pushData,
-            enqueueLinks: result.enqueueLinks,
-            addRequests: result.addRequests,
-            useState: result.useState,
-            getKeyValueStore: result.getKeyValueStore,
-        };
+
         try {
-            await (super._runRequestHandler as (context: RestrictedCrawlingContext) => Promise<void>)(instrumentedContext);
+            await super._runRequestHandler.call(
+                new Proxy(this, {
+                    get: (target, propertyName, receiver) => {
+                        if (propertyName === 'userProvidedRequestHandler') {
+                            return (playwrightContext: PlaywrightCrawlingContext) => this.adaptiveRequestHandler({
+                                request: crawlingContext.request,
+                                log: crawlingContext.log,
+                                dom: playwrightLocatorPortadom(playwrightContext.page.locator(':root'), playwrightContext.page),
+                                enqueueLinks: async (options = {}) => {
+                                    const $ = await playwrightContext.parseWithCheerio();
+                                    const urls = extractUrlsFromCheerio($, options.selector, playwrightContext.request.loadedUrl); // TODO avoid parsing with cheerio
+                                    await result.enqueueLinks({ ...options, urls });
+                                },
+                                addRequests: result.addRequests,
+                                pushData: result.pushData,
+                                useState: result.useState,
+                                getKeyValueStore: result.getKeyValueStore,
+                            });
+                        }
+                        return Reflect.get(target, propertyName, receiver);
+                    },
+                }),
+                crawlingContext,
+            );
             return { result, ok: true };
         } catch (error) {
             return { error, ok: false };
@@ -214,11 +232,13 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const loadedUrl = response.url;
         const $ = load(response.body);
 
+        crawlingContext.request.loadedUrl = loadedUrl
+
         try {
             await addTimeoutToPromise(
                 async () => Promise.resolve(
-                    this._requestHandler({
-                        request: { ...crawlingContext.request, loadedUrl } as any,
+                    this.adaptiveRequestHandler({
+                        request: crawlingContext.request,
                         log: crawlingContext.log,
                         dom: cheerioPortadom($.root(), response.url),
                         enqueueLinks: async (options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) => {
