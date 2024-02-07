@@ -140,4 +140,25 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
 
         expect(enqueued).toHaveLength(0);
     });
+
+    test('works with exclude only', async () => {
+        const { enqueued, requestQueue } = createRequestQueueMock();
+
+        const exclude = ['**/second', '**/third', 'https://another.com/**'];
+
+        await cheerioCrawlerEnqueueLinks({
+            options: {
+                selector: '.click',
+                exclude,
+                strategy: EnqueueStrategy.All,
+            },
+            $,
+            requestQueue,
+            originalRequestUrl: 'https://example.com',
+        });
+
+        expect(enqueued).toHaveLength(2);
+        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+        expect(enqueued[1].url).toBe('http://cool.com/');
+    });
 });
