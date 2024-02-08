@@ -157,7 +157,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<void> {
         const url = new URL(crawlingContext.request.loadedUrl ?? crawlingContext.request.url);
 
-        const renderingTypePrediction = this.renderingTypePredictor.predict(url);
+        const renderingTypePrediction = this.renderingTypePredictor.predict(url, crawlingContext.request.label);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
@@ -204,7 +204,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             })();
 
             crawlingContext.log.info(`Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`);
-            this.renderingTypePredictor.storeResult(url, detectionResult);
+            this.renderingTypePredictor.storeResult(url, crawlingContext.request.label, detectionResult);
         }
     }
 

@@ -30,7 +30,7 @@ const mean = (values: number[]) => (values.length > 0 ? sum(values) / values.len
 type FeatureVector = [staticResultsSimilarity: number, clientOnlyResultsSimilarity: number];
 
 export class RenderingTypePredictor {
-    private renderingTypeDetectionResults = new Map<RenderingType, URLComponents[]>();
+    private renderingTypeDetectionResults = new Map<RenderingType, Map<string | undefined, URLComponents[]>>();
     private detectionRatio: number;
     private logreg: LogisticRegression;
 
@@ -39,40 +39,44 @@ export class RenderingTypePredictor {
         this.logreg = new LogisticRegression({ numSteps: 1000, learningRate: 0.05 });
     }
 
-    public predict(url: URL): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
+    public predict(url: URL, label: string | undefined): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
         if (this.logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
         }
 
-        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(url))]);
+        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(url), label)]);
         const [prediction] = this.logreg.predict(urlFeature);
         const scores = [this.logreg.classifiers[0].testScores(urlFeature), this.logreg.classifiers[1].testScores(urlFeature)];
 
         return {
             renderingType: prediction === 1 ? 'static' : 'clientOnly',
-            detectionProbabilityRecommendation: Math.abs(scores[0] - scores[1]) < 0.1 ? 1 : this.detectionRatio * Math.max(1, 5 - this.resultCount),
+            detectionProbabilityRecommendation: Math.abs(scores[0] - scores[1]) < 0.1 ? 1 : this.detectionRatio * Math.max(1, 5 - this.resultCount(label)),
         };
     }
 
-    public storeResult(url: URL, renderingType: RenderingType) {
+    public storeResult(url: URL, label: string | undefined, renderingType: RenderingType) {
         if (!this.renderingTypeDetectionResults.has(renderingType)) {
-            this.renderingTypeDetectionResults.set(renderingType, []);
+            this.renderingTypeDetectionResults.set(renderingType, new Map());
         }
 
-    this.renderingTypeDetectionResults.get(renderingType)!.push(urlComponents(url));
-    this.retrain();
+        if (!this.renderingTypeDetectionResults.get(renderingType)!.has(label)) {
+            this.renderingTypeDetectionResults.get(renderingType)!.set(label, []);
+        }
+
+        this.renderingTypeDetectionResults.get(renderingType)!.get(label)!.push(urlComponents(url));
+        this.retrain();
     }
 
-    public get resultCount(): number {
+    private resultCount(label: string | undefined): number {
         return Array.from(this.renderingTypeDetectionResults.values())
-            .map((results) => results.length)
+            .map((results) => results.get(label)?.length ?? 0)
             .reduce((acc, value) => acc + value, 0);
     }
 
-    protected calculateFeatureVector(url: URLComponents): FeatureVector {
+    protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
-            mean((this.renderingTypeDetectionResults.get('static') ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
-            mean((this.renderingTypeDetectionResults.get('clientOnly') ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
+            mean((this.renderingTypeDetectionResults.get('static')?.get(label) ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
+            mean((this.renderingTypeDetectionResults.get('clientOnly')?.get(label) ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
         ];
     }
 
@@ -83,10 +87,12 @@ export class RenderingTypePredictor {
         ];
         const Y: number[] = [0, 1];
 
-        for (const [renderingType, urls] of this.renderingTypeDetectionResults.entries()) {
-            for (const url of urls) {
-                X.push(this.calculateFeatureVector(url));
-                Y.push(renderingType === 'static' ? 1 : 0);
+        for (const [renderingType, urlsByLabel] of this.renderingTypeDetectionResults.entries()) {
+            for (const [label, urls] of urlsByLabel) {
+                for (const url of urls) {
+                    X.push(this.calculateFeatureVector(url, label));
+                    Y.push(renderingType === 'static' ? 1 : 0);
+                }
             }
         }
 
