@@ -1,6 +1,6 @@
 import { addTimeoutToPromise } from '@apify/timeout';
 import { BasicCrawler } from '@crawlee/basic';
-import type { Source, Configuration, RecordOptions, RestrictedCrawlingContext } from '@crawlee/core';
+import type { Configuration, RecordOptions, RestrictedCrawlingContext } from '@crawlee/core';
 import { KeyValueStore } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
@@ -15,32 +15,73 @@ import { RenderingTypePredictor, type RenderingType } from './rendering-type-pre
 type Result<TResult> = NonNullable<{result: TResult; ok: true} | {error: unknown; ok: false}>
 
 class RequestHandlerResult {
-    datasetItems: {item: Dictionary; datasetIdOrName?: string}[] = [];
-    requestListUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
-    requestUrls: {url?: string; label?: string; request: Source; options: Parameters<RestrictedCrawlingContext['addRequests']>[1]}[] = [];
-    enqueuedUrls: {url?: string; label?: string; options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0]}[] = [];
-    keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};
+    private _keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};
+    private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
+    private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
+    private enqueueLinksCalls: Parameters<RestrictedCrawlingContext['enqueueLinks']>[] = [];
 
     constructor(private config: Configuration) {}
 
+    get datasetItems() {
+        return this.pushDataCalls.flatMap(([data, datasetIdOrName]) => (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })));
+    }
+
+    get calls(): {
+        pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
+        addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
+        enqueueLinks: Parameters<RestrictedCrawlingContext['enqueueLinks']>[];
+        } {
+        return { pushData: this.pushDataCalls, addRequests: this.addRequestsCalls, enqueueLinks: this.enqueueLinksCalls };
+    }
+
+    get keyValueStoreChanges(): Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> {
+        return this._keyValueStoreChanges;
+    }
+
+    get enqueuedUrls(): {url: string; label?: string}[] {
+        const result: {url: string; label? : string}[] = [];
+
+        for (const [options] of this.enqueueLinksCalls) {
+            result.push(...(options?.urls?.map((url) => ({ url, label: options?.label })) ?? []));
+        }
+
+        for (const [requests] of this.addRequestsCalls) {
+            for (const request of requests) {
+                if (typeof request === 'object' && (!('requestsFromUrl' in request) || request.requestsFromUrl !== undefined) && request.url !== undefined) {
+                    result.push({ url: request.url, label: request.label });
+                } else if (typeof request === 'string') {
+                    result.push({ url: request });
+                }
+            }
+        }
+
+        return result;
+    }
+
+    get enqueuedUrlLists(): {listUrl: string; label? : string}[] {
+        const result: {listUrl: string; label? : string}[] = [];
+
+        for (const [requests] of this.addRequestsCalls) {
+            for (const request of requests) {
+                if (typeof request === 'object' && 'requestsFromUrl' in request && request.requestsFromUrl !== undefined) {
+                    result.push({ listUrl: request.requestsFromUrl, label: request.label });
+                }
+            }
+        }
+
+        return result;
+    }
+
     pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
-        this.datasetItems.push(...(Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })));
+        this.pushDataCalls.push([data, datasetIdOrName]);
     };
 
     enqueueLinks: RestrictedCrawlingContext['enqueueLinks'] = async (options) => {
-        this.enqueuedUrls.push(...(options?.urls?.map((url) => ({ url, label: options.label, options })) ?? []));
+        this.enqueueLinksCalls.push([options]);
     };
 
     addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
-        for (const request of requests) {
-            if (typeof request === 'object' && 'requestsFromUrl' in request) {
-                this.requestListUrls.push({ url: request.url, label: request.label, request, options });
-            } else if (typeof request === 'string') {
-                this.requestUrls.push({ url: request, request: { url: request }, options });
-            } else {
-                this.requestUrls.push({ url: request.url, label: request.label, request, options });
-            }
-        }
+        this.addRequestsCalls.push([requests, options]);
     };
 
     useState: RestrictedCrawlingContext['useState'] = async (defaultValue) => {
@@ -55,14 +96,14 @@ class RequestHandlerResult {
 
     private getKeyValueStoreChangedValue = (idOrName: string | undefined, key: string) => {
         const id = this.idOrDefault(idOrName);
-        this.keyValueStoreChanges[id] ??= {};
+        this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
 
     private setKeyValueStoreChangedValue = (idOrName: string | undefined, key: string, changedValue: unknown, options?: RecordOptions) => {
         const id = this.idOrDefault(idOrName);
-        this.keyValueStoreChanges[id] ??= {};
-        this.keyValueStoreChanges[id][key] = { changedValue, options };
+        this._keyValueStoreChanges[id] ??= {};
+        this._keyValueStoreChanges[id][key] = { changedValue, options };
     };
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (idOrName) => {
@@ -169,26 +210,19 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
     protected async commitResult(
         crawlingContext: PlaywrightCrawlingContext<Dictionary>,
-        { datasetItems, enqueuedUrls, requestUrls, requestListUrls, keyValueStoreChanges }: RequestHandlerResult,
+        { calls, keyValueStoreChanges }: RequestHandlerResult,
     ): Promise<void> {
-        for (const {item, datasetIdOrName} of datasetItems) {
-            await crawlingContext.pushData(item, datasetIdOrName)
-        }
-        for (const {options} of enqueuedUrls) {
-            await crawlingContext.enqueueLinks(options)
-        }
-        for (const {request, options} of requestUrls) {
-            await crawlingContext.addRequests([request], options)
-        }
-        for (const {request, options} of requestListUrls) {
-            await crawlingContext.addRequests([request], options)
-        }
-        for (const [storeIdOrName, changes] of Object.entries(keyValueStoreChanges)) {
-            const store = await crawlingContext.getKeyValueStore(storeIdOrName);
-            for (const [key, { changedValue, options }] of Object.entries(changes)) {
-                await store.setValue(key, changedValue, options)
-            }
-        }
+        await Promise.all([
+            ...calls.pushData.map(async (params) => crawlingContext.pushData(...params)),
+            ...calls.enqueueLinks.map(async (params) => await crawlingContext.enqueueLinks(...params)),
+            ...calls.addRequests.map(async (params) => crawlingContext.addRequests(...params)),
+            ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
+                const store = await crawlingContext.getKeyValueStore(storeIdOrName);
+                await Promise.all(
+                    Object.entries(changes).map(async ([key, { changedValue, options }]) => store.setValue(key, changedValue, options)),
+                );
+            }),
+        ]);
     }
 
     protected async runRequestHandlerInBrowser(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
@@ -208,10 +242,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                     const urls = extractUrlsFromCheerio($, options.selector, playwrightContext.request.loadedUrl); // TODO avoid parsing with cheerio
                                     await result.enqueueLinks({ ...options, urls });
                                 },
-                                addRequests: result.addRequests,
-                                pushData: result.pushData,
-                                useState: result.useState,
-                                getKeyValueStore: result.getKeyValueStore,
+                                addRequests: playwrightContext.addRequests,
+                                pushData: playwrightContext.pushData,
+                                useState: playwrightContext.useState,
+                                getKeyValueStore: playwrightContext.getKeyValueStore,
                             });
                         }
                         return Reflect.get(target, propertyName, receiver);
@@ -232,7 +266,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const loadedUrl = response.url;
         const $ = load(response.body);
 
-        crawlingContext.request.loadedUrl = loadedUrl
+        crawlingContext.request.loadedUrl = loadedUrl;
 
         try {
             await addTimeoutToPromise(
