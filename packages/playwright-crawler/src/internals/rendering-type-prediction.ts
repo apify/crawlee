@@ -36,7 +36,7 @@ export class RenderingTypePredictor {
 
     constructor({ detectionRatio }: { detectionRatio: number }) {
         this.detectionRatio = detectionRatio;
-        this.logreg = new LogisticRegression({ numSteps: 1000, learningRate: 5e-2 });
+        this.logreg = new LogisticRegression({ numSteps: 1000, learningRate: 0.05 });
     }
 
     public predict(url: URL): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
