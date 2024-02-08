@@ -20,7 +20,6 @@ import {
     enqueueLinks,
     EVENT_SESSION_RETIRED,
     handleRequestTimeout,
-    tryAbsoluteURL,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     validators,
@@ -38,7 +37,7 @@ import type {
 } from '@crawlee/browser-pool';
 import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
-import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
+import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep, extractUrlsFromPage } from '@crawlee/utils';
 import ow from 'ow';
 
 import type { BrowserLaunchContext } from './browser-launcher';
@@ -771,7 +770,7 @@ export async function browserCrawlerEnqueueLinks({
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = await extractUrlsFromPage(page as any, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
+    const urls = await extractUrlsFromPage(page as any, options?.selector, options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
 
     return enqueueLinks({
         requestQueue,
@@ -779,33 +778,4 @@ export async function browserCrawlerEnqueueLinks({
         baseUrl,
         ...options,
     });
-}
-
-/**
- * Extracts URLs from a given page.
- * @ignore
- */
-// eslint-disable-next-line @typescript-eslint/ban-types
-async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
-    const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
-    const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
-    const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
-
-    if (absoluteBaseUrl) {
-        baseUrl = absoluteBaseUrl;
-    }
-
-    return urls.map((href: string) => {
-        // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
-        const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
-        if (!isHrefAbsolute && !baseUrl) {
-            throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
-                + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
-        }
-
-        return baseUrl
-            ? tryAbsoluteURL(href, baseUrl)
-            : href;
-    })
-        .filter((href: string | undefined) => !!href);
 }
