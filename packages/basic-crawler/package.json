@@ -51,6 +51,8 @@
         "@crawlee/core": "3.7.3",
         "@crawlee/types": "3.7.3",
         "@crawlee/utils": "3.7.3",
+        "csv-stringify": "^6.2.0",
+        "fs-extra": "^11.0.0",
         "got-scraping": "^4.0.0",
         "ow": "^0.28.1",
         "tldts": "^6.0.0",
