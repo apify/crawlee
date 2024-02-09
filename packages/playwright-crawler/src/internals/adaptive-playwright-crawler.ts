@@ -1,5 +1,6 @@
 import { addTimeoutToPromise } from '@apify/timeout';
 import { BasicCrawler } from '@crawlee/basic';
+import { extractUrlsFromPage } from '@crawlee/browser';
 import type { Configuration, RecordOptions, RestrictedCrawlingContext } from '@crawlee/core';
 import { KeyValueStore } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -238,8 +239,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 log: crawlingContext.log,
                                 dom: playwrightLocatorPortadom(playwrightContext.page.locator(':root'), playwrightContext.page),
                                 enqueueLinks: async (options = {}) => {
-                                    const $ = await playwrightContext.parseWithCheerio();
-                                    const urls = extractUrlsFromCheerio($, options.selector, playwrightContext.request.loadedUrl); // TODO avoid parsing with cheerio
+                                    const urls = await extractUrlsFromPage(
+                                        playwrightContext.page,
+                                        options.selector ?? 'a',
+                                        options.baseUrl ?? playwrightContext.request.loadedUrl ?? playwrightContext.request.url,
+                                    );
                                     await result.enqueueLinks({ ...options, urls });
                                 },
                                 addRequests: playwrightContext.addRequests,
@@ -276,7 +280,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                         log: crawlingContext.log,
                         dom: cheerioPortadom($.root(), response.url),
                         enqueueLinks: async (options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) => {
-                            const urls = extractUrlsFromCheerio($, options.selector, loadedUrl);
+                            const urls = extractUrlsFromCheerio($, options.selector, options.baseUrl ?? loadedUrl);
                             await result.enqueueLinks({ ...options, urls });
                         },
                         addRequests: result.addRequests,

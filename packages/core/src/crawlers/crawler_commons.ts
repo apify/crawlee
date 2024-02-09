@@ -9,8 +9,7 @@ import type { Request, Source } from '../request';
 import type { Session } from '../session_pool/session';
 import type { RequestQueueOperationOptions, Dataset, KeyValueStore } from '../storages';
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown>{
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> extends Record<string, unknown>{
     /**
      * The original {@apilink Request} object.
      */

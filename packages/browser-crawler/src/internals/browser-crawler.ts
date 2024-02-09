@@ -786,7 +786,7 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
+export async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
     const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
     const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
     const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
