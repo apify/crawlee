@@ -29,16 +29,27 @@ const mean = (values: number[]) => (values.length > 0 ? sum(values) / values.len
 
 type FeatureVector = [staticResultsSimilarity: number, clientOnlyResultsSimilarity: number];
 
+interface RenderingTypePredictorOptions {
+    /** A number between 0 and 1 that determines the desired ratio of rendering type detections */
+    detectionRatio: number;
+}
+
+/**
+ * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
+ */
 export class RenderingTypePredictor {
     private renderingTypeDetectionResults = new Map<RenderingType, Map<string | undefined, URLComponents[]>>();
     private detectionRatio: number;
     private logreg: LogisticRegression;
 
-    constructor({ detectionRatio }: { detectionRatio: number }) {
+    constructor({ detectionRatio }: RenderingTypePredictorOptions) {
         this.detectionRatio = detectionRatio;
         this.logreg = new LogisticRegression({ numSteps: 1000, learningRate: 0.05 });
     }
 
+    /**
+     * Predict the rendering type for a given URL and request label.
+     */
     public predict(url: URL, label: string | undefined): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
         if (this.logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
@@ -54,6 +65,9 @@ export class RenderingTypePredictor {
         };
     }
 
+    /**
+     * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
+     */
     public storeResult(url: URL, label: string | undefined, renderingType: RenderingType) {
         if (!this.renderingTypeDetectionResults.has(renderingType)) {
             this.renderingTypeDetectionResults.set(renderingType, new Map());

@@ -10,7 +10,7 @@ import { cheerioPortadom, playwrightLocatorPortadom, type CheerioPortadom, type 
 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
-import { RenderingTypePredictor, type RenderingType } from './rendering-type-prediction';
+import { RenderingTypePredictor, type RenderingType } from './utils/rendering-type-prediction';
 
 type Result<TResult> = {result: TResult; ok: true} | {error: unknown; ok: false}
 
