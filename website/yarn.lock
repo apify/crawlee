@@ -5850,9 +5850,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.648":
-  version: 1.4.664
-  resolution: "electron-to-chromium@npm:1.4.664"
-  checksum: 52ea8b2b1ea3825f4eb845e472dbc0541abc098860ecd60e9c94f335e258f7e8eb08396a9ae758e6b54e871ee11adac762bb3a02c0ca521496f79fcde2d12e39
+  version: 1.4.665
+  resolution: "electron-to-chromium@npm:1.4.665"
+  checksum: c97e00510f4a3f9dfa213957b997cd3f759fedece2627716b39f72294214f45e30f7e2ee3cc58a0ddb4b9b60e4ef07fd505200619c2f9aa31b89ce0bfc558679
   languageName: node
   linkType: hard
 
@@ -13327,8 +13327,8 @@ __metadata:
   linkType: hard
 
 "typedoc@npm:^0.25.3":
-  version: 0.25.7
-  resolution: "typedoc@npm:0.25.7"
+  version: 0.25.8
+  resolution: "typedoc@npm:0.25.8"
   dependencies:
     lunr: "npm:^2.3.9"
     marked: "npm:^4.3.0"
@@ -13338,7 +13338,7 @@ __metadata:
     typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || 5.2.x || 5.3.x
   bin:
     typedoc: bin/typedoc
-  checksum: e663be0534dd56f45f041a478ee0613a1bf96cad7208a5cfc771981c904d0f30d8dca51956486f125f8004237264acc5dd45920fa6a0a32e351e36d74279abb1
+  checksum: f1adb64bd124a04da57227bdd7ec367a38e17b59e33b1acfaf04da560efc6318b0f7a0dfee85b90671b5e81e1e6dca6ca0d7157c10774c7a1a1f0931e8b30099
   languageName: node
   linkType: hard
 
