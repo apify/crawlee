@@ -98,7 +98,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
             }
         });
 
-        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'version', 'on'] as const)
+        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'version', 'on', 'process'] as const)
             .reduce((map, method) => {
                 map[method] = browser[method]?.bind(browser);
                 return map;
