@@ -331,7 +331,7 @@ export class ErrorTracker {
 
         // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
         if (group.count === 1 && context) {
-            await this.captureSnapshot(group, error, context);
+            await this.captureSnapshot(group, error, context).catch(() => {});
         }
 
         if (typeof error.cause === 'object' && error.cause !== null) {

@@ -1363,7 +1363,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const shouldRetryRequest = this._canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
-            await this.stats.errorTrackerRetry.add(error);
+            await this.stats.errorTrackerRetry.add(error, crawlingContext);
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
@@ -1389,7 +1389,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         }
 
-        await this.stats.errorTracker.add(error, crawlingContext);
+        // If the request is non-retryable, the error and snapshot aren't saved in the errorTrackerRetry object.
+        // Therefore, we pass the crawlingContext to the errorTracker.add method, enabling snapshot capture.
+        // This is to make sure the error snapshot is not duplicated in the errorTrackerRetry and errorTracker objects.
+        if (crawlingContext.request.noRetry) {
+            await this.stats.errorTracker.add(error, crawlingContext);
+        } else {
+            await this.stats.errorTracker.add(error);
+        }
 
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.

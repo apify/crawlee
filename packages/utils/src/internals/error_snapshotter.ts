@@ -53,7 +53,7 @@ export class ErrorSnapshotter {
      */
     async captureScreenshot(page: PuppeteerPage | PlaywrightPage, keyValueStore: KeyValueStore, filename: string): Promise<string | undefined> {
         try {
-            const screenshotBuffer = await page.screenshot();
+            const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'png' });
 
             await keyValueStore.setValue(filename, screenshotBuffer, { contentType: 'image/png' });
             return `${filename}.png`;
