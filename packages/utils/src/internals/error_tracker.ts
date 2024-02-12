@@ -1,7 +1,8 @@
 import { inspect } from 'node:util';
 
 import type { CrawlingContext } from '@crawlee/basic';
-import { ErrorSnapshotter } from '@crawlee/utils';
+
+import { ErrorSnapshotter } from './error_snapshotter';
 
 /**
  * Node.js Error interface

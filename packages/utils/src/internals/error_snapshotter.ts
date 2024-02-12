@@ -1,10 +1,11 @@
-import * as crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import type { CrawlingContext } from '@crawlee/basic';
-import type { ErrnoException } from '@crawlee/utils';
-import type { KeyValueStore } from 'packages/core/src/storages';
+import type { KeyValueStore } from '@crawlee/core';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
+
+import type { ErrnoException } from './error_tracker';
 
 /**
  * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occur during web crawling.
