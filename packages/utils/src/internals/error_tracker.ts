@@ -1,9 +1,12 @@
 import { inspect } from 'node:util';
 
+import type { CrawlingContext } from '@crawlee/basic';
+import { ErrorSnapshotter } from '@crawlee/utils';
+
 /**
  * Node.js Error interface
  */
- interface ErrnoException extends Error {
+export interface ErrnoException extends Error {
     errno?: number | undefined;
     code?: string | number | undefined;
     path?: string | undefined;
@@ -283,6 +286,8 @@ export class ErrorTracker {
 
     total: number;
 
+    errorSnapshotter: ErrorSnapshotter;
+
     constructor(options: Partial<ErrorTrackerOptions> = {}) {
         this.#options = {
             showErrorCode: true,
@@ -294,11 +299,13 @@ export class ErrorTracker {
             ...options,
         };
 
+        this.errorSnapshotter = new ErrorSnapshotter();
+
         this.result = Object.create(null);
         this.total = 0;
     }
 
-    add(error: ErrnoException) {
+    async add(error: ErrnoException, context?: CrawlingContext) {
         this.total++;
 
         let group = this.result;
@@ -321,8 +328,13 @@ export class ErrorTracker {
 
         increaseCount(group as { count: number });
 
+        // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
+        if (group.count === 1 && context) {
+            await this.captureSnapshot(group, error, context);
+        }
+
         if (typeof error.cause === 'object' && error.cause !== null) {
-            this.add(error.cause);
+            await this.add(error.cause);
         }
     }
 
@@ -364,6 +376,13 @@ export class ErrorTracker {
         goDeeper(this.result, []);
 
         return result.sort((a, b) => b[0] - a[0]).slice(0, count);
+    }
+
+    async captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext) {
+        const { screenshotFilename, htmlFilename } = await this.errorSnapshotter.captureSnapshot(error, context);
+
+        storage.firstErrorScreenshot = screenshotFilename;
+        storage.firstErrorHtmlSnapshot = htmlFilename;
     }
 
     reset() {

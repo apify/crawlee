@@ -1363,7 +1363,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const shouldRetryRequest = this._canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
-            this.stats.errorTrackerRetry.add(error);
+            await this.stats.errorTrackerRetry.add(error);
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
@@ -1389,7 +1389,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
         }
 
-        this.stats.errorTracker.add(error);
+        await this.stats.errorTracker.add(error, crawlingContext);
 
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.
