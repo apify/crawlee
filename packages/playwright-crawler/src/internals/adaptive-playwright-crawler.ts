@@ -52,6 +52,11 @@ interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions
      * If neither `resultComparator` nor `resultChecker` are specified, a deep comparison of returned dataset items is used as a default.
      */
     resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean;
+
+    /**
+     * A custom rendering type predictor
+     */
+    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult'>;
 }
 
 /**
@@ -59,14 +64,23 @@ interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions
  */
 export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
-    private renderingTypePredictor: RenderingTypePredictor;
+    private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
 
-    constructor({ requestHandler, renderingTypeDetectionRatio, resultChecker, resultComparator, ...options }: AdaptivePlaywrightCrawlerOptions) {
+    constructor(
+        {
+            requestHandler,
+            renderingTypeDetectionRatio,
+            renderingTypePredictor,
+            resultChecker,
+            resultComparator,
+            ...options
+        }: AdaptivePlaywrightCrawlerOptions,
+    ) {
         super(options);
         this.adaptiveRequestHandler = requestHandler;
-        this.renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
+        this.renderingTypePredictor = renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
 
         if (resultComparator !== undefined) {
