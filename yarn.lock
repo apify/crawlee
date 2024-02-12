@@ -610,6 +610,7 @@ __metadata:
     cheerio: "npm:^1.0.0-rc.12"
     idcac-playwright: "npm:^0.1.2"
     jquery: "npm:^3.6.0"
+    lodash.isequal: "npm:^4.5.0"
     ml-logistic-regression: "npm:^2.0.0"
     ow: "npm:^0.28.1"
     portadom: "npm:^1.0.4"
@@ -666,6 +667,7 @@ __metadata:
     "@types/htmlparser2": "npm:^3.10.3"
     "@types/inquirer": "npm:^8.2.1"
     "@types/is-ci": "npm:^3.0.1"
+    "@types/lodash.isequal": "npm:^4.5.8"
     "@types/lodash.merge": "npm:^4.6.7"
     "@types/mime-types": "npm:^2.1.1"
     "@types/node": "npm:^20.0.0"
@@ -2050,6 +2052,15 @@ __metadata:
   dependencies:
     "@types/node": "npm:*"
   checksum: 10c0/b12d068b021e4078f6ac4441353965769be87acf15326173e2aea9f3bf8ead41bd0ad29421df5bbeb0123ec3fc02eb0a734481d52903704a1454a1845896b9eb
+  languageName: node
+  linkType: hard
+
+"@types/lodash.isequal@npm:^4.5.8":
+  version: 4.5.8
+  resolution: "@types/lodash.isequal@npm:4.5.8"
+  dependencies:
+    "@types/lodash": "npm:*"
+  checksum: 6db28cacf165d55421fbf2970ccfb1682a7b82b743bb7aba4398fa8ab98f1711fca2fe4afa1aa2b7b4afb3eff76c8aca13b22206f5efeb038d99e41300589bca
   languageName: node
   linkType: hard
 

@@ -6,6 +6,7 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
 import type { Cheerio, Document } from 'cheerio';
 import { load } from 'cheerio';
+import isEqual from 'lodash.isequal';
 import { cheerioPortadom, playwrightLocatorPortadom, type CheerioPortadom, type PlaywrightLocatorPortadom } from 'portadom';
 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
@@ -19,12 +20,43 @@ interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
 }
 
 interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions, 'requestHandler'> {
+    /**
+     * Function that is called to process each request.
+     *
+     * The function receives the {@apilink AdaptivePlaywrightCrawlingContext} as an argument, and it must refrain from calling code with side effects,
+     * other than the methods of the crawling context. Any other side effects may be invoked repeatedly by the crawler, which can lead to inconsistent results.
+     *
+     * The function must return a promise, which is then awaited by the crawler.
+     *
+     * If the function throws an exception, the crawler will try to re-crawl the
+     * request later, up to `option.maxRequestRetries` times.
+     */
     requestHandler: (crawlingContext: AdaptivePlaywrightCrawlerContext) => Awaitable<void>;
+
+    /**
+     * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
+     */
     renderingTypeDetectionRatio: number;
+
+    /**
+     * An optional callback that is called on dataset items found by the request handler in plain HTTP mode.
+     * If it returns false, the request is retried in a browser.
+     * If no callback is specified, every dataset item is considered valid.
+     */
     resultChecker?: (result: RequestHandlerResult) => boolean;
+
+    /**
+     * An optional callback used in rendering type detection. On each detection, the result of the plain HTTP run is compared to that of the browser one.
+     * If the callback returns true, the results are considered equal and the target site is considered static.
+     * If no result comparator is specified, but there is a `resultChecker`, any site where the `resultChecker` returns true is considered static.
+     * If neither `resultComparator` nor `resultChecker` are specified, a deep comparison of returned dataset items is used as a default.
+     */
     resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean;
 }
 
+/**
+ * An extension of {@apilink PlaywrightCrawler} that uses a more limited interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
+ */
 export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
     private renderingTypePredictor: RenderingTypePredictor;
@@ -36,7 +68,18 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         this.adaptiveRequestHandler = requestHandler;
         this.renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
-        this.resultComparator = resultComparator ?? (() => true); // TODO
+
+        if (resultComparator !== undefined) {
+            this.resultComparator = resultComparator ?? (() => true);
+        } else if (resultChecker !== undefined) {
+            this.resultComparator = (resultA, resultB) => this.resultChecker(resultA) && this.resultChecker(resultB);
+        } else {
+            this.resultComparator = (resultA, resultB) => resultA.datasetItems.length === resultB.datasetItems.length
+                && resultA.datasetItems.every((itemA, i) => {
+                    const itemB = resultB.datasetItems[i];
+                    return isEqual(itemA, itemB);
+                });
+        }
     }
 
     protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<void> {
