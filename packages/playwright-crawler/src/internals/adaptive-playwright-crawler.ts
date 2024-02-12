@@ -201,7 +201,8 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
 
         const response = await crawlingContext.sendRequest({});
-        const loadedUrl = crawlingContext.request.loadedUrl = response.url;
+        const loadedUrl = response.url;
+        crawlingContext.request.loadedUrl = loadedUrl;
         const $ = load(response.body);
 
         try {
