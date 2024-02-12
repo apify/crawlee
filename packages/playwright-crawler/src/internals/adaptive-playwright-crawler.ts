@@ -70,15 +70,17 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         this.resultChecker = resultChecker ?? (() => true);
 
         if (resultComparator !== undefined) {
-            this.resultComparator = resultComparator ?? (() => true);
+            this.resultComparator = resultComparator;
         } else if (resultChecker !== undefined) {
             this.resultComparator = (resultA, resultB) => this.resultChecker(resultA) && this.resultChecker(resultB);
         } else {
-            this.resultComparator = (resultA, resultB) => resultA.datasetItems.length === resultB.datasetItems.length
-                && resultA.datasetItems.every((itemA, i) => {
-                    const itemB = resultB.datasetItems[i];
-                    return isEqual(itemA, itemB);
-                });
+            this.resultComparator = (resultA, resultB) => {
+                return resultA.datasetItems.length === resultB.datasetItems.length
+                    && resultA.datasetItems.every((itemA, i) => {
+                        const itemB = resultB.datasetItems[i];
+                        return isEqual(itemA, itemB);
+                    });
+            };
         }
     }
 
@@ -168,7 +170,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 querySelector: async (selector, timeoutMs) => {
                                     const locator = playwrightContext.page.locator(selector).first();
                                     await locator.waitFor({ timeout: timeoutMs });
-                                    return load(await playwrightContext.page.content())(selector) as Cheerio<Element>;
+                                    return (await playwrightContext.parseWithCheerio())(selector) as Cheerio<Element>;
                                 },
                                 enqueueLinks: async (options = {}) => {
                                     const urls = await extractUrlsFromPage(
@@ -178,10 +180,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                     );
                                     await result.enqueueLinks({ ...options, urls });
                                 },
-                                addRequests: playwrightContext.addRequests,
-                                pushData: playwrightContext.pushData,
-                                useState: playwrightContext.useState,
-                                getKeyValueStore: playwrightContext.getKeyValueStore,
+                                addRequests: result.addRequests,
+                                pushData: result.pushData,
+                                useState: result.useState,
+                                getKeyValueStore: result.getKeyValueStore,
                             });
                         }
                         return Reflect.get(target, propertyName, receiver);
