@@ -9,8 +9,8 @@ let threads: { minThreads: number; maxThreads: number } | undefined;
 
 if (isCI) {
     // eslint-disable-next-line no-console
-    console.log(`Running in CI, throttling threads to 1-4 test at a time`);
-    threads = { minThreads: 1, maxThreads: 4 };
+    console.log(`Running in CI, throttling threads to 2-8 test at a time`);
+    threads = { minThreads: 2, maxThreads: 8 };
 }
 
 export default defineConfig({
