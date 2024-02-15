@@ -67,6 +67,9 @@ module.exports = {
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
+                    editUrl: (doc) => {
+                        return `https://github.com/apify/crawlee/edit/master/website/${doc.versionDocsDirPath}/${doc.docPath}`;
+                    },
                 },
                 theme: {
                     customCss: '/src/css/custom.css',
