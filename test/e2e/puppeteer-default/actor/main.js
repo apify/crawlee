@@ -11,7 +11,8 @@ await Actor.main(async () => {
         preNavigationHooks: [(_ctx, goToOptions) => {
             goToOptions.waitUntil = ['networkidle2'];
         }],
-        async requestHandler({ page, enqueueLinks, request }) {
+        async requestHandler({ page, enqueueLinks, request, infiniteScroll }) {
+            await infiniteScroll();
             const { url } = request;
             const pageTitle = await page.title();
             await Dataset.pushData({ url, pageTitle });

@@ -26,7 +26,7 @@ import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { KeyValueStore, RequestState, validators, Configuration } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
-import type { CheerioRoot } from '@crawlee/utils';
+import { type CheerioRoot, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import { getInjectableScript } from 'idcac-playwright';
@@ -524,7 +524,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
     let retry = 0;
 
     while (!body && retry < 10) {
-        await page.waitForTimeout(100);
+        await sleep(100);
         body = await page.$('body');
         retry++;
     }
@@ -584,7 +584,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
 
     while (!finished) {
         await doScroll();
-        await page.waitForTimeout(250);
+        await sleep(250);
         if (scrollDownAndUp) {
             await page.mouse.wheel({ deltaY: -1000 });
         }
