@@ -9,7 +9,7 @@ import { Sitemap } from './sitemap';
 let HTTPError: typeof HTTPErrorClass;
 
 /**
- * Loads and queries information from a robots.txt file.
+ * Loads and queries information from a [robots.txt file](https://en.wikipedia.org/wiki/Robots.txt).
  *
  * **Example usage:**
  * ```javascript
