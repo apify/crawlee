@@ -35,7 +35,7 @@ export class RobotsFile {
     /**
      * Determine the location of a robots.txt file for a URL and fetch it.
      * @param url the URL to fetch robots.txt for
-     * @param proxyUrl a proxy to be used for fetching the robots.txt file
+     * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static async find(url: string, proxyUrl?: string): Promise<RobotsFile> {
         const robotsFileUrl = new URL(url);
@@ -43,6 +43,16 @@ export class RobotsFile {
         robotsFileUrl.search = '';
 
         return RobotsFile.load(robotsFileUrl.toString(), proxyUrl);
+    }
+
+    /**
+     * Allows providing the URL and robotx.txt content explicitly instead of loading it from the target site.
+     * @param url the URL for robots.txt file
+     * @param content contents of robots.txt
+     * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
+     */
+    static from(url: string, content: string, proxyUrl?: string): RobotsFile {
+        return new RobotsFile(robotsParser(url, content), proxyUrl);
     }
 
     protected static async load(url: string, proxyUrl?: string): Promise<RobotsFile> {
@@ -70,9 +80,10 @@ export class RobotsFile {
     /**
      * Check if a URL should be crawled by robots.
      * @param url the URL to check against the rules in robots.txt
+     * @param [userAgent] relevant user agent, default to `*`
      */
-    isAllowed(url: string): boolean {
-        return this.robots.isAllowed(url, '*') ?? false;
+    isAllowed(url: string, userAgent = '*'): boolean {
+        return this.robots.isAllowed(url, userAgent) ?? false;
     }
 
     /**
