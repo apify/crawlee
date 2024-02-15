@@ -1,6 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
+// @ts-expect-error not exposed on type level
+import { CdpBrowser } from 'puppeteer';
 
 import type { PuppeteerNewPageOptions } from './puppeteer-controller';
 import { PuppeteerController } from './puppeteer-controller';
@@ -22,6 +24,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
     protected async _launch(
         launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
     ): Promise<PuppeteerTypes.Browser> {
+        const oldPuppeteerVersion = 'createIncognitoBrowserContext' in CdpBrowser.prototype;
         const {
             launchOptions,
             userDataDir,
@@ -44,8 +47,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
             }
         }
 
-        if (launchOptions!.headless === true) {
-            launchOptions!.headless = 'new';
+        if (launchOptions!.headless === true && oldPuppeteerVersion) {
+            launchOptions!.headless = 'new' as any;
         }
 
         let browser: PuppeteerTypes.Browser;
@@ -98,11 +101,12 @@ export class PuppeteerPlugin extends BrowserPlugin<
             }
         });
 
-        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'version', 'on', 'process'] as const)
+        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'createBrowserContext', 'version', 'on', 'process'] as const)
             .reduce((map, method) => {
-                map[method] = browser[method]?.bind(browser);
+                map[method] = browser[method as 'close']?.bind(browser);
                 return map;
             }, {} as Dictionary);
+        const method = oldPuppeteerVersion ? 'createIncognitoBrowserContext' : 'createBrowserContext';
 
         browser = new Proxy(browser, {
             get: (target, property: keyof typeof browser, receiver) => {
@@ -114,9 +118,9 @@ export class PuppeteerPlugin extends BrowserPlugin<
                             const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
 
                             try {
-                                const context = await browser.createIncognitoBrowserContext({
+                                const context = await (browser as any)[method]({
                                     proxyServer: anonymizedProxyUrl ?? proxyUrl,
-                                });
+                                }) as PuppeteerTypes.BrowserContext;
 
                                 page = await context.newPage(...args);
 
