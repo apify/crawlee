@@ -3,6 +3,7 @@ import { PassThrough } from 'stream';
 import { maybeStringify, Configuration, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import e from 'express';
 
 const localStorageEmulator = new MemoryStorageEmulator();
 
@@ -62,6 +63,18 @@ describe('KeyValueStore', () => {
         expect(mockGetRecord).toBeCalledWith('key-1');
         expect(response).toEqual(record);
 
+        // Record Exists
+        const mockRecordExists = vitest
+            // @ts-expect-error Accessing private property
+            .spyOn(store.client, 'recordExists')
+            .mockResolvedValueOnce(true);
+
+        const exists = await store.recordExists('key-1');
+
+        expect(mockRecordExists).toBeCalledTimes(1);
+        expect(mockRecordExists).toBeCalledWith('key-1');
+        expect(exists).toBe(true);
+
         // Delete Record
         const mockDeleteRecord = vitest
             // @ts-expect-error Accessing private property
@@ -113,6 +126,32 @@ describe('KeyValueStore', () => {
             expect(getValueSpy).toBeCalledTimes(2);
             expect(getValueSpy).toBeCalledWith('key-2', 321);
             expect(val2).toBe(321);
+        });
+    });
+
+    describe('recordExists', () => {
+        test('throws on invalid args', async () => {
+            const store = new KeyValueStore({
+                id: 'some-id-1',
+                client,
+            });
+
+            // @ts-expect-error JS-side validation
+            await expect(store.recordExists()).rejects.toThrow('Expected argument to be of type `string` but received type `undefined`');
+            // @ts-expect-error JS-side validation
+            await expect(store.recordExists({})).rejects.toThrow('Expected argument to be of type `string` but received type `Object`');
+            await expect(store.recordExists(null)).rejects.toThrow('Expected argument to be of type `string` but received type `null`');
+            await expect(store.recordExists('')).rejects.toThrow('Expected string to not be empty');
+        });
+
+        test('KeyValueStore.recordExists()', async () => {
+            const recordExistsSpy = vitest.spyOn(KeyValueStore.prototype, 'recordExists');
+            recordExistsSpy.mockImplementationOnce(async () => false);
+
+            const val = await KeyValueStore.recordExists('key-1');
+            expect(recordExistsSpy).toBeCalledTimes(1);
+            expect(recordExistsSpy).toBeCalledWith('key-1');
+            expect(val).toBe(false);
         });
     });
 
