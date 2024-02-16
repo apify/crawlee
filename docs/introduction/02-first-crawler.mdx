@@ -6,13 +6,19 @@ description: Your first steps into the world of scraping with Crawlee
 
 import ApiLink from '@site/src/components/ApiLink';
 
-In this lesson, you will build your first crawler. But before you do, let's briefly introduce the Crawlee classes involved in the process.
+Now, you will build your first crawler. But before you do, let's briefly introduce the Crawlee classes involved in the process.
 
 ## How Crawlee works
 
-There are 3 main crawler classes available for use in Crawlee. <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> and <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>. We'll talk about their differences later. Now, let's talk about what they have in common.
+There are 3 main crawler classes available for use in Crawlee.
 
-The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results, continue to the next page, and repeat this process until the crawler's done its job. So the crawler always needs to find answers to two questions: **Where should I go?** and **What should I do there?** Answering those two questions is the only required setup. The crawlers have reasonable defaults for everything else.
+- <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>
+- <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>
+- <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>
+
+We'll talk about their differences later. Now, let's talk about what they have in common.
+
+The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results, continue to the next page, and repeat this process until the crawler's done its job. So the crawler always needs to find answers to two questions: _Where should I go?_ and _What should I do there?_ Answering those two questions is the only required setup. The crawlers have reasonable defaults for everything else.
 
 ### The Where - `Request` and `RequestQueue`
 
@@ -30,7 +36,7 @@ The `requestHandler` is a user-defined function, invoked automatically by the cr
 
 Let's put the theory into practice and start with something easy. Visit a page and get its HTML title. In this tutorial, you'll scrape the Crawlee website [https://crawlee.dev](https://crawlee.dev), but the same code will work for any website.
 
-:::info
+:::info Top level await configuration
 
 We are using a JavaScript feature called [Top level await](https://blog.saeloun.com/2021/11/25/ecmascript-top-level-await.html) in our examples. To be able to use that, you might need some extra setup. Namely, it requires the use of [ECMAScript Modules](https://nodejs.org/api/esm.html) - this means you either need to add `"type": "module"` to your `package.json` file, or use `*.mjs` extension for your files. Additionally, if you are in a TypeScript project, you need to set the `module` and `target` compiler options to `ES2022` or above.
 
@@ -51,7 +57,7 @@ await requestQueue.addRequest({ url: 'https://crawlee.dev' });
 
 The <ApiLink to="core/class/RequestQueue#addRequest">`requestQueue.addRequest()`</ApiLink> function automatically converts the object with URL string to a <ApiLink to="core/class/Request">`Request`</ApiLink> instance. So now you have a `requestQueue` that holds one request which points to `https://crawlee.dev`.
 
-:::tip
+:::tip Bulk add requests
 
 The code above is for illustration of the request queue concept. Soon you'll learn about the `crawler.addRequests()` method which allows you to skip this initialization code, and it also supports adding a large number of requests without blocking.
 
@@ -117,5 +123,6 @@ await crawler.run(['https://crawlee.dev']);
 
 When you run this code, you'll see exactly the same output as with the earlier, longer example. The `RequestQueue` is still there, it's just managed by the crawler automatically.
 
-## Next lesson
-In the next lesson you'll learn about crawling links. That means finding new URLs on the pages you crawl and adding them to the `RequestQueue` for the crawler to visit.
+## Next steps
+
+Next, you'll learn about crawling links. That means finding new URLs on the pages you crawl and adding them to the `RequestQueue` for the crawler to visit.

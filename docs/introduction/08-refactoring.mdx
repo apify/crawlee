@@ -9,11 +9,11 @@ import Admonition from '@theme/Admonition';
 
 It may seem that the data is extracted and the crawler is done, but honestly, this is just the beginning. For the sake of brevity, we've completely omitted error handling, proxies, logging, architecture, tests, documentation and other stuff that a reliable software should have. The good thing is, **error handling is mostly done by Crawlee itself**, so no worries on that front, unless you need some custom magic.
 
-:::info
+:::info Navigating automatic bot-protextion avoidance
 
-If you've got to this point and are wondering where all the **anti-blocking, bot-protection avoiding stealthy features** are, you're right, we haven't shown you any. But that's the point! They are **automatically used** with the default configuration.
+You might be wondering about the **anti-blocking, bot-protection avoiding stealthy features** and why we haven't highlighted them yet. The reason is straightforward: these features are **automatically used** within the default configuration, providing a smooth start without manual adjustments. However, the default configuration, while powerful, may not cover every scenario.
 
-That does not mean the default configuration can handle everything, but it should get you far enough. If you want to learn more, browse the [Avoid getting blocked](../guides/avoid-blocking), [Proxy management](../guides/proxy-management) and [Session management](../guides/session-management) guides.
+If you want to learn more, browse the [Avoid getting blocked](../guides/avoid-blocking), [Proxy management](../guides/proxy-management) and [Session management](../guides/session-management) guides.
 
 :::
 
@@ -23,9 +23,9 @@ Anyway, to promote good coding practices, let's look at how you can use a <ApiLi
 
 In the following code we've made several changes:
 
--   Split the code into multiple files.
--   Replaced `console.log` with the Crawlee logger for nicer, colourful logs.
--   Added a `Router` to make our routing cleaner, without `if` clauses.
+- Split the code into multiple files.
+- Replaced `console.log` with the Crawlee logger for nicer, colourful logs.
+- Added a `Router` to make our routing cleaner, without `if` clauses.
 
 In our `main.mjs` file, we place the general structure of the crawler:
 
@@ -136,7 +136,7 @@ router.addDefaultHandler(async ({ request, page, enqueueLinks, log }) => {
 });
 ```
 
-Let's describe the changes a bit more in detail. We hope that in the end, you will agree that this structure makes the crawler more readable and manageable.
+Let's explore the changes in more detail. We believe these modification will enhance the readability and manageability of the crawler.
 
 ## Splitting your code into multiple files
 
@@ -144,16 +144,16 @@ There's no reason not to split your code into multiple files and keep your logic
 
 ## Using Crawlee `log` instead of `console.log`
 
-We won't go to great lengths here to talk about `log` object from Crawlee, because you can read it all in the <ApiLink to="core/class/Log">documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
+We won't go to great lengths here to talk about `log` object from Crawlee, because you can read all about it in the <ApiLink to="core/class/Log">documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
 
 Crawlee `log` has multiple log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting the `CRAWLEE_LOG_LEVEL` environment variable. Thanks to this you can add a lot of debug logs to your crawler without polluting your log when they're not needed, but ready to help when you encounter issues.
 
 ## Using a router to structure your crawling
 
-At first, it might seem more readable using just a simple `if / else` statement to select different logic based on the crawled pages, but trust us, it becomes far less impressive when working with more than two different pages, and it definitely starts to fall apart when the logic to handle each page spans tens or hundreds of lines of code.
+Initially, using a simple `if/else` statement for selecting different logic based on the crawled pages might appear more readable. However, this approach can become cumbersome with more than two types of pages, especially when the logic for each page extends over dozens or even hundreds of lines of code.
 
 It's good practice in any programming language to split your logic into bite-sized chunks that are easy to read and reason about. Scrolling through a thousand line long `requestHandler()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to do and a pain to debug. That's why we prefer the separation of routes into their own files.
 
-## Next lesson
+## Next steps
 
-In the next and final lesson, we will show you how you can deploy your Crawlee project to the cloud. If you used the CLI to bootstrap your project, you already have a **Dockerfile** ready, and the next section will show you how to deploy it to the [Apify Platform](../deployment/apify-platform) with ease.
+In the next and final step, you'll see how to deploy your Crawlee project to the cloud. If you used the CLI to bootstrap your project, you already have a **Dockerfile** ready, and the next section will show you how to deploy it to the [Apify Platform](../deployment/apify-platform) with ease.

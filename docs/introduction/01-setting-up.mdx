@@ -10,10 +10,8 @@ import ApiLink from '@site/src/components/ApiLink';
 
 To run Crawlee on your own computer, you need to meet the following pre-requisites first:
 
-1. Have **Node.js version 16.0** or higher installed.
-   - Visit [Node.js website](https://nodejs.org/en/download/) to download or use [fnm](https://github.com/Schniz/fnm)
+1. Have **Node.js version 16.0** (Visit [Node.js website](https://nodejs.org/en/download/) to download or use [fnm](https://github.com/Schniz/fnm)) or higher installed.
 2. Have **NPM** installed, or use other package manager of your choice.
-   - NPM comes bundled with Node.js, so you should already have it. If not, reinstall Node.js.
 
 If not certain, confirm the prerequisites by running:
 
@@ -33,7 +31,7 @@ The fastest and best way to create new projects with Crawlee is to use the [Craw
 npx crawlee create my-crawler
 ```
 
-A prompt will be shown, asking you to choose a template. Crawlee is written in TypeScript so if you're familiar with it, choosing a TypeScript template will give you better code completion and static type checking, but feel free to use JavaScript as well. Functionally they're identical.
+A prompt will be shown, asking you to select a template. Crawlee is written in TypeScript so if you're familiar with it, choosing a TypeScript template will give you better code completion and static type checking, but feel free to use JavaScript as well. Functionally they're identical.
 
 Let's choose the first template called **Getting started example**. The command will create a new directory in your current working directory, called **my-crawler**, add a **package.json** to this folder and install all the necessary dependencies. It will also add example source code that you can immediately run.
 
@@ -65,7 +63,6 @@ CTRL+C
 
 Browsers controlled by Playwright run headless (without a visible window). You can switch to headful by uncommenting the `headless: false` option in the crawler's constructor. This is useful in the development phase when you want to see what's going on in the browser.
 
-
 ```typescript
 // Uncomment this option to see the browser window.
 headless: false
@@ -87,6 +84,6 @@ For the sake of this show off, we've slowed down the crawler, but rest assured, 
   }}
 />
 
-## Next lesson
+## Next steps
 
-The next lesson will teach you how to create a very simple crawler and explain Crawlee components while building it.
+Next, you will see how to create a very simple crawler and explain Crawlee components while building it.
