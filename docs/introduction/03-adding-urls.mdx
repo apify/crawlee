@@ -15,8 +15,8 @@ import FilterWithELSource from '!!raw-loader!./03-filter-el.ts';
 import FindWithoutELSource from '!!raw-loader!./03-find-without-el.ts';
 import FilterWithoutELSource from '!!raw-loader!./03-filter-without-el.ts';
 
-In the previous lesson you built a very simple crawler that downloads HTML of a single page, reads its title and prints
-it to the console. This is the original source code:
+Previously you've built a very simple crawler that downloads HTML of a single page, reads its title and prints it to the console.
+This is the original source code:
 
 ```ts
 import { CheerioCrawler } from 'crawlee';
@@ -31,7 +31,7 @@ const crawler = new CheerioCrawler({
 await crawler.run(['https://crawlee.dev']);
 ```
 
-In this lesson you'll use the example from the previous section and improve on it. You'll add more URLs to the queue and thanks to that the crawler will keep going, finding new links, enqueuing them into the `RequestQueue` and then scraping them.
+Now you'll use the example from the previous section and improve on it. You'll add more URLs to the queue and thanks to that the crawler will keep going, finding new links, enqueuing them into the `RequestQueue` and then scraping them.
 
 ## How crawling works
 
@@ -45,7 +45,7 @@ The process is simple:
 
 In the following paragraphs you will learn about the <ApiLink to="core/function/enqueueLinks">`enqueueLinks`</ApiLink> function which simplifies crawling to a single function call. For comparison and learning purposes we will show an equivalent solution written without `enqueueLinks` in the second code tab.
 
-:::tip
+:::tip `enqueueLinks` context awareness
 
 The `enqueueLinks` function is context aware. It means that it will read the information about the currently crawled page from the context, and you don't need to explicitly provide any arguments. It will find the links using the Cheerio function `$` and automatically add the links to the running crawler's `RequestQueue`.
 
@@ -63,7 +63,6 @@ const crawler = new CheerioCrawler({
 ```
 
 This means that no new requests will be started after the 20th request is finished. The actual number of processed requests might be a little higher thanks to parallelization, because the running requests won't be forcefully aborted. It's not even possible in most cases.
-
 
 ## Finding new links
 
@@ -121,7 +120,7 @@ Skipping of duplicate URLs is critical, because visiting the same page multiple 
 
 ## Advanced filtering arguments
 
-While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over which URLs should be enqueued. One way we already mentioned above is by using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the <ApiLink to="core/enum/EnqueueStrategy#All">`All`</ApiLink> strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the <ApiLink to="core/enum/EnqueueStrategy#SameDomain">`SameDomain`</ApiLink> strategy.
+While the defaults for `enqueueLinks` can be often exactly what you need, it also gives you fine-grained control over which URLs should be enqueued. One way we already mentioned above. It is using the <ApiLink to="core/enum/EnqueueStrategy">`EnqueueStrategy`</ApiLink>. You can use the <ApiLink to="core/enum/EnqueueStrategy#All">`All`</ApiLink> strategy if you want to follow every single link, regardless of its domain, or you can enqueue links that target the same domain name with the <ApiLink to="core/enum/EnqueueStrategy#SameDomain">`SameDomain`</ApiLink> strategy.
 
 ```ts
 await enqueueLinks({
@@ -133,7 +132,7 @@ await enqueueLinks({
 
 For even more control, you can use `globs`, `regexps` and `pseudoUrls` to filter the URLs. Each of those arguments is always an `Array`, but the contents can take on many forms. <ApiLink to="core/interface/EnqueueLinksOptions">See the reference</ApiLink> for more information about them as well as other options.
 
-:::caution
+:::caution Defaults override
 
 If you provide one of those options, the default `same-hostname` strategy will **not** be applied unless explicitly set in the options.
 
@@ -162,6 +161,6 @@ await enqueueLinks({
 
 And that's it! `enqueueLinks()` is just one example of Crawlee's powerful helper functions. They're all designed to make your life easier, so you can focus on getting your data, while leaving the mundane crawling management to the tools.
 
-## Next lesson
+## Next steps
 
-In the next lesson you will start your project of scraping a production website and learn some more Crawlee tricks in the process.
+Next, you will start your project of scraping a production website and learn some more Crawlee tricks in the process.
