@@ -3,7 +3,6 @@ import { PassThrough } from 'stream';
 import { maybeStringify, Configuration, KeyValueStore } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-import e from 'express';
 
 const localStorageEmulator = new MemoryStorageEmulator();
 
