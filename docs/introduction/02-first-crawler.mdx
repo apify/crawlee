@@ -12,13 +12,13 @@ Now, you will build your first crawler. But before you do, let's briefly introdu
 
 There are 3 main crawler classes available for use in Crawlee.
 
-<ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>
-<ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>
-<ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>.
+- <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>
+- <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>
+- <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink>
 
 We'll talk about their differences later. Now, let's talk about what they have in common.
 
-The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results, continue to the next page, and repeat this process until the crawler's done its job. So the crawler always needs to find answers to two questions: **Where should I go?** and **What should I do there?** Answering those two questions is the only required setup. The crawlers have reasonable defaults for everything else.
+The general idea of each crawler is to go to a web page, open it, do some stuff there, save some results, continue to the next page, and repeat this process until the crawler's done its job. So the crawler always needs to find answers to two questions: _Where should I go?_ and _What should I do there?_ Answering those two questions is the only required setup. The crawlers have reasonable defaults for everything else.
 
 ### The Where - `Request` and `RequestQueue`
 
