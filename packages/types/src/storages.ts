@@ -162,6 +162,7 @@ export interface KeyValueStoreClient {
     update(newFields: KeyValueStoreClientUpdateOptions): Promise<Partial<KeyValueStoreInfo>>;
     delete(): Promise<void>;
     listKeys(options?: KeyValueStoreClientListOptions): Promise<KeyValueStoreClientListData>;
+    recordExists(key: string): Promise<boolean>;
     getRecord(key: string, options?: KeyValueStoreClientGetRecordOptions): Promise<KeyValueStoreRecord | undefined>;
     setRecord(record: KeyValueStoreRecord): Promise<void>;
     deleteRecord(key: string): Promise<void>;
