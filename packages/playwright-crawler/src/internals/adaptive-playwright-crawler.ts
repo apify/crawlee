@@ -19,7 +19,7 @@ interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
     querySelector: (selector: string, timeoutMs?: number) => Awaitable<Cheerio<Element>>;
 }
 
-interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions, 'requestHandler'> {
+export interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions, 'requestHandler'> {
     /**
      * Function that is called to process each request.
      *
@@ -187,9 +187,13 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                     return (await playwrightContext.parseWithCheerio())(selector) as Cheerio<Element>;
                                 },
                                 enqueueLinks: async (options = {}) => {
+                                    const selector = options.selector ?? 'a';
+                                    const locator = playwrightContext.page.locator(selector).first();
+                                    await locator.waitFor();
+
                                     const urls = await extractUrlsFromPage(
                                         playwrightContext.page,
-                                        options.selector ?? 'a',
+                                        selector,
                                         options.baseUrl ?? playwrightContext.request.loadedUrl ?? playwrightContext.request.url,
                                     );
                                     await result.enqueueLinks({ ...options, urls });
