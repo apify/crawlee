@@ -172,6 +172,25 @@ export class KeyValueStoreClient extends BaseClient {
         };
     }
 
+    /**
+     * Tests whether a record with the given key exists in the key-value store without retrieving its value.
+     *
+     * @param key The queried record key.
+     * @returns `true` if the record exists, `false` if it does not.
+     */
+    async recordExists(key: string): Promise<boolean> {
+        s.string.parse(key);
+
+        // Check by id
+        const existingStoreById = await findOrCacheKeyValueStoreByPossibleId(this.client, this.name ?? this.id);
+
+        if (!existingStoreById) {
+            this.throwOnNonExisting(StorageTypes.KeyValueStore);
+        }
+
+        return existingStoreById.keyValueEntries.has(key);
+    }
+
     async getRecord(key: string, options: storage.KeyValueStoreClientGetRecordOptions = {}): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string.parse(key);
         s.object({

@@ -221,6 +221,17 @@ export class KeyValueStore {
         return record?.value as T ?? defaultValue ?? null;
     }
 
+    /**
+     * Tests whether a record with the given key exists in the key-value store without retrieving its value.
+     *
+     * @param key The queried record key.
+     * @returns `true` if the record exists, `false` if it does not.
+     */
+    async recordExists(key: string): Promise<boolean> {
+        ow(key, ow.string.nonEmpty);
+        return this.client.recordExists(key);
+    }
+
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
         if (this.cache.has(key)) {
             return this.cache.get(key) as T;
@@ -523,6 +534,16 @@ export class KeyValueStore {
     static async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         const store = await this.open();
         return store.getValue<T>(key, defaultValue as T);
+    }
+
+    /**
+     * Tests whether a record with the given key exists in the default {@apilink KeyValueStore} associated with the current crawler run.
+     * @param key The queried record key.
+     * @returns `true` if the record exists, `false` if it does not.
+     */
+    static async recordExists(key: string): Promise<boolean> {
+        const store = await this.open();
+        return store.recordExists(key);
     }
 
     static async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
