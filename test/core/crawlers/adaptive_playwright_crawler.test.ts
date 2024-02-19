@@ -80,17 +80,15 @@ describe('AdaptivePlaywrightCrawler', () => {
 
     // Test setup helpers
     const makeOneshotCrawler = async (
-        requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'],
-        renderingTypePredictor: AdaptivePlaywrightCrawlerOptions['renderingTypePredictor'],
+        options: Required<Pick<AdaptivePlaywrightCrawlerOptions, 'requestHandler' | 'renderingTypePredictor'>> & Partial<AdaptivePlaywrightCrawlerOptions>,
         sources: string[],
     ) => new AdaptivePlaywrightCrawler({
         renderingTypeDetectionRatio: 0.1,
-        renderingTypePredictor,
         maxConcurrency: 1,
         maxRequestRetries: 0,
         maxRequestsPerCrawl: 1,
-        requestHandler,
         requestList: await RequestList.open({ sources }),
+        ...options,
     });
 
     const makeRiggedRenderingTypePredictor = (prediction: {detectionProbabilityRecommendation: number; renderingType: 'clientOnly' | 'static'}) => ({
@@ -110,8 +108,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             });
 
             const crawler = await makeOneshotCrawler(
-                requestHandler,
-                renderingTypePredictor,
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                },
                 [url.toString()],
             );
 
@@ -134,8 +134,10 @@ describe('AdaptivePlaywrightCrawler', () => {
         const url = new URL(`http://${HOSTNAME}:${port}/static`);
 
         const crawler = await makeOneshotCrawler(
-            async () => {},
-            renderingTypePredictor,
+            {
+                requestHandler: async () => {},
+                renderingTypePredictor,
+            },
             [url.toString()],
         );
 
@@ -143,6 +145,35 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(renderingTypePredictor.predict).toHaveBeenCalledWith(url, undefined);
         expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
+    });
+
+    test('should retry with browser if result checker returns false', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+        const url = new URL(`http://${HOSTNAME}:${port}/dynamic`);
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData, querySelector }) => {
+            await pushData({
+                heading: (await querySelector('h1')).text(),
+            });
+        });
+
+        const resultChecker: AdaptivePlaywrightCrawlerOptions['resultChecker'] = vi.fn(
+            (result) => result.datasetItems.length > 0 && result.datasetItems.every(({ item }) => item.heading?.length > 0),
+        );
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                resultChecker,
+            },
+            [url.toString()],
+        );
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledTimes(2);
+        expect(resultChecker).toHaveBeenCalledTimes(1);
     });
 
     describe('should enqueue links correctly', () => {
@@ -155,8 +186,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             });
 
             const crawler = await makeOneshotCrawler(
-                requestHandler,
-                renderingTypePredictor,
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                },
                 [url.toString()],
             );
 
@@ -171,5 +204,61 @@ describe('AdaptivePlaywrightCrawler', () => {
                 `http://${HOSTNAME}:${port}/static?q=5`,
             ]));
         });
+    });
+
+    test('should persist crawler state', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ useState }) => {
+            const state = await useState({ count: 0 });
+            state.count += 1;
+        });
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 3,
+            },
+            [
+                `http://${HOSTNAME}:${port}/static?q=1`,
+                `http://${HOSTNAME}:${port}/static?q=2`,
+                `http://${HOSTNAME}:${port}/static?q=3`,
+            ],
+        );
+
+        await crawler.run();
+        const state = await localStorageEmulator.getState();
+        expect(state.value).toEqual({ count: 3 });
+    });
+
+    test('should persist key-value store changes', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ request, getKeyValueStore }) => {
+            const store = await getKeyValueStore();
+            const search = new URLSearchParams(new URL(request.url).search);
+            store.setValue(search.get('q'), { content: 42 });
+        });
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 3,
+            },
+            [
+                `http://${HOSTNAME}:${port}/static?q=1`,
+                `http://${HOSTNAME}:${port}/static?q=2`,
+                `http://${HOSTNAME}:${port}/static?q=3`,
+            ],
+        );
+
+        await crawler.run();
+        const store = localStorageEmulator.getKeyValueStore();
+
+        expect((await store.getRecord('1')).value).toEqual({ content: 42 });
+        expect((await store.getRecord('2')).value).toEqual({ content: 42 });
+        expect((await store.getRecord('3')).value).toEqual({ content: 42 });
     });
 });

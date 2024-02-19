@@ -47,6 +47,14 @@ export class MemoryStorageEmulator extends StorageEmulator {
         const { items: heads } = await requestQueue.listHead();
         return heads;
     }
+
+    getKeyValueStore(id?: string) {
+        return this.storage.keyValueStore(id ?? Configuration.getGlobalConfig().get('defaultKeyValueStoreId'));
+    }
+
+    async getState() {
+        return await this.getKeyValueStore().getRecord('CRAWLEE_STATE');
+    }
 }
 
 export interface MemoryEmulatorOptions {
