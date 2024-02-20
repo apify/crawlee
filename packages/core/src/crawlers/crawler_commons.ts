@@ -152,7 +152,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
  * @experimental
  */
 export class RequestHandlerResult {
-    private _keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};
+    private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> = {};
     private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
     private enqueueLinksCalls: Parameters<RestrictedCrawlingContext['enqueueLinks']>[] = [];
@@ -173,21 +173,21 @@ export class RequestHandlerResult {
     /**
      * A record of changes made to key-value stores by a request handler.
      */
-    get keyValueStoreChanges(): ReadonlyDeep<Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>>> {
+    get keyValueStoreChanges(): ReadonlyDeep<Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>>> {
         return this._keyValueStoreChanges;
     }
 
     /**
      * Items added to datasets by a request handler.
      */
-    get datasetItems(): ReadonlyDeep<{item: Dictionary; datasetIdOrName?: string}[]> {
+    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdOrName?: string }[]> {
         return this.pushDataCalls.flatMap(([data, datasetIdOrName]) => (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })));
     }
 
     /**
      * URLs enqueued to the request queue by a request handler, either via {@apilink RestrictedCrawlingContext.addRequests} or {@apilink RestrictedCrawlingContext.enqueueLinks}
      */
-    get enqueuedUrls(): ReadonlyDeep<{url: string; label?: string}[]> {
+    get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
         const result: {url: string; label? : string}[] = [];
 
         for (const [options] of this.enqueueLinksCalls) {
@@ -210,7 +210,7 @@ export class RequestHandlerResult {
     /**
      * URL lists enqueued to the request queue by a request handler via {@apilink RestrictedCrawlingContext.addRequests} using the `requestsFromUrl` option.
      */
-    get enqueuedUrlLists(): ReadonlyDeep<{listUrl: string; label? : string}[]> {
+    get enqueuedUrlLists(): ReadonlyDeep<{ listUrl: string; label? : string }[]> {
         const result: {listUrl: string; label? : string}[] = [];
 
         for (const [requests] of this.addRequestsCalls) {
