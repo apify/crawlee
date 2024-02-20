@@ -1,7 +1,5 @@
 import { tryCancel } from '@apify/timeout';
 import type { Cookie } from '@crawlee/types';
-// @ts-expect-error not exposed on type level
-import { CdpBrowser } from 'puppeteer';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
@@ -63,6 +61,8 @@ export class PuppeteerController extends BrowserController<
             }
 
             try {
+                // @ts-expect-error not exposed on type level
+                const { CdpBrowser } = await import('puppeteer');
                 const oldPuppeteerVersion = 'createIncognitoBrowserContext' in CdpBrowser.prototype;
                 const method = oldPuppeteerVersion ? 'createIncognitoBrowserContext' : 'createBrowserContext';
                 const context = await (this.browser as any)[method](contextOptions) as PuppeteerTypes.BrowserContext;
