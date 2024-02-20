@@ -61,7 +61,31 @@ export interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawler
 }
 
 /**
- * An extension of {@apilink PlaywrightCrawler} that uses a more limited interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
+ * An extension of {@apilink PlaywrightCrawler} that uses a more limited request handler interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * const crawler = new AdaptivePlaywrightCrawler({
+ *     renderingTypeDetectionRatio: 0.1,
+ *     async requestHandler({ querySelector, pushData, enqueueLinks, request, log }) {
+ *         // This function is called to extract data from a single web page
+ *         const $prices = await querySelector('span.price')
+ *
+ *         await pushData({
+ *             url: request.url,
+ *             price: $prices.filter(':contains("$")').first().text(),
+ *         })
+ *
+ *         await enqueueLinks({ selector: '.pagination a' })
+ *     },
+ * });
+ *
+ * await crawler.run([
+ *     'http://www.example.com/page-1',
+ *     'http://www.example.com/page-2',
+ * ]);
+ * ```
  *
  * @experimental
  */
