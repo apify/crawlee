@@ -227,21 +227,19 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
         try {
             await addTimeoutToPromise(
-                async () => Promise.resolve(
-                    this.adaptiveRequestHandler({
-                        request: crawlingContext.request,
-                        log: crawlingContext.log,
-                        querySelector: (selector) => $(selector) as Cheerio<Element>,
-                        enqueueLinks: async (options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) => {
-                            const urls = extractUrlsFromCheerio($, options.selector, options.baseUrl ?? loadedUrl);
-                            await result.enqueueLinks({ ...options, urls });
-                        },
-                        addRequests: result.addRequests,
-                        pushData: result.pushData,
-                        useState: result.useState,
-                        getKeyValueStore: result.getKeyValueStore,
-                    }),
-                ),
+                async () => this.adaptiveRequestHandler({
+                    request: crawlingContext.request,
+                    log: crawlingContext.log,
+                    querySelector: (selector) => $(selector) as Cheerio<Element>,
+                    enqueueLinks: async (options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) => {
+                        const urls = extractUrlsFromCheerio($, options.selector, options.baseUrl ?? loadedUrl);
+                        await result.enqueueLinks({ ...options, urls });
+                    },
+                    addRequests: result.addRequests,
+                    pushData: result.pushData,
+                    useState: result.useState,
+                    getKeyValueStore: result.getKeyValueStore,
+                }),
                 this.requestHandlerTimeoutInnerMillis,
                 'Request handler timed out',
             );
