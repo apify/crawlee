@@ -6,7 +6,6 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
 import { load, type Cheerio, type Element } from 'cheerio';
 import isEqual from 'lodash.isequal';
-import { cheerioPortadom, playwrightLocatorPortadom, type Portadom } from 'portadom';
 
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './playwright-crawler';
 import { PlaywrightCrawler } from './playwright-crawler';
@@ -15,7 +14,9 @@ import { RenderingTypePredictor, type RenderingType } from './utils/rendering-ty
 type Result<TResult> = {result: TResult; ok: true} | {error: unknown; ok: false}
 
 interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
-    dom: Portadom<unknown, unknown>;
+    /**
+     * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
+     */
     querySelector: (selector: string, timeoutMs?: number) => Awaitable<Cheerio<Element>>;
 }
 
@@ -180,7 +181,6 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                             return (playwrightContext: PlaywrightCrawlingContext) => this.adaptiveRequestHandler({
                                 request: crawlingContext.request,
                                 log: crawlingContext.log,
-                                dom: playwrightLocatorPortadom(playwrightContext.page.locator(':root'), playwrightContext.page) as Portadom<unknown, unknown>,
                                 querySelector: async (selector, timeoutMs) => {
                                     const locator = playwrightContext.page.locator(selector).first();
                                     await locator.waitFor({ timeout: timeoutMs });
@@ -229,7 +229,6 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                     this.adaptiveRequestHandler({
                         request: crawlingContext.request,
                         log: crawlingContext.log,
-                        dom: cheerioPortadom($.root(), response.url) as Portadom<unknown, unknown>,
                         querySelector: (selector) => $(selector) as Cheerio<Element>,
                         enqueueLinks: async (options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) => {
                             const urls = extractUrlsFromCheerio($, options.selector, options.baseUrl ?? loadedUrl);
