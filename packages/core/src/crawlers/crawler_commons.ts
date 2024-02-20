@@ -148,6 +148,8 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
 
 /**
  * A partial implementation of {@apilink RestrictedCrawlingContext} that stores parameters of calls to context methods for later inspection.
+ *
+ * @experimental
  */
 export class RequestHandlerResult {
     private _keyValueStoreChanges: Record<string, Record<string, {changedValue: unknown; options?: RecordOptions}>> = {};

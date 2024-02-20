@@ -62,6 +62,8 @@ export interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawler
 
 /**
  * An extension of {@apilink PlaywrightCrawler} that uses a more limited interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
+ *
+ * @experimental
  */
 export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
