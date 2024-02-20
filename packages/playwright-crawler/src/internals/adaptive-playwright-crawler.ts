@@ -1,7 +1,7 @@
 import { addTimeoutToPromise } from '@apify/timeout';
 import { extractUrlsFromPage } from '@crawlee/browser';
-import type { RestrictedCrawlingContext } from '@crawlee/core';
-import { RequestHandlerResult } from '@crawlee/core';
+import type { RestrictedCrawlingContext, StatisticState, StatisticPersistedState } from '@crawlee/core';
+import { Configuration, RequestHandlerResult, Statistics } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
 import { load, type Cheerio, type Element } from 'cheerio';
@@ -11,7 +11,58 @@ import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './play
 import { PlaywrightCrawler } from './playwright-crawler';
 import { RenderingTypePredictor, type RenderingType } from './utils/rendering-type-prediction';
 
-type Result<TResult> = {result: TResult; ok: true} | {error: unknown; ok: false}
+type Result<TResult> = { result: TResult; ok: true } | { error: unknown; ok: false }
+
+interface AdaptivePlaywrightCrawlerStatisticState extends StatisticState {
+    httpOnlyRequestHandlerRuns?: number;
+    browserRequestHandlerRuns?: number;
+    renderingTypeMispredictions?: number;
+}
+
+interface AdaptivePlaywrightCrawlerPersistedStatisticState extends StatisticPersistedState {
+    httpOnlyRequestHandlerRuns?: number;
+    browserRequestHandlerRuns?: number;
+    renderingTypeMispredictions?: number;
+}
+
+class AdaptivePlaywrightCrawlerStatistics extends Statistics {
+    override state: AdaptivePlaywrightCrawlerStatisticState = null as any; // this needs to be assigned for a valid override, but the initialization is done by a reset() call from the parent constructor
+
+    override reset(): void {
+        super.reset();
+        this.state.httpOnlyRequestHandlerRuns = 0;
+        this.state.browserRequestHandlerRuns = 0;
+        this.state.renderingTypeMispredictions = 0;
+    }
+
+    protected override async _maybeLoadStatistics(): Promise<void> {
+        await super._maybeLoadStatistics();
+        const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(this.persistStateKey);
+
+        if (!savedState) {
+            return;
+        }
+
+        this.state.httpOnlyRequestHandlerRuns = savedState.httpOnlyRequestHandlerRuns;
+        this.state.browserRequestHandlerRuns = savedState.browserRequestHandlerRuns;
+        this.state.renderingTypeMispredictions = savedState.renderingTypeMispredictions;
+    }
+
+    trackHttpOnlyRequestHandlerRun(): void {
+        this.state.httpOnlyRequestHandlerRuns ??= 0;
+        this.state.httpOnlyRequestHandlerRuns += 1;
+    }
+
+    trackBrowserRequestHandlerRun(): void {
+        this.state.browserRequestHandlerRuns ??= 0;
+        this.state.browserRequestHandlerRuns += 1;
+    }
+
+    trackRenderingTypeMisprediction(): void {
+        this.state.renderingTypeMispredictions ??= 0;
+        this.state.renderingTypeMispredictions += 1;
+    }
+}
 
 interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
     /**
@@ -94,6 +145,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
+    override readonly stats: AdaptivePlaywrightCrawlerStatistics;
 
     constructor(
         {
@@ -102,10 +154,12 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             renderingTypePredictor,
             resultChecker,
             resultComparator,
+            statisticsOptions,
             ...options
         }: AdaptivePlaywrightCrawlerOptions,
+        override readonly config = Configuration.getGlobalConfig(),
     ) {
-        super(options);
+        super(options, config);
         this.adaptiveRequestHandler = requestHandler;
         this.renderingTypePredictor = renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
@@ -123,6 +177,12 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                     });
             };
         }
+
+        this.stats = new AdaptivePlaywrightCrawlerStatistics({
+            logMessage: `${this.log.getOptions().prefix} request statistics:`,
+            config,
+            ...statisticsOptions,
+        });
     }
 
     protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<void> {
@@ -137,6 +197,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
         if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
             crawlingContext.log.info(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
+            this.stats.trackHttpOnlyRequestHandlerRun();
 
             const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext);
 
@@ -148,14 +209,18 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 crawlingContext.log.exception(plainHTTPRun.error as Error, `HTTP-only request handler failed for ${crawlingContext.request.url}`);
             } else {
                 crawlingContext.log.warning(`HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`);
+                this.stats.trackRenderingTypeMisprediction();
             }
         }
 
         crawlingContext.log.info(`Running browser request handler for ${crawlingContext.request.url}`);
+        this.stats.trackBrowserRequestHandlerRun();
+
         const browserRun = await this.runRequestHandlerInBrowser(crawlingContext);
         if (!browserRun.ok) {
             throw browserRun.error;
         }
+
         await this.commitResult(crawlingContext, browserRun.result);
 
         if (shouldDetectRenderingType) {
