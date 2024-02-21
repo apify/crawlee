@@ -2,6 +2,8 @@ import log from '@apify/log';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
+import type { Request } from './request';
+
 export interface ProxyConfigurationFunction {
     (sessionId: string | number): string | Promise<string>;
 }
@@ -20,6 +22,18 @@ export interface ProxyConfigurationOptions {
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
+
+    /**
+     * An array of custom proxy URLs tiers to be rotated.
+     * This is a more advanced version of `proxyUrls` that allows you to define
+     * a hierarchy of proxy URLs. If everything goes well, all the requests will be sent
+     * through the first proxy URL in the list.
+     * Whenever the crawler encounters a problem with the current proxy on the given domain, it will switch to the following proxy in the list.
+     * The crawler probes lower-level proxies at given intervals to check if it can make the downshift.
+     *
+     * This feature is useful when you have a set of proxies with different performance characteristics (speed, price, antibot performance etc.) and you want to use the best one for each domain.
+     */
+    tieredProxyUrls?: string[][];
 }
 
 /**
@@ -116,9 +130,11 @@ export class ProxyConfiguration {
     isManInTheMiddle = false;
     protected nextCustomUrlIndex = 0;
     protected proxyUrls?: string[];
+    protected tieredProxyUrls?: string[][];
     protected usedProxyUrls = new Map<string, string>();
     protected newUrlFunction?: ProxyConfigurationFunction;
     protected log = log.child({ prefix: 'ProxyConfiguration' });
+    protected domainTiers = new Map<string, number[]>();
 
     /**
      * Creates a {@apilink ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
@@ -145,15 +161,17 @@ export class ProxyConfiguration {
         ow(rest, ow.object.exactShape({
             proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
             newUrlFunction: ow.optional.function,
+            tieredProxyUrls: ow.optional.array.nonEmpty.ofType(ow.array.nonEmpty.ofType(ow.string.url)),
         }));
 
-        const { proxyUrls, newUrlFunction } = options;
+        const { proxyUrls, newUrlFunction, tieredProxyUrls } = options;
 
-        if (proxyUrls && newUrlFunction) this._throwCannotCombineCustomMethods();
+        if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter(x => x).length > 1) this._throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this._throwNoOptionsProvided();
 
         this.proxyUrls = proxyUrls;
         this.newUrlFunction = newUrlFunction;
+        this.tieredProxyUrls = tieredProxyUrls;
     }
 
     /**
@@ -173,9 +191,10 @@ export class ProxyConfiguration {
      *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(sessionId?: string | number): Promise<ProxyInfo> {
+    async newProxyInfo(sessionId?: string | number, request?: Request): Promise<ProxyInfo> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
-        const url = await this.newUrl(sessionId);
+
+        const url = await this.newUrl(sessionId, request);
 
         const { username, password, port, hostname } = new URL(url);
 
@@ -187,6 +206,40 @@ export class ProxyConfiguration {
             hostname,
             port: port!,
         };
+    }
+
+    _handleTieredUrl(_sessionId: string, request?: Request): string {
+        if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
+
+        if (!request) {
+            const allProxyUrls = this.tieredProxyUrls.flatMap(x => x);
+            return allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length];
+        }
+
+        const domain = new URL(request?.url).hostname;
+        const { retryCount } = request;
+
+        if (!this.domainTiers.has(domain)) {
+            this.domainTiers.set(domain, [0]);
+        }
+
+        const history = this.domainTiers.get(domain)!;
+
+        let tierPrediction;
+
+        if (retryCount === 0) {
+            const averageTier = history.reduce((a, b) => a + b, 0) / history.length;
+            tierPrediction = Math.floor(averageTier);
+            if (history.every((x, _, a) => x === a[0])) tierPrediction = Math.max(0, tierPrediction - 1);
+        } else {
+            tierPrediction = history[history.length - 1] + 1;
+        }
+
+        tierPrediction = Math.min(tierPrediction, this.tieredProxyUrls!.length - 1);
+
+        this.domainTiers.set(domain, [...history, tierPrediction].slice(-4, 4));
+
+        return this.tieredProxyUrls![tierPrediction][this.nextCustomUrlIndex++ % this.tieredProxyUrls![tierPrediction].length];
     }
 
     /**
@@ -202,11 +255,15 @@ export class ProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(sessionId?: string | number): Promise<string> {
+    async newUrl(sessionId?: string | number, request?: Request): Promise<string> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
             return this._callNewUrlFunction(sessionId)!;
+        }
+
+        if (this.tieredProxyUrls) {
+            return this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), request);
         }
 
         return this._handleCustomUrl(sessionId);

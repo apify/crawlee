@@ -1,4 +1,4 @@
-import { ProxyConfiguration } from '@crawlee/core';
+import { ProxyConfiguration, Request } from '@crawlee/core';
 
 const sessionId = 538909250932;
 
@@ -174,6 +174,83 @@ describe('ProxyConfiguration', () => {
             } catch (err) {
                 expect((err as Error).message).toMatch('to be a URL, got `http://proxy.com:1111*invalid_url`');
             }
+        });
+    });
+
+    describe('with tieredProxyUrls', () => {
+        test('without Request rotates the urls uniformly', async () => {
+            const proxyConfiguration = new ProxyConfiguration({
+                tieredProxyUrls: [
+                    ['http://proxy.com:1111', 'http://proxy.com:2222'],
+                    ['http://proxy.com:3333', 'http://proxy.com:4444'],
+                ],
+            });
+
+            // @ts-expect-error protected property
+            const { tieredProxyUrls } = proxyConfiguration;
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][1]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[1][0]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[1][1]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
+        });
+
+        test('high retry count picks higher-level proxies', async () => {
+            const proxyConfiguration = new ProxyConfiguration({
+                tieredProxyUrls: [
+                    ['http://proxy.com:1111'],
+                    ['http://proxy.com:2222'],
+                    ['http://proxy.com:3333'],
+                ],
+            });
+
+            const request = new Request({
+                url: 'http://example.com',
+            });
+            request.retryCount = 5;
+
+            // @ts-expect-error protected property
+            const { tieredProxyUrls } = proxyConfiguration;
+            expect(await proxyConfiguration.newUrl('session-id', request)).toEqual(tieredProxyUrls[1][0]);
+            expect(await proxyConfiguration.newUrl('session-id', request)).toEqual(tieredProxyUrls[2][0]);
+        });
+
+        test('upshifts and downshifts properly', async () => {
+            const tieredProxyUrls = [
+                ['http://proxy.com:1111'],
+                ['http://proxy.com:2222'],
+                ['http://proxy.com:3333'],
+            ];
+
+            const proxyConfiguration = new ProxyConfiguration({
+                tieredProxyUrls,
+            });
+
+            const request = new Request({
+                url: 'http://example.com',
+            });
+
+            let suggestedProxies = [];
+
+            request.retryCount = 5;
+            for (let i = 0; i < 20; i++) {
+                suggestedProxies.push(await proxyConfiguration.newUrl('session-id', request));
+            }
+
+            expect(suggestedProxies).toHaveLength(20);
+            expect(suggestedProxies).toContain(tieredProxyUrls[1][0]);
+            expect(suggestedProxies).toContain(tieredProxyUrls[2][0]);
+
+            suggestedProxies = [];
+
+            request.retryCount = 0;
+            for (let i = 0; i < 20; i++) {
+                suggestedProxies.push(await proxyConfiguration.newUrl('session-id', request));
+            }
+
+            expect(suggestedProxies).toHaveLength(20);
+            expect(suggestedProxies).toContain(tieredProxyUrls[1][0]);
+            expect(suggestedProxies).toContain(tieredProxyUrls[0][0]);
         });
     });
 });

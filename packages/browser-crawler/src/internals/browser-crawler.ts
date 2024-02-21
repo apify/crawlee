@@ -495,7 +495,7 @@ export abstract class BrowserCrawler<
         if (this.proxyConfiguration && (useIncognitoPages || experimentalContainers)) {
             const { session } = crawlingContext;
 
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, crawlingContext.request);
             crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo.url;
