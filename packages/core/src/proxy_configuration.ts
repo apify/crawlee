@@ -165,7 +165,7 @@ export class ProxyConfiguration {
 
         const { proxyUrls, newUrlFunction, tieredProxyUrls } = options;
 
-        if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter(x => x).length > 1) this._throwCannotCombineCustomMethods();
+        if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter((x) => x).length > 1) this._throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this._throwNoOptionsProvided();
 
         this.proxyUrls = proxyUrls;
@@ -211,7 +211,7 @@ export class ProxyConfiguration {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 
         if (!request) {
-            const allProxyUrls = this.tieredProxyUrls.flatMap(x => x);
+            const allProxyUrls = this.tieredProxyUrls.flat();
             return allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length];
         }
 
