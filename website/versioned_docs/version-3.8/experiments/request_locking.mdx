@@ -1,0 +1,131 @@
+---
+id: experiments-request-locking
+title: Request Locking
+description: Parallelize crawlers with ease using request locking
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+:::caution
+
+This is an experimental feature. While we welcome testers, keep in mind that it is currently not recommended to use this in production.
+
+The API is subject to change, and we might introduce breaking changes in the future.
+
+Should you be using this, feel free to open issues on our [GitHub repository](https://github.com/apify/crawlee), and we'll take a look.
+
+:::
+
+Starting with `crawlee` version `3.5.5`, we have introduced a new crawler option that lets you enable using a new request locking
+API. With this API, you will be able to pass a `RequestQueue` to multiple crawlers to parallelize the crawling process.
+
+:::info Keep in mind
+
+The request queue that supports request locking is currently exported via the `RequestQueue2` class. Once the experiment is over, this class will replace
+the current `RequestQueue` class
+
+:::
+
+## How to enable the experiment
+
+### In crawlers
+
+:::note
+
+This example shows how to enable the experiment in the <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>,
+but you can apply this to any crawler type.
+
+:::
+
+```ts
+import { CheerioCrawler } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    // highlight-next-line
+    experiments: {
+        // highlight-next-line
+        requestLocking: true,
+        // highlight-next-line
+    },
+    async requestHandler({ $, request }) {
+        const title = $('title').text();
+        console.log(`The title of "${request.url}" is: ${title}.`);
+    },
+});
+
+await crawler.run(['https://crawlee.dev']);
+```
+
+### Outside crawlers (to setup your own request queue that supports locking)
+
+Previously, you would import `RequestQueue` from `crawlee`. To switch to the queue that supports locking, you need to import `RequestQueue2` instead.
+
+```ts
+// highlight-next-line
+import { RequestQueue2 } from 'crawlee';
+
+const queue = await RequestQueue2.open('my-locking-queue');
+await queue.addRequests([
+    { url: 'https://crawlee.dev' },
+    { url: 'https://crawlee.dev/docs' },
+    { url: 'https://crawlee.dev/api' },
+]);
+```
+
+### Using the new request queue in crawlers
+
+If you make your own request queue that supports locking, you will also need to enable the experiment in your crawlers.
+
+:::danger
+
+If you do not enable the experiment, you will receive a runtime error and the crawler will not start.
+
+:::
+
+```ts
+import { CheerioCrawler, RequestQueue2 } from 'crawlee';
+
+// highlight-next-line
+const queue = await RequestQueue2.open('my-locking-queue');
+
+const crawler = new CheerioCrawler({
+    // highlight-next-line
+    experiments: {
+        // highlight-next-line
+        requestLocking: true,
+        // highlight-next-line
+    },
+    // highlight-next-line
+    requestQueue: queue,
+    async requestHandler({ $, request }) {
+        const title = $('title').text();
+        console.log(`The title of "${request.url}" is: ${title}.`);
+    },
+});
+
+await crawler.run();
+```
+
+## Other changes
+
+:::info
+
+This section is only useful if you're a tinkerer and want to see what's going on under the hood.
+
+:::
+
+In order to facilitate the new request locking API, as well as keep both the current request queue logic and the new, locking based request queue
+logic, we have implemented a common starting point called `RequestProvider`.
+
+This class implements almost all functions by default, but expects you, the developer, to implement the following methods:
+`fetchNextRequest` and `ensureHeadIsNotEmpty`. These methods are responsible for loading and returning requests to process,
+and tell crawlers if there are more requests to process.
+
+You can use this base class to implement your own request providers if you need to fetch requests from a different source.
+
+:::tip
+
+We recommend you use TypeScript when implementing your own request provider, as it comes with suggestions for the abstract methods, as well as
+giving you the exact types you need to return.
+
+:::
