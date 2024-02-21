@@ -1,6 +1,6 @@
 import { inspect } from 'node:util';
 
-import type { CrawlingContext } from '@crawlee/basic';
+import type { CrawlingContext } from '@crawlee/core';
 
 import { ErrorSnapshotter } from './error_snapshotter';
 
@@ -331,7 +331,7 @@ export class ErrorTracker {
 
         // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
         if (group.count === 1 && context) {
-            await this.captureSnapshot(group, error, context).catch(() => {});
+            await this.captureSnapshot(group, error, context).catch(() => { });
         }
 
         if (typeof error.cause === 'object' && error.cause !== null) {
@@ -380,10 +380,10 @@ export class ErrorTracker {
     }
 
     async captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext) {
-        const { screenshotFilename, htmlFilename } = await this.errorSnapshotter.captureSnapshot(error, context);
+        const { screenshotFilename, htmlFileName } = await this.errorSnapshotter.captureSnapshot(error, context);
 
         storage.firstErrorScreenshot = screenshotFilename;
-        storage.firstErrorHtmlSnapshot = htmlFilename;
+        storage.firstErrorHtml = htmlFileName;
     }
 
     reset() {
