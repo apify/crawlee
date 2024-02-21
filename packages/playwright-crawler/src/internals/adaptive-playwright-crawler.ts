@@ -71,7 +71,7 @@ interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
     querySelector: (selector: string, timeoutMs?: number) => Awaitable<Cheerio<Element>>;
 }
 
-export interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions, 'requestHandler'> {
+export interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions, 'requestHandler' | 'handlePageFunction'> {
     /**
      * Function that is called to process each request.
      *
