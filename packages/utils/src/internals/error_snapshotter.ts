@@ -1,11 +1,14 @@
 import crypto from 'node:crypto';
 
-import type { CrawlingContext } from '@crawlee/basic';
-import type { KeyValueStore } from '@crawlee/core';
+import type { KeyValueStore, CrawlingContext } from '@crawlee/core';
+import type { PlaywrightCrawlingContext } from '@crawlee/playwright';
+import type { PuppeteerCrawlingContext } from '@crawlee/puppeteer';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 
 import type { ErrnoException } from './error_tracker';
+
+const { PWD, CRAWLEE_STORAGE_DIR, APIFY_IS_AT_HOME } = process.env;
 
 /**
  * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occur during web crawling.
@@ -14,12 +17,13 @@ export class ErrorSnapshotter {
     static readonly MAX_ERROR_CHARACTERS = 30;
     static readonly BASE_MESSAGE = 'An error occurred';
     static readonly SNAPSHOT_PREFIX = 'SNAPSHOT';
-    static readonly KEY_VALUE_STORE_PATH = 'https://api.apify.com/v2/key-value-stores';
+    static readonly KEY_VALUE_PLATFORM_PATH = 'https://api.apify.com/v2/key-value-stores';
+    static readonly KEY_VALUE_STORE_LOCAL_PATH = `file://${PWD}/${CRAWLEE_STORAGE_DIR}/key_value_stores` || `file://${PWD}/storage/key_value_stores`;
 
     /**
      * Capture a snapshot of the error context.
      */
-    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFilename?: string; htmlFilename?: string }> {
+    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFilename?: string; htmlFileName?: string }> {
         const page = context?.page as PuppeteerPage | PlaywrightPage | undefined;
         const body = context?.body;
 
@@ -30,33 +34,62 @@ export class ErrorSnapshotter {
         }
 
         const filename = this.generateFilename(error);
-        const screenshotFilename = page ? await this.captureScreenshot(page, keyValueStore, filename) : undefined;
 
-        let htmlFilename: string | undefined;
-        if (typeof body === 'string') {
-            htmlFilename = await this.saveHTMLSnapshot(body, keyValueStore, filename);
-        } else if (page) {
-            const html = await page?.content() || '';
-            htmlFilename = html ? await this.saveHTMLSnapshot(html, keyValueStore, filename) : '';
+        let screenshotFilename: string | undefined;
+        let htmlFileName: string | undefined;
+
+        if (page) {
+            const capturedFiles = await this.captureSnapShot(
+                context as
+                | PlaywrightCrawlingContext
+                | PuppeteerCrawlingContext,
+                filename,
+            );
+
+            if (capturedFiles) {
+                screenshotFilename = capturedFiles.screenshotFilename;
+                htmlFileName = capturedFiles.htmlFileName;
+            }
+
+            // If the snapshot for browsers failed to capture the HTML, try to capture it from the page content
+            if (!htmlFileName) {
+                const html = await page?.content() || undefined;
+                htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, filename) : undefined;
+            }
+        } else if (typeof body === 'string') { // for non-browser contexts
+            htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, filename);
         }
 
-        const basePath = `${ErrorSnapshotter.KEY_VALUE_STORE_PATH}/${keyValueStore.id}/records`;
+        if (APIFY_IS_AT_HOME) {
+            const platformPath = `${ErrorSnapshotter.KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
+            return {
+                screenshotFilename: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
+                htmlFileName: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
+            };
+        }
 
+        const localPath = `${ErrorSnapshotter.KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
         return {
-            screenshotFilename: screenshotFilename ? `${basePath}/${screenshotFilename}` : undefined,
-            htmlFilename: htmlFilename ? `${basePath}/${htmlFilename}` : undefined,
+            screenshotFilename: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
+            htmlFileName: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
         };
     }
 
     /**
-     * Capture a screenshot of the page (For Browser only), and return the filename with the extension.
+     * Capture a screenshot and HTML of the page (For Browser only), and return the filename with the extension.
      */
-    async captureScreenshot(page: PuppeteerPage | PlaywrightPage, keyValueStore: KeyValueStore, filename: string): Promise<string | undefined> {
+    async captureSnapShot(
+        context: PlaywrightCrawlingContext | PuppeteerCrawlingContext,
+        filename: string): Promise<{
+            screenshotFilename?: string;
+            htmlFileName?: string;
+        } | undefined> {
         try {
-            const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'png' });
-
-            await keyValueStore.setValue(filename, screenshotBuffer, { contentType: 'image/png' });
-            return `${filename}.png`;
+            await context.saveSnapshot({ key: filename });
+            return {
+                screenshotFilename: `${filename}.jpg`,
+                htmlFileName: `${filename}.html`,
+            };
         } catch (e) {
             return undefined;
         }
@@ -84,15 +117,15 @@ export class ErrorSnapshotter {
         // Extract the first 30 characters of the error message
         const errorMessagePrefix = (
             error.message || ErrorSnapshotter.BASE_MESSAGE
-        ).substring(0, Math.min(ErrorSnapshotter.MAX_ERROR_CHARACTERS, error.message?.length || 0));
+        ).slice(0, ErrorSnapshotter.MAX_ERROR_CHARACTERS);
 
         // Generate filename and remove disallowed characters
         let filename = `${ErrorSnapshotter.SNAPSHOT_PREFIX}_${errorStackHash}_${errorMessagePrefix}`;
-        filename = filename.replace(/[^a-zA-Z0-9!-_.]/g, '');
+        filename = filename.replace(/[^a-zA-Z0-9!-_.]/g, '-');
 
         // Ensure filename is not too long
         if (filename.length > 250) {
-            filename = filename.slice(0, 250); // to allow space for the extension
+            filename = filename.slice(0, 250); // 250 to allow space for the extension
         }
 
         return filename;
