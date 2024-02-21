@@ -21,7 +21,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     limit?: number;
 
     /** An array of URLs to enqueue. */
-    urls?: string[];
+    urls?: Readonly<string[]>;
 
     /** A request queue to which the URLs will be enqueued. */
     requestQueue?: RequestProvider;
@@ -60,7 +60,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the function
      * enqueues the links with the same subdomain.
      */
-    globs?: GlobInput[];
+    globs?: Readonly<GlobInput[]>;
 
     /**
      * An array of glob pattern strings, regexp patterns or plain objects
@@ -72,7 +72,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Glob matching is always case-insensitive.
      * If you need case-sensitive matching, provide a regexp.
      */
-    exclude?: (GlobInput | RegExpInput)[];
+    exclude?: Readonly<(GlobInput | RegExpInput)[]>;
 
     /**
      * An array of regular expressions or plain objects
@@ -84,7 +84,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the function
      * enqueues the links with the same subdomain.
      */
-    regexps?: RegExpInput[];
+    regexps?: Readonly<RegExpInput[]>;
 
     /**
      * *NOTE:* In future versions of SDK the options will be removed.
@@ -104,7 +104,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * @deprecated prefer using `globs` or `regexps` instead
      */
-    pseudoUrls?: PseudoUrlInput[];
+    pseudoUrls?: Readonly<PseudoUrlInput[]>;
 
     /**
      * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used

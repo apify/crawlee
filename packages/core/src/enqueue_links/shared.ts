@@ -52,7 +52,7 @@ export function updateEnqueueLinksPatternCache(item: GlobInput | RegExpInput | P
  * to construct RegExps from PseudoUrl strings.
  * @ignore
  */
-export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: PseudoUrlInput[]): RegExpObject[] {
+export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: Readonly<PseudoUrlInput[]>): RegExpObject[] {
     return pseudoUrls.map((item) => {
         // Get pseudoUrl object from cache.
         let regexpObject = enqueueLinksPatternCache.get(item);
@@ -76,7 +76,7 @@ export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: PseudoUrlInput[
  * to construct Glob objects from Glob pattern strings.
  * @ignore
  */
-export function constructGlobObjectsFromGlobs(globs: GlobInput[]): GlobObject[] {
+export function constructGlobObjectsFromGlobs(globs: Readonly<GlobInput[]>): GlobObject[] {
     return globs
         .filter((glob) => {
             // Skip possibly nullish, empty strings
@@ -126,7 +126,7 @@ export function validateGlobPattern(glob: string): string {
  * to check RegExps input and return valid RegExps.
  * @ignore
  */
-export function constructRegExpObjectsFromRegExps(regexps: RegExpInput[]): RegExpObject[] {
+export function constructRegExpObjectsFromRegExps(regexps: Readonly<RegExpInput[]>): RegExpObject[] {
     return regexps.map((item) => {
         // Get regexp object from cache.
         let regexpObject = enqueueLinksPatternCache.get(item);

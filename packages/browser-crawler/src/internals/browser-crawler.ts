@@ -40,6 +40,7 @@ import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
+import type { ReadonlyDeep } from 'type-fest';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
@@ -749,7 +750,7 @@ export abstract class BrowserCrawler<
 
 /** @internal */
 interface EnqueueLinksInternalOptions {
-    options?: EnqueueLinksOptions;
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
     originalRequestUrl: string;
@@ -786,7 +787,7 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
+export async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
     const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
     const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
     const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);

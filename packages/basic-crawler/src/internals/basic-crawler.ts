@@ -427,7 +427,7 @@ export interface CrawlerExperiments {
  * @category Crawlers
  */
 export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext> {
-    private static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
+    protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.

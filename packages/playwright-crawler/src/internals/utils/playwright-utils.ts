@@ -32,6 +32,7 @@ import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright'
 import ow from 'ow';
 import type { Page, Response, Route } from 'playwright';
 
+import { RenderingTypePredictor } from './rendering-type-prediction';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
 import type { PlaywrightCrawlingContext } from '../playwright-crawler';
@@ -789,4 +790,5 @@ export const playwrightUtils = {
     saveSnapshot,
     compileScript,
     closeCookieModals,
+    RenderingTypePredictor,
 };
