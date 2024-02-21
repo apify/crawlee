@@ -24,12 +24,11 @@ export interface ProxyConfigurationOptions {
     newUrlFunction?: ProxyConfigurationFunction;
 
     /**
-     * An array of custom proxy URLs tiers to be rotated.
-     * This is a more advanced version of `proxyUrls` that allows you to define
-     * a hierarchy of proxy URLs. If everything goes well, all the requests will be sent
-     * through the first proxy URL in the list.
-     * Whenever the crawler encounters a problem with the current proxy on the given domain, it will switch to the following proxy in the list.
-     * The crawler probes lower-level proxies at given intervals to check if it can make the downshift.
+     * An array of custom proxy URLs to be rotated stratified in tiers.
+     * This is a more advanced version of `proxyUrls` that allows you to define a hierarchy of proxy URLs
+     * If everything goes well, all the requests will be sent through the first proxy URL in the list.
+     * Whenever the crawler encounters a problem with the current proxy on the given domain, it will switch to the higher tier for this domain.
+     * The crawler probes lower-level proxies at intervals to check if it can make the tier downshift.
      *
      * This feature is useful when you have a set of proxies with different performance characteristics (speed, price, antibot performance etc.) and you want to use the best one for each domain.
      */
