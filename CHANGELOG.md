@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
+
+
+### Bug Fixes
+
+* `createRequests` works correctly with `exclude` (and nothing else) ([#2321](https://github.com/apify/crawlee/issues/2321)) ([048db09](https://github.com/apify/crawlee/commit/048db0964a57ac570320ad495425733128235491))
+* declare missing dependencies on `csv-stringify` and `fs-extra` ([#2326](https://github.com/apify/crawlee/issues/2326)) ([718959d](https://github.com/apify/crawlee/commit/718959dbbe1fa69f948d0b778d0f54d9c493ab25)), closes [/github.com/redabacha/crawlee/blob/2f05ed22b203f688095300400bb0e6d03a03283c/.eslintrc.json#L50](https://github.com//github.com/redabacha/crawlee/blob/2f05ed22b203f688095300400bb0e6d03a03283c/.eslintrc.json/issues/L50)
+* **puppeteer:** add 'process' to the browser bound methods ([#2329](https://github.com/apify/crawlee/issues/2329)) ([2750ba6](https://github.com/apify/crawlee/commit/2750ba646ef3c1d51eacdd8e7d67be0e14fb2a97))
+* **puppeteer:** replace `page.waitForTimeout()` with `sleep()` ([52d7219](https://github.com/apify/crawlee/commit/52d7219acdc19b34a727e5d26f7f9288d27ca57f)), closes [#2335](https://github.com/apify/crawlee/issues/2335)
+* **puppeteer:** support `puppeteer@v22` ([#2337](https://github.com/apify/crawlee/issues/2337)) ([3cc360a](https://github.com/apify/crawlee/commit/3cc360a1ea94147133f9785d65834f360f7b42a7))
+
+
+### Features
+
+* `KeyValueStore.recordExists()` ([#2339](https://github.com/apify/crawlee/issues/2339)) ([8507a65](https://github.com/apify/crawlee/commit/8507a65d1ad079f64c752a6ddb1d8fac9b494228))
+* accessing crawler state, key-value store and named datasets via crawling context ([#2283](https://github.com/apify/crawlee/issues/2283)) ([58dd5fc](https://github.com/apify/crawlee/commit/58dd5fcc25f31bb066402c46e48a9e5e91efd5c5))
+* adaptive playwright crawler ([#2316](https://github.com/apify/crawlee/issues/2316)) ([8e4218a](https://github.com/apify/crawlee/commit/8e4218ada03cf485751def46f8c465b2d2a825c7))
+* add Sitemap.tryCommonNames to check well known sitemap locations ([#2311](https://github.com/apify/crawlee/issues/2311)) ([85589f1](https://github.com/apify/crawlee/commit/85589f167196ac49c0cc10664ab3e9e5595208ed)), closes [#2307](https://github.com/apify/crawlee/issues/2307)
+* **ci:** snapshot docs automatically on minor/major publish ([#2344](https://github.com/apify/crawlee/issues/2344)) ([092f51e](https://github.com/apify/crawlee/commit/092f51e8e85d22953686897d7508e9c0c9af08ad))
+* **core:** add `userAgent` parameter to `RobotsFile.isAllowed()` + `RobotsFile.from()` helper ([#2338](https://github.com/apify/crawlee/issues/2338)) ([343c159](https://github.com/apify/crawlee/commit/343c159f20546a2006db33da4674e6ffd77db572))
+* Support plain-text sitemap files (sitemap.txt) ([#2315](https://github.com/apify/crawlee/issues/2315)) ([0bee7da](https://github.com/apify/crawlee/commit/0bee7daf9509fe61c8d83799e706f0bb030257ec))
+
+
+
+
+
 ## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
 
 

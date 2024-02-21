@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
+
+
+### Bug Fixes
+
+* **puppeteer:** add 'process' to the browser bound methods ([#2329](https://github.com/apify/crawlee/issues/2329)) ([2750ba6](https://github.com/apify/crawlee/commit/2750ba646ef3c1d51eacdd8e7d67be0e14fb2a97))
+* **puppeteer:** support `puppeteer@v22` ([#2337](https://github.com/apify/crawlee/issues/2337)) ([3cc360a](https://github.com/apify/crawlee/commit/3cc360a1ea94147133f9785d65834f360f7b42a7))
+
+
+
+
+
 ## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
 
 **Note:** Version bump only for package @crawlee/browser-pool
