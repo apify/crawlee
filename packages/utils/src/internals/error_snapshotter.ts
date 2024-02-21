@@ -23,7 +23,7 @@ export class ErrorSnapshotter {
     /**
      * Capture a snapshot of the error context.
      */
-    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFilename?: string; htmlFileName?: string }> {
+    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileUrl?: string; htmlFileUrl?: string }> {
         const page = context?.page as PuppeteerPage | PlaywrightPage | undefined;
         const body = context?.body;
 
@@ -63,15 +63,15 @@ export class ErrorSnapshotter {
         if (APIFY_IS_AT_HOME) {
             const platformPath = `${ErrorSnapshotter.KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
             return {
-                screenshotFilename: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
-                htmlFileName: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
+                screenshotFileUrl: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
+                htmlFileUrl: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
             };
         }
 
         const localPath = `${ErrorSnapshotter.KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
         return {
-            screenshotFilename: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
-            htmlFileName: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
+            screenshotFileUrl: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
+            htmlFileUrl: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
         };
     }
 
