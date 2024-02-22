@@ -305,7 +305,39 @@ export class ErrorTracker {
         this.total = 0;
     }
 
-    async add(error: ErrnoException, context?: CrawlingContext) {
+    add(error: ErrnoException) {
+        this.total++;
+
+        let group = this.result;
+
+        if (this.#options.showStackTrace) {
+            group = getStackTraceGroup(error, group, this.#options.showFullStack);
+        }
+
+        if (this.#options.showErrorCode) {
+            group = getErrorCodeGroup(error, group);
+        }
+
+        if (this.#options.showErrorName) {
+            group = getErrorNameGroup(error, group);
+        }
+
+        if (this.#options.showErrorMessage) {
+            group = getErrorMessageGroup(error, group, this.#options.showFullMessage);
+        }
+
+        increaseCount(group as { count: number });
+
+        if (typeof error.cause === 'object' && error.cause !== null) {
+            this.add(error.cause);
+        }
+    }
+
+    /**
+     * This method is async, because it captures a snapshot of the error context.
+     * We added this new method to avoid breaking changes.
+     */
+    async addAsync(error: ErrnoException, context?: CrawlingContext) {
         this.total++;
 
         let group = this.result;
@@ -334,7 +366,7 @@ export class ErrorTracker {
         }
 
         if (typeof error.cause === 'object' && error.cause !== null) {
-            await this.add(error.cause);
+            await this.addAsync(error.cause);
         }
     }
 

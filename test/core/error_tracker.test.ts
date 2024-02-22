@@ -81,7 +81,7 @@ const errorRandomStack = {
     cause: undefined as any,
 } as const;
 
-test('works', async () => {
+test('works', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -95,7 +95,7 @@ test('works', async () => {
 
     expect(tracker.result).toMatchObject({});
 
-    await tracker.add(g(e));
+    tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {      // source
@@ -110,7 +110,7 @@ test('works', async () => {
     });
     expect(tracker.getUniqueErrorCount()).toBe(1);
 
-    await tracker.add(g(e));
+    tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {      // source
@@ -138,8 +138,8 @@ test('no code is null code', async () => {
 
     const e = errorNoCode;
 
-    await tracker.add(g(e));
-    await tracker.add(g(e));
+    tracker.add(g(e));
+    tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {       // source
@@ -167,8 +167,8 @@ test('can hide error code', async () => {
 
     const e = errorRandomCode;
 
-    await tracker.add(g(errorRandomCode));
-    await tracker.add(g(errorRandomCode));
+    tracker.add(g(errorRandomCode));
+    tracker.add(g(errorRandomCode));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {      // source
@@ -194,8 +194,8 @@ test('can hide error name', async () => {
 
     const e = errorRandomName;
 
-    await tracker.add(g(e));
-    await tracker.add(g(e));
+    tracker.add(g(e));
+    tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {      // source
@@ -221,8 +221,8 @@ test('can hide error message', async () => {
 
     const e = errorRandomMessage;
 
-    await tracker.add(g(errorRandomMessage));
-    await tracker.add(g(errorRandomMessage));
+    tracker.add(g(errorRandomMessage));
+    tracker.add(g(errorRandomMessage));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {      // source
@@ -246,8 +246,8 @@ test('can hide error stack', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add(g(errorRandomStack));
-    await tracker.add(g(errorRandomStack));
+    tracker.add(g(errorRandomStack));
+    tracker.add(g(errorRandomStack));
 
     expect(tracker.result).toMatchObject({
         'ERR_INVALID_URL': {      // code
@@ -273,8 +273,8 @@ test('can display full stack', async () => {
 
     const e = multilineError;
 
-    await tracker.add(g(e));
-    await tracker.add(g(e));
+    tracker.add(g(e));
+    tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
         [s(e.stack)]: {            // source
@@ -302,8 +302,8 @@ test('stack looks for user files first', async () => {
 
     const e = multilineError;
 
-    await tracker.add(g(e));
-    await tracker.add(g(e));
+    tracker.add(g(e));
+    tracker.add(g(e));
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {      // source
@@ -331,7 +331,7 @@ test('can shorten the message to the first line', async () => {
 
     const e = g(multilineError);
 
-    await tracker.add(e);
+    tracker.add(e);
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {                     // source
@@ -360,7 +360,7 @@ test('supports error.cause', async () => {
     const e = g(multilineError);
     e.cause = g(errorRandomMessage);
 
-    await tracker.add(e);
+    tracker.add(e);
 
     expect(tracker.result).toMatchObject({
         'myscript.js:10:3': {                     // source
@@ -389,17 +389,17 @@ test('placeholder #1', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected boolean, got number',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected boolean, got string',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected boolean, got undefined',
     });
@@ -428,17 +428,17 @@ test('placeholder #2', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `number`',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `string`',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `undefined`',
     });
@@ -467,17 +467,17 @@ test('placeholder #3', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 2 3',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 4 3',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 5 3',
     });
@@ -506,17 +506,17 @@ test('placeholder #4', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 2 3',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 2 4',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 2 5',
     });
@@ -545,17 +545,17 @@ test('placeholder #5', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '1 2 3',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '4 2 3',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: '5 2 3',
     });
@@ -584,17 +584,17 @@ test('placeholder #6', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'The weather is sunny today, but the grass is wet.',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'The weather is rainy today, but the grass is still dry.',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'The weather is wild today, however the grass is yellow.',
     });
@@ -623,12 +623,12 @@ test('placeholder #7', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `number`',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `number`',
     });
@@ -646,7 +646,7 @@ test('placeholder #7', async () => {
     });
     expect(tracker.getUniqueErrorCount()).toBe(1);
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `falsy value`',
     });
@@ -675,12 +675,12 @@ test('placeholder #8', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `boolean`, got `number`',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Expected `string`, got `null`',
     });
@@ -712,12 +712,12 @@ test('placeholder #9', async () => {
         showFullMessage: true,
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Unexpected `show` property in `options` object',
     });
 
-    await tracker.add({
+    tracker.add({
         name: 'Error',
         message: 'Missing `display` in style',
     });

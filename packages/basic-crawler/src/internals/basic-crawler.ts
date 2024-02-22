@@ -1363,7 +1363,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const shouldRetryRequest = this._canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
-            await this.stats.errorTrackerRetry.add(error, crawlingContext);
+            await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
@@ -1394,9 +1394,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // This is to make sure the error snapshot is not duplicated in the errorTrackerRetry and errorTracker objects.
         const { noRetry, maxRetries } = request;
         if (noRetry || !maxRetries) {
-            await this.stats.errorTracker.add(error, crawlingContext);
+            await this.stats.errorTracker.addAsync(error, crawlingContext);
         } else {
-            await this.stats.errorTracker.add(error);
+            this.stats.errorTracker.add(error);
         }
 
         // If we get here, the request is either not retryable
