@@ -16,7 +16,7 @@ on:
         types:
             - crawlee-docker-image-bump
     schedule:
-        - cron: 0 */12 * * *
+        - cron: 0 */1 * * *
 
 env:
     ACTIONS_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
