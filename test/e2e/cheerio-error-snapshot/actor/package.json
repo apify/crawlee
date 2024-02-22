@@ -1,7 +1,7 @@
 {
-    "name": "test-cheerio-throw-on-ssl-errors",
+    "name": "test-cheerio-error-snapshot",
     "version": "0.0.1",
-    "description": "Cheerio Crawler Test - Should throw on SSL Errors",
+    "description": "Cheerio Crawler Test - Should save errors snapshots",
     "dependencies": {
         "apify": "next",
         "@apify/storage-local": "^2.1.3",

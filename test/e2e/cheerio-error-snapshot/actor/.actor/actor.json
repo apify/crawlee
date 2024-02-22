@@ -1,6 +1,6 @@
 {
 	"actorSpecification": 1,
-	"name": "test-cheerio-throw-on-ssl-errors",
+	"name": "test-cheerio-error-snapshot",
 	"version": "0.0",
 	"buildTag": "latest",
 	"env": null

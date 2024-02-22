@@ -39,17 +39,10 @@ await Actor.main(async () => {
             // Post navigation errors snapshots are not saved as we don't get the body in the context
             if (label === LABELS.POST_NAVIGATION_ERROR) {
                 log.error('Post navigation error');
-                throw new Error(' Unable to navigate to the requested post');
+                throw new Error('Unable to navigate to the requested post');
             }
         }],
     });
 
     await crawler.run(Object.values(LABELS).map((label) => ({ url: 'https://example.com', userData: { label }, uniqueKey: label })));
-
-    // await crawler.run([
-    //     { url: 'https://example.com', userData: { label: 'TIMEOUT' }, uniqueKey: 'TIMEOUT' },
-    //     { url: 'https://example.com', userData: { label: 'TYPE_ERROR' }, uniqueKey: 'TYPE_ERROR' },
-    //     { url: 'https://example.com', userData: { label: 'ERROR_OPENING_PAGE' }, uniqueKey: 'ERROR_OPENING_PAGE' },
-    //     { url: 'https://example.com', userData: { label: 'POST_NAVIGATION_ERROR' }, uniqueKey: 'POST_NAVIGATION_ERROR' },
-    // ]);
 }, mainOptions);
