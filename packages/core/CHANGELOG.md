@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.8.1](https://github.com/apify/crawlee/compare/v3.8.0...v3.8.1) (2024-02-22)
+
+
+### Bug Fixes
+
+* fix crawling context type in `router.addHandler()` ([#2355](https://github.com/apify/crawlee/issues/2355)) ([d73c202](https://github.com/apify/crawlee/commit/d73c20240586aeeddaea99cd157771a01b61d917))
+
+
+
+
+
 # [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
 
 
