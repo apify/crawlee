@@ -1,12 +1,13 @@
 import crypto from 'node:crypto';
 
-import type { KeyValueStore, CrawlingContext } from '@crawlee/core';
 import type { PlaywrightCrawlingContext } from '@crawlee/playwright';
 import type { PuppeteerCrawlingContext } from '@crawlee/puppeteer';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 
 import type { ErrnoException } from './error_tracker';
+import type { CrawlingContext } from '../crawlers/crawler_commons';
+import type { KeyValueStore } from '../storages';
 
 const { PWD, CRAWLEE_STORAGE_DIR, APIFY_IS_AT_HOME } = process.env;
 
@@ -43,7 +44,7 @@ export class ErrorSnapshotter {
 
         if (page) {
             const capturedFiles = await this.captureSnapShot(
-                context as
+                context as unknown as
                 | PlaywrightCrawlingContext
                 | PuppeteerCrawlingContext,
                 filename,
