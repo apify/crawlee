@@ -15,15 +15,18 @@ const { PWD, CRAWLEE_STORAGE_DIR, APIFY_IS_AT_HOME } = process.env;
  */
 export class ErrorSnapshotter {
     static readonly MAX_ERROR_CHARACTERS = 30;
+    static readonly MAX_HASH_LENGTH = 30;
+    static readonly MAX_FILENAME_LENGTH = 250;
     static readonly BASE_MESSAGE = 'An error occurred';
-    static readonly SNAPSHOT_PREFIX = 'SNAPSHOT';
+    static readonly SNAPSHOT_PREFIX = 'ERROR_SNAPSHOT';
     static readonly KEY_VALUE_PLATFORM_PATH = 'https://api.apify.com/v2/key-value-stores';
-    static readonly KEY_VALUE_STORE_LOCAL_PATH = `file://${PWD}/${CRAWLEE_STORAGE_DIR}/key_value_stores` || `file://${PWD}/storage/key_value_stores`;
+    static readonly KEY_VALUE_STORE_LOCAL_PATH = `file://${PWD}/${CRAWLEE_STORAGE_DIR || 'storage'}/key_value_stores`;
 
     /**
      * Capture a snapshot of the error context.
      */
     async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileUrl?: string; htmlFileUrl?: string }> {
+        const { KEY_VALUE_PLATFORM_PATH, KEY_VALUE_STORE_LOCAL_PATH } = ErrorSnapshotter;
         const page = context?.page as PuppeteerPage | PlaywrightPage | undefined;
         const body = context?.body;
 
@@ -61,14 +64,14 @@ export class ErrorSnapshotter {
         }
 
         if (APIFY_IS_AT_HOME) {
-            const platformPath = `${ErrorSnapshotter.KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
+            const platformPath = `${KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
             return {
                 screenshotFileUrl: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
                 htmlFileUrl: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
             };
         }
 
-        const localPath = `${ErrorSnapshotter.KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
+        const localPath = `${KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
         return {
             screenshotFileUrl: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
             htmlFileUrl: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
@@ -87,7 +90,8 @@ export class ErrorSnapshotter {
         try {
             await context.saveSnapshot({ key: filename });
             return {
-                screenshotFilename: `${filename}.jpg`,
+                // The screenshot file extension is different for Apify and local environments
+                screenshotFilename: `${filename}${APIFY_IS_AT_HOME ? '.jpg' : '.jpeg'}`,
                 htmlFileName: `${filename}.html`,
             };
         } catch (e) {
@@ -108,25 +112,26 @@ export class ErrorSnapshotter {
     }
 
     /**
+     * Remove non-word characters from the start and end of a string.
+     */
+    sanitizeString(str: string): string {
+        return str.replace(/^\W+|\W+$/g, '');
+    }
+
+    /**
      * Generate a unique filename for each error snapshot.
      */
-    // Method to generate a unique filename for each error snapshot
     generateFilename(error: ErrnoException): string {
+        const { SNAPSHOT_PREFIX, BASE_MESSAGE, MAX_HASH_LENGTH, MAX_ERROR_CHARACTERS, MAX_FILENAME_LENGTH } = ErrorSnapshotter;
+        const { sanitizeString } = this;
         // Create a hash of the error stack trace
-        const errorStackHash = crypto.createHash('sha1').update(error.stack || '').digest('hex').slice(0, 30);
-        // Extract the first 30 characters of the error message
-        const errorMessagePrefix = (
-            error.message || ErrorSnapshotter.BASE_MESSAGE
-        ).slice(0, ErrorSnapshotter.MAX_ERROR_CHARACTERS);
+        const errorStackHash = crypto.createHash('sha1').update(error.stack || error.message || '').digest('hex').slice(0, MAX_HASH_LENGTH);
+        const errorMessagePrefix = (error.message || BASE_MESSAGE).slice(0, MAX_ERROR_CHARACTERS).trim();
 
         // Generate filename and remove disallowed characters
-        let filename = `${ErrorSnapshotter.SNAPSHOT_PREFIX}_${errorStackHash}_${errorMessagePrefix}`;
-        filename = filename.replace(/[^a-zA-Z0-9!-_.]/g, '-');
-
-        // Ensure filename is not too long
-        if (filename.length > 250) {
-            filename = filename.slice(0, 250); // 250 to allow space for the extension
-        }
+        const filename = `${SNAPSHOT_PREFIX}_${sanitizeString(errorStackHash)}_${sanitizeString(errorMessagePrefix)}`
+            .replace(/\W+/g, '-') // Replace non-word characters with a dash
+            .slice(0, MAX_FILENAME_LENGTH);
 
         return filename;
     }

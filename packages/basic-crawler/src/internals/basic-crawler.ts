@@ -1392,7 +1392,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // If the request is non-retryable, the error and snapshot aren't saved in the errorTrackerRetry object.
         // Therefore, we pass the crawlingContext to the errorTracker.add method, enabling snapshot capture.
         // This is to make sure the error snapshot is not duplicated in the errorTrackerRetry and errorTracker objects.
-        if (crawlingContext.request.noRetry) {
+        const { noRetry, maxRetries } = request;
+        if (noRetry || !maxRetries) {
             await this.stats.errorTracker.add(error, crawlingContext);
         } else {
             await this.stats.errorTracker.add(error);
