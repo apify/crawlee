@@ -12,7 +12,9 @@ import type { Session } from '../session_pool/session';
 import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
-export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> extends Record<string, unknown>{
+// we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
+// eslint-disable-next-line
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
     /**
      * The original {@apilink Request} object.
      */

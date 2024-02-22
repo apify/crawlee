@@ -1,6 +1,7 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
 import { MissingRouteError, Router } from '@crawlee/core';
+import { createPlaywrightRouter, type PlaywrightCrawlingContext } from 'crawlee';
 
 describe('Router', () => {
     test('should be callable and route based on the label', async () => {
@@ -135,6 +136,14 @@ describe('Router', () => {
         const router = Router.create();
         const crawler = new BasicCrawler({
             requestHandler: router,
+        });
+    });
+
+    test('context has correct type', async () => {
+        const router = createPlaywrightRouter();
+        router.addHandler('label', async (ctx: PlaywrightCrawlingContext) => {
+            // just to test if this works on type level, the assertion is not actually executed
+            expect(ctx.page.$$).toBeDefined();
         });
     });
 
