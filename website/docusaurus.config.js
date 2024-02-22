@@ -192,6 +192,11 @@ module.exports = {
                     activeBaseRegex: 'changelog',
                 },
                 {
+                    to: 'blog',
+                    label: 'Blog',
+                    position: 'left',
+                },
+                {
                     type: 'docsVersionDropdown',
                     position: 'left',
                     dropdownItemsAfter: [
@@ -260,6 +265,10 @@ module.exports = {
                 {
                     title: 'Community',
                     items: [
+                        {
+                            label: 'Blog',
+                            to: 'blog',
+                        },
                         {
                             label: 'Discord',
                             href: 'https://discord.com/invite/jyEM2PRvMU',
