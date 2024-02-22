@@ -534,14 +534,16 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     try {
         const store = await KeyValueStore.open(keyValueStoreName, { config: config ?? Configuration.getGlobalConfig() });
 
+        const { APIFY_IS_AT_HOME } = process.env;
+
         if (saveScreenshot) {
-            const screenshotName = `${key}.jpg`;
+            const screenshotName = APIFY_IS_AT_HOME ? `${key}.jpg` : key;
             const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg', animations: 'disabled' });
             await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
 
         if (saveHtml) {
-            const htmlName = `${key}.html`;
+            const htmlName = APIFY_IS_AT_HOME ? `${key}.html` : key;
             const html = await page.content();
             await store.setValue(htmlName, html, { contentType: 'text/html' });
         }
