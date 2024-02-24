@@ -944,14 +944,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:8.56.0":
-  version: 8.56.0
-  resolution: "@eslint/js@npm:8.56.0"
-  checksum: 10c0/60b3a1cf240e2479cec9742424224465dc50e46d781da1b7f5ef240501b2d1202c225bd456207faac4b34a64f4765833345bc4ddffd00395e1db40fa8c426f5a
+"@eslint/js@npm:8.57.0":
+  version: 8.57.0
+  resolution: "@eslint/js@npm:8.57.0"
+  checksum: 10c0/9a518bb8625ba3350613903a6d8c622352ab0c6557a59fe6ff6178bf882bf57123f9d92aa826ee8ac3ee74b9c6203fe630e9ee00efb03d753962dcf65ee4bd94
   languageName: node
   linkType: hard
 
-"@humanwhocodes/config-array@npm:^0.11.13":
+"@humanwhocodes/config-array@npm:^0.11.14":
   version: 0.11.14
   resolution: "@humanwhocodes/config-array@npm:0.11.14"
   dependencies:
@@ -2738,9 +2738,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"apify-client@npm:^2.8.4":
-  version: 2.9.1
-  resolution: "apify-client@npm:2.9.1"
+"apify-client@npm:^2.9.0":
+  version: 2.9.2
+  resolution: "apify-client@npm:2.9.2"
   dependencies:
     "@apify/consts": "npm:^2.25.0"
     "@apify/log": "npm:^2.2.6"
@@ -2752,13 +2752,13 @@ __metadata:
     ow: "npm:^0.28.2"
     tslib: "npm:^2.5.0"
     type-fest: "npm:^4.0.0"
-  checksum: 10c0/f5538514eb223420115431bf72b74dfce6da83876e1a81e8d2d62544c172266c43e5059c422714dd562863522b9bc4b1361584afa2fc0781cd87d0c18f4a4b30
+  checksum: 10c0/13f71957d90928095b349020b6a269587f6e3d0d4994e3085219980411fd68eb495e5b44814c041e57a6b864a4aa1121fedfea12f32bf06f12a43c278a595b1f
   languageName: node
   linkType: hard
 
 "apify@npm:*":
-  version: 3.1.15
-  resolution: "apify@npm:3.1.15"
+  version: 3.1.16
+  resolution: "apify@npm:3.1.16"
   dependencies:
     "@apify/consts": "npm:^2.23.0"
     "@apify/input_secrets": "npm:^1.1.40"
@@ -2768,12 +2768,12 @@ __metadata:
     "@crawlee/core": "npm:^3.6.1"
     "@crawlee/types": "npm:^3.6.1"
     "@crawlee/utils": "npm:^3.6.1"
-    apify-client: "npm:^2.8.4"
+    apify-client: "npm:^2.9.0"
     ow: "npm:^0.28.2"
     semver: "npm:^7.5.4"
     tslib: "npm:^2.6.2"
     ws: "npm:^7.5.9"
-  checksum: 10c0/c4e8f4efa82fe9688a2a06096ad85aad4ff8f05f59d87a34d34cac179191856bf6e4c1813a76a4c998fadf010371f01845e22bef48f08fab9f603ecb91532a33
+  checksum: 10c0/f3fae6552ca82dabfa6cbae0cf58a0d210def529f43f0071f0a4ecfdc4b688d0dd667dc2ebd32648f8d56929446658a68b8ddd2228b193bf9e8abc0d4662576c
   languageName: node
   linkType: hard
 
@@ -3098,14 +3098,14 @@ __metadata:
   linkType: hard
 
 "bare-fs@npm:^2.1.1":
-  version: 2.1.5
-  resolution: "bare-fs@npm:2.1.5"
+  version: 2.2.0
+  resolution: "bare-fs@npm:2.2.0"
   dependencies:
     bare-events: "npm:^2.0.0"
     bare-os: "npm:^2.0.0"
     bare-path: "npm:^2.0.0"
     streamx: "npm:^2.13.0"
-  checksum: 10c0/e9568ecbc081bd038c4abd05fc13cc56bd6a0bd855d5d6cf69f0eb40486938c2c63d7b71ea1b192c888f821dc69bd9929cb00e2048d6c7afc7063a5da3b4d25e
+  checksum: 10c0/d21ecbd9fe9a4fcd52e10c57241b27676c4912a2ccecf5dc0de45f1023e9963cc03a556ed0f9adc362656e265b4323418d2dc587762f795b49c803aaa70fa9f4
   languageName: node
   linkType: hard
 
@@ -4569,9 +4569,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.680
-  resolution: "electron-to-chromium@npm:1.4.680"
-  checksum: 10c0/f5877042ee84fce419b1c475ca1f75d1c19c0ecf358572635dffed97d8591a25c169ee1b5abfb8a14d741c699fcc4a92b1ef1f771fbd7887f3a18499a8eaf260
+  version: 1.4.681
+  resolution: "electron-to-chromium@npm:1.4.681"
+  checksum: 10c0/5b2558dfb8bb82c20fb5fa1d9bbe06a3add47431dc3e1e4815e997be6ad387787047d9e534ed96839a9e7012520a5281c865158b09db41d10c029af003f05f94
   languageName: node
   linkType: hard
 
@@ -5143,14 +5143,14 @@ __metadata:
   linkType: hard
 
 "eslint@npm:^8.52.0":
-  version: 8.56.0
-  resolution: "eslint@npm:8.56.0"
+  version: 8.57.0
+  resolution: "eslint@npm:8.57.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.6.1"
     "@eslint/eslintrc": "npm:^2.1.4"
-    "@eslint/js": "npm:8.56.0"
-    "@humanwhocodes/config-array": "npm:^0.11.13"
+    "@eslint/js": "npm:8.57.0"
+    "@humanwhocodes/config-array": "npm:^0.11.14"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
     "@nodelib/fs.walk": "npm:^1.2.8"
     "@ungap/structured-clone": "npm:^1.2.0"
@@ -5186,7 +5186,7 @@ __metadata:
     text-table: "npm:^0.2.0"
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/2be598f7da1339d045ad933ffd3d4742bee610515cd2b0d9a2b8b729395a01d4e913552fff555b559fccaefd89d7b37632825789d1b06470608737ae69ab43fb
+  checksum: 10c0/00bb96fd2471039a312435a6776fe1fd557c056755eaa2b96093ef3a8508c92c8775d5f754768be6b1dddd09fdd3379ddb231eeb9b6c579ee17ea7d68000a529
   languageName: node
   linkType: hard
 
@@ -8413,14 +8413,14 @@ __metadata:
   linkType: hard
 
 "mlly@npm:^1.2.0, mlly@npm:^1.4.2":
-  version: 1.6.0
-  resolution: "mlly@npm:1.6.0"
+  version: 1.6.1
+  resolution: "mlly@npm:1.6.1"
   dependencies:
     acorn: "npm:^8.11.3"
     pathe: "npm:^1.1.2"
     pkg-types: "npm:^1.0.3"
     ufo: "npm:^1.3.2"
-  checksum: 10c0/c1f697e8632449540c5e31b793a7865f178805e5af34bd1cf6339d71377ebb21d1f238d9d6ae67d56471cd1375489e75e311e2fb038a5faa74a47fc34eb3e71b
+  checksum: 10c0/a7bf26b3d4f83b0f5a5232caa3af44be08b464f562f31c11d885d1bc2d43b7d717137d47b0c06fdc69e1b33ffc09f902b6d2b18de02c577849d40914e8785092
   languageName: node
   linkType: hard
 
@@ -8813,11 +8813,11 @@ __metadata:
   linkType: hard
 
 "npm-run-path@npm:^5.1.0":
-  version: 5.2.0
-  resolution: "npm-run-path@npm:5.2.0"
+  version: 5.3.0
+  resolution: "npm-run-path@npm:5.3.0"
   dependencies:
     path-key: "npm:^4.0.0"
-  checksum: 10c0/7963c1f98e42afebe9524a08b0881477ec145aab34f6018842a315422b25ad40e015bdee709b697571e5efda2ecfa2640ee917d92674e4de1166fa3532a211b1
+  checksum: 10c0/124df74820c40c2eb9a8612a254ea1d557ddfab1581c3e751f825e3e366d9f00b0d76a3c94ecd8398e7f3eee193018622677e95816e8491f0797b21e30b2deba
   languageName: node
   linkType: hard
 
@@ -10771,12 +10771,12 @@ __metadata:
   linkType: hard
 
 "socks@npm:^2.6.2, socks@npm:^2.7.1":
-  version: 2.8.0
-  resolution: "socks@npm:2.8.0"
+  version: 2.8.1
+  resolution: "socks@npm:2.8.1"
   dependencies:
     ip-address: "npm:^9.0.5"
     smart-buffer: "npm:^4.2.0"
-  checksum: 10c0/208fa5d5ae47857653c4fc039d47e4c1e76313b24052151a949aa98f027f9aaba8fc6c5dc0f7f2d9ceeb94e9940217581f2d9798436563c1494b67a6cb68611f
+  checksum: 10c0/ac77b515c260473cc7c4452f09b20939e22510ce3ae48385c516d1d5784374d5cc75be3cb18ff66cc985a7f4f2ef8fef84e984c5ec70aad58355ed59241f40a8
   languageName: node
   linkType: hard
 
