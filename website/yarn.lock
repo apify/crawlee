@@ -7112,11 +7112,11 @@ __metadata:
   linkType: hard
 
 "giscus@npm:^1.4.0":
-  version: 1.4.0
-  resolution: "giscus@npm:1.4.0"
+  version: 1.5.0
+  resolution: "giscus@npm:1.5.0"
   dependencies:
-    lit: "npm:^3.1.0"
-  checksum: 10c0/bb980b79f62a948349949967809f8495f1f08da9d4c037ce2c72a396406e576fafc3a774f8d844afaf459474554f41347b36222c91b7f2d168a23c94ed7913a2
+    lit: "npm:^3.1.2"
+  checksum: 10c0/2e94c0260128c402de16550d1ec1b5797dc2efbebed994371920fed1a7018f4b20377f147205c6e479e3e99d975a499db746ae813ca11e1a7d58009e6f059842
   languageName: node
   linkType: hard
 
@@ -8833,7 +8833,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lit@npm:^3.1.0":
+"lit@npm:^3.1.2":
   version: 3.1.2
   resolution: "lit@npm:3.1.2"
   dependencies:
