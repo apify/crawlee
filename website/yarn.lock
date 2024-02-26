@@ -2368,15 +2368,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@giscus/react@npm:^2.3.0":
-  version: 2.4.0
-  resolution: "@giscus/react@npm:2.4.0"
+"@giscus/react@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@giscus/react@npm:3.0.0"
   dependencies:
-    giscus: "npm:^1.4.0"
+    giscus: "npm:^1.5.0"
   peerDependencies:
     react: ^16 || ^17 || ^18
     react-dom: ^16 || ^17 || ^18
-  checksum: 10c0/a3bd55dcb137a47f7a21319232136b54405cf9f53976ebc6b556fc4206c73dbb49a441d8d182ea98b15b48fb1be863f03aa78695731637cbfc6aedfa214813ea
+  checksum: 10c0/134de49eb80d124a511fa33b38cbc00da24aa338caa37f32f5b89fe130365e6bc4c5583b0de3916b80ecd01cc2db27f904b3f8d633bb317fe8caad83baa125d0
   languageName: node
   linkType: hard
 
@@ -7111,7 +7111,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"giscus@npm:^1.4.0":
+"giscus@npm:^1.5.0":
   version: 1.5.0
   resolution: "giscus@npm:1.5.0"
   dependencies:
@@ -12184,7 +12184,7 @@ __metadata:
     "@docusaurus/plugin-client-redirects": "npm:3.1.1"
     "@docusaurus/preset-classic": "npm:3.1.1"
     "@docusaurus/types": "npm:3.1.1"
-    "@giscus/react": "npm:^2.3.0"
+    "@giscus/react": "npm:^3.0.0"
     "@mdx-js/react": "npm:^3.0.0"
     "@types/react": "npm:^18.0.28"
     "@typescript-eslint/eslint-plugin": "npm:^7.0.0"
