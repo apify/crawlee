@@ -46,6 +46,11 @@ describe('Sitemap', () => {
                 'nr/w/Eb2Ll2RVWLcvwrWMlWtWLWJcBIl6TdW/R/ZZp3soAdV/Yy2w1mOUI63tz4itCRd3Cz9882y',
                 'NfMGy9bJ8CfTZkU4fXUavAGtDs17GwMAAA==',
             ].join('\n'), 'base64'))
+            .get('/invalid_sitemap_child.xml.gz')
+            .reply(200, Buffer.from([
+                'H4sIAAAAAAAAA62S306DMBTG73kK0gtvDLSFLSKWcucTzOulKR00QottGZtPbxfQEEWXqElzkvMv',
+                'NfMGy9bJ8CfTZkU4fXUavAGtDs17GwMAAA==',
+            ].join('\n'), 'base64'))
             .get('/sitemap_parent.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
@@ -113,6 +118,13 @@ describe('Sitemap', () => {
             'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
             'http://not-exists.com/catalog?item=83&desc=vacation_usa',
         ]));
+    });
+
+    it('identifies incorrect gzipped sitemaps as malformed', async () => {
+        const sitemap = await Sitemap.load(
+            'http://not-exists.com/invalid_sitemap_child.xml.gz',
+        );
+        expect(new Set(sitemap.urls)).toEqual(new Set([]));
     });
 
     it('follows links in sitemap indexes', async () => {

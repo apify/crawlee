@@ -162,7 +162,7 @@ export class Sitemap {
                     await new Promise((resolve, reject) => {
                         let stream: Duplex = sitemapStream;
                         if (sitemapUrl.endsWith('.gz')) {
-                            stream = stream.pipe(createGunzip());
+                            stream = stream.pipe(createGunzip()).on('error', reject);
                             sitemapUrl = sitemapUrl.substring(0, sitemapUrl.length - 3);
                         }
 
