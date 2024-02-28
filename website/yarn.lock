@@ -2971,12 +2971,12 @@ __metadata:
   linkType: hard
 
 "@types/eslint@npm:*":
-  version: 8.56.3
-  resolution: "@types/eslint@npm:8.56.3"
+  version: 8.56.4
+  resolution: "@types/eslint@npm:8.56.4"
   dependencies:
     "@types/estree": "npm:*"
     "@types/json-schema": "npm:*"
-  checksum: 10c0/c5d81d0001fae211451b39d82b2bc8d7224b00d52a514954a33840a3665f36f3bde3be602eec6ad08d1fff59108052cd7746ced4237116bc3d8ac01a7cf5b5fe
+  checksum: 10c0/c2a7dd579d71e463cbc627248969878ac28b5a5b117b54f44939ee646eeec3e3d2b3a4e0061d3d7fab9d84cef302e3744f3d746e29fc86fb10a48b95b11fa5e9
   languageName: node
   linkType: hard
 
@@ -3159,11 +3159,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.11.20
-  resolution: "@types/node@npm:20.11.20"
+  version: 20.11.21
+  resolution: "@types/node@npm:20.11.21"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/8e8de211e6d54425c603388a9b5cc9c434101985d0a1c88aabbf65d10df2b1fccd71855c20e61ae8a75c7aea56cb0f64e722cf7914cff1247d0b62ce21996ac4
+  checksum: 10c0/52b1cdfe8b14a67ab98c01b2e9621994b34a2537368e108fb925121a9d5958eb7344a2fb81ff36964932d5e5a093de8897f021bded10cad3536fd31e932b3000
   languageName: node
   linkType: hard
 
@@ -3196,9 +3196,9 @@ __metadata:
   linkType: hard
 
 "@types/qs@npm:*":
-  version: 6.9.11
-  resolution: "@types/qs@npm:6.9.11"
-  checksum: 10c0/657a50f05b694d6fd3916d24177cfa0f3b8b87d9deff4ffa4dddcb0b03583ebf7c47b424b8de400270fb9a5cc1e9cf790dd82c833c6935305851e7da8ede3ff5
+  version: 6.9.12
+  resolution: "@types/qs@npm:6.9.12"
+  checksum: 10c0/21a74f2b78d0839cee37f1a632f3361352f7dceac9edffd117227a695a13e58e18c138aac1f29403f2408221e678f538ca0b37d55012f8bba96d55905edbfe82
   languageName: node
   linkType: hard
 
@@ -3242,13 +3242,13 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*, @types/react@npm:^18.0.28":
-  version: 18.2.59
-  resolution: "@types/react@npm:18.2.59"
+  version: 18.2.60
+  resolution: "@types/react@npm:18.2.60"
   dependencies:
     "@types/prop-types": "npm:*"
     "@types/scheduler": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/adbac5d78d755ce0f05fc91917b49344e127aaadf0515fa28dd19e3050514eeae6988ab04610fe403a6d7eb58b8dee7816c019d960373dfa22b008f842d7eaf8
+  checksum: 10c0/e1d8763259c75ebcdf241dbbbfb7e8f606a8abdc98b1acf1a23e741681ebb20e82b490402a32ce10b81ce7e51f00f8009a162a72136333613b4f247549a3ab8d
   languageName: node
   linkType: hard
 
@@ -4604,9 +4604,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001578, caniuse-lite@npm:^1.0.30001587":
-  version: 1.0.30001589
-  resolution: "caniuse-lite@npm:1.0.30001589"
-  checksum: 10c0/20debfb949413f603011bc7dacaf050010778bc4f8632c86fafd1bd0c43180c95ae7c31f6c82348f6309e5e221934e327c3607a216e3f09640284acf78cd6d4d
+  version: 1.0.30001591
+  resolution: "caniuse-lite@npm:1.0.30001591"
+  checksum: 10c0/21937d341c3d75994504db21340f65573a1e847a8ab33ee4964ed493994d6552864c494ba144485459abd9c711c75c0708bc9fa19f2bff525bff75ffb0a42c3b
   languageName: node
   linkType: hard
 
@@ -5852,9 +5852,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.682
-  resolution: "electron-to-chromium@npm:1.4.682"
-  checksum: 10c0/8b936d3cf185cb8bee02de71363af09999ae0903e12d360be2b11d9fe16a1f05cc7d819fec64e4de3ea49be891584778dab16389d52d945bfc36d0263d0f68ca
+  version: 1.4.684
+  resolution: "electron-to-chromium@npm:1.4.684"
+  checksum: 10c0/2b59d4bfa117fb1013de9eba74d768005ce0fefd8ab4ff89837e498e1c15b3d5a31fe9cc9bfe299bbc58741f8eac9ceaf8e9092997399afd8a9dfb52b7575458
   languageName: node
   linkType: hard
 
@@ -5925,12 +5925,12 @@ __metadata:
   linkType: hard
 
 "enhanced-resolve@npm:^5.12.0, enhanced-resolve@npm:^5.15.0":
-  version: 5.15.0
-  resolution: "enhanced-resolve@npm:5.15.0"
+  version: 5.15.1
+  resolution: "enhanced-resolve@npm:5.15.1"
   dependencies:
     graceful-fs: "npm:^4.2.4"
     tapable: "npm:^2.2.0"
-  checksum: 10c0/69984a7990913948b4150855aed26a84afb4cb1c5a94fb8e3a65bd00729a73fc2eaff6871fb8e345377f294831afe349615c93560f2f54d61b43cdfdf668f19a
+  checksum: 10c0/f56a0f3726dc5fb65cb4518ab0806aecfd553f4cd4146f403ffe618ece36610443d8624a89d18fe0bb0be307b1c9ca8fb835267345ca4afc25d2932d58ced715
   languageName: node
   linkType: hard
 
@@ -9958,14 +9958,14 @@ __metadata:
   linkType: hard
 
 "mini-css-extract-plugin@npm:^2.7.6":
-  version: 2.8.0
-  resolution: "mini-css-extract-plugin@npm:2.8.0"
+  version: 2.8.1
+  resolution: "mini-css-extract-plugin@npm:2.8.1"
   dependencies:
     schema-utils: "npm:^4.0.0"
     tapable: "npm:^2.2.1"
   peerDependencies:
     webpack: ^5.0.0
-  checksum: 10c0/fb69af136831451e7a8ab993996adedd74559fd5819fb75e53316e0b1b44bc5ea88a8fae17d39df3265f119be28a7be13054f3f99710f1394e16879eb51ad623
+  checksum: 10c0/ef0064f32051294e76141ba74ddf139d313ba26f3abcef1a3906347ca75df8e69c490351bd4c2f373b0cf5c934f39c7d643c8615421c24e4d2c724345294f80a
   languageName: node
   linkType: hard
 
