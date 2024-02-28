@@ -271,7 +271,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
     get sessionRotationCount(): number {
-        return this.userData.__crawlee?.sessionRotationCount ?? false;
+        return this.userData.__crawlee?.sessionRotationCount ?? 0;
     }
 
     /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
