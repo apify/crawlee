@@ -63,7 +63,7 @@ export class PuppeteerController extends BrowserController<
             try {
                 // @ts-expect-error not exposed on type level
                 const { CdpBrowser } = await import('puppeteer');
-                const oldPuppeteerVersion = 'createIncognitoBrowserContext' in CdpBrowser.prototype;
+                const oldPuppeteerVersion = !CdpBrowser || 'createIncognitoBrowserContext' in CdpBrowser.prototype;
                 const method = oldPuppeteerVersion ? 'createIncognitoBrowserContext' : 'createBrowserContext';
                 const context = await (this.browser as any)[method](contextOptions) as PuppeteerTypes.BrowserContext;
                 tryCancel();
