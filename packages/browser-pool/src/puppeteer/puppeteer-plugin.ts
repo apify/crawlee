@@ -23,8 +23,8 @@ export class PuppeteerPlugin extends BrowserPlugin<
         launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
     ): Promise<PuppeteerTypes.Browser> {
         // @ts-expect-error not exposed on type level
-        const { CdpBrowser } = await import('puppeteer');
-        const oldPuppeteerVersion = 'createIncognitoBrowserContext' in CdpBrowser.prototype;
+        const { CDPBrowser } = await import('puppeteer');
+        const oldPuppeteerVersion = 'createIncognitoBrowserContext' in CDPBrowser.prototype;
         const {
             launchOptions,
             userDataDir,
