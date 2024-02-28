@@ -1,5 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
 
+import { checkStorageAccess } from './access_checking';
 import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
@@ -46,6 +47,8 @@ class RequestQueue extends RequestProvider {
      * Caches information about request to beware of unneeded addRequest() calls.
      */
     protected override _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+        checkStorageAccess();
+
         super._cacheRequest(cacheKey, queueOperationInfo);
 
         this.requestCache.add(queueOperationInfo.requestId, {
@@ -75,6 +78,8 @@ class RequestQueue extends RequestProvider {
      *   Returns the request object or `null` if there are no more pending requests.
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+        checkStorageAccess();
+
         await this.ensureHeadIsNonEmpty();
 
         const nextRequestId = this.queueHeadIds.removeFirst();
@@ -137,6 +142,8 @@ class RequestQueue extends RequestProvider {
     }
 
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>): ReturnType<RequestProvider['reclaimRequest']> {
+        checkStorageAccess();
+
         const res = await super.reclaimRequest(...args);
 
         if (res) {
@@ -154,6 +161,8 @@ class RequestQueue extends RequestProvider {
     }
 
     protected async ensureHeadIsNonEmpty() {
+        checkStorageAccess();
+
         // Stop fetching if we are paused for migration
         if (this.queuePausedForMigration) {
             return;
@@ -172,6 +181,8 @@ class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
+        checkStorageAccess();
+
         const headData = await this.client.listAndLockHead({ limit: 25, lockSecs: this.requestLockSecs });
 
         for (const { id, uniqueKey } of headData.items) {
@@ -191,6 +202,8 @@ class RequestQueue extends RequestProvider {
     }
 
     private async getOrHydrateRequest<T extends Dictionary = Dictionary>(requestId: string): Promise<Request<T> | null> {
+        checkStorageAccess();
+
         const cachedEntry = this.requestCache.get(requestId);
 
         if (!cachedEntry) {
@@ -273,6 +286,8 @@ class RequestQueue extends RequestProvider {
     }
 
     private async _prolongRequestLock(requestId: string): Promise<Date | null> {
+        checkStorageAccess();
+
         try {
             const res = await this.client.prolongRequestLock(requestId, { lockSecs: this.requestLockSecs });
             return res.lockExpiresAt;
@@ -287,6 +302,8 @@ class RequestQueue extends RequestProvider {
     }
 
     protected override _reset() {
+        checkStorageAccess();
+
         super._reset();
         this._listHeadAndLockPromise = null;
     }
@@ -296,6 +313,8 @@ class RequestQueue extends RequestProvider {
     }
 
     protected async _clearPossibleLocks() {
+        checkStorageAccess();
+
         this.queuePausedForMigration = true;
         let requestId: string | null;
 

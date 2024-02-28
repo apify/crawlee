@@ -1,6 +1,7 @@
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 
+import { KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions } from '@crawlee/playwright';
 import {
     AdaptivePlaywrightCrawler, RequestList,
@@ -260,5 +261,36 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await store.getRecord('1')).value).toEqual({ content: 42 });
         expect((await store.getRecord('2')).value).toEqual({ content: 42 });
         expect((await store.getRecord('3')).value).toEqual({ content: 42 });
+    });
+
+    test('should not allow direct key-value store manipulation', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('1', { content: 42 });
+        });
+
+        const failedRequestHandler = vi.fn();
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 3,
+                maxRequestRetries: 0,
+                failedRequestHandler,
+            },
+            [
+                `http://${HOSTNAME}:${port}/static`,
+            ],
+        );
+
+        await crawler.run();
+        expect(failedRequestHandler.mock.calls).toHaveLength(1);
+        expect((failedRequestHandler.mock.calls[0][1] as Error).message).toEqual('Directly accessing storage in a request handler is not allowed');
+
+        const store = localStorageEmulator.getKeyValueStore();
+        expect(await store.getRecord('1')).toBeUndefined();
     });
 });
