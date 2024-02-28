@@ -77,7 +77,7 @@ await Actor.exit();
 
 The `Actor.init()` call will configure Crawlee to use the Apify API instead of its default memory storage interface. It also sets up few other things, like listening to the platform events via websockets. The `Actor.exit()` call then handles graceful shutdown - it will close the open handles created by the `Actor.init()` call, as without that, the Node.js process would be stuck.
 
-:::info Understanding `Actor.ini()` behavior with environment variables
+:::info Understanding `Actor.init()` behavior with environment variables
 
 The `Actor.init()` call works conditionally based on the environment variables, namely based on the `APIFY_IS_AT_HOME` env var, which is set to `true` on the Apify Platform. This means that your project will remain working the same locally, but will use the Apify API when deployed to the Apify Platform.
 
