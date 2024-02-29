@@ -6,3 +6,4 @@ export * from './request_queue';
 export * from './request_queue_v2';
 export * from './storage_manager';
 export * from './utils';
+export * from './access_checking';

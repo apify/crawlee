@@ -4,6 +4,7 @@ import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary,
 } from '@crawlee/types';
 
+import { checkStorageAccess } from './access_checking';
 import type { RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
@@ -113,6 +114,8 @@ export class RequestQueue extends RequestProvider {
      *   Returns the request object or `null` if there are no more pending requests.
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+        checkStorageAccess();
+
         await this.ensureHeadIsNonEmpty();
 
         const nextRequestId = this.queueHeadIds.removeFirst();
@@ -282,6 +285,8 @@ export class RequestQueue extends RequestProvider {
 
     // RequestQueue v1 behavior overrides below
     override async isFinished(): Promise<boolean> {
+        checkStorageAccess();
+
         if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
@@ -295,26 +300,36 @@ export class RequestQueue extends RequestProvider {
     }
 
     override async addRequest(...args: Parameters<RequestProvider['addRequest']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.addRequest(...args);
     }
 
     override async addRequests(...args: Parameters<RequestProvider['addRequests']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.addRequests(...args);
     }
 
     override async addRequestsBatched(...args: Parameters<RequestProvider['addRequestsBatched']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.addRequestsBatched(...args);
     }
 
     override async markRequestHandled(...args: Parameters<RequestProvider['markRequestHandled']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.markRequestHandled(...args);
     }
 
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.reclaimRequest(...args);
     }

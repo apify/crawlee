@@ -13,6 +13,7 @@ import type {
 import { chunk, downloadListOfUrls, sleep } from '@crawlee/utils';
 import ow from 'ow';
 
+import { checkStorageAccess } from './access_checking';
 import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
@@ -103,6 +104,8 @@ export abstract class RequestProvider implements IStorage {
      * @param [options] Request queue operation options.
      */
     async addRequest(requestLike: Source, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo> {
+        checkStorageAccess();
+
         ow(requestLike, ow.object);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
@@ -172,6 +175,8 @@ export abstract class RequestProvider implements IStorage {
         requestsLike: Source[],
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
+        checkStorageAccess();
+
         ow(requestsLike, ow.array);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
@@ -271,6 +276,8 @@ export abstract class RequestProvider implements IStorage {
      * @param options Options for the request queue
      */
     async addRequestsBatched(requests: (string | Source)[], options: AddRequestsBatchedOptions = {}): Promise<AddRequestsBatchedResult> {
+        checkStorageAccess();
+
         ow(requests, ow.array.ofType(ow.any(
             ow.string,
             ow.object.partialShape({ url: ow.string, id: ow.undefined }),
@@ -358,6 +365,8 @@ export abstract class RequestProvider implements IStorage {
      * @returns Returns the request object, or `null` if it was not found.
      */
     async getRequest<T extends Dictionary = Dictionary>(id: string): Promise<Request<T> | null> {
+        checkStorageAccess();
+
         ow(id, ow.string);
 
         const requestOptions = await this.client.getRequest(id);
@@ -375,6 +384,8 @@ export abstract class RequestProvider implements IStorage {
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+        checkStorageAccess();
+
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -410,6 +421,8 @@ export abstract class RequestProvider implements IStorage {
      * For example, this lets you store the number of retries or error messages for the request.
      */
     async reclaimRequest(request: Request, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo | null> {
+        checkStorageAccess();
+
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -512,6 +525,8 @@ export abstract class RequestProvider implements IStorage {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
+        checkStorageAccess();
+
         await this.client.delete();
         const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>, this.config);
         manager.closeStorage(this);
@@ -557,6 +572,8 @@ export abstract class RequestProvider implements IStorage {
      * ```
      */
     async getInfo(): Promise<RequestQueueInfo | undefined> {
+        checkStorageAccess();
+
         return this.client.get();
     }
 
@@ -626,6 +643,8 @@ export abstract class RequestProvider implements IStorage {
      * @param [options] Open Request Queue options.
      */
     static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestProvider> {
+        checkStorageAccess();
+
         ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),

@@ -3,6 +3,7 @@ import type { DatasetClient, DatasetInfo, Dictionary, StorageClient } from '@cra
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
+import { checkStorageAccess } from './access_checking';
 import { KeyValueStore } from './key_value_store';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
@@ -260,6 +261,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *   The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
      */
     async pushData(data: Data | Data[]): Promise<void> {
+        checkStorageAccess();
+
         ow(data, 'data', ow.object);
         const dispatch = async (payload: string) => this.client.pushItems(payload);
         const limit = MAX_PAYLOAD_SIZE_BYTES - Math.ceil(MAX_PAYLOAD_SIZE_BYTES * SAFETY_BUFFER_PERCENT);
@@ -284,6 +287,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
      */
     async getData(options: DatasetDataOptions = {}): Promise<DatasetContent<Data>> {
+        checkStorageAccess();
+
         try {
             return await this.client.listItems(options);
         } catch (e) {
@@ -300,6 +305,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * via the `listItems()` client method, which gives you only paginated results.
      */
     async export(options: DatasetExportOptions = {}): Promise<Data[]> {
+        checkStorageAccess();
+
         const items: Data[] = [];
 
         const fetchNextChunk = async (offset = 0): Promise<void> => {
@@ -379,6 +386,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      */
     static async exportToJSON(key: string, options?: DatasetExportToOptions) {
+        checkStorageAccess();
+
         const dataset = await this.open(options?.fromDataset);
         await dataset.exportToJSON(key, options);
     }
@@ -390,6 +399,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      */
     static async exportToCSV(key: string, options?: DatasetExportToOptions) {
+        checkStorageAccess();
+
         const dataset = await this.open(options?.fromDataset);
         await dataset.exportToCSV(key, options);
     }
@@ -417,6 +428,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * ```
      */
     async getInfo(): Promise<DatasetInfo | undefined> {
+        checkStorageAccess();
+
         return this.client.get();
     }
 
@@ -441,6 +454,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @default 0
      */
     async forEach(iteratee: DatasetConsumer<Data>, options: DatasetIteratorOptions = {}, index = 0): Promise<void> {
+        checkStorageAccess();
+
         if (!options.offset) options.offset = 0;
         if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
         if (!options.limit) options.limit = DATASET_ITERATORS_DEFAULT_LIMIT;
@@ -468,6 +483,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] All `map()` parameters.
      */
     async map<R>(iteratee: DatasetMapper<Data, R>, options: DatasetIteratorOptions = {}): Promise<R[]> {
+        checkStorageAccess();
+
         const result: R[] = [];
 
         await this.forEach(async (item, index) => {
@@ -494,6 +511,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] All `reduce()` parameters.
      */
     async reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options: DatasetIteratorOptions = {}): Promise<T> {
+        checkStorageAccess();
+
         let currentMemo: T = memo;
 
         const wrappedFunc: DatasetConsumer<Data> = async (item, index) => {
@@ -518,6 +537,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
+        checkStorageAccess();
+
         await this.client.delete();
         const manager = StorageManager.getManager(Dataset, this.config);
         manager.closeStorage(this);
@@ -538,6 +559,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] Storage manager options.
      */
     static async open<Data extends Dictionary = Dictionary>(datasetIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<Dataset<Data>> {
+        checkStorageAccess();
+
         ow(datasetIdOrName, ow.optional.string);
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
