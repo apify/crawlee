@@ -406,12 +406,12 @@ export class KeyValueStore {
      * @param [options] All `forEachKey()` parameters.
      */
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
+        checkStorageAccess();
+
         return this._forEachKey(iteratee, options);
     }
 
     private async _forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}, index = 0): Promise<void> {
-        checkStorageAccess();
-
         const { exclusiveStartKey } = options;
         ow(iteratee, ow.function);
         ow(options, ow.object.exactShape({

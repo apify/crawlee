@@ -194,8 +194,6 @@ export class RequestQueue extends RequestProvider {
         limit = Math.max(this.inProgressCount() * QUERY_HEAD_BUFFER, QUERY_HEAD_MIN_LENGTH),
         iteration = 0,
     ): Promise<boolean> {
-        checkStorageAccess();
-
         // If we are paused for migration, resolve immediately.
         if (this.queuePausedForMigration) {
             return true;
@@ -337,8 +335,6 @@ export class RequestQueue extends RequestProvider {
     }
 
     protected override _reset() {
-        checkStorageAccess();
-
         super._reset();
         this.lastActivity = new Date();
     }
