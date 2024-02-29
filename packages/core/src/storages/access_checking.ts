@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks';
-import { Awaitable } from '../typedefs';
+
+import type { Awaitable } from '../typedefs';
 
 const storage = new AsyncLocalStorage<{ checkFunction:() => void }>();
 

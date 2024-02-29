@@ -331,7 +331,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 () => {
                     throw new Error('Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler');
                 },
-                () => addTimeoutToPromise(
+                async () => addTimeoutToPromise(
                     async () => this.adaptiveRequestHandler({
                         request: crawlingContext.request,
                         log: crawlingContext.log,

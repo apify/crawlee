@@ -288,7 +288,9 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
         expect(failedRequestHandler.mock.calls).toHaveLength(1);
-        expect((failedRequestHandler.mock.calls[0][1] as Error).message).toEqual('Directly accessing storage in a request handler is not allowed');
+        expect((failedRequestHandler.mock.calls[0][1] as Error).message).toEqual(
+            'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
+        );
 
         const store = localStorageEmulator.getKeyValueStore();
         expect(await store.getRecord('1')).toBeUndefined();
