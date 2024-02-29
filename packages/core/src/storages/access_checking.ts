@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
-const storage = new AsyncLocalStorage<{ checkFunction: () => void }>();
+const storage = new AsyncLocalStorage<{ checkFunction:() => void }>();
 
 /**
  * Invoke a storage access checker function defined using {@link withCheckedStorageAccess} higher up in the call stack.
