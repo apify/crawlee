@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'async_hooks';
+import { Awaitable } from '../typedefs';
 
 const storage = new AsyncLocalStorage<{ checkFunction:() => void }>();
 
@@ -13,4 +14,4 @@ export const checkStorageAccess = () => storage.getStore()?.checkFunction();
  * @param checkFunction The check function that should be invoked by {@link checkStorageAccess} calls
  * @param callback The code that should be invoked with the `checkFunction` setting
  */
-export const withCheckedStorageAccess = async <T>(checkFunction: () => void, callback: () => Promise<T>) => storage.run({ checkFunction }, callback);
+export const withCheckedStorageAccess = async <T>(checkFunction: () => void, callback: () => Awaitable<T>) => storage.run({ checkFunction }, callback);

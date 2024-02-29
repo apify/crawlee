@@ -278,9 +278,9 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                         if (propertyName === 'userProvidedRequestHandler') {
                             return (async (playwrightContext: PlaywrightCrawlingContext) => withCheckedStorageAccess(
                                 () => {
-                                    throw new Error('Directly accessing storage in a request handler is not allowed');
+                                    throw new Error('Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler');
                                 },
-                                async () => await this.adaptiveRequestHandler({
+                                () => this.adaptiveRequestHandler({
                                     request: crawlingContext.request,
                                     log: crawlingContext.log,
                                     querySelector: async (selector, timeoutMs) => {
@@ -329,10 +329,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         try {
             await withCheckedStorageAccess(
                 () => {
-                    throw new Error('Directly accessing storage in a request handler is not allowed');
+                    throw new Error('Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler');
                 },
-                async () => addTimeoutToPromise(
-                    async () => await this.adaptiveRequestHandler({
+                () => addTimeoutToPromise(
+                    async () => this.adaptiveRequestHandler({
                         request: crawlingContext.request,
                         log: crawlingContext.log,
                         querySelector: (selector) => $(selector) as Cheerio<Element>,
