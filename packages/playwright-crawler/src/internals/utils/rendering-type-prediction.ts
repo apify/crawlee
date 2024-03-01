@@ -2,7 +2,7 @@ import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
 
-export type RenderingType = 'clientOnly' | 'static'
+export type RenderingType = 'clientOnly' | 'static';
 
 type URLComponents = string[];
 
@@ -52,18 +52,27 @@ export class RenderingTypePredictor {
     /**
      * Predict the rendering type for a given URL and request label.
      */
-    public predict(url: URL, label: string | undefined): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
+    public predict(
+        url: URL,
+        label: string | undefined,
+    ): { renderingType: RenderingType; detectionProbabilityRecommendation: number } {
         if (this.logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
         }
 
         const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(url), label)]);
         const [prediction] = this.logreg.predict(urlFeature);
-        const scores = [this.logreg.classifiers[0].testScores(urlFeature), this.logreg.classifiers[1].testScores(urlFeature)];
+        const scores = [
+            this.logreg.classifiers[0].testScores(urlFeature),
+            this.logreg.classifiers[1].testScores(urlFeature),
+        ];
 
         return {
             renderingType: prediction === 1 ? 'static' : 'clientOnly',
-            detectionProbabilityRecommendation: Math.abs(scores[0] - scores[1]) < 0.1 ? 1 : this.detectionRatio * Math.max(1, 5 - this.resultCount(label)),
+            detectionProbabilityRecommendation:
+                Math.abs(scores[0] - scores[1]) < 0.1
+                    ? 1
+                    : this.detectionRatio * Math.max(1, 5 - this.resultCount(label)),
         };
     }
 
@@ -91,8 +100,16 @@ export class RenderingTypePredictor {
 
     protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
-            mean((this.renderingTypeDetectionResults.get('static')?.get(label) ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
-            mean((this.renderingTypeDetectionResults.get('clientOnly')?.get(label) ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
+            mean(
+                (this.renderingTypeDetectionResults.get('static')?.get(label) ?? []).map(
+                    (otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0,
+                ),
+            ) ?? 0,
+            mean(
+                (this.renderingTypeDetectionResults.get('clientOnly')?.get(label) ?? []).map(
+                    (otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0,
+                ),
+            ) ?? 0,
         ];
     }
 

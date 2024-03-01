@@ -29,8 +29,8 @@ export class DatasetCollectionClient implements storage.DatasetCollectionClient 
             offset: 0,
             limit: this.client.datasetClientsHandled.length,
             desc: false,
-            items: this.client.datasetClientsHandled.map(
-                (store) => store.toDatasetInfo())
+            items: this.client.datasetClientsHandled
+                .map((store) => store.toDatasetInfo())
                 .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }

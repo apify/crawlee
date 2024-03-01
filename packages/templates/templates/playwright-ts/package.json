@@ -1,26 +1,26 @@
 {
-    "name": "crawlee-playwright-ts",
-    "version": "0.0.1",
-    "type": "module",
-    "description": "This is an example of a Crawlee project.",
-    "dependencies": {
-        "crawlee": "^3.0.0",
-        "playwright": "*"
-    },
-    "devDependencies": {
-        "@apify/tsconfig": "^0.1.0",
-        "tsx": "^4.4.0",
-        "typescript": "~5.3.0",
-        "@types/node": "^20.0.0"
-    },
-    "scripts": {
-        "start": "npm run start:dev",
-        "start:prod": "node dist/main.js",
-        "start:dev": "tsx src/main.ts",
-        "build": "tsc",
-        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1",
-        "postinstall": "npx crawlee install-playwright-browsers"
-    },
-    "author": "It's not you it's me",
-    "license": "ISC"
+	"name": "crawlee-playwright-ts",
+	"version": "0.0.1",
+	"type": "module",
+	"description": "This is an example of a Crawlee project.",
+	"dependencies": {
+		"crawlee": "^3.0.0",
+		"playwright": "*"
+	},
+	"devDependencies": {
+		"@apify/tsconfig": "^0.1.0",
+		"tsx": "^4.4.0",
+		"typescript": "~5.3.0",
+		"@types/node": "^20.0.0"
+	},
+	"scripts": {
+		"start": "npm run start:dev",
+		"start:prod": "node dist/main.js",
+		"start:dev": "tsx src/main.ts",
+		"build": "tsc",
+		"test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1",
+		"postinstall": "npx crawlee install-playwright-browsers"
+	},
+	"author": "It's not you it's me",
+	"license": "ISC"
 }

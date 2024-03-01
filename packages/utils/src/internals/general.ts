@@ -5,22 +5,30 @@ import { setTimeout } from 'node:timers/promises';
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
  */
-export const URL_NO_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?', 'giu'); // eslint-disable-line
+export const URL_NO_COMMAS_REGEX = RegExp(
+    'https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?',
+    'giu',
+); // eslint-disable-line
 
 /**
  * Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  */
-export const URL_WITH_COMMAS_REGEX = RegExp('https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?', 'giu'); // eslint-disable-line
+export const URL_WITH_COMMAS_REGEX = RegExp(
+    'https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?',
+    'giu',
+); // eslint-disable-line
 
 let isDockerPromiseCache: Promise<boolean> | undefined;
 
 async function createIsDockerPromise() {
-    const promise1 = fs.stat('/.dockerenv')
+    const promise1 = fs
+        .stat('/.dockerenv')
         .then(() => true)
         .catch(() => false);
 
-    const promise2 = fs.readFile('/proc/self/cgroup', 'utf8')
+    const promise2 = fs
+        .readFile('/proc/self/cgroup', 'utf8')
         .then((content) => content.includes('docker'))
         .catch(() => false);
 
@@ -44,12 +52,14 @@ export async function isDocker(forceReset?: boolean): Promise<boolean> {
  * @ignore
  */
 export function weightedAvg(arrValues: number[], arrWeights: number[]): number {
-    const result = arrValues.map((value, i) => {
-        const weight = arrWeights[i];
-        const sum = value * weight;
+    const result = arrValues
+        .map((value, i) => {
+            const weight = arrWeights[i];
+            const sum = value * weight;
 
-        return [sum, weight];
-    }).reduce((p, c) => [p[0] + c[0], p[1] + c[1]], [0, 0]);
+            return [sum, weight];
+        })
+        .reduce((p, c) => [p[0] + c[0], p[1] + c[1]], [0, 0]);
 
     return result[0] / result[1];
 }
@@ -83,9 +93,7 @@ export function snakeCaseToCamelCase(snakeCaseStr: string): string {
         .toLowerCase()
         .split('_')
         .map((part, index) => {
-            return index > 0
-                ? part.charAt(0).toUpperCase() + part.slice(1)
-                : part;
+            return index > 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part;
         })
         .join('');
 }

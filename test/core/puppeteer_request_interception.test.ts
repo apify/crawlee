@@ -56,15 +56,15 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             await browser.close();
         }
 
-        expect(allUrls).toEqual(expect.arrayContaining([
-            `${serverAddress}/script.js`,
-            `${serverAddress}/style.css`,
-            `${serverAddress}/image.png`,
-        ]));
+        expect(allUrls).toEqual(
+            expect.arrayContaining([
+                `${serverAddress}/script.js`,
+                `${serverAddress}/style.css`,
+                `${serverAddress}/image.png`,
+            ]),
+        );
 
-        expect(loadedUrls).toEqual(expect.arrayContaining([
-            `${serverAddress}/style.css`,
-        ]));
+        expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/style.css`]));
     });
 
     test('should not propagate aborted/responded requests to following handlers', async () => {
@@ -100,9 +100,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
             await browser.close();
         }
 
-        expect(propagatedUrls).toEqual(expect.arrayContaining([
-            `${serverAddress}/style.css`,
-        ]));
+        expect(propagatedUrls).toEqual(expect.arrayContaining([`${serverAddress}/style.css`]));
     });
 
     test('should allow to modify request', async () => {
@@ -175,7 +173,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                     // Override headers
                     const headers = {
                         ...request.headers(),
-                        'accept': 'text/html',
+                        accept: 'text/html',
                         'accept-language': 'en-GB',
                         'upgrade-insecure-requests': '2',
                     };
@@ -193,7 +191,9 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                 expect(typeof acceptLanguageIndex).toBe('number');
                 expect(rawHeadersArr[acceptLanguageIndex + 1]).toEqual('en-GB');
 
-                const upgradeInsReqIndex = rawHeadersArr.findIndex((headerItem) => headerItem === 'Upgrade-Insecure-Requests');
+                const upgradeInsReqIndex = rawHeadersArr.findIndex(
+                    (headerItem) => headerItem === 'Upgrade-Insecure-Requests',
+                );
                 expect(typeof upgradeInsReqIndex).toBe('number');
                 expect(rawHeadersArr[upgradeInsReqIndex + 1]).toEqual('2');
 
@@ -233,28 +233,27 @@ describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
 
             // Load with scripts and images disabled.
             await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
-            expect(loadedUrls).toEqual(expect.arrayContaining([
-                `${serverAddress}/style.css`,
-            ]));
+            expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/style.css`]));
 
             // Try it once again.
             await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
-            expect(loadedUrls).toEqual(expect.arrayContaining([
-                `${serverAddress}/style.css`,
-                `${serverAddress}/style.css`,
-            ]));
+            expect(loadedUrls).toEqual(
+                expect.arrayContaining([`${serverAddress}/style.css`, `${serverAddress}/style.css`]),
+            );
 
             // Enable images.
             await removeInterceptRequestHandler(page, abortImagesHandler);
 
             // Try to load once again if images appear there.
             await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
-            expect(loadedUrls).toEqual(expect.arrayContaining([
-                `${serverAddress}/style.css`,
-                `${serverAddress}/style.css`,
-                `${serverAddress}/style.css`,
-                `${serverAddress}/image.png`,
-            ]));
+            expect(loadedUrls).toEqual(
+                expect.arrayContaining([
+                    `${serverAddress}/style.css`,
+                    `${serverAddress}/style.css`,
+                    `${serverAddress}/style.css`,
+                    `${serverAddress}/image.png`,
+                ]),
+            );
         } finally {
             await browser.close();
         }

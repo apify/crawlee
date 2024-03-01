@@ -1,24 +1,16 @@
 {
-    "pipeline": {
-        "build": {
-            "dependsOn": [
-                "^build"
-            ],
-            "outputs": [
-                "dist/**"
-            ]
-        },
-        "copy": {
-            "dependsOn": [
-                "^copy"
-            ],
-            "outputs": [
-                "dist/**"
-            ]
-        },
-        "clean": {
-            "cache": false,
-            "outputs": []
-        }
-    }
+	"pipeline": {
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**"]
+		},
+		"copy": {
+			"dependsOn": ["^copy"],
+			"outputs": ["dist/**"]
+		},
+		"clean": {
+			"cache": false,
+			"outputs": []
+		}
+	}
 }

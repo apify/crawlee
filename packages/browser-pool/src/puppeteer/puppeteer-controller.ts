@@ -40,7 +40,9 @@ export class PuppeteerController extends BrowserController<
     protected async _newPage(contextOptions?: PuppeteerNewPageOptions): Promise<PuppeteerTypes.Page> {
         if (contextOptions !== undefined) {
             if (!this.launchContext.useIncognitoPages) {
-                throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
+                throw new Error(
+                    'A new page can be created with provided context only when using incognito pages or experimental containers.',
+                );
             }
 
             let close = async () => {};
@@ -65,7 +67,7 @@ export class PuppeteerController extends BrowserController<
                 const { CdpBrowser } = await import('puppeteer');
                 const oldPuppeteerVersion = !CdpBrowser || 'createIncognitoBrowserContext' in CdpBrowser.prototype;
                 const method = oldPuppeteerVersion ? 'createIncognitoBrowserContext' : 'createBrowserContext';
-                const context = await (this.browser as any)[method](contextOptions) as PuppeteerTypes.BrowserContext;
+                const context = (await (this.browser as any)[method](contextOptions)) as PuppeteerTypes.BrowserContext;
                 tryCancel();
                 const page = await context.newPage();
                 tryCancel();

@@ -71,10 +71,12 @@ beforeAll(async () => {
         }
     });
 
-    await new Promise<void>((resolve) => server.listen(() => {
-        url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-        resolve();
-    }));
+    await new Promise<void>((resolve) =>
+        server.listen(() => {
+            url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+            resolve();
+        }),
+    );
 });
 
 afterAll(async () => {
@@ -218,9 +220,7 @@ test('handles cookies from redirects', async () => {
 
     await crawler.run([`${url}/redirectAndCookies`]);
 
-    expect(results).toStrictEqual([
-        'foo=bar',
-    ]);
+    expect(results).toStrictEqual(['foo=bar']);
 });
 
 test('handles cookies from redirects - no empty cookie header', async () => {
@@ -337,10 +337,12 @@ test('should work with delete requests', async () => {
         },
     });
 
-    await cheerioCrawler.run([{
-        url: `${url}`,
-        method: 'DELETE',
-    }]);
+    await cheerioCrawler.run([
+        {
+            url: `${url}`,
+            method: 'DELETE',
+        },
+    ]);
 
     expect(failed).toHaveLength(0);
 });
@@ -351,15 +353,17 @@ test('should retry on 403 even with disallowed content-type', async () => {
     const crawler = new HttpCrawler({
         maxConcurrency: 1,
         maxRequestRetries: 1,
-        preNavigationHooks: [async ({ request }) => {
-            // mock 403 response with octet stream on first request attempt, but not on
-            // subsequent retries, so the request should eventually succeed
-            if (request.retryCount === 0) {
-                request.url = `${url}/403-with-octet-stream`;
-            } else {
-                request.url = url;
-            }
-        }],
+        preNavigationHooks: [
+            async ({ request }) => {
+                // mock 403 response with octet stream on first request attempt, but not on
+                // subsequent retries, so the request should eventually succeed
+                if (request.retryCount === 0) {
+                    request.url = `${url}/403-with-octet-stream`;
+                } else {
+                    request.url = url;
+                }
+            },
+        ],
         requestHandler: async ({ request }) => {
             succeeded.push(request);
         },

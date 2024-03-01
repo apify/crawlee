@@ -1,62 +1,71 @@
 {
-    "root": true,
-    "env": {
-        "browser": true,
-        "es2020": true,
-        "node": true
-    },
-    "extends": ["@apify/eslint-config-ts", "prettier"],
-    "parserOptions": {
-        "project": "./tsconfig.eslint.json",
-        "ecmaVersion": 2022
-    },
-    "ignorePatterns": [
-        "node_modules",
-        "dist",
-        "coverage",
-        "**/*.d.ts"
-    ],
-    "overrides": [
-        {
-            "plugins": [
-                "@typescript-eslint"
-            ],
-            "files": [
-                "*.ts"
-            ],
-            "rules": {
-                "@typescript-eslint/array-type": "error",
-                "@typescript-eslint/ban-ts-comment": 0,
-                "@typescript-eslint/consistent-type-imports": ["error", {
-                    "disallowTypeAnnotations": false
-                }],
-                "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
-                "@typescript-eslint/member-delimiter-style": ["error", {
-                    "multiline": { "delimiter": "semi", "requireLast": true },
-                    "singleline": { "delimiter": "semi", "requireLast": false }
-                }],
-                "@typescript-eslint/no-empty-interface": "off",
-                "no-empty-function": "off",
-                "@typescript-eslint/no-empty-function": "off",
-                "@typescript-eslint/no-explicit-any": "off",
-                "@typescript-eslint/no-floating-promises": "error",
-                "@typescript-eslint/no-unused-vars": "off",
-                "@typescript-eslint/comma-dangle": ["error", "always-multiline"]
-            }
-        }
-    ],
-    "rules": {
-        "quote-props": ["error", "consistent"],
-        "import/no-extraneous-dependencies": "off",
-        "max-classes-per-file": 0,
-        "no-console": "error",
-        "no-underscore-dangle": 0,
-        "no-void": 0,
-        "max-len": "off",
-        "import/order": ["error", {
-            "groups": ["builtin", "external", ["parent", "sibling"], "index", "object"],
-            "alphabetize": { "order": "asc", "caseInsensitive": true },
-            "newlines-between": "always"
-        }]
-    }
+	"root": true,
+	"env": {
+		"browser": true,
+		"es2020": true,
+		"node": true
+	},
+	"extends": ["@apify/eslint-config-ts", "prettier"],
+	"parserOptions": {
+		"project": "./tsconfig.eslint.json",
+		"ecmaVersion": 2022
+	},
+	"ignorePatterns": ["node_modules", "dist", "coverage", "**/*.d.ts"],
+	"overrides": [
+		{
+			"plugins": ["@typescript-eslint"],
+			"files": ["*.ts"],
+			"rules": {
+				"@typescript-eslint/array-type": "error",
+				"@typescript-eslint/ban-ts-comment": 0,
+				"@typescript-eslint/consistent-type-imports": [
+					"error",
+					{
+						"disallowTypeAnnotations": false
+					}
+				],
+				"@typescript-eslint/consistent-type-definitions": [
+					"error",
+					"interface"
+				],
+				"@typescript-eslint/member-delimiter-style": [
+					"error",
+					{
+						"multiline": { "delimiter": "semi", "requireLast": true },
+						"singleline": { "delimiter": "semi", "requireLast": false }
+					}
+				],
+				"@typescript-eslint/no-empty-interface": "off",
+				"no-empty-function": "off",
+				"@typescript-eslint/no-empty-function": "off",
+				"@typescript-eslint/no-explicit-any": "off",
+				"@typescript-eslint/no-floating-promises": "error",
+				"@typescript-eslint/no-unused-vars": "off",
+				"@typescript-eslint/comma-dangle": ["error", "always-multiline"]
+			}
+		}
+	],
+	"rules": {
+		"quote-props": ["error", "consistent"],
+		"import/no-extraneous-dependencies": "off",
+		"max-classes-per-file": 0,
+		"no-console": "error",
+		"no-underscore-dangle": 0,
+		"no-void": 0,
+		"max-len": "off",
+		"import/order": [
+			"error",
+			{
+				"groups": [
+					"builtin",
+					"external",
+					["parent", "sibling"],
+					"index",
+					"object"
+				],
+				"alphabetize": { "order": "asc", "caseInsensitive": true },
+				"newlines-between": "always"
+			}
+		]
+	}
 }

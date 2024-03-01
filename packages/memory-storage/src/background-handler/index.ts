@@ -8,10 +8,13 @@ import type { BackgroundHandlerReceivedMessage } from '../utils';
  * This is used in MemoryStorage#teardown to wait for all tasks to finish executing before exiting the process.
  * @internal
  */
-export const promiseMap: Map<string, {
-    promise: Promise<void>;
-    resolve: () => void;
-}> = new Map();
+export const promiseMap: Map<
+    string,
+    {
+        promise: Promise<void>;
+        resolve: () => void;
+    }
+> = new Map();
 
 export function scheduleBackgroundTask(message: BackgroundHandlerReceivedMessage) {
     const id = randomUUID();

@@ -20,39 +20,27 @@ import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppe
 const fingerprintingMatrix: [string, PlaywrightPlugin | PuppeteerPlugin][] = [
     [
         'Playwright - persistent',
-        new PlaywrightPlugin(
-            playwright.chromium,
-            {
-                useIncognitoPages: false,
-            },
-        ),
+        new PlaywrightPlugin(playwright.chromium, {
+            useIncognitoPages: false,
+        }),
     ],
     [
         'Playwright - Incognito',
-        new PlaywrightPlugin(
-            playwright.chromium,
-            {
-                useIncognitoPages: true,
-            },
-        ),
+        new PlaywrightPlugin(playwright.chromium, {
+            useIncognitoPages: true,
+        }),
     ],
     [
         'Puppeteer - Persistent',
-        new PuppeteerPlugin(
-            puppeteer,
-            {
-                useIncognitoPages: false,
-            },
-        ),
+        new PuppeteerPlugin(puppeteer, {
+            useIncognitoPages: false,
+        }),
     ],
     [
         'Puppeteer - Incognito',
-        new PuppeteerPlugin(
-            puppeteer,
-            {
-                useIncognitoPages: true,
-            },
-        ),
+        new PuppeteerPlugin(puppeteer, {
+            useIncognitoPages: true,
+        }),
     ],
 ];
 // Tests could be generated from this blueprint for each plugin
@@ -141,11 +129,9 @@ describe.each([
             expect(spy).toBeCalledTimes(4);
             spy.mockReset();
 
-            await expect(addTimeoutToPromise(
-                async () => browserPool.newPage(),
-                10,
-                'opening new page timed out',
-            )).rejects.toThrowError('opening new page timed out');
+            await expect(
+                addTimeoutToPromise(async () => browserPool.newPage(), 10, 'opening new page timed out'),
+            ).rejects.toThrowError('opening new page timed out');
 
             // We terminated early enough so only preLaunchHooks were not executed,
             // thanks to `tryCancel()` calls after each await. If we did not run
@@ -240,10 +226,7 @@ describe.each([
                 browserPlugin: plugin,
             };
 
-            await Promise.all([
-                browserPool.newPage(usePlugin),
-                browserPool.newPage(usePlugin),
-            ]);
+            await Promise.all([browserPool.newPage(usePlugin), browserPool.newPage(usePlugin)]);
 
             expect(browserPool.activeBrowserControllers.size).toBe(2);
 
@@ -271,9 +254,11 @@ describe.each([
             expect(browserPool.retiredBrowserControllers.size).toBe(1);
             await page.close();
 
-            await new Promise<void>((resolve) => setTimeout(() => {
-                resolve();
-            }, 1000));
+            await new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    resolve();
+                }, 1000),
+            );
 
             expect(browserPool['_closeRetiredBrowserWithNoPages']).toHaveBeenCalled();
             expect(controller.close).toHaveBeenCalled();
@@ -309,7 +294,12 @@ describe.each([
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
                     const { launchContext } = browserPool.getBrowserControllerByPage(page)!;
-                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(1, browserPool.preLaunchHooks, pageId, launchContext);
+                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(
+                        1,
+                        browserPool.preLaunchHooks,
+                        pageId,
+                        launchContext,
+                    );
                 });
 
                 // We had a problem where if the first newPage() call, which launches
@@ -318,7 +308,9 @@ describe.each([
                 test('error in hook does not leave browser stuck in limbo', async () => {
                     const errorMessage = 'pre-launch failed';
                     browserPool.preLaunchHooks = [
-                        async () => { throw new Error(errorMessage); },
+                        async () => {
+                            throw new Error(errorMessage);
+                        },
                     ];
 
                     const attempts = 5;
@@ -347,8 +339,12 @@ describe.each([
                     const pageId = browserPool.getPageId(page)!;
                     const browserController = browserPool.getBrowserControllerByPage(page)!;
 
-                    expect(browserPool['_executeHooks'])
-                        .toHaveBeenNthCalledWith(2, browserPool.postLaunchHooks, pageId, browserController);
+                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(
+                        2,
+                        browserPool.postLaunchHooks,
+                        pageId,
+                        browserController,
+                    );
                 });
 
                 // We had a problem where if the first newPage() call, which launches
@@ -423,7 +419,12 @@ describe.each([
                     const page = await browserPool.newPage();
                     const browserController = browserPool.getBrowserControllerByPage(page);
 
-                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(4, browserPool.postPageCreateHooks, page, browserController);
+                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(
+                        4,
+                        browserPool.postPageCreateHooks,
+                        page,
+                        browserController,
+                    );
                 });
             });
 
@@ -439,7 +440,12 @@ describe.each([
                     await page.close();
 
                     const browserController = browserPool.getBrowserControllerByPage(page);
-                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(5, browserPool.prePageCloseHooks, page, browserController);
+                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(
+                        5,
+                        browserPool.prePageCloseHooks,
+                        page,
+                        browserController,
+                    );
                 });
             });
 
@@ -456,7 +462,12 @@ describe.each([
                     await page.close();
 
                     const browserController = browserPool.getBrowserControllerByPage(page);
-                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(6, browserPool.postPageCloseHooks, pageId, browserController);
+                    expect(browserPool['_executeHooks']).toHaveBeenNthCalledWith(
+                        6,
+                        browserPool.postPageCloseHooks,
+                        pageId,
+                        browserController,
+                    );
                 });
             });
 
@@ -522,7 +533,8 @@ describe.each([
                             };
                         });
                         // @ts-expect-error mistypings
-                        const { fingerprint } = browserController!.launchContext!.fingerprint as BrowserFingerprintWithHeaders;
+                        const { fingerprint } = browserController!.launchContext!
+                            .fingerprint as BrowserFingerprintWithHeaders;
 
                         expect(data.hardwareConcurrency).toBe(fingerprint?.navigator.hardwareConcurrency);
                         expect(data.userAgent).toBe(fingerprint?.navigator.userAgent);
@@ -540,12 +552,11 @@ describe.each([
 
                 describe('caching', () => {
                     const commonOptions = {
-                        browserPlugins: [new PlaywrightPlugin(
-                            playwright.chromium,
-                            {
+                        browserPlugins: [
+                            new PlaywrightPlugin(playwright.chromium, {
                                 useIncognitoPages: true,
-                            },
-                        )],
+                            }),
+                        ],
                     };
                     let browserPoolCache: BrowserPool;
 
@@ -611,12 +622,11 @@ describe.each([
             });
             describe('generator configuration', () => {
                 const commonOptions = {
-                    browserPlugins: [new PlaywrightPlugin(
-                        playwright.firefox,
-                        {
+                    browserPlugins: [
+                        new PlaywrightPlugin(playwright.firefox, {
                             useIncognitoPages: true,
-                        },
-                    )],
+                        }),
+                    ],
                 };
                 let browserPoolConfig: BrowserPool;
                 afterEach(async () => {

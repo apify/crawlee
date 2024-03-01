@@ -67,7 +67,7 @@ export function chunkBySize(items: string[], limitBytes: number): string[] {
     for (const payload of items) {
         const bytes = Buffer.byteLength(payload);
 
-        if (bytes <= limitBytes && (bytes + 2) > limitBytes) {
+        if (bytes <= limitBytes && bytes + 2 > limitBytes) {
             // Handle cases where wrapping with [] would fail, but solo object is fine.
             chunks.push(payload);
             lastChunkBytes = bytes;
@@ -142,7 +142,8 @@ export interface DatasetDataOptions {
 
 export interface DatasetExportOptions extends Omit<DatasetDataOptions, 'offset' | 'limit'> {}
 
-export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
+export interface DatasetIteratorOptions
+    extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
     /** @internal */
     offset?: number;
 
@@ -230,7 +231,10 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * @internal
      */
-    constructor(options: DatasetOptions, readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: DatasetOptions,
+        readonly config = Configuration.getGlobalConfig(),
+    ) {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client.dataset(this.id) as DatasetClient<Data>;
@@ -294,7 +298,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         } catch (e) {
             const error = e as Error;
             if (error.message.includes('Cannot create a string longer than')) {
-                throw new Error('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
+                throw new Error(
+                    'dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.',
+                );
             }
             throw e;
         }
@@ -341,10 +347,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const items = await this.export(options);
 
         if (contentType === 'text/csv') {
-            const value = stringify([
-                Object.keys(items[0]),
-                ...items.map((item) => Object.values(item)),
-            ]);
+            const value = stringify([Object.keys(items[0]), ...items.map((item) => Object.values(item))]);
             await kvStore.setValue(key, value, { contentType });
             return items;
         }
@@ -457,7 +460,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         if (!options.offset) options.offset = 0;
-        if (options.format && options.format !== 'json') throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
+        if (options.format && options.format !== 'json')
+            throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
         if (!options.limit) options.limit = DATASET_ITERATORS_DEFAULT_LIMIT;
 
         const { items, total, limit, offset } = await this.getData(options);
@@ -516,12 +520,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         let currentMemo: T = memo;
 
         const wrappedFunc: DatasetConsumer<Data> = async (item, index) => {
-            return Promise
-                .resolve()
+            return Promise.resolve()
                 .then(() => {
-                    return !index && currentMemo === undefined
-                        ? item
-                        : iteratee(currentMemo, item, index);
+                    return !index && currentMemo === undefined ? item : iteratee(currentMemo, item, index);
                 })
                 .then((newMemo) => {
                     currentMemo = newMemo as T;
@@ -558,14 +559,20 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *   the function returns the default dataset associated with the crawler run.
      * @param [options] Storage manager options.
      */
-    static async open<Data extends Dictionary = Dictionary>(datasetIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<Dataset<Data>> {
+    static async open<Data extends Dictionary = Dictionary>(
+        datasetIdOrName?: string | null,
+        options: StorageManagerOptions = {},
+    ): Promise<Dataset<Data>> {
         checkStorageAccess();
 
         ow(datasetIdOrName, ow.optional.string);
-        ow(options, ow.object.exactShape({
-            config: ow.optional.object.instanceOf(Configuration),
-            storageClient: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                config: ow.optional.object.instanceOf(Configuration),
+                storageClient: ow.optional.object,
+            }),
+        );
 
         options.config ??= Configuration.getGlobalConfig();
         options.storageClient ??= options.config.getStorageClient();
@@ -609,7 +616,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     /**
      * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
      */
-    static async getData<Data extends Dictionary = Dictionary>(options: DatasetDataOptions = {}): Promise<DatasetContent<Data>> {
+    static async getData<Data extends Dictionary = Dictionary>(
+        options: DatasetDataOptions = {},
+    ): Promise<DatasetContent<Data>> {
         const dataset = await this.open();
         return dataset.getData(options);
     }
@@ -619,41 +628,35 @@ export class Dataset<Data extends Dictionary = Dictionary> {
  * User-function used in the `Dataset.forEach()` API.
  */
 export interface DatasetConsumer<Data> {
-
     /**
      * @param item Current {@apilink Dataset} entry being processed.
      * @param index Position of current {@apilink Dataset} entry.
      */
     (item: Data, index: number): Awaitable<void>;
-
 }
 
 /**
  * User-function used in the `Dataset.map()` API.
  */
 export interface DatasetMapper<Data, R> {
-
     /**
      * User-function used in the `Dataset.map()` API.
      * @param item Current {@apilink Dataset} entry being processed.
      * @param index Position of current {@apilink Dataset} entry.
      */
     (item: Data, index: number): Awaitable<R>;
-
 }
 
 /**
  * User-function used in the `Dataset.reduce()` API.
  */
 export interface DatasetReducer<T, Data> {
-
     /**
      * @param memo Previous state of the reduction.
      * @param item Current {@apilink Dataset} entry being processed.
      * @param index Position of current {@apilink Dataset} entry.
      */
     (memo: T, item: Data, index: number): Awaitable<T>;
-
 }
 
 export interface DatasetOptions {

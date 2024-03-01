@@ -95,14 +95,18 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
             if (header.name.toLowerCase() === 'cookie') {
                 const id = keyFromTabId(getOpenerId(details.tabId));
 
-                const fixedCookies = header.value.split('; ').filter((x) => x.startsWith(id)).map((x) => x.slice(id.length)).join('; ');
+                const fixedCookies = header.value
+                    .split('; ')
+                    .filter((x) => x.startsWith(id))
+                    .map((x) => x.slice(id.length))
+                    .join('; ');
                 header.value = fixedCookies;
             }
 
             // Sometimes Chrome makes a request on a ghost tab.
             // We don't want these in order to prevent cluttering cookies.
             // Yes, `webNavigation.onComitted` is emitted and `webNavigation.onCreatedNavigationTarget` is not.
-            if (header.name.toLowerCase() === 'purpose' && header.value === 'prefetch' && !(counter.has(details.tabId))) {
+            if (header.name.toLowerCase() === 'purpose' && header.value === 'prefetch' && !counter.has(details.tabId)) {
                 // eslint-disable-next-line no-console
                 console.log(details);
                 return {
@@ -111,7 +115,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
             }
 
             // This one is for Firefox
-            if (header.name.toLowerCase() === 'x-moz' && header.value === 'prefetch' && !(counter.has(details.tabId))) {
+            if (header.name.toLowerCase() === 'x-moz' && header.value === 'prefetch' && !counter.has(details.tabId)) {
                 // eslint-disable-next-line no-console
                 console.log(details);
                 return {
@@ -134,7 +138,9 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
         }
 
         return {
-            requestHeaders: details.requestHeaders.filter((header) => header.name.toLowerCase() !== 'cookie' || header.value !== ''),
+            requestHeaders: details.requestHeaders.filter(
+                (header) => header.name.toLowerCase() !== 'cookie' || header.value !== '',
+            ),
         };
     },
     { urls: ['<all_urls>'] },
@@ -152,13 +158,15 @@ chrome.webRequest.onHeadersReceived.addListener(
 
                 const openerId = getOpenerId(details.tabId);
 
-                header.value = parts.map((part) => {
-                    const equalsIndex = part.indexOf('=');
-                    if (equalsIndex === -1) {
-                        return `${keyFromTabId(openerId)}=${part.trimStart()}`;
-                    }
-                    return keyFromTabId(openerId) + part.trimStart();
-                }).join('\n');
+                header.value = parts
+                    .map((part) => {
+                        const equalsIndex = part.indexOf('=');
+                        if (equalsIndex === -1) {
+                            return `${keyFromTabId(openerId)}=${part.trimStart()}`;
+                        }
+                        return keyFromTabId(openerId) + part.trimStart();
+                    })
+                    .join('\n');
             }
         }
 
@@ -187,13 +195,17 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     const id = keyFromTabId(opener);
 
     chrome.cookies.getAll({}, async (cookies) => {
-        await Promise.allSettled(cookies.filter((cookie) => cookie.name.startsWith(id)).map((cookie) => {
-            return chrome.cookies.remove({
-                name: cookie.name,
-                url: getCookieURL(cookie),
-                storeId: cookie.storeId,
-            });
-        }));
+        await Promise.allSettled(
+            cookies
+                .filter((cookie) => cookie.name.startsWith(id))
+                .map((cookie) => {
+                    return chrome.cookies.remove({
+                        name: cookie.name,
+                        url: getCookieURL(cookie),
+                        storeId: cookie.storeId,
+                    });
+                }),
+        );
     });
 });
 
@@ -246,7 +258,7 @@ const getNextLocalhostIp = (openerId) => {
     }
 
     // [127.0.0.1 - 127.255.255.254] = 1 * 255 * 255 * 254 = 16 516 350
-    while (localhostIpCache.length >= (1 * 255 * 255 * 254)) {
+    while (localhostIpCache.length >= 1 * 255 * 255 * 254) {
         localhostIpCache.delete(localhostIpCache.keys().next().value);
     }
 
@@ -341,7 +353,9 @@ const onCompleted = async (details) => {
                 // Different protocols are required, otherwise `onCompleted` won't be emitted.
                 const result = await routes[route](details, body);
                 if (result !== undefined) {
-                    await chrome.tabs.update(details.tabId, { url: `about:blank#${encodeURIComponent(JSON.stringify(result))}` });
+                    await chrome.tabs.update(details.tabId, {
+                        url: `about:blank#${encodeURIComponent(JSON.stringify(result))}`,
+                    });
                 }
             }
         } catch {
@@ -400,7 +414,9 @@ chrome.webNavigation.onCompleted.addListener(onCompleted);
 
                 window.totallyRandomString = true;
 
-                const code = "'use strict'; const tabId = '${getOpenerId(details.tabId)}'; (() => {\\n" + ${JSON.stringify(contentText)} + "\\n})();\\n";
+                const code = "'use strict'; const tabId = '${getOpenerId(
+                    details.tabId,
+                )}'; (() => {\\n" + ${JSON.stringify(contentText)} + "\\n})();\\n";
                 ${executeCodeInPageContext}
             })();
             `,

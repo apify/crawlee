@@ -12,7 +12,9 @@ afterAll(() => {
 let requestQueueInfo: RequestQueueInfo;
 
 beforeAll(async () => {
-    requestQueueInfo = await Configuration.getStorageClient().requestQueues().getOrCreate('test-request-queue-not-called-on-cached-request');
+    requestQueueInfo = await Configuration.getStorageClient()
+        .requestQueues()
+        .getOrCreate('test-request-queue-not-called-on-cached-request');
 });
 
 describe('RequestQueue#addRequest should not call the API if the request is already in the queue', () => {
@@ -43,7 +45,10 @@ describe('RequestQueue#addRequests should not call the API if the request is alr
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({ id: requestData.processedRequests[0].requestId, uniqueKey: requestData.processedRequests[0].uniqueKey } as any);
+        await requestQueue.markRequestHandled({
+            id: requestData.processedRequests[0].requestId,
+            uniqueKey: requestData.processedRequests[0].uniqueKey,
+        } as any);
 
         await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 

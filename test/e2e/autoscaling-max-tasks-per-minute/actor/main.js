@@ -8,7 +8,10 @@ const crawlerLogger = defaultLog.child({
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 let crawlCalledAt = Date.now();

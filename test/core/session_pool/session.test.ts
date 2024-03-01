@@ -67,7 +67,10 @@ describe('Session - testing session behaviour ', () => {
         let error;
 
         try {
-            session.setCookiesFromResponse({ headers: { Cookie: 'invaldi*{*{*{*-----***@s' }, url: 'http://localhost:1337' });
+            session.setCookiesFromResponse({
+                headers: { Cookie: 'invaldi*{*{*{*-----***@s' },
+                url: 'http://localhost:1337',
+            });
         } catch (e) {
             error = e;
         }
@@ -182,7 +185,9 @@ describe('Session - testing session behaviour ', () => {
         sessionPool.blockedStatusCodes.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
-            const call = () => { isCalled = true; };
+            const call = () => {
+                isCalled = true;
+            };
             sess.retire = call;
             expect(sess.retireOnBlockedStatusCodes(status)).toBeTruthy();
             expect(isCalled).toBeTruthy();
@@ -214,9 +219,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('setCookies should work for session (with expiration date: -1) cookies', () => {
         const url = 'https://example.com';
-        const cookies = [
-            { name: 'session_cookie', value: 'session-cookie-value', expires: -1 },
-        ];
+        const cookies = [{ name: 'session_cookie', value: 'session-cookie-value', expires: -1 }];
 
         session = new Session({ sessionPool });
         session.setCookies(cookies, url);

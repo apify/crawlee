@@ -51,9 +51,7 @@ describe('persistStorage option', () => {
             const directoryFiles = await readdir(storePath);
 
             expect(directoryFiles).toHaveLength(1);
-            expect(directoryFiles).toEqual([
-                '__metadata__.json',
-            ]);
+            expect(directoryFiles).toEqual(['__metadata__.json']);
         });
     });
 });

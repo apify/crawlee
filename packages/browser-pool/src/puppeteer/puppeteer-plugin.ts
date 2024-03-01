@@ -20,18 +20,17 @@ export class PuppeteerPlugin extends BrowserPlugin<
     PuppeteerNewPageOptions
 > {
     protected async _launch(
-        launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
+        launchContext: LaunchContext<
+            typeof Puppeteer,
+            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.Browser,
+            PuppeteerNewPageOptions
+        >,
     ): Promise<PuppeteerTypes.Browser> {
         // @ts-expect-error not exposed on type level
         const { CdpBrowser } = await import('puppeteer');
         const oldPuppeteerVersion = !CdpBrowser || 'createIncognitoBrowserContext' in CdpBrowser.prototype;
-        const {
-            launchOptions,
-            userDataDir,
-            useIncognitoPages,
-            experimentalContainers,
-            proxyUrl,
-        } = launchContext;
+        const { launchOptions, userDataDir, useIncognitoPages, experimentalContainers, proxyUrl } = launchContext;
 
         if (experimentalContainers) {
             throw new Error('Experimental containers are only available with Playwright');
@@ -101,26 +100,36 @@ export class PuppeteerPlugin extends BrowserPlugin<
             }
         });
 
-        const boundMethods = (['newPage', 'close', 'userAgent', 'createIncognitoBrowserContext', 'createBrowserContext', 'version', 'on', 'process'] as const)
-            .reduce((map, method) => {
-                map[method] = browser[method as 'close']?.bind(browser);
-                return map;
-            }, {} as Dictionary);
+        const boundMethods = (
+            [
+                'newPage',
+                'close',
+                'userAgent',
+                'createIncognitoBrowserContext',
+                'createBrowserContext',
+                'version',
+                'on',
+                'process',
+            ] as const
+        ).reduce((map, method) => {
+            map[method] = browser[method as 'close']?.bind(browser);
+            return map;
+        }, {} as Dictionary);
         const method = oldPuppeteerVersion ? 'createIncognitoBrowserContext' : 'createBrowserContext';
 
         browser = new Proxy(browser, {
             get: (target, property: keyof typeof browser, receiver) => {
                 if (property === 'newPage') {
-                    return (async (...args: Parameters<PuppeteerTypes.BrowserContext['newPage']>) => {
+                    return async (...args: Parameters<PuppeteerTypes.BrowserContext['newPage']>) => {
                         let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
                             const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl);
 
                             try {
-                                const context = await (browser as any)[method]({
+                                const context = (await (browser as any)[method]({
                                     proxyServer: anonymizedProxyUrl ?? proxyUrl,
-                                }) as PuppeteerTypes.BrowserContext;
+                                })) as PuppeteerTypes.BrowserContext;
 
                                 page = await context.newPage(...args);
 
@@ -156,7 +165,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         */
 
                         return page;
-                    });
+                    };
                 }
 
                 if (property in boundMethods) {
@@ -170,12 +179,22 @@ export class PuppeteerPlugin extends BrowserPlugin<
         return browser;
     }
 
-    protected _createController(): BrowserController<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
+    protected _createController(): BrowserController<
+        typeof Puppeteer,
+        PuppeteerTypes.PuppeteerLaunchOptions,
+        PuppeteerTypes.Browser,
+        PuppeteerNewPageOptions
+    > {
         return new PuppeteerController(this);
     }
 
     protected async _addProxyToLaunchOptions(
-        _launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
+        _launchContext: LaunchContext<
+            typeof Puppeteer,
+            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.Browser,
+            PuppeteerNewPageOptions
+        >,
     ): Promise<void> {
         /*
         // DO NOT USE YET! DOING SO DISABLES CACHE WHICH IS 50% PERFORMANCE HIT!
@@ -205,7 +224,12 @@ export class PuppeteerPlugin extends BrowserPlugin<
     }
 
     protected _isChromiumBasedBrowser(
-        _launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
+        _launchContext: LaunchContext<
+            typeof Puppeteer,
+            PuppeteerTypes.PuppeteerLaunchOptions,
+            PuppeteerTypes.Browser,
+            PuppeteerNewPageOptions
+        >,
     ): boolean {
         return true;
     }

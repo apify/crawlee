@@ -3,9 +3,7 @@ import type { AddressInfo } from 'net';
 
 import { KeyValueStore } from '@crawlee/core';
 import type { AdaptivePlaywrightCrawlerOptions } from '@crawlee/playwright';
-import {
-    AdaptivePlaywrightCrawler, RequestList,
-} from '@crawlee/playwright';
+import { AdaptivePlaywrightCrawler, RequestList } from '@crawlee/playwright';
 import express from 'express';
 import { startExpressAppPromise } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
@@ -81,32 +79,45 @@ describe('AdaptivePlaywrightCrawler', () => {
 
     // Test setup helpers
     const makeOneshotCrawler = async (
-        options: Required<Pick<AdaptivePlaywrightCrawlerOptions, 'requestHandler' | 'renderingTypePredictor'>> & Partial<AdaptivePlaywrightCrawlerOptions>,
+        options: Required<Pick<AdaptivePlaywrightCrawlerOptions, 'requestHandler' | 'renderingTypePredictor'>> &
+            Partial<AdaptivePlaywrightCrawlerOptions>,
         sources: string[],
-    ) => new AdaptivePlaywrightCrawler({
-        renderingTypeDetectionRatio: 0.1,
-        maxConcurrency: 1,
-        maxRequestRetries: 0,
-        maxRequestsPerCrawl: 1,
-        requestList: await RequestList.open({ sources }),
-        ...options,
-    });
+    ) =>
+        new AdaptivePlaywrightCrawler({
+            renderingTypeDetectionRatio: 0.1,
+            maxConcurrency: 1,
+            maxRequestRetries: 0,
+            maxRequestsPerCrawl: 1,
+            requestList: await RequestList.open({ sources }),
+            ...options,
+        });
 
-    const makeRiggedRenderingTypePredictor = (prediction: {detectionProbabilityRecommendation: number; renderingType: 'clientOnly' | 'static'}) => ({
+    const makeRiggedRenderingTypePredictor = (prediction: {
+        detectionProbabilityRecommendation: number;
+        renderingType: 'clientOnly' | 'static';
+    }) => ({
         predict: vi.fn((_url: URL) => prediction),
         storeResult: vi.fn((_url: URL, _label: string | unknown, _renderingType: string) => {}),
     });
 
     describe('should detect page rendering type', () => {
-        test.each([['/static', 'static'], ['/dynamic', 'clientOnly']] as const)('for %s', async (path, expectedType) => {
-            const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 1, renderingType: 'clientOnly' });
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('for %s', async (path, expectedType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
 
-            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData, querySelector }) => {
-                await pushData({
-                    heading: (await querySelector('h1')).text(),
-                });
-            });
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, querySelector }) => {
+                    await pushData({
+                        heading: (await querySelector('h1')).text(),
+                    });
+                },
+            );
 
             const crawler = await makeOneshotCrawler(
                 {
@@ -131,7 +142,10 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     test('should not store detection results on non-detection runs', async () => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
         const url = new URL(`http://${HOSTNAME}:${port}/static`);
 
         const crawler = await makeOneshotCrawler(
@@ -149,17 +163,23 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     test('should retry with browser if result checker returns false', async () => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
         const url = new URL(`http://${HOSTNAME}:${port}/dynamic`);
 
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData, querySelector }) => {
-            await pushData({
-                heading: (await querySelector('h1')).text(),
-            });
-        });
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ pushData, querySelector }) => {
+                await pushData({
+                    heading: (await querySelector('h1')).text(),
+                });
+            },
+        );
 
         const resultChecker: AdaptivePlaywrightCrawlerOptions['resultChecker'] = vi.fn(
-            (result) => result.datasetItems.length > 0 && result.datasetItems.every(({ item }) => item.heading?.length > 0),
+            (result) =>
+                result.datasetItems.length > 0 && result.datasetItems.every(({ item }) => item.heading?.length > 0),
         );
 
         const crawler = await makeOneshotCrawler(
@@ -178,13 +198,21 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     describe('should enqueue links correctly', () => {
-        test.each([['/static', 'static'], ['/dynamic', 'clientOnly']] as const)('for %s', async (path, renderingType) => {
-            const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType });
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('for %s', async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
 
-            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ enqueueLinks }) => {
-                await enqueueLinks();
-            });
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ enqueueLinks }) => {
+                    await enqueueLinks();
+                },
+            );
 
             const crawler = await makeOneshotCrawler(
                 {
@@ -197,18 +225,23 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             const enqueuedUrls = (await localStorageEmulator.getRequestQueueItems()).map((item) => item.url);
-            expect(new Set(enqueuedUrls)).toEqual(new Set([
-                `http://${HOSTNAME}:${port}/static?q=1`,
-                `http://${HOSTNAME}:${port}/static?q=2`,
-                `http://${HOSTNAME}:${port}/static?q=3`,
-                `http://${HOSTNAME}:${port}/static?q=4`,
-                `http://${HOSTNAME}:${port}/static?q=5`,
-            ]));
+            expect(new Set(enqueuedUrls)).toEqual(
+                new Set([
+                    `http://${HOSTNAME}:${port}/static?q=1`,
+                    `http://${HOSTNAME}:${port}/static?q=2`,
+                    `http://${HOSTNAME}:${port}/static?q=3`,
+                    `http://${HOSTNAME}:${port}/static?q=4`,
+                    `http://${HOSTNAME}:${port}/static?q=5`,
+                ]),
+            );
         });
     });
 
     test('should persist crawler state', async () => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
 
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ useState }) => {
             const state = await useState({ count: 0 });
@@ -234,13 +267,18 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     test('should persist key-value store changes', async () => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
-
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ request, getKeyValueStore }) => {
-            const store = await getKeyValueStore();
-            const search = new URLSearchParams(new URL(request.url).search);
-            store.setValue(search.get('q'), { content: 42 });
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
         });
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ request, getKeyValueStore }) => {
+                const store = await getKeyValueStore();
+                const search = new URLSearchParams(new URL(request.url).search);
+                store.setValue(search.get('q'), { content: 42 });
+            },
+        );
 
         const crawler = await makeOneshotCrawler(
             {
@@ -264,7 +302,10 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     test('should not allow direct key-value store manipulation', async () => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({ detectionProbabilityRecommendation: 0, renderingType: 'static' });
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
 
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async () => {
             const store = await KeyValueStore.open();
@@ -281,9 +322,7 @@ describe('AdaptivePlaywrightCrawler', () => {
                 maxRequestRetries: 0,
                 failedRequestHandler,
             },
-            [
-                `http://${HOSTNAME}:${port}/static`,
-            ],
+            [`http://${HOSTNAME}:${port}/static`],
         );
 
         await crawler.run();

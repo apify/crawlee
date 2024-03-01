@@ -65,7 +65,7 @@ export interface SessionPoolOptions {
     /**
      * Control how and when to persist the state of the session pool.
      */
-     persistenceOptions?: PersistenceOptions;
+    persistenceOptions?: PersistenceOptions;
 }
 
 /**
@@ -154,19 +154,25 @@ export class SessionPool extends EventEmitter {
     /**
      * @internal
      */
-    constructor(options: SessionPoolOptions = {}, readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: SessionPoolOptions = {},
+        readonly config = Configuration.getGlobalConfig(),
+    ) {
         super();
 
-        ow(options, ow.object.exactShape({
-            maxPoolSize: ow.optional.number,
-            persistStateKeyValueStoreId: ow.optional.string,
-            persistStateKey: ow.optional.string,
-            createSessionFunction: ow.optional.function,
-            sessionOptions: ow.optional.object,
-            blockedStatusCodes: ow.optional.array.ofType(ow.number),
-            log: ow.optional.object,
-            persistenceOptions: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                maxPoolSize: ow.optional.number,
+                persistStateKeyValueStoreId: ow.optional.string,
+                persistStateKey: ow.optional.string,
+                createSessionFunction: ow.optional.function,
+                sessionOptions: ow.optional.object,
+                blockedStatusCodes: ow.optional.array.ofType(ow.number),
+                log: ow.optional.object,
+                persistenceOptions: ow.optional.object,
+            }),
+        );
 
         const {
             maxPoolSize = MAX_POOL_SIZE,
@@ -235,7 +241,9 @@ export class SessionPool extends EventEmitter {
 
         if (!this.persistStateKeyValueStoreId) {
             // eslint-disable-next-line max-len
-            this.log.debug(`No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.keyValueStore.id}`);
+            this.log.debug(
+                `No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.keyValueStore.id}`,
+            );
         }
 
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
@@ -267,9 +275,8 @@ export class SessionPool extends EventEmitter {
             this._removeRetiredSessions();
         }
 
-        const newSession = options instanceof Session
-            ? options
-            : await this.createSessionFunction(this, { sessionOptions: options });
+        const newSession =
+            options instanceof Session ? options : await this.createSessionFunction(this, { sessionOptions: options });
         this.log.debug(`Adding new Session - ${newSession.id}`);
 
         this._addSession(newSession);
@@ -416,7 +423,10 @@ export class SessionPool extends EventEmitter {
      * @param [options.sessionOptions] The configuration options for the session being created.
      * @returns New session.
      */
-    protected _defaultCreateSessionFunction(sessionPool: SessionPool, options: { sessionOptions?: SessionOptions } = {}): Session {
+    protected _defaultCreateSessionFunction(
+        sessionPool: SessionPool,
+        options: { sessionOptions?: SessionOptions } = {},
+    ): Session {
         ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
         const { sessionOptions = {} } = options;
         return new Session({

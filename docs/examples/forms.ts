@@ -23,8 +23,8 @@ await Promise.all([
 ]);
 
 // Obtain and print list of search results
-const results = await page.$$eval('[data-testid="results-list"] div.search-title > a',
-    (nodes) => nodes.map((node) => ({
+const results = await page.$$eval('[data-testid="results-list"] div.search-title > a', (nodes) =>
+    nodes.map((node) => ({
         url: node.href,
         name: node.innerText,
     })),

@@ -36,10 +36,14 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
             try {
                 // Try without extension
                 file = await readFile(resolve(this.storeDirectory, this.rawRecord.key));
-                memoryStorageLog.warning([
-                    `Key-value entry "${this.rawRecord.key}" for store ${basename(this.storeDirectory)} does not have a file extension, assuming it as text.`,
-                    'If you want to have correct interpretation of the file, you should add a file extension to the entry.',
-                ].join('\n'));
+                memoryStorageLog.warning(
+                    [
+                        `Key-value entry "${this.rawRecord.key}" for store ${basename(
+                            this.storeDirectory,
+                        )} does not have a file extension, assuming it as text.`,
+                        'If you want to have correct interpretation of the file, you should add a file extension to the entry.',
+                    ].join('\n'),
+                );
                 file = file.toString('utf-8');
             } catch {
                 // This is impossible to happen, but just in case

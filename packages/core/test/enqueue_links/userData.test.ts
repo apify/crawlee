@@ -33,7 +33,7 @@ function createRequestQueueMock() {
     return { enqueued, requestQueue };
 }
 
-describe('enqueueLinks() - userData shouldn\'t be changed and outer label must take priority', () => {
+describe("enqueueLinks() - userData shouldn't be changed and outer label must take priority", () => {
     let ll: number;
     beforeAll(() => {
         ll = log.getLevel();
@@ -83,7 +83,7 @@ describe('enqueueLinks() - userData shouldn\'t be changed and outer label must t
         expect(enqueued[1].userData.label).toBe('second');
     });
 
-    test('JSON string of userData shouldn\'t change, but enqueued label should be different', async () => {
+    test("JSON string of userData shouldn't change, but enqueued label should be different", async () => {
         const { enqueued, requestQueue } = createRequestQueueMock();
 
         const userData = { foo: 'bar', label: 'bogus' };

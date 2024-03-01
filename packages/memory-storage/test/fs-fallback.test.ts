@@ -17,20 +17,32 @@ describe('fallback to fs for reading', () => {
     beforeAll(async () => {
         // Create "default" key-value store and give it an entry
         await ensureDir(resolve(storage.keyValueStoresDirectory, 'default'));
-        await writeFile(resolve(storage.keyValueStoresDirectory, 'default/__metadata__.json'), JSON.stringify({
-            id: randomUUID(),
-            name: 'default',
-            createdAt: expectedFsDate,
-            accessedAt: expectedFsDate,
-            modifiedAt: expectedFsDate,
-        }));
-        await writeFile(resolve(storage.keyValueStoresDirectory, 'default/INPUT.json'), JSON.stringify({ foo: 'bar but from fs' }));
+        await writeFile(
+            resolve(storage.keyValueStoresDirectory, 'default/__metadata__.json'),
+            JSON.stringify({
+                id: randomUUID(),
+                name: 'default',
+                createdAt: expectedFsDate,
+                accessedAt: expectedFsDate,
+                modifiedAt: expectedFsDate,
+            }),
+        );
+        await writeFile(
+            resolve(storage.keyValueStoresDirectory, 'default/INPUT.json'),
+            JSON.stringify({ foo: 'bar but from fs' }),
+        );
 
         await ensureDir(resolve(storage.keyValueStoresDirectory, 'other'));
-        await writeFile(resolve(storage.keyValueStoresDirectory, 'other/INPUT.json'), JSON.stringify({ foo: 'bar but from fs' }));
+        await writeFile(
+            resolve(storage.keyValueStoresDirectory, 'other/INPUT.json'),
+            JSON.stringify({ foo: 'bar but from fs' }),
+        );
 
         await ensureDir(resolve(storage.keyValueStoresDirectory, 'no-ext'));
-        await writeFile(resolve(storage.keyValueStoresDirectory, 'no-ext/INPUT'), JSON.stringify({ foo: 'bar but from fs' }));
+        await writeFile(
+            resolve(storage.keyValueStoresDirectory, 'no-ext/INPUT'),
+            JSON.stringify({ foo: 'bar but from fs' }),
+        );
 
         await ensureDir(resolve(storage.keyValueStoresDirectory, 'invalid-json'));
         await writeFile(resolve(storage.keyValueStoresDirectory, 'invalid-json/INPUT.json'), '{');
@@ -57,19 +69,16 @@ describe('fallback to fs for reading', () => {
         });
     });
 
-    test(
-        'attempting to read "other" key value store with no "__metadata__" present should read from fs, even if accessed without generating id first',
-        async () => {
-            const otherStore = storage.keyValueStore('other');
+    test('attempting to read "other" key value store with no "__metadata__" present should read from fs, even if accessed without generating id first', async () => {
+        const otherStore = storage.keyValueStore('other');
 
-            const input = await otherStore.getRecord('INPUT');
-            expect(input).toStrictEqual<KeyValueStoreRecord>({
-                key: 'INPUT',
-                value: { foo: 'bar but from fs' },
-                contentType: 'application/json; charset=utf-8',
-            });
-        },
-    );
+        const input = await otherStore.getRecord('INPUT');
+        expect(input).toStrictEqual<KeyValueStoreRecord>({
+            key: 'INPUT',
+            value: { foo: 'bar but from fs' },
+            contentType: 'application/json; charset=utf-8',
+        });
+    });
 
     test('attempting to read non-existent "default_2" key value store should return undefined', async () => {
         await expect(storage.keyValueStore('default_2').get()).resolves.toBeUndefined();

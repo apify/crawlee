@@ -1,7 +1,12 @@
 import { Actor } from 'apify';
 import { Dataset, createPlaywrightRouter, PlaywrightCrawler } from '@crawlee/playwright';
 
-await Actor.init({ storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined });
+await Actor.init({
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
+});
 
 // createPlaywrightRouter() is only a helper to get better
 // intellisense and typings. You can use Router.create() too.
@@ -13,9 +18,7 @@ router.addHandler('DETAIL', async ({ request, page, log }) => {
     const manufacturer = urlPart[0].split('-')[0]; // 'sennheiser'
 
     const title = await page.locator('.product-meta h1').textContent();
-    const sku = await page
-        .locator('span.product-meta__sku-number')
-        .textContent();
+    const sku = await page.locator('span.product-meta__sku-number').textContent();
 
     const priceElement = page
         .locator('span.price')

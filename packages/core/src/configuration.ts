@@ -295,7 +295,9 @@ export class Configuration {
         const logLevel = this.get('logLevel');
 
         if (logLevel) {
-            const level = Number.isFinite(+logLevel) ? +logLevel : LogLevel[String(logLevel).toUpperCase() as unknown as LogLevel];
+            const level = Number.isFinite(+logLevel)
+                ? +logLevel
+                : LogLevel[String(logLevel).toUpperCase() as unknown as LogLevel];
             log.setLevel(level as LogLevel);
         }
     }

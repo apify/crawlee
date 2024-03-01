@@ -37,8 +37,10 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
         }
 
         if (value === undefined) {
-            throw new Error('The "value" parameter was stringified to JSON and returned undefined. '
-                + 'Make sure you\'re not trying to stringify an undefined value.');
+            throw new Error(
+                'The "value" parameter was stringified to JSON and returned undefined. ' +
+                    "Make sure you're not trying to stringify an undefined value.",
+            );
         }
     }
 
@@ -113,7 +115,10 @@ export class KeyValueStore {
     /**
      * @internal
      */
-    constructor(options: KeyValueStoreOptions, readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: KeyValueStoreOptions,
+        readonly config = Configuration.getGlobalConfig(),
+    ) {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client.keyValueStore(this.id);
@@ -149,7 +154,7 @@ export class KeyValueStore {
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record.
      */
-    async getValue<T = unknown>(key: string): Promise<T | null>
+    async getValue<T = unknown>(key: string): Promise<T | null>;
     /**
      * Gets a value from the key-value store.
      *
@@ -182,7 +187,7 @@ export class KeyValueStore {
      *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
      *   on the MIME content type of the record, or the default value if the key is missing from the store.
      */
-    async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>
+    async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
     /**
      * Gets a value from the key-value store.
      *
@@ -221,7 +226,7 @@ export class KeyValueStore {
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getRecord(key);
 
-        return record?.value as T ?? defaultValue ?? null;
+        return (record?.value as T) ?? defaultValue ?? null;
     }
 
     /**
@@ -321,17 +326,32 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, 'key', ow.string.nonEmpty);
-        ow(key, ow.string.validate((k) => ({
-            validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
-            message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
-        })));
-        if (options.contentType
-           && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function'))) {
-            throw new ArgumentError('The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.', this.setValue);
+        ow(
+            key,
+            ow.string.validate((k) => ({
+                validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
+                message:
+                    'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
+            })),
+        );
+        if (
+            options.contentType &&
+            !(
+                ow.isValid(value, ow.any(ow.string, ow.buffer)) ||
+                (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
+            )
+        ) {
+            throw new ArgumentError(
+                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                this.setValue,
+            );
         }
-        ow(options, ow.object.exactShape({
-            contentType: ow.optional.string.nonEmpty,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                contentType: ow.optional.string.nonEmpty,
+            }),
+        );
 
         // Make copy of options, don't update what user passed.
         const optionsCopy = { ...options };
@@ -411,12 +431,19 @@ export class KeyValueStore {
         return this._forEachKey(iteratee, options);
     }
 
-    private async _forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}, index = 0): Promise<void> {
+    private async _forEachKey(
+        iteratee: KeyConsumer,
+        options: KeyValueStoreIteratorOptions = {},
+        index = 0,
+    ): Promise<void> {
         const { exclusiveStartKey } = options;
         ow(iteratee, ow.function);
-        ow(options, ow.object.exactShape({
-            exclusiveStartKey: ow.optional.string,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                exclusiveStartKey: ow.optional.string,
+            }),
+        );
 
         const response = await this.client.listKeys({ exclusiveStartKey });
         const { nextExclusiveStartKey, isTruncated, items } = response;
@@ -446,10 +473,13 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(storeIdOrName, ow.optional.any(ow.string, ow.null));
-        ow(options, ow.object.exactShape({
-            config: ow.optional.object.instanceOf(Configuration),
-            storageClient: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                config: ow.optional.object.instanceOf(Configuration),
+                storageClient: ow.optional.object,
+            }),
+        );
 
         options.config ??= Configuration.getGlobalConfig();
         options.storageClient ??= options.config.getStorageClient();
@@ -489,7 +519,7 @@ export class KeyValueStore {
      *   if the record is missing.
      * @ignore
      */
-    static async getValue<T = unknown>(key: string): Promise<T | null>
+    static async getValue<T = unknown>(key: string): Promise<T | null>;
     /**
      * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *
@@ -518,7 +548,7 @@ export class KeyValueStore {
      *   on the MIME content type of the record, or the provided default value.
      * @ignore
      */
-    static async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>
+    static async getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
     /**
      * Gets a value from the default {@apilink KeyValueStore} associated with the current crawler run.
      *

@@ -17,16 +17,15 @@ import { PuppeteerLauncher } from './puppeteer-launcher';
 import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
 import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
 
-export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends
-    BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>, PuppeteerContextUtils {}
+export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
+    extends BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>,
+        PuppeteerContextUtils {}
 export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
 export interface PuppeteerRequestHandler extends BrowserRequestHandler<PuppeteerCrawlingContext> {}
 export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
 
-export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
-    PuppeteerCrawlingContext,
-    { browserPlugins: [PuppeteerPlugin] }
-> {
+export interface PuppeteerCrawlerOptions
+    extends BrowserCrawlerOptions<PuppeteerCrawlingContext, { browserPlugins: [PuppeteerPlugin] }> {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
@@ -132,7 +131,11 @@ export interface PuppeteerCrawlerOptions extends BrowserCrawlerOptions<
  * ```
  * @category Crawlers
  */
-export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [PuppeteerPlugin] }, LaunchOptions, PuppeteerCrawlingContext> {
+export class PuppeteerCrawler extends BrowserCrawler<
+    { browserPlugins: [PuppeteerPlugin] },
+    LaunchOptions,
+    PuppeteerCrawlingContext
+> {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: ow.optional.object,
@@ -141,23 +144,23 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(options: PuppeteerCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        options: PuppeteerCrawlerOptions = {},
+        override readonly config = Configuration.getGlobalConfig(),
+    ) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
-        const {
-            launchContext = {},
-            headless,
-            proxyConfiguration,
-            ...browserCrawlerOptions
-        } = options;
+        const { launchContext = {}, headless, proxyConfiguration, ...browserCrawlerOptions } = options;
 
         const browserPoolOptions = {
             ...options.browserPoolOptions,
         } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
-            throw new Error('PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.'
-                + 'Use PuppeteerCrawlerOptions.proxyConfiguration');
+            throw new Error(
+                'PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.' +
+                    'Use PuppeteerCrawlerOptions.proxyConfiguration',
+            );
         }
 
         // `browserPlugins` is working when it's not overridden by `launchContext`,
@@ -173,9 +176,7 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
 
         const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
 
-        browserPoolOptions.browserPlugins = [
-            puppeteerLauncher.createBrowserPlugin(),
-        ];
+        browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 
         super({ ...browserCrawlerOptions, launchContext, proxyConfiguration, browserPoolOptions }, config);
     }
@@ -185,7 +186,10 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
         await super._runRequestHandler(context);
     }
 
-    protected override async _navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: DirectNavigationOptions) {
+    protected override async _navigationHandler(
+        crawlingContext: PuppeteerCrawlingContext,
+        gotoOptions: DirectNavigationOptions,
+    ) {
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }

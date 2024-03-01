@@ -16,13 +16,14 @@ export const startExpressAppPromise = async (app: Application, port: number) => 
 
 export const responseSamples = {
     json: { foo: 'bar' },
-    xml: '<?xml version="1.0" encoding="UTF-8"?>\n'
-        + '<items>\n'
-        + '<item>\n'
-        + '    <url>https://apify.com</url>\n'
-        + '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n'
-        + '</item>\n'
-        + '</items>',
+    xml:
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<items>\n' +
+        '<item>\n' +
+        '    <url>https://apify.com</url>\n' +
+        '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n' +
+        '</item>\n' +
+        '</items>',
     complexXml: fs.readFileSync(path.join(__dirname, 'data/complex.xml'), 'utf-8'),
     image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
     html: `<!doctype html>
@@ -176,9 +177,11 @@ console.log('Hello world!');
 export async function runExampleComServer(): Promise<[Server, number]> {
     const app = express();
 
-    app.use(bodyParser.urlencoded({
-        extended: true,
-    }));
+    app.use(
+        bodyParser.urlencoded({
+            extended: true,
+        }),
+    );
     app.use(bodyParser.json());
 
     const special = express.Router();
@@ -219,9 +222,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         });
 
         special.post('/jsonError', (_req, res) => {
-            res
-                .status(500)
-                .json({ message: 'CUSTOM_ERROR' });
+            res.status(500).json({ message: 'CUSTOM_ERROR' });
         });
 
         special.get('/mirror', (_req, res) => {
@@ -265,10 +266,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
         });
 
         special.get('/cloudflareBlocking', async (_req, res) => {
-            res
-                .type('html')
-                .status(403)
-                .send(responseSamples.cloudflareBlocking);
+            res.type('html').status(403).send(responseSamples.cloudflareBlocking);
         });
     })();
 

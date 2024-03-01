@@ -74,12 +74,19 @@ async function run() {
             }
 
             if (!seenFirst) {
-                console.log(`${colors.red('[fatal]')} test ${colors.yellow(`[${dir.name}]`)} did not call "initialize(import.meta.url)"!`);
+                console.log(
+                    `${colors.red('[fatal]')} test ${colors.yellow(
+                        `[${dir.name}]`,
+                    )} did not call "initialize(import.meta.url)"!`,
+                );
                 worker.terminate();
                 return;
             }
 
-            if (process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' && (str.startsWith('[build]') || str.startsWith('[run]') || str.startsWith('[kv]'))) {
+            if (
+                process.env.STORAGE_IMPLEMENTATION === 'PLATFORM' &&
+                (str.startsWith('[build]') || str.startsWith('[run]') || str.startsWith('[kv]'))
+            ) {
                 const platformStatsMessage = str.match(/\[(?:run|build|kv)] (.*)/);
                 if (platformStatsMessage) {
                     console.log(`${colors.yellow(`[${dir.name}] `)}${colors.grey(platformStatsMessage[1])}`);
@@ -109,7 +116,11 @@ async function run() {
             const took = (Date.now() - now) / 1000;
             const status = code === 0 ? 'success' : 'failure';
             const color = code === 0 ? 'green' : 'red';
-            console.log(`${colors.yellow(`[${dir.name}] `)}${colors[color](`Test finished with status: ${status} `)}${colors.grey(`[took ${took}s]`)}`);
+            console.log(
+                `${colors.yellow(`[${dir.name}] `)}${colors[color](
+                    `Test finished with status: ${status} `,
+                )}${colors.grey(`[took ${took}s]`)}`,
+            );
 
             if (['MEMORY', 'LOCAL'].includes(process.env.STORAGE_IMPLEMENTATION)) {
                 await clearStorage(`${basePath}/${dir.name}`);

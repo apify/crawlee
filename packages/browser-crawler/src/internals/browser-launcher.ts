@@ -32,10 +32,10 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useChrome?: boolean;
 
     /**
-    * With this option selected, all pages will be opened in a new incognito browser context.
-    * This means they will not share cookies nor cache and their resources will not be throttled by one another.
-    * @default false
-    */
+     * With this option selected, all pages will be opened in a new incognito browser context.
+     * This means they will not share cookies nor cache and their resources will not be throttled by one another.
+     * @default false
+     */
     useIncognitoPages?: boolean;
 
     /**
@@ -46,10 +46,10 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     experimentalContainers?: boolean;
 
     /**
-    * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
-    * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
-    * If not specified, a temporary directory is used instead.
-    */
+     * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
+     * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
+     * If not specified, a temporary directory is used instead.
+     */
     userDataDir?: string;
 
     /**
@@ -110,8 +110,9 @@ export abstract class BrowserLauncher<
         } catch (err) {
             const e = err as Error & { code: string };
             if (e.code === 'MODULE_NOT_FOUND') {
-                const msg = `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?\n`
-                    + `Make sure you have '${launcher}' in your package.json dependencies and in your package-lock.json, if you use it.`;
+                const msg =
+                    `Cannot find module '${launcher}'. Did you you install the '${launcher}' package?\n` +
+                    `Make sure you have '${launcher}' in your package.json dependencies and in your package-lock.json, if you use it.`;
                 if (process.env.APIFY_IS_AT_HOME) {
                     e.message = `${msg}\nOn the Apify platform, '${launcher}' can only be used with the ${apifyImageName} Docker image.`;
                 }
@@ -124,7 +125,10 @@ export abstract class BrowserLauncher<
     /**
      * All `BrowserLauncher` parameters are passed via an launchContext object.
      */
-    constructor(launchContext: BrowserLaunchContext<LaunchOptions, Launcher>, readonly config = Configuration.getGlobalConfig()) {
+    constructor(
+        launchContext: BrowserLaunchContext<LaunchOptions, Launcher>,
+        readonly config = Configuration.getGlobalConfig(),
+    ) {
         const {
             launcher,
             proxyUrl,

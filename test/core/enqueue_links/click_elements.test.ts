@@ -53,12 +53,7 @@ const testCases = [
     },
 ];
 
-testCases.forEach(({
-    caseName,
-    launchBrowser,
-    clickElements,
-    utils,
-}) => {
+testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
     describe(`${caseName}: enqueueLinksByClickingElements()`, () => {
         let browser: PPBrowser | PWBrowser;
         let server: Server;
@@ -106,7 +101,7 @@ testCases.forEach(({
                     return request;
                 },
                 waitForPageIdleSecs: 0.025,
-                maxWaitForPageIdleSecs: 0.250,
+                maxWaitForPageIdleSecs: 0.25,
             });
             expect(enqueued).toHaveLength(1);
             expect(enqueued[0].url).toMatch(`${serverAddress}/`);
@@ -115,7 +110,7 @@ testCases.forEach(({
         });
 
         test('accepts forefront option', async () => {
-            const addedRequests: {request: Source; options: RequestQueueOperationOptions}[] = [];
+            const addedRequests: { request: Source; options: RequestQueueOperationOptions }[] = [];
             const requestQueue = new RequestQueue({ id: 'xxx', client: Configuration.getStorageClient() });
             requestQueue.addRequests = async (requests, options) => {
                 addedRequests.push(...requests.map((request) => ({ request, options })));
@@ -137,7 +132,7 @@ testCases.forEach(({
                 requestQueue,
                 selector: 'a',
                 waitForPageIdleSecs: 0.025,
-                maxWaitForPageIdleSecs: 0.250,
+                maxWaitForPageIdleSecs: 0.25,
                 forefront: true,
             });
             expect(addedRequests).toHaveLength(2);
@@ -337,10 +332,7 @@ testCases.forEach(({
                 expect(
                     await page.evaluate(() => {
                         const textarea = document.querySelector('textarea');
-                        return textarea.value.substring(
-                            textarea.selectionStart,
-                            textarea.selectionEnd,
-                        );
+                        return textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
                     }),
                 ).toBe(text);
             });
@@ -366,9 +358,11 @@ testCases.forEach(({
 </html>
             `;
                 await page.setContent(html);
-                const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts({
-                    selector: 'a',
-                }));
+                const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(
+                    getOpts({
+                        selector: 'a',
+                    }),
+                );
                 expect(interceptedRequests).toHaveLength(1);
                 expect(interceptedRequests[0].url).toMatch(`${serverAddress}/`);
                 expect(page.url()).toBe('about:blank');
@@ -503,7 +497,8 @@ testCases.forEach(({
                         };
                         (browser as PPBrowser).on('targetcreated', (target) => {
                             counts.create++;
-                            if ((clickElements as typeof puppeteerClickElements).isTargetRelevant(page, target)) spawnedTarget = target;
+                            if ((clickElements as typeof puppeteerClickElements).isTargetRelevant(page, target))
+                                spawnedTarget = target;
                         });
                         browser.on('targetdestroyed', (target) => {
                             counts.destroy++;
@@ -525,10 +520,16 @@ testCases.forEach(({
                         });
                     }
 
-                    clickElements.clickElementsAndInterceptNavigationRequests(getOpts({
-                        waitForPageIdleMillis: 1000,
-                        maxWaitForPageIdleMillis: 5000,
-                    })).catch(() => { /* will throw because afterEach will close the page */ });
+                    clickElements
+                        .clickElementsAndInterceptNavigationRequests(
+                            getOpts({
+                                waitForPageIdleMillis: 1000,
+                                maxWaitForPageIdleMillis: 5000,
+                            }),
+                        )
+                        .catch(() => {
+                            /* will throw because afterEach will close the page */
+                        });
                 });
 
                 expect(callCounts.create).toBe(1);
@@ -546,10 +547,12 @@ testCases.forEach(({
 </html>
             `;
                 await page.setContent(html);
-                const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(getOpts({
-                    waitForPageIdleMillis: 1000,
-                    maxWaitForPageIdleMillis: 5000,
-                }));
+                const interceptedRequests = await clickElements.clickElementsAndInterceptNavigationRequests(
+                    getOpts({
+                        waitForPageIdleMillis: 1000,
+                        maxWaitForPageIdleMillis: 5000,
+                    }),
+                );
                 await new Promise((r) => setTimeout(r, 1000));
                 expect(interceptedRequests).toHaveLength(1);
                 expect(interceptedRequests[0].url).toBe(`${serverAddress}/`);

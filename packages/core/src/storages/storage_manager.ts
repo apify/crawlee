@@ -108,11 +108,15 @@ export class StorageManager<T extends IStorage = IStorage> {
     /**
      * Helper function that first requests storage by ID and if storage doesn't exist then gets it by name.
      */
-    protected async _getOrCreateStorage(storageIdOrName: string, storageConstructorName: string, apiClient: StorageClient) {
-        const {
-            createStorageClient,
-            createStorageCollectionClient,
-        } = this._getStorageClientFactories(apiClient, storageConstructorName);
+    protected async _getOrCreateStorage(
+        storageIdOrName: string,
+        storageConstructorName: string,
+        apiClient: StorageClient,
+    ) {
+        const { createStorageClient, createStorageCollectionClient } = this._getStorageClientFactories(
+            apiClient,
+            storageConstructorName,
+        );
 
         const storageClient = createStorageClient(storageIdOrName);
         const existingStorage = await storageClient.get();
@@ -124,7 +128,7 @@ export class StorageManager<T extends IStorage = IStorage> {
 
     protected _getStorageClientFactories(client: StorageClient, storageConstructorName: string) {
         // Dataset => dataset
-        const clientName = storageConstructorName[0].toLowerCase() + storageConstructorName.slice(1) as ClientNames;
+        const clientName = (storageConstructorName[0].toLowerCase() + storageConstructorName.slice(1)) as ClientNames;
         // dataset => datasets
         const collectionClientName = `${clientName}s` as ClientCollectionNames;
 

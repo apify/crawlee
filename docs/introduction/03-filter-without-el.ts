@@ -14,9 +14,7 @@ const crawler = new CheerioCrawler({
         // Besides resolving the URLs, we now also need to
         // grab their hostname for filtering.
         const { hostname } = new URL(request.loadedUrl);
-        const absoluteUrls = links.map(
-            (link) => new URL(link, request.loadedUrl),
-        );
+        const absoluteUrls = links.map((link) => new URL(link, request.loadedUrl));
 
         // We use the hostname to filter links that point
         // to a different domain, even subdomain.

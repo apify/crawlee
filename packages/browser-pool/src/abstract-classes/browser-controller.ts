@@ -19,8 +19,9 @@ export interface BrowserControllerEvents<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
-    [BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED]:
-        (controller: BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) => void;
+    [BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED]: (
+        controller: BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ) => void;
 }
 
 /**
@@ -97,7 +98,10 @@ export abstract class BrowserController<
     /**
      * @ignore
      */
-    assignBrowser(browser: LaunchResult, launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): void {
+    assignBrowser(
+        browser: LaunchResult,
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): void {
         if (this.browser) {
             throw new Error('BrowserController already has a browser instance assigned.');
         }

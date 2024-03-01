@@ -1,11 +1,9 @@
 {
-    "extends": "@apify/tsconfig",
-    "compilerOptions": {
-        "module": "ES2022",
-        "target": "ES2022",
-        "lib": ["DOM"]
-    },
-    "include": [
-        "./**/*.ts"
-    ]
+	"extends": "@apify/tsconfig",
+	"compilerOptions": {
+		"module": "ES2022",
+		"target": "ES2022",
+		"lib": ["DOM"]
+	},
+	"include": ["./**/*.ts"]
 }

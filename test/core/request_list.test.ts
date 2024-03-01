@@ -1,12 +1,20 @@
 import log from '@apify/log';
-import { Configuration, deserializeArray, EventType, KeyValueStore, ProxyConfiguration, Request, RequestList } from '@crawlee/core';
+import {
+    Configuration,
+    deserializeArray,
+    EventType,
+    KeyValueStore,
+    ProxyConfiguration,
+    Request,
+    RequestList,
+} from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 /**
  * Stand-in for underscore.js shuffle (weird, but how else?)
  */
-function shuffle(array: unknown[]) : unknown[] {
+function shuffle(array: unknown[]): unknown[] {
     const out = [...array];
     for (let i = out.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -132,15 +140,8 @@ describe('RequestList', () => {
 
     test('should correctly load list from hosted files in correct order', async () => {
         const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
-        const list1 = [
-            'https://example.com',
-            'https://google.com',
-            'https://wired.com',
-        ];
-        const list2 = [
-            'https://another.com',
-            'https://page.com',
-        ];
+        const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
+        const list2 = ['https://another.com', 'https://page.com'];
         spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve(list1) as any, 100)) as any);
         spy.mockResolvedValueOnce(list2);
 
@@ -185,11 +186,7 @@ describe('RequestList', () => {
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = [
-            'https://example.com',
-            'https://google.com',
-            'https://wired.com',
-        ];
+        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const wrongUrls = [
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
@@ -198,7 +195,8 @@ describe('RequestList', () => {
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
         ];
-        const correctUrl = 'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
+        const correctUrl =
+            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
 
         gotScrapingSpy.mockResolvedValue({ body: JSON.stringify(list) } as any);
 
@@ -233,10 +231,7 @@ describe('RequestList', () => {
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
-        const proxyUrls = [
-            'http://proxyurl.usedforthe.download',
-            'http://another.proxy.url',
-        ];
+        const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
         const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         spy.mockResolvedValue([]);
@@ -311,11 +306,7 @@ describe('RequestList', () => {
         await requestList.reclaimRequest(request4);
 
         expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/3',
-                'https://example.com/4',
-                'https://example.com/5',
-            ],
+            inProgress: ['https://example.com/3', 'https://example.com/4', 'https://example.com/5'],
             nextIndex: 5,
             nextUniqueKey: 'https://example.com/6',
         });
@@ -330,10 +321,7 @@ describe('RequestList', () => {
         await requestList.markRequestHandled(request5);
 
         expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/3',
-                'https://example.com/4',
-            ],
+            inProgress: ['https://example.com/3', 'https://example.com/4'],
             nextIndex: 5,
             nextUniqueKey: 'https://example.com/6',
         });
@@ -353,9 +341,7 @@ describe('RequestList', () => {
         await requestList.markRequestHandled(request4);
 
         expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/3',
-            ],
+            inProgress: ['https://example.com/3'],
             nextIndex: 5,
             nextUniqueKey: 'https://example.com/6',
         });
@@ -387,9 +373,7 @@ describe('RequestList', () => {
         expect(request6.url).toBe('https://example.com/6');
         expect(await requestList.fetchNextRequest()).toBe(null);
         expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/6',
-            ],
+            inProgress: ['https://example.com/6'],
             nextIndex: 6,
             nextUniqueKey: null,
         });
@@ -404,9 +388,7 @@ describe('RequestList', () => {
         await requestList.reclaimRequest(request6);
 
         expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/6',
-            ],
+            inProgress: ['https://example.com/6'],
             nextIndex: 6,
             nextUniqueKey: null,
         });
@@ -422,9 +404,7 @@ describe('RequestList', () => {
 
         expect(reclaimed6.url).toBe('https://example.com/6');
         expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/6',
-            ],
+            inProgress: ['https://example.com/6'],
             nextIndex: 6,
             nextUniqueKey: null,
         });
@@ -527,11 +507,7 @@ describe('RequestList', () => {
         expect(requestList.areRequestsPersisted).toBe(true);
 
         const opts2 = {
-            sources: [
-                { url: 'https://test.com/1' },
-                { url: 'https://test.com/2' },
-                { url: 'https://test.com/3' },
-            ],
+            sources: [{ url: 'https://test.com/1' }, { url: 'https://test.com/2' }, { url: 'https://test.com/3' }],
             persistRequestsKey: PERSIST_REQUESTS_KEY,
         };
 
@@ -590,11 +566,7 @@ describe('RequestList', () => {
         const state = {
             nextIndex: 2,
             nextUniqueKey: 'https://www.anychart.com',
-            inProgress: [
-                'https://www.ams360.com',
-                'https://www.anybus.com',
-                'https://www.anychart.com',
-            ],
+            inProgress: ['https://www.ams360.com', 'https://www.anybus.com', 'https://www.anychart.com'],
         };
 
         const requestList = await RequestList.open({
@@ -797,12 +769,7 @@ describe('RequestList', () => {
         });
 
         test('should throw on invalid parameters', async () => {
-            const args = [
-                [],
-                ['x', {}],
-                ['x', 6, {}],
-                ['x', [], []],
-            ] as const;
+            const args = [[], ['x', {}], ['x', 6, {}], ['x', [], []]] as const;
             for (const arg of args) {
                 try {
                     // @ts-ignore
@@ -814,9 +781,10 @@ describe('RequestList', () => {
                     if (e.message.match('argument to be of type `string`')) {
                         expect(e.message).toMatch('received type `undefined`');
                     } else if (e.message.match('argument to be of type `array`')) {
-                        const isMatched = e.message.match('received type `Object`')
-                            || e.message.match('received type `number`')
-                            || e.message.match('received type `undefined`');
+                        const isMatched =
+                            e.message.match('received type `Object`') ||
+                            e.message.match('received type `number`') ||
+                            e.message.match('received type `undefined`');
                         expect(isMatched).toBeTruthy();
                     } else if (e.message.match('argument to be of type `null`')) {
                         expect(e.message).toMatch('received type `undefined`');

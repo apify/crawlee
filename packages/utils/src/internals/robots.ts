@@ -71,7 +71,17 @@ export class RobotsFile {
             return new RobotsFile(robotsParser(url.toString(), response.body), proxyUrl);
         } catch (e) {
             if (e instanceof HTTPError && e.response.statusCode === 404) {
-                return new RobotsFile({ isAllowed() { return true; }, getSitemaps() { return []; } }, proxyUrl);
+                return new RobotsFile(
+                    {
+                        isAllowed() {
+                            return true;
+                        },
+                        getSitemaps() {
+                            return [];
+                        },
+                    },
+                    proxyUrl,
+                );
             }
             throw e;
         }

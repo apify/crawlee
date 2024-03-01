@@ -13,7 +13,12 @@ describe('SystemStatus', () => {
     });
 
     class MockSnapshotter {
-        constructor(readonly memSnapshots: any[], readonly loopSnapshots: any[], readonly cpuSnapshots: any[], readonly clientSnapshots: any[]) {}
+        constructor(
+            readonly memSnapshots: any[],
+            readonly loopSnapshots: any[],
+            readonly cpuSnapshots: any[],
+            readonly clientSnapshots: any[],
+        ) {}
 
         getMemorySample(offset: number) {
             return this.memSnapshots.slice(-offset);

@@ -67,10 +67,27 @@ export interface SnapshotterOptions {
     config?: Configuration;
 }
 
-interface MemorySnapshot { createdAt: Date; isOverloaded: boolean; usedBytes?: number }
-interface CpuSnapshot { createdAt: Date; isOverloaded: boolean; usedRatio: number; ticks?: { idle: number; total: number } }
-interface EventLoopSnapshot { createdAt: Date; isOverloaded: boolean; exceededMillis: number }
-interface ClientSnapshot { createdAt: Date; isOverloaded: boolean; rateLimitErrorCount: number }
+interface MemorySnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    usedBytes?: number;
+}
+interface CpuSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    usedRatio: number;
+    ticks?: { idle: number; total: number };
+}
+interface EventLoopSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    exceededMillis: number;
+}
+interface ClientSnapshot {
+    createdAt: Date;
+    isOverloaded: boolean;
+    rateLimitErrorCount: number;
+}
 
 /**
  * Creates snapshots of system resources at given intervals and marks the resource
@@ -124,17 +141,20 @@ export class Snapshotter {
      * @param [options] All `Snapshotter` configuration options.
      */
     constructor(options: SnapshotterOptions = {}) {
-        ow(options, ow.object.exactShape({
-            eventLoopSnapshotIntervalSecs: ow.optional.number,
-            clientSnapshotIntervalSecs: ow.optional.number,
-            snapshotHistorySecs: ow.optional.number,
-            maxBlockedMillis: ow.optional.number,
-            maxUsedMemoryRatio: ow.optional.number,
-            maxClientErrors: ow.optional.number,
-            log: ow.optional.object,
-            client: ow.optional.object,
-            config: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                eventLoopSnapshotIntervalSecs: ow.optional.number,
+                clientSnapshotIntervalSecs: ow.optional.number,
+                snapshotHistorySecs: ow.optional.number,
+                maxBlockedMillis: ow.optional.number,
+                maxUsedMemoryRatio: ow.optional.number,
+                maxClientErrors: ow.optional.number,
+                log: ow.optional.object,
+                client: ow.optional.object,
+                config: ow.optional.object,
+            }),
+        );
 
         const {
             eventLoopSnapshotIntervalSecs = 0.5,
@@ -176,12 +196,17 @@ export class Snapshotter {
         } else {
             const { totalBytes } = await this._getMemoryInfo();
             this.maxMemoryBytes = Math.ceil(totalBytes * this.config.get('availableMemoryRatio')!);
-            this.log.debug(`Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. `
-                + 'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.');
+            this.log.debug(
+                `Setting max memory of this run to ${Math.round(this.maxMemoryBytes / 1024 / 1024)} MB. ` +
+                    'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
+            );
         }
 
         // Start snapshotting.
-        this.eventLoopInterval = betterSetInterval(this._snapshotEventLoop.bind(this), this.eventLoopSnapshotIntervalMillis);
+        this.eventLoopInterval = betterSetInterval(
+            this._snapshotEventLoop.bind(this),
+            this.eventLoopSnapshotIntervalMillis,
+        );
         this.clientInterval = betterSetInterval(this._snapshotClient.bind(this), this.clientSnapshotIntervalMillis);
         this.events.on(EventType.SYSTEM_INFO, this._snapshotCpu);
         this.events.on(EventType.SYSTEM_INFO, this._snapshotMemory);
@@ -278,7 +303,11 @@ export class Snapshotter {
     protected _memoryOverloadWarning(systemInfo: SystemInfo) {
         const { memCurrentBytes } = systemInfo;
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
-        if (this.lastLoggedCriticalMemoryOverloadAt && +createdAt < +this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS) return;
+        if (
+            this.lastLoggedCriticalMemoryOverloadAt &&
+            +createdAt < +this.lastLoggedCriticalMemoryOverloadAt + CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS
+        )
+            return;
 
         const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * this.maxMemoryBytes!;
         const reserveMemory = this.maxMemoryBytes! * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
@@ -287,9 +316,13 @@ export class Snapshotter {
 
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes! / this.maxMemoryBytes!) * 100);
-            const toMb = (bytes: number) => Math.round(bytes / (1024 ** 2));
-            this.log.warning('Memory is critically overloaded. '
-                + `Using ${toMb(memCurrentBytes!)} MB of ${toMb(this.maxMemoryBytes!)} MB (${usedPercentage}%). Consider increasing available memory.`);
+            const toMb = (bytes: number) => Math.round(bytes / 1024 ** 2);
+            this.log.warning(
+                'Memory is critically overloaded. ' +
+                    `Using ${toMb(memCurrentBytes!)} MB of ${toMb(
+                        this.maxMemoryBytes!,
+                    )} MB (${usedPercentage}%). Consider increasing available memory.`,
+            );
             this.lastLoggedCriticalMemoryOverloadAt = createdAt;
         }
     }
@@ -371,7 +404,10 @@ export class Snapshotter {
      * Removes snapshots that are older than the snapshotHistorySecs option
      * from the array (destructively - in place).
      */
-    protected _pruneSnapshots(snapshots: MemorySnapshot[] | CpuSnapshot[] | EventLoopSnapshot[] | ClientSnapshot[], now: Date) {
+    protected _pruneSnapshots(
+        snapshots: MemorySnapshot[] | CpuSnapshot[] | EventLoopSnapshot[] | ClientSnapshot[],
+        now: Date,
+    ) {
         let oldCount = 0;
         for (let i = 0; i < snapshots.length; i++) {
             const { createdAt } = snapshots[i];

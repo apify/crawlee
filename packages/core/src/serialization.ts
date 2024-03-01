@@ -18,7 +18,10 @@ class ArrayToJson<T> extends Readable {
     private offset = 0;
     private readonly batchSize: number;
 
-    constructor(private data: T[], options: { batchSize?: number } = {}) {
+    constructor(
+        private data: T[],
+        options: { batchSize?: number } = {},
+    ) {
         super({
             ...options,
             autoDestroy: true,
@@ -62,11 +65,7 @@ class ArrayToJson<T> extends Readable {
 export async function serializeArray<T>(data: T[]): Promise<Buffer> {
     ow(data, ow.array);
     const { chunks, collector } = createChunkCollector();
-    await pipeline(
-        new ArrayToJson(data),
-        zlib.createGzip(),
-        collector,
-    );
+    await pipeline(new ArrayToJson(data), zlib.createGzip(), collector);
 
     return Buffer.concat(chunks as Buffer[]);
 }
@@ -83,12 +82,7 @@ export async function serializeArray<T>(data: T[]): Promise<Buffer> {
 export async function deserializeArray<T extends string | Buffer>(compressedData: Buffer): Promise<T[]> {
     ow(compressedData, ow.buffer);
     const { chunks, collector } = createChunkCollector<T>({ fromValuesStream: true });
-    await pipeline(
-        Readable.from([compressedData]),
-        zlib.createGunzip(),
-        StreamArray.withParser(),
-        collector,
-    );
+    await pipeline(Readable.from([compressedData]), zlib.createGunzip(), StreamArray.withParser(), collector);
 
     return chunks as T[];
 }
@@ -118,7 +112,9 @@ export function createDeserialize(compressedData: Buffer): Readable {
     return destination;
 }
 
-function createChunkCollector<T extends string | Buffer>(options: { fromValuesStream?: boolean } = {}): { chunks: T[]; collector: Writable } {
+function createChunkCollector<T extends string | Buffer>(
+    options: { fromValuesStream?: boolean } = {},
+): { chunks: T[]; collector: Writable } {
     const { fromValuesStream = false } = options;
     const chunks: T[] = [];
     const collector = new Writable({

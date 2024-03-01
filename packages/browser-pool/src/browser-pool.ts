@@ -11,7 +11,11 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import type { BrowserController } from './abstract-classes/browser-controller';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin';
 import { BROWSER_POOL_EVENTS } from './events';
-import { createFingerprintPreLaunchHook, createPrePageCreateHook, createPostPageCreateHook } from './fingerprinting/hooks';
+import {
+    createFingerprintPreLaunchHook,
+    createPrePageCreateHook,
+    createPostPageCreateHook,
+} from './fingerprinting/hooks';
 import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 import type { LaunchContext } from './launch-context';
 import { log } from './logger';
@@ -44,11 +48,11 @@ export interface FingerprintOptions {
      */
     useFingerprintCache?: boolean;
     /**
-    * The maximum number of fingerprints that can be stored in the cache.
-    *
-    * Only relevant if `useFingerprintCache` is set to `true`.
-    * @default 10000
-    */
+     * The maximum number of fingerprints that can be stored in the cache.
+     *
+     * Only relevant if `useFingerprintCache` is set to `true`.
+     * @default 10000
+     */
     fingerprintCacheSize?: number;
 }
 
@@ -117,7 +121,10 @@ export type PreLaunchHook<LC extends LaunchContext> = (pageId: string, launchCon
  * hooks complete. If you attempt to call `await browserController.close()` from
  * a post-launch hook, it will deadlock the process. This API is subject to change.
  */
-export type PostLaunchHook<BC extends BrowserController> = (pageId: string, browserController: BC) => void | Promise<void>;
+export type PostLaunchHook<BC extends BrowserController> = (
+    pageId: string,
+    browserController: BC,
+) => void | Promise<void>;
 
 /**
  * Pre-page-create hooks are executed just before a new page is created. They
@@ -128,10 +135,11 @@ export type PostLaunchHook<BC extends BrowserController> = (pageId: string, brow
  * So far, new page options are only supported by `PlaywrightController` in incognito contexts.
  * If the page options are not supported by `BrowserController` the `pageOptions` argument is `undefined`.
  */
-export type PrePageCreateHook<
-    BC extends BrowserController,
-    PO = Parameters<BC['newPage']>[0],
-> = (pageId: string, browserController: BC, pageOptions?: PO) => void | Promise<void>;
+export type PrePageCreateHook<BC extends BrowserController, PO = Parameters<BC['newPage']>[0]> = (
+    pageId: string,
+    browserController: BC,
+    pageOptions?: PO,
+) => void | Promise<void>;
 
 /**
  * Post-page-create hooks are called right after a new page is created
@@ -141,10 +149,10 @@ export type PrePageCreateHook<
  * The hooks are called with two arguments:
  * `page`: `Page` and `browserController`: {@apilink BrowserController}
  */
-export type PostPageCreateHook<
-    BC extends BrowserController,
-    Page = UnwrapPromise<ReturnType<BC['newPage']>>,
-> = (page: Page, browserController: BC) => void | Promise<void>;
+export type PostPageCreateHook<BC extends BrowserController, Page = UnwrapPromise<ReturnType<BC['newPage']>>> = (
+    page: Page,
+    browserController: BC,
+) => void | Promise<void>;
 
 /**
  * Pre-page-close hooks give you the opportunity to make last second changes
@@ -153,17 +161,20 @@ export type PostPageCreateHook<
  * The hooks are called with two arguments:
  * `page`: `Page` and `browserController`: {@apilink BrowserController}
  */
-export type PrePageCloseHook<
-    BC extends BrowserController,
-    Page = UnwrapPromise<ReturnType<BC['newPage']>>,
-> = (page: Page, browserController: BC) => void | Promise<void>;
+export type PrePageCloseHook<BC extends BrowserController, Page = UnwrapPromise<ReturnType<BC['newPage']>>> = (
+    page: Page,
+    browserController: BC,
+) => void | Promise<void>;
 
 /**
  * Post-page-close hooks allow you to do page related clean up.
  * The hooks are called with two arguments:
  * `pageId`: `string` and `browserController`: {@apilink BrowserController}
  */
-export type PostPageCloseHook<BC extends BrowserController> = (pageId: string, browserController: BC) => void | Promise<void>;
+export type PostPageCloseHook<BC extends BrowserController> = (
+    pageId: string,
+    browserController: BC,
+) => void | Promise<void>;
 
 export interface BrowserPoolHooks<
     BC extends BrowserController,
@@ -275,7 +286,9 @@ export class BrowserPool<
     BrowserControllerReturn extends BrowserController = ReturnType<BrowserPlugins[number]['createController']>,
     LaunchContextReturn extends LaunchContext = ReturnType<BrowserPlugins[number]['createLaunchContext']>,
     PageOptions = Parameters<BrowserControllerReturn['newPage']>[0],
-    PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>>,
+    PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<
+        ReturnType<BrowserControllerReturn['newPage']>
+    >,
 > extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> {
     browserPlugins: BrowserPlugins;
     maxOpenPagesPerBrowser: number;
@@ -312,21 +325,24 @@ export class BrowserPool<
 
         this.browserKillerInterval!.unref();
 
-        ow(options, ow.object.exactShape({
-            browserPlugins: ow.array.minLength(1),
-            maxOpenPagesPerBrowser: ow.optional.number,
-            retireBrowserAfterPageCount: ow.optional.number,
-            operationTimeoutSecs: ow.optional.number,
-            closeInactiveBrowserAfterSecs: ow.optional.number,
-            preLaunchHooks: ow.optional.array,
-            postLaunchHooks: ow.optional.array,
-            prePageCreateHooks: ow.optional.array,
-            postPageCreateHooks: ow.optional.array,
-            prePageCloseHooks: ow.optional.array,
-            postPageCloseHooks: ow.optional.array,
-            useFingerprints: ow.optional.boolean,
-            fingerprintOptions: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                browserPlugins: ow.array.minLength(1),
+                maxOpenPagesPerBrowser: ow.optional.number,
+                retireBrowserAfterPageCount: ow.optional.number,
+                operationTimeoutSecs: ow.optional.number,
+                closeInactiveBrowserAfterSecs: ow.optional.number,
+                preLaunchHooks: ow.optional.array,
+                postLaunchHooks: ow.optional.array,
+                prePageCreateHooks: ow.optional.array,
+                postPageCreateHooks: ow.optional.array,
+                prePageCloseHooks: ow.optional.array,
+                postPageCloseHooks: ow.optional.array,
+                useFingerprints: ow.optional.boolean,
+                fingerprintOptions: ow.optional.object,
+            }),
+        );
 
         const {
             browserPlugins,
@@ -354,7 +370,9 @@ export class BrowserPool<
                 const providedPluginName = (providedPlugin as BrowserPlugin).constructor.name;
 
                 // eslint-disable-next-line max-len
-                throw new Error(`Browser plugin at index ${i} (${providedPluginName}) is not an instance of the same plugin as the first plugin provided (${firstPluginName}).`);
+                throw new Error(
+                    `Browser plugin at index ${i} (${providedPluginName}) is not an instance of the same plugin as the first plugin provided (${firstPluginName}).`,
+                );
             }
         }
 
@@ -386,12 +404,7 @@ export class BrowserPool<
      * or their page limits have been exceeded.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
-        const {
-            id = nanoid(),
-            pageOptions,
-            browserPlugin = this._pickBrowserPlugin(),
-            proxyUrl,
-        } = options;
+        const { id = nanoid(), pageOptions, browserPlugin = this._pickBrowserPlugin(), proxyUrl } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
@@ -416,13 +429,10 @@ export class BrowserPool<
      * browser to open the page in. Use the `launchOptions` option to
      * configure the new browser.
      */
-    async newPageInNewBrowser(options: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
-        const {
-            id = nanoid(),
-            pageOptions,
-            launchOptions,
-            browserPlugin = this._pickBrowserPlugin(),
-        } = options;
+    async newPageInNewBrowser(
+        options: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]> = {},
+    ): Promise<PageReturn> {
+        const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this._pickBrowserPlugin() } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
@@ -515,9 +525,10 @@ export class BrowserPool<
         await browserController['isActivePromise'];
         tryCancel();
 
-        const finalPageOptions = (browserController.launchContext.useIncognitoPages || browserController.launchContext.experimentalContainers)
-            ? pageOptions
-            : undefined;
+        const finalPageOptions =
+            browserController.launchContext.useIncognitoPages || browserController.launchContext.experimentalContainers
+                ? pageOptions
+                : undefined;
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
@@ -529,11 +540,11 @@ export class BrowserPool<
         let page: PageReturn;
 
         try {
-            page = await addTimeoutToPromise(
+            page = (await addTimeoutToPromise(
                 async () => browserController.newPage(finalPageOptions),
                 this.operationTimeoutMillis,
                 'browserController.newPage() timed out.',
-            ) as PageReturn;
+            )) as PageReturn;
             tryCancel();
 
             this.pages.set(pageId, page);
@@ -548,7 +559,9 @@ export class BrowserPool<
             this._overridePageClose(page);
         } catch (err) {
             this.retireBrowserController(browserController);
-            throw new Error(`browserController.newPage() failed: ${browserController.id}\nCause:${(err as Error).message}.`);
+            throw new Error(
+                `browserController.newPage() failed: ${browserController.id}\nCause:${(err as Error).message}.`,
+            );
         }
 
         await this._executeHooks(this.postPageCreateHooks, page, browserController);
@@ -629,10 +642,7 @@ export class BrowserPool<
     }
 
     private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const {
-            browserPlugin,
-            launchOptions,
-        } = options;
+        const { browserPlugin, launchOptions } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.activeBrowserControllers.add(browserController);
@@ -664,10 +674,9 @@ export class BrowserPool<
         } catch (err) {
             this.activeBrowserControllers.delete(browserController);
             browserController.close().catch((closeErr) => {
-                log.error(
-                    `Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`,
-                    { id: browserController.id },
-                );
+                log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
+                    id: browserController.id,
+                });
             });
             throw err;
         }
@@ -734,10 +743,9 @@ export class BrowserPool<
         page.close = async (...args: unknown[]) => {
             await this._executeHooks(this.prePageCloseHooks, page, browserController);
 
-            await originalPageClose.apply(page, args)
-                .catch((err: Error) => {
-                    log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
-                });
+            await originalPageClose.apply(page, args).catch((err: Error) => {
+                log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+            });
 
             await this._executeHooks(this.postPageCloseHooks, pageId, browserController);
 
@@ -786,14 +794,8 @@ export class BrowserPool<
             // It is usual to generate proxy per browser and we want to know the proxyUrl for the caching.
             createFingerprintPreLaunchHook(this),
         ];
-        this.prePageCreateHooks = [
-            createPrePageCreateHook(),
-            ...this.prePageCreateHooks,
-        ];
-        this.postPageCreateHooks = [
-            createPostPageCreateHook(this.fingerprintInjector!),
-            ...this.postPageCreateHooks,
-        ];
+        this.prePageCreateHooks = [createPrePageCreateHook(), ...this.prePageCreateHooks];
+        this.postPageCreateHooks = [createPostPageCreateHook(this.fingerprintInjector!), ...this.postPageCreateHooks];
     }
 }
 
