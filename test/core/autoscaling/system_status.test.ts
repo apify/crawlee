@@ -168,17 +168,17 @@ describe('SystemStatus', () => {
         });
 
         // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistorySecs = 5;
+        systemStatus.currentHistoryMillis = 5_000;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
 
         // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistorySecs = 10;
+        systemStatus.currentHistoryMillis = 10_000;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
 
         // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistorySecs = 12;
+        systemStatus.currentHistoryMillis = 12_000;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
 
@@ -192,17 +192,17 @@ describe('SystemStatus', () => {
         });
 
         // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistorySecs = 5;
+        systemStatus.currentHistoryMillis = 5_000;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
         // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistorySecs = 10;
+        systemStatus.currentHistoryMillis = 10_000;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
         // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistorySecs = 12;
+        systemStatus.currentHistoryMillis = 12_000;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
     });
