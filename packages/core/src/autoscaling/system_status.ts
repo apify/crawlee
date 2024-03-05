@@ -118,7 +118,7 @@ export interface FinalStatistics {
  * @category Scaling
  */
 export class SystemStatus {
-    private readonly currentHistorySecs: number;
+    private readonly currentHistoryMillis: number;
     private readonly maxMemoryOverloadedRatio: number;
     private readonly maxEventLoopOverloadedRatio: number;
     private readonly maxCpuOverloadedRatio: number;
@@ -146,7 +146,7 @@ export class SystemStatus {
             config,
         } = options;
 
-        this.currentHistorySecs = currentHistorySecs * 1000;
+        this.currentHistoryMillis = currentHistorySecs * 1000;
         this.maxMemoryOverloadedRatio = maxMemoryOverloadedRatio;
         this.maxEventLoopOverloadedRatio = maxEventLoopOverloadedRatio;
         this.maxCpuOverloadedRatio = maxCpuOverloadedRatio;
@@ -171,7 +171,7 @@ export class SystemStatus {
      * and `true` otherwise.
      */
     getCurrentStatus(): SystemInfo {
-        return this._isSystemIdle(this.currentHistorySecs);
+        return this._isSystemIdle(this.currentHistoryMillis);
     }
 
     /**
