@@ -51,6 +51,8 @@ class RequestQueue extends RequestProvider {
 
         super._cacheRequest(cacheKey, queueOperationInfo);
 
+        this.requestCache.remove(queueOperationInfo.requestId);
+
         this.requestCache.add(queueOperationInfo.requestId, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
@@ -149,6 +151,11 @@ class RequestQueue extends RequestProvider {
         if (res) {
             const [request, options] = args;
 
+            // Mark the request as no longer in progress,
+            // as the moment we delete the lock, we could end up also re-fetching the request in a subsequent ensureHeadIsNonEmpty()
+            // which could potentially lock the request again
+            this.inProgress.delete(request.id!);
+
             // Try to delete the request lock if possible
             try {
                 await this.client.deleteRequestLock(request.id!, { forefront: options?.forefront ?? false });
@@ -188,6 +195,21 @@ class RequestQueue extends RequestProvider {
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
             if (!id || !uniqueKey || this.inProgress.has(id) || this.recentlyHandledRequestsCache.get(id)) {
+                this.log.debug(`Skipping request from queue head, already in progress or recently handled`, {
+                    id,
+                    uniqueKey,
+                    inProgress: this.inProgress.has(id),
+                    recentlyHandled: !!this.recentlyHandledRequestsCache.get(id),
+                });
+
+                // Remove the lock from the request for now, so that it can be picked up later
+                // This may/may not succeed, but that's fine
+                try {
+                    await this.client.deleteRequestLock(id);
+                } catch {
+                    // Ignore
+                }
+
                 continue;
             }
 

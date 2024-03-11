@@ -21,7 +21,7 @@ API. With this API, you will be able to pass a `RequestQueue` to multiple crawle
 
 :::info Keep in mind
 
-The request queue that supports request locking is currently exported via the `RequestQueue2` class. Once the experiment is over, this class will replace
+The request queue that supports request locking is currently exported via the `RequestQueueV2` class. Once the experiment is over, this class will replace
 the current `RequestQueue` class
 
 :::
@@ -58,13 +58,13 @@ await crawler.run(['https://crawlee.dev']);
 
 ### Outside crawlers (to setup your own request queue that supports locking)
 
-Previously, you would import `RequestQueue` from `crawlee`. To switch to the queue that supports locking, you need to import `RequestQueue2` instead.
+Previously, you would import `RequestQueue` from `crawlee`. To switch to the queue that supports locking, you need to import `RequestQueueV2` instead.
 
 ```ts
 // highlight-next-line
-import { RequestQueue2 } from 'crawlee';
+import { RequestQueueV2 } from 'crawlee';
 
-const queue = await RequestQueue2.open('my-locking-queue');
+const queue = await RequestQueueV2.open('my-locking-queue');
 await queue.addRequests([
     { url: 'https://crawlee.dev' },
     { url: 'https://crawlee.dev/docs' },
@@ -83,10 +83,10 @@ If you do not enable the experiment, you will receive a runtime error and the cr
 :::
 
 ```ts
-import { CheerioCrawler, RequestQueue2 } from 'crawlee';
+import { CheerioCrawler, RequestQueueV2 } from 'crawlee';
 
 // highlight-next-line
-const queue = await RequestQueue2.open('my-locking-queue');
+const queue = await RequestQueueV2.open('my-locking-queue');
 
 const crawler = new CheerioCrawler({
     // highlight-next-line
