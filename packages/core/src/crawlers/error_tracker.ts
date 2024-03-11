@@ -305,9 +305,7 @@ export class ErrorTracker {
         this.total = 0;
     }
 
-    add(error: ErrnoException) {
-        this.total++;
-
+    private updateGroup(error: ErrnoException) {
         let group = this.result;
 
         if (this.#options.showStackTrace) {
@@ -327,6 +325,14 @@ export class ErrorTracker {
         }
 
         increaseCount(group as { count: number });
+
+        return group;
+    }
+
+    add(error: ErrnoException) {
+        this.total++;
+
+        this.updateGroup(error);
 
         if (typeof error.cause === 'object' && error.cause !== null) {
             this.add(error.cause);
@@ -340,25 +346,7 @@ export class ErrorTracker {
     async addAsync(error: ErrnoException, context?: CrawlingContext) {
         this.total++;
 
-        let group = this.result;
-
-        if (this.#options.showStackTrace) {
-            group = getStackTraceGroup(error, group, this.#options.showFullStack);
-        }
-
-        if (this.#options.showErrorCode) {
-            group = getErrorCodeGroup(error, group);
-        }
-
-        if (this.#options.showErrorName) {
-            group = getErrorNameGroup(error, group);
-        }
-
-        if (this.#options.showErrorMessage) {
-            group = getErrorMessageGroup(error, group, this.#options.showFullMessage);
-        }
-
-        increaseCount(group as { count: number });
+        const group = this.updateGroup(error);
 
         // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
         if (group.count === 1 && context) {
