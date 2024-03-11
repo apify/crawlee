@@ -331,7 +331,27 @@ export class RequestQueue extends RequestProvider {
         checkStorageAccess();
 
         this.lastActivity = new Date();
-        return super.reclaimRequest(...args);
+
+        const [request, options] = args;
+        const forefront = options?.forefront ?? false;
+
+        const result = await super.reclaimRequest(...args);
+
+        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
+        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
+        setTimeout(() => {
+            if (!this.inProgress.has(request.id!)) {
+                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                return;
+            }
+
+            this.inProgress.delete(request.id!);
+
+            // Performance optimization: add request straight to head if possible
+            this._maybeAddRequestToQueueHead(request.id!, forefront);
+        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+
+        return result;
     }
 
     protected override _reset() {

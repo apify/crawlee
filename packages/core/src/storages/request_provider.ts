@@ -16,7 +16,7 @@ import ow from 'ow';
 import { checkStorageAccess } from './access_checking';
 import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
-import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
+import { QUERY_HEAD_MIN_LENGTH, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import { log } from '../log';
@@ -444,20 +444,6 @@ export abstract class RequestProvider implements IStorage {
         queueOperationInfo.uniqueKey = request.uniqueKey;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
-        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
-        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
-        setTimeout(() => {
-            if (!this.inProgress.has(request.id)) {
-                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
-                return;
-            }
-
-            this.inProgress.delete(request.id);
-
-            // Performance optimization: add request straight to head if possible
-            this._maybeAddRequestToQueueHead(request.id, forefront);
-        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
-
         return queueOperationInfo;
     }
 
@@ -500,6 +486,9 @@ export abstract class RequestProvider implements IStorage {
      * Caches information about request to beware of unneeded addRequest() calls.
      */
     protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+        // Remove the previous entry, as otherwise our cache will never update 👀
+        this.requestCache.remove(cacheKey);
+
         this.requestCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
