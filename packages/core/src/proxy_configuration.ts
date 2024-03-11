@@ -97,6 +97,11 @@ export interface ProxyInfo {
     port: number | string;
 }
 
+interface TieredProxyOptions {
+    request?: Request;
+    proxyTier?: number;
+}
+
 /**
  * Configures connection to a proxy server with the provided options. Proxy servers are used to prevent target websites from blocking
  * your crawlers based on IP address rate limits or blacklists. Setting proxy configuration in your crawlers automatically configures
@@ -190,10 +195,10 @@ export class ProxyConfiguration {
      *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(sessionId?: string | number, request?: Request): Promise<ProxyInfo> {
+    async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
-        const url = await this.newUrl(sessionId, request);
+        const url = await this.newUrl(sessionId, options);
 
         const { username, password, port, hostname } = new URL(url);
 
@@ -207,15 +212,32 @@ export class ProxyConfiguration {
         };
     }
 
-    _handleTieredUrl(_sessionId: string, request?: Request): string {
+    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): string {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 
-        if (!request) {
+        if (!options || (!options?.request && options?.proxyTier === undefined)) {
             const allProxyUrls = this.tieredProxyUrls.flat();
             return allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length];
         }
 
-        const domain = new URL(request?.url).hostname;
+        let tierPrediction = options.proxyTier!;
+
+        if (tierPrediction === null) {
+            tierPrediction = this.getProxyTier(options.request!)!;
+        }
+
+        return this.tieredProxyUrls![tierPrediction][this.nextCustomUrlIndex++ % this.tieredProxyUrls![tierPrediction].length];
+    }
+
+    /**
+     * Given a `Request` object, this function returns the tier of the proxy that should be used for the request.
+     *
+     * This returns `null` if `tieredProxyUrls` option is not set.
+     */
+    getProxyTier(request: Request): number | null {
+        if (!this.tieredProxyUrls) return null;
+
+        const domain = new URL(request.url).hostname;
         const { retryCount } = request;
 
         if (!this.domainTiers.has(domain)) {
@@ -238,7 +260,7 @@ export class ProxyConfiguration {
 
         this.domainTiers.set(domain, [...history, tierPrediction].slice(-4, 4));
 
-        return this.tieredProxyUrls![tierPrediction][this.nextCustomUrlIndex++ % this.tieredProxyUrls![tierPrediction].length];
+        return tierPrediction;
     }
 
     /**
@@ -254,7 +276,7 @@ export class ProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(sessionId?: string | number, request?: Request): Promise<string> {
+    async newUrl(sessionId?: string | number, options?: TieredProxyOptions): Promise<string> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
@@ -262,7 +284,7 @@ export class ProxyConfiguration {
         }
 
         if (this.tieredProxyUrls) {
-            return this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), request);
+            return this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), options);
         }
 
         return this._handleCustomUrl(sessionId);

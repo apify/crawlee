@@ -55,6 +55,12 @@ export abstract class BrowserController<
      */
     launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> = undefined!;
 
+    /**
+     * The proxy tier tied to this browser controller.
+     * `undefined` if no tiered proxy is used.
+     */
+    proxyTier : number | undefined = undefined;
+
     isActive = false;
 
     activePages = 0;
