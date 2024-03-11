@@ -1,4 +1,5 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { Request } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -16,7 +17,6 @@ import type { FingerprintGeneratorOptions } from './fingerprinting/types';
 import type { LaunchContext } from './launch-context';
 import { log } from './logger';
 import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
-import { Request } from '@crawlee/core';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
