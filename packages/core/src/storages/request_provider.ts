@@ -16,7 +16,7 @@ import ow from 'ow';
 import { checkStorageAccess } from './access_checking';
 import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
-import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
+import { QUERY_HEAD_MIN_LENGTH, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import { log } from '../log';
