@@ -815,7 +815,6 @@ export function registerUtilsToContext(
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
         saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    // eslint-disable-next-line max-len
     context.enqueueLinksByClickingElements = async (
         options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
     ) =>

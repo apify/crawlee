@@ -5,19 +5,21 @@ import { setTimeout } from 'node:timers/promises';
  * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
  */
+// eslint-disable-next-line
 export const URL_NO_COMMAS_REGEX = RegExp(
     'https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+.~#?&//=\\(\\)]*)?',
     'giu',
-); // eslint-disable-line
+);
 
 /**
  * Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  */
+// eslint-disable-next-line
 export const URL_WITH_COMMAS_REGEX = RegExp(
     'https?://(www\\.)?[\\p{L}0-9][-\\p{L}0-9@:%._\\+~#=]{0,254}[\\p{L}0-9]\\.[a-z]{2,63}(:\\d{1,5})?(/[-\\p{L}0-9@:%_\\+,.~#?&//=\\(\\)]*)?',
     'giu',
-); // eslint-disable-line
+);
 
 let isDockerPromiseCache: Promise<boolean> | undefined;
 

@@ -17,8 +17,7 @@ export type InferBrowserPluginArray<
     Input extends readonly unknown[],
     // The results of this type
     Result extends BrowserPlugin[] = [],
-> = // If the input is a tuple or a readonly array (`[] as const`), get the first and the rest of the values
-Input extends readonly [infer FirstValue, ...infer Rest] | [infer FirstValue, ...infer Rest]
+> = Input extends readonly [infer FirstValue, ...infer Rest] | [infer FirstValue, ...infer Rest] // If the input is a tuple or a readonly array (`[] as const`), get the first and the rest of the values
     ? // If the first value is a PlaywrightPlugin
       FirstValue extends PlaywrightPlugin
         ? // Add it to the result, and continue parsing

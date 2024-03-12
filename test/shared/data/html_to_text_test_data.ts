@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 // The whitespace in the text is important. Don't change it.
 // We're keeping this text as a JS string, because git and other
 // tools do magic with line endings and it can break tests.

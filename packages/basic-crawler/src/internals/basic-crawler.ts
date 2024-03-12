@@ -677,7 +677,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         if (this.retryOnBlocked) {
             this.sessionPoolOptions.blockedStatusCodes = sessionPoolOptions.blockedStatusCodes ?? [];
             if (this.sessionPoolOptions.blockedStatusCodes.length !== 0) {
-                // eslint-disable-next-line max-len
                 log.warning(
                     `Both 'blockedStatusCodes' and 'retryOnBlocked' are set. Please note that the 'retryOnBlocked' feature might not work as expected.`,
                 );
@@ -818,7 +817,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             let message: string;
 
             if (operationMode === 'ERROR') {
-                // eslint-disable-next-line max-len
                 message = `Experiencing problems, ${
                     this.stats.state.requestsFailed - previousState.requestsFailed || this.stats.state.requestsFailed
                 } failed requests in the past ${this.statusMessageLoggingInterval} seconds.`;
@@ -948,7 +946,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         periodicLogger.stop();
-        // eslint-disable-next-line max-len
         await this.setStatusMessage(
             `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
                 this.stats.state.requestsFinished
@@ -963,7 +960,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
     async getRequestQueue() {
         if (!this.requestQueue && this.requestList) {
-            // eslint-disable-next-line max-len
             this.log.warningOnce(
                 'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
             );
@@ -1545,7 +1541,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected _augmentContextWithDeprecatedError(context: Context, error: Error) {
         Object.defineProperty(context, 'error', {
             get: () => {
-                // eslint-disable-next-line max-len
                 this.log.deprecated(
                     "The 'error' property of the crawling context is deprecated, and it is now passed as the second parameter in 'errorHandler' and 'failedRequestHandler'. Please update your code, as this property will be removed in a future version.",
                 );

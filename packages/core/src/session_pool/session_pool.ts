@@ -240,7 +240,6 @@ export class SessionPool extends EventEmitter {
         }
 
         if (!this.persistStateKeyValueStoreId) {
-            // eslint-disable-next-line max-len
             this.log.debug(
                 `No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.keyValueStore.id}`,
             );

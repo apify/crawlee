@@ -283,7 +283,6 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     const jsonPath = require.resolve('puppeteer/package.json');
     const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
 
-    // eslint-disable-next-line max-len
     throw new Error(
         `Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`,
     );
@@ -1024,7 +1023,6 @@ export function registerUtilsToContext(
         await injectJQuery(context.page, { surviveNavigations: false });
     };
     context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
-    // eslint-disable-next-line max-len
     context.enqueueLinksByClickingElements = async (
         options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
     ) =>

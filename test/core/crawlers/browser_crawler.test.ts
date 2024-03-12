@@ -158,7 +158,6 @@ describe('BrowserCrawler', () => {
         let isEvaluated = false;
 
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            // eslint-disable-next-line max-len
             protected override async _navigationHandler(
                 ctx: PuppeteerCrawlingContext,
                 gotoOptions: PuppeteerGoToOptions,
@@ -292,7 +291,6 @@ describe('BrowserCrawler', () => {
         });
         let optionsGoto: PuppeteerGoToOptions;
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            // eslint-disable-next-line max-len
             protected override async _navigationHandler(
                 ctx: PuppeteerCrawlingContext,
                 gotoOptions: PuppeteerGoToOptions,
@@ -941,7 +939,6 @@ describe('BrowserCrawler', () => {
             await crawler.run([serverAddress]);
 
             expect(spy).toBeCalled();
-            // eslint-disable-next-line max-len
             expect(spy.mock.calls[0][0]).toEqual(
                 'When using RequestList and RequestQueue at the same time, you should instantiate both explicitly and provide them in the crawler options, to ensure correctly handled restarts of the crawler.',
             );

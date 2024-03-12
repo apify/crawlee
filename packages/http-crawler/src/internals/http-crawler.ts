@@ -32,7 +32,6 @@ import { RETRY_CSS_SELECTORS, gotScraping } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type {
     OptionsInit,
     Method,
@@ -40,6 +39,7 @@ import type {
     Options,
     PlainResponse,
     TimeoutError as TimeoutErrorClass,
+    // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 } from 'got-scraping';
 import iconv from 'iconv-lite';
 import mime from 'mime-types';
@@ -599,7 +599,6 @@ export class HttpCrawler<
         if (gotOptions.headers?.Cookie && gotOptions.headers?.cookie) {
             const { Cookie: upperCaseHeader, cookie: lowerCaseHeader } = gotOptions.headers;
 
-            // eslint-disable-next-line max-len
             this.log.warning(
                 `Encountered mixed casing for the cookie headers in the got options for request ${request.url} (${request.id}). Their values will be merged`,
             );
