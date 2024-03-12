@@ -88,7 +88,9 @@ describe('Enqueue links shared functions', () => {
             };
 
             const requestOptions = createRequestOptions(sources);
-            const requests = createRequests(requestOptions, urlPatternObjects).map(transformRequestFunction).filter((r) => !!r);
+            const requests = createRequests(requestOptions, urlPatternObjects)
+                .map(transformRequestFunction)
+                .filter((r) => !!r);
 
             expect(requests).toHaveLength(2);
             requests.forEach((r) => {
@@ -106,7 +108,9 @@ describe('Enqueue links shared functions', () => {
             const globPattern = 'https://example.com/**/*';
             expect(() => validateGlobPattern(globPattern)).not.toThrow();
             const emptyGlobPattern = '';
-            expect(() => validateGlobPattern(emptyGlobPattern)).toThrow(/Cannot parse Glob pattern '': it must be an non-empty string/);
+            expect(() => validateGlobPattern(emptyGlobPattern)).toThrow(
+                /Cannot parse Glob pattern '': it must be an non-empty string/,
+            );
         });
     });
 });

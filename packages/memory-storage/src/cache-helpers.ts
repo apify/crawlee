@@ -15,7 +15,9 @@ const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/
 
 export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entryNameOrId: string) {
     // First check memory cache
-    const found = client.datasetClientsHandled.find((store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase());
+    const found = client.datasetClientsHandled.find(
+        (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
+    );
 
     if (found) {
         return found;
@@ -99,7 +101,11 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
 
     for (const entryId of entries.values()) {
         // We create a file system entry instead of possibly making an in-memory one to allow the pre-included data to be used on demand
-        const entry = new DatasetFileSystemEntry({ storeDirectory: datasetDir, entityId: entryId, persistStorage: true });
+        const entry = new DatasetFileSystemEntry({
+            storeDirectory: datasetDir,
+            entityId: entryId,
+            persistStorage: true,
+        });
 
         // eslint-disable-next-line dot-notation
         newClient['datasetEntries'].set(entryId, entry);
@@ -112,7 +118,9 @@ export async function findOrCacheDatasetByPossibleId(client: MemoryStorage, entr
 
 export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage, entryNameOrId: string) {
     // First check memory cache
-    const found = client.keyValueStoresHandled.find((store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase());
+    const found = client.keyValueStoresHandled.find(
+        (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
+    );
 
     if (found) {
         return found;
@@ -239,7 +247,11 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
 
     for (const [key, record] of internalRecords) {
         // We create a file system entry instead of possibly making an in-memory one to allow the pre-included data to be used on demand
-        const entry = new KeyValueFileSystemEntry({ persistStorage: true, storeDirectory: keyValueStoreDir, writeMetadata: hasSeenMetadataForEntry });
+        const entry = new KeyValueFileSystemEntry({
+            persistStorage: true,
+            storeDirectory: keyValueStoreDir,
+            writeMetadata: hasSeenMetadataForEntry,
+        });
 
         // eslint-disable-next-line dot-notation
         entry['rawRecord'] = { ...record };
@@ -259,7 +271,9 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: MemoryStorage
 
 export async function findRequestQueueByPossibleId(client: MemoryStorage, entryNameOrId: string) {
     // First check memory cache
-    const found = client.requestQueuesHandled.find((store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase());
+    const found = client.requestQueuesHandled.find(
+        (store) => store.id === entryNameOrId || store.name?.toLowerCase() === entryNameOrId.toLowerCase(),
+    );
 
     if (found) {
         return found;

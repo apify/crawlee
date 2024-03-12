@@ -24,11 +24,7 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'lcov', 'cobertura'],
-            exclude: [
-                '**/node_modules/**',
-                '**/dist/**',
-                '**/test/**',
-            ],
+            exclude: ['**/node_modules/**', '**/dist/**', '**/test/**'],
         },
         restoreMocks: true,
         ...threads,

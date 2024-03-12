@@ -1,19 +1,16 @@
 {
-    "extends": "../tsconfig.json",
-    "include": [
-        "**/*",
-        "../packages/*/src/**/*"
-    ],
-    "compilerOptions": {
-        "sourceMap": true,
-        "noUnusedLocals": false,
-        "noUnusedParameters": false,
-        "strictNullChecks": false,
-        "types": ["vitest/globals"],
-        "module": "Node16",
-        "moduleResolution": "Bundler",
-        "paths": {
-            "@crawlee/utils/src/*": ["packages/utils/src/*"]
-        }
-    }
+	"extends": "../tsconfig.json",
+	"include": ["**/*", "../packages/*/src/**/*"],
+	"compilerOptions": {
+		"sourceMap": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"strictNullChecks": false,
+		"types": ["vitest/globals"],
+		"module": "Node16",
+		"moduleResolution": "Bundler",
+		"paths": {
+			"@crawlee/utils/src/*": ["packages/utils/src/*"]
+		}
+	}
 }

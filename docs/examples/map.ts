@@ -1,8 +1,8 @@
 import { Dataset, KeyValueStore } from 'crawlee';
 
 const dataset = await Dataset.open<{
-    url: string,
-    headingCount: number,
+    url: string;
+    headingCount: number;
 }>();
 
 // Seeding the dataset with some data

@@ -55,10 +55,9 @@ export async function getMemoryInfo(): Promise<MemoryInfo> {
 
     // lambda does *not* have `ps` and other command line tools
     // required to extract memory usage.
-    const isLambdaEnvironment = process.platform === 'linux'
-        && !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
+    const isLambdaEnvironment = process.platform === 'linux' && !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
 
-    const isDockerVar = !isLambdaEnvironment && await isDocker();
+    const isDockerVar = !isLambdaEnvironment && (await isDocker());
 
     let mainProcessBytes = -1;
     let childProcessesBytes = 0;
@@ -140,9 +139,11 @@ export async function getMemoryInfo(): Promise<MemoryInfo> {
             freeBytes = totalBytes - usedBytes;
         } catch (err) {
             // log.deprecated logs a warning only once
-            log.deprecated('Your environment is Docker, but your system does not support memory cgroups. '
-                + 'If you\'re running containers with limited memory, memory auto-scaling will not work properly.\n\n'
-                + `Cause: ${(err as Error).message}`);
+            log.deprecated(
+                'Your environment is Docker, but your system does not support memory cgroups. ' +
+                    "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
+                    `Cause: ${(err as Error).message}`,
+            );
             totalBytes = totalmem();
             freeBytes = freemem();
             usedBytes = totalBytes - freeBytes;

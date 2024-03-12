@@ -17,7 +17,8 @@ type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
  * @param item The item to assign to the key.
  * @returns Either an empty object or an object with the content provided.
  */
-const optionalSpread = (key: string, item: any) => (item !== undefined && !!Object.values(item)?.length ? { [key]: item } : {});
+const optionalSpread = (key: string, item: any) =>
+    item !== undefined && !!Object.values(item)?.length ? { [key]: item } : {};
 
 const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
     {
@@ -371,15 +372,18 @@ const parseOpenGraphProperty = (property: OpenGraphProperty, $: CheerioAPI): str
         // "Value" is appended to the end of the property name to make it more clear, and to prevent things such
         // as `videoInfo.actor.actor` to grab the actor's name.
         ...optionalSpread(`${property.outputName}Value`, content),
-        ...property.children.reduce((acc, curr) => {
-            const parsed = parseOpenGraphProperty(curr, $);
-            if (parsed === undefined) return acc;
+        ...property.children.reduce(
+            (acc, curr) => {
+                const parsed = parseOpenGraphProperty(curr, $);
+                if (parsed === undefined) return acc;
 
-            return {
-                ...acc,
-                ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
-            };
-        }, {} as Dictionary<string | Dictionary>),
+                return {
+                    ...acc,
+                    ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
+                };
+            },
+            {} as Dictionary<string | Dictionary>,
+        ),
     };
 };
 
@@ -396,10 +400,13 @@ export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphPr
 export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
     const $ = typeof item === 'string' ? load(item) : item;
 
-    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce((acc, curr) => {
-        return {
-            ...acc,
-            ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
-        };
-    }, {} as Dictionary<OpenGraphResult>);
+    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce(
+        (acc, curr) => {
+            return {
+                ...acc,
+                ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
+            };
+        },
+        {} as Dictionary<OpenGraphResult>,
+    );
 }

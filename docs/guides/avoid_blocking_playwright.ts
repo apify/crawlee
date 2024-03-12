@@ -6,16 +6,14 @@ const crawler = new PlaywrightCrawler({
         useFingerprints: true, // this is the default
         fingerprintOptions: {
             fingerprintGeneratorOptions: {
-                browsers: [{
-                    name: BrowserName.edge,
-                    minVersion: 96,
-                }],
-                devices: [
-                    DeviceCategory.desktop,
+                browsers: [
+                    {
+                        name: BrowserName.edge,
+                        minVersion: 96,
+                    },
                 ],
-                operatingSystems: [
-                    OperatingSystemsName.windows,
-                ],
+                devices: [DeviceCategory.desktop],
+                operatingSystems: [OperatingSystemsName.windows],
             },
         },
     },

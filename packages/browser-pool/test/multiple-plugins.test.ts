@@ -2,17 +2,17 @@ import { BrowserPool, PlaywrightPlugin } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 
 describe('BrowserPool - Using multiple plugins', () => {
-    let browserPool: BrowserPool<{ browserPlugins: [PlaywrightPlugin, PlaywrightPlugin]; closeInactiveBrowserAfterSecs: 2 }>;
+    let browserPool: BrowserPool<{
+        browserPlugins: [PlaywrightPlugin, PlaywrightPlugin];
+        closeInactiveBrowserAfterSecs: 2;
+    }>;
     const chromePlugin = new PlaywrightPlugin(playwright.chromium);
     const firefoxPlugin = new PlaywrightPlugin(playwright.firefox);
 
     beforeEach(async () => {
         vitest.clearAllMocks();
         browserPool = new BrowserPool({
-            browserPlugins: [
-                chromePlugin,
-                firefoxPlugin,
-            ],
+            browserPlugins: [chromePlugin, firefoxPlugin],
             closeInactiveBrowserAfterSecs: 2,
         });
     });
@@ -31,10 +31,7 @@ describe('BrowserPool - Using multiple plugins', () => {
     });
 
     test('should loop through plugins round-robin', async () => {
-        const correctPluginOrder = [
-            chromePlugin,
-            firefoxPlugin,
-        ];
+        const correctPluginOrder = [chromePlugin, firefoxPlugin];
 
         const pagePromises = correctPluginOrder.map(async () => browserPool.newPage());
 

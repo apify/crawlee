@@ -1,6 +1,4 @@
-export const CLOUDFLARE_RETRY_CSS_SELECTORS = [
-    '#turnstile-wrapper iframe[src^="https://challenges.cloudflare.com"]',
-];
+export const CLOUDFLARE_RETRY_CSS_SELECTORS = ['#turnstile-wrapper iframe[src^="https://challenges.cloudflare.com"]'];
 
 /**
  * CSS selectors for elements that should trigger a retry, as the crawler is likely getting blocked.

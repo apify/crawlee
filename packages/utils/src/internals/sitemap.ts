@@ -24,7 +24,10 @@ class SitemapTxtParser extends Writable {
     private decoder: StringDecoder = new StringDecoder('utf8');
     private buffer: string = '';
 
-    constructor(private parsingState: ParsingState, private onEnd: () => void) {
+    constructor(
+        private parsingState: ParsingState,
+        private onEnd: () => void,
+    ) {
         super();
     }
 
@@ -74,7 +77,11 @@ class SitemapTxtParser extends Writable {
 export class Sitemap {
     constructor(readonly urls: string[]) {}
 
-    protected static createXmlParser(parsingState: ParsingState, onEnd: () => void, onError: (error: Error) => void): SAXStream {
+    protected static createXmlParser(
+        parsingState: ParsingState,
+        onEnd: () => void,
+        onError: (error: Error) => void,
+    ): SAXStream {
         const parser = sax.createStream(true);
 
         parser.on('opentag', (node) => {

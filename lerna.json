@@ -1,22 +1,17 @@
 {
-  "packages": [
-    "packages/*"
-  ],
-  "version": "3.8.1",
-  "command": {
-    "version": {
-      "conventionalCommits": true,
-      "createRelease": "github",
-      "message": "chore(release): %s"
-    },
-    "publish": {
-      "assets": []
-    }
-  },
-  "npmClient": "yarn",
-  "useNx": false,
-  "ignoreChanges": [
-    "**/test/**",
-    "**/*.md"
-  ]
+	"packages": ["packages/*"],
+	"version": "3.8.1",
+	"command": {
+		"version": {
+			"conventionalCommits": true,
+			"createRelease": "github",
+			"message": "chore(release): %s"
+		},
+		"publish": {
+			"assets": []
+		}
+	},
+	"npmClient": "yarn",
+	"useNx": false,
+	"ignoreChanges": ["**/test/**", "**/*.md"]
 }

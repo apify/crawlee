@@ -48,7 +48,10 @@ export function createRequestDebugInfo(
         retryCount: request.retryCount,
         errorMessages: request.errorMessages,
         // Puppeteer response has .status() function and NodeJS response, statusCode property.
-        statusCode: 'status' in response && response.status instanceof Function ? response.status() : (response as IncomingMessage).statusCode,
+        statusCode:
+            'status' in response && response.status instanceof Function
+                ? response.status()
+                : (response as IncomingMessage).statusCode,
         ...additionalFields,
     };
 }

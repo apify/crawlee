@@ -43,7 +43,8 @@ function browserifyHeaders(headers: Record<string, string>): Record<string, stri
     const finalHeaders: Dictionary<string> = {};
     // eslint-disable-next-line prefer-const
     for (let [key, value] of Object.entries(headers)) {
-        key = key.toLowerCase()
+        key = key
+            .toLowerCase()
             .split('-')
             .map((str) => str.charAt(0).toUpperCase() + str.slice(1))
             .join('-');
@@ -202,9 +203,7 @@ export async function removeInterceptRequestHandler(page: Page, handler: Interce
     ow(page, ow.object.hasKeys('goto', 'evaluate'));
     ow(handler, ow.function);
 
-    const handlersArray = pageInterceptRequestHandlersMap
-        .get(page)!
-        .filter((item) => item !== handler);
+    const handlersArray = pageInterceptRequestHandlersMap.get(page)!.filter((item) => item !== handler);
 
     pageInterceptRequestHandlersMap.set(page, handlersArray);
 

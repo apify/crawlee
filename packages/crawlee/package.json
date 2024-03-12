@@ -1,84 +1,84 @@
 {
-    "name": "crawlee",
-    "version": "3.8.1",
-    "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
-    "engines": {
-        "node": ">=16.0.0"
-    },
-    "bin": "./src/cli.ts",
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
-        "./package.json": "./package.json"
-    },
-    "keywords": [
-        "apify",
-        "headless",
-        "chrome",
-        "puppeteer",
-        "crawler",
-        "scraper"
-    ],
-    "author": {
-        "name": "Apify",
-        "email": "support@apify.com",
-        "url": "https://apify.com"
-    },
-    "contributors": [
-        "Jan Curn <jan@apify.com>",
-        "Marek Trunkat <marek@apify.com>",
-        "Ondra Urban <ondra@apify.com>"
-    ],
-    "license": "Apache-2.0",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/apify/crawlee"
-    },
-    "bugs": {
-        "url": "https://github.com/apify/crawlee/issues"
-    },
-    "homepage": "https://crawlee.dev",
-    "scripts": {
-        "build": "yarn clean && yarn compile && yarn copy",
-        "clean": "rimraf ./dist",
-        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
-        "copy": "tsx ../../scripts/copy.ts"
-    },
-    "publishConfig": {
-        "access": "public"
-    },
-    "dependencies": {
-        "@crawlee/basic": "3.8.1",
-        "@crawlee/browser": "3.8.1",
-        "@crawlee/browser-pool": "3.8.1",
-        "@crawlee/cheerio": "3.8.1",
-        "@crawlee/cli": "3.8.1",
-        "@crawlee/core": "3.8.1",
-        "@crawlee/http": "3.8.1",
-        "@crawlee/jsdom": "3.8.1",
-        "@crawlee/linkedom": "3.8.1",
-        "@crawlee/playwright": "3.8.1",
-        "@crawlee/puppeteer": "3.8.1",
-        "@crawlee/utils": "3.8.1",
-        "import-local": "^3.1.0",
-        "tslib": "^2.4.0"
-    },
-    "peerDependencies": {
-        "playwright": "*",
-        "puppeteer": "*"
-    },
-    "peerDependenciesMeta": {
-        "playwright": {
-            "optional": true
-        },
-        "puppeteer": {
-            "optional": true
-        }
-    }
+	"name": "crawlee",
+	"version": "3.8.1",
+	"description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
+	"engines": {
+		"node": ">=16.0.0"
+	},
+	"bin": "./src/cli.ts",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./package.json": "./package.json"
+	},
+	"keywords": [
+		"apify",
+		"headless",
+		"chrome",
+		"puppeteer",
+		"crawler",
+		"scraper"
+	],
+	"author": {
+		"name": "Apify",
+		"email": "support@apify.com",
+		"url": "https://apify.com"
+	},
+	"contributors": [
+		"Jan Curn <jan@apify.com>",
+		"Marek Trunkat <marek@apify.com>",
+		"Ondra Urban <ondra@apify.com>"
+	],
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/apify/crawlee"
+	},
+	"bugs": {
+		"url": "https://github.com/apify/crawlee/issues"
+	},
+	"homepage": "https://crawlee.dev",
+	"scripts": {
+		"build": "yarn clean && yarn compile && yarn copy",
+		"clean": "rimraf ./dist",
+		"compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+		"copy": "tsx ../../scripts/copy.ts"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"dependencies": {
+		"@crawlee/basic": "3.8.1",
+		"@crawlee/browser": "3.8.1",
+		"@crawlee/browser-pool": "3.8.1",
+		"@crawlee/cheerio": "3.8.1",
+		"@crawlee/cli": "3.8.1",
+		"@crawlee/core": "3.8.1",
+		"@crawlee/http": "3.8.1",
+		"@crawlee/jsdom": "3.8.1",
+		"@crawlee/linkedom": "3.8.1",
+		"@crawlee/playwright": "3.8.1",
+		"@crawlee/puppeteer": "3.8.1",
+		"@crawlee/utils": "3.8.1",
+		"import-local": "^3.1.0",
+		"tslib": "^2.4.0"
+	},
+	"peerDependencies": {
+		"playwright": "*",
+		"puppeteer": "*"
+	},
+	"peerDependenciesMeta": {
+		"playwright": {
+			"optional": true
+		},
+		"puppeteer": {
+			"optional": true
+		}
+	}
 }

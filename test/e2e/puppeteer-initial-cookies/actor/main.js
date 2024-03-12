@@ -18,22 +18,30 @@ const expectedCookies = [
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
-        preNavigationHooks: [({ session, request }, goToOptions) => {
-            session.setCookies([
-                {
-                    name: 'session',
-                    value: 'true',
-                },
-            ], request.url);
-            request.headers.cookie = 'hook_request=true';
+        preNavigationHooks: [
+            ({ session, request }, goToOptions) => {
+                session.setCookies(
+                    [
+                        {
+                            name: 'session',
+                            value: 'true',
+                        },
+                    ],
+                    request.url,
+                );
+                request.headers.cookie = 'hook_request=true';
 
-            goToOptions.waitUntil = ['networkidle2'];
-        }],
+                goToOptions.waitUntil = ['networkidle2'];
+            },
+        ],
         async requestHandler({ page }) {
             const initialCookiesLength = expectedCookies.length;
 
@@ -41,7 +49,11 @@ await Actor.main(async () => {
 
             let numberOfMatchingCookies = 0;
             for (const cookie of expectedCookies) {
-                if (pageCookies.some((pageCookie) => pageCookie.name === cookie.name && pageCookie.value === cookie.value)) {
+                if (
+                    pageCookies.some(
+                        (pageCookie) => pageCookie.name === cookie.name && pageCookie.value === cookie.value,
+                    )
+                ) {
                     numberOfMatchingCookies++;
                 }
             }

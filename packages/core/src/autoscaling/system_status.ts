@@ -126,15 +126,18 @@ export class SystemStatus {
     private readonly snapshotter: Snapshotter;
 
     constructor(options: SystemStatusOptions = {}) {
-        ow(options, ow.object.exactShape({
-            currentHistorySecs: ow.optional.number,
-            maxMemoryOverloadedRatio: ow.optional.number,
-            maxEventLoopOverloadedRatio: ow.optional.number,
-            maxCpuOverloadedRatio: ow.optional.number,
-            maxClientOverloadedRatio: ow.optional.number,
-            snapshotter: ow.optional.object,
-            config: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                currentHistorySecs: ow.optional.number,
+                maxMemoryOverloadedRatio: ow.optional.number,
+                maxEventLoopOverloadedRatio: ow.optional.number,
+                maxCpuOverloadedRatio: ow.optional.number,
+                maxClientOverloadedRatio: ow.optional.number,
+                snapshotter: ow.optional.object,
+                config: ow.optional.object,
+            }),
+        );
 
         const {
             currentHistorySecs = 5,
@@ -203,7 +206,11 @@ export class SystemStatus {
         const cpuInfo = this._isCpuOverloaded(sampleDurationMillis);
         const clientInfo = this._isClientOverloaded(sampleDurationMillis);
         return {
-            isSystemIdle: !memInfo.isOverloaded && !eventLoopInfo.isOverloaded && !cpuInfo.isOverloaded && !clientInfo.isOverloaded,
+            isSystemIdle:
+                !memInfo.isOverloaded &&
+                !eventLoopInfo.isOverloaded &&
+                !cpuInfo.isOverloaded &&
+                !clientInfo.isOverloaded,
             memInfo,
             eventLoopInfo,
             cpuInfo,
@@ -251,7 +258,10 @@ export class SystemStatus {
      * Returns an object with sample information and an isOverloaded property
      * set to true if at least the ratio of snapshots in the sample are overloaded.
      */
-    protected _isSampleOverloaded<T extends { createdAt: Date; isOverloaded: boolean }>(sample: T[], ratio: number): ClientInfo {
+    protected _isSampleOverloaded<T extends { createdAt: Date; isOverloaded: boolean }>(
+        sample: T[],
+        ratio: number,
+    ): ClientInfo {
         if (sample.length === 0) {
             return {
                 isOverloaded: false,

@@ -1,11 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import {
-    downloadListOfUrls,
-    extractUrls,
-    URL_WITH_COMMAS_REGEX,
-} from '@crawlee/utils';
+import { downloadListOfUrls, extractUrls, URL_WITH_COMMAS_REGEX } from '@crawlee/utils';
 
 vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
     return {
@@ -22,13 +18,18 @@ const gotScrapingSpy = vitest.mocked(gotScraping);
 describe('downloadListOfUrls()', () => {
     test('downloads a list of URLs', async () => {
         const text = fs.readFileSync(path.join(baseDataPath, 'simple_url_list.txt'), 'utf8');
-        const arr = text.trim().split(/[\r\n]+/g).map((u) => u.trim());
+        const arr = text
+            .trim()
+            .split(/[\r\n]+/g)
+            .map((u) => u.trim());
 
         gotScrapingSpy.mockResolvedValueOnce({ body: text });
 
-        await expect(downloadListOfUrls({
-            url: 'http://www.nowhere12345.com',
-        })).resolves.toEqual(arr);
+        await expect(
+            downloadListOfUrls({
+                url: 'http://www.nowhere12345.com',
+            }),
+        ).resolves.toEqual(arr);
     });
 });
 
@@ -41,16 +42,21 @@ describe('extractUrls()', () => {
 
     const getURLData = (filename: string) => {
         const string = fs.readFileSync(path.join(baseDataPath, filename), 'utf8');
-        const array = string.trim().split(/[\r\n]+/g).map((u) => u.trim());
+        const array = string
+            .trim()
+            .split(/[\r\n]+/g)
+            .map((u) => u.trim());
         return { string, array };
     };
 
-    const makeJSON = ({ string, array }: { string: string; array: string[] }) => JSON.stringify({
-        one: [{ http: string }],
-        two: array.map((url) => ({ num: 123, url })),
-    });
+    const makeJSON = ({ string, array }: { string: string; array: string[] }) =>
+        JSON.stringify({
+            one: [{ http: string }],
+            two: array.map((url) => ({ num: 123, url })),
+        });
 
-    const makeCSV = (array: string[], delimiter?: string) => array.map((url) => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
+    const makeCSV = (array: string[], delimiter?: string) =>
+        array.map((url) => ['ABC', 233, url, '.'].join(delimiter || ',')).join('\n');
 
     const makeText = (array: string[]) => {
         const text = fs.readFileSync(path.join(baseDataPath, 'lipsum.txt'), 'utf8').split('');

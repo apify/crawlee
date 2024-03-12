@@ -16,27 +16,33 @@ describe('when falling back to fs, Request queue should ignore non-JSON files', 
     beforeAll(async () => {
         // Create "default" request queue and give it faulty entries
         await ensureDir(resolve(storage.requestQueuesDirectory, 'default'));
-        await writeFile(resolve(storage.requestQueuesDirectory, 'default/__metadata__.json'), JSON.stringify({
-            id: randomUUID(),
-            name: 'default',
-            createdAt: new Date(2022, 0, 1),
-            accessedAt: new Date(2022, 0, 1),
-            modifiedAt: new Date(2022, 0, 1),
-        }));
+        await writeFile(
+            resolve(storage.requestQueuesDirectory, 'default/__metadata__.json'),
+            JSON.stringify({
+                id: randomUUID(),
+                name: 'default',
+                createdAt: new Date(2022, 0, 1),
+                accessedAt: new Date(2022, 0, 1),
+                modifiedAt: new Date(2022, 0, 1),
+            }),
+        );
 
-        await writeFile(resolve(storage.requestQueuesDirectory, 'default/123.json'), JSON.stringify({
-            id: '123',
-            orderNo: 1,
-            url: 'http://example.com',
-            uniqueKey: 'owo',
-            method: 'GET',
-            retryCount: 0,
-            json: JSON.stringify({
-                uniqueKey: 'owo',
-                url: 'http://example.com',
+        await writeFile(
+            resolve(storage.requestQueuesDirectory, 'default/123.json'),
+            JSON.stringify({
                 id: '123',
-            } satisfies RequestSchema),
-        } satisfies InternalRequest));
+                orderNo: 1,
+                url: 'http://example.com',
+                uniqueKey: 'owo',
+                method: 'GET',
+                retryCount: 0,
+                json: JSON.stringify({
+                    uniqueKey: 'owo',
+                    url: 'http://example.com',
+                    id: '123',
+                } satisfies RequestSchema),
+            } satisfies InternalRequest),
+        );
 
         await writeFile(resolve(storage.requestQueuesDirectory, 'default/.DS_Store'), 'owo');
         await writeFile(resolve(storage.requestQueuesDirectory, 'default/invalid.txt'), 'owo');

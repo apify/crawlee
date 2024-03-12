@@ -177,7 +177,9 @@ const FakeStorage = class Storage {
         }
 
         if (arguments.length === 0) {
-            throw fixStack(new TypeError(`Failed to execute 'key' on 'Storage': 1 argument required, but only 0 present.`));
+            throw fixStack(
+                new TypeError(`Failed to execute 'key' on 'Storage': 1 argument required, but only 0 present.`),
+            );
         }
 
         index = NumberIsFinite(index) ? index : 0;
@@ -208,7 +210,9 @@ const FakeStorage = class Storage {
         }
 
         if (arguments.length === 0) {
-            throw fixStack(new TypeError(`Failed to execute 'getItem' on 'Storage': 1 argument required, but only 0 present.`));
+            throw fixStack(
+                new TypeError(`Failed to execute 'getItem' on 'Storage': 1 argument required, but only 0 present.`),
+            );
         }
 
         return StoragePrototype.getItem.call(priv.storage, priv.prefix + key);
@@ -221,7 +225,9 @@ const FakeStorage = class Storage {
         }
 
         if (arguments.length === 0) {
-            throw fixStack(new TypeError(`Failed to execute 'removeItem' on 'Storage': 1 argument required, but only 0 present.`));
+            throw fixStack(
+                new TypeError(`Failed to execute 'removeItem' on 'Storage': 1 argument required, but only 0 present.`),
+            );
         }
 
         StoragePrototype.removeItem.call(priv.storage, priv.prefix + key);
@@ -234,7 +240,11 @@ const FakeStorage = class Storage {
         }
 
         if (arguments.length === 0 || arguments.length === 1) {
-            throw fixStack(new TypeError(`Failed to execute 'setItem' on 'Storage': 2 arguments required, but only ${arguments.length} present.`));
+            throw fixStack(
+                new TypeError(
+                    `Failed to execute 'setItem' on 'Storage': 2 arguments required, but only ${arguments.length} present.`,
+                ),
+            );
         }
 
         StoragePrototype.setItem.call(priv.storage, priv.prefix + key, value);
@@ -257,7 +267,9 @@ const createStorage = ({ storage, prefix }) => {
         // getPrototypeOf: (target) => {},
         defineProperty: (target, key, descriptor) => {
             if ('set' in descriptor || 'get' in descriptor) {
-                throw fixStack(new TypeError(`Failed to set a named property on 'Storage': Accessor properties are not allowed.`));
+                throw fixStack(
+                    new TypeError(`Failed to set a named property on 'Storage': Accessor properties are not allowed.`),
+                );
             }
 
             FakeStoragePrototype.setItem.call(target, key, descriptor.value);
@@ -363,17 +375,18 @@ const createStorage = ({ storage, prefix }) => {
 
 const toHide = new WeakMap();
 for (const Type of [Function, Object, Array]) {
-    const create = (fallback) => function () {
-        if (this instanceof FakeStorage) {
-            return '[object Storage]';
-        }
+    const create = (fallback) =>
+        function () {
+            if (this instanceof FakeStorage) {
+                return '[object Storage]';
+            }
 
-        if (WeakMapPrototype.has.call(toHide, this)) {
-            return `function ${WeakMapPrototype.get.call(toHide, this)}() { [native code] }`;
-        }
+            if (WeakMapPrototype.has.call(toHide, this)) {
+                return `function ${WeakMapPrototype.get.call(toHide, this)}() { [native code] }`;
+            }
 
-        return fallback.call(this);
-    };
+            return fallback.call(this);
+        };
 
     const toString = create(Type.prototype.toString);
     const toLocaleString = create(Type.prototype.toLocaleString);
@@ -400,8 +413,12 @@ try {
     const fakeLocalStorage = createStorage({ storage: sessionStorage, prefix: 'l.' });
     const fakeSessionStorage = createStorage({ storage: sessionStorage, prefix: 's.' });
 
-    const getLocalStorage = function localStorage() { return fakeLocalStorage; };
-    const getSessionStorage = function sessionStorage() { return fakeSessionStorage; };
+    const getLocalStorage = function localStorage() {
+        return fakeLocalStorage;
+    };
+    const getSessionStorage = function sessionStorage() {
+        return fakeSessionStorage;
+    };
 
     WeakMapPrototype.set.call(toHide, FakeStorage, 'Storage');
     WeakMapPrototype.set.call(toHide, FakeStoragePrototype.key, 'key');
@@ -450,7 +467,9 @@ try {
     const getCookie = function cookie() {
         try {
             const cookies = StringSplitSafe(realGetCookie.call(this), '; ');
-            const filtered = ArrayPrototype.filter.call(cookies, (cookie) => StringPrototype.startsWith.call(cookie, tabPrefix));
+            const filtered = ArrayPrototype.filter.call(cookies, (cookie) =>
+                StringPrototype.startsWith.call(cookie, tabPrefix),
+            );
             const mapped = ArrayPrototype.map.call(filtered, (cookie) => {
                 const result = StringPrototype.slice.call(cookie, tabPrefix.length);
 
@@ -472,7 +491,7 @@ try {
 
         const delimiterIndex = StringPrototype.indexOf.call(cookieString, ';');
         const equalsIndex = StringPrototype.indexOf.call(cookieString, '=');
-        if ((equalsIndex === -1) || ((delimiterIndex !== -1) && (equalsIndex > delimiterIndex))) {
+        if (equalsIndex === -1 || (delimiterIndex !== -1 && equalsIndex > delimiterIndex)) {
             cookieString = `=${cookieString}`;
         }
 

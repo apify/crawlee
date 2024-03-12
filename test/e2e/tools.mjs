@@ -84,7 +84,9 @@ export async function runActor(dirName, memory = 4096) {
         try {
             execSync('npx -y apify-cli@beta push --no-prompt', { cwd: dirName });
         } catch (err) {
-            console.error(colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`));
+            console.error(
+                colors.red(`Failed to push actor to the Apify platform. (signal ${colors.yellow(err.signal)})`),
+            );
 
             if (err.stdout) {
                 console.log(colors.grey(`  STDOUT: `), err.stdout);
@@ -119,7 +121,9 @@ export async function runActor(dirName, memory = 4096) {
         let runId;
 
         try {
-            const { data: { id: foundRunId } } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
+            const {
+                data: { id: foundRunId },
+            } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
                 method: 'POST',
                 searchParams: {
                     memory,
@@ -137,7 +141,9 @@ export async function runActor(dirName, memory = 4096) {
 
             runId = foundRunId;
         } catch (err) {
-            console.error(colors.red(`Failed to start actor run on the Apify platform. (code ${colors.yellow(err.code)})`));
+            console.error(
+                colors.red(`Failed to start actor run on the Apify platform. (code ${colors.yellow(err.code)})`),
+            );
 
             if (err.response) {
                 console.log(colors.grey(`  RESPONSE: `), err.response.body || err.response.rawBody?.toString('utf-8'));
@@ -166,14 +172,16 @@ export async function runActor(dirName, memory = 4096) {
                     console.log(`[kv] View storage: https://console.apify.com/storage/key-value/${kvResult.id}`);
                 }
 
-                const entries = await Promise.all(keyValueItems.map(async ({ key }) => {
-                    const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
+                const entries = await Promise.all(
+                    keyValueItems.map(async ({ key }) => {
+                        const record = await client.keyValueStore(kvResult.id).getRecord(key, { buffer: true });
 
-                    return {
-                        name: record.key,
-                        raw: record.value,
-                    };
-                }));
+                        return {
+                            name: record.key,
+                            raw: record.value,
+                        };
+                    }),
+                );
 
                 return entries.filter(({ name }) => !isPrivateEntry(name));
             }
@@ -181,10 +189,7 @@ export async function runActor(dirName, memory = 4096) {
             return undefined;
         };
 
-        const {
-            startedAt: buildStartedAt,
-            finishedAt: buildFinishedAt,
-        } = await client.build(buildId).get();
+        const { startedAt: buildStartedAt, finishedAt: buildFinishedAt } = await client.build(buildId).get();
 
         const buildTook = (buildFinishedAt.getTime() - buildStartedAt.getTime()) / 1000;
         console.log(`[build] View build log: https://api.apify.com/v2/logs/${buildId} [build took ${buildTook}s]`);
@@ -217,7 +222,10 @@ export async function runActor(dirName, memory = 4096) {
         if (input) {
             await Actor.init({
                 // @ts-ignore installed only optionally run `run.mjs` script
-                storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+                storage:
+                    process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+                        ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+                        : undefined,
             });
             await Actor.setValue('INPUT', input, { contentType });
         }
@@ -310,7 +318,9 @@ export async function getApifyToken() {
     const authPath = join(homedir(), '.apify', 'auth.json');
 
     if (!existsSync(authPath)) {
-        throw new Error('You need to be logged in with your Apify account to run E2E tests. Call "apify login" to fix that.');
+        throw new Error(
+            'You need to be logged in with your Apify account to run E2E tests. Call "apify login" to fix that.',
+        );
     }
 
     const { token } = await fs.readJSON(authPath);

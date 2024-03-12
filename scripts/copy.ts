@@ -62,7 +62,9 @@ function getNextVersion() {
 
     if (versions.some((v) => v === version)) {
         // eslint-disable-next-line no-console
-        console.error(`before-deploy: A release with version ${version} already exists. Please increment version accordingly.`);
+        console.error(
+            `before-deploy: A release with version ${version} already exists. Please increment version accordingly.`,
+        );
         process.exit(1);
     }
 

@@ -53,7 +53,10 @@ describe('htmlToText()', () => {
         checkHtmlToText('<h1>Header 1</h1> <br> <h2>Header 2</h2><br><br><br>', 'Header 1\n\nHeader 2');
         checkHtmlToText('<h1>Header 1</h1>  \n <br>\n<h2>Header 2</h2><br><br><br>', 'Header 1\n\nHeader 2');
         checkHtmlToText('<h1>Header 1</h1>  \n <br>\n<br><h2>Header 2</h2><br><br><br>', 'Header 1\n\n\nHeader 2');
-        checkHtmlToText('<h1>Header 1</h1>  \n <br>\n<br><br><h2>Header 2</h2><br><br><br>', 'Header 1\n\n\n\nHeader 2');
+        checkHtmlToText(
+            '<h1>Header 1</h1>  \n <br>\n<br><br><h2>Header 2</h2><br><br><br>',
+            'Header 1\n\n\n\nHeader 2',
+        );
 
         checkHtmlToText('<div><div>Div</div><p>Paragraph</p></div>', 'Div\nParagraph');
         checkHtmlToText('<div>Div1</div><!-- Some comments --><div>Div2</div>', 'Div1\nDiv2');

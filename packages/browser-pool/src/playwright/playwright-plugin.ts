@@ -19,10 +19,13 @@ import type { SafeParameters } from '../utils';
 
 const getFreePort = async () => {
     return new Promise<number>((resolve, reject) => {
-        const server = net.createServer().once('error', reject).listen(() => {
-            resolve((server.address() as net.AddressInfo).port);
-            server.close();
-        });
+        const server = net
+            .createServer()
+            .once('error', reject)
+            .listen(() => {
+                resolve((server.address() as net.AddressInfo).port);
+                server.close();
+            });
     });
 };
 
@@ -30,20 +33,18 @@ const getFreePort = async () => {
 //  taacPath = browser-pool/dist/tab-as-a-container
 const taacPath = path.join(__dirname, '..', 'tab-as-a-container');
 
-export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {
+export class PlaywrightPlugin extends BrowserPlugin<
+    BrowserType,
+    SafeParameters<BrowserType['launch']>[0],
+    PlaywrightBrowser
+> {
     private _browserVersion?: string;
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
-        const {
-            launchOptions,
-            useIncognitoPages,
-            proxyUrl,
-        } = launchContext;
+        const { launchOptions, useIncognitoPages, proxyUrl } = launchContext;
 
-        let {
-            userDataDir,
-        } = launchContext;
+        let { userDataDir } = launchContext;
 
         let browser: PlaywrightBrowser;
 
@@ -82,9 +83,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                 let firefoxPort: number | undefined;
 
                 if (experimentalContainers) {
-                    launchOptions!.args = [
-                        ...(launchOptions!.args ?? []),
-                    ];
+                    launchOptions!.args = [...(launchOptions!.args ?? [])];
 
                     // Use native headless mode so we can load an extension
                     if (launchOptions!.headless && this.library.name() === 'chromium') {
@@ -92,7 +91,10 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                     }
 
                     if (this.library.name() === 'chromium') {
-                        launchOptions!.args.push(`--disable-extensions-except=${taacPath}`, `--load-extension=${taacPath}`);
+                        launchOptions!.args.push(
+                            `--disable-extensions-except=${taacPath}`,
+                            `--load-extension=${taacPath}`,
+                        );
                     } else if (this.library.name() === 'firefox') {
                         firefoxPort = await getFreePort();
 
@@ -115,9 +117,11 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
                     }
                 }
 
-                const browserContext = await this.library.launchPersistentContext(userDataDir, launchOptions).catch((error) => {
-                    return this._throwOnFailedLaunch(launchContext, error);
-                });
+                const browserContext = await this.library
+                    .launchPersistentContext(userDataDir, launchOptions)
+                    .catch((error) => {
+                        return this._throwOnFailedLaunch(launchContext, error);
+                    });
 
                 browserContext.once('close', () => {
                     if (userDataDir.includes('apify-playwright-firefox-taac-')) {
@@ -192,7 +196,11 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
         );
     }
 
-    protected _createController(): BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], PlaywrightBrowser> {
+    protected _createController(): BrowserController<
+        BrowserType,
+        SafeParameters<BrowserType['launch']>[0],
+        PlaywrightBrowser
+    > {
         return new PlaywrightController(this);
     }
 

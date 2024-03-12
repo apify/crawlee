@@ -24,22 +24,34 @@ export type UrlPatternObject = {
     regexp?: RegExp;
 } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
 
-export type PseudoUrlObject = { purl: string } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+export type PseudoUrlObject = { purl: string } & Pick<
+    RequestOptions,
+    'method' | 'payload' | 'label' | 'userData' | 'headers'
+>;
 
 export type PseudoUrlInput = string | PseudoUrlObject;
 
-export type GlobObject = { glob: string } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+export type GlobObject = { glob: string } & Pick<
+    RequestOptions,
+    'method' | 'payload' | 'label' | 'userData' | 'headers'
+>;
 
 export type GlobInput = string | GlobObject;
 
-export type RegExpObject = { regexp: RegExp } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+export type RegExpObject = { regexp: RegExp } & Pick<
+    RequestOptions,
+    'method' | 'payload' | 'label' | 'userData' | 'headers'
+>;
 
 export type RegExpInput = RegExp | RegExpObject;
 
 /**
  * @ignore
  */
-export function updateEnqueueLinksPatternCache(item: GlobInput | RegExpInput | PseudoUrlInput, pattern: RegExpObject | GlobObject): void {
+export function updateEnqueueLinksPatternCache(
+    item: GlobInput | RegExpInput | PseudoUrlInput,
+    pattern: RegExpObject | GlobObject,
+): void {
     enqueueLinksPatternCache.set(item, pattern);
     if (enqueueLinksPatternCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
         const key = enqueueLinksPatternCache.keys().next().value;
@@ -95,7 +107,7 @@ export function constructGlobObjectsFromGlobs(globs: Readonly<GlobInput[]>): Glo
             return false;
         })
         .map((item) => {
-        // Get glob object from cache.
+            // Get glob object from cache.
             let globObject = enqueueLinksPatternCache.get(item);
             if (globObject) return globObject;
 
@@ -117,7 +129,8 @@ export function constructGlobObjectsFromGlobs(globs: Readonly<GlobInput[]>): Glo
  */
 export function validateGlobPattern(glob: string): string {
     const globTrimmed = glob.trim();
-    if (globTrimmed.length === 0) throw new Error(`Cannot parse Glob pattern '${globTrimmed}': it must be an non-empty string`);
+    if (globTrimmed.length === 0)
+        throw new Error(`Cannot parse Glob pattern '${globTrimmed}': it must be an non-empty string`);
     return globTrimmed;
 }
 
@@ -158,10 +171,7 @@ export function createRequests(
         .filter(({ url }) => {
             return !excludePatternObjects.some((excludePatternObject) => {
                 const { regexp, glob } = excludePatternObject;
-                return (
-                        (regexp && url.match(regexp)) || // eslint-disable-line
-                        (glob && minimatch(url, glob, { nocase: true }))
-                );
+                return (regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }));
             });
         })
         .map(({ url, opts }) => {
@@ -171,13 +181,11 @@ export function createRequests(
 
             for (const urlPatternObject of urlPatternObjects) {
                 const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
-                if (
-                    (regexp && url.match(regexp)) || // eslint-disable-line
-                    (glob && minimatch(url, glob, { nocase: true }))
-                ) {
-                    const request = typeof opts === 'string'
-                        ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
-                        : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
+                if ((regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }))) {
+                    const request =
+                        typeof opts === 'string'
+                            ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
+                            : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
 
                     return new Request(request);
                 }
@@ -200,10 +208,7 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
         for (const urlPatternObject of patterns) {
             const { regexp, glob } = urlPatternObject;
 
-            if (
-                (regexp && request.url.match(regexp)) || // eslint-disable-line
-                (glob && minimatch(request.url, glob, { nocase: true }))
-            ) {
+            if ((regexp && request.url.match(regexp)) || (glob && minimatch(request.url, glob, { nocase: true }))) {
                 filtered.push(request);
                 // Break the pattern loop, as we already matched this request once
                 break;
@@ -222,10 +227,10 @@ export function createRequestOptions(
     options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'strategy'> = {},
 ): RequestOptions[] {
     return sources
-        .map(
-            (src) => (
-                typeof src === 'string' ? { url: src, enqueueStrategy: options.strategy } : { ...src, enqueueStrategy: options.strategy } as RequestOptions
-            ),
+        .map((src) =>
+            typeof src === 'string'
+                ? { url: src, enqueueStrategy: options.strategy }
+                : ({ ...src, enqueueStrategy: options.strategy } as RequestOptions),
         )
         .filter(({ url }) => {
             try {

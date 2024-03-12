@@ -149,6 +149,9 @@ jobs:
             - name: ESLint
               run: yarn lint
 
+            - name: Biome format
+              run: yarn format:check
+
     release_next:
         name: Release @next
         if: github.event_name == 'push' && contains(github.event.ref, 'master') && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))

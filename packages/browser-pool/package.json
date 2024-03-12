@@ -1,66 +1,66 @@
 {
-    "name": "@crawlee/browser-pool",
-    "version": "3.8.1",
-    "description": "Rotate multiple browsers using popular automation libraries such as Playwright or Puppeteer.",
-    "engines": {
-        "node": ">=16.0.0"
-    },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
-        "./package.json": "./package.json"
-    },
-    "author": {
-        "name": "Apify",
-        "email": "support@apify.com",
-        "url": "https://apify.com"
-    },
-    "license": "Apache-2.0",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/apify/crawlee"
-    },
-    "bugs": {
-        "url": "https://github.com/apify/crawlee/issues"
-    },
-    "scripts": {
-        "build": "yarn clean && yarn compile && node copy-definitions.mjs && yarn copy",
-        "clean": "rimraf ./dist",
-        "compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
-        "copy": "tsx ../../scripts/copy.ts"
-    },
-    "dependencies": {
-        "@apify/log": "^2.4.0",
-        "@apify/timeout": "^0.3.0",
-        "@crawlee/core": "3.8.1",
-        "@crawlee/types": "3.8.1",
-        "fingerprint-generator": "^2.0.6",
-        "fingerprint-injector": "^2.0.5",
-        "lodash.merge": "^4.6.2",
-        "nanoid": "^3.3.4",
-        "ow": "^0.28.1",
-        "p-limit": "^3.1.0",
-        "proxy-chain": "^2.0.1",
-        "quick-lru": "^5.1.1",
-        "tiny-typed-emitter": "^2.1.0",
-        "tslib": "^2.4.0"
-    },
-    "peerDependencies": {
-        "playwright": "*",
-        "puppeteer": "*"
-    },
-    "peerDependenciesMeta": {
-        "playwright": {
-            "optional": true
-        },
-        "puppeteer": {
-            "optional": true
-        }
-    }
+	"name": "@crawlee/browser-pool",
+	"version": "3.8.1",
+	"description": "Rotate multiple browsers using popular automation libraries such as Playwright or Puppeteer.",
+	"engines": {
+		"node": ">=16.0.0"
+	},
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./package.json": "./package.json"
+	},
+	"author": {
+		"name": "Apify",
+		"email": "support@apify.com",
+		"url": "https://apify.com"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/apify/crawlee"
+	},
+	"bugs": {
+		"url": "https://github.com/apify/crawlee/issues"
+	},
+	"scripts": {
+		"build": "yarn clean && yarn compile && node copy-definitions.mjs && yarn copy",
+		"clean": "rimraf ./dist",
+		"compile": "tsc -p tsconfig.build.json && gen-esm-wrapper ./dist/index.js ./dist/index.mjs",
+		"copy": "tsx ../../scripts/copy.ts"
+	},
+	"dependencies": {
+		"@apify/log": "^2.4.0",
+		"@apify/timeout": "^0.3.0",
+		"@crawlee/core": "3.8.1",
+		"@crawlee/types": "3.8.1",
+		"fingerprint-generator": "^2.0.6",
+		"fingerprint-injector": "^2.0.5",
+		"lodash.merge": "^4.6.2",
+		"nanoid": "^3.3.4",
+		"ow": "^0.28.1",
+		"p-limit": "^3.1.0",
+		"proxy-chain": "^2.0.1",
+		"quick-lru": "^5.1.1",
+		"tiny-typed-emitter": "^2.1.0",
+		"tslib": "^2.4.0"
+	},
+	"peerDependencies": {
+		"playwright": "*",
+		"puppeteer": "*"
+	},
+	"peerDependenciesMeta": {
+		"playwright": {
+			"optional": true
+		},
+		"puppeteer": {
+			"optional": true
+		}
+	}
 }

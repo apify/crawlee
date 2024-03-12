@@ -35,7 +35,10 @@ export interface DatasetClientOptions {
     client: MemoryStorage;
 }
 
-export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseClient implements storage.DatasetClient<Data> {
+export class DatasetClient<Data extends Dictionary = Dictionary>
+    extends BaseClient
+    implements storage.DatasetClient<Data>
+{
     name?: string;
     createdAt = new Date();
     accessedAt = new Date();
@@ -65,9 +68,11 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
     }
 
     async update(newFields: storage.DatasetClientUpdateOptions = {}): Promise<storage.DatasetInfo> {
-        const parsed = s.object({
-            name: s.string.lengthGreaterThan(0).optional,
-        }).parse(newFields);
+        const parsed = s
+            .object({
+                name: s.string.lengthGreaterThan(0).optional,
+            })
+            .parse(newFields);
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
@@ -82,7 +87,9 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
         }
 
         // Check that name is not in use already
-        const existingStoreByName = this.client.datasetClientsHandled.find((store) => store.name?.toLowerCase() === parsed.name!.toLowerCase());
+        const existingStoreByName = this.client.datasetClientsHandled.find(
+            (store) => store.name?.toLowerCase() === parsed.name!.toLowerCase(),
+        );
 
         if (existingStoreByName) {
             this.throwOnDuplicateEntry(StorageTypes.Dataset, 'name', parsed.name);
@@ -92,7 +99,10 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
 
         const previousDir = existingStoreById.datasetDirectory;
 
-        existingStoreById.datasetDirectory = resolve(this.client.datasetsDirectory, parsed.name ?? existingStoreById.name ?? existingStoreById.id);
+        existingStoreById.datasetDirectory = resolve(
+            this.client.datasetsDirectory,
+            parsed.name ?? existingStoreById.name ?? existingStoreById.id,
+        );
 
         await move(previousDir, existingStoreById.datasetDirectory, { overwrite: true });
 
@@ -123,11 +133,13 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             limit = LIST_ITEMS_LIMIT,
             offset = 0,
             desc,
-        } = s.object({
-            desc: s.boolean.optional,
-            limit: s.number.int.optional,
-            offset: s.number.int.optional,
-        }).parse(options);
+        } = s
+            .object({
+                desc: s.boolean.optional,
+                limit: s.number.int.optional,
+                offset: s.number.int.optional,
+            })
+            .parse(options);
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
@@ -161,11 +173,13 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
     }
 
     async pushItems(items: string | Data | string[] | Data[]): Promise<void> {
-        const rawItems = s.union(
-            s.string,
-            s.object<Data>({} as Data).passthrough,
-            s.array(s.union(s.string, s.object<Data>({} as Data).passthrough)),
-        ).parse(items) as Data[];
+        const rawItems = s
+            .union(
+                s.string,
+                s.object<Data>({} as Data).passthrough,
+                s.array(s.union(s.string, s.object<Data>({} as Data).passthrough)),
+            )
+            .parse(items) as Data[];
 
         // Check by id
         const existingStoreById = await findOrCacheDatasetByPossibleId(this.client, this.name ?? this.id);
@@ -228,9 +242,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
             items = JSON.parse(items);
         }
 
-        return Array.isArray(items)
-            ? items.map((item) => this.normalizeItem(item))
-            : [this.normalizeItem(items)];
+        return Array.isArray(items) ? items.map((item) => this.normalizeItem(item)) : [this.normalizeItem(items)];
     }
 
     private normalizeItem(item: string | Data): Data {
@@ -239,7 +251,9 @@ export class DatasetClient<Data extends Dictionary = Dictionary> extends BaseCli
         }
 
         if (Array.isArray(item)) {
-            throw new Error(`Each dataset item can only be a single JSON object, not an array. Received: [${item.join(',\n')}]`);
+            throw new Error(
+                `Each dataset item can only be a single JSON object, not an array. Received: [${item.join(',\n')}]`,
+            );
         }
 
         if (typeof item !== 'object' || item === null) {

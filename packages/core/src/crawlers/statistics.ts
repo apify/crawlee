@@ -109,13 +109,16 @@ export class Statistics {
      * @internal
      */
     constructor(options: StatisticsOptions = {}) {
-        ow(options, ow.object.exactShape({
-            logIntervalSecs: ow.optional.number,
-            logMessage: ow.optional.string,
-            keyValueStore: ow.optional.object,
-            config: ow.optional.object,
-            persistenceOptions: ow.optional.object,
-        }));
+        ow(
+            options,
+            ow.object.exactShape({
+                logIntervalSecs: ow.optional.number,
+                logMessage: ow.optional.string,
+                keyValueStore: ow.optional.object,
+                config: ow.optional.object,
+                persistenceOptions: ow.optional.object,
+            }),
+        );
 
         const {
             logIntervalSecs = 60,
@@ -222,8 +225,10 @@ export class Statistics {
         this.state.requestsFinished++;
         this.state.requestTotalFinishedDurationMillis += jobDurationMillis;
         this._saveRetryCountForJob(job);
-        if (jobDurationMillis < this.state.requestMinDurationMillis) this.state.requestMinDurationMillis = jobDurationMillis;
-        if (jobDurationMillis > this.state.requestMaxDurationMillis) this.state.requestMaxDurationMillis = jobDurationMillis;
+        if (jobDurationMillis < this.state.requestMinDurationMillis)
+            this.state.requestMinDurationMillis = jobDurationMillis;
+        if (jobDurationMillis > this.state.requestMaxDurationMillis)
+            this.state.requestMaxDurationMillis = jobDurationMillis;
         this.requestsInProgress.delete(id);
     }
 
@@ -255,7 +260,8 @@ export class Statistics {
 
         return {
             requestAvgFailedDurationMillis: Math.round(requestTotalFailedDurationMillis / requestsFailed) || Infinity,
-            requestAvgFinishedDurationMillis: Math.round(requestTotalFinishedDurationMillis / requestsFinished) || Infinity,
+            requestAvgFinishedDurationMillis:
+                Math.round(requestTotalFinishedDurationMillis / requestsFinished) || Infinity,
             requestsFinishedPerMinute: Math.round(requestsFinished / totalMinutes) || 0,
             requestsFailedPerMinute: Math.floor(requestsFailed / totalMinutes) || 0,
             requestTotalDurationMillis: requestTotalFinishedDurationMillis + requestTotalFailedDurationMillis,
@@ -392,7 +398,9 @@ export class Statistics {
         const result = {
             ...this.state,
             crawlerLastStartTimestamp: this.instanceStart,
-            crawlerFinishedAt: this.state.crawlerFinishedAt ? new Date(this.state.crawlerFinishedAt).toISOString() : null,
+            crawlerFinishedAt: this.state.crawlerFinishedAt
+                ? new Date(this.state.crawlerFinishedAt).toISOString()
+                : null,
             crawlerStartedAt: this.state.crawlerStartedAt ? new Date(this.state.crawlerStartedAt).toISOString() : null,
             requestRetryHistogram: this.requestRetryHistogram,
             statsId: this.id,

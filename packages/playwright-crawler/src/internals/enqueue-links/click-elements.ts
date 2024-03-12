@@ -19,12 +19,7 @@ import {
 } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import ow from 'ow';
-import type {
-    Page,
-    Frame,
-    Request,
-    Route,
-} from 'playwright';
+import type { Page, Frame, Request, Route } from 'playwright';
 
 const STARTING_Z_INDEX = 2147400000;
 const log = log_.child({ prefix: 'Playwright Click Elements' });
@@ -215,32 +210,28 @@ export interface EnqueueLinksByClickingElementsOptions {
  *
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
-export async function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult> {
-    ow(options, ow.object.exactShape({
-        page: ow.object.hasKeys('goto', 'evaluate'),
-        requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-        selector: ow.string,
-        userData: ow.optional.object,
-        clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
-        pseudoUrls: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.object.hasKeys('purl'),
-        )),
-        globs: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.object.hasKeys('glob'),
-        )),
-        regexps: ow.optional.array.ofType(ow.any(
-            ow.regExp,
-            ow.object.hasKeys('regexp'),
-        )),
-        transformRequestFunction: ow.optional.function,
-        waitForPageIdleSecs: ow.optional.number,
-        maxWaitForPageIdleSecs: ow.optional.number,
-        label: ow.optional.string,
-        forefront: ow.optional.boolean,
-        skipNavigation: ow.optional.boolean,
-    }));
+export async function enqueueLinksByClickingElements(
+    options: EnqueueLinksByClickingElementsOptions,
+): Promise<BatchAddRequestsResult> {
+    ow(
+        options,
+        ow.object.exactShape({
+            page: ow.object.hasKeys('goto', 'evaluate'),
+            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            selector: ow.string,
+            userData: ow.optional.object,
+            clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
+            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
+            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
+            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+            transformRequestFunction: ow.optional.function,
+            waitForPageIdleSecs: ow.optional.number,
+            maxWaitForPageIdleSecs: ow.optional.number,
+            label: ow.optional.string,
+            forefront: ow.optional.boolean,
+            skipNavigation: ow.optional.boolean,
+        }),
+    );
 
     const {
         page,
@@ -308,14 +299,10 @@ interface ClickElementsAndInterceptNavigationRequestsOptions extends WaitForPage
  * Returns a list of all target URLs.
  * @ignore
  */
-export async function clickElementsAndInterceptNavigationRequests(options: ClickElementsAndInterceptNavigationRequestsOptions): Promise<Dictionary[]> {
-    const {
-        page,
-        selector,
-        waitForPageIdleMillis,
-        maxWaitForPageIdleMillis,
-        clickOptions,
-    } = options;
+export async function clickElementsAndInterceptNavigationRequests(
+    options: ClickElementsAndInterceptNavigationRequestsOptions,
+): Promise<Dictionary[]> {
+    const { page, selector, waitForPageIdleMillis, maxWaitForPageIdleMillis, clickOptions } = options;
 
     const uniqueRequests = new Set<string>();
     const context = page.context();
@@ -347,15 +334,20 @@ export async function clickElementsAndInterceptNavigationRequests(options: Click
 /**
  * @ignore
  */
-function createInterceptRequestHandler(page: Page, requests: Set<string>): (route: Route, request: Request) => Promise<void> {
+function createInterceptRequestHandler(
+    page: Page,
+    requests: Set<string>,
+): (route: Route, request: Request) => Promise<void> {
     return async function onInterceptedRequest(route, request) {
         if (!isTopFrameNavigationRequest(page, request)) return route.continue();
-        requests.add(JSON.stringify({
-            url: request.url(),
-            headers: request.headers(),
-            method: request.method(),
-            payload: request.postData() ?? undefined,
-        }));
+        requests.add(
+            JSON.stringify({
+                url: request.url(),
+                headers: request.headers(),
+                method: request.method(),
+                payload: request.postData() ?? undefined,
+            }),
+        );
 
         if (request.redirectedFrom()) {
             return route.fulfill({ body: '' }); // Prevents 301/302 redirect
@@ -386,8 +378,7 @@ function createTargetCreatedHandler(requests: Set<string>): (popup: Page) => Pro
  * @ignore
  */
 function isTopFrameNavigationRequest(page: Page, req: Request): boolean {
-    return req.isNavigationRequest()
-        && req.frame() === page.mainFrame();
+    return req.isNavigationRequest() && req.frame() === page.mainFrame();
 }
 
 /**
@@ -476,15 +467,19 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
         } catch (err) {
             const e = err as Error;
             if (shouldLogWarning && e.stack!.includes('is detached from document')) {
-                log.warning(`An element with selector ${selector} that you're trying to click has been removed from the page. `
-                    + 'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. '
-                    + 'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.');
+                log.warning(
+                    `An element with selector ${selector} that you're trying to click has been removed from the page. ` +
+                        'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
+                        'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
+                );
                 shouldLogWarning = false;
             }
             log.debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
         }
     }
-    log.debug(`enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`);
+    log.debug(
+        `enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`,
+    );
 }
 
 /**
@@ -501,7 +496,11 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
  * when there's only a single element to click.
  * @ignore
  */
-async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis }: WaitForPageIdleOptions): Promise<void> {
+async function waitForPageIdle({
+    page,
+    waitForPageIdleMillis,
+    maxWaitForPageIdleMillis,
+}: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
         let maxTimeout: NodeJS.Timeout;
@@ -517,15 +516,15 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
         }
 
         function maxTimeoutHandler() {
-            log.debug(`enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. `
-                + 'This is probably due to the website itself dispatching requests, but some links may also have been missed.');
+            log.debug(
+                `enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. ` +
+                    'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
+            );
             finish();
         }
 
         function finish() {
-            page.off('request', activityHandler)
-                .off('framenavigated', activityHandler)
-                .off('popup', activityHandler);
+            page.off('request', activityHandler).off('framenavigated', activityHandler).off('popup', activityHandler);
             resolve();
         }
 

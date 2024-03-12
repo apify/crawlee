@@ -142,10 +142,13 @@ export class ProxyConfiguration {
      */
     constructor(options: ProxyConfigurationOptions = {}) {
         const { validateRequired, ...rest } = options as Dictionary;
-        ow(rest, ow.object.exactShape({
-            proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
-            newUrlFunction: ow.optional.function,
-        }));
+        ow(
+            rest,
+            ow.object.exactShape({
+                proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
+                newUrlFunction: ow.optional.function,
+            }),
+        );
 
         const { proxyUrls, newUrlFunction } = options;
 
@@ -247,15 +250,17 @@ export class ProxyConfiguration {
         }
     }
 
-    protected _throwNewUrlFunctionInvalid(err: Error) : never {
+    protected _throwNewUrlFunctionInvalid(err: Error): never {
         throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
     }
 
-    protected _throwCannotCombineCustomMethods() : never {
-        throw new Error('Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".');
+    protected _throwCannotCombineCustomMethods(): never {
+        throw new Error(
+            'Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".',
+        );
     }
 
-    protected _throwNoOptionsProvided() : never {
+    protected _throwNoOptionsProvided(): never {
         throw new Error('One of "options.proxyUrls" or "options.newUrlFunction" needs to be provided.');
     }
 }

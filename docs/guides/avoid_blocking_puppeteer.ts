@@ -6,16 +6,9 @@ const crawler = new PuppeteerCrawler({
         useFingerprints: true, // this is the default
         fingerprintOptions: {
             fingerprintGeneratorOptions: {
-                browsers: [
-                    BrowserName.chrome,
-                    BrowserName.firefox,
-                ],
-                devices: [
-                    DeviceCategory.mobile,
-                ],
-                locales: [
-                    'en-US',
-                ],
+                browsers: [BrowserName.chrome, BrowserName.firefox],
+                devices: [DeviceCategory.mobile],
+                locales: ['en-US'],
             },
         },
     },
