@@ -171,10 +171,7 @@ export function createRequests(
         .filter(({ url }) => {
             return !excludePatternObjects.some((excludePatternObject) => {
                 const { regexp, glob } = excludePatternObject;
-                return (
-                    (regexp && url.match(regexp)) || // eslint-disable-line
-                    (glob && minimatch(url, glob, { nocase: true }))
-                );
+                return (regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }));
             });
         })
         .map(({ url, opts }) => {
@@ -184,10 +181,7 @@ export function createRequests(
 
             for (const urlPatternObject of urlPatternObjects) {
                 const { regexp, glob, ...requestRegExpOptions } = urlPatternObject;
-                if (
-                    (regexp && url.match(regexp)) || // eslint-disable-line
-                    (glob && minimatch(url, glob, { nocase: true }))
-                ) {
+                if ((regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }))) {
                     const request =
                         typeof opts === 'string'
                             ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
@@ -214,10 +208,7 @@ export function filterRequestsByPatterns(requests: Request[], patterns?: UrlPatt
         for (const urlPatternObject of patterns) {
             const { regexp, glob } = urlPatternObject;
 
-            if (
-                (regexp && request.url.match(regexp)) || // eslint-disable-line
-                (glob && minimatch(request.url, glob, { nocase: true }))
-            ) {
+            if ((regexp && request.url.match(regexp)) || (glob && minimatch(request.url, glob, { nocase: true }))) {
                 filtered.push(request);
                 // Break the pattern loop, as we already matched this request once
                 break;

@@ -741,6 +741,7 @@ declare class BuiltRequestProvider extends RequestProvider {
     override fetchNextRequest<T extends Dictionary = Dictionary>(
         options?: RequestOptions<Dictionary> | undefined,
     ): Promise<Request<T> | null>;
+
     protected override ensureHeadIsNonEmpty(): Promise<void>;
 }
 

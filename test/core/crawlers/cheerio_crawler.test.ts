@@ -191,7 +191,6 @@ describe('CheerioCrawler', () => {
             maxConcurrency: 2,
         });
 
-        // eslint-disable-next-line max-len
         await expect(cheerioCrawler.run()).rejects.toThrow(
             "Route not found for label 'undefined'. You must set up a route for this label or a default route. Use `requestHandler`, `router.addHandler` or `router.addDefaultHandler`.",
         );

@@ -457,8 +457,8 @@ export abstract class BrowserCrawler<
     protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
         const { page, response } = crawlingContext;
 
-        // eslint-disable-next-line dot-notation
         const blockedStatusCodes =
+            // eslint-disable-next-line dot-notation
             (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
                 ? // eslint-disable-next-line dot-notation
                   this.sessionPool!['blockedStatusCodes']
@@ -803,8 +803,8 @@ export async function browserCrawlerEnqueueLinks({
  * Extracts URLs from a given page.
  * @ignore
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
 export async function extractUrlsFromPage(
+    // eslint-disable-next-line @typescript-eslint/ban-types
     page: { $$eval: Function },
     selector: string,
     baseUrl: string,

@@ -1,6 +1,3 @@
-/* eslint-disable no-multi-spaces */
-import exp from 'node:constants';
-
 import { ErrorTracker } from '../../packages/utils/src/internals/error_tracker';
 
 const random = () => Math.random().toString(36).slice(2);

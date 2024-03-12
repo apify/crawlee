@@ -12,9 +12,9 @@ import type { Session } from '../session_pool/session';
 import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
-// we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
-// eslint-disable-next-line
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
+    // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
+    // eslint-disable-next-line
     extends Record<string & {}, unknown> {
     /**
      * The original {@apilink Request} object.
@@ -160,8 +160,11 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
 export class RequestHandlerResult {
     private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> =
         {};
+
     private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
+
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
+
     private enqueueLinksCalls: Parameters<RestrictedCrawlingContext['enqueueLinks']>[] = [];
 
     constructor(
