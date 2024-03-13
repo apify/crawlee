@@ -130,6 +130,44 @@ interface TieredProxyOptions {
  * ```
  * @category Scaling
  */
+
+class ProxyTierTracker {
+    private histogram: number[];
+    private currentTier: number;
+
+    constructor(tieredProxyUrls: string[][]) {
+        this.histogram = tieredProxyUrls.map(() => 0);
+        this.currentTier = 0;
+    }
+
+    private processStep(): void {
+        this.histogram.forEach((x, i) => {
+            if (this.currentTier === i) return;
+            if (x > 0) this.histogram[i]--;
+        });
+
+        const left = this.currentTier > 0 ? this.histogram[this.currentTier - 1] : Infinity;
+        const right = this.currentTier < this.histogram.length - 1 ? this.histogram[this.currentTier + 1] : Infinity;
+
+        if (this.histogram[this.currentTier] > Math.min(left, right)) {
+            this.currentTier = left <= right ? this.currentTier - 1 : this.currentTier + 1;
+        }
+
+        if (this.histogram[this.currentTier] === left) {
+            this.currentTier--;
+        }
+    }
+
+    addError(tier: number) {
+        this.histogram[tier] += 10;
+    }
+
+    getTier() {
+        this.processStep();
+        return this.currentTier;
+    }
+}
+
 export class ProxyConfiguration {
     isManInTheMiddle = false;
     protected nextCustomUrlIndex = 0;
@@ -138,7 +176,7 @@ export class ProxyConfiguration {
     protected usedProxyUrls = new Map<string, string>();
     protected newUrlFunction?: ProxyConfigurationFunction;
     protected log = log.child({ prefix: 'ProxyConfiguration' });
-    protected domainTiers = new Map<string, number[]>();
+    protected domainTiers = new Map<string, ProxyTierTracker>();
 
     /**
      * Creates a {@apilink ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
@@ -238,27 +276,16 @@ export class ProxyConfiguration {
         if (!this.tieredProxyUrls) return null;
 
         const domain = new URL(request.url).hostname;
-        const { retryCount } = request;
-
         if (!this.domainTiers.has(domain)) {
-            this.domainTiers.set(domain, [0]);
+            this.domainTiers.set(domain, new ProxyTierTracker(this.tieredProxyUrls));
         }
 
-        const history = this.domainTiers.get(domain)!;
+        const tracker = this.domainTiers.get(domain)!;
+        const tierPrediction = tracker.getTier();
 
-        let tierPrediction;
-
-        if (retryCount === 0) {
-            const averageTier = history.reduce((a, b) => a + b, 0) / history.length;
-            tierPrediction = Math.floor(averageTier);
-            if (history.every((x, _, a) => x === a[0])) tierPrediction = Math.max(0, tierPrediction - 1);
-        } else {
-            tierPrediction = history[history.length - 1] + 1;
-        }
-
-        tierPrediction = Math.min(tierPrediction, this.tieredProxyUrls!.length - 1);
-
-        this.domainTiers.set(domain, [...history, tierPrediction].slice(-4, 4));
+        request.addHook('sessionRotation', () => {
+            tracker.addError(tierPrediction);
+        });
 
         return tierPrediction;
     }

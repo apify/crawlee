@@ -700,7 +700,7 @@ export class BrowserPool<
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
 
-            return hasCapacity && isCorrectPlugin && (!options?.proxyTier || controller.proxyTier === options.proxyTier);
+            return hasCapacity && isCorrectPlugin && (typeof options?.proxyTier !== 'number' || controller.proxyTier === options.proxyTier);
         });
     }
 
