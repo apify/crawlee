@@ -3,7 +3,6 @@ import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
 import type { BrowserController } from './browser-controller';
-import { throwImplementationNeeded } from './utils';
 import type { LaunchContextOptions } from '../launch-context';
 import { LaunchContext } from '../launch-context';
 import type { UnwrapPromise } from '../utils';
@@ -265,32 +264,31 @@ export abstract class BrowserPlugin<
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
+    protected abstract _addProxyToLaunchOptions(
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): Promise<void>;
 
-    protected abstract _addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void> {
-        throwImplementationNeeded('_addProxyToLaunchOptions');
-    }
-
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract _isChromiumBasedBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): boolean {
-        throwImplementationNeeded('_isChromiumBasedBrowser');
-    }
+    protected abstract _isChromiumBasedBrowser(
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): boolean;
 
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract _launch(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<LaunchResult> {
-        throwImplementationNeeded('_launch');
-    }
+    protected abstract _launch(
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): Promise<LaunchResult>;
 
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract _createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> {
-        throwImplementationNeeded('_createController');
-    }
+    protected abstract _createController(): BrowserController<
+        Library,
+        LibraryOptions,
+        LaunchResult,
+        NewPageOptions,
+        NewPageResult
+    >;
 }
 
 export class BrowserLaunchError extends CriticalError {
