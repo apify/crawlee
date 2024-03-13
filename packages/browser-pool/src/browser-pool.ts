@@ -1,5 +1,4 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { Request } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
