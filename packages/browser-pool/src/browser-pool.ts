@@ -726,28 +726,6 @@ export class BrowserPool<
                 closedBrowserIds,
             });
         }
-
-        // const retiredBrowserIds: string[] = [];
-
-        // for (const controller of this.activeBrowserControllers) {
-        //     const millisSinceLastPageOpened = Date.now() - controller.lastPageOpenedAt;
-        //     const isBrowserIdle = millisSinceLastPageOpened >= this.closeInactiveBrowserAfterMillis;
-        //     const isBrowserEmpty = controller.activePages === 0;
-
-        //     if (isBrowserIdle && isBrowserEmpty) {
-        //         const { id } = controller;
-        //         log.debug('Retiring idle browser.', { id });
-        //         this.retireBrowserController(controller);
-        //         retiredBrowserIds.push(id);
-        //     }
-        // }
-
-        // if (retiredBrowserIds.length) {
-        //     log.debug('Retired idle browsers.', {
-        //         count: retiredBrowserIds.length,
-        //         retiredBrowserIds,
-        //     });
-        // }
     }
 
     private _overridePageClose(page: PageReturn) {
