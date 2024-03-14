@@ -133,7 +133,10 @@ export class Request<UserData extends Dictionary = Dictionary> {
      */
     handledAt?: string;
 
-    hooks: Map<RequestEvent, ((request: Request) => void)[]> = new Map();
+    /**
+     * Local hooks for the request. Note that the hooks are not persisted once the request is stored to a storage.
+     */
+    hooks: Partial<Record<RequestEvent, ((request: Request) => void)[]>> = {};
 
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
@@ -286,7 +289,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             this.userData.__crawlee.sessionRotationCount = value;
         }
 
-        this.hooks.get('sessionRotation')?.forEach((hook) => hook(this));
+        this.hooks.sessionRotation?.forEach((hook) => hook(this));
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -346,10 +349,10 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * @param callable The hook to add.
      */
     addHook(event: RequestEvent, callable: (request: Request) => void | Promise<void>): void {
-        if (!this.hooks.has(event)) {
-            this.hooks.set(event, []);
+        if (!this.hooks[event]) {
+            this.hooks[event] = [];
         }
-        this.hooks.get(event)!.push(callable);
+        this.hooks[event]!.push(callable);
     }
 
     /**
