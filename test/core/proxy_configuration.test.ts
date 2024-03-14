@@ -1,4 +1,5 @@
 import { ProxyConfiguration, Request } from '@crawlee/core';
+import got from 'got';
 
 const sessionId = 538909250932;
 
@@ -195,7 +196,7 @@ describe('ProxyConfiguration', () => {
             expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
         });
 
-        test('high retry count picks higher-level proxies', async () => {
+        test('rotating request session results in higher-level proxies', async () => {
             const proxyConfiguration = new ProxyConfiguration({
                 tieredProxyUrls: [
                     ['http://proxy.com:1111'],
@@ -207,12 +208,23 @@ describe('ProxyConfiguration', () => {
             const request = new Request({
                 url: 'http://example.com',
             });
-            request.retryCount = 5;
 
             // @ts-expect-error protected property
             const { tieredProxyUrls } = proxyConfiguration;
-            expect(await proxyConfiguration.newUrl('session-id', request)).toEqual(tieredProxyUrls[1][0]);
-            expect(await proxyConfiguration.newUrl('session-id', request)).toEqual(tieredProxyUrls[2][0]);
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[0][0]);
+
+            request.sessionRotationCount++;
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[1][0]);
+
+            request.sessionRotationCount++;
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);
+
+            // we still get the same (higher) proxy tier even with a new request
+            const request2 = new Request({
+                url: 'http://example.com/another-resource',
+            });
+
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);
         });
 
         test('upshifts and downshifts properly', async () => {
@@ -230,27 +242,31 @@ describe('ProxyConfiguration', () => {
                 url: 'http://example.com',
             });
 
-            let suggestedProxies = [];
-
-            request.retryCount = 5;
-            for (let i = 0; i < 20; i++) {
-                suggestedProxies.push(await proxyConfiguration.newUrl('session-id', request));
+            let gotToTheHighestProxy = false;
+            for (let i = 0; i < 10; i++) {
+                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request });
+                if (lastProxyUrl === tieredProxyUrls[2][0]) {
+                    gotToTheHighestProxy = true;
+                    break;
+                }
+                request.sessionRotationCount++;
             }
 
-            expect(suggestedProxies).toHaveLength(20);
-            expect(suggestedProxies).toContain(tieredProxyUrls[1][0]);
-            expect(suggestedProxies).toContain(tieredProxyUrls[2][0]);
+            expect(gotToTheHighestProxy).toBe(true);
 
-            suggestedProxies = [];
+            // now let's go back down
+            let gotToTheLowestProxy = false;
 
-            request.retryCount = 0;
             for (let i = 0; i < 20; i++) {
-                suggestedProxies.push(await proxyConfiguration.newUrl('session-id', request));
+                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request });
+                if (lastProxyUrl === tieredProxyUrls[0][0]) {
+                    gotToTheLowestProxy = true;
+                    break;
+                }
+                // we don't need to increment the session rotation count here - we say that the proxies are good, so we promote the lower tier proxy prediction
             }
 
-            expect(suggestedProxies).toHaveLength(20);
-            expect(suggestedProxies).toContain(tieredProxyUrls[1][0]);
-            expect(suggestedProxies).toContain(tieredProxyUrls[0][0]);
+            expect(gotToTheLowestProxy).toBe(true);
         });
     });
 });

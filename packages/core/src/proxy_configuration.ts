@@ -260,7 +260,7 @@ export class ProxyConfiguration {
 
         let tierPrediction = options.proxyTier!;
 
-        if (tierPrediction === null) {
+        if (typeof tierPrediction !== 'number') {
             tierPrediction = this.getProxyTier(options.request!)!;
         }
 
