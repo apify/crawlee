@@ -71,6 +71,11 @@ module.exports = {
                         return `https://github.com/apify/crawlee/edit/master/website/${doc.versionDocsDirPath}/${doc.docPath}`;
                     },
                 },
+                blog: {
+                    blogTitle: 'Crawlee Blog - learn how to build better scrapers',
+                    blogDescription: 'Guides and tutorials on using Crawlee, the most reliable open-source web scraping and browser automation library for JavaScript and Node.js developers.',
+                    postsPerPage: 'ALL',
+                  },
                 theme: {
                     customCss: '/src/css/custom.css',
                 },
