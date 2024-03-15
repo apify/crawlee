@@ -47,6 +47,8 @@ export enum RequestState {
     SKIPPED,
 }
 
+type RequestEvent = 'sessionRotation';
+
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
  * The `Request` object also stores information about errors that occurred during processing of the request.
@@ -78,8 +80,6 @@ export enum RequestState {
  * ```
  * @category Sources
  */
-
-type RequestEvent = 'sessionRotation';
 export class Request<UserData extends Dictionary = Dictionary> {
     /** Request ID */
     id?: string;

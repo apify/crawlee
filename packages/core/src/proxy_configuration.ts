@@ -103,6 +103,59 @@ interface TieredProxyOptions {
 }
 
 /**
+ * Internal class for tracking the proxy tier history for a specific domain.
+ *
+ * Predicts the best proxy tier for the next request based on the error history for different proxy tiers.
+ */
+class ProxyTierTracker {
+    private histogram: number[];
+    private currentTier: number;
+
+    constructor(tieredProxyUrls: string[][]) {
+        this.histogram = tieredProxyUrls.map(() => 0);
+        this.currentTier = 0;
+    }
+
+    /**
+     * Processes a single step of the algorithm and updates the current tier prediction based on the error history.
+     */
+    private processStep(): void {
+        this.histogram.forEach((x, i) => {
+            if (this.currentTier === i) return;
+            if (x > 0) this.histogram[i]--;
+        });
+
+        const left = this.currentTier > 0 ? this.histogram[this.currentTier - 1] : Infinity;
+        const right = this.currentTier < this.histogram.length - 1 ? this.histogram[this.currentTier + 1] : Infinity;
+
+        if (this.histogram[this.currentTier] > Math.min(left, right)) {
+            this.currentTier = left <= right ? this.currentTier - 1 : this.currentTier + 1;
+        }
+
+        if (this.histogram[this.currentTier] === left) {
+            this.currentTier--;
+        }
+    }
+
+    /**
+     * Increases the error score for the given proxy tier. This raises the chance of picking a different proxy tier for the subsequent requests.
+     * @param tier The proxy tier to mark as problematic.
+     */
+    addError(tier: number) {
+        this.histogram[tier] += 10;
+    }
+
+    /**
+     * Returns the best proxy tier for the next request based on the error history for different proxy tiers.
+     * @returns The proxy tier prediction
+     */
+    getTier() {
+        this.processStep();
+        return this.currentTier;
+    }
+}
+
+/**
  * Configures connection to a proxy server with the provided options. Proxy servers are used to prevent target websites from blocking
  * your crawlers based on IP address rate limits or blacklists. Setting proxy configuration in your crawlers automatically configures
  * them to use the selected proxies for all connections. You can get information about the currently used proxy by inspecting
@@ -130,44 +183,6 @@ interface TieredProxyOptions {
  * ```
  * @category Scaling
  */
-
-class ProxyTierTracker {
-    private histogram: number[];
-    private currentTier: number;
-
-    constructor(tieredProxyUrls: string[][]) {
-        this.histogram = tieredProxyUrls.map(() => 0);
-        this.currentTier = 0;
-    }
-
-    private processStep(): void {
-        this.histogram.forEach((x, i) => {
-            if (this.currentTier === i) return;
-            if (x > 0) this.histogram[i]--;
-        });
-
-        const left = this.currentTier > 0 ? this.histogram[this.currentTier - 1] : Infinity;
-        const right = this.currentTier < this.histogram.length - 1 ? this.histogram[this.currentTier + 1] : Infinity;
-
-        if (this.histogram[this.currentTier] > Math.min(left, right)) {
-            this.currentTier = left <= right ? this.currentTier - 1 : this.currentTier + 1;
-        }
-
-        if (this.histogram[this.currentTier] === left) {
-            this.currentTier--;
-        }
-    }
-
-    addError(tier: number) {
-        this.histogram[tier] += 10;
-    }
-
-    getTier() {
-        this.processStep();
-        return this.currentTier;
-    }
-}
-
 export class ProxyConfiguration {
     isManInTheMiddle = false;
     protected nextCustomUrlIndex = 0;
@@ -250,6 +265,12 @@ export class ProxyConfiguration {
         };
     }
 
+    /**
+     * Given a session identifier and a request / proxy tier, this function returns a new proxy URL based on the provided configuration options.
+     * @param _sessionId Session identifier
+     * @param options Options for the tiered proxy rotation
+     * @returns A string with a proxy URL.
+     */
     protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): string {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 

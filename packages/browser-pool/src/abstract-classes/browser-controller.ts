@@ -59,7 +59,7 @@ export abstract class BrowserController<
      * The proxy tier tied to this browser controller.
      * `undefined` if no tiered proxy is used.
      */
-    proxyTier : number | undefined = undefined;
+    proxyTier?: number;
 
     isActive = false;
 

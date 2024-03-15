@@ -1,5 +1,4 @@
 import { ProxyConfiguration, Request } from '@crawlee/core';
-import got from 'got';
 
 const sessionId = 538909250932;
 
