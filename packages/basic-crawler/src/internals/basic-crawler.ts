@@ -1148,7 +1148,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
             // eslint-disable-next-line dot-notation
             source['inProgress'].add(request.id!);
-            await source.reclaimRequest(request);
+            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
 
         return true;

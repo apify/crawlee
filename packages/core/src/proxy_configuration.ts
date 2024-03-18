@@ -139,6 +139,8 @@ class ProxyTierTracker {
 
     /**
      * Increases the error score for the given proxy tier. This raises the chance of picking a different proxy tier for the subsequent requests.
+     *
+     * The error score is increased by 10 for the given tier. This means that this tier will be disadvantaged for the next 10 requests (every new request prediction decreases the error score by 1).
      * @param tier The proxy tier to mark as problematic.
      */
     addError(tier: number) {
