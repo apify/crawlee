@@ -149,7 +149,7 @@ class ProxyTierTracker {
      * Returns the best proxy tier for the next request based on the error history for different proxy tiers.
      * @returns The proxy tier prediction
      */
-    getTier() {
+    predictTier() {
         this.processStep();
         return this.currentTier;
     }
@@ -311,7 +311,7 @@ export class ProxyConfiguration {
             tracker.addError(request.userData.__crawlee.lastProxyTier);
         }
 
-        const tierPrediction = tracker.getTier();
+        const tierPrediction = tracker.predictTier();
 
         request.userData.__crawlee.lastProxyTier = tierPrediction;
         request.userData.__crawlee.forefront = true;
