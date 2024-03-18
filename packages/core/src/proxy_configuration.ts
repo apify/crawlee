@@ -285,7 +285,9 @@ export class ProxyConfiguration {
             tierPrediction = this.getProxyTier(options.request!)!;
         }
 
-        return this.tieredProxyUrls![tierPrediction][this.nextCustomUrlIndex++ % this.tieredProxyUrls![tierPrediction].length];
+        const proxyTier = this.tieredProxyUrls![tierPrediction];
+
+        return proxyTier[this.nextCustomUrlIndex++ % proxyTier.length];
     }
 
     /**
@@ -301,12 +303,18 @@ export class ProxyConfiguration {
             this.domainTiers.set(domain, new ProxyTierTracker(this.tieredProxyUrls));
         }
 
+        request.userData.__crawlee ??= {};
+
         const tracker = this.domainTiers.get(domain)!;
+
+        if (typeof request.userData.__crawlee.lastProxyTier === 'number') {
+            tracker.addError(request.userData.__crawlee.lastProxyTier);
+        }
+
         const tierPrediction = tracker.getTier();
 
-        request.addHook('sessionRotation', () => {
-            tracker.addError(tierPrediction);
-        });
+        request.userData.__crawlee.lastProxyTier = tierPrediction;
+        request.userData.__crawlee.forefront = true;
 
         return tierPrediction;
     }

@@ -1384,7 +1384,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     { id, url, retryCount },
                 );
 
-                await source.reclaimRequest(request);
+                await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
                 return;
             }
         }

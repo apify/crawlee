@@ -47,8 +47,6 @@ export enum RequestState {
     SKIPPED,
 }
 
-type RequestEvent = 'sessionRotation';
-
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
  * The `Request` object also stores information about errors that occurred during processing of the request.
@@ -132,11 +130,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * Is `null` if the request has not been crawled yet.
      */
     handledAt?: string;
-
-    /**
-     * Local hooks for the request. Note that the hooks are not persisted once the request is stored to a storage.
-     */
-    hooks: Partial<Record<RequestEvent, ((request: Request) => void)[]>> = {};
 
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
@@ -288,8 +281,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
         } else {
             this.userData.__crawlee.sessionRotationCount = value;
         }
-
-        this.hooks.sessionRotation?.forEach((hook) => hook(this));
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -340,19 +331,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
         } else {
             this.userData.__crawlee.enqueueStrategy = value;
         }
-    }
-
-    /**
-     * Adds a hook to the request. The hook is called on the specified `event`.
-     * The hooks are only useful for short-term modifications of the request - note that the hooks are not persisted once the request is stored to a storage.
-     * @param event The event to add the hook to.
-     * @param callable The hook to add.
-     */
-    addHook(event: RequestEvent, callable: (request: Request) => void | Promise<void>): void {
-        if (!this.hooks[event]) {
-            this.hooks[event] = [];
-        }
-        this.hooks[event]!.push(callable);
     }
 
     /**

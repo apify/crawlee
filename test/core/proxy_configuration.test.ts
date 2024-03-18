@@ -195,7 +195,7 @@ describe('ProxyConfiguration', () => {
             expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
         });
 
-        test('rotating request session results in higher-level proxies', async () => {
+        test('rotating a request results in higher-level proxies', async () => {
             const proxyConfiguration = new ProxyConfiguration({
                 tieredProxyUrls: [
                     ['http://proxy.com:1111'],
@@ -211,11 +211,7 @@ describe('ProxyConfiguration', () => {
             // @ts-expect-error protected property
             const { tieredProxyUrls } = proxyConfiguration;
             expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[0][0]);
-
-            request.sessionRotationCount++;
             expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[1][0]);
-
-            request.sessionRotationCount++;
             expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);
 
             // we still get the same (higher) proxy tier even with a new request
@@ -223,7 +219,7 @@ describe('ProxyConfiguration', () => {
                 url: 'http://example.com/another-resource',
             });
 
-            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);
+            expect(await proxyConfiguration.newUrl('session-id', { request: request2 })).toEqual(tieredProxyUrls[2][0]);
         });
 
         test('upshifts and downshifts properly', async () => {
@@ -262,7 +258,7 @@ describe('ProxyConfiguration', () => {
                     gotToTheLowestProxy = true;
                     break;
                 }
-                // we don't need to increment the session rotation count here - we say that the proxies are good, so we promote the lower tier proxy prediction
+                // We don't increment the sessionRotationCount here - this causes the proxy tier to go down (current proxy is ok, so it tries to downshift in some time)
             }
 
             expect(gotToTheLowestProxy).toBe(true);
