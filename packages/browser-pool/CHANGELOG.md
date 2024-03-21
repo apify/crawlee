@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.8.2](https://github.com/apify/crawlee/compare/v3.8.1...v3.8.2) (2024-03-21)
+
+
+### Bug Fixes
+
+* fix detection of older puppeteer versions ([890669b](https://github.com/apify/crawlee/commit/890669b0b3eef94d00ad69aa022e13b3109a660c)), closes [#2370](https://github.com/apify/crawlee/issues/2370)
+* **puppeteer:** improve detection of older versions ([98d4e86](https://github.com/apify/crawlee/commit/98d4e8664a54c1a134446a1b6ab9042d14ed8629))
+
+
+
+
+
 ## [3.8.1](https://github.com/apify/crawlee/compare/v3.8.0...v3.8.1) (2024-02-22)
 
 **Note:** Version bump only for package @crawlee/browser-pool
