@@ -1,3 +1,5 @@
+import { readFile } from 'fs/promises';
+
 import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
@@ -22,9 +24,16 @@ export class PuppeteerPlugin extends BrowserPlugin<
     protected async _launch(
         launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.PuppeteerLaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>,
     ): Promise<PuppeteerTypes.Browser> {
-        // @ts-expect-error not exposed on type level
-        const { CdpBrowser } = await import('puppeteer');
-        const oldPuppeteerVersion = !CdpBrowser || 'createIncognitoBrowserContext' in CdpBrowser.prototype;
+        let oldPuppeteerVersion = false;
+
+        try {
+            const jsonPath = require.resolve('puppeteer/package.json');
+            const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
+            const version = +parsed.version.split('.')[0];
+            oldPuppeteerVersion = version < 22;
+        } catch {
+            // ignore
+        }
         const {
             launchOptions,
             userDataDir,
