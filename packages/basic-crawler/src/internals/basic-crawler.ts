@@ -1623,7 +1623,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
             case EnqueueStrategy.All:
             default: {
-                return true;
+                return baseUrl.protocol === 'http:' || baseUrl.protocol === 'https:';
             }
         }
     }
