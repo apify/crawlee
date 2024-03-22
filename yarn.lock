@@ -3249,9 +3249,9 @@ __metadata:
   linkType: hard
 
 "bare-events@npm:^2.0.0, bare-events@npm:^2.2.0":
-  version: 2.2.1
-  resolution: "bare-events@npm:2.2.1"
-  checksum: 10c0/b28cbebe810ecd234b6df89b717fea593c19dad22159662df6a725e43369f74c5c178b1cb19b8ebb0a3e8a0e5a297083234c8183ae784f7dacc1ae17cacc08ed
+  version: 2.2.2
+  resolution: "bare-events@npm:2.2.2"
+  checksum: 10c0/bacdaaf072f87ab5d2ed0c2fc519ef0fa8f6acd834fee50710a05f416a1b73ed99c9c6dfbefdd462ec4eb726d8f74e4a8476c2f8c3ae8812919c67eacb1f807f
   languageName: node
   linkType: hard
 
@@ -4747,9 +4747,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.713
-  resolution: "electron-to-chromium@npm:1.4.713"
-  checksum: 10c0/eb28bb64f61c79bae53fa094f31611d938cf21067123e2ceb04e6617c0ffca37e45c1e08fbad4f196178917c3395a576aa4e4db03d12389244fea50d4316f68f
+  version: 1.4.714
+  resolution: "electron-to-chromium@npm:1.4.714"
+  checksum: 10c0/36b85377d02cd59b6c458b2a63b4613eed10053d0b354a784dc441596c53db6401c4fcba04f7883a691f30c64fa18ef14f8361fc0a71673786c728912b106870
   languageName: node
   linkType: hard
 
@@ -11349,13 +11349,13 @@ __metadata:
   linkType: hard
 
 "string.prototype.trimstart@npm:^1.0.7":
-  version: 1.0.7
-  resolution: "string.prototype.trimstart@npm:1.0.7"
+  version: 1.0.8
+  resolution: "string.prototype.trimstart@npm:1.0.8"
   dependencies:
-    call-bind: "npm:^1.0.2"
-    define-properties: "npm:^1.2.0"
-    es-abstract: "npm:^1.22.1"
-  checksum: 10c0/0bcf391b41ea16d4fda9c9953d0a7075171fe090d33b4cf64849af94944c50862995672ac03e0c5dba2940a213ad7f53515a668dac859ce22a0276289ae5cf4f
+    call-bind: "npm:^1.0.7"
+    define-properties: "npm:^1.2.1"
+    es-object-atoms: "npm:^1.0.0"
+  checksum: 10c0/d53af1899959e53c83b64a5fd120be93e067da740e7e75acb433849aa640782fb6c7d4cd5b84c954c84413745a3764df135a8afeb22908b86a835290788d8366
   languageName: node
   linkType: hard
 
@@ -11572,8 +11572,8 @@ __metadata:
   linkType: hard
 
 "tar@npm:^6.1.11, tar@npm:^6.1.2":
-  version: 6.2.0
-  resolution: "tar@npm:6.2.0"
+  version: 6.2.1
+  resolution: "tar@npm:6.2.1"
   dependencies:
     chownr: "npm:^2.0.0"
     fs-minipass: "npm:^2.0.0"
@@ -11581,7 +11581,7 @@ __metadata:
     minizlib: "npm:^2.1.1"
     mkdirp: "npm:^1.0.3"
     yallist: "npm:^4.0.0"
-  checksum: 10c0/02ca064a1a6b4521fef88c07d389ac0936730091f8c02d30ea60d472e0378768e870769ab9e986d87807bfee5654359cf29ff4372746cc65e30cbddc352660d8
+  checksum: 10c0/a5eca3eb50bc11552d453488344e6507156b9193efd7635e98e867fab275d527af53d8866e2370cd09dfe74378a18111622ace35af6a608e5223a7d27fe99537
   languageName: node
   linkType: hard
 
@@ -11669,21 +11669,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.13":
-  version: 6.1.13
-  resolution: "tldts-core@npm:6.1.13"
-  checksum: 10c0/79239bf622321a27552b715092feae1b2cf25bed415667e77ce38eea95b5753febc27510b0298a538c893c8d2dfefbc0af614d7a2568b605fc387d593873812d
+"tldts-core@npm:^6.1.14":
+  version: 6.1.14
+  resolution: "tldts-core@npm:6.1.14"
+  checksum: 10c0/fb0428bb5dc84b60796d8d63a2215232fc0ba915c9b6747323bcfd567c7df0924d9f3c9aef3b61e17d8a39a82a222ac591ad282332bd55980b56198bcc63445a
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.1.13
-  resolution: "tldts@npm:6.1.13"
+  version: 6.1.14
+  resolution: "tldts@npm:6.1.14"
   dependencies:
-    tldts-core: "npm:^6.1.13"
+    tldts-core: "npm:^6.1.14"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/21e997b5a692be142a2d6f80ef8a045382b80b0f9429a1229e59417766bc8c013ecba0f6855396f85ce15b1c4b51c9b017532389149df181eb55a18beb96aafe
+  checksum: 10c0/f771677c22023a19595e73039e50ce5108c4433216dd64fdd98fcbf24d687e50a75620fa4b60f23655f87991caf8a83c53b97b04bb4ee33222f643f3bca3f281
   languageName: node
   linkType: hard
 
@@ -12051,8 +12051,8 @@ __metadata:
   linkType: hard
 
 "typed-array-length@npm:^1.0.5":
-  version: 1.0.5
-  resolution: "typed-array-length@npm:1.0.5"
+  version: 1.0.6
+  resolution: "typed-array-length@npm:1.0.6"
   dependencies:
     call-bind: "npm:^1.0.7"
     for-each: "npm:^0.3.3"
@@ -12060,7 +12060,7 @@ __metadata:
     has-proto: "npm:^1.0.3"
     is-typed-array: "npm:^1.1.13"
     possible-typed-array-names: "npm:^1.0.0"
-  checksum: 10c0/5cc0f79196e70a92f8f40846cfa62b3de6be51e83f73655e137116cf65e3c29a288502b18cc8faf33c943c2470a4569009e1d6da338441649a2db2f135761ad5
+  checksum: 10c0/74253d7dc488eb28b6b2711cf31f5a9dcefc9c41b0681fd1c178ed0a1681b4468581a3626d39cd4df7aee3d3927ab62be06aa9ca74e5baf81827f61641445b77
   languageName: node
   linkType: hard
 
