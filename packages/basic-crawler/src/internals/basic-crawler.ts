@@ -360,6 +360,14 @@ export interface CrawlerExperiments {
      * default causes issues. Please open an issue if you encounter problems with the new API.
      */
     disableRequestLocking?: boolean;
+
+    /**
+     * @deprecated This experiment is now enabled by default, and this flag will be removed in a future release.
+     * If you encounter issues due to this change, please:
+     * - report it to us: https://github.com/apify/crawlee
+     * - set `disableRequestLocking` to `true` in the `experiments` option of the crawler
+     */
+    requestLocking?: boolean;
 }
 
 /**
