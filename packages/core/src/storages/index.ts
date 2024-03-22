@@ -4,6 +4,7 @@ export * from './request_list';
 export * from './request_provider';
 export { RequestQueue as RequestQueueV1 } from './request_queue';
 export {
+    /** @deprecated Import `RequestQueue` instead */
     RequestQueueV2,
     // Export this as RequestQueue to avoid breaking changes (and to push it to default)
     RequestQueueV2 as RequestQueue,
