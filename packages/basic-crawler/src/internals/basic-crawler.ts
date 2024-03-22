@@ -356,10 +356,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
  */
 export interface CrawlerExperiments {
     /**
-     * Enables the use of the new RequestQueue API, which allows multiple clients to use the same queue,
-     * by locking the requests they are processing for a period of time.
+     * Switches the RequestQueue to use the old, non-locking API. This is a temporary option to allow fallbacks if the new
+     * default causes issues. Please open an issue if you encounter problems with the new API.
      */
-    requestLocking?: boolean;
+    disableRequestLocking?: boolean;
 }
 
 /**
@@ -591,14 +591,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
-
-        if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.requestLocking) {
-            throw new Error([
-                'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
-                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { requestLocking: true }` "
-                + 'in your crawler options, and try again.',
-            ].join('\n'));
-        }
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -1567,19 +1559,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private async _getRequestQueue() {
-        if (this.experiments.requestLocking) {
-            if (!this._experimentWarnings.requestLocking) {
-                this.log.warning([
-                    'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
-                    'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
-                ].join('\n'));
-                this._experimentWarnings.requestLocking = true;
+        if (this.experiments.disableRequestLocking) {
+            if (!this._experimentWarnings.disableRequestLocking) {
+                this.log.info('Using the old RequestQueue implementation without request locking.');
+                this._experimentWarnings.disableRequestLocking = true;
             }
 
-            return RequestQueueV2.open(null, { config: this.config });
+            return RequestQueue.open(null, { config: this.config });
         }
 
-        return RequestQueue.open(null, { config: this.config });
+        return RequestQueueV2.open(null, { config: this.config });
     }
 
     protected requestMatchesEnqueueStrategy(request: Request) {
