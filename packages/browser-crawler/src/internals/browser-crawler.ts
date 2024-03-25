@@ -499,8 +499,8 @@ export abstract class BrowserCrawler<
             const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, { request: crawlingContext.request });
             crawlingContext.proxyInfo = proxyInfo;
 
-            newPageOptions.proxyUrl = proxyInfo.url;
-            newPageOptions.proxyTier = proxyInfo.proxyTier;
+            newPageOptions.proxyUrl = proxyInfo?.url;
+            newPageOptions.proxyTier = proxyInfo?.proxyTier;
 
             if (this.proxyConfiguration.isManInTheMiddle) {
                 /**
@@ -703,12 +703,12 @@ export abstract class BrowserCrawler<
             launchContextExtends.session = await this.sessionPool.getSession();
         }
 
-        if (this.proxyConfiguration) {
+        if (this.proxyConfiguration && !launchContext.proxyUrl) {
             const proxyInfo = await this.proxyConfiguration.newProxyInfo(
                 launchContextExtends.session?.id,
                 { proxyTier: (launchContext.proxyTier as number) ?? undefined },
             );
-            launchContext.proxyUrl = proxyInfo.url;
+            launchContext.proxyUrl = proxyInfo?.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
             // Disable SSL verification for MITM proxies

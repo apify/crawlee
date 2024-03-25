@@ -5,7 +5,7 @@ import ow from 'ow';
 import type { Request } from './request';
 
 export interface ProxyConfigurationFunction {
-    (sessionId: string | number): string | Promise<string>;
+    (sessionId: string | number, options?: { request?: Request }): string | undefined | Promise<string | undefined>;
 }
 
 export interface ProxyConfigurationOptions {
@@ -255,10 +255,10 @@ export class ProxyConfiguration {
      *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo> {
+    async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo | undefined> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
-        let url: string;
+        let url: string | undefined;
         let tier: number | undefined;
         if (this.tieredProxyUrls) {
             const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), options);
@@ -267,6 +267,8 @@ export class ProxyConfiguration {
         } else {
             url = await this.newUrl(sessionId, options);
         }
+
+        if (!url) return undefined;
 
         const { username, password, port, hostname } = new URL(url);
 
@@ -356,11 +358,11 @@ export class ProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(sessionId?: string | number, options?: TieredProxyOptions): Promise<string> {
+    async newUrl(sessionId?: string | number, options?: TieredProxyOptions): Promise<string | undefined> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
-            return this._callNewUrlFunction(sessionId)!;
+            return this._callNewUrlFunction(sessionId, { request: options?.request })!;
         }
 
         if (this.tieredProxyUrls) {
@@ -396,11 +398,10 @@ export class ProxyConfiguration {
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
-    protected async _callNewUrlFunction(sessionId?: string) {
-        let proxyUrl: string;
-
+    protected async _callNewUrlFunction(sessionId?: string, options?: { request?: Request }) {
         try {
-            proxyUrl = await this.newUrlFunction!(sessionId!);
+            const proxyUrl = await this.newUrlFunction!(sessionId!, options);
+            if (!proxyUrl) return proxyUrl;
             new URL(proxyUrl); // eslint-disable-line no-new
             return proxyUrl;
         } catch (err) {
