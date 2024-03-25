@@ -404,8 +404,16 @@ export class BrowserPool<
 
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier });
-            if (!browserController) browserController = await this._launchBrowser(id, { browserPlugin, proxyTier });
+            let browserController;
+            if (proxyTier) {
+                browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier });
+            } else if (proxyUrl) {
+                browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
+            } else {
+                browserController = this._pickBrowserWithFreeCapacity(browserPlugin);
+            }
+
+            if (!browserController) browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
             tryCancel();
 
             return this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
@@ -634,6 +642,7 @@ export class BrowserPool<
             browserPlugin,
             launchOptions,
             proxyTier,
+            proxyUrl,
         } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
@@ -643,6 +652,7 @@ export class BrowserPool<
             id: pageId,
             launchOptions,
             proxyTier,
+            proxyUrl,
         });
 
         try {
@@ -660,6 +670,7 @@ export class BrowserPool<
 
         log.debug('Launched new browser.', { id: browserController.id });
         browserController.proxyTier = proxyTier;
+        browserController.proxyUrl = proxyUrl;
 
         try {
             // If the launch fails on the post-launch hooks, we need to clean up
@@ -694,12 +705,20 @@ export class BrowserPool<
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyTier?: number }) {
+    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?:
+        { proxyTier?: number; proxyUrl?: never } | { proxyTier?: never; proxyUrl?: string | null }) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
+            const isSameProxyUrl = typeof options?.proxyUrl === 'undefined' || controller.proxyUrl === options.proxyUrl;
+            const isCorrectProxyTier = typeof options?.proxyTier !== 'number' || controller.proxyTier === options.proxyTier;
 
-            return hasCapacity && isCorrectPlugin && (typeof options?.proxyTier !== 'number' || controller.proxyTier === options.proxyTier);
+            return isCorrectPlugin
+                && hasCapacity
+                && (
+                    isSameProxyUrl
+                    || isCorrectProxyTier
+                );
         });
     }
 
@@ -863,4 +882,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     browserPlugin: BP;
     launchOptions?: BP['launchOptions'];
     proxyTier?: number;
+    proxyUrl?: string;
 }

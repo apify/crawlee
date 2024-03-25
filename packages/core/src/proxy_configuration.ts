@@ -95,6 +95,11 @@ export interface ProxyInfo {
      * Proxy port.
      */
     port: number | string;
+
+    /**
+     * Proxy tier for the current proxy, if applicable (only for `tieredProxyUrls`).
+     */
+    proxyTier?: number;
 }
 
 interface TieredProxyOptions {
@@ -253,7 +258,15 @@ export class ProxyConfiguration {
     async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
-        const url = await this.newUrl(sessionId, options);
+        let url: string;
+        let tier: number | undefined;
+        if (this.tieredProxyUrls) {
+            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), options);
+            url = proxyUrl;
+            tier = proxyTier;
+        } else {
+            url = await this.newUrl(sessionId, options);
+        }
 
         const { username, password, port, hostname } = new URL(url);
 
@@ -264,6 +277,7 @@ export class ProxyConfiguration {
             password,
             hostname,
             port: port!,
+            proxyTier: tier,
         };
     }
 
@@ -271,14 +285,19 @@ export class ProxyConfiguration {
      * Given a session identifier and a request / proxy tier, this function returns a new proxy URL based on the provided configuration options.
      * @param _sessionId Session identifier
      * @param options Options for the tiered proxy rotation
-     * @returns A string with a proxy URL.
+     * @returns An object with the proxy URL and the proxy tier used.
      */
-    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): string {
+    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): {
+        proxyUrl: string;
+        proxyTier?: number;
+    } {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 
         if (!options || (!options?.request && options?.proxyTier === undefined)) {
             const allProxyUrls = this.tieredProxyUrls.flat();
-            return allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length];
+            return {
+                proxyUrl: allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length],
+            };
         }
 
         let tierPrediction = options.proxyTier!;
@@ -289,7 +308,10 @@ export class ProxyConfiguration {
 
         const proxyTier = this.tieredProxyUrls![tierPrediction];
 
-        return proxyTier[this.nextCustomUrlIndex++ % proxyTier.length];
+        return {
+            proxyUrl: proxyTier[this.nextCustomUrlIndex++ % proxyTier.length],
+            proxyTier: tierPrediction,
+        };
     }
 
     /**
@@ -342,7 +364,10 @@ export class ProxyConfiguration {
         }
 
         if (this.tieredProxyUrls) {
-            return this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), options);
+            return this._handleTieredUrl(
+                sessionId ?? Math.random().toString().slice(2, 6),
+                options,
+            ).proxyUrl;
         }
 
         return this._handleCustomUrl(sessionId);
