@@ -695,7 +695,7 @@ describe('BasicCrawler', () => {
 
         // 1st try
 
-        expect(reclaimReq).toBeCalledWith(request1);
+        expect(reclaimReq).toBeCalledWith(request1, expect.objectContaining({}));
         expect(reclaimReq).toBeCalledTimes(3);
 
         expect(processed['http://example.com/0'].userData.foo).toBe('bar');

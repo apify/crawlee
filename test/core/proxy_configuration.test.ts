@@ -1,4 +1,4 @@
-import { ProxyConfiguration } from '@crawlee/core';
+import { ProxyConfiguration, Request } from '@crawlee/core';
 
 const sessionId = 538909250932;
 
@@ -174,6 +174,94 @@ describe('ProxyConfiguration', () => {
             } catch (err) {
                 expect((err as Error).message).toMatch('to be a URL, got `http://proxy.com:1111*invalid_url`');
             }
+        });
+    });
+
+    describe('with tieredProxyUrls', () => {
+        test('without Request rotates the urls uniformly', async () => {
+            const proxyConfiguration = new ProxyConfiguration({
+                tieredProxyUrls: [
+                    ['http://proxy.com:1111', 'http://proxy.com:2222'],
+                    ['http://proxy.com:3333', 'http://proxy.com:4444'],
+                ],
+            });
+
+            // @ts-expect-error protected property
+            const { tieredProxyUrls } = proxyConfiguration;
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][1]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[1][0]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[1][1]);
+            expect(await proxyConfiguration.newUrl()).toEqual(tieredProxyUrls[0][0]);
+        });
+
+        test('rotating a request results in higher-level proxies', async () => {
+            const proxyConfiguration = new ProxyConfiguration({
+                tieredProxyUrls: [
+                    ['http://proxy.com:1111'],
+                    ['http://proxy.com:2222'],
+                    ['http://proxy.com:3333'],
+                ],
+            });
+
+            const request = new Request({
+                url: 'http://example.com',
+            });
+
+            // @ts-expect-error protected property
+            const { tieredProxyUrls } = proxyConfiguration;
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[0][0]);
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[1][0]);
+            expect(await proxyConfiguration.newUrl('session-id', { request })).toEqual(tieredProxyUrls[2][0]);
+
+            // we still get the same (higher) proxy tier even with a new request
+            const request2 = new Request({
+                url: 'http://example.com/another-resource',
+            });
+
+            expect(await proxyConfiguration.newUrl('session-id', { request: request2 })).toEqual(tieredProxyUrls[2][0]);
+        });
+
+        test('upshifts and downshifts properly', async () => {
+            const tieredProxyUrls = [
+                ['http://proxy.com:1111'],
+                ['http://proxy.com:2222'],
+                ['http://proxy.com:3333'],
+            ];
+
+            const proxyConfiguration = new ProxyConfiguration({
+                tieredProxyUrls,
+            });
+
+            const request = new Request({
+                url: 'http://example.com',
+            });
+
+            let gotToTheHighestProxy = false;
+            for (let i = 0; i < 10; i++) {
+                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request });
+                if (lastProxyUrl === tieredProxyUrls[2][0]) {
+                    gotToTheHighestProxy = true;
+                    break;
+                }
+                request.sessionRotationCount++;
+            }
+
+            expect(gotToTheHighestProxy).toBe(true);
+
+            // now let's go back down
+            let gotToTheLowestProxy = false;
+
+            for (let i = 0; i < 20; i++) {
+                const lastProxyUrl = await proxyConfiguration.newUrl('session-id', { request });
+                if (lastProxyUrl === tieredProxyUrls[0][0]) {
+                    gotToTheLowestProxy = true;
+                    break;
+                }
+                // We don't increment the sessionRotationCount here - this causes the proxy tier to go down (current proxy is ok, so it tries to downshift in some time)
+            }
+
+            expect(gotToTheLowestProxy).toBe(true);
         });
     });
 });

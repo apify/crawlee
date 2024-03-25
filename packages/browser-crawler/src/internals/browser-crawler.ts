@@ -493,22 +493,26 @@ export abstract class BrowserCrawler<
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
         const experimentalContainers = this.launchContext?.experimentalContainers;
 
-        if (this.proxyConfiguration && (useIncognitoPages || experimentalContainers)) {
-            const { session } = crawlingContext;
+        if (this.proxyConfiguration) {
+            if (useIncognitoPages || experimentalContainers) {
+                const { session } = crawlingContext;
 
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
-            crawlingContext.proxyInfo = proxyInfo;
+                const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, { request: crawlingContext.request });
+                crawlingContext.proxyInfo = proxyInfo;
 
-            newPageOptions.proxyUrl = proxyInfo.url;
+                newPageOptions.proxyUrl = proxyInfo.url;
 
-            if (this.proxyConfiguration.isManInTheMiddle) {
-                /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
-                newPageOptions.pageOptions = {
-                    ignoreHTTPSErrors: true,
-                };
+                if (this.proxyConfiguration.isManInTheMiddle) {
+                    /**
+                     * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                     * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                     */
+                    newPageOptions.pageOptions = {
+                        ignoreHTTPSErrors: true,
+                    };
+                }
+            } else {
+                newPageOptions.proxyTier = this.proxyConfiguration.getProxyTier(crawlingContext.request);
             }
         }
 
@@ -703,7 +707,10 @@ export abstract class BrowserCrawler<
         }
 
         if (this.proxyConfiguration) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session?.id);
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(
+                launchContextExtends.session?.id,
+                { proxyTier: (launchContext.proxyTier as number) ?? undefined },
+            );
             launchContext.proxyUrl = proxyInfo.url;
             launchContextExtends.proxyInfo = proxyInfo;
 

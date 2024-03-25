@@ -1174,7 +1174,7 @@ describe('CheerioCrawler', () => {
                 // localhost proxy causes proxy errors, session rotations and finally throws, but we don't care
             }
 
-            expect(newUrlSpy).toBeCalledWith(usedSession.id);
+            expect(newUrlSpy).toBeCalledWith(usedSession.id, expect.objectContaining({ request: expect.any(Request) }));
         });
     });
 

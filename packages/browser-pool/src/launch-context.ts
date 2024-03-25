@@ -50,6 +50,7 @@ export interface LaunchContextOptions<
      */
     userDataDir?: string;
     proxyUrl?: string;
+    proxyTier?: number;
 }
 
 export class LaunchContext<
@@ -65,6 +66,7 @@ export class LaunchContext<
     useIncognitoPages: boolean;
     experimentalContainers: boolean;
     userDataDir: string;
+    proxyTier?: number;
 
     private _proxyUrl?: string;
     private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
@@ -81,6 +83,7 @@ export class LaunchContext<
             useIncognitoPages,
             experimentalContainers,
             userDataDir = '',
+            proxyTier,
         } = options;
 
         this.id = id;
@@ -89,6 +92,7 @@ export class LaunchContext<
         this.useIncognitoPages = useIncognitoPages ?? false;
         this.experimentalContainers = experimentalContainers ?? false;
         this.userDataDir = userDataDir;
+        this.proxyTier = proxyTier;
 
         this._proxyUrl = proxyUrl;
     }
