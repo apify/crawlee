@@ -2564,7 +2564,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mdx-js/react@npm:^3.0.0":
+"@mdx-js/react@npm:^3.0.0, @mdx-js/react@npm:^3.0.1":
   version: 3.0.1
   resolution: "@mdx-js/react@npm:3.0.1"
   dependencies:
@@ -12248,12 +12248,13 @@ __metadata:
     "@apify/tsconfig": "npm:^0.1.0"
     "@apify/utilities": "npm:^2.8.0"
     "@docusaurus/core": "npm:3.1.1"
+    "@docusaurus/mdx-loader": "npm:3.1.1"
     "@docusaurus/module-type-aliases": "npm:3.1.1"
     "@docusaurus/plugin-client-redirects": "npm:3.1.1"
     "@docusaurus/preset-classic": "npm:3.1.1"
     "@docusaurus/types": "npm:3.1.1"
     "@giscus/react": "npm:^3.0.0"
-    "@mdx-js/react": "npm:^3.0.0"
+    "@mdx-js/react": "npm:^3.0.1"
     "@types/react": "npm:^18.0.28"
     "@typescript-eslint/eslint-plugin": "npm:^7.0.0"
     "@typescript-eslint/parser": "npm:^7.0.0"
