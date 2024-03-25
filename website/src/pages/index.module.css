@@ -54,6 +54,21 @@
     width: calc(100% - 2rem);
 }
 
+.heroBanner h1::selection,
+.heroBanner h1 span::selection {
+    color: rgb(36, 39, 54) !important;
+    -webkit-text-fill-color: rgb(36, 39, 54);
+    background: #B4D7FE !important;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+}
+
+html[data-theme='dark'] .heroBanner ::selection {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    background: #385477 !important;
+}
+
 html .heroBanner h2 {
     font-style: normal;
     font-weight: 400;
