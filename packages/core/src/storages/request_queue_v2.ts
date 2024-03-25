@@ -68,7 +68,7 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * @category Sources
  */
 
-class RequestQueue extends RequestProvider {
+export class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
@@ -423,5 +423,3 @@ class RequestQueue extends RequestProvider {
         return super.open(...args) as Promise<RequestQueue>;
     }
 }
-
-export { RequestQueue as RequestQueueV2 };
