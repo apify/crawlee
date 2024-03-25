@@ -21,6 +21,53 @@ const MAX_CACHED_REQUESTS = 2_000_000;
  */
 const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
+/**
+ * Represents a queue of URLs to crawl, which is used for deep crawling of websites
+ * where you start with several URLs and then recursively
+ * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
+ *
+ * Each URL is represented using an instance of the {@apilink Request} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain {@apilink Request} instances
+ * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
+ * To add a single URL multiple times to the queue,
+ * corresponding {@apilink Request} objects will need to have different `uniqueKey` properties.
+ *
+ * Do not instantiate this class directly, use the {@apilink RequestQueue.open} function instead.
+ *
+ * `RequestQueue` is used by {@apilink BasicCrawler}, {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler}
+ * and {@apilink PlaywrightCrawler} as a source of URLs to crawl.
+ * Unlike {@apilink RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
+ * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
+ *
+ * `RequestQueue` stores its data either on local disk or in the Apify Cloud,
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
+ *
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
+ * that directory in an SQLite database file.
+ *
+ * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` is not, the data is stored in the
+ * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
+ * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+ * option to {@apilink RequestQueue.open} function,
+ * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * // Open the default request queue associated with the crawler run
+ * const queue = await RequestQueue.open();
+ *
+ * // Open a named request queue
+ * const queueWithName = await RequestQueue.open('some-name');
+ *
+ * // Enqueue few requests
+ * await queue.addRequest({ url: 'http://example.com/aaa' });
+ * await queue.addRequest({ url: 'http://example.com/bbb' });
+ * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
+ * ```
+ * @category Sources
+ */
+
 class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
@@ -143,6 +190,12 @@ class RequestQueue extends RequestProvider {
         return request;
     }
 
+    /**
+     * Reclaims a failed request back to the queue, so that it can be returned for processing later again
+     * by another call to {@apilink RequestQueue.fetchNextRequest}.
+     * The request record in the queue is updated using the provided `request` parameter.
+     * For example, this lets you store the number of retries or error messages for the request.
+     */
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>): ReturnType<RequestProvider['reclaimRequest']> {
         checkStorageAccess();
 
@@ -350,6 +403,22 @@ class RequestQueue extends RequestProvider {
         }
     }
 
+    /**
+     * Opens a request queue and returns a promise resolving to an instance
+     * of the {@apilink RequestQueue} class.
+     *
+     * {@apilink RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+     * The queue is used for deep crawling of websites, where you start with several URLs and then
+     * recursively follow links to other pages. The data structure supports both breadth-first
+     * and depth-first crawling orders.
+     *
+     * For more details and code examples, see the {@apilink RequestQueue} class.
+     *
+     * @param [queueIdOrName]
+     *   ID or name of the request queue to be opened. If `null` or `undefined`,
+     *   the function returns the default request queue associated with the crawler run.
+     * @param [options] Open Request Queue options.
+     */
     static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
         return super.open(...args) as Promise<RequestQueue>;
     }
