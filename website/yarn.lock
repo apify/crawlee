@@ -1986,7 +1986,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/plugin-content-docs@npm:3.1.1, @docusaurus/plugin-content-docs@npm:^3.0.0":
+"@docusaurus/plugin-content-docs@npm:3.1.1, @docusaurus/plugin-content-docs@npm:^3.1.0":
   version: 3.1.1
   resolution: "@docusaurus/plugin-content-docs@npm:3.1.1"
   dependencies:
@@ -2249,7 +2249,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/types@npm:3.1.1, @docusaurus/types@npm:^3.0.0":
+"@docusaurus/types@npm:3.1.1, @docusaurus/types@npm:^3.1.0":
   version: 3.1.1
   resolution: "@docusaurus/types@npm:3.1.1"
   dependencies:
@@ -2296,7 +2296,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/utils@npm:3.1.1, @docusaurus/utils@npm:^3.0.0":
+"@docusaurus/utils@npm:3.1.1, @docusaurus/utils@npm:^3.1.0":
   version: 3.1.1
   resolution: "@docusaurus/utils@npm:3.1.1"
   dependencies:
@@ -3242,13 +3242,13 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*, @types/react@npm:^18.0.28":
-  version: 18.2.69
-  resolution: "@types/react@npm:18.2.69"
+  version: 18.2.70
+  resolution: "@types/react@npm:18.2.70"
   dependencies:
     "@types/prop-types": "npm:*"
     "@types/scheduler": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/239b947ed8576a271057a6f571d0967098074b101a2bece244e88093dc8fb2f020872c463b8e78b2049334ba99158f6eef5960e51f73a389f86eee39b835d846
+  checksum: 10c0/2107b1fa8963cabe33d981cf1c0e3b7534c9d12b98c1046cd9f7975851690a0780db011f6a1d637ae4e612ef00c94ebdbe76a9e2f9e0f3baa6aad3213932af41
   languageName: node
   linkType: hard
 
@@ -5753,22 +5753,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"docusaurus-plugin-typedoc-api@npm:4.0.0":
-  version: 4.0.0
-  resolution: "docusaurus-plugin-typedoc-api@npm:4.0.0"
+"docusaurus-plugin-typedoc-api@npm:^4.2.0":
+  version: 4.2.0
+  resolution: "docusaurus-plugin-typedoc-api@npm:4.2.0"
   dependencies:
-    "@docusaurus/plugin-content-docs": "npm:^3.0.0"
-    "@docusaurus/types": "npm:^3.0.0"
-    "@docusaurus/utils": "npm:^3.0.0"
+    "@docusaurus/plugin-content-docs": "npm:^3.1.0"
+    "@docusaurus/types": "npm:^3.1.0"
+    "@docusaurus/utils": "npm:^3.1.0"
     "@vscode/codicons": "npm:^0.0.35"
-    marked: "npm:^9.1.4"
-    marked-smartypants: "npm:^1.1.3"
-    typedoc: "npm:^0.25.3"
+    marked: "npm:^9.1.6"
+    marked-smartypants: "npm:^1.1.5"
+    typedoc: "npm:^0.25.7"
   peerDependencies:
     "@docusaurus/core": ^3.0.0
+    "@docusaurus/mdx-loader": ^3.0.0
     react: ">=18.0.0"
     typescript: ^5.0.0
-  checksum: 10c0/829265ab1b42c338999a4c13c5656ba4236626d23323e008eec36cc713a34e4a1ee99e071a846ef6ccd9a4bbef668bcaa5be8f1ed694b5d865ddfe78fe8c1079
+  checksum: 10c0/627cc69972e88fa3591eb3cfb03fa00efb787328ee4323867626904021dfba5441736616f763054cbaeb69ea53aaf9d87fc14641d3512619b48622f8f4e2da4e
   languageName: node
   linkType: hard
 
@@ -9097,7 +9098,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"marked-smartypants@npm:^1.1.3":
+"marked-smartypants@npm:^1.1.5":
   version: 1.1.6
   resolution: "marked-smartypants@npm:1.1.6"
   dependencies:
@@ -9117,7 +9118,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"marked@npm:^9.1.4":
+"marked@npm:^9.1.6":
   version: 9.1.6
   resolution: "marked@npm:9.1.6"
   bin:
@@ -12261,7 +12262,7 @@ __metadata:
     clsx: "npm:^2.0.0"
     crypto-browserify: "npm:^3.12.0"
     docusaurus-gtm-plugin: "npm:^0.0.2"
-    docusaurus-plugin-typedoc-api: "npm:4.0.0"
+    docusaurus-plugin-typedoc-api: "npm:^4.2.0"
     eslint: "npm:^8.35.0"
     eslint-plugin-react: "npm:^7.32.2"
     eslint-plugin-react-hooks: "npm:^4.6.0"
@@ -13442,7 +13443,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc@npm:^0.25.3":
+"typedoc@npm:^0.25.7":
   version: 0.25.12
   resolution: "typedoc@npm:0.25.12"
   dependencies:
