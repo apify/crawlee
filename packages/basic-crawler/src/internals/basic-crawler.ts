@@ -356,16 +356,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
  */
 export interface CrawlerExperiments {
     /**
-     * Switches the RequestQueue to use the old, non-locking API. This is a temporary option to allow fallbacks if the new
-     * default causes issues. Please open an issue if you encounter problems with the new API.
-     */
-    disableRequestLocking?: boolean;
-
-    /**
      * @deprecated This experiment is now enabled by default, and this flag will be removed in a future release.
      * If you encounter issues due to this change, please:
      * - report it to us: https://github.com/apify/crawlee
-     * - set `disableRequestLocking` to `true` in the `experiments` option of the crawler
+     * - set `requestLocking` to `false` in the `experiments` option of the crawler
      */
     requestLocking?: boolean;
 }
@@ -1567,10 +1561,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private async _getRequestQueue() {
-        if (this.experiments.disableRequestLocking) {
-            if (!this._experimentWarnings.disableRequestLocking) {
+        // Check if it's explicitly disabled
+        if (this.experiments.requestLocking === false) {
+            if (!this._experimentWarnings.requestLocking) {
                 this.log.info('Using the old RequestQueue implementation without request locking.');
-                this._experimentWarnings.disableRequestLocking = true;
+                this._experimentWarnings.requestLocking = true;
             }
 
             return RequestQueueV1.open(null, { config: this.config });

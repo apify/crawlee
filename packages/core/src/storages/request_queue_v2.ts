@@ -39,18 +39,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * Unlike {@apilink RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
  * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
  *
- * `RequestQueue` stores its data either on local disk or in the Apify Cloud,
- * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variable is set.
- *
- * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the queue data is stored in
- * that directory in an SQLite database file.
- *
- * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` is not, the data is stored in the
- * [Apify Request Queue](https://docs.apify.com/storage/request-queue)
- * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
- * option to {@apilink RequestQueue.open} function,
- * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
- *
  * **Example usage:**
  *
  * ```javascript
@@ -67,7 +55,6 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * ```
  * @category Sources
  */
-
 export class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
@@ -110,21 +97,7 @@ export class RequestQueue extends RequestProvider {
     }
 
     /**
-     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
-     *
-     * Once you successfully finish processing of the request, you need to call
-     * {@apilink RequestQueue.markRequestHandled}
-     * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call {@apilink RequestQueue.reclaimRequest} instead,
-     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
-     *
-     * Note that the `null` return value doesn't mean the queue processing finished,
-     * it means there are currently no pending requests.
-     * To check whether all requests in queue were finished,
-     * use {@apilink RequestQueue.isFinished} instead.
-     *
-     * @returns
-     *   Returns the request object or `null` if there are no more pending requests.
+     * @inheritDoc
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
@@ -191,10 +164,7 @@ export class RequestQueue extends RequestProvider {
     }
 
     /**
-     * Reclaims a failed request back to the queue, so that it can be returned for processing later again
-     * by another call to {@apilink RequestQueue.fetchNextRequest}.
-     * The request record in the queue is updated using the provided `request` parameter.
-     * For example, this lets you store the number of retries or error messages for the request.
+     * @inheritDoc
      */
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>): ReturnType<RequestProvider['reclaimRequest']> {
         checkStorageAccess();
@@ -404,20 +374,7 @@ export class RequestQueue extends RequestProvider {
     }
 
     /**
-     * Opens a request queue and returns a promise resolving to an instance
-     * of the {@apilink RequestQueue} class.
-     *
-     * {@apilink RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
-     * The queue is used for deep crawling of websites, where you start with several URLs and then
-     * recursively follow links to other pages. The data structure supports both breadth-first
-     * and depth-first crawling orders.
-     *
-     * For more details and code examples, see the {@apilink RequestQueue} class.
-     *
-     * @param [queueIdOrName]
-     *   ID or name of the request queue to be opened. If `null` or `undefined`,
-     *   the function returns the default request queue associated with the crawler run.
-     * @param [options] Open Request Queue options.
+     * @inheritDoc
      */
     static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
         return super.open(...args) as Promise<RequestQueue>;
