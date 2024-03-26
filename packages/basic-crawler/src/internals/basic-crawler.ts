@@ -39,8 +39,8 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestQueueV1,
     RequestQueue,
-    RequestQueueV2,
     RequestState,
     RetryRequestError,
     Router,
@@ -1573,10 +1573,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 this._experimentWarnings.disableRequestLocking = true;
             }
 
-            return RequestQueue.open(null, { config: this.config });
+            return RequestQueueV1.open(null, { config: this.config });
         }
 
-        return RequestQueueV2.open(null, { config: this.config });
+        return RequestQueue.open(null, { config: this.config });
     }
 
     protected requestMatchesEnqueueStrategy(request: Request) {
