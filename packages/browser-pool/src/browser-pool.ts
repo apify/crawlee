@@ -710,14 +710,15 @@ export class BrowserPool<
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
-            const isSameProxyUrl = typeof options?.proxyUrl === 'undefined' || controller.proxyUrl === options.proxyUrl;
-            const isCorrectProxyTier = typeof options?.proxyTier !== 'number' || controller.proxyTier === options.proxyTier;
+            const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
+            const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return isCorrectPlugin
                 && hasCapacity
                 && (
-                    isSameProxyUrl
-                    || isCorrectProxyTier
+                    (options?.proxyTier && isCorrectProxyTier)
+                    || (options?.proxyUrl && isSameProxyUrl)
+                    || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
                 );
         });
     }

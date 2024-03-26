@@ -5,7 +5,7 @@ import ow from 'ow';
 import type { Request } from './request';
 
 export interface ProxyConfigurationFunction {
-    (sessionId: string | number, options?: { request?: Request }): string | undefined | Promise<string | undefined>;
+    (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;
 }
 
 export interface ProxyConfigurationOptions {
@@ -362,7 +362,7 @@ export class ProxyConfiguration {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
-            return this._callNewUrlFunction(sessionId, { request: options?.request })!;
+            return (await this._callNewUrlFunction(sessionId, { request: options?.request }) ?? undefined);
         }
 
         if (this.tieredProxyUrls) {
@@ -401,8 +401,9 @@ export class ProxyConfiguration {
     protected async _callNewUrlFunction(sessionId?: string, options?: { request?: Request }) {
         try {
             const proxyUrl = await this.newUrlFunction!(sessionId!, options);
-            if (!proxyUrl) return proxyUrl;
-            new URL(proxyUrl); // eslint-disable-line no-new
+            if (proxyUrl) {
+                new URL(proxyUrl); // eslint-disable-line no-new
+            }
             return proxyUrl;
         } catch (err) {
             this._throwNewUrlFunctionInvalid(err as Error);
