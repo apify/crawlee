@@ -72,8 +72,10 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
  * ```
  * @category Sources
+ *
+ * @deprecated RequestQueue v1 is deprecated and will be removed in the future. Please use {@apilink RequestQueue} instead.
  */
-export class RequestQueue extends RequestProvider {
+export class RequestQueueV1 extends RequestProvider {
     private queryQueueHeadPromise?: Promise<{
         wasLimitReached: boolean;
         prevLimit: number;
@@ -381,7 +383,7 @@ export class RequestQueue extends RequestProvider {
      *   the function returns the default request queue associated with the crawler run.
      * @param [options] Open Request Queue options.
      */
-    static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
-        return super.open(...args) as Promise<RequestQueue>;
+    static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueueV1> {
+        return super.open(...args) as Promise<RequestQueueV1>;
     }
 }
