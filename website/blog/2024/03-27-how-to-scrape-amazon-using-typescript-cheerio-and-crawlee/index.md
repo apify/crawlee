@@ -1,15 +1,17 @@
 ---
 slug: how-to-scrape-amazon
-title: 'How to scrape Amazon using TypeScript, Cheerio, and Crawlee'
-description: 'A perfect step by step article to scrape products from Amazon using TypeScript, Cheerio, and Crawlee.'
+title: 'How to scrape Amazon products'
+description: 'A detailed step-by-step guide to scraping products on Amazon using TypeScript, Cheerio, and Crawlee.'
 image: ./img/how-to-scrape-amazon.png
 author: Lukáš Průša
 authorTitle: Junior Web Automation Engineer
-authorURL: https://github.com/souravjain540
+authorURL: https://github.com/Patai5
 authorImageURL: ./img/lukasp.png
-authorTwitter: 
 ---
+
 ## Introduction
+
+Amazon is one of the largest and most complex websites, which means scraping it is pretty challenging. Thankfully, the Crawlee library makes things a little easier, with utilities like JSON file outputs, automatic scaling, and request queue management.
 
 In this guide, we'll be extracting information from Amazon product pages using the power of [TypeScript](https://www.typescriptlang.org) in combination with the [Cheerio](https://cheerio.js.org) and [Crawlee](https://crawlee.dev) libraries. We'll explore how to retrieve and extract detailed product data such as titles, prices, image URLs, and more from Amazon's vast marketplace. We'll also discuss handling potential blocking issues that may arise during the scraping process.
 
@@ -19,9 +21,9 @@ In this guide, we'll be extracting information from Amazon product pages using t
 
 ## Prerequisites
 
-You will find the journey smoother if you have a decent grasp of the TypeScript language and a fundamental understanding of [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML) structure. A familiarity with Cheerio and Crawlee is advised but optional. This guide is built to introduce these tools and their use cases in an approachable manner.
+You'll find the journey smoother if you have a decent grasp of the TypeScript language and a fundamental understanding of [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML) structure. A familiarity with Cheerio and Crawlee is advised but optional. This guide is built to introduce these tools and their use cases in an approachable manner.
 
-Crawlee is open-source with nearly 12000 stars on GitHub, you can checkout the [source code here](https://github.com/apify/crawlee). Feel free to play with Crawlee with the inbuilt templates that they offer.
+Crawlee is open-source with nearly 12,000 stars on GitHub. You can check out the [source code here](https://github.com/apify/crawlee). Feel free to play with Crawlee with the inbuilt templates that they offer.
 
 ## Writing the scraper
 
@@ -37,7 +39,7 @@ To begin with, let's identify the product fields that we're interested in scrapi
 
 ![Image highlighting the product fields to be scraped on Amazon](./img/fields-to-scrape.png)
 
-For now, our focus will be solely on the scraping part. In a later section, we will shift our attention to Crawlee, our crawling tool. Let's start!
+For now, our focus will be solely on the scraping part. In a later section, we'll shift our attention to Crawlee, our crawling tool. Let's begin!
 
 ### Scraping the individual data points
 
@@ -50,7 +52,7 @@ The product title selector we've deduced is `span#productTitle`. This selector t
 
 We can find the selectors for the remaining data points using the same principle combined with a sprinkle of trial and error. Next, let's write a function that uses a [Cheerio object](https://cheerio.js.org/docs/api/interfaces/CheerioAPI) of the product page as input and outputs our extracted data in a structured format.
 
-Initially, we'll focus on scraping simple data points, leaving the more complex ones, like image URLs and product attributes overview, for later.
+Initially, we'll focus on scraping simple data points. We'll leave the more complex ones, like image URLs and product attributes overview, for later.
 
 ```typescript
 import { CheerioAPI } from 'cheerio';
@@ -146,7 +148,7 @@ export const extractProductDetails = ($: CheerioAPI): ProductDetails => {
 
 ### Scraping the advanced data points
 
-As we progress in our scraping journey, it's time to focus on the more complex data fields like image URLs and product attributes overview. To extract data from these fields, we must utilize the `map` function to iterate over all matching elements and fetch data from each. Let's start with image URLs.
+As we progress in our scraping journey, it's time to focus on the more complex data fields, like image URLs and product attributes overview. To extract data from these fields, we must utilize the `map` function to iterate over all matching elements and fetch data from each. Let's start with image URLs.
 
 ```typescript
 const SELECTORS = {
@@ -288,7 +290,7 @@ Next up is the task of making the scraping part functional. Let's implement the 
 
 ## Crawling the product pages
 
-We'll utilize the features that Crawlee offers to crawl the product pages. It considerably simplifies web scraping with utilities like JSON file outputs, automatic scaling, and request queue management.
+We'll utilize the features that Crawlee offers to crawl the product pages. As we mentioned at the beginning, it considerably simplifies web scraping with JSON file outputs, automatic scaling, and request queue management.
 
 Our next stepping stone is to wrap our scraping logic within Crawlee, thereby implementing the crawling part of our process.
 
@@ -383,7 +385,7 @@ The code now successfully extracts the product details from the given URLs. We'v
 }
 ```
 
-## Preventing blocking
+## How to avoid getting blocked when scraping Amazon
 
 With a giant website like Amazon, one is bound to face some issues with blocking. Let's discuss how to handle them.
 
@@ -443,7 +445,7 @@ const crawler = new CheerioCrawler({ requestHandler, proxyConfiguration });
 ...
 ```
 
-### Using headless browsers
+### Using headless browsers to scrape Amazon
 
 For more advanced scraping, you can use a headless browser like [Playwright](https://crawlee.dev/docs/examples/playwright-crawler) to scrape Amazon. This method is more effective in preventing blocking and can handle websites with complex JavaScript interactions.
 
@@ -472,7 +474,6 @@ const requestHandler = async (context: PlaywrightCrawlingContext) => {
 };
 ```
 
-## Conclusion
+## Conclusion and next steps
 
-You've now journeyed through the basic and advanced terrains of web scraping Amazon product pages using the powers of TypeScript, Cheerio, and Crawlee. It can seem like a lot to digest but don't worry! With more practice, each step will become more familiar and intuitive - until you become a web scraping ninja. So go ahead and start experimenting. For more extensive web scraping abilities, check out pre-built scrapers from Apify, like the [Amazon Web Scraper](https://apify.com/junglee/amazon-crawler)!
-
+You've now journeyed through the basic and advanced terrains of web scraping Amazon product pages using the capabilities of TypeScript, Cheerio, and Crawlee. It can seem like a lot to digest but don't worry! With more practice, each step will become more familiar and intuitive - until you become a web scraping ninja. So go ahead and start experimenting. For more extensive web scraping abilities, check out pre-built scrapers from Apify, like [Amazon Web Scraper](https://apify.com/junglee/amazon-crawler)!
