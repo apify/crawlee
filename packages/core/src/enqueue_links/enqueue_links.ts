@@ -353,6 +353,7 @@ export async function enqueueLinks(options: SetRequired<EnqueueLinksOptions, 're
             }
             case EnqueueStrategy.All:
             default:
+                enqueueStrategyPatterns.push({ glob: `http{s,}://**` });
                 break;
         }
     }
