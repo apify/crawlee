@@ -173,13 +173,12 @@ describe('playwrightUtils', () => {
 
                 const page = await browser.newPage();
                 await playwrightUtils.blockRequests(page);
-                page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-                <img src="${serverAddress}/image.png">
-                <img src="${serverAddress}/image.gif">
-                <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
+                page.on('response', (response) => {
+                    if (response.url() !== `${serverAddress}/special/resources`) {
+                        loadedUrls.push(response.url());
+                    }
+                });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle' });
                 expect(loadedUrls).toEqual([`${serverAddress}/script.js`]);
             });
 
@@ -191,12 +190,7 @@ describe('playwrightUtils', () => {
                     urlPatterns: ['.css'],
                 });
                 page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.setContent(`<html><body>
-                <link rel="stylesheet" type="text/css" href="${serverAddress}/style.css">
-                <img src="${serverAddress}/image.png">
-                <img src="${serverAddress}/image.gif">
-                <script src="${serverAddress}/script.js" defer="defer">></script>
-            </body></html>`, { waitUntil: 'load' });
+                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle' });
                 expect(loadedUrls).toEqual(expect.arrayContaining([
                     `${serverAddress}/image.png`,
                     `${serverAddress}/script.js`,
