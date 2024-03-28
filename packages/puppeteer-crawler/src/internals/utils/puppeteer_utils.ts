@@ -26,7 +26,7 @@ import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { KeyValueStore, RequestState, validators, Configuration } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
-import { type CheerioRoot, sleep } from '@crawlee/utils';
+import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import { getInjectableScript } from 'idcac-playwright';
@@ -184,7 +184,11 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  */
 export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
-    const pageContent = await page.content();
+
+    // eslint-disable-next-line no-new-func
+    const html = await page.evaluate(new Function(`return ${expandShadowRoots.toString()}(document)`) as any) as string;
+    const pageContent = html || await page.content();
+
     return cheerio.load(pageContent);
 }
 
