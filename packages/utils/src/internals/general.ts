@@ -94,7 +94,7 @@ export function snakeCaseToCamelCase(snakeCaseStr: string): string {
  * Traverses DOM and expands shadow-root elements (created by custom components).
  * @ignore
  */
-export async function expandShadowRoots(document: Document) {
+export function expandShadowRoots(document: Document): string {
     // Returns HTML of given shadow DOM.
     function getShadowDomHtml(shadowRoot: any) {
         let shadowHTML = '';
