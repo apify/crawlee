@@ -89,3 +89,34 @@ export function snakeCaseToCamelCase(snakeCaseStr: string): string {
         })
         .join('');
 }
+
+/**
+ * Traverses DOM and expands shadow-root elements (created by custom components).
+ * @ignore
+ */
+export async function expandShadowRoots(document: Document) {
+    // Returns HTML of given shadow DOM.
+    function getShadowDomHtml(shadowRoot: any) {
+        let shadowHTML = '';
+
+        for (const el of shadowRoot.childNodes) {
+            shadowHTML += el.nodeValue ?? el.outerHTML ?? '';
+        }
+
+        return shadowHTML;
+    }
+
+    // Recursively replaces shadow DOMs with their HTML.
+    function replaceShadowDomsWithHtml(rootElement: any) {
+        for (const el of rootElement.querySelectorAll('*')) {
+            if (el.shadowRoot) {
+                replaceShadowDomsWithHtml(el.shadowRoot);
+                el.innerHTML += getShadowDomHtml(el.shadowRoot) ?? '';
+            }
+        }
+    }
+
+    replaceShadowDomsWithHtml(document.body);
+
+    return document.documentElement.outerHTML;
+}

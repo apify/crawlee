@@ -26,7 +26,7 @@ import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { validators, KeyValueStore, RequestState, Configuration } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
-import type { CheerioRoot, Dictionary } from '@crawlee/utils';
+import { type CheerioRoot, type Dictionary, expandShadowRoots } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
 import ow from 'ow';
@@ -564,7 +564,11 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
  */
 export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
-    const pageContent = await page.content();
+
+    // eslint-disable-next-line no-new-func
+    const html = await page.evaluate(new Function(`return ${expandShadowRoots.toString()}(document)`) as any) as string;
+    const pageContent = html || await page.content();
+
     return cheerio.load(pageContent);
 }
 
