@@ -21,7 +21,41 @@ const MAX_CACHED_REQUESTS = 2_000_000;
  */
 const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 
-class RequestQueue extends RequestProvider {
+/**
+ * Represents a queue of URLs to crawl, which is used for deep crawling of websites
+ * where you start with several URLs and then recursively
+ * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
+ *
+ * Each URL is represented using an instance of the {@apilink Request} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain {@apilink Request} instances
+ * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
+ * To add a single URL multiple times to the queue,
+ * corresponding {@apilink Request} objects will need to have different `uniqueKey` properties.
+ *
+ * Do not instantiate this class directly, use the {@apilink RequestQueue.open} function instead.
+ *
+ * `RequestQueue` is used by {@apilink BasicCrawler}, {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler}
+ * and {@apilink PlaywrightCrawler} as a source of URLs to crawl.
+ * Unlike {@apilink RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
+ * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * // Open the default request queue associated with the crawler run
+ * const queue = await RequestQueue.open();
+ *
+ * // Open a named request queue
+ * const queueWithName = await RequestQueue.open('some-name');
+ *
+ * // Enqueue few requests
+ * await queue.addRequest({ url: 'http://example.com/aaa' });
+ * await queue.addRequest({ url: 'http://example.com/bbb' });
+ * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
+ * ```
+ * @category Sources
+ */
+export class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
@@ -63,21 +97,7 @@ class RequestQueue extends RequestProvider {
     }
 
     /**
-     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
-     *
-     * Once you successfully finish processing of the request, you need to call
-     * {@apilink RequestQueue.markRequestHandled}
-     * to mark the request as handled in the queue. If there was some error in processing the request,
-     * call {@apilink RequestQueue.reclaimRequest} instead,
-     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
-     *
-     * Note that the `null` return value doesn't mean the queue processing finished,
-     * it means there are currently no pending requests.
-     * To check whether all requests in queue were finished,
-     * use {@apilink RequestQueue.isFinished} instead.
-     *
-     * @returns
-     *   Returns the request object or `null` if there are no more pending requests.
+     * @inheritDoc
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
@@ -143,6 +163,9 @@ class RequestQueue extends RequestProvider {
         return request;
     }
 
+    /**
+     * @inheritDoc
+     */
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>): ReturnType<RequestProvider['reclaimRequest']> {
         checkStorageAccess();
 
@@ -350,9 +373,10 @@ class RequestQueue extends RequestProvider {
         }
     }
 
+    /**
+     * @inheritDoc
+     */
     static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
         return super.open(...args) as Promise<RequestQueue>;
     }
 }
-
-export { RequestQueue as RequestQueueV2 };

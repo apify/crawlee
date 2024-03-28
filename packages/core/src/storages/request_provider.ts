@@ -375,6 +375,23 @@ export abstract class RequestProvider implements IStorage {
         return new Request(requestOptions as unknown as RequestOptions);
     }
 
+    /**
+     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
+     *
+     * Once you successfully finish processing of the request, you need to call
+     * {@apilink RequestQueue.markRequestHandled}
+     * to mark the request as handled in the queue. If there was some error in processing the request,
+     * call {@apilink RequestQueue.reclaimRequest} instead,
+     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
+     *
+     * Note that the `null` return value doesn't mean the queue processing finished,
+     * it means there are currently no pending requests.
+     * To check whether all requests in queue were finished,
+     * use {@apilink RequestQueue.isFinished} instead.
+     *
+     * @returns
+     *   Returns the request object or `null` if there are no more pending requests.
+     */
     abstract fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null>;
 
     /**

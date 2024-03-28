@@ -4,7 +4,7 @@ import {
     QUERY_HEAD_MIN_LENGTH,
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
-    RequestQueue,
+    RequestQueueV1 as RequestQueue,
     Request,
     Configuration,
     ProxyConfiguration,

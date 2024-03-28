@@ -39,8 +39,8 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestQueueV1,
     RequestQueue,
-    RequestQueueV2,
     RequestState,
     RetryRequestError,
     Router,
@@ -356,8 +356,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
  */
 export interface CrawlerExperiments {
     /**
-     * Enables the use of the new RequestQueue API, which allows multiple clients to use the same queue,
-     * by locking the requests they are processing for a period of time.
+     * @deprecated This experiment is now enabled by default, and this flag will be removed in a future release.
+     * If you encounter issues due to this change, please:
+     * - report it to us: https://github.com/apify/crawlee
+     * - set `requestLocking` to `false` in the `experiments` option of the crawler
      */
     requestLocking?: boolean;
 }
@@ -591,14 +593,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
-
-        if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.requestLocking) {
-            throw new Error([
-                'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
-                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { requestLocking: true }` "
-                + 'in your crawler options, and try again.',
-            ].join('\n'));
-        }
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -1567,16 +1561,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private async _getRequestQueue() {
-        if (this.experiments.requestLocking) {
+        // Check if it's explicitly disabled
+        if (this.experiments.requestLocking === false) {
             if (!this._experimentWarnings.requestLocking) {
-                this.log.warning([
-                    'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
-                    'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
-                ].join('\n'));
+                this.log.info('Using the old RequestQueue implementation without request locking.');
                 this._experimentWarnings.requestLocking = true;
             }
 
-            return RequestQueueV2.open(null, { config: this.config });
+            return RequestQueueV1.open(null, { config: this.config });
         }
 
         return RequestQueue.open(null, { config: this.config });
