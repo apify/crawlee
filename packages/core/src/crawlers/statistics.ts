@@ -1,6 +1,6 @@
-import { ErrorTracker } from '@crawlee/utils';
 import ow from 'ow';
 
+import { ErrorTracker } from './error_tracker';
 import { Configuration } from '../configuration';
 import type { EventManager } from '../events/event_manager';
 import { EventType } from '../events/event_manager';

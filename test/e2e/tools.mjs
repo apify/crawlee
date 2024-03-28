@@ -1,16 +1,22 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { execSync as execSyncOriginal } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
-import { execSync as execSyncOriginal } from 'node:child_process';
-import { got } from 'got';
-import fs from 'fs-extra';
+import { fileURLToPath } from 'node:url';
+
 import { Actor } from 'apify';
+import fs from 'fs-extra';
+import { got } from 'got';
+
 // eslint-disable-next-line import/no-relative-packages
 import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
+/**
+ * @param {string} command
+ * @param {import('node:child_process').ExecSyncOptions} options
+ */
 function execSync(command, options) {
     return execSyncOriginal(command, { ...options, encoding: 'utf-8' });
 }
@@ -468,4 +474,27 @@ function isItemHidden(item) {
         }
     }
     return true;
+}
+
+/**
+ * @param {any} obj the object to search
+ * @param {string} keyName the key to search for
+ * @returns {boolean}
+ */
+export function hasNestedKey(obj, keyName) {
+    if (typeof obj !== 'object' || obj === null) {
+        return false;
+    }
+
+    for (const key of Object.keys(obj)) {
+        if (key === keyName) {
+            return true;
+        }
+
+        if (typeof obj[key] === 'object' && obj[key] !== null && hasNestedKey(obj[key], keyName)) {
+            return true;
+        }
+    }
+
+    return false;
 }

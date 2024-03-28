@@ -1,9 +1,12 @@
 import { inspect } from 'node:util';
 
+import { ErrorSnapshotter } from './error_snapshotter';
+import type { CrawlingContext } from '../crawlers/crawler_commons';
+
 /**
  * Node.js Error interface
  */
- interface ErrnoException extends Error {
+export interface ErrnoException extends Error {
     errno?: number | undefined;
     code?: string | number | undefined;
     path?: string | undefined;
@@ -283,6 +286,8 @@ export class ErrorTracker {
 
     total: number;
 
+    errorSnapshotter: ErrorSnapshotter;
+
     constructor(options: Partial<ErrorTrackerOptions> = {}) {
         this.#options = {
             showErrorCode: true,
@@ -294,13 +299,13 @@ export class ErrorTracker {
             ...options,
         };
 
+        this.errorSnapshotter = new ErrorSnapshotter();
+
         this.result = Object.create(null);
         this.total = 0;
     }
 
-    add(error: ErrnoException) {
-        this.total++;
-
+    private updateGroup(error: ErrnoException) {
         let group = this.result;
 
         if (this.#options.showStackTrace) {
@@ -321,8 +326,35 @@ export class ErrorTracker {
 
         increaseCount(group as { count: number });
 
+        return group;
+    }
+
+    add(error: ErrnoException) {
+        this.total++;
+
+        this.updateGroup(error);
+
         if (typeof error.cause === 'object' && error.cause !== null) {
             this.add(error.cause);
+        }
+    }
+
+    /**
+     * This method is async, because it captures a snapshot of the error context.
+     * We added this new method to avoid breaking changes.
+     */
+    async addAsync(error: ErrnoException, context?: CrawlingContext) {
+        this.total++;
+
+        const group = this.updateGroup(error);
+
+        // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
+        if (group.count === 1 && context) {
+            await this.captureSnapshot(group, error, context).catch(() => { });
+        }
+
+        if (typeof error.cause === 'object' && error.cause !== null) {
+            await this.addAsync(error.cause);
         }
     }
 
@@ -364,6 +396,13 @@ export class ErrorTracker {
         goDeeper(this.result, []);
 
         return result.sort((a, b) => b[0] - a[0]).slice(0, count);
+    }
+
+    async captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext) {
+        const { screenshotFileUrl, htmlFileUrl } = await this.errorSnapshotter.captureSnapshot(error, context);
+
+        storage.firstErrorScreenshotUrl = screenshotFileUrl;
+        storage.firstErrorHtmlUrl = htmlFileUrl;
     }
 
     reset() {
