@@ -399,8 +399,8 @@ export class ProxyConfiguration {
      * Calls the custom newUrlFunction and checks format of its return value
      */
     protected async _callNewUrlFunction(sessionId?: string, options?: { request?: Request }) {
+        const proxyUrl = await this.newUrlFunction!(sessionId!, options);
         try {
-            const proxyUrl = await this.newUrlFunction!(sessionId!, options);
             if (proxyUrl) {
                 new URL(proxyUrl); // eslint-disable-line no-new
             }
