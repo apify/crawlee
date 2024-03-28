@@ -8,6 +8,7 @@ on:
 
 env:
     YARN_IGNORE_NODE: 1
+    RETRY_TESTS: 1
 
 jobs:
     # `yarn install` is done in a separate job and cached to speed up the following jobs.
