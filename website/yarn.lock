@@ -5904,9 +5904,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.719
-  resolution: "electron-to-chromium@npm:1.4.719"
-  checksum: 10c0/2122c89609f54c40aee932161edd2b1c84e0196e9f01ead023ef033b1b1c80a58ef79f43e7e7c32e0c52454299886ba62be275eefedd3f92003f46d94ae8a193
+  version: 1.4.720
+  resolution: "electron-to-chromium@npm:1.4.720"
+  checksum: 10c0/b74bfd885cc45ae64b2e07f21f93d843d6ff153df9bdbdfc2852427cc061a83a60a5cf7550842344c61ebb0f67c2bd833810588e53fb3455023a794aa1ccdcbc
   languageName: node
   linkType: hard
 
@@ -7213,17 +7213,17 @@ __metadata:
   linkType: hard
 
 "glob@npm:^10.2.2, glob@npm:^10.3.10, glob@npm:^10.3.7":
-  version: 10.3.10
-  resolution: "glob@npm:10.3.10"
+  version: 10.3.12
+  resolution: "glob@npm:10.3.12"
   dependencies:
     foreground-child: "npm:^3.1.0"
-    jackspeak: "npm:^2.3.5"
+    jackspeak: "npm:^2.3.6"
     minimatch: "npm:^9.0.1"
-    minipass: "npm:^5.0.0 || ^6.0.2 || ^7.0.0"
-    path-scurry: "npm:^1.10.1"
+    minipass: "npm:^7.0.4"
+    path-scurry: "npm:^1.10.2"
   bin:
     glob: dist/esm/bin.mjs
-  checksum: 10c0/13d8a1feb7eac7945f8c8480e11cd4a44b24d26503d99a8d8ac8d5aefbf3e9802a2b6087318a829fad04cb4e829f25c5f4f1110c68966c498720dd261c7e344d
+  checksum: 10c0/f60cefdc1cf3f958b2bb5823e1b233727f04916d489dc4641d76914f016e6704421e06a83cbb68b0cb1cb9382298b7a88075b844ad2127fc9727ea22b18b0711
   languageName: node
   linkType: hard
 
@@ -8589,7 +8589,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jackspeak@npm:^2.3.5":
+"jackspeak@npm:^2.3.6":
   version: 2.3.6
   resolution: "jackspeak@npm:2.3.6"
   dependencies:
@@ -10071,12 +10071,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:9.0.3, minimatch@npm:^9.0.1, minimatch@npm:^9.0.3":
+"minimatch@npm:9.0.3":
   version: 9.0.3
   resolution: "minimatch@npm:9.0.3"
   dependencies:
     brace-expansion: "npm:^2.0.1"
   checksum: 10c0/85f407dcd38ac3e180f425e86553911d101455ca3ad5544d6a7cec16286657e4f8a9aa6695803025c55e31e35a91a2252b5dc8e7d527211278b8b65b4dbd5eac
+  languageName: node
+  linkType: hard
+
+"minimatch@npm:^9.0.1, minimatch@npm:^9.0.3":
+  version: 9.0.4
+  resolution: "minimatch@npm:9.0.4"
+  dependencies:
+    brace-expansion: "npm:^2.0.1"
+  checksum: 10c0/2c16f21f50e64922864e560ff97c587d15fd491f65d92a677a344e970fe62aafdbeafe648965fa96d33c061b4d0eabfe0213466203dd793367e7f28658cf6414
   languageName: node
   linkType: hard
 
@@ -10154,7 +10163,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minipass@npm:^5.0.0 || ^6.0.2 || ^7.0.0, minipass@npm:^7.0.2, minipass@npm:^7.0.3":
+"minipass@npm:^5.0.0 || ^6.0.2 || ^7.0.0, minipass@npm:^7.0.2, minipass@npm:^7.0.3, minipass@npm:^7.0.4":
   version: 7.0.4
   resolution: "minipass@npm:7.0.4"
   checksum: 10c0/6c7370a6dfd257bf18222da581ba89a5eaedca10e158781232a8b5542a90547540b4b9b7e7f490e4cda43acfbd12e086f0453728ecf8c19e0ef6921bc5958ac5
@@ -10793,7 +10802,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"path-scurry@npm:^1.10.1":
+"path-scurry@npm:^1.10.2":
   version: 1.10.2
   resolution: "path-scurry@npm:1.10.2"
   dependencies:
