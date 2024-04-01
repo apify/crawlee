@@ -1856,12 +1856,12 @@ __metadata:
   linkType: hard
 
 "@sapphire/shapeshift@npm:^3.0.0, @sapphire/shapeshift@npm:^3.6.0":
-  version: 3.9.6
-  resolution: "@sapphire/shapeshift@npm:3.9.6"
+  version: 3.9.7
+  resolution: "@sapphire/shapeshift@npm:3.9.7"
   dependencies:
     fast-deep-equal: "npm:^3.1.3"
     lodash: "npm:^4.17.21"
-  checksum: 10c0/d0650eea520c63c0c5d803fada4f393cd7947daa4b528bbb95d15d8808ca7736fdd8791246d561f7c6e9f1a885e849fbbf665afda93796ad1ffcd7fe92a1cc5f
+  checksum: 10c0/29883d4c1986714fd4b2a7e4a58bf30a4598a02bbe031605dd99b766310a98889e2ae6f16bf37f43d91cf5960733dc1a619bfdaa85a96bc0ff9cc5ce57b8e689
   languageName: node
   linkType: hard
 
@@ -3586,9 +3586,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001587":
-  version: 1.0.30001600
-  resolution: "caniuse-lite@npm:1.0.30001600"
-  checksum: 10c0/b4f764db5d4f8cb3eb2827a170a20e6b2f4b8c3d80169efcf56bf3d6b8b3e6dd1c740141f0d0b10b2233f49ee8b496e2d1e044a36c54750a106bad2f6477f2db
+  version: 1.0.30001603
+  resolution: "caniuse-lite@npm:1.0.30001603"
+  checksum: 10c0/6564da28297a64e88302ddab0768fa72ff383213dd9c02bd113d14eeb22ba30fd00bc171bdbf4f6ff1159c138ed3b37ecc952f172d5153d6ab6118c572992374
   languageName: node
   linkType: hard
 
@@ -5825,22 +5825,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.49":
-  version: 2.1.49
-  resolution: "fingerprint-generator@npm:2.1.49"
+"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.50":
+  version: 2.1.50
+  resolution: "fingerprint-generator@npm:2.1.50"
   dependencies:
-    generative-bayesian-network: "npm:^2.1.49"
-    header-generator: "npm:^2.1.49"
+    generative-bayesian-network: "npm:^2.1.50"
+    header-generator: "npm:^2.1.50"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/04be51533f392d44d26385b6d503e2ec218cd0259521c2ac3099f549571ec653c7b581bed1f9e5ea7b0c449e30f6d81971458262824ab0a1a4f0481b8ee752c3
+  checksum: 10c0/3c74293f0a6f307df112d12ffe2cc7032118a39e9a38a61da455be73ce99377dd292130177276ccf58b0d7265ca170efeba4f4bf246da01e363394afb8e9ef82
   languageName: node
   linkType: hard
 
 "fingerprint-injector@npm:^2.0.5":
-  version: 2.1.49
-  resolution: "fingerprint-injector@npm:2.1.49"
+  version: 2.1.50
+  resolution: "fingerprint-injector@npm:2.1.50"
   dependencies:
-    fingerprint-generator: "npm:^2.1.49"
+    fingerprint-generator: "npm:^2.1.50"
     tslib: "npm:^2.4.0"
   peerDependencies:
     playwright: ^1.22.2
@@ -5850,7 +5850,7 @@ __metadata:
       optional: true
     puppeteer:
       optional: true
-  checksum: 10c0/6d361a204335971a15118010b9a005bded78ae4dcbef0ce2b65ca16549c9c2a908096926514f9c039aca00bb91fbb91cf0dbd9d967c86396d245101d6ff966a0
+  checksum: 10c0/b0494d75ed2ed6c7f8c3b98899061d43509486f2de013652c9fdb73299f6d6641c96fb6636094161bdf6d57e724dec7fddbf6d3c87a1ed8f3a457b5cf3c3bf88
   languageName: node
   linkType: hard
 
@@ -6083,13 +6083,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"generative-bayesian-network@npm:^2.1.49":
-  version: 2.1.49
-  resolution: "generative-bayesian-network@npm:2.1.49"
+"generative-bayesian-network@npm:^2.1.50":
+  version: 2.1.50
+  resolution: "generative-bayesian-network@npm:2.1.50"
   dependencies:
     adm-zip: "npm:^0.5.9"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/d7a3add7646532b8ae9e702ea81561df4125d3aeb17ac7f6370dd7d7b657485bd7c07bd38aa7f6bfe18dd0d57d89cf8212e7625cb66b885e82aac105641065ec
+  checksum: 10c0/b1fc587e91edca33cc525f9ca1f3f3bd041725ca999476f10e1292e89f6e76f1d854b0e3e606ed016015bc14226046215e153d19bc9025b554fce0e4227fee09
   languageName: node
   linkType: hard
 
@@ -6580,15 +6580,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"header-generator@npm:^2.1.41, header-generator@npm:^2.1.49":
-  version: 2.1.49
-  resolution: "header-generator@npm:2.1.49"
+"header-generator@npm:^2.1.41, header-generator@npm:^2.1.50":
+  version: 2.1.50
+  resolution: "header-generator@npm:2.1.50"
   dependencies:
     browserslist: "npm:^4.21.1"
-    generative-bayesian-network: "npm:^2.1.49"
+    generative-bayesian-network: "npm:^2.1.50"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/3909110fc5c949321247d2e98c8b39fca1c832224563d77eb125f6973a7f05a03c192aaaba67fb0b0164710b75c05c7c8b9544bbf7dde53607de0e4000b56652
+  checksum: 10c0/681cda69a5c8f9fe8151b224df9c373b748d5ca067c3bf7d3ce6a7e7aefc5db02b325169c01606285dd8867d6374841cbf2ebedbdade0a3a52b7c8a4a43b5d59
   languageName: node
   linkType: hard
 
