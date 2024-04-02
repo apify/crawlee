@@ -1,9 +1,9 @@
 import log from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Request } from './request';
-import { cryptoRandomObjectId } from '@apify/utilities';
 
 export interface ProxyConfigurationFunction {
     (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;
