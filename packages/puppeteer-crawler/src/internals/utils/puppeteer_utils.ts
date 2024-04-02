@@ -57,11 +57,13 @@ export interface DirectNavigationOptions {
 
     /**
      * When to consider operation succeeded, defaults to `load`. Events can be either:
-     * - `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
-     * - `'load'` - consider operation to be finished when the `load` event is fired.
-     * - `'networkidle'` - consider operation to be finished when there are no network connections for at least `500` ms.
+     * - `domcontentloaded` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+     * - `load` - consider operation to be finished when the `load` event is fired.
+     * - `networkidle0` - consider operation to be finished when there are no network connections for at least `500` ms.
+     * - `networkidle2` - consider operation to be finished when there are no more than 2 network connections for at least `500` ms.
+     * - `networkidle` - alias for `networkidle0`
      */
-    waitUntil?: 'domcontentloaded' | 'load' | 'networkidle';
+    waitUntil?: 'domcontentloaded' | 'load' | 'networkidle' | 'networkidle0' | 'networkidle2';
 
     /**
      * Referer header value. If provided it will take preference over the referer header value set by page.setExtraHTTPHeaders(headers).
@@ -414,6 +416,12 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
         payload: ow.optional.any(ow.string, ow.buffer),
     }));
     ow(gotoOptions, ow.object);
+
+    gotoOptions = { ...gotoOptions };
+
+    if (gotoOptions.waitUntil === 'networkidle') {
+        gotoOptions.waitUntil = 'networkidle0';
+    }
 
     const { url, method, headers, payload } = request;
     const isEmpty = (o?: object) => !o || Object.keys(o).length === 0;

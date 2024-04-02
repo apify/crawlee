@@ -329,7 +329,7 @@ describe('puppeteerUtils', () => {
                     payload: '{ "foo": "bar" }',
                 });
 
-                const response = await puppeteerUtils.gotoExtended(page, request);
+                const response = await puppeteerUtils.gotoExtended(page, request, { waitUntil: 'networkidle' });
 
                 // eslint-disable-next-line @typescript-eslint/no-shadow
                 const { method, headers, bodyLength } = JSON.parse(await response.text());
