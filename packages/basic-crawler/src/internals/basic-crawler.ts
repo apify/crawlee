@@ -950,7 +950,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     async addRequests(requests: (string | Source)[], options: CrawlerAddRequestsOptions = {}): Promise<CrawlerAddRequestsResult> {
         const requestQueue = await this.getRequestQueue();
-        return requestQueue.addRequestsBatched(requests, options);
+        const res = await requestQueue.addRequestsBatched(requests, options);
+
+        // Notify AutoscaledPool, if it exists, the method is called after the crawler started, and we don't want to wait
+        // this is important for crawlers in `keepAlive` mode that might have an empty queue and we don't want to wait till
+        // the next scheduled check (which might come in as much as 500ms by default).
+        // eslint-disable-next-line dot-notation
+        await this.autoscaledPool?.['_maybeRunTask']();
+
+        return res;
     }
 
     /**
