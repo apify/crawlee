@@ -18,8 +18,9 @@ export interface ProxyConfigurationOptions {
     proxyUrls?: string[];
 
     /**
-     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
-     * and should always return stringified proxy URL. Can be asynchronous.
+     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter and an optional parameter with the `Request` object when applicable.
+     * Can return either stringified proxy URL or `null` if the proxy should not be used. Can be asynchronous.
+     *
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
