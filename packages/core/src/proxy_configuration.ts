@@ -263,7 +263,7 @@ export class ProxyConfiguration {
         let url: string | undefined;
         let tier: number | undefined;
         if (this.tieredProxyUrls) {
-            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(10), options);
+            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(6), options);
             url = proxyUrl;
             tier = proxyTier;
         } else {
@@ -369,7 +369,7 @@ export class ProxyConfiguration {
 
         if (this.tieredProxyUrls) {
             return this._handleTieredUrl(
-                sessionId ?? Math.random().toString().slice(2, 6),
+                sessionId ?? cryptoRandomObjectId(6),
                 options,
             ).proxyUrl;
         }
