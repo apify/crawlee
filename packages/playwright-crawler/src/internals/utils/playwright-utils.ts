@@ -565,8 +565,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
 export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
-    // eslint-disable-next-line no-new-func
-    const html = await page.evaluate(new Function(`return ${expandShadowRoots.toString()}(document)`) as any) as string;
+    const html = await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
     const pageContent = html || await page.content();
 
     return cheerio.load(pageContent);
