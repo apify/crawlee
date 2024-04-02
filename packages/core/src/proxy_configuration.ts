@@ -3,6 +3,7 @@ import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Request } from './request';
+import { cryptoRandomObjectId } from '@apify/utilities';
 
 export interface ProxyConfigurationFunction {
     (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;
@@ -261,7 +262,7 @@ export class ProxyConfiguration {
         let url: string | undefined;
         let tier: number | undefined;
         if (this.tieredProxyUrls) {
-            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), options);
+            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(10), options);
             url = proxyUrl;
             tier = proxyTier;
         } else {
