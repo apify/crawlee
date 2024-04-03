@@ -701,7 +701,7 @@ export class BrowserPool<
 
     private _pickBrowserWithFreeCapacity(
         browserPlugin: BrowserPlugin,
-        options?: TieredProxy,
+        options?: Partial<TieredProxy>,
     ) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
