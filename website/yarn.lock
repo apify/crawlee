@@ -3139,13 +3139,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mime@npm:*":
-  version: 3.0.4
-  resolution: "@types/mime@npm:3.0.4"
-  checksum: 10c0/db478bc0f99e40f7b3e01d356a9bdf7817060808a294978111340317bcd80ca35382855578c5b60fbc84ae449674bd9bb38427b18417e1f8f19e4f72f8b242cd
-  languageName: node
-  linkType: hard
-
 "@types/mime@npm:^1":
   version: 1.3.5
   resolution: "@types/mime@npm:1.3.5"
@@ -3170,11 +3163,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.12.2
-  resolution: "@types/node@npm:20.12.2"
+  version: 20.12.3
+  resolution: "@types/node@npm:20.12.3"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/bb47d115a8f95aadebdd6403fee16d149d6b5568ad53bacc42df34c2d572561e36ba47b05f7f68bada43752d7369b470a90df65b646af7502dfb799a21b4fca7
+  checksum: 10c0/45c8485a0e55276b42c26ba1df6c480e4e1a3a3abbf4ea0ff6b4e2823c4f77e32b7e166d4263d464f207cfea5bd4de8879b8df2c7132a727b0346a30191d6bea
   languageName: node
   linkType: hard
 
@@ -3253,12 +3246,12 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*, @types/react@npm:^18.0.28":
-  version: 18.2.73
-  resolution: "@types/react@npm:18.2.73"
+  version: 18.2.74
+  resolution: "@types/react@npm:18.2.74"
   dependencies:
     "@types/prop-types": "npm:*"
     csstype: "npm:^3.0.2"
-  checksum: 10c0/b6645ab3c20efa41cfccf58ce0be45419517a0ba4594e323dd400342fb1c1f9589d169cf9bfa85b5b0605e9097fe9de7734b6d0c533f5b9bc32aaadb624537a4
+  checksum: 10c0/347e38b4c5dc20d50ff71bf04b7caaef490e5ff695e74a0088a13fbb2a0c5d125a5ecfd142adfa30f0176da0e2734942c91ba61d95ce269c43b3265bd7379361
   languageName: node
   linkType: hard
 
@@ -3305,13 +3298,13 @@ __metadata:
   linkType: hard
 
 "@types/serve-static@npm:*, @types/serve-static@npm:^1.13.10":
-  version: 1.15.5
-  resolution: "@types/serve-static@npm:1.15.5"
+  version: 1.15.6
+  resolution: "@types/serve-static@npm:1.15.6"
   dependencies:
     "@types/http-errors": "npm:*"
-    "@types/mime": "npm:*"
     "@types/node": "npm:*"
-  checksum: 10c0/811d1a2f7e74a872195e7a013bcd87a2fb1edf07eaedcb9dcfd20c1eb4bc56ad4ea0d52141c13192c91ccda7c8aeb8a530d8a7e60b9c27f5990d7e62e0fecb03
+    "@types/send": "npm:*"
+  checksum: 10c0/6bcee5add6ddeb6a2923be41b57b8dcd06fb4c3810a09af044ee8ee4e46a9295562feea72c84f05b17b7c8591dd6200c3817c748883b70f51f841d40d6849b95
   languageName: node
   linkType: hard
 
@@ -3808,13 +3801,13 @@ __metadata:
   linkType: hard
 
 "algoliasearch-helper@npm:^3.13.3":
-  version: 3.16.3
-  resolution: "algoliasearch-helper@npm:3.16.3"
+  version: 3.17.0
+  resolution: "algoliasearch-helper@npm:3.17.0"
   dependencies:
     "@algolia/events": "npm:^4.0.1"
   peerDependencies:
     algoliasearch: ">= 3.1 < 6"
-  checksum: 10c0/4cec9094ffd85847d49da74ae13eed88e4153c41720879c9f44842eb80bd3fe3c1a66a684252807f016333d83b60f45076dcac5504be4f042b67097e79c7e9aa
+  checksum: 10c0/409791d53f874b095b7217cb4a0117ad974460ee2a247e1c2cd75cefb15a154b399d21576122890e8ce091d2f8f7a5b0a99a77571c29d0b966bbfb7e3a9b77a4
   languageName: node
   linkType: hard
 
@@ -4614,9 +4607,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001587, caniuse-lite@npm:^1.0.30001599":
-  version: 1.0.30001603
-  resolution: "caniuse-lite@npm:1.0.30001603"
-  checksum: 10c0/6564da28297a64e88302ddab0768fa72ff383213dd9c02bd113d14eeb22ba30fd00bc171bdbf4f6ff1159c138ed3b37ecc952f172d5153d6ab6118c572992374
+  version: 1.0.30001605
+  resolution: "caniuse-lite@npm:1.0.30001605"
+  checksum: 10c0/ceb96a0ecfdaee6510c00aebaaa63db20aaeafab03450d4e3b214e009cb632f87385a70c299cdd1ca4c17e1473883d8fa2051c5b2d083a454338c0c779b25cbc
   languageName: node
   linkType: hard
 
@@ -5896,9 +5889,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.723
-  resolution: "electron-to-chromium@npm:1.4.723"
-  checksum: 10c0/336131ee6433df3f7f453aca872ef218ac8aed3bd1a4e3426ba940683157ece6ab5bf059c92d42d223f9a46b5137904167aa1c4525511fcfdb3b3df24b80575a
+  version: 1.4.724
+  resolution: "electron-to-chromium@npm:1.4.724"
+  checksum: 10c0/bc7a3f153d952325bac09c1e67325bfc6d686130541550d1b7429cf72a1202256eed09299c4d8010684aa3683332336f05324acf03bc0be7c7060f4e0820c267
   languageName: node
   linkType: hard
 
@@ -13243,8 +13236,8 @@ __metadata:
   linkType: hard
 
 "terser@npm:^5.10.0, terser@npm:^5.15.1, terser@npm:^5.26.0":
-  version: 5.30.1
-  resolution: "terser@npm:5.30.1"
+  version: 5.30.2
+  resolution: "terser@npm:5.30.2"
   dependencies:
     "@jridgewell/source-map": "npm:^0.3.3"
     acorn: "npm:^8.8.2"
@@ -13252,7 +13245,7 @@ __metadata:
     source-map-support: "npm:~0.5.20"
   bin:
     terser: bin/terser
-  checksum: 10c0/0c4d5c1097251604fe85231f2766eb6eba5d6172b7a15175c51cdbc9df7fa5a501acf037248d667961152a1b1aeffa80980b0930b408c8bdc749e5aec8b13c61
+  checksum: 10c0/6ad6beee2b8e2fdeb8b5451acfd88802becca7f2556ef2d1891b9ae90512f68d4a0d45558ceaf535f0a7cfaa152d7a7f4832a640ce3dca1ed9c4ef84c68893ee
   languageName: node
   linkType: hard
 
