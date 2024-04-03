@@ -37,6 +37,11 @@ export interface ProxyConfigurationOptions {
     tieredProxyUrls?: string[][];
 }
 
+export interface TieredProxy {
+    proxyUrl: string;
+    proxyTier?: number;
+}
+
 /**
  * The main purpose of the ProxyInfo object is to provide information
  * about the current proxy connection used by the crawler for the request.
@@ -291,10 +296,7 @@ export class ProxyConfiguration {
      * @param options Options for the tiered proxy rotation
      * @returns An object with the proxy URL and the proxy tier used.
      */
-    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): {
-        proxyUrl: string;
-        proxyTier?: number;
-    } {
+    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): TieredProxy {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 
         if (!options || (!options?.request && options?.proxyTier === undefined)) {

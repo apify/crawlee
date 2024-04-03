@@ -1,4 +1,5 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import type { TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -404,14 +405,7 @@ export class BrowserPool<
 
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(async () => {
-            let browserController;
-            if (proxyTier) {
-                browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier });
-            } else if (proxyUrl) {
-                browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
-            } else {
-                browserController = this._pickBrowserWithFreeCapacity(browserPlugin);
-            }
+            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
 
             if (!browserController) browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
             tryCancel();
@@ -705,12 +699,14 @@ export class BrowserPool<
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?:
-        { proxyTier?: number; proxyUrl?: never } | { proxyTier?: never; proxyUrl?: string | null }) {
+    private _pickBrowserWithFreeCapacity(
+        browserPlugin: BrowserPlugin,
+        options?: TieredProxy,
+    ) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
-            const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
+            const isSameProxyUrl = (controller.proxyUrl === options?.proxyUrl);
             const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return isCorrectPlugin
