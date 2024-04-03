@@ -37,7 +37,7 @@ import type { InterceptHandler } from './puppeteer_request_interception';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PuppeteerCrawlingContext } from '../puppeteer-crawler';
+import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler';
 
 const jqueryPath = require.resolve('jquery');
 
@@ -181,11 +181,12 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  * ```
  *
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
+ * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
-    const html = await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
+    const html = ignoreShadowRoots ? null : await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
     const pageContent = html || await page.content();
 
     return cheerio.load(pageContent);
@@ -956,7 +957,7 @@ export interface PuppeteerContextUtils {
 }
 
 /** @internal */
-export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
+export function registerUtilsToContext(context: PuppeteerCrawlingContext, crawlerOptions: PuppeteerCrawlerOptions): void {
     context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = (async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
@@ -966,7 +967,7 @@ export function registerUtilsToContext(context: PuppeteerCrawlingContext): void 
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     });
-    context.parseWithCheerio = async () => parseWithCheerio(context.page);
+    context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
     // eslint-disable-next-line max-len
     context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         page: context.page,

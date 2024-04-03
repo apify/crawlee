@@ -252,6 +252,12 @@ export interface BrowserCrawlerOptions<
      * Can be also set via {@apilink Configuration}.
      */
     headless?: boolean | 'new' | 'old'; // `new`/`old` are for puppeteer only
+
+    /**
+     * Whether to ignore custom elements (and their #shadow-roots) when processing the page content via `parseWithCheerio` helper.
+     * By default, they are expanded automatically. Use this option to disable this behavior.
+     */
+    ignoreShadowRoots?: boolean;
 }
 
 /**

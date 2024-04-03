@@ -197,7 +197,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options: PlaywrightCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
+    constructor(private readonly options: PlaywrightCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const {
@@ -236,7 +236,7 @@ export class PlaywrightCrawler extends BrowserCrawler<{ browserPlugins: [Playwri
     }
 
     protected override async _runRequestHandler(context: PlaywrightCrawlingContext) {
-        registerUtilsToContext(context);
+        registerUtilsToContext(context, this.options);
         await super._runRequestHandler(context);
     }
 
