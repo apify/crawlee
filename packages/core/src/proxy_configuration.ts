@@ -309,7 +309,7 @@ export class ProxyConfiguration {
         let tierPrediction = options.proxyTier!;
 
         if (typeof tierPrediction !== 'number') {
-            tierPrediction = this.getProxyTier(options.request!)!;
+            tierPrediction = this.predictProxyTier(options.request!)!;
         }
 
         const proxyTier = this.tieredProxyUrls![tierPrediction];
@@ -325,7 +325,7 @@ export class ProxyConfiguration {
      *
      * This returns `null` if `tieredProxyUrls` option is not set.
      */
-    getProxyTier(request: Request): number | null {
+    protected predictProxyTier(request: Request): number | null {
         if (!this.tieredProxyUrls) return null;
 
         const domain = new URL(request.url).hostname;
