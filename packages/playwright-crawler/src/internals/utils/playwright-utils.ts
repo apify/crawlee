@@ -26,7 +26,7 @@ import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { validators, KeyValueStore, RequestState, Configuration } from '@crawlee/browser';
 import type { BatchAddRequestsResult } from '@crawlee/types';
-import type { CheerioRoot, Dictionary } from '@crawlee/utils';
+import { type CheerioRoot, type Dictionary, expandShadowRoots } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import { getInjectableScript as getCookieClosingScript } from 'idcac-playwright';
 import ow from 'ow';
@@ -35,7 +35,7 @@ import type { Page, Response, Route } from 'playwright';
 import { RenderingTypePredictor } from './rendering-type-prediction';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PlaywrightCrawlingContext } from '../playwright-crawler';
+import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler';
 
 const log = log_.child({ prefix: 'Playwright Utils' });
 
@@ -561,10 +561,14 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
  * ```
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
+ * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
-    const pageContent = await page.content();
+
+    const html = ignoreShadowRoots ? null : await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
+    const pageContent = html || await page.content();
+
     return cheerio.load(pageContent);
 }
 
@@ -752,7 +756,7 @@ export interface PlaywrightContextUtils {
     closeCookieModals(): Promise<void>;
 }
 
-export function registerUtilsToContext(context: PlaywrightCrawlingContext): void {
+export function registerUtilsToContext(context: PlaywrightCrawlingContext, crawlerOptions: PlaywrightCrawlerOptions): void {
     context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = (async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
@@ -763,7 +767,7 @@ export function registerUtilsToContext(context: PlaywrightCrawlingContext): void
         await injectJQuery(context.page, { surviveNavigations: false });
     });
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.parseWithCheerio = async () => parseWithCheerio(context.page);
+    context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = async (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
     // eslint-disable-next-line max-len
