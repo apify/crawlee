@@ -1881,12 +1881,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sigstore/bundle@npm:^2.2.0, @sigstore/bundle@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "@sigstore/bundle@npm:2.3.0"
+"@sigstore/bundle@npm:^2.3.0, @sigstore/bundle@npm:^2.3.1":
+  version: 2.3.1
+  resolution: "@sigstore/bundle@npm:2.3.1"
   dependencies:
     "@sigstore/protobuf-specs": "npm:^0.3.1"
-  checksum: 10c0/d25e5ecce664a9cc4d3daad22a064114431c2d44008540e4958dea33050714396fac1b87983b776d8f277e041ea4abc07cf9925a9c021d0b7b26747a242a12cd
+  checksum: 10c0/f5cc08e6420055ca20c1fa458725cf3d090974c3650aacfb6ba0b09d9c59149e5f4d8c5bfe9f2253daf2c29548262e9e4ea83b4b2fc4abbaf93cf49ee2687f05
   languageName: node
   linkType: hard
 
@@ -1922,7 +1922,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sigstore/sign@npm:^2.2.3":
+"@sigstore/sign@npm:^2.3.0":
   version: 2.3.0
   resolution: "@sigstore/sign@npm:2.3.0"
   dependencies:
@@ -1954,14 +1954,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sigstore/verify@npm:^1.1.0":
-  version: 1.1.1
-  resolution: "@sigstore/verify@npm:1.1.1"
+"@sigstore/verify@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@sigstore/verify@npm:1.2.0"
   dependencies:
-    "@sigstore/bundle": "npm:^2.2.0"
+    "@sigstore/bundle": "npm:^2.3.1"
     "@sigstore/core": "npm:^1.1.0"
-    "@sigstore/protobuf-specs": "npm:^0.3.0"
-  checksum: 10c0/1e0b2e0acf12a4300f98856d9e10897d46afead6859d1ff33367d98622ea24abc57d32becf87e5eb2dbaa26a3f0397bd37ad0e3f8d9c43413b7103dcbedbab4b
+    "@sigstore/protobuf-specs": "npm:^0.3.1"
+  checksum: 10c0/ed0d9cb8c71bde23bd48e40725e5b4bd3ff1595b6d9e4b1ed4f2dfd06f6bf76a3dc69d86f8b2e4488a9cb4ade0d9a41718bd33119b9afca66f90badd52a373fe
   languageName: node
   linkType: hard
 
@@ -2116,14 +2116,14 @@ __metadata:
   linkType: hard
 
 "@types/express-serve-static-core@npm:^4.17.33":
-  version: 4.17.43
-  resolution: "@types/express-serve-static-core@npm:4.17.43"
+  version: 4.19.0
+  resolution: "@types/express-serve-static-core@npm:4.19.0"
   dependencies:
     "@types/node": "npm:*"
     "@types/qs": "npm:*"
     "@types/range-parser": "npm:*"
     "@types/send": "npm:*"
-  checksum: 10c0/12480527eef86ad9f748d785811c88e6bb89f4a76e531cf2e18f1f4f0743e46783cf4d27a939dec96aec8770c54c060d9e697bb8544ecd202098140688c3b222
+  checksum: 10c0/38a13dfbb38d18526276e68dae1097eb0ebef296e76bff2a9bf6831c052c2f87797e910c87bd3f0dd1a1b4136241c9d7c841779a00b22576d12aa9b483a63349
   languageName: node
   linkType: hard
 
@@ -3286,11 +3286,11 @@ __metadata:
   linkType: hard
 
 "bare-path@npm:^2.0.0, bare-path@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "bare-path@npm:2.1.0"
+  version: 2.1.1
+  resolution: "bare-path@npm:2.1.1"
   dependencies:
     bare-os: "npm:^2.1.0"
-  checksum: 10c0/60477ea217ee56f4e1070a944b30b1b4f7019568c63bd5485854040ae80d6912a58ffbc22438845fc7b4bae59516f7655f5a10f095ae1a2739642d4bebc458bc
+  checksum: 10c0/70a341dc15419d20fd7299a69aab39a2a85e6a6ca45989d9e8d2c175f523475317ffbc9b6a3918f87a0f96f8d5702feee2ace776a0596aa1e55dc230995e222c
   languageName: node
   linkType: hard
 
@@ -4575,9 +4575,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1281655
-  resolution: "devtools-protocol@npm:0.0.1281655"
-  checksum: 10c0/f34a243148ca199052cd953c2704551c6b319256968cceff505e26f2d96b36c3b4afc61f23ac0d6528e36f10fc01cbbe9b5471dfa2d9ef2d8b910a115605595c
+  version: 0.0.1282316
+  resolution: "devtools-protocol@npm:0.0.1282316"
+  checksum: 10c0/fc8ecad940ec754bccd5b6725b1352a0dc76c54699f609e732d270432366b76e2b6d93dde089e40b62c2fe2a073c8776403a99d469d98e6d25d2d2692a427065
   languageName: node
   linkType: hard
 
@@ -4750,9 +4750,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.725
-  resolution: "electron-to-chromium@npm:1.4.725"
-  checksum: 10c0/fc6756b408e5df6ba5d6b8a5f5a5fb44e4000aeb0d18073d0d6130dc4049855a5aee8966e91cfeeb8799d6ba50f53ccc52f15585482bcacaa60543a415af040d
+  version: 1.4.727
+  resolution: "electron-to-chromium@npm:1.4.727"
+  checksum: 10c0/7a29cdeab08ae08f60af0509242f7a257798fc0031b93342ec39a2bb1ef93496c605c546105b69eadc1c77b9e45b82449a2916804e68f307e0757412d5b7079f
   languageName: node
   linkType: hard
 
@@ -8229,11 +8229,11 @@ __metadata:
   linkType: hard
 
 "magic-string@npm:^0.30.5":
-  version: 0.30.8
-  resolution: "magic-string@npm:0.30.8"
+  version: 0.30.9
+  resolution: "magic-string@npm:0.30.9"
   dependencies:
     "@jridgewell/sourcemap-codec": "npm:^1.4.15"
-  checksum: 10c0/51a1f06f678c082aceddfb5943de9b6bdb88f2ea1385a1c2adf116deb73dfcfa50df6c222901d691b529455222d4d68d0b28be5689ac6f69b3baa3462861f922
+  checksum: 10c0/edbeea35b4f90b58815d8b13899fa412b5bc1e81cae14fe6d24d5c383c5f04331fce2c5a75bfb7926203ab6fc8c71290cdab56703a5b82432d8a1e144d6042e1
   languageName: node
   linkType: hard
 
@@ -11009,16 +11009,16 @@ __metadata:
   linkType: hard
 
 "sigstore@npm:^2.2.0":
-  version: 2.2.2
-  resolution: "sigstore@npm:2.2.2"
+  version: 2.3.0
+  resolution: "sigstore@npm:2.3.0"
   dependencies:
-    "@sigstore/bundle": "npm:^2.2.0"
+    "@sigstore/bundle": "npm:^2.3.1"
     "@sigstore/core": "npm:^1.0.0"
-    "@sigstore/protobuf-specs": "npm:^0.3.0"
-    "@sigstore/sign": "npm:^2.2.3"
+    "@sigstore/protobuf-specs": "npm:^0.3.1"
+    "@sigstore/sign": "npm:^2.3.0"
     "@sigstore/tuf": "npm:^2.3.1"
-    "@sigstore/verify": "npm:^1.1.0"
-  checksum: 10c0/cf3d71d3ef886d84e2a885f25cc42392cfce98de7fbf70a4d6595fe273e813970cb5901e07f69f0902cc0348e5de33c1a8c535d7aae1d21d1a2bdf696108b190
+    "@sigstore/verify": "npm:^1.2.0"
+  checksum: 10c0/13271fc0d0960a61994faf1a9c165429e74b09d090fb3f9dbe63b8c4ce5e275ade8abf5c72b738684888a8b87538ec2c4691d7a06c6023c0f2ff8f1aea104f2d
   languageName: node
   linkType: hard
 
@@ -11844,8 +11844,8 @@ __metadata:
   linkType: hard
 
 "tsx@npm:^4.4.0":
-  version: 4.7.1
-  resolution: "tsx@npm:4.7.1"
+  version: 4.7.2
+  resolution: "tsx@npm:4.7.2"
   dependencies:
     esbuild: "npm:~0.19.10"
     fsevents: "npm:~2.3.3"
@@ -11855,7 +11855,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/5711bec9467fe2984b8cca2f3d99955a49aad62b8e2e8c2054488827dd2ea4618e0dfc0cc1c1642e311734e085631a268a2b53e83afb666c86f572039adebb9f
+  checksum: 10c0/0338598cc3b7b01a47939297797dfb77a1d675acb33bf71e816faf2b8cb76da3994d341d2920d105dbe98cd01a4babd80ca4b9a5a36120813dd79c4fc1c32df1
   languageName: node
   linkType: hard
 
@@ -12094,22 +12094,22 @@ __metadata:
   linkType: hard
 
 "typescript@npm:>=3 < 6, typescript@npm:^5.4.3":
-  version: 5.4.3
-  resolution: "typescript@npm:5.4.3"
+  version: 5.4.4
+  resolution: "typescript@npm:5.4.4"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/22443a8760c3668e256c0b34b6b45c359ef6cecc10c42558806177a7d500ab1a7d7aac1f976d712e26989ddf6731d2fbdd3212b7c73290a45127c1c43ba2005a
+  checksum: 10c0/4d8de0291204ed61ca97ad0cba2ce064e09c4988ca1c451c787e4653ba76296ba35177a52694e8a00cf4ef899d0ee83338663b926d8b7d55167ff0ba81549999
   languageName: node
   linkType: hard
 
 "typescript@patch:typescript@npm%3A>=3 < 6#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.4.3#optional!builtin<compat/typescript>":
-  version: 5.4.3
-  resolution: "typescript@patch:typescript@npm%3A5.4.3#optional!builtin<compat/typescript>::version=5.4.3&hash=5adc0c"
+  version: 5.4.4
+  resolution: "typescript@patch:typescript@npm%3A5.4.4#optional!builtin<compat/typescript>::version=5.4.4&hash=5adc0c"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/6e51f8b7e6ec55b897b9e56b67e864fe8f44e30f4a14357aad5dc0f7432db2f01efc0522df0b6c36d361c51f2dc3dcac5c832efd96a404cfabf884e915d38828
+  checksum: 10c0/1fa41b9964a9ff0ed913b339c90b46031b2d2da3cb1a192af516610733f7f1d5f7f9754a8e22b9ac7076d3d8aedd2c4f84db3f113bad060eac3a95962443a1bf
   languageName: node
   linkType: hard
 
