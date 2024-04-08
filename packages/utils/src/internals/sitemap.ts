@@ -169,7 +169,7 @@ export class Sitemap {
                         const parser = (() => {
                             const contentType = sitemapStream.response!.headers['content-type'];
 
-                            if (contentType === 'text/xml' || sitemapUrl.endsWith('.xml')) {
+                            if (['text/xml', 'application/xml'].includes(contentType ?? '') || sitemapUrl.endsWith('.xml')) {
                                 return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
                             }
 
