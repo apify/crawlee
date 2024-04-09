@@ -228,10 +228,11 @@ describe('KeyValueStore', () => {
             let counter = 0;
 
             for (const char of INVALID_CHARACTERS) {
+                const key = `my_id_${char}`;
                 try {
-                    await store.setValue(`my_id_${char}`, 'value');
+                    await store.setValue(key, 'value');
                 } catch (err) {
-                    if ((err as Error).message.match('The "key" argument must be at most 256 characters')) counter++;
+                    if ((err as Error).message.match(`The "key" argument "${key}" must be at most 256 characters`)) counter++;
                 }
             }
             expect(counter).toEqual(INVALID_CHARACTERS.length);
