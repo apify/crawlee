@@ -323,7 +323,7 @@ export class KeyValueStore {
         ow(key, 'key', ow.string.nonEmpty);
         ow(key, ow.string.validate((k) => ({
             validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
-            message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
+            message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()`,
         })));
         if (options.contentType
            && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function'))) {
