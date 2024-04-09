@@ -232,7 +232,7 @@ describe('KeyValueStore', () => {
                 try {
                     await store.setValue(key, 'value');
                 } catch (err) {
-                    if ((err as Error).message.match(`The "key" argument "${key}" must be at most 256 characters`)) counter++;
+                    if ((err as Error).message.startsWith(`The "key" argument "${key}" must be at most 256 characters`)) counter++;
                 }
             }
             expect(counter).toEqual(INVALID_CHARACTERS.length);
