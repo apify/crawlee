@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.9.0](https://github.com/apify/crawlee/compare/v3.8.2...v3.9.0) (2024-04-10)
+
+
+### Bug Fixes
+
+* include actual key in error message of KVS' `setValue` ([#2411](https://github.com/apify/crawlee/issues/2411)) ([9089bf1](https://github.com/apify/crawlee/commit/9089bf139b717fecc6e8220c65a4d389862bd073))
+* notify autoscaled pool about newly added requests ([#2400](https://github.com/apify/crawlee/issues/2400)) ([a90177d](https://github.com/apify/crawlee/commit/a90177d5207794be1d6e401d746dd4c6e5961976))
+* **puppeteer:** allow passing `networkidle` to `waitUntil` in `gotoExtended` ([#2399](https://github.com/apify/crawlee/issues/2399)) ([5d0030d](https://github.com/apify/crawlee/commit/5d0030d24858585715b0fac5568440f2b2346706)), closes [#2398](https://github.com/apify/crawlee/issues/2398)
+* sitemaps support `application/xml` ([#2408](https://github.com/apify/crawlee/issues/2408)) ([cbcf47a](https://github.com/apify/crawlee/commit/cbcf47a7b991a8b88a6c2a46f3684444d776fcdd))
+
+
+### Features
+
+* `createAdaptivePlaywrightRouter` utility ([#2415](https://github.com/apify/crawlee/issues/2415)) ([cee4778](https://github.com/apify/crawlee/commit/cee477814e4901d025c5376205ad884c2fe08e0e)), closes [#2407](https://github.com/apify/crawlee/issues/2407)
+* `tieredProxyUrls` for ProxyConfiguration ([#2348](https://github.com/apify/crawlee/issues/2348)) ([5408c7f](https://github.com/apify/crawlee/commit/5408c7f60a5bf4dbdba92f2d7440e0946b94ea6e))
+* better `newUrlFunction` for ProxyConfiguration ([#2392](https://github.com/apify/crawlee/issues/2392)) ([330598b](https://github.com/apify/crawlee/commit/330598b348ad27bc7c73732294a14b655ccd3507)), closes [#2348](https://github.com/apify/crawlee/issues/2348) [#2065](https://github.com/apify/crawlee/issues/2065)
+* expand #shadow-root elements automatically in `parseWithCheerio` helper ([#2396](https://github.com/apify/crawlee/issues/2396)) ([a05b3a9](https://github.com/apify/crawlee/commit/a05b3a93a9b57926b353df0e79d846b5024c42ac))
+
+
+
+
+
 ## [3.8.2](https://github.com/apify/crawlee/compare/v3.8.1...v3.8.2) (2024-03-21)
 
 
