@@ -2,7 +2,11 @@ import { BrowserPool, PlaywrightPlugin } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 
 describe('BrowserPool - Using multiple plugins', () => {
-    let browserPool: BrowserPool<{ browserPlugins: [PlaywrightPlugin, PlaywrightPlugin]; closeInactiveBrowserAfterSecs: 2 }>;
+    let browserPool: BrowserPool<{
+        browserPlugins: [PlaywrightPlugin, PlaywrightPlugin];
+        closeInactiveBrowserAfterSecs: 2;
+        retireInactiveBrowserAfterSecs: 30;
+    }>;
     const chromePlugin = new PlaywrightPlugin(playwright.chromium);
     const firefoxPlugin = new PlaywrightPlugin(playwright.firefox);
 
@@ -14,6 +18,7 @@ describe('BrowserPool - Using multiple plugins', () => {
                 firefoxPlugin,
             ],
             closeInactiveBrowserAfterSecs: 2,
+            retireInactiveBrowserAfterSecs: 30,
         });
     });
 

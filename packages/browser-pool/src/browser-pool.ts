@@ -20,7 +20,6 @@ import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
-const BROWSER_RETIRE_CHECK_INTERVAL = 1000;
 
 export interface BrowserPoolEvents<BC extends BrowserController, Page> {
     [BROWSER_POOL_EVENTS.PAGE_CREATED]: (page: Page) => void | Promise<void>;
@@ -95,6 +94,16 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
      * @default 300
      */
     closeInactiveBrowserAfterSecs?: number;
+    /**
+     * Browsers are marked as retired after they have been inactive for a certain
+     * amount of time. This option sets the interval at which the browsers
+     * are checked and retired if they are inactive.
+     *
+     * Retired browsers are closed after all their pages are closed.
+     *
+     * @default 1
+     */
+    retireInactiveBrowserAfterSecs?: number;
     /**
      * @default true
      */
@@ -307,15 +316,7 @@ export class BrowserPool<
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
-    private browserRetireInterval? = setInterval(
-        async () => this.activeBrowserControllers.forEach((controller) => {
-            if (
-                controller.activePages === 0
-                    && controller.lastPageOpenedAt < (Date.now() - BROWSER_RETIRE_CHECK_INTERVAL)
-            ) {
-                this.retireBrowserController(controller);
-            }
-        }), BROWSER_RETIRE_CHECK_INTERVAL);
+    private browserRetireInterval : NodeJS.Timeout | undefined;
 
     private limiter = pLimit(1);
 
@@ -323,7 +324,6 @@ export class BrowserPool<
         super();
 
         this.browserKillerInterval!.unref();
-        this.browserRetireInterval!.unref();
 
         ow(options, ow.object.exactShape({
             browserPlugins: ow.array.minLength(1),
@@ -331,6 +331,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount: ow.optional.number,
             operationTimeoutSecs: ow.optional.number,
             closeInactiveBrowserAfterSecs: ow.optional.number,
+            retireInactiveBrowserAfterSecs: ow.optional.number,
             preLaunchHooks: ow.optional.array,
             postLaunchHooks: ow.optional.array,
             prePageCreateHooks: ow.optional.array,
@@ -347,6 +348,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount = 100,
             operationTimeoutSecs = 15,
             closeInactiveBrowserAfterSecs = 300,
+            retireInactiveBrowserAfterSecs = 1,
             preLaunchHooks = [],
             postLaunchHooks = [],
             prePageCreateHooks = [],
@@ -378,6 +380,18 @@ export class BrowserPool<
         this.closeInactiveBrowserAfterMillis = closeInactiveBrowserAfterSecs * 1000;
         this.useFingerprints = useFingerprints;
         this.fingerprintOptions = fingerprintOptions;
+
+        this.browserRetireInterval = setInterval(
+            async () => this.activeBrowserControllers.forEach((controller) => {
+                if (
+                    controller.activePages === 0
+                        && controller.lastPageOpenedAt < (Date.now() - retireInactiveBrowserAfterSecs * 1000)
+                ) {
+                    this.retireBrowserController(controller);
+                }
+            }), retireInactiveBrowserAfterSecs * 1000);
+
+        this.browserRetireInterval!.unref();
 
         // hooks
         this.preLaunchHooks = preLaunchHooks;
