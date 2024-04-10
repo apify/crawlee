@@ -1,7 +1,7 @@
 import { addTimeoutToPromise } from '@apify/timeout';
 import { extractUrlsFromPage } from '@crawlee/browser';
-import type { RestrictedCrawlingContext, StatisticState, StatisticPersistedState } from '@crawlee/core';
-import { Configuration, RequestHandlerResult, Statistics, withCheckedStorageAccess } from '@crawlee/core';
+import type { RestrictedCrawlingContext, StatisticState, StatisticPersistedState, GetUserDataFromRequest, RouterRoutes } from '@crawlee/core';
+import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
 import { load, type Cheerio, type Element } from 'cheerio';
@@ -64,7 +64,7 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
     }
 }
 
-interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
+export interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingContext {
     /**
      * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
      */
@@ -355,4 +355,11 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             return { error, ok: false };
         }
     }
+}
+
+export function createAdaptivePlaywrightRouter<
+    Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
+>(routes?: RouterRoutes<Context, UserData>) {
+    return Router.create<Context>(routes);
 }
