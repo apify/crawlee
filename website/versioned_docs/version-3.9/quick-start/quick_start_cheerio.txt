@@ -1,0 +1,5 @@
+INFO  CheerioCrawler: Starting the crawl
+INFO  CheerioCrawler: Title of https://crawlee.dev/ is 'Crawlee · Build reliable crawlers. Fast. | Crawlee'
+INFO  CheerioCrawler: Title of https://crawlee.dev/docs/examples is 'Examples | Crawlee'
+INFO  CheerioCrawler: Title of https://crawlee.dev/docs/quick-start is 'Quick Start | Crawlee'
+INFO  CheerioCrawler: Title of https://crawlee.dev/docs/guides is 'Guides | Crawlee'
