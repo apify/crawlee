@@ -20,6 +20,7 @@ import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
 
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
+const BROWSER_RETIRE_CHECK_INTERVAL = 1000;
 
 export interface BrowserPoolEvents<BC extends BrowserController, Page> {
     [BROWSER_POOL_EVENTS.PAGE_CREATED]: (page: Page) => void | Promise<void>;
@@ -306,12 +307,23 @@ export class BrowserPool<
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
+    private browserRetireInterval? = setInterval(
+        async () => this.activeBrowserControllers.forEach((controller) => {
+            if (
+                controller.activePages === 0
+                    && controller.lastPageOpenedAt < (Date.now() - BROWSER_RETIRE_CHECK_INTERVAL)
+            ) {
+                this.retireBrowserController(controller);
+            }
+        }), BROWSER_RETIRE_CHECK_INTERVAL);
+
     private limiter = pLimit(1);
 
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
         super();
 
         this.browserKillerInterval!.unref();
+        this.browserRetireInterval!.unref();
 
         ow(options, ow.object.exactShape({
             browserPlugins: ow.array.minLength(1),
@@ -613,7 +625,9 @@ export class BrowserPool<
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
+        clearInterval(this.browserRetireInterval!);
         this.browserKillerInterval = undefined;
+        this.browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
 
@@ -706,15 +720,18 @@ export class BrowserPool<
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
-            const isSameProxyUrl = (controller.proxyUrl === options?.proxyUrl);
+            const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
             const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return isCorrectPlugin
                 && hasCapacity
                 && (
-                    (options?.proxyTier && isCorrectProxyTier)
-                    || (options?.proxyUrl && isSameProxyUrl)
-                    || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
+                    !controller.launchContext.browserPerProxy
+                    || (
+                        (options?.proxyTier && isCorrectProxyTier)
+                        || (options?.proxyUrl && isSameProxyUrl)
+                        || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
+                    )
                 );
         });
     }
