@@ -726,12 +726,10 @@ export class BrowserPool<
             return isCorrectPlugin
                 && hasCapacity
                 && (
-                    !controller.launchContext.browserPerProxy
-                    || (
-                        (options?.proxyTier && isCorrectProxyTier)
-                        || (options?.proxyUrl && isSameProxyUrl)
-                        || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
-                    )
+                    (!controller.launchContext.browserPerProxy && !options?.proxyTier)
+                    || (options?.proxyTier && isCorrectProxyTier)
+                    || (options?.proxyUrl && isSameProxyUrl)
+                    || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
                 );
         });
     }
