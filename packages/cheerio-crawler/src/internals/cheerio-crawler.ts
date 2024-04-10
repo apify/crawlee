@@ -171,7 +171,9 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         return {
             dom,
             $,
-            body: (dom as Buffer).toString('utf8'),
+            get body() {
+                return isXml ? $!.xml() : $!.html({ decodeEntities: false });
+            },
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
                     options: enqueueOptions,
