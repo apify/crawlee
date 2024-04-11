@@ -95,6 +95,16 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
      */
     closeInactiveBrowserAfterSecs?: number;
     /**
+     * Browsers are marked as retired after they have been inactive for a certain
+     * amount of time. This option sets the interval at which the browsers
+     * are checked and retired if they are inactive.
+     *
+     * Retired browsers are closed after all their pages are closed.
+     *
+     * @default 1
+     */
+    retireInactiveBrowserAfterSecs?: number;
+    /**
      * @default true
      */
     useFingerprints?: boolean;
@@ -306,6 +316,8 @@ export class BrowserPool<
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
+    private browserRetireInterval?: NodeJS.Timeout;
+
     private limiter = pLimit(1);
 
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
@@ -319,6 +331,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount: ow.optional.number,
             operationTimeoutSecs: ow.optional.number,
             closeInactiveBrowserAfterSecs: ow.optional.number,
+            retireInactiveBrowserAfterSecs: ow.optional.number,
             preLaunchHooks: ow.optional.array,
             postLaunchHooks: ow.optional.array,
             prePageCreateHooks: ow.optional.array,
@@ -335,6 +348,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount = 100,
             operationTimeoutSecs = 15,
             closeInactiveBrowserAfterSecs = 300,
+            retireInactiveBrowserAfterSecs = 1,
             preLaunchHooks = [],
             postLaunchHooks = [],
             prePageCreateHooks = [],
@@ -366,6 +380,18 @@ export class BrowserPool<
         this.closeInactiveBrowserAfterMillis = closeInactiveBrowserAfterSecs * 1000;
         this.useFingerprints = useFingerprints;
         this.fingerprintOptions = fingerprintOptions;
+
+        this.browserRetireInterval = setInterval(
+            async () => this.activeBrowserControllers.forEach((controller) => {
+                if (
+                    controller.activePages === 0
+                        && controller.lastPageOpenedAt < (Date.now() - retireInactiveBrowserAfterSecs * 1000)
+                ) {
+                    this.retireBrowserController(controller);
+                }
+            }), retireInactiveBrowserAfterSecs * 1000);
+
+        this.browserRetireInterval!.unref();
 
         // hooks
         this.preLaunchHooks = preLaunchHooks;
@@ -613,7 +639,9 @@ export class BrowserPool<
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
+        clearInterval(this.browserRetireInterval!);
         this.browserKillerInterval = undefined;
+        this.browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
 
@@ -706,13 +734,14 @@ export class BrowserPool<
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
-            const isSameProxyUrl = (controller.proxyUrl === options?.proxyUrl);
+            const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
             const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return isCorrectPlugin
                 && hasCapacity
                 && (
-                    (options?.proxyTier && isCorrectProxyTier)
+                    (!controller.launchContext.browserPerProxy && !options?.proxyTier)
+                    || (options?.proxyTier && isCorrectProxyTier)
                     || (options?.proxyUrl && isSameProxyUrl)
                     || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
                 );
