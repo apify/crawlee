@@ -316,7 +316,7 @@ export class BrowserPool<
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
-    private browserRetireInterval : NodeJS.Timeout | undefined;
+    private browserRetireInterval?: NodeJS.Timeout;
 
     private limiter = pLimit(1);
 
