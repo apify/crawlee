@@ -152,7 +152,7 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toEqual([]);
     });
 
-    it.only('handles CDATA in loc tags', async () => {
+    it('handles CDATA in loc tags', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml');
         expect(new Set(sitemap.urls)).toEqual(new Set([
             'http://not-exists.com/catalog',
