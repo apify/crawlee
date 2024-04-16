@@ -453,7 +453,7 @@ export class AutoscaledPool {
      * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
      */
     async notify(): Promise<void> {
-        await this._maybeRunTask();
+        setImmediate(this._maybeRunTask);
     }
 
     /**
