@@ -3213,9 +3213,9 @@ __metadata:
   linkType: hard
 
 "@types/qs@npm:*":
-  version: 6.9.14
-  resolution: "@types/qs@npm:6.9.14"
-  checksum: 10c0/11ad1eb7f6d7c216002789959d88acc7c43f72854fa4335f01de0df41b4c4024668dace8a37ba12270314345ede0ec6b07f93053a45e7bd4cd7318a3dcf0b6b8
+  version: 6.9.15
+  resolution: "@types/qs@npm:6.9.15"
+  checksum: 10c0/49c5ff75ca3adb18a1939310042d273c9fc55920861bd8e5100c8a923b3cda90d759e1a95e18334092da1c8f7b820084687770c83a1ccef04fb2c6908117c823
   languageName: node
   linkType: hard
 
@@ -5090,25 +5090,25 @@ __metadata:
   linkType: hard
 
 "core-js-compat@npm:^3.31.0, core-js-compat@npm:^3.36.1":
-  version: 3.36.1
-  resolution: "core-js-compat@npm:3.36.1"
+  version: 3.37.0
+  resolution: "core-js-compat@npm:3.37.0"
   dependencies:
     browserslist: "npm:^4.23.0"
-  checksum: 10c0/70fba18a4095cd8ac04e5ba8cee251e328935859cf2851c1f67770068ea9f9fe71accb1b7de17cd3c9a28d304a4c41712bd9aa895110ebb6e3be71b666b029d1
+  checksum: 10c0/ca6ba7d200f7a4a850fd5cba58b40ab78139d3f301bad7b53816eafe0cfb000523e72882069ddaba440794b950ed101225668bf7b97b73e54a5e3384a8215e03
   languageName: node
   linkType: hard
 
 "core-js-pure@npm:^3.30.2":
-  version: 3.36.1
-  resolution: "core-js-pure@npm:3.36.1"
-  checksum: 10c0/b964c7aa35665a4ecd513f62d695d99e96bb9e42621f7fcc823a613fab4155525d5c2875e46fcc4e6a3396c1fb7d543aee8f7afd83aa34531261b30af759c3d6
+  version: 3.37.0
+  resolution: "core-js-pure@npm:3.37.0"
+  checksum: 10c0/0559e5f7862674136754cdef7b2386f9a19f29fd834008d3fa3fb3b3d9ec31180e4c0c6b3b7cef35933665832489236846cf39b11f1f8f003cd848e7f834357a
   languageName: node
   linkType: hard
 
 "core-js@npm:^3.31.1":
-  version: 3.36.1
-  resolution: "core-js@npm:3.36.1"
-  checksum: 10c0/4f0ad2464535d809ba659226feca15bff14b9b5452518bddff8d81b9c94b0227b3027d9838f22f1dce664958acb4107b935cc0037695ae545edc2a303bca98bf
+  version: 3.37.0
+  resolution: "core-js@npm:3.37.0"
+  checksum: 10c0/7e00331f346318ca3f595c08ce9e74ddae744715aef137486c1399163afd79792fb94c3161280863adfdc3e30f8026912d56bd3036f93cacfc689d33e185f2ee
   languageName: node
   linkType: hard
 
@@ -5902,9 +5902,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.736
-  resolution: "electron-to-chromium@npm:1.4.736"
-  checksum: 10c0/f3acb515dcb9333b318f9a8ee80a0c3975162da6cc45d9c00152e0de7004b2bfe1246fe6cdf0c41a1b7016780bd4324aff848830aba4227cb55480c1aa32d248
+  version: 1.4.738
+  resolution: "electron-to-chromium@npm:1.4.738"
+  checksum: 10c0/f08730e4cc46c17ea4f85694a9e3839955c3b4e356dff5e19bd3b67c2cb31454944674d4c353eef1e393a2ef9632c3bc4dd7d8f98d3fe34243f039a48a1659cc
   languageName: node
   linkType: hard
 
@@ -9879,14 +9879,14 @@ __metadata:
   linkType: hard
 
 "micromark-util-subtokenize@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "micromark-util-subtokenize@npm:2.0.0"
+  version: 2.0.1
+  resolution: "micromark-util-subtokenize@npm:2.0.1"
   dependencies:
     devlop: "npm:^1.0.0"
     micromark-util-chunked: "npm:^2.0.0"
     micromark-util-symbol: "npm:^2.0.0"
     micromark-util-types: "npm:^2.0.0"
-  checksum: 10c0/1907c56c4974d430b984c50b3eb0930241112d931e611f178dee17d58f2976614950631b70f4e9c7e49dbccf21f91654ee61f250e028bf2f2b0f3d3aeb168da8
+  checksum: 10c0/000cefde827db129f4ed92b8fbdeb4866c5f9c93068c0115485564b0426abcb9058080aa257df9035e12ca7fa92259d66623ea750b9eb3bcdd8325d3fb6fc237
   languageName: node
   linkType: hard
 
@@ -10028,14 +10028,14 @@ __metadata:
   linkType: hard
 
 "mini-css-extract-plugin@npm:^2.7.6":
-  version: 2.8.1
-  resolution: "mini-css-extract-plugin@npm:2.8.1"
+  version: 2.9.0
+  resolution: "mini-css-extract-plugin@npm:2.9.0"
   dependencies:
     schema-utils: "npm:^4.0.0"
     tapable: "npm:^2.2.1"
   peerDependencies:
     webpack: ^5.0.0
-  checksum: 10c0/ef0064f32051294e76141ba74ddf139d313ba26f3abcef1a3906347ca75df8e69c490351bd4c2f373b0cf5c934f39c7d643c8615421c24e4d2c724345294f80a
+  checksum: 10c0/46e20747ea250420db8a82801b9779299ce3cd5ec4d6dd75e00904c39cc80f0f01decaa534b8cb9658d7d3b656b919cb2cc84b1ba7e2394d2d6548578a5c2901
   languageName: node
   linkType: hard
 
