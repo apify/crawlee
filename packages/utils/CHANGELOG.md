@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+
+### Features
+
+* **sitemap:** Support CDATA in sitemaps ([#2424](https://github.com/apify/crawlee/issues/2424)) ([635f046](https://github.com/apify/crawlee/commit/635f046b7933e0ad1b0ee627a22a9adaf21847d3))
+
+
+
+
+
 ## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
 
 **Note:** Version bump only for package @crawlee/utils

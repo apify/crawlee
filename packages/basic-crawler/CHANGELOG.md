@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+
+### Bug Fixes
+
+* don't call `notify` in `addRequests()` ([#2425](https://github.com/apify/crawlee/issues/2425)) ([c4d5446](https://github.com/apify/crawlee/commit/c4d54469120648a592b6898f849154fda60e3d59)), closes [#2421](https://github.com/apify/crawlee/issues/2421)
+
+
+
+
+
 ## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
 
 **Note:** Version bump only for package @crawlee/basic

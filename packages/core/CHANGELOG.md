@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+
+### Bug Fixes
+
+* break up growing stack in `AutoscaledPool.notify` ([#2422](https://github.com/apify/crawlee/issues/2422)) ([6f2e6b0](https://github.com/apify/crawlee/commit/6f2e6b0ccb404ae66be372e87d762eed67c053bb)), closes [#2421](https://github.com/apify/crawlee/issues/2421)
+
+
+
+
+
 ## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
 
 **Note:** Version bump only for package @crawlee/core
