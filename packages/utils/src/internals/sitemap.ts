@@ -95,7 +95,7 @@ export class Sitemap {
             }
         });
 
-        parser.on('text', (text) => {
+        const onText = (text: string) => {
             if (parsingState.loc) {
                 if (parsingState.context === 'sitemapindex') {
                     if (!parsingState.visitedSitemapUrls.includes(text)) {
@@ -106,7 +106,9 @@ export class Sitemap {
                     parsingState.urls.push(text);
                 }
             }
-        });
+        };
+        parser.on('text', onText);
+        parser.on('cdata', onText);
 
         parser.on('end', onEnd);
         parser.on('error', onError);

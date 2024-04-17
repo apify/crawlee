@@ -70,6 +70,15 @@ describe('Sitemap', () => {
                 '<A HREF="https://ads.google.com/home/">here</A>.',
                 '</BODY></HTML>',
             ].join('\n'))
+            .get('/sitemap_cdata.xml')
+            .reply(200, [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc><![CDATA[http://not-exists.com/catalog]]></loc>',
+                '</url>',
+                '</urlset>',
+            ].join('\n'))
             .get('/sitemap.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
@@ -141,6 +150,13 @@ describe('Sitemap', () => {
     it('does not break on invalid xml', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
         expect(sitemap.urls).toEqual([]);
+    });
+
+    it('handles CDATA in loc tags', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml');
+        expect(new Set(sitemap.urls)).toEqual(new Set([
+            'http://not-exists.com/catalog',
+        ]));
     });
 
     it('autodetects sitemaps', async () => {
