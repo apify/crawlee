@@ -20,9 +20,9 @@ Before you submit your pull request, consider the following guidelines:
 
 - Run tests before you start working, to be sure they all pass and your setup is working correctly:
 
-     ```sh
-     yarn test
-     ```
+    ```sh
+    yarn test
+    ```
 
 - This project aims to have 100% code coverage, so be sure to **include appropriate test cases**.
 - Commit your changes using a descriptive commit message that follows defined [commit message conventions](https://docs.google.com/document/d/1QrDFcIiPjSLDn3EL15IJygNPiHORgU1_OOAqWjiDU5Y/edit#heading=h.uyo6cb12dt6w). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
