@@ -24,7 +24,7 @@ Before you submit your pull request, consider the following guidelines:
     yarn test
     ```
 
-- This project aims to have 100% code coverage, so be sure to **include appropriate test cases**.
+- Be sure to **include appropriate test cases**. Tests help make it clear what the PR is fixing and also make sure the changes won't break over time.
 - Commit your changes using a descriptive commit message that follows defined [commit message conventions](https://docs.google.com/document/d/1QrDFcIiPjSLDn3EL15IJygNPiHORgU1_OOAqWjiDU5Y/edit#heading=h.uyo6cb12dt6w). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
 - Push the code to your forked repository and create a pull request on GitHub.
 - If somebody from project contributors suggests changes:
