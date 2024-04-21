@@ -149,8 +149,8 @@ export class Sitemap {
         parsingState.sitemapUrls = Array.isArray(urls) ? urls : [urls];
 
         while (parsingState.sitemapUrls.length > 0) {
-            let sitemapUrl = parsingState.sitemapUrls.pop()!;
-            parsingState.visitedSitemapUrls.push(sitemapUrl);
+            const sitemapUrl = new URL(parsingState.sitemapUrls.pop()!);
+            parsingState.visitedSitemapUrls.push(sitemapUrl.toString());
             parsingState.resetContext();
 
             try {
@@ -163,19 +163,19 @@ export class Sitemap {
                 if (sitemapStream.response!.statusCode === 200) {
                     await new Promise((resolve, reject) => {
                         let stream: Duplex = sitemapStream;
-                        if (sitemapUrl.endsWith('.gz')) {
+                        if (sitemapUrl.pathname.endsWith('.gz')) {
                             stream = stream.pipe(createGunzip()).on('error', reject);
-                            sitemapUrl = sitemapUrl.substring(0, sitemapUrl.length - 3);
+                            sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
                         }
 
                         const parser = (() => {
                             const contentType = sitemapStream.response!.headers['content-type'];
 
-                            if (['text/xml', 'application/xml'].includes(contentType ?? '') || sitemapUrl.endsWith('.xml')) {
+                            if (['text/xml', 'application/xml'].includes(contentType ?? '') || sitemapUrl.pathname.endsWith('.xml')) {
                                 return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
                             }
 
-                            if (contentType === 'text/plain' || sitemapUrl.endsWith('.txt')) {
+                            if (contentType === 'text/plain' || sitemapUrl.pathname.endsWith('.txt')) {
                                 return new SitemapTxtParser(parsingState, () => resolve(undefined));
                             }
 
