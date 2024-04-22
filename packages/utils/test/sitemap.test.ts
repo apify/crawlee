@@ -7,7 +7,7 @@ describe('Sitemap', () => {
     beforeEach(() => {
         nock.disableNetConnect();
         nock('http://not-exists.com').persist()
-            .get('/sitemap_child.xml')
+            .get((url) => url === '/sitemap_child.xml' || url === '/sitemap_child_2.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -57,6 +57,10 @@ describe('Sitemap', () => {
                 '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                 '<sitemap>',
                 '<loc>http://not-exists.com/sitemap_child.xml</loc>',
+                '<lastmod>2004-12-23</lastmod>',
+                '</sitemap>',
+                '<sitemap>',
+                '<loc>http://not-exists.com/sitemap_child_2.xml?from=94937939985&amp;to=1318570721404</loc>',
                 '<lastmod>2004-12-23</lastmod>',
                 '</sitemap>',
                 '</sitemapindex>',
