@@ -4823,9 +4823,9 @@ __metadata:
   linkType: hard
 
 "clsx@npm:^2.0.0":
-  version: 2.1.0
-  resolution: "clsx@npm:2.1.0"
-  checksum: 10c0/c09c00ad14f638366ca814097e6cab533dfa1972a358da5b557be487168acbb25b4c1395e89ffa842a8a61ba87a462d2b4885bc9d4f8410b598f3cb339599cdb
+  version: 2.1.1
+  resolution: "clsx@npm:2.1.1"
+  checksum: 10c0/c4c8eb865f8c82baab07e71bfa8897c73454881c4f99d6bc81585aecd7c441746c1399d08363dc096c550cceaf97bd4ce1e8854e1771e9998d9f94c4fe075839
   languageName: node
   linkType: hard
 
@@ -5902,9 +5902,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.746
-  resolution: "electron-to-chromium@npm:1.4.746"
-  checksum: 10c0/1ff47105510e9a6dbc542d7165b88e030c8f2c815b30683ca05d8bc1a24e8f03e57caa0dc03959b08860b0465f9645edea5c682400da5b79b71ce9ddbb89a3d6
+  version: 1.4.747
+  resolution: "electron-to-chromium@npm:1.4.747"
+  checksum: 10c0/2d8bded9bb6b5f204699330979a5675578ed890ee34b631e28af81245c5032ba3bd42064aeded14f0d82239607f65e4c34890dad445b3ceafdbb5e14352faf9a
   languageName: node
   linkType: hard
 
@@ -8640,15 +8640,15 @@ __metadata:
   linkType: hard
 
 "joi@npm:^17.9.2":
-  version: 17.12.3
-  resolution: "joi@npm:17.12.3"
+  version: 17.13.0
+  resolution: "joi@npm:17.13.0"
   dependencies:
     "@hapi/hoek": "npm:^9.3.0"
     "@hapi/topo": "npm:^5.1.0"
     "@sideway/address": "npm:^4.1.5"
     "@sideway/formula": "npm:^3.0.1"
     "@sideway/pinpoint": "npm:^2.0.0"
-  checksum: 10c0/818e51bd2d219339cff91f9d6fef8bab2da396e80a051cf73fb8ce7362c191af395bfa2d0e54eaa9c9cb8d5afafddb54eb768bc3068ab33908cbd5a1697e7d3e
+  checksum: 10c0/27fab026a76f199fbaa5f4cf96b40539da30fdc9e1274989d8fc7b15d52e51b46b911628c924a05e061ae5c3aa00168114fb8b22fb58ca4adca3617c65620006
   languageName: node
   linkType: hard
 
@@ -9446,8 +9446,8 @@ __metadata:
   linkType: hard
 
 "micromark-core-commonmark@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "micromark-core-commonmark@npm:2.0.0"
+  version: 2.0.1
+  resolution: "micromark-core-commonmark@npm:2.0.1"
   dependencies:
     decode-named-character-reference: "npm:^1.0.0"
     devlop: "npm:^1.0.0"
@@ -9465,7 +9465,7 @@ __metadata:
     micromark-util-subtokenize: "npm:^2.0.0"
     micromark-util-symbol: "npm:^2.0.0"
     micromark-util-types: "npm:^2.0.0"
-  checksum: 10c0/e087824b98d1f1d0db34791ac53945b0d68fb5e541c6c9da6700cc3db54d6b697d8110d3120d5d30e2fb39443aabddccd3e2bbf684795359f38b5a696fdc5913
+  checksum: 10c0/a0b280b1b6132f600518e72cb29a4dd1b2175b85f5ed5b25d2c5695e42b876b045971370daacbcfc6b4ce8cf7acbf78dd3a0284528fb422b450144f4b3bebe19
   languageName: node
   linkType: hard
 
