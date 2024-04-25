@@ -284,12 +284,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.10.0
-  resolution: "@apify/utilities@npm:2.10.0"
+  version: 2.10.1
+  resolution: "@apify/utilities@npm:2.10.1"
   dependencies:
     "@apify/consts": "npm:^2.26.0"
     "@apify/log": "npm:^2.5.0"
-  checksum: 10c0/4684e8cd990626e5fb65a3f0c502c4dd752b7d2d372b4a62f942741e4822d09326cb4eb85931b1e9551e2290902d21821db2c0e4cd79296a3788c7ab06c3f84d
+  checksum: 10c0/8b319bdeff6136dbeb8300a7002fd25124a8f283c23980c5a4f950c83432d2c23ed391a8832dc5923f490e1c35fca86e9328b9882a452da5bb95c5acd4d71f9b
   languageName: node
   linkType: hard
 
@@ -5902,9 +5902,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.747
-  resolution: "electron-to-chromium@npm:1.4.747"
-  checksum: 10c0/2d8bded9bb6b5f204699330979a5675578ed890ee34b631e28af81245c5032ba3bd42064aeded14f0d82239607f65e4c34890dad445b3ceafdbb5e14352faf9a
+  version: 1.4.748
+  resolution: "electron-to-chromium@npm:1.4.748"
+  checksum: 10c0/2945c6575db0e3572c7b985db6d39d579843488e598efba76b11a920485751174b82b6c3721e088bb5f68487ca41e465b251058e9bb111534faf05aa081357ea
   languageName: node
   linkType: hard
 
