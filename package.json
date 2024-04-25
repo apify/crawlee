@@ -101,10 +101,10 @@
         "playwright": "1.43.1",
         "portastic": "^1.0.1",
         "proxy": "^1.0.2",
-        "puppeteer": "22.7.0",
+        "puppeteer": "22.7.1",
         "rimraf": "^5.0.0",
         "tsx": "^4.4.0",
-        "turbo": "1.13.2",
+        "turbo": "1.13.3",
         "typescript": "^5.4.3",
         "vite-tsconfig-paths": "^4.3.2",
         "vitest": "^1.4.0"
