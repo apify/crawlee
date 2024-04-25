@@ -53,6 +53,19 @@
     width: calc(100% - 2rem);
 }
 
+.heroBanner h1:nth-child(3) {
+    position: absolute;
+    top: 0;
+    z-index: -1;
+    width: calc(100% - 2rem);
+
+    -webkit-text-stroke: 1px white;
+}
+
+html[data-theme='dark'] .heroBanner h1:nth-child(3) {
+    -webkit-text-stroke: 1px var(--ifm-background-color);
+}
+
 .heroBanner h1::selection,
 .heroBanner h1 span::selection {
     color: rgb(36, 39, 54) !important;
