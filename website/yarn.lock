@@ -4613,9 +4613,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001587, caniuse-lite@npm:^1.0.30001599":
-  version: 1.0.30001612
-  resolution: "caniuse-lite@npm:1.0.30001612"
-  checksum: 10c0/d6b405ff06f4e913bc779f9183fa68001c9d6b8526a7dd1b99c60587dd21a01aa8def3d8462cf6214f0181f1c21b9245611ff65241cf9c967fc742e86ece5065
+  version: 1.0.30001613
+  resolution: "caniuse-lite@npm:1.0.30001613"
+  checksum: 10c0/3850bf9281fd9c8302559f3d332138138ead965a933d6f253ef510ffce6ee52cb120182de1a57ba63faa203e583a4416a9d23995f5427c68067dec87c2ea664a
   languageName: node
   linkType: hard
 
@@ -6107,9 +6107,9 @@ __metadata:
   linkType: hard
 
 "es-module-lexer@npm:^1.2.1":
-  version: 1.5.0
-  resolution: "es-module-lexer@npm:1.5.0"
-  checksum: 10c0/d199853404f3381801eb102befb84a8fc48f93ed86b852c2461c2c4ad4bbbc91128f3d974ff9b8718628260ae3f36e661295ab3e419222868aa31269284e34c9
+  version: 1.5.2
+  resolution: "es-module-lexer@npm:1.5.2"
+  checksum: 10c0/20b6c668691ee81781a0ae56930560c23aa28fb934fce9137820f12ae3726a25626010cbd8ed1775c217d3bae108e23dd7b805f923133dc633bfbbc2b0020524
   languageName: node
   linkType: hard
 
@@ -11696,11 +11696,11 @@ __metadata:
   linkType: hard
 
 "react-json-view-lite@npm:^1.2.0":
-  version: 1.3.0
-  resolution: "react-json-view-lite@npm:1.3.0"
+  version: 1.3.1
+  resolution: "react-json-view-lite@npm:1.3.1"
   peerDependencies:
     react: ^16.13.1 || ^17.0.0 || ^18.0.0
-  checksum: 10c0/0411299a93c53d6f842ab43ebe71c2959d04b5d1d6320f8a2235f945e1de88578905fdeea4f7cc6a8bef030b959cc3474ac2252226b5093497ece797d0fca09d
+  checksum: 10c0/93a7b96e388497ea5d61349ae0f071188370132461eb63c3abff3bb1376fcdf999680368e107c1981f2a4ccadbfe15d2eb0fabe60e5b8fc619a6012dac308246
   languageName: node
   linkType: hard
 
