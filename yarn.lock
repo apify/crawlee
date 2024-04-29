@@ -519,6 +519,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@crawlee/file-download@workspace:packages/file-download":
+  version: 0.0.0-use.local
+  resolution: "@crawlee/file-download@workspace:packages/file-download"
+  dependencies:
+    "@crawlee/http": "npm:3.9.2"
+    "@crawlee/types": "npm:3.9.2"
+    "@crawlee/utils": "npm:3.9.2"
+    cheerio: "npm:^1.0.0-rc.12"
+    htmlparser2: "npm:^9.0.0"
+    tslib: "npm:^2.4.0"
+  languageName: unknown
+  linkType: soft
+
 "@crawlee/http@npm:3.9.2, @crawlee/http@workspace:packages/http-crawler":
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
