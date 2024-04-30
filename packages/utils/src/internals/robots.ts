@@ -83,7 +83,7 @@ export class RobotsFile {
      * @param [userAgent] relevant user agent, default to `*`
      */
     isAllowed(url: string, userAgent = '*'): boolean {
-        return this.robots.isAllowed(url, userAgent) ?? false;
+        return this.robots.isAllowed(url, userAgent) ?? true;
     }
 
     /**
