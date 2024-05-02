@@ -166,14 +166,12 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
 
             if (isPromise(streamHandlerResult)) {
                 streamHandlerResult.then(() => {
-                    cleanUp();
                     resolve();
                 }).catch((e: Error) => {
                     cleanUp();
                     reject(e);
                 });
             } else {
-                cleanUp();
                 resolve();
             }
         });
