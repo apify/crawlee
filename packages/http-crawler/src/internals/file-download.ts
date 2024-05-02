@@ -1,3 +1,6 @@
+import { finished } from 'stream/promises';
+import { isPromise } from 'util/types';
+
 import type { Dictionary } from '@crawlee/types';
 
 import type {
@@ -19,10 +22,19 @@ export type FileDownloadErrorHandler<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     > = ErrorHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
 
-export interface FileDownloadCrawlerOptions<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>> {}
+export type StreamHandlerContext = Omit<FileDownloadCrawlingContext, 'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'> & {
+    stream: ReadableStream;
+};
+
+type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
+
+export type FileDownloadCrawlerOptions<
+UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> =
+(Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler?: never; streamHandler?: StreamHandler }) |
+// eslint-disable-next-line max-len
+(Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler: FileDownloadRequestHandler; streamHandler?: never });
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -84,13 +96,94 @@ export type FileDownloadRequestHandler<
  * ```
 */
 export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
+    private streamHandler?: StreamHandler;
+
     constructor(options: FileDownloadCrawlerOptions = {}) {
+        const { streamHandler } = options;
+        delete options.streamHandler;
         super(options);
+
+        this.streamHandler = streamHandler;
+        if (this.streamHandler) {
+            this.requestHandler = this.streamRequestHandler;
+        }
+
         (this as any).supportedMimeTypes = new Set(['*/*']);
     }
 
     protected override async _runRequestHandler(context: FileDownloadCrawlingContext) {
+        if (this.streamHandler) {
+            context.request.skipNavigation = true;
+        }
+
         await super._runRequestHandler(context);
+    }
+
+    private async streamRequestHandler(context: FileDownloadCrawlingContext) {
+        const { log, request: { url } } = context;
+
+        const { gotScraping } = await import('got-scraping');
+
+        const stream = gotScraping.stream({
+            url,
+            timeout: { request: undefined },
+            proxyUrl: context.proxyInfo?.url,
+            isStream: true,
+        });
+
+        let pollingInterval: NodeJS.Timeout | undefined;
+
+        const cleanUp = () => {
+            clearInterval(pollingInterval!);
+            stream.destroy();
+        };
+
+        const downloadPromise = new Promise<void>((resolve, reject) => {
+            pollingInterval = setInterval(() => {
+                const { total, transferred } = stream.downloadProgress;
+
+                if (transferred > 0) {
+                    log.info(
+                        `Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`,
+                    );
+                }
+            }, 1000);
+
+            stream.on('error', async (error: Error) => {
+                cleanUp();
+                reject(error);
+            });
+
+            let streamHandlerResult;
+
+            try {
+                context.stream = stream;
+                streamHandlerResult = this.streamHandler!(context as any);
+            } catch (e) {
+                cleanUp();
+                reject(e);
+            }
+
+            if (isPromise(streamHandlerResult)) {
+                streamHandlerResult.then(() => {
+                    cleanUp();
+                    resolve();
+                }).catch((e: Error) => {
+                    cleanUp();
+                    reject(e);
+                });
+            } else {
+                cleanUp();
+                resolve();
+            }
+        });
+
+        await Promise.all([
+            downloadPromise,
+            finished(stream),
+        ]);
+
+        cleanUp();
     }
 }
 

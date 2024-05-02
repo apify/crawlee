@@ -12,7 +12,6 @@
             "@crawlee/cheerio": ["packages/cheerio-crawler/src"],
             "@crawlee/playwright": ["packages/playwright-crawler/src"],
             "@crawlee/puppeteer": ["packages/puppeteer-crawler/src"],
-            "@crawlee/file-download": ["packages/file-download/src"],
             "@crawlee/*": ["packages/*/src"],
         }
     }
