@@ -65,7 +65,7 @@ export interface SessionPoolOptions {
     /**
      * Control how and when to persist the state of the session pool.
      */
-     persistenceOptions?: PersistenceOptions;
+    persistenceOptions?: PersistenceOptions;
 }
 
 /**
@@ -472,7 +472,7 @@ export class SessionPool extends EventEmitter {
             sessionObject.sessionPool = this;
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
-            const recreatedSession = new Session(sessionObject);
+            const recreatedSession = await this.createSessionFunction(this, { sessionOptions: sessionObject });
 
             if (recreatedSession.isUsable()) {
                 this._addSession(recreatedSession);
