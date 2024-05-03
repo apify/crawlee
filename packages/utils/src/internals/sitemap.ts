@@ -171,11 +171,11 @@ export class Sitemap {
                         const parser = (() => {
                             const contentType = sitemapStream.response!.headers['content-type'];
 
-                            if (['text/xml', 'application/xml'].includes(contentType ?? '') || sitemapUrl.pathname.endsWith('.xml')) {
+                            if (['text/xml', 'application/xml'].some((x) => contentType?.includes(x)) || sitemapUrl.pathname.endsWith('.xml')) {
                                 return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
                             }
 
-                            if (contentType === 'text/plain' || sitemapUrl.pathname.endsWith('.txt')) {
+                            if (contentType?.includes('text/plain') || sitemapUrl.pathname.endsWith('.txt')) {
                                 return new SitemapTxtParser(parsingState, () => resolve(undefined));
                             }
 
