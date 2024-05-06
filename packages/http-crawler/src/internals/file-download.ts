@@ -29,8 +29,8 @@ export type StreamHandlerContext = Omit<FileDownloadCrawlingContext, 'body' | 'r
 type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
 
 export type FileDownloadCrawlerOptions<
-UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > =
 (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler?: never; streamHandler?: StreamHandler }) |
 // eslint-disable-next-line max-len
