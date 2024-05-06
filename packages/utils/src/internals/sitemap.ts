@@ -183,7 +183,7 @@ export class Sitemap {
                                 return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
                             }
 
-                            if ((mimeType?.type === 'text' && mimeType?.subtype === 'plain') || sitemapUrl.pathname.endsWith('.txt')) {
+                            if (mimeType?.essence === 'text/plain' || sitemapUrl.pathname.endsWith('.txt')) {
                                 return new SitemapTxtParser(parsingState, () => resolve(undefined));
                             }
 
