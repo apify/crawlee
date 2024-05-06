@@ -58,7 +58,7 @@
         "@crawlee/browser-pool": "3.9.2",
         "@crawlee/types": "3.9.2",
         "@crawlee/utils": "3.9.2",
-        "ow": "^0.28.1",
+        "ow": "^2.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"
     }

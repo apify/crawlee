@@ -54,7 +54,7 @@
         "csv-stringify": "^6.2.0",
         "fs-extra": "^11.0.0",
         "got-scraping": "^4.0.0",
-        "ow": "^0.28.1",
+        "ow": "^2.0.0",
         "tldts": "^6.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"

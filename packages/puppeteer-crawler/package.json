@@ -63,7 +63,7 @@
         "devtools-protocol": "*",
         "idcac-playwright": "^0.1.2",
         "jquery": "^3.6.0",
-        "ow": "^0.28.1",
+        "ow": "^2.0.0",
         "tslib": "^2.4.0"
     },
     "peerDependencies": {
