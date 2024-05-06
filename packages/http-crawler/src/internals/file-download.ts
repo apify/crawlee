@@ -39,7 +39,7 @@ export type FileDownloadCrawlerOptions<
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = InternalHttpHook<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<FileDownloadCrawlingContext<UserData, JSONData>>;
 
 export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
