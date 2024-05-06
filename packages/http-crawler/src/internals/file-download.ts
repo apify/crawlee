@@ -94,7 +94,7 @@ export type FileDownloadRequestHandler<
  *     'http://www.example.com/video.mkv',
  * ]);
  * ```
-*/
+ */
 export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
     private streamHandler?: StreamHandler;
 
