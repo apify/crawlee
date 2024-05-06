@@ -6,6 +6,7 @@ import { createGunzip } from 'node:zlib';
 import log from '@apify/log';
 import type { SAXStream } from 'sax';
 import sax from 'sax';
+import MIMEType from 'whatwg-mimetype';
 
 class ParsingState {
     sitemapUrls: string[] = [];
@@ -170,12 +171,19 @@ export class Sitemap {
 
                         const parser = (() => {
                             const contentType = sitemapStream.response!.headers['content-type'];
+                            let mimeType: MIMEType | null;
 
-                            if (['text/xml', 'application/xml'].some((x) => contentType?.includes(x)) || sitemapUrl.pathname.endsWith('.xml')) {
+                            try {
+                                mimeType = new MIMEType(contentType ?? '');
+                            } catch (e) {
+                                mimeType = null;
+                            }
+
+                            if (mimeType?.isXML() || sitemapUrl.pathname.endsWith('.xml')) {
                                 return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
                             }
 
-                            if (contentType?.includes('text/plain') || sitemapUrl.pathname.endsWith('.txt')) {
+                            if ((mimeType?.type === 'text' && mimeType?.subtype === 'plain') || sitemapUrl.pathname.endsWith('.txt')) {
                                 return new SitemapTxtParser(parsingState, () => resolve(undefined));
                             }
 
