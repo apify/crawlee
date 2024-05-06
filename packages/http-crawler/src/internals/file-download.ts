@@ -20,7 +20,7 @@ import {
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = ErrorHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = ErrorHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
 
 export type StreamHandlerContext = Omit<FileDownloadCrawlingContext, 'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'> & {
     stream: ReadableStream;
