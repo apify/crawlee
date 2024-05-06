@@ -49,7 +49,7 @@ export interface FileDownloadCrawlingContext<
 export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = RequestHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
 
 /**
  * Provides a framework for the parallel file download using plain HTTP requests. The URLs to download are fed either from a static list of URLs or can be added dynamically from another source.
