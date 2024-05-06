@@ -32,9 +32,10 @@ export type FileDownloadCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > =
-(Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler?: never; streamHandler?: StreamHandler }) |
-// eslint-disable-next-line max-len
-(Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler: FileDownloadRequestHandler; streamHandler?: never });
+    // eslint-disable-next-line max-len
+    (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler?: never; streamHandler?: StreamHandler }) |
+    // eslint-disable-next-line max-len
+    (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler: FileDownloadRequestHandler; streamHandler?: never });
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -101,6 +102,12 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
     constructor(options: FileDownloadCrawlerOptions = {}) {
         const { streamHandler } = options;
         delete options.streamHandler;
+
+        if (streamHandler) {
+            // For streams, the navigation is done in the request handler.
+            (options as any).requestHandlerTimeoutSecs = options.navigationTimeoutSecs ?? 120;
+        }
+
         super(options);
 
         this.streamHandler = streamHandler;
