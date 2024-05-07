@@ -15,10 +15,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.26.0":
-  version: 2.26.0
-  resolution: "@apify/consts@npm:2.26.0"
-  checksum: 10c0/34fea5e981432b98192f52e2d03b3322966ea0e6b136513079cad8dbbbea85b1a80ed07f3cacc7386dd17ef971dd1772758983087a58643d4d2a69ff26e4a6db
+"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.27.0":
+  version: 2.27.0
+  resolution: "@apify/consts@npm:2.27.0"
+  checksum: 10c0/66f300e9e93d3bb7c4976e38f41327e10e2e6091d053fe22c7cc0986715a4d47db0df0ebca2c40a94ddd4b0ee138b527d400fdb93ba7fb85dfacbdaf1e2926f7
   languageName: node
   linkType: hard
 
@@ -66,23 +66,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.48
-  resolution: "@apify/input_secrets@npm:1.1.48"
+  version: 1.1.49
+  resolution: "@apify/input_secrets@npm:1.1.49"
   dependencies:
-    "@apify/log": "npm:^2.5.0"
-    "@apify/utilities": "npm:^2.10.1"
+    "@apify/log": "npm:^2.5.1"
+    "@apify/utilities": "npm:^2.10.2"
     ow: "npm:^0.28.2"
-  checksum: 10c0/aefde222980c270391a3d4677f00110c402c1d120cb5cb8f4071a7fa19e2320737f20772540e7e671f5ca25aaca34775d0d6a91cf53a6768ecbb70d5cb08f604
+  checksum: 10c0/ef2cd7ac221b2478cfcb0d6e436f2e24de897fd6454c9cb6040f99c1338340767337ab0929374e08491d14a23861385f7e56a0bdcf6fc75d4ea30516d3c84921
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.0":
-  version: 2.5.0
-  resolution: "@apify/log@npm:2.5.0"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "@apify/log@npm:2.5.1"
   dependencies:
-    "@apify/consts": "npm:^2.26.0"
+    "@apify/consts": "npm:^2.27.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/f63d6ff0ba69f3c944a3f9c7c125dcc61bfbc71a4674cc93549179d2810ca2f31883f6bdc5edc7146048b9e9a2439c478948ba63a51910b3e8f811c8f74df6a4
+  checksum: 10c0/c465fc1a2c3a7fda11490ea07463cf17c6646c5763f4b67dc3e3f8e69cc965f36aa839fe5bd26cad416ae4e4b333887f184135e9bcdf9d57b2c3f7f6401f895e
   languageName: node
   linkType: hard
 
@@ -98,12 +98,12 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.40
-  resolution: "@apify/pseudo_url@npm:2.0.40"
+  version: 2.0.41
+  resolution: "@apify/pseudo_url@npm:2.0.41"
   dependencies:
-    "@apify/log": "npm:^2.5.0"
+    "@apify/log": "npm:^2.5.1"
     "@sapphire/shapeshift": "npm:^3.6.0"
-  checksum: 10c0/f76c020c77e48c5bfb2d2f48756c18be3b2b08430a6fe58a537324629d305e0b30e1d5e82f8bd7337d42673b3222fbdc1b08307953c23bc8301318879cef3ccb
+  checksum: 10c0/4c3ccbfdf366e19666e2a5be0b2586b6d682d6f003ba81f7051578b6382ca6fd88e8a58fbe2d47aec7fd30df9d5405ccf54e5e3adea0bd51161420f875288ce7
   languageName: node
   linkType: hard
 
@@ -121,13 +121,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.10.1, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
-  version: 2.10.1
-  resolution: "@apify/utilities@npm:2.10.1"
+"@apify/utilities@npm:^2.10.2, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
+  version: 2.10.2
+  resolution: "@apify/utilities@npm:2.10.2"
   dependencies:
-    "@apify/consts": "npm:^2.26.0"
-    "@apify/log": "npm:^2.5.0"
-  checksum: 10c0/8b319bdeff6136dbeb8300a7002fd25124a8f283c23980c5a4f950c83432d2c23ed391a8832dc5923f490e1c35fca86e9328b9882a452da5bb95c5acd4d71f9b
+    "@apify/consts": "npm:^2.27.0"
+    "@apify/log": "npm:^2.5.1"
+  checksum: 10c0/dbc641f0aa14795bdc85b345a06d3507b3ac80fc088e74d551cdc568c83c5106e5dc68a51c2382005409d4ca3c31140012e1605e8f3a2186966aadebdaee5013
   languageName: node
   linkType: hard
 
@@ -1888,13 +1888,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tufjs/models@npm:2.0.0":
-  version: 2.0.0
-  resolution: "@tufjs/models@npm:2.0.0"
+"@tufjs/models@npm:2.0.1":
+  version: 2.0.1
+  resolution: "@tufjs/models@npm:2.0.1"
   dependencies:
     "@tufjs/canonical-json": "npm:2.0.0"
-    minimatch: "npm:^9.0.3"
-  checksum: 10c0/252f525b05526077430920b30b125e197a3d711f4c6d1ceeee9cea5044035e4d94e57db481d96bd8e9d1ce5ee23fcc9fe989e7e0c9c2aec7e1edc27326ee16e6
+    minimatch: "npm:^9.0.4"
+  checksum: 10c0/ad9e82fd921954501fd90ed34ae062254637595577ad13fdc1e076405c0ea5ee7d8aebad09e63032972fd92b07f1786c15b24a195a171fc8ac470ca8e2ffbcc4
   languageName: node
   linkType: hard
 
@@ -2130,11 +2130,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.12.8
-  resolution: "@types/node@npm:20.12.8"
+  version: 20.12.10
+  resolution: "@types/node@npm:20.12.10"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/840002d20654e38a9af8cdffa215598fdb28ac4f96c5701ed672ec365ed6ccc66da299edddaa409baf13cd71bbf1128901f633b5e44e070fc236e26415805b78
+  checksum: 10c0/2cc3b6ea09894ed1a3cf39f6491ec539281580f4ff83216e7d26ce85c83237fe0543c0ca49e25b2515ccdb6c8814b488d17a64a05f536dcaea94f9d32a60c7d7
   languageName: node
   linkType: hard
 
@@ -4606,9 +4606,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.756
-  resolution: "electron-to-chromium@npm:1.4.756"
-  checksum: 10c0/c983c7d1b84f0bc73211f77504c3a4c58f2d01f55af640d230549eaca0a0667ad515672ddb2ae5c3f37762ca6a71aa20c2baaea0a63a61cb52415105c44b85c0
+  version: 1.4.757
+  resolution: "electron-to-chromium@npm:1.4.757"
+  checksum: 10c0/77fddf3870ff66280f4b639c409ff0a82661ba50e6519b571bb79325e6ea2c4fef645bcf65dcc1ced8b6151cc78083af8b781877247e62986ce39dee1d642cfe
   languageName: node
   linkType: hard
 
@@ -5965,11 +5965,11 @@ __metadata:
   linkType: hard
 
 "get-tsconfig@npm:^4.5.0, get-tsconfig@npm:^4.7.3":
-  version: 4.7.3
-  resolution: "get-tsconfig@npm:4.7.3"
+  version: 4.7.4
+  resolution: "get-tsconfig@npm:4.7.4"
   dependencies:
     resolve-pkg-maps: "npm:^1.0.0"
-  checksum: 10c0/b15ca9d5d0887ebfccadc9fe88b6ff3827a5691ec90e7608a5e9c74bef959c14aba62f6bb88ac7f50322395731789a2cf654244f00e10f4f76349911b6846d6f
+  checksum: 10c0/4bd9ca36aa8b117d7d2ddd57d18fce94444cda9225c8444b2ffa9f19490a1ac77d99089deaf03012945a86e8daed73ec910b33f8830e66df64b44f6f0ebccff1
   languageName: node
   linkType: hard
 
@@ -8060,7 +8060,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"make-fetch-happen@npm:^13.0.0":
+"make-fetch-happen@npm:^13.0.0, make-fetch-happen@npm:^13.0.1":
   version: 13.0.1
   resolution: "make-fetch-happen@npm:13.0.1"
   dependencies:
@@ -8277,7 +8277,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^9.0.0, minimatch@npm:^9.0.1, minimatch@npm:^9.0.3, minimatch@npm:^9.0.4":
+"minimatch@npm:^9.0.0, minimatch@npm:^9.0.1, minimatch@npm:^9.0.4":
   version: 9.0.4
   resolution: "minimatch@npm:9.0.4"
   dependencies:
@@ -8738,11 +8738,11 @@ __metadata:
   linkType: hard
 
 "npm-bundled@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "npm-bundled@npm:3.0.0"
+  version: 3.0.1
+  resolution: "npm-bundled@npm:3.0.1"
   dependencies:
     npm-normalize-package-bin: "npm:^3.0.0"
-  checksum: 10c0/65fcc621ba6e183be2715e3bbbf29d85e65e986965f06ee5e96a293d62dfad59ee57a9dcdd1c591eab156e03d58b3c35926b4211ce792d683458e15bb9f642c7
+  checksum: 10c0/7975590a50b7ce80dd9f3eddc87f7e990c758f2f2c4d9313dd67a9aca38f1a5ac0abe20d514b850902c441e89d2346adfc3c6f1e9cbab3ea28ebb653c4442440
   languageName: node
   linkType: hard
 
@@ -11625,8 +11625,8 @@ __metadata:
   linkType: hard
 
 "tsx@npm:^4.4.0":
-  version: 4.9.1
-  resolution: "tsx@npm:4.9.1"
+  version: 4.9.3
+  resolution: "tsx@npm:4.9.3"
   dependencies:
     esbuild: "npm:~0.20.2"
     fsevents: "npm:~2.3.3"
@@ -11636,7 +11636,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/83723016e0681519280b04e8b9aeaa47b48cffdc60606f20097b815a13f851eaa83f2b51c23f939b882a3ab14010f18ab9f3d555a6e44e59968cf9acd370d38d
+  checksum: 10c0/abc0d461885ef227959274de5e2f80961e860cc1524d090fc9161bf6450b732f9c3e88ec770ea8cbe49880c9fed7c65aa7853d060b83d9c56f70d935e9162d18
   languageName: node
   linkType: hard
 
@@ -11652,13 +11652,13 @@ __metadata:
   linkType: hard
 
 "tuf-js@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "tuf-js@npm:2.2.0"
+  version: 2.2.1
+  resolution: "tuf-js@npm:2.2.1"
   dependencies:
-    "@tufjs/models": "npm:2.0.0"
+    "@tufjs/models": "npm:2.0.1"
     debug: "npm:^4.3.4"
-    make-fetch-happen: "npm:^13.0.0"
-  checksum: 10c0/9a11793feed2aa798c1a50107a0f031034b4a670016684e0d0b7d97be3fff7f98f53783c30120bce795c16d58f1b951410bb673aae92cc2437d641cc7457e215
+    make-fetch-happen: "npm:^13.0.1"
+  checksum: 10c0/7c17b097571f001730d7be0aeaec6bec46ed2f25bf73990b1133c383d511a1ce65f831e5d6d78770940a85b67664576ff0e4c98e5421bab6d33ff36e4be500c8
   languageName: node
   linkType: hard
 
@@ -11799,9 +11799,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^4.0.0":
-  version: 4.18.1
-  resolution: "type-fest@npm:4.18.1"
-  checksum: 10c0/f81c82548a1f8c107fb286661c4d0caf5ed9c9842050dc5d417326a6208ddc67e04fa30faa9f948308a7eb164497f138fe5035e3f305c87a3ba8e7e0ce2e38c6
+  version: 4.18.2
+  resolution: "type-fest@npm:4.18.2"
+  checksum: 10c0/5e669128bf7cbc9f9cea4e4862c974517a1d9f77652589c2ac0908a8be5d852d4e52593ed14f4d8a44a604fb5e8a8ec1b658e461acd8bb7592f5e5265a04cbab
   languageName: node
   linkType: hard
 
@@ -12095,7 +12095,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"validate-npm-package-name@npm:5.0.0, validate-npm-package-name@npm:^5.0.0":
+"validate-npm-package-name@npm:5.0.0":
   version: 5.0.0
   resolution: "validate-npm-package-name@npm:5.0.0"
   dependencies:
@@ -12110,6 +12110,13 @@ __metadata:
   dependencies:
     builtins: "npm:^1.0.3"
   checksum: 10c0/064f21f59aefae6cc286dd4a50b15d14adb0227e0facab4316197dfb8d06801669e997af5081966c15f7828a5e6ff1957bd20886aeb6b9d0fa430e4cb5db9c4a
+  languageName: node
+  linkType: hard
+
+"validate-npm-package-name@npm:^5.0.0":
+  version: 5.0.1
+  resolution: "validate-npm-package-name@npm:5.0.1"
+  checksum: 10c0/903e738f7387404bb72f7ac34e45d7010c877abd2803dc2d614612527927a40a6d024420033132e667b1bade94544b8a1f65c9431a4eb30d0ce0d80093cd1f74
   languageName: node
   linkType: hard
 

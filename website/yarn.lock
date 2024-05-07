@@ -216,10 +216,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.26.0":
-  version: 2.26.0
-  resolution: "@apify/consts@npm:2.26.0"
-  checksum: 10c0/34fea5e981432b98192f52e2d03b3322966ea0e6b136513079cad8dbbbea85b1a80ed07f3cacc7386dd17ef971dd1772758983087a58643d4d2a69ff26e4a6db
+"@apify/consts@npm:^2.27.0":
+  version: 2.27.0
+  resolution: "@apify/consts@npm:2.27.0"
+  checksum: 10c0/66f300e9e93d3bb7c4976e38f41327e10e2e6091d053fe22c7cc0986715a4d47db0df0ebca2c40a94ddd4b0ee138b527d400fdb93ba7fb85dfacbdaf1e2926f7
   languageName: node
   linkType: hard
 
@@ -259,13 +259,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.5.0":
-  version: 2.5.0
-  resolution: "@apify/log@npm:2.5.0"
+"@apify/log@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "@apify/log@npm:2.5.1"
   dependencies:
-    "@apify/consts": "npm:^2.26.0"
+    "@apify/consts": "npm:^2.27.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/f63d6ff0ba69f3c944a3f9c7c125dcc61bfbc71a4674cc93549179d2810ca2f31883f6bdc5edc7146048b9e9a2439c478948ba63a51910b3e8f811c8f74df6a4
+  checksum: 10c0/c465fc1a2c3a7fda11490ea07463cf17c6646c5763f4b67dc3e3f8e69cc965f36aa839fe5bd26cad416ae4e4b333887f184135e9bcdf9d57b2c3f7f6401f895e
   languageName: node
   linkType: hard
 
@@ -277,12 +277,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.10.1
-  resolution: "@apify/utilities@npm:2.10.1"
+  version: 2.10.2
+  resolution: "@apify/utilities@npm:2.10.2"
   dependencies:
-    "@apify/consts": "npm:^2.26.0"
-    "@apify/log": "npm:^2.5.0"
-  checksum: 10c0/8b319bdeff6136dbeb8300a7002fd25124a8f283c23980c5a4f950c83432d2c23ed391a8832dc5923f490e1c35fca86e9328b9882a452da5bb95c5acd4d71f9b
+    "@apify/consts": "npm:^2.27.0"
+    "@apify/log": "npm:^2.5.1"
+  checksum: 10c0/dbc641f0aa14795bdc85b345a06d3507b3ac80fc088e74d551cdc568c83c5106e5dc68a51c2382005409d4ca3c31140012e1605e8f3a2186966aadebdaee5013
   languageName: node
   linkType: hard
 
@@ -3154,11 +3154,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.12.8
-  resolution: "@types/node@npm:20.12.8"
+  version: 20.12.10
+  resolution: "@types/node@npm:20.12.10"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/840002d20654e38a9af8cdffa215598fdb28ac4f96c5701ed672ec365ed6ccc66da299edddaa409baf13cd71bbf1128901f633b5e44e070fc236e26415805b78
+  checksum: 10c0/2cc3b6ea09894ed1a3cf39f6491ec539281580f4ff83216e7d26ce85c83237fe0543c0ca49e25b2515ccdb6c8814b488d17a64a05f536dcaea94f9d32a60c7d7
   languageName: node
   linkType: hard
 
@@ -3177,9 +3177,9 @@ __metadata:
   linkType: hard
 
 "@types/prismjs@npm:^1.26.0":
-  version: 1.26.3
-  resolution: "@types/prismjs@npm:1.26.3"
-  checksum: 10c0/3e8a64bcf0ab5f9a47ec2590938c5a8a20ac849b4949a95ed96e73e64cb890fc56e9c9b724286914717458267b28405f965709e1b9f80db5d68817a7ce5a18a9
+  version: 1.26.4
+  resolution: "@types/prismjs@npm:1.26.4"
+  checksum: 10c0/996be7d119779c4cbe66e58342115a12d35a02226dae3aaa4a744c9652d5a3939c93c26182e18156965ac4f93575ebb309c3469c36f52e60ee5c0f8f27e874df
   languageName: node
   linkType: hard
 
@@ -5878,9 +5878,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.756
-  resolution: "electron-to-chromium@npm:1.4.756"
-  checksum: 10c0/c983c7d1b84f0bc73211f77504c3a4c58f2d01f55af640d230549eaca0a0667ad515672ddb2ae5c3f37762ca6a71aa20c2baaea0a63a61cb52415105c44b85c0
+  version: 1.4.757
+  resolution: "electron-to-chromium@npm:1.4.757"
+  checksum: 10c0/77fddf3870ff66280f4b639c409ff0a82661ba50e6519b571bb79325e6ea2c4fef645bcf65dcc1ced8b6151cc78083af8b781877247e62986ce39dee1d642cfe
   languageName: node
   linkType: hard
 
@@ -7137,11 +7137,11 @@ __metadata:
   linkType: hard
 
 "get-tsconfig@npm:^4.5.0":
-  version: 4.7.3
-  resolution: "get-tsconfig@npm:4.7.3"
+  version: 4.7.4
+  resolution: "get-tsconfig@npm:4.7.4"
   dependencies:
     resolve-pkg-maps: "npm:^1.0.0"
-  checksum: 10c0/b15ca9d5d0887ebfccadc9fe88b6ff3827a5691ec90e7608a5e9c74bef959c14aba62f6bb88ac7f50322395731789a2cf654244f00e10f4f76349911b6846d6f
+  checksum: 10c0/4bd9ca36aa8b117d7d2ddd57d18fce94444cda9225c8444b2ffa9f19490a1ac77d99089deaf03012945a86e8daed73ec910b33f8830e66df64b44f6f0ebccff1
   languageName: node
   linkType: hard
 
@@ -7500,8 +7500,8 @@ __metadata:
   linkType: hard
 
 "hast-util-raw@npm:^9.0.0":
-  version: 9.0.2
-  resolution: "hast-util-raw@npm:9.0.2"
+  version: 9.0.3
+  resolution: "hast-util-raw@npm:9.0.3"
   dependencies:
     "@types/hast": "npm:^3.0.0"
     "@types/unist": "npm:^3.0.0"
@@ -7516,7 +7516,7 @@ __metadata:
     vfile: "npm:^6.0.0"
     web-namespaces: "npm:^2.0.0"
     zwitch: "npm:^2.0.0"
-  checksum: 10c0/0162c104c3fdf8b749b2d271d36b48f609c2cb3bc30cb21feb087ac67bdf806988c8cd14c2e2c71ff982b0a7525b0b1ffd09476f9d79b517337d78ada8042b0c
+  checksum: 10c0/a3d7f0d655f1dd9bff68004ebf27e6047ecfea6de98b4f7783d331a4f5cb7df35e7d707a6cb03a428cf5eb22d87d9609800b6e262044208585eebfc4b94d6822
   languageName: node
   linkType: hard
 
