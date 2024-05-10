@@ -180,9 +180,10 @@ export abstract class RequestProvider implements IStorage {
         ow(requestsLike, ow.array);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
+            cache: ow.optional.boolean,
         }));
 
-        const { forefront = false } = options;
+        const { forefront = false, cache = true } = options;
 
         const uniqueKeyToCacheKey = new Map<string, string>();
         const getCachedRequestId = (uniqueKey: string) => {
@@ -253,7 +254,10 @@ export abstract class RequestProvider implements IStorage {
             const cacheKey = getCachedRequestId(newRequest.uniqueKey);
 
             const { requestId, wasAlreadyPresent } = newRequest;
-            this._cacheRequest(cacheKey, newRequest);
+
+            if (cache) {
+                this._cacheRequest(cacheKey, newRequest);
+            }
 
             if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
@@ -294,19 +298,19 @@ export abstract class RequestProvider implements IStorage {
             batchSize = 1000,
             waitBetweenBatchesMillis = 1000,
         } = options;
-        const builtRequests: Request[] = [];
+        const builtRequests: Source[] = [];
 
         for (const opts of requests) {
             if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
                 await this.addRequest(opts, { forefront: options.forefront });
             } else {
-                builtRequests.push(new Request(typeof opts === 'string' ? { url: opts } : opts as RequestOptions));
+                builtRequests.push(typeof opts === 'string' ? { url: opts } : opts as RequestOptions);
             }
         }
 
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Request[]) => {
+        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
             const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront });
+            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
             resultsToReturn.push(...apiResult.processedRequests);
 
             if (apiResult.unprocessedRequests.length) {
@@ -314,6 +318,7 @@ export abstract class RequestProvider implements IStorage {
 
                 resultsToReturn.push(...await attemptToAddToQueueAndAddAnyUnprocessed(
                     providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
+                    false,
                 ));
             }
 
@@ -339,7 +344,7 @@ export abstract class RequestProvider implements IStorage {
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for (const requestChunk of chunks) {
-                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk));
+                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false));
 
                 await sleep(waitBetweenBatchesMillis);
             }
@@ -707,6 +712,12 @@ export interface RequestQueueOperationOptions {
      * @default false
      */
     forefront?: boolean;
+    /**
+     * Should the requests be added to the local LRU cache?
+     * @default false
+     * @internal
+     */
+    cache?: boolean;
 }
 
 /**
