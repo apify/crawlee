@@ -323,13 +323,13 @@ export abstract class RequestProvider implements IStorage {
             batchSize = 1000,
             waitBetweenBatchesMillis = 1000,
         } = options;
-        const builtRequests: Source[] = [];
+        const sources: Source[] = [];
 
         for (const opts of requests) {
             if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
                 await this.addRequest(opts, { forefront: options.forefront });
             } else {
-                builtRequests.push(typeof opts === 'string' ? { url: opts } : opts as RequestOptions);
+                sources.push(typeof opts === 'string' ? { url: opts } : opts as RequestOptions);
             }
         }
 
@@ -350,13 +350,13 @@ export abstract class RequestProvider implements IStorage {
             return resultsToReturn;
         };
 
-        const initialChunk = builtRequests.splice(0, batchSize);
+        const initialChunk = sources.splice(0, batchSize);
 
         // Add initial batch of `batchSize` to process them right away
         const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
 
         // If we have no more requests to add, return early
-        if (!builtRequests.length) {
+        if (!sources.length) {
             return {
                 addedRequests,
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
@@ -365,7 +365,7 @@ export abstract class RequestProvider implements IStorage {
 
         // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            const chunks = chunk(builtRequests, batchSize);
+            const chunks = chunk(sources, batchSize);
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for (const requestChunk of chunks) {
