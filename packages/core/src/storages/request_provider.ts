@@ -1,3 +1,5 @@
+import { inspect } from 'node:util';
+
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
@@ -282,17 +284,40 @@ export abstract class RequestProvider implements IStorage {
     async addRequestsBatched(requests: (string | Source)[], options: AddRequestsBatchedOptions = {}): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
 
-        ow(requests, ow.array.ofType(ow.any(
-            ow.string,
-            ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
-        )));
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
             waitForAllRequestsToBeAdded: ow.optional.boolean,
             batchSize: ow.optional.number,
             waitBetweenBatchesMillis: ow.optional.number,
         }));
+
+        // The `requests` array can be huge, and `ow` is very slow for anything more complex.
+        // This explicit iteration takes a few milliseconds, while the ow check can take tens of seconds.
+
+        // ow(requests, ow.array.ofType(ow.any(
+        //     ow.string,
+        //     ow.object.partialShape({ url: ow.string, id: ow.undefined }),
+        //     ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
+        // )));
+
+        for (const request of requests) {
+            if (typeof request === 'string') {
+                continue;
+            }
+
+            if (typeof request === 'object' && request !== null) {
+                if (typeof request.url === 'string' && typeof request.id === 'undefined') {
+                    continue;
+                }
+
+                if (typeof (request as any).requestsFromUrl === 'string') {
+                    continue;
+                }
+            }
+
+            // eslint-disable-next-line max-len
+            throw new Error(`Request options are not valid, provide either a URL or an object with 'url' property (but without 'id' property), or an object with 'requestsFromUrl' property. Input: ${inspect(request)}`);
+        }
 
         const {
             batchSize = 1000,
