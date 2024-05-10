@@ -55,7 +55,7 @@ export type FileDownloadRequestHandler<
 /**
  * Provides a framework for downloading files in parallel using plain HTTP requests. The URLs to download are fed either from a static list of URLs or they can be added on the fly from another crawler.
  *
- * Since `FileDownload` uses raw HTTP requests to download the files, it is very fast and efficient on data bandwidth.
+ * Since `FileDownload` uses raw HTTP requests to download the files, it is very fast and bandwith-efficient.
  * However, it doesn't parse the content - if you need to e.g. extract data from the downloaded files,
  * you might need to use [CheerioCrawler](https://crawlee.dev/api/cheerio-crawler/class/CheerioCrawler),
  * [PuppeteerCrawler](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler) or [PlaywrightCrawler](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler) instead.
