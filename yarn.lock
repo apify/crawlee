@@ -1753,9 +1753,9 @@ __metadata:
   linkType: hard
 
 "@sigstore/protobuf-specs@npm:^0.3.0, @sigstore/protobuf-specs@npm:^0.3.1":
-  version: 0.3.1
-  resolution: "@sigstore/protobuf-specs@npm:0.3.1"
-  checksum: 10c0/bc926aeb472dcd1f99e887d54d9402e259e186ee2a15cdb395cdb565fdd3457f84a044ef355c96359c3c625127a93fb3c45c7e3bd2f16ac0912a58a6bf3fc137
+  version: 0.3.2
+  resolution: "@sigstore/protobuf-specs@npm:0.3.2"
+  checksum: 10c0/108eed419181ff599763f2d28ff5087e7bce9d045919de548677520179fe77fb2e2b7290216c93c7a01bdb2972b604bf44599273c991bbdf628fbe1b9b70aacb
   languageName: node
   linkType: hard
 
@@ -4433,9 +4433,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1298513
-  resolution: "devtools-protocol@npm:0.0.1298513"
-  checksum: 10c0/0ad4dc36b8c1d6a301fc28e76bc1f04a41bf5bd2f40f98e87c36e8799ace2c31ce94718ff9c9a5beb62fb0f2c442646f006228d28caa33310a3687304713a98d
+  version: 0.0.1299070
+  resolution: "devtools-protocol@npm:0.0.1299070"
+  checksum: 10c0/ab6799a75ccada832bfc1d5f4eeba95ca71f28e101e0b8b749bd8350c3da87cbd4baf4a442247e7f653db52a022a7d99fc1153d712dc4a2525b43b60037a4f60
   languageName: node
   linkType: hard
 
@@ -4608,9 +4608,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.762
-  resolution: "electron-to-chromium@npm:1.4.762"
-  checksum: 10c0/b4f9e7472b0f25bac24454a6450c43257ef931a12f4f18d0f430997b383db228b73caf268010cec0441646d6842875503c25fca7125f0bf2805fb2ee8c2e2aea
+  version: 1.4.763
+  resolution: "electron-to-chromium@npm:1.4.763"
+  checksum: 10c0/8787092e2c237699d145860564635391eb856febad3d2ab171a12c671788d1aee323a42822daf0fc8ee49d615b85776470c97ecf212edeb64794f1ffc171f842
   languageName: node
   linkType: hard
 
@@ -10415,13 +10415,13 @@ __metadata:
   linkType: hard
 
 "rimraf@npm:*, rimraf@npm:^5.0.0":
-  version: 5.0.5
-  resolution: "rimraf@npm:5.0.5"
+  version: 5.0.6
+  resolution: "rimraf@npm:5.0.6"
   dependencies:
     glob: "npm:^10.3.7"
   bin:
     rimraf: dist/esm/bin.mjs
-  checksum: 10c0/d50dbe724f33835decd88395b25ed35995077c60a50ae78ded06e0185418914e555817aad1b4243edbff2254548c2f6ad6f70cc850040bebb4da9e8cc016f586
+  checksum: 10c0/7e750e2d9073c058895c23622fdde6419acbdfdbba2f1baf4c14ce44c3424d1a83a513955ed32161fc13df54ab4182ceda1ca448720ceb6d834020b5ca0a7717
   languageName: node
   linkType: hard
 
@@ -11636,8 +11636,8 @@ __metadata:
   linkType: hard
 
 "tsx@npm:^4.4.0":
-  version: 4.9.3
-  resolution: "tsx@npm:4.9.3"
+  version: 4.9.4
+  resolution: "tsx@npm:4.9.4"
   dependencies:
     esbuild: "npm:~0.20.2"
     fsevents: "npm:~2.3.3"
@@ -11647,7 +11647,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/abc0d461885ef227959274de5e2f80961e860cc1524d090fc9161bf6450b732f9c3e88ec770ea8cbe49880c9fed7c65aa7853d060b83d9c56f70d935e9162d18
+  checksum: 10c0/949aba6a4c6c6becaf1314d8e54e77f7dc98d5d0c4627ac0abb34142f85f383bd1cec4fab0707e24434288454803c89b201628b6c1cfd0132de642a7d5976fd0
   languageName: node
   linkType: hard
 
