@@ -115,6 +115,8 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             this.requestHandler = this.streamRequestHandler;
         }
 
+        // The base HttpCrawler class only supports a handful of text based mime types.
+        // With the FileDownload crawler, we want to download any file type.
         (this as any).supportedMimeTypes = new Set(['*/*']);
     }
 
@@ -150,11 +152,11 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
                 const { total, transferred } = stream.downloadProgress;
 
                 if (transferred > 0) {
-                    log.info(
+                    log.debug(
                         `Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`,
                     );
                 }
-            }, 1000);
+            }, 5000);
 
             stream.on('error', async (error: Error) => {
                 cleanUp();
