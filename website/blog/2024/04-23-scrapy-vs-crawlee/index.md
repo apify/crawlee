@@ -84,7 +84,7 @@ import TabItem from '@theme/TabItem';
 
 
 <Tabs>
-<TabItem value="js" label="Playwright">
+<TabItem value="javscript" label="Playwright">
 
 ```js
 import { PlaywrightCrawler } from 'crawlee';
