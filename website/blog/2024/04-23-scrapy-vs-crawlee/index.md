@@ -48,32 +48,32 @@ After installation and making changes, create a spider with this code to scrape 
 
 
 ```py
-import scrapy
+    import scrapy
 
-class ActorSpider(scrapy.Spider):
-    name = 'actor_spider'
-    start_urls = ['https://apify.com/store']
+    class ActorSpider(scrapy.Spider):
+        name = 'actor_spider'
+        start_urls = ['https://apify.com/store']
 
-    def start_requests(self):
-        for url in self.start_urls:
-            yield scrapy.Request(
-                url,
-                meta={"playwright": True, "playwright_include_page": True},
-                callback=self.parse_playwright
-            )
+        def start_requests(self):
+            for url in self.start_urls:
+                yield scrapy.Request(
+                    url,
+                    meta={"playwright": True, "playwright_include_page": True},
+                    callback=self.parse_playwright
+                )
 
-    async def parse_playwright(self, response):
-        page = response.meta['playwright_page']
-        await page.wait_for_selector('.ActorStoreItem-title-wrapper')
-        actor_card = await page.query_selector('.ActorStoreItem-title-wrapper')
-        
-        if actor_card:
-            actor_text = await actor_card.text_content()
-            yield {
-                'actor': actor_text.strip() if actor_text else 'N/A'
-            }
+        async def parse_playwright(self, response):
+            page = response.meta['playwright_page']
+            await page.wait_for_selector('.ActorStoreItem-title-wrapper')
+            actor_card = await page.query_selector('.ActorStoreItem-title-wrapper')
+            
+            if actor_card:
+                actor_text = await actor_card.text_content()
+                yield {
+                    'actor': actor_text.strip() if actor_text else 'N/A'
+                }
 
-        await page.close()
+            await page.close()
 ```
 
 
@@ -81,6 +81,7 @@ In Crawlee, you can scrape the JavaScript rendered websites using inbuilt headle
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
+
 
 <Tabs>
 <TabItem value="js" label="Playwright">
@@ -124,6 +125,7 @@ await crawler.run(['https://apify.com/store']);
 
 </TabItem>
 </Tabs>
+
 
 
 ### Autoscaling Support
