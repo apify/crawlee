@@ -42,23 +42,10 @@ Scrapy does not support headless browsers natively, but it supports them with it
 
 Apify Store is a JavaScript rendered website, so we wil scrape it in this example using `scrapy-playwright` integration. 
 
-1. First of all, you have to install the library by using this command: `pip install scrapy-playwright`
-2. Then you need to install playwright by `playwright install`
-3. Install the browsers: `playwright install firefox chromium`
-4. Replace the default http and/or https Download Handlers through `DOWNLOAD_HANDLERS` in `settings.py`:
+For installation and making changes to [`settings.py`], please follow the instructions on `scrapy-playwright` [repository on GitHub](https://github.com/scrapy-plugins/scrapy-playwright/tree/main?tab=readme-ov-file#installation).
 
-```py
-DOWNLOAD_HANDLERS = {
-    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-}
-```
-5. Install the `asyncio-bases Twisted reactor` by adding it in `settings.py`:
+After installation and making changes, create a spider with this code to scrape the data:
 
-```py
-TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-```
-6. Create a spider with the `scrapy-playwright` integration with this code to scrape the data:
 
 ```py
 import scrapy
@@ -88,6 +75,7 @@ class ActorSpider(scrapy.Spider):
 
         await page.close()
 ```
+
 
 In Crawlee, you can scrape the JavaScript rendered websites using inbuilt headless [Puppeteer](https://github.com/puppeteer/puppeteer/) and [Playwright](https://github.com/microsoft/playwright) browsers. It is important to note that by default, Crawlee scrapes in headless mode, if you don't want to do headless then just set `headless: false`.
 
@@ -135,7 +123,7 @@ await crawler.run(['https://apify.com/store']);
 ```
 
 </TabItem>
-
+</Tabs>
 
 
 ### Autoscaling Support
@@ -178,21 +166,23 @@ Scrapy handles it via custom middleware. You have to install their [`scrapy-rota
 
 Then in the `settings.py` file add `ROTATING_PROXY_LIST` and the middleware to the `DOWNLOADER_MIDDLEWARES` and specify the list of proxy servers. For example:
 
-```py
-DOWNLOADER_MIDDLEWARES = {
-    # Lower value means higher priority
-    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
-    'scrapy_rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
-    'scrapy_rotating_proxies.middlewares.BanDetectionMiddleware': 620,
-}
 
-ROTATING_PROXY_LIST = [
-    'proxy1.com:8000',
-    'proxy2.com:8031',
-    # Add more proxies as needed
-]
+```py
+    DOWNLOADER_MIDDLEWARES = {
+        # Lower value means higher priority
+        'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
+        'scrapy_rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+        'scrapy_rotating_proxies.middlewares.BanDetectionMiddleware': 620,
+    }
+
+    ROTATING_PROXY_LIST = [
+        'proxy1.com:8000',
+        'proxy2.com:8031',
+        # Add more proxies as needed
+    ]
 ```
-Now create a spider with the code you want to scrape any site and the `ROTATING_PROXY_LIST` in `settings.py` will manage which proxy to use for each request.
+
+Now create a spider with the code you want to scrape any site and the `ROTATING_PROXY_LIST` in `settings.py` will manage which proxy to use for each request. Here middleware will treat each proxy initially as valid and then when a request is made, the middleware selects a proxy from the list of available proxies. The selection isn't purely sequential but is influenced by the recent history of proxy performance. The middleware has mechanisms to detect when a proxy might be banned or rendered ineffective. When such conditions are detected, the proxy is temporarily deactivated and put into a cooldown period. After the cooldown period expires, the proxy is reconsidered for use.
 
 In Crawlee, you can [use your own proxy servers](https://crawlee.dev/docs/guides/proxy-management) or proxy servers acquired from third-party providers. If you already have your proxy URLs, you can start using them as easy as that:
 
@@ -210,6 +200,7 @@ const crawler = new CheerioCrawler({
     // ...
 });
 ```
+
 Crawlee also has [`SessionPool`](https://crawlee.dev/api/core/class/SessionPool), a built-in allocation system for proxies. It handles the rotation, creation, and persistence of user-like sessions. It creates a pool of Session instances that are randomly rotated.
 
 ### Data Storage
@@ -221,16 +212,16 @@ Scrapy provides this functionality out of the box with the [`Feed Exports`](http
 To do this, you need to modify your `settings.py` file and enter:
 
 ```py
-# To store in CSV format 
-FEEDS = { 
-    'data/crawl_data.csv': {'format': 'csv', 'overwrite': True} 
-}
+    # To store in CSV format 
+    FEEDS = { 
+        'data/crawl_data.csv': {'format': 'csv', 'overwrite': True} 
+    }
 
-# OR to store in JSON format
+    # OR to store in JSON format
 
-FEEDS = { 
-    'data/crawl_data.json': {'format': 'json', 'overwrite': True} 
-}
+    FEEDS = { 
+        'data/crawl_data.json': {'format': 'json', 'overwrite': True} 
+    }
 ```
 
 Crawlee's storage can be divided into two categories: Request Storage (Request Queue and Request List) and Results Storage (Datasets and Key Value Stores). Both are stored locally by default in the `./storage` directory.
@@ -245,7 +236,7 @@ Let's see how Crawlee stores the result:
 import { PlaywrightCrawler } from 'crawlee';
 
 const crawler = new PlaywrightCrawler({
-    requestHandler: async({ page }) => {
+    requestHandler: async ({ page }) => {
 
         const title = await page.title();
         const price = await page.textContent('.price');
@@ -266,7 +257,7 @@ await crawler.run(['http://example.com']);
 ```js
 import { KeyValueStore } from 'crawlee';
 //... Code to crawl the data
-KeyValueStore.setValue('key', { foo: 'bar' });
+await KeyValueStore.setValue('key', { foo: 'bar' });
 ```
 
 ### Anti-blocking and Fingerprints
@@ -284,16 +275,19 @@ In Scrapy, you can handle errors using middleware and [signals](https://docs.scr
 Scrapy has built-in support for retrying failed requests. You can configure the retry policy (e.g., the number of retries, retrying on particular HTTP codes) via settings such as `RETRY_TIMES`, as shown in the example:
 
 ```py
-# In settings.py
-RETRY_ENABLED = True
-RETRY_TIMES = 2  # Number of retry attempts
-RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
+    # In settings.py
+    RETRY_ENABLED = True
+    RETRY_TIMES = 2  # Number of retry attempts
+    RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
 ```
 
-In Crawlee, you can also setup your custom error handler. For retries, `maxRetries` controls how often Crawlee will retry a request before marking it as failed. To setup it in code you just need to add the following line of code in your crawler.
+In Crawlee, you can also setup your custom error handler. For retries, `maxRequestRetries` controls how often Crawlee will retry a request before marking it as failed. To setup it in code you just need to add the following line of code in your crawler.
 
 ```js
-maxRetries = 3 // Crawler will retry three times.
+const crawler = new CheerioCrawler({
+    maxRequestRetries: 3 // Crawler will retry three times.
+    // ...
+})
 ```
 
 There is also `noRetry`, if sets to `true` then the request will not be automatically tried.
