@@ -141,7 +141,7 @@ export class Snapshotter {
             clientSnapshotIntervalSecs = 1,
             snapshotHistorySecs = 30,
             maxBlockedMillis = 50,
-            maxUsedMemoryRatio = 0.7,
+            maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
             log = defaultLog,
             config = Configuration.getGlobalConfig(),
