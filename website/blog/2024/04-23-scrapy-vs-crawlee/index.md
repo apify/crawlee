@@ -162,7 +162,7 @@ Crawlee also [includes a CLI tool](https://crawlee.dev/docs/quick-start#installa
  
 ### Proxy Rotation and Storage Management
 
-Scrapy handles it via custom middleware. You have to install their [`scrapy-rotating-proxies`]((https://pypi.org/project/scrapy-rotating-proxies/)) package using pip. 
+Scrapy handles it via custom middleware. You have to install their [`scrapy-rotating-proxies`](https://pypi.org/project/scrapy-rotating-proxies/) package using pip. 
 
 `pip install scrapy-rotating-proxies`
 
