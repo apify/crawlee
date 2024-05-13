@@ -1,4 +1,4 @@
-import http from 'node:http';
+import type { Server } from 'http';
 import type { AddressInfo } from 'node:net';
 import { Duplex } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -6,6 +6,8 @@ import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
 import { Configuration, FileDownload } from '@crawlee/http';
+import express from 'express';
+import { startExpressAppPromise } from 'test/shared/_helper';
 
 class ReadableStreamGenerator {
     private static async generateRandomData(size: number, seed: number) {
@@ -50,43 +52,32 @@ class ReadableStreamGenerator {
     }
 }
 
-const router = new Map<string, http.RequestListener>();
-router.set('/file', async (req, res) => {
-    const url = new URL(req.url, 'http://localhost');
-
-    const size = Number(url.searchParams.get('size') ?? 1024);
-    const seed = Number(url.searchParams.get('seed') ?? 123);
-    const throttle = Number(url.searchParams.get('throttle') ?? 0);
-
-    const stream = ReadableStreamGenerator.getReadableStream(size, seed, throttle);
-
-    res.setHeader('content-type', 'application/octet-stream');
-    await pipeline(stream, res);
-
-    res.end();
-});
-
-let server: http.Server;
-let url: string;
-
+let url = 'http://localhost';
+let server: Server;
 beforeAll(async () => {
-    server = http.createServer((request, response) => {
-        try {
-            const requestUrl = new URL(request.url, 'http://localhost');
-            router.get(requestUrl.pathname)(request, response);
-        } catch (error) {
-            response.destroy();
-        }
+    const app = express();
+
+    app.get('/file', async (req, res) => {
+        const reqUrl = new URL(req.url, 'http://localhost');
+
+        const size = Number(reqUrl.searchParams.get('size') ?? 1024);
+        const seed = Number(reqUrl.searchParams.get('seed') ?? 123);
+        const throttle = Number(reqUrl.searchParams.get('throttle') ?? 0);
+
+        const stream = ReadableStreamGenerator.getReadableStream(size, seed, throttle);
+
+        res.setHeader('content-type', 'application/octet-stream');
+        await pipeline(stream, res);
+
+        res.end();
     });
 
-    await new Promise<void>((resolve) => server.listen(() => {
-        url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-        resolve();
-    }));
+    server = await startExpressAppPromise(app, 0);
+    url = `http://localhost:${(server.address() as AddressInfo).port}`;
 });
 
 afterAll(async () => {
-    await new Promise((resolve) => server.close(resolve));
+    server.close();
 });
 
 test('requestHandler works', async () => {
