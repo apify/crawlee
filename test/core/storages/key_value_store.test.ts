@@ -225,26 +225,16 @@ describe('KeyValueStore', () => {
             });
 
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
-            let counter = 0;
-
             for (const char of INVALID_CHARACTERS) {
-                try {
-                    await store.setValue(`my_id_${char}`, 'value');
-                } catch (err) {
-                    if ((err as Error).message.match('The "key" argument must be at most 256 characters')) counter++;
-                }
+                const key = `my_id_${char}`;
+                const err = `The "key" argument "${key}" must be at most 256 characters`;
+                await expect(store.setValue(key, 'value')).rejects.toThrow(err);
             }
-            expect(counter).toEqual(INVALID_CHARACTERS.length);
-
-            // TODO: This throws "ENAMETOOLONG: name too long, unlink" !!!
-            // await store.setValue('X'.repeat(256), 'value');
 
             // test max length
-            try {
-                await store.setValue('X'.repeat(257), 'value');
-            } catch (err) {
-                if ((err as Error).message.match('The "key" parameter must be at most 256 characters')) counter++;
-            }
+            const longKey = 'X'.repeat(257);
+            const err = `The "key" argument "${longKey}" must be at most 256 characters`;
+            await expect(store.setValue(longKey)).rejects.toThrow(err);
         });
 
         test('correctly adds charset to content type', async () => {

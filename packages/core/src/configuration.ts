@@ -264,7 +264,7 @@ export class Configuration {
         purgeOnStart: true,
         headless: true,
         persistStateIntervalMillis: 60_000,
-        systemInfoIntervalMillis: 60_000,
+        systemInfoIntervalMillis: 1_000,
         persistStorage: true,
     };
 

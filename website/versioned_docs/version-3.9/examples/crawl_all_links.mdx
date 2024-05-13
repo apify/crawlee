@@ -1,0 +1,63 @@
+---
+id: crawl-all-links
+title: Crawl all links on a website
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+
+import CheerioSource from '!!raw-loader!roa-loader!./crawl_all_links_cheerio.ts';
+import PuppeteerSource from '!!raw-loader!roa-loader!./crawl_all_links_puppeteer.ts';
+import PlaywrightSource from '!!raw-loader!roa-loader!./crawl_all_links_playwright.ts';
+
+This example uses the `enqueueLinks()` method to add new links to the `RequestQueue`
+as the crawler navigates from page to page.
+
+:::tip
+
+If no options are given, by default the method will only add links that are under the same subdomain. This behavior can be controlled with the <ApiLink to="core/interface/EnqueueLinksOptions#strategy">`strategy`</ApiLink>
+option. You can find more info about this option in the [`Crawl relative links`](./crawl-relative-links) examples.
+
+:::
+
+<Tabs groupId="crawler-type">
+
+<TabItem value="cheerio_crawler" label="Cheerio Crawler" default>
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{CheerioSource}
+</RunnableCodeBlock>
+
+</TabItem>
+
+<TabItem value="puppeteer_crawler" label="Puppeteer Crawler">
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<RunnableCodeBlock className="language-js" type="puppeteer">
+	{PuppeteerSource}
+</RunnableCodeBlock>
+
+</TabItem>
+
+<TabItem value="playwright_crawler" label="Playwright Crawler">
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-playwright-chrome` image for your Dockerfile.
+
+:::
+
+<RunnableCodeBlock className="language-js" type="playwright">
+	{PlaywrightSource}
+</RunnableCodeBlock>
+
+</TabItem>
+
+</Tabs>

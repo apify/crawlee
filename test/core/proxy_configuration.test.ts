@@ -21,7 +21,7 @@ describe('ProxyConfiguration', () => {
             password: '',
             port: '1111',
         };
-        expect(await proxyConfiguration.newProxyInfo(sessionId)).toStrictEqual(proxyInfo);
+        expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
     });
 
     test('should throw on invalid newUrlFunction', async () => {

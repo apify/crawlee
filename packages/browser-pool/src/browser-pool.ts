@@ -1,4 +1,5 @@
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import type { TieredProxy } from '@crawlee/core';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
@@ -93,6 +94,16 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
      * @default 300
      */
     closeInactiveBrowserAfterSecs?: number;
+    /**
+     * Browsers are marked as retired after they have been inactive for a certain
+     * amount of time. This option sets the interval at which the browsers
+     * are checked and retired if they are inactive.
+     *
+     * Retired browsers are closed after all their pages are closed.
+     *
+     * @default 1
+     */
+    retireInactiveBrowserAfterSecs?: number;
     /**
      * @default true
      */
@@ -305,6 +316,8 @@ export class BrowserPool<
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
+    private browserRetireInterval?: NodeJS.Timeout;
+
     private limiter = pLimit(1);
 
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
@@ -318,6 +331,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount: ow.optional.number,
             operationTimeoutSecs: ow.optional.number,
             closeInactiveBrowserAfterSecs: ow.optional.number,
+            retireInactiveBrowserAfterSecs: ow.optional.number,
             preLaunchHooks: ow.optional.array,
             postLaunchHooks: ow.optional.array,
             prePageCreateHooks: ow.optional.array,
@@ -334,6 +348,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount = 100,
             operationTimeoutSecs = 15,
             closeInactiveBrowserAfterSecs = 300,
+            retireInactiveBrowserAfterSecs = 1,
             preLaunchHooks = [],
             postLaunchHooks = [],
             prePageCreateHooks = [],
@@ -365,6 +380,18 @@ export class BrowserPool<
         this.closeInactiveBrowserAfterMillis = closeInactiveBrowserAfterSecs * 1000;
         this.useFingerprints = useFingerprints;
         this.fingerprintOptions = fingerprintOptions;
+
+        this.browserRetireInterval = setInterval(
+            async () => this.activeBrowserControllers.forEach((controller) => {
+                if (
+                    controller.activePages === 0
+                        && controller.lastPageOpenedAt < (Date.now() - retireInactiveBrowserAfterSecs * 1000)
+                ) {
+                    this.retireBrowserController(controller);
+                }
+            }), retireInactiveBrowserAfterSecs * 1000);
+
+        this.browserRetireInterval!.unref();
 
         // hooks
         this.preLaunchHooks = preLaunchHooks;
@@ -404,8 +431,9 @@ export class BrowserPool<
 
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier });
-            if (!browserController) browserController = await this._launchBrowser(id, { browserPlugin, proxyTier });
+            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
+
+            if (!browserController) browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
             tryCancel();
 
             return this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
@@ -611,7 +639,9 @@ export class BrowserPool<
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
+        clearInterval(this.browserRetireInterval!);
         this.browserKillerInterval = undefined;
+        this.browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
 
@@ -634,6 +664,7 @@ export class BrowserPool<
             browserPlugin,
             launchOptions,
             proxyTier,
+            proxyUrl,
         } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
@@ -643,6 +674,7 @@ export class BrowserPool<
             id: pageId,
             launchOptions,
             proxyTier,
+            proxyUrl,
         });
 
         try {
@@ -660,6 +692,7 @@ export class BrowserPool<
 
         log.debug('Launched new browser.', { id: browserController.id });
         browserController.proxyTier = proxyTier;
+        browserController.proxyUrl = proxyUrl;
 
         try {
             // If the launch fails on the post-launch hooks, we need to clean up
@@ -694,12 +727,24 @@ export class BrowserPool<
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyTier?: number }) {
+    private _pickBrowserWithFreeCapacity(
+        browserPlugin: BrowserPlugin,
+        options?: Partial<TieredProxy>,
+    ) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
+            const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
+            const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
-            return hasCapacity && isCorrectPlugin && (typeof options?.proxyTier !== 'number' || controller.proxyTier === options.proxyTier);
+            return isCorrectPlugin
+                && hasCapacity
+                && (
+                    (!controller.launchContext.browserPerProxy && !options?.proxyTier)
+                    || (options?.proxyTier && isCorrectProxyTier)
+                    || (options?.proxyUrl && isSameProxyUrl)
+                    || (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier)
+                );
         });
     }
 
@@ -863,4 +908,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     browserPlugin: BP;
     launchOptions?: BP['launchOptions'];
     proxyTier?: number;
+    proxyUrl?: string;
 }

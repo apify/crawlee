@@ -1,8 +1,8 @@
-import { cpus } from 'node:os';
 import { resolve } from 'node:path';
 
 import isCI from 'is-ci';
 import tsconfigPaths from 'vite-tsconfig-paths';
+// @ts-ignore
 import { defineConfig } from 'vitest/config';
 
 let threads: { minThreads: number; maxThreads: number } | undefined;
@@ -48,6 +48,6 @@ export default defineConfig({
             { find: /^@crawlee\/(.*)$/, replacement: resolve(__dirname, './packages/$1/src') },
             { find: /^test\/(.*)$/, replacement: resolve(__dirname, './test/$1') },
         ],
-        retry: 3,
+        retry: process.env.RETRY_TESTS ? 3 : 0,
     },
 });

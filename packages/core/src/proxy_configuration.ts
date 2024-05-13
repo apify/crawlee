@@ -1,11 +1,12 @@
 import log from '@apify/log';
+import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Request } from './request';
 
 export interface ProxyConfigurationFunction {
-    (sessionId: string | number): string | Promise<string>;
+    (sessionId: string | number, options?: { request?: Request }): string | null | Promise<string | null>;
 }
 
 export interface ProxyConfigurationOptions {
@@ -17,8 +18,9 @@ export interface ProxyConfigurationOptions {
     proxyUrls?: string[];
 
     /**
-     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter
-     * and should always return stringified proxy URL. Can be asynchronous.
+     * Custom function that allows you to generate the new proxy URL dynamically. It gets the `sessionId` as a parameter and an optional parameter with the `Request` object when applicable.
+     * Can return either stringified proxy URL or `null` if the proxy should not be used. Can be asynchronous.
+     *
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
@@ -33,6 +35,11 @@ export interface ProxyConfigurationOptions {
      * This feature is useful when you have a set of proxies with different performance characteristics (speed, price, antibot performance etc.) and you want to use the best one for each domain.
      */
     tieredProxyUrls?: string[][];
+}
+
+export interface TieredProxy {
+    proxyUrl: string;
+    proxyTier?: number;
 }
 
 /**
@@ -95,6 +102,11 @@ export interface ProxyInfo {
      * Proxy port.
      */
     port: number | string;
+
+    /**
+     * Proxy tier for the current proxy, if applicable (only for `tieredProxyUrls`).
+     */
+    proxyTier?: number;
 }
 
 interface TieredProxyOptions {
@@ -250,10 +262,20 @@ export class ProxyConfiguration {
      *  The identifier must not be longer than 50 characters and include only the following: `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"`.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo> {
+    async newProxyInfo(sessionId?: string | number, options?: TieredProxyOptions): Promise<ProxyInfo | undefined> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
-        const url = await this.newUrl(sessionId, options);
+        let url: string | undefined;
+        let tier: number | undefined;
+        if (this.tieredProxyUrls) {
+            const { proxyUrl, proxyTier } = this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(6), options);
+            url = proxyUrl;
+            tier = proxyTier;
+        } else {
+            url = await this.newUrl(sessionId, options);
+        }
+
+        if (!url) return undefined;
 
         const { username, password, port, hostname } = new URL(url);
 
@@ -264,6 +286,7 @@ export class ProxyConfiguration {
             password,
             hostname,
             port: port!,
+            proxyTier: tier,
         };
     }
 
@@ -271,25 +294,30 @@ export class ProxyConfiguration {
      * Given a session identifier and a request / proxy tier, this function returns a new proxy URL based on the provided configuration options.
      * @param _sessionId Session identifier
      * @param options Options for the tiered proxy rotation
-     * @returns A string with a proxy URL.
+     * @returns An object with the proxy URL and the proxy tier used.
      */
-    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): string {
+    protected _handleTieredUrl(_sessionId: string, options?: TieredProxyOptions): TieredProxy {
         if (!this.tieredProxyUrls) throw new Error('Tiered proxy URLs are not set');
 
         if (!options || (!options?.request && options?.proxyTier === undefined)) {
             const allProxyUrls = this.tieredProxyUrls.flat();
-            return allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length];
+            return {
+                proxyUrl: allProxyUrls[this.nextCustomUrlIndex++ % allProxyUrls.length],
+            };
         }
 
         let tierPrediction = options.proxyTier!;
 
         if (typeof tierPrediction !== 'number') {
-            tierPrediction = this.getProxyTier(options.request!)!;
+            tierPrediction = this.predictProxyTier(options.request!)!;
         }
 
         const proxyTier = this.tieredProxyUrls![tierPrediction];
 
-        return proxyTier[this.nextCustomUrlIndex++ % proxyTier.length];
+        return {
+            proxyUrl: proxyTier[this.nextCustomUrlIndex++ % proxyTier.length],
+            proxyTier: tierPrediction,
+        };
     }
 
     /**
@@ -297,7 +325,7 @@ export class ProxyConfiguration {
      *
      * This returns `null` if `tieredProxyUrls` option is not set.
      */
-    getProxyTier(request: Request): number | null {
+    protected predictProxyTier(request: Request): number | null {
         if (!this.tieredProxyUrls) return null;
 
         const domain = new URL(request.url).hostname;
@@ -334,15 +362,18 @@ export class ProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(sessionId?: string | number, options?: TieredProxyOptions): Promise<string> {
+    async newUrl(sessionId?: string | number, options?: TieredProxyOptions): Promise<string | undefined> {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
-            return this._callNewUrlFunction(sessionId)!;
+            return (await this._callNewUrlFunction(sessionId, { request: options?.request }) ?? undefined);
         }
 
         if (this.tieredProxyUrls) {
-            return this._handleTieredUrl(sessionId ?? Math.random().toString().slice(2, 6), options);
+            return this._handleTieredUrl(
+                sessionId ?? cryptoRandomObjectId(6),
+                options,
+            ).proxyUrl;
         }
 
         return this._handleCustomUrl(sessionId);
@@ -371,12 +402,12 @@ export class ProxyConfiguration {
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
-    protected async _callNewUrlFunction(sessionId?: string) {
-        let proxyUrl: string;
-
+    protected async _callNewUrlFunction(sessionId?: string, options?: { request?: Request }) {
+        const proxyUrl = await this.newUrlFunction!(sessionId!, options);
         try {
-            proxyUrl = await this.newUrlFunction!(sessionId!);
-            new URL(proxyUrl); // eslint-disable-line no-new
+            if (proxyUrl) {
+                new URL(proxyUrl); // eslint-disable-line no-new
+            }
             return proxyUrl;
         } catch (err) {
             this._throwNewUrlFunctionInvalid(err as Error);

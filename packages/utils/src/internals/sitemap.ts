@@ -6,6 +6,7 @@ import { createGunzip } from 'node:zlib';
 import log from '@apify/log';
 import type { SAXStream } from 'sax';
 import sax from 'sax';
+import MIMEType from 'whatwg-mimetype';
 
 class ParsingState {
     sitemapUrls: string[] = [];
@@ -95,7 +96,7 @@ export class Sitemap {
             }
         });
 
-        parser.on('text', (text) => {
+        const onText = (text: string) => {
             if (parsingState.loc) {
                 if (parsingState.context === 'sitemapindex') {
                     if (!parsingState.visitedSitemapUrls.includes(text)) {
@@ -106,7 +107,9 @@ export class Sitemap {
                     parsingState.urls.push(text);
                 }
             }
-        });
+        };
+        parser.on('text', onText);
+        parser.on('cdata', onText);
 
         parser.on('end', onEnd);
         parser.on('error', onError);
@@ -147,8 +150,8 @@ export class Sitemap {
         parsingState.sitemapUrls = Array.isArray(urls) ? urls : [urls];
 
         while (parsingState.sitemapUrls.length > 0) {
-            let sitemapUrl = parsingState.sitemapUrls.pop()!;
-            parsingState.visitedSitemapUrls.push(sitemapUrl);
+            const sitemapUrl = new URL(parsingState.sitemapUrls.pop()!);
+            parsingState.visitedSitemapUrls.push(sitemapUrl.toString());
             parsingState.resetContext();
 
             try {
@@ -161,19 +164,26 @@ export class Sitemap {
                 if (sitemapStream.response!.statusCode === 200) {
                     await new Promise((resolve, reject) => {
                         let stream: Duplex = sitemapStream;
-                        if (sitemapUrl.endsWith('.gz')) {
+                        if (sitemapUrl.pathname.endsWith('.gz')) {
                             stream = stream.pipe(createGunzip()).on('error', reject);
-                            sitemapUrl = sitemapUrl.substring(0, sitemapUrl.length - 3);
+                            sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
                         }
 
                         const parser = (() => {
                             const contentType = sitemapStream.response!.headers['content-type'];
+                            let mimeType: MIMEType | null;
 
-                            if (contentType === 'text/xml' || sitemapUrl.endsWith('.xml')) {
+                            try {
+                                mimeType = new MIMEType(contentType ?? '');
+                            } catch (e) {
+                                mimeType = null;
+                            }
+
+                            if (mimeType?.isXML() || sitemapUrl.pathname.endsWith('.xml')) {
                                 return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
                             }
 
-                            if (contentType === 'text/plain' || sitemapUrl.endsWith('.txt')) {
+                            if (mimeType?.essence === 'text/plain' || sitemapUrl.pathname.endsWith('.txt')) {
                                 return new SitemapTxtParser(parsingState, () => resolve(undefined));
                             }
 

@@ -1,24 +1,42 @@
 # Contributing
 
-When contributing to this repository, please first discuss the change you wish to make via issue,
-email, or any other method with the owners of this repository before making a change.
-
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
-## Pull Request Process
+## Submission guidelines
 
-1. Ensure any install or build dependencies are removed before the end of the layer when doing a
-   build.
-2. Update the README.md and CHANGELOG.md with details of changes to the interface, this includes new environment
-   variables, exposed ports, useful file locations and container parameters.
-3. Increase the version numbers in any examples files and the README.md to the new version that this
-   Pull Request would represent. The versioning scheme we use is [SemVer](http://semver.org/).
-4. You may merge the Pull Request in once you have the sign-off of two other developers, or if you
-   do not have permission to do that, you may request the second reviewer to merge it for you.
+### Submitting an issue
+
+Before you submit an issue, please search the issue tracker, maybe an issue for your problem already exists, and the discussion might inform you of workarounds readily available.
+
+Please provide steps to reproduce if you found a bug or ideally fork the repository and add a failing test that demonstrates what is wrong. This will help us understand and fix the issue faster.
+
+### Submitting a pull request
+
+Before you submit your pull request, consider the following guidelines:
+
+- Search [GitHub](https://github.com/apify/crawlee/pulls) for an open or closed PR that relates to your submission. You don't want to duplicate effort.
+
+- Fork the project and install NPM dependencies.
+
+- Run tests before you start working, to be sure they all pass and your setup is working correctly:
+
+    ```sh
+    yarn test
+    ```
+
+- Be sure to **include appropriate test cases**. Tests help make it clear what the PR is fixing and also make sure the changes won't break over time.
+- Commit your changes using a descriptive commit message that follows defined [commit message conventions](https://docs.google.com/document/d/1QrDFcIiPjSLDn3EL15IJygNPiHORgU1_OOAqWjiDU5Y/edit#heading=h.uyo6cb12dt6w). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
+- Push the code to your forked repository and create a pull request on GitHub.
+- If somebody from project contributors suggests changes:
+    - Make the required updates.
+    - Re-run all test suites to ensure tests are still passing.
+    - Commit them and push. Don't rebase after you get a review, so it is clear what changes you did in the last commit. The PR will be squash merged, so its history is irrelevant.
+
+That's it! Thank you for your contribution!
 
 ### Yarn
 
-This project now uses yarn v3 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
+This project now uses yarn v4 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
 
 ```shell
 corepack enable

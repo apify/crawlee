@@ -32,6 +32,14 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useChrome?: boolean;
 
     /**
+     * If set to `true`, the crawler respects the proxy url generated for the given request.
+     * This aligns the browser-based crawlers with the `HttpCrawler`.
+     *
+     * Might cause performance issues, as Crawlee might launch too many browser instances.
+     */
+    browserPerProxy?: boolean;
+
+    /**
     * With this option selected, all pages will be opened in a new incognito browser context.
     * This means they will not share cookies nor cache and their resources will not be throttled by one another.
     * @default false
@@ -98,6 +106,7 @@ export abstract class BrowserLauncher<
         proxyUrl: ow.optional.string.url,
         useChrome: ow.optional.boolean,
         useIncognitoPages: ow.optional.boolean,
+        browserPerProxy: ow.optional.boolean,
         experimentalContainers: ow.optional.boolean,
         userDataDir: ow.optional.string,
         launchOptions: ow.optional.object,

@@ -7,7 +7,7 @@ describe('Sitemap', () => {
     beforeEach(() => {
         nock.disableNetConnect();
         nock('http://not-exists.com').persist()
-            .get('/sitemap_child.xml')
+            .get((url) => url === '/sitemap_child.xml' || url === '/sitemap_child_2.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -59,6 +59,10 @@ describe('Sitemap', () => {
                 '<loc>http://not-exists.com/sitemap_child.xml</loc>',
                 '<lastmod>2004-12-23</lastmod>',
                 '</sitemap>',
+                '<sitemap>',
+                '<loc>http://not-exists.com/sitemap_child_2.xml?from=94937939985&amp;to=1318570721404</loc>',
+                '<lastmod>2004-12-23</lastmod>',
+                '</sitemap>',
                 '</sitemapindex>',
             ].join('\n'))
             .get('/not_actual_xml.xml')
@@ -69,6 +73,15 @@ describe('Sitemap', () => {
                 'The document has moved',
                 '<A HREF="https://ads.google.com/home/">here</A>.',
                 '</BODY></HTML>',
+            ].join('\n'))
+            .get('/sitemap_cdata.xml')
+            .reply(200, [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc><![CDATA[http://not-exists.com/catalog]]></loc>',
+                '</url>',
+                '</urlset>',
             ].join('\n'))
             .get('/sitemap.xml')
             .reply(200, [
@@ -141,6 +154,13 @@ describe('Sitemap', () => {
     it('does not break on invalid xml', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
         expect(sitemap.urls).toEqual([]);
+    });
+
+    it('handles CDATA in loc tags', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml');
+        expect(new Set(sitemap.urls)).toEqual(new Set([
+            'http://not-exists.com/catalog',
+        ]));
     });
 
     it('autodetects sitemaps', async () => {

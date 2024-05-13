@@ -14,7 +14,7 @@ let HTTPError: typeof HTTPErrorClass;
  * **Example usage:**
  * ```javascript
  * // Load the robots.txt file
- * const robots = await RobotsFile.load('https://crawlee.dev/docs/introduction/first-crawler');
+ * const robots = await RobotsFile.find('https://crawlee.dev/docs/introduction/first-crawler');
  *
  * // Check if a URL should be crawled according to robots.txt
  * const url = 'https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler';
@@ -46,7 +46,7 @@ export class RobotsFile {
     }
 
     /**
-     * Allows providing the URL and robotx.txt content explicitly instead of loading it from the target site.
+     * Allows providing the URL and robots.txt content explicitly instead of loading it from the target site.
      * @param url the URL for robots.txt file
      * @param content contents of robots.txt
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
@@ -83,7 +83,7 @@ export class RobotsFile {
      * @param [userAgent] relevant user agent, default to `*`
      */
     isAllowed(url: string, userAgent = '*'): boolean {
-        return this.robots.isAllowed(url, userAgent) ?? false;
+        return this.robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
     }
 
     /**

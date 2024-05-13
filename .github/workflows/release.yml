@@ -2,6 +2,7 @@ name: Release @latest
 
 env:
     YARN_IGNORE_NODE: 1
+    RETRY_TESTS: 1
 
 on:
     workflow_dispatch:
@@ -32,7 +33,7 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ubuntu-latest]
-                node-version: [16, 18, 20]
+                node-version: [16, 18, 20, 22]
 
         runs-on: ${{ matrix.os }}
 
@@ -169,7 +170,7 @@ jobs:
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                   repository: apify/crawlee
                   event-type: crawlee-docker-image-bump
-    
+
     version-docs:
       needs: release
       runs-on: ubuntu-latest
@@ -214,7 +215,7 @@ jobs:
               cd website
               yarn docusaurus docs:version $(jq .version ../lerna.json | sed s/\"//g | head -c 3)
               yarn docusaurus api:version $(jq .version ../lerna.json | sed s/\"//g | head -c 3)
-        
+
         - name: Commit and push the version snapshot
           run: |
               git config --global user.name "Apify Release Bot"

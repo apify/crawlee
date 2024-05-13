@@ -1,3 +1,5 @@
+import { inspect } from 'node:util';
+
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
@@ -180,9 +182,10 @@ export abstract class RequestProvider implements IStorage {
         ow(requestsLike, ow.array);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
+            cache: ow.optional.boolean,
         }));
 
-        const { forefront = false } = options;
+        const { forefront = false, cache = true } = options;
 
         const uniqueKeyToCacheKey = new Map<string, string>();
         const getCachedRequestId = (uniqueKey: string) => {
@@ -253,7 +256,10 @@ export abstract class RequestProvider implements IStorage {
             const cacheKey = getCachedRequestId(newRequest.uniqueKey);
 
             const { requestId, wasAlreadyPresent } = newRequest;
-            this._cacheRequest(cacheKey, newRequest);
+
+            if (cache) {
+                this._cacheRequest(cacheKey, newRequest);
+            }
 
             if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
@@ -278,11 +284,6 @@ export abstract class RequestProvider implements IStorage {
     async addRequestsBatched(requests: (string | Source)[], options: AddRequestsBatchedOptions = {}): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
 
-        ow(requests, ow.array.ofType(ow.any(
-            ow.string,
-            ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
-        )));
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
             waitForAllRequestsToBeAdded: ow.optional.boolean,
@@ -290,23 +291,51 @@ export abstract class RequestProvider implements IStorage {
             waitBetweenBatchesMillis: ow.optional.number,
         }));
 
+        // The `requests` array can be huge, and `ow` is very slow for anything more complex.
+        // This explicit iteration takes a few milliseconds, while the ow check can take tens of seconds.
+
+        // ow(requests, ow.array.ofType(ow.any(
+        //     ow.string,
+        //     ow.object.partialShape({ url: ow.string, id: ow.undefined }),
+        //     ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
+        // )));
+
+        for (const request of requests) {
+            if (typeof request === 'string') {
+                continue;
+            }
+
+            if (typeof request === 'object' && request !== null) {
+                if (typeof request.url === 'string' && typeof request.id === 'undefined') {
+                    continue;
+                }
+
+                if (typeof (request as any).requestsFromUrl === 'string') {
+                    continue;
+                }
+            }
+
+            // eslint-disable-next-line max-len
+            throw new Error(`Request options are not valid, provide either a URL or an object with 'url' property (but without 'id' property), or an object with 'requestsFromUrl' property. Input: ${inspect(request)}`);
+        }
+
         const {
             batchSize = 1000,
             waitBetweenBatchesMillis = 1000,
         } = options;
-        const builtRequests: Request[] = [];
+        const sources: Source[] = [];
 
         for (const opts of requests) {
             if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
                 await this.addRequest(opts, { forefront: options.forefront });
             } else {
-                builtRequests.push(new Request(typeof opts === 'string' ? { url: opts } : opts as RequestOptions));
+                sources.push(typeof opts === 'string' ? { url: opts } : opts as RequestOptions);
             }
         }
 
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Request[]) => {
+        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
             const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront });
+            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
             resultsToReturn.push(...apiResult.processedRequests);
 
             if (apiResult.unprocessedRequests.length) {
@@ -314,19 +343,20 @@ export abstract class RequestProvider implements IStorage {
 
                 resultsToReturn.push(...await attemptToAddToQueueAndAddAnyUnprocessed(
                     providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
+                    false,
                 ));
             }
 
             return resultsToReturn;
         };
 
-        const initialChunk = builtRequests.splice(0, batchSize);
+        const initialChunk = sources.splice(0, batchSize);
 
         // Add initial batch of `batchSize` to process them right away
         const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
 
         // If we have no more requests to add, return early
-        if (!builtRequests.length) {
+        if (!sources.length) {
             return {
                 addedRequests,
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
@@ -335,11 +365,11 @@ export abstract class RequestProvider implements IStorage {
 
         // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            const chunks = chunk(builtRequests, batchSize);
+            const chunks = chunk(sources, batchSize);
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for (const requestChunk of chunks) {
-                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk));
+                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false));
 
                 await sleep(waitBetweenBatchesMillis);
             }
@@ -724,6 +754,12 @@ export interface RequestQueueOperationOptions {
      * @default false
      */
     forefront?: boolean;
+    /**
+     * Should the requests be added to the local LRU cache?
+     * @default false
+     * @internal
+     */
+    cache?: boolean;
 }
 
 /**

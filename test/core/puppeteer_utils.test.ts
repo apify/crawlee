@@ -8,6 +8,8 @@ import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import { runExampleComServer } from 'test/shared/_helper';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
+const launchContext = { launchOptions: { headless: true } };
+
 let port: number;
 let server: Server;
 let serverAddress = 'http://localhost:';
@@ -39,11 +41,9 @@ describe('puppeteerUtils', () => {
         await localStorageEmulator.destroy();
     });
 
-    describe.each([
-        [launchPuppeteer, { launchOptions: { headless: true } }],
-    ] as const)('with %s', (method, launchContext) => {
+    describe('with %s', () => {
         test('injectFile()', async () => {
-            const browser2 = await method(launchContext);
+            const browser2 = await launchPuppeteer(launchContext);
             const survive = async (browser: Browser) => {
                 // Survive navigations
                 const page = await browser.newPage();
@@ -90,7 +90,7 @@ describe('puppeteerUtils', () => {
         });
 
         test('injectJQuery()', async () => {
-            const browser = await method(launchContext);
+            const browser = await launchPuppeteer(launchContext);
 
             try {
                 const page = await browser.newPage();
@@ -143,7 +143,7 @@ describe('puppeteerUtils', () => {
         });
 
         test('parseWithCheerio() works', async () => {
-            const browser = await method(launchContext);
+            const browser = await launchPuppeteer(launchContext);
 
             try {
                 const page = await browser.newPage();
@@ -161,7 +161,7 @@ describe('puppeteerUtils', () => {
         describe('blockRequests()', () => {
             let browser: Browser = null;
             beforeAll(async () => {
-                browser = await method(launchContext);
+                browser = await launchPuppeteer(launchContext);
             });
             afterAll(async () => {
                 await browser.close();
@@ -226,13 +226,13 @@ describe('puppeteerUtils', () => {
         });
 
         test('supports cacheResponses()', async () => {
-            const browser = await method(launchContext);
+            const browser = await launchPuppeteer(launchContext);
             const cache: Dictionary<Partial<ResponseForRequest>> = {};
 
             const getResourcesLoadedFromWiki = async () => {
                 let downloadedBytes = 0;
                 const page = await browser.newPage();
-                await page.setDefaultNavigationTimeout(0);
+                page.setDefaultNavigationTimeout(0);
                 // Cache all javascript files, png files and svg files
                 await puppeteerUtils.cacheResponses(page, cache, ['.js', /.+\.png/i, /.+\.svg/i]);
                 page.on('response', async (response) => {
@@ -304,7 +304,7 @@ describe('puppeteerUtils', () => {
                 // TODO figure out why the err.message comes out empty in the logs.
                 expect((err as Error).message).toMatch(/Unexpected token '?const'?/);
             }
-            const browser = await method(launchContext);
+            const browser = await launchPuppeteer(launchContext);
             try {
                 const page = await browser.newPage();
                 const content = await script({ page } as any);
@@ -316,7 +316,7 @@ describe('puppeteerUtils', () => {
         });
 
         test('gotoExtended() works', async () => {
-            const browser = await method(launchContext);
+            const browser = await launchPuppeteer(launchContext);
 
             try {
                 const page = await browser.newPage();
@@ -329,9 +329,8 @@ describe('puppeteerUtils', () => {
                     payload: '{ "foo": "bar" }',
                 });
 
-                const response = await puppeteerUtils.gotoExtended(page, request);
+                const response = await puppeteerUtils.gotoExtended(page, request, { waitUntil: 'networkidle' });
 
-                // eslint-disable-next-line @typescript-eslint/no-shadow
                 const { method, headers, bodyLength } = JSON.parse(await response.text());
                 expect(method).toBe('POST');
                 expect(bodyLength).toBe(16);
@@ -411,7 +410,7 @@ describe('puppeteerUtils', () => {
 
         it('saveSnapshot() works', async () => {
             const openKVSSpy = vitest.spyOn(KeyValueStore, 'open');
-            const browser = await method(launchContext);
+            const browser = await launchPuppeteer(launchContext);
 
             try {
                 const page = await browser.newPage();

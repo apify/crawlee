@@ -4,6 +4,7 @@ import { basename } from 'node:path/win32';
 
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
+import mime from 'mime-types';
 
 import { lockAndWrite } from '../../background-handler/fs-utils';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
@@ -57,7 +58,9 @@ export class KeyValueFileSystemEntry implements StorageImplementation<InternalKe
 
     async update(data: InternalKeyRecord) {
         await this.fsQueue.wait();
-        this.filePath ??= resolve(this.storeDirectory, `${data.key}.${data.extension}`);
+        const fileName = mime.contentType(data.key) === data.contentType ? data.key : `${data.key}.${data.extension}`;
+
+        this.filePath ??= resolve(this.storeDirectory, fileName);
         this.fileMetadataPath ??= resolve(this.storeDirectory, `${data.key}.__metadata__.json`);
 
         const { value, ...rest } = data;

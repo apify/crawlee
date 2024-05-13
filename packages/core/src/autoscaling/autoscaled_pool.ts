@@ -242,8 +242,8 @@ export class AutoscaledPool {
             minConcurrency = 1,
             desiredConcurrency,
             desiredConcurrencyRatio = 0.90,
-            scaleUpStepRatio = 0.05,
-            scaleDownStepRatio = 0.05,
+            scaleUpStepRatio = 0.1,
+            scaleDownStepRatio = 0.1,
             maybeRunIntervalSecs = 0.5,
             loggingIntervalSecs = 60,
             taskTimeoutSecs = 0,
@@ -446,6 +446,14 @@ export class AutoscaledPool {
      */
     resume(): void {
         this.isStopped = false;
+    }
+
+    /**
+     * Explicitly check the queue for new tasks. The AutoscaledPool checks the queue for new tasks periodically,
+     * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
+     */
+    async notify(): Promise<void> {
+        setImmediate(this._maybeRunTask);
     }
 
     /**
