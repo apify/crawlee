@@ -470,8 +470,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    running: boolean = false;
-    hasFinishedBefore: boolean = false;
+    running = false;
+    hasFinishedBefore = false;
 
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
