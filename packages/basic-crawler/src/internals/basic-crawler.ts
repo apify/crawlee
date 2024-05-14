@@ -470,7 +470,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    running?: boolean;
+    running: boolean = false;
+    hasFinishedBefore: boolean = false;
 
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
@@ -829,19 +830,20 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const purgeRequestQueue = options?.purgeRequestQueue ?? true;
 
-        // When executing the run method for the second time explicitly (the first time `this.running` is `undefined`),
+        // When executing the run method for the second time explicitly,
         // we need to purge the default RQ to allow processing the same requests again - this is important so users can
         // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
         // ignored - as a failed requests is still handled.
-        if (this.running === false && this.requestQueue?.name === 'default' && purgeRequestQueue) {
+        if (this.hasFinishedBefore && this.requestQueue?.name === 'default' && purgeRequestQueue) {
             await this.requestQueue.drop();
             this.requestQueue = await this._getRequestQueue();
+
+            this.stats.reset();
+            await this.stats.resetStore();
+            await this.sessionPool?.resetStore();
         }
 
         this.running = true;
-        this.stats.reset();
-        await this.stats.resetStore();
-        await this.sessionPool?.resetStore();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
@@ -913,6 +915,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // eslint-disable-next-line max-len
         await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true, level: 'INFO' });
         this.running = false;
+        this.hasFinishedBefore = true;
 
         return stats;
     }
