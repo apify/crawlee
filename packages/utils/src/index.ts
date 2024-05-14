@@ -7,6 +7,7 @@ export * from './internals/memory-info';
 export * from './internals/debug';
 export * as social from './internals/social';
 export * from './internals/typedefs';
+export * from './internals/error-tracker';
 export * from './internals/open_graph_parser';
 export * from './internals/gotScraping';
 export * from './internals/robots';
