@@ -23,56 +23,60 @@ export class ErrorSnapshotter {
      * Capture a snapshot of the error context.
      */
     async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileUrl?: string; htmlFileUrl?: string }> {
-        const { KEY_VALUE_PLATFORM_PATH, KEY_VALUE_STORE_LOCAL_PATH } = ErrorSnapshotter;
-        const page = context?.page as PuppeteerPage | PlaywrightPage | undefined;
-        const body = context?.body;
+        try {
+            const { KEY_VALUE_PLATFORM_PATH, KEY_VALUE_STORE_LOCAL_PATH } = ErrorSnapshotter;
+            const page = context?.page as PuppeteerPage | PlaywrightPage | undefined;
+            const body = context?.body;
 
-        const keyValueStore = await context?.getKeyValueStore();
-        // If the key-value store is not available, or the body and page are not available, return empty filenames
-        if (!keyValueStore || (!body && !page)) {
+            const keyValueStore = await context?.getKeyValueStore();
+            // If the key-value store is not available, or the body and page are not available, return empty filenames
+            if (!keyValueStore || (!body && !page)) {
+                return {};
+            }
+
+            const filename = this.generateFilename(error);
+
+            let screenshotFilename: string | undefined;
+            let htmlFileName: string | undefined;
+
+            if (page) {
+                const capturedFiles = await this.captureSnapShot(
+                    context as unknown as
+                    | PlaywrightCrawlingContext
+                    | PuppeteerCrawlingContext,
+                    filename,
+                );
+
+                if (capturedFiles) {
+                    screenshotFilename = capturedFiles.screenshotFilename;
+                    htmlFileName = capturedFiles.htmlFileName;
+                }
+
+                // If the snapshot for browsers failed to capture the HTML, try to capture it from the page content
+                if (!htmlFileName) {
+                    const html = await page?.content() || undefined;
+                    htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, filename) : undefined;
+                }
+            } else if (typeof body === 'string') { // for non-browser contexts
+                htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, filename);
+            }
+
+            if (APIFY_IS_AT_HOME) {
+                const platformPath = `${KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
+                return {
+                    screenshotFileUrl: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
+                    htmlFileUrl: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
+                };
+            }
+
+            const localPath = `${KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
+            return {
+                screenshotFileUrl: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
+                htmlFileUrl: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
+            };
+        } catch (e) {
             return {};
         }
-
-        const filename = this.generateFilename(error);
-
-        let screenshotFilename: string | undefined;
-        let htmlFileName: string | undefined;
-
-        if (page) {
-            const capturedFiles = await this.captureSnapShot(
-                context as unknown as
-                | PlaywrightCrawlingContext
-                | PuppeteerCrawlingContext,
-                filename,
-            );
-
-            if (capturedFiles) {
-                screenshotFilename = capturedFiles.screenshotFilename;
-                htmlFileName = capturedFiles.htmlFileName;
-            }
-
-            // If the snapshot for browsers failed to capture the HTML, try to capture it from the page content
-            if (!htmlFileName) {
-                const html = await page?.content() || undefined;
-                htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, filename) : undefined;
-            }
-        } else if (typeof body === 'string') { // for non-browser contexts
-            htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, filename);
-        }
-
-        if (APIFY_IS_AT_HOME) {
-            const platformPath = `${KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
-            return {
-                screenshotFileUrl: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
-                htmlFileUrl: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
-            };
-        }
-
-        const localPath = `${KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
-        return {
-            screenshotFileUrl: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
-            htmlFileUrl: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
-        };
     }
 
     /**
