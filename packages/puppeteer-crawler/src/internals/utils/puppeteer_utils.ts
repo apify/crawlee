@@ -666,16 +666,14 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     try {
         const store = await KeyValueStore.open(keyValueStoreName, { config: config ?? Configuration.getGlobalConfig() });
 
-        const { APIFY_IS_AT_HOME } = process.env;
-
         if (saveScreenshot) {
-            const screenshotName = APIFY_IS_AT_HOME ? `${key}.jpg` : key;
+            const screenshotName = `${key}.jpg`;
             const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg' });
             await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
 
         if (saveHtml) {
-            const htmlName = APIFY_IS_AT_HOME ? `${key}.html` : key;
+            const htmlName = `${key}.html`;
             const html = await page.content();
             await store.setValue(htmlName, html, { contentType: 'text/html' });
         }
