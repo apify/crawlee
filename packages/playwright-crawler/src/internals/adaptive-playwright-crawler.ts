@@ -1,6 +1,13 @@
 import { addTimeoutToPromise } from '@apify/timeout';
 import { extractUrlsFromPage } from '@crawlee/browser';
-import type { RestrictedCrawlingContext, StatisticState, StatisticPersistedState, GetUserDataFromRequest, RouterRoutes } from '@crawlee/core';
+import type {
+    RestrictedCrawlingContext,
+    StatisticState,
+    StatisticsOptions,
+    StatisticPersistedState,
+    GetUserDataFromRequest,
+    RouterRoutes,
+} from '@crawlee/core';
 import { Configuration, RequestHandlerResult, Router, Statistics, withCheckedStorageAccess } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
@@ -27,6 +34,11 @@ interface AdaptivePlaywrightCrawlerPersistedStatisticState extends StatisticPers
 
 class AdaptivePlaywrightCrawlerStatistics extends Statistics {
     override state: AdaptivePlaywrightCrawlerStatisticState = null as any; // this needs to be assigned for a valid override, but the initialization is done by a reset() call from the parent constructor
+
+    constructor(options: StatisticsOptions = {}) {
+        super(options);
+        this.reset();
+    }
 
     override reset(): void {
         super.reset();
