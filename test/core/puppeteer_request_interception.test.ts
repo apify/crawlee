@@ -95,7 +95,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
                 propagatedUrls.push(request.url());
                 return request.continue();
             });
-            await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle0' });
+            await page.goto(`${serverAddress}/special/resources`);
         } finally {
             await browser.close();
         }
