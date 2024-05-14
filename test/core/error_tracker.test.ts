@@ -126,7 +126,7 @@ test('works', () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('no code is null code', async () => {
+test('no code is null code', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
