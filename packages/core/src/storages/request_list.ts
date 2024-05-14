@@ -9,8 +9,7 @@ import type { EventManager } from '../events';
 import { EventType } from '../events';
 import { log } from '../log';
 import type { ProxyConfiguration } from '../proxy_configuration';
-import type { InternalSource, RequestOptions, Source } from '../request';
-import { Request } from '../request';
+import { type InternalSource, type RequestOptions, Request, type Source } from '../request';
 import { createDeserialize, serializeArray } from '../serialization';
 
 /** @internal */
@@ -238,7 +237,7 @@ export class RequestList {
      * All requests in the array have distinct uniqueKey!
      * @internal
      */
-    requests: Request[] = [];
+    requests: (Request | RequestOptions)[] = [];
 
     /** Index to the next item in requests array to fetch. All previous requests are either handled or in progress. */
     private nextIndex = 0;
@@ -551,7 +550,7 @@ export class RequestList {
         return {
             nextIndex: this.nextIndex,
             nextUniqueKey: this.nextIndex < this.requests.length
-                ? this.requests[this.nextIndex].uniqueKey
+                ? this.requests[this.nextIndex].uniqueKey!
                 : null,
             inProgress: [...this.inProgress],
         };
@@ -593,19 +592,29 @@ export class RequestList {
         if (uniqueKey) {
             this.reclaimed.delete(uniqueKey);
             const index = this.uniqueKeyToIndex[uniqueKey];
-            return this.requests[index];
+            return this.ensureRequest(this.requests[index], index);
         }
 
         // Otherwise return next request.
         if (this.nextIndex < this.requests.length) {
-            const request = this.requests[this.nextIndex];
-            this.inProgress.add(request.uniqueKey);
+            const index = this.nextIndex;
+            const request = this.requests[index];
+            this.inProgress.add(request.uniqueKey!);
             this.nextIndex++;
             this.isStatePersisted = false;
-            return request;
+            return this.ensureRequest(request, index);
         }
 
         return null;
+    }
+
+    private ensureRequest(requestLike: Request | RequestOptions, index: number): Request {
+        if (requestLike instanceof Request) {
+            return requestLike;
+        }
+
+        this.requests[index] = new Request(requestLike);
+        return this.requests[index] as Request;
     }
 
     /**
@@ -694,19 +703,21 @@ export class RequestList {
      * of a `Request`, then the function creates a `Request` instance.
      */
     protected _addRequest(source: RequestListSource) {
-        let request;
+        let request: Request | RequestOptions;
         const type = typeof source;
+
         if (type === 'string') {
-            request = new Request({ url: source as string });
+            request = { url: source as string };
         } else if (source instanceof Request) {
             request = source;
         } else if (source && type === 'object') {
-            request = new Request(source as RequestOptions);
+            request = source as RequestOptions;
         } else {
             throw new Error(`Cannot create Request from type: ${type}`);
         }
 
         const hasUniqueKey = Reflect.has(Object(source), 'uniqueKey');
+        request.uniqueKey ??= Request.computeUniqueKey(request as any);
 
         // Add index to uniqueKey if duplicates are to be kept
         if (this.keepDuplicateUrls && !hasUniqueKey) {
