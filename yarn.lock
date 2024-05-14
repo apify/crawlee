@@ -647,9 +647,9 @@ __metadata:
     "@apify/log": "npm:^2.4.0"
     "@apify/tsconfig": "npm:^0.1.0"
     "@commitlint/config-conventional": "npm:^19.0.0"
-    "@playwright/browser-chromium": "npm:1.43.1"
-    "@playwright/browser-firefox": "npm:1.43.1"
-    "@playwright/browser-webkit": "npm:1.43.1"
+    "@playwright/browser-chromium": "npm:1.44.0"
+    "@playwright/browser-firefox": "npm:1.44.0"
+    "@playwright/browser-webkit": "npm:1.44.0"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
     "@types/domhandler": "npm:^2.4.2"
@@ -690,10 +690,10 @@ __metadata:
     lerna: "npm:^8.0.0"
     lint-staged: "npm:^15.0.0"
     nock: "npm:^13.4.0"
-    playwright: "npm:1.43.1"
+    playwright: "npm:1.44.0"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
-    puppeteer: "npm:22.7.1"
+    puppeteer: "npm:22.8.1"
     rimraf: "npm:^5.0.0"
     tsx: "npm:^4.4.0"
     turbo: "npm:1.13.3"
@@ -1546,30 +1546,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/browser-chromium@npm:1.43.1":
-  version: 1.43.1
-  resolution: "@playwright/browser-chromium@npm:1.43.1"
+"@playwright/browser-chromium@npm:1.44.0":
+  version: 1.44.0
+  resolution: "@playwright/browser-chromium@npm:1.44.0"
   dependencies:
-    playwright-core: "npm:1.43.1"
-  checksum: 10c0/18b5b65bdd75b3b966072012ed49f669b10d4bebeef4223433573ba7f8991dbb24a3cb8cbd2ede2bdf22f5cee21b6cf19bbea3b0e3d369c9fa3d1da3c62f11a9
+    playwright-core: "npm:1.44.0"
+  checksum: 10c0/2d4045b2671e2246176e3c19d9430eaab8249136823b2b61ae2305f6f3fbecab8abdb95ea757c94e73011cddad7b5adb06b01cebcdbd15cb86aaacbece6971e0
   languageName: node
   linkType: hard
 
-"@playwright/browser-firefox@npm:1.43.1":
-  version: 1.43.1
-  resolution: "@playwright/browser-firefox@npm:1.43.1"
+"@playwright/browser-firefox@npm:1.44.0":
+  version: 1.44.0
+  resolution: "@playwright/browser-firefox@npm:1.44.0"
   dependencies:
-    playwright-core: "npm:1.43.1"
-  checksum: 10c0/cfe399edaf5744ba9a534a32bfd000a08958bda5f99c67a41facaf718b6394bfe71165cbb78eb60d31827e52f0f4fdfe69f967dce091a87719c1aa26baa65d98
+    playwright-core: "npm:1.44.0"
+  checksum: 10c0/a6374a577b2c7e181f12ca72995c2ebaeebccf5510c65d94c572783f446cb43b704573a6659698ffbb373ae2c59498b528df84c232b2bbe80b95678f42da4520
   languageName: node
   linkType: hard
 
-"@playwright/browser-webkit@npm:1.43.1":
-  version: 1.43.1
-  resolution: "@playwright/browser-webkit@npm:1.43.1"
+"@playwright/browser-webkit@npm:1.44.0":
+  version: 1.44.0
+  resolution: "@playwright/browser-webkit@npm:1.44.0"
   dependencies:
-    playwright-core: "npm:1.43.1"
-  checksum: 10c0/717197047bb92e068f8b3c010186c4800e3b69dfaf4aab5c4e4feb90cfb2eb2b261160d91c7c7e0eefd57d00bfc083ec263757a02c3341e1bb736194570b5fee
+    playwright-core: "npm:1.44.0"
+  checksum: 10c0/703ed2a7466c952d855b9fc636ad025a1790b8d1a8fd599af025b228de03a860bcfdba754c94837e7914030accf4973e81f9418e24cea31e87f6016a10e35936
   languageName: node
   linkType: hard
 
@@ -9721,27 +9721,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.43.1":
-  version: 1.43.1
-  resolution: "playwright-core@npm:1.43.1"
+"playwright-core@npm:1.44.0":
+  version: 1.44.0
+  resolution: "playwright-core@npm:1.44.0"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/e99f087c5f2b9ab6c379945311ea6e9e90c33cefecd8f950a0716e498dfdded738d6738266af307806d7730eacda8410c7563030690b9acf80c0b268781470b6
+  checksum: 10c0/e1220371a76cdf145f6aaefb2dd6c5194531d1c1e2b67712c56dbc1d589dffb66fd4fc0168be60cd2115aca40660aa13c572e14be47674c0542bc879705b9fb3
   languageName: node
   linkType: hard
 
-"playwright@npm:1.43.1":
-  version: 1.43.1
-  resolution: "playwright@npm:1.43.1"
+"playwright@npm:1.44.0":
+  version: 1.44.0
+  resolution: "playwright@npm:1.44.0"
   dependencies:
     fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.43.1"
+    playwright-core: "npm:1.44.0"
   dependenciesMeta:
     fsevents:
       optional: true
   bin:
     playwright: cli.js
-  checksum: 10c0/7edc1e12b8f3b791c7e8d1f9c595be35c6eaf8100f9550d5e35e979aca0bc229734e65f200f2a02dc7e21630cc40c171d7b25f5f6ccf628c79e4a2d4690909ab
+  checksum: 10c0/dcbee9022623dd9e219e9867983789262e80339f0c3601219930883e5a304ce75e1397715c0f378a2bab0a799cf88a73ea4b58fe595cfd9058bd7a82f5d8e3b6
   languageName: node
   linkType: hard
 
@@ -9963,30 +9963,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:22.7.1":
-  version: 22.7.1
-  resolution: "puppeteer-core@npm:22.7.1"
+"puppeteer-core@npm:22.8.1":
+  version: 22.8.1
+  resolution: "puppeteer-core@npm:22.8.1"
   dependencies:
     "@puppeteer/browsers": "npm:2.2.3"
     chromium-bidi: "npm:0.5.19"
     debug: "npm:4.3.4"
     devtools-protocol: "npm:0.0.1273771"
-    ws: "npm:8.16.0"
-  checksum: 10c0/3e7b7f2acff17f4501edd721abbfbaa826c229a25fab280f907d5812bb8d2409fdbd4d9e4846f260579f41790170daa15cfa1ec67ff365ea9bf655ace2bbda4c
+    ws: "npm:8.17.0"
+  checksum: 10c0/b28306b4b6474eee7b65c45d100fc84dced4c7570f70ff2f23e670c3d4cb49b679b700d8116ec0fd283c07b39382621223eff553a0364b931a9f4a4883bd35eb
   languageName: node
   linkType: hard
 
-"puppeteer@npm:22.7.1":
-  version: 22.7.1
-  resolution: "puppeteer@npm:22.7.1"
+"puppeteer@npm:22.8.1":
+  version: 22.8.1
+  resolution: "puppeteer@npm:22.8.1"
   dependencies:
     "@puppeteer/browsers": "npm:2.2.3"
     cosmiconfig: "npm:9.0.0"
     devtools-protocol: "npm:0.0.1273771"
-    puppeteer-core: "npm:22.7.1"
+    puppeteer-core: "npm:22.8.1"
   bin:
     puppeteer: lib/esm/puppeteer/node/cli.js
-  checksum: 10c0/6f7e1e171b519fd0c57c3f668f76ce12b096ee419e6e2e1627fe3ebb55b8884fa4bd41789e66fbb9b2e2c33a2dd06cd87133d77d20d9e63cd36719d182a4e123
+  checksum: 10c0/8d82daf52835df960da0478d44be8c7af78661f5305e016d0b4679a0b9984d3ec46990f12c6879efabe1ac802bbcf08ab0c4d3915223b8050734fb39bad0bf30
   languageName: node
   linkType: hard
 
@@ -12539,9 +12539,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.16.0":
-  version: 8.16.0
-  resolution: "ws@npm:8.16.0"
+"ws@npm:8.17.0, ws@npm:^8.16.0":
+  version: 8.17.0
+  resolution: "ws@npm:8.17.0"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -12550,7 +12550,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/a7783bb421c648b1e622b423409cb2a58ac5839521d2f689e84bc9dc41d59379c692dd405b15a997ea1d4c0c2e5314ad707332d0c558f15232d2bc07c0b4618a
+  checksum: 10c0/55241ec93a66fdfc4bf4f8bc66c8eb038fda2c7a4ee8f6f157f2ca7dc7aa76aea0c0da0bf3adb2af390074a70a0e45456a2eaf80e581e630b75df10a64b0a990
   languageName: node
   linkType: hard
 
@@ -12566,21 +12566,6 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: 10c0/aec4ef4eb65821a7dde7b44790f8699cfafb7978c9b080f6d7a98a7f8fc0ce674c027073a78574c94786ba7112cc90fa2cc94fc224ceba4d4b1030cff9662494
-  languageName: node
-  linkType: hard
-
-"ws@npm:^8.16.0":
-  version: 8.17.0
-  resolution: "ws@npm:8.17.0"
-  peerDependencies:
-    bufferutil: ^4.0.1
-    utf-8-validate: ">=5.0.2"
-  peerDependenciesMeta:
-    bufferutil:
-      optional: true
-    utf-8-validate:
-      optional: true
-  checksum: 10c0/55241ec93a66fdfc4bf4f8bc66c8eb038fda2c7a4ee8f6f157f2ca7dc7aa76aea0c0da0bf3adb2af390074a70a0e45456a2eaf80e581e630b75df10a64b0a990
   languageName: node
   linkType: hard
 
