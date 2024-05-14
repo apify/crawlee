@@ -31,3 +31,6 @@ export interface PlaywrightPage {
 export interface PuppeteerPage {
     content: () => Promise<string>;
 }
+
+export interface SnapshotOptions { context: PlaywrightCrawlingContext | PuppeteerCrawlingContext; filename: string }
+export type SnapshotResult = { screenshotFilename?: string; htmlFileName?: string } | undefined;
