@@ -13,7 +13,7 @@ authorTwitter: sauain
 
 Hey, crawling masters!
 
-Welcome to another post on the Crawlee blog; this time, we are going to compare Scrapy, one of the oldest and most popular web scraping libraries in the world, with Crawlee, a relative newcomer. This article will answer your usual questions about when to use Scrapy or when it would be better to use Crawlee instead. This article will be the first part of many articles comparing Crawlee with Scrapy in various technical aspects. 
+Welcome to another post on the Crawlee blog; this time, we are going to compare Scrapy, one of the oldest and most popular web scraping libraries in the world, with Crawlee, a relative newcomer. This article will answer your questions about when to use Scrapy and help you decide when it would be better to use Crawlee instead. This article will be the first part of many articles comparing Crawlee with Scrapy in various technical aspects. 
 
 ## Introduction:
 
