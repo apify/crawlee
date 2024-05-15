@@ -214,16 +214,16 @@ Scrapy provides this functionality out of the box with the [`Feed Exports`](http
 To do this, you need to modify your `settings.py` file and enter:
 
 ```py title="settings.py"
-    # To store in CSV format 
-    FEEDS = { 
-        'data/crawl_data.csv': {'format': 'csv', 'overwrite': True} 
-    }
+# To store in CSV format 
+FEEDS = {
+    'data/crawl_data.csv': {'format': 'csv', 'overwrite': True} 
+}
 
-    # OR to store in JSON format
+# OR to store in JSON format
 
-    FEEDS = { 
-        'data/crawl_data.json': {'format': 'json', 'overwrite': True} 
-    }
+FEEDS = { 
+    'data/crawl_data.json': {'format': 'json', 'overwrite': True} 
+}
 ```
 
 Crawlee's storage can be divided into two categories: Request Storage (Request Queue and Request List) and Results Storage (Datasets and Key Value Stores). Both are stored locally by default in the `./storage` directory.
