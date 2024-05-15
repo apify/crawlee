@@ -1,12 +1,9 @@
 import crypto from 'node:crypto';
-import { resolve } from 'node:path';
-
-import { pathExistsSync } from 'fs-extra';
 
 import type { ErrnoException } from './error_tracker';
 import type { CrawlingContext } from '../crawlers/crawler_commons';
 import type { KeyValueStore } from '../storages';
-import type { PlaywrightCrawlingContext, PuppeteerCrawlingContext, PlaywrightPage, PuppeteerPage, SnapshotResult } from '../typedefs';
+import type { BrowserCrawlingContext, BrowserPage, SnapshotResult } from '../typedefs';
 
 /**
  * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occur during web crawling.
@@ -22,19 +19,8 @@ export class ErrorSnapshotter {
     private KEY_VALUE_PLATFORM_PATH :string;
 
     constructor() {
-        // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
-        // this function handles it without making BC breaks - it respects existing `crawlee_storage`
-        // directories, and uses the `storage` only if it's not there.
-        const defaultStorageDir = () => {
-            if (pathExistsSync(resolve('./crawlee_storage'))) {
-                return 'crawlee_storage';
-            }
-
-            return 'storage';
-        };
-
         this.KEY_VALUE_PLATFORM_PATH = 'https://api.apify.com/v2/key-value-stores';
-        this.KEY_VALUE_STORE_LOCAL_PATH = `file://${process.env.PWD}/${defaultStorageDir()}/key_value_stores`;
+        this.KEY_VALUE_STORE_LOCAL_PATH = `file://${process.env.PWD}/storage/key_value_stores`;
     }
 
     /**
@@ -42,7 +28,7 @@ export class ErrorSnapshotter {
      */
     async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileUrl?: string; htmlFileUrl?: string }> {
         try {
-            const page = context?.page as PuppeteerPage | PlaywrightPage | undefined;
+            const page = context?.page as BrowserPage | undefined;
             const body = context?.body;
 
             const keyValueStore = await context?.getKeyValueStore();
@@ -51,79 +37,81 @@ export class ErrorSnapshotter {
                 return {};
             }
 
-            const filename = this.generateFilename(error);
+            const fileName = this.generateFilename(error);
 
-            let screenshotFilename: string | undefined;
+            let screenshotFileName: string | undefined;
             let htmlFileName: string | undefined;
 
             if (page) {
-                const capturedFiles = await this.captureSnapShot(
-                    context as unknown as PlaywrightCrawlingContext | PuppeteerCrawlingContext,
-                    filename,
+                const capturedFiles = await this.contextCaptureSnapshot(
+                    context as unknown as BrowserCrawlingContext,
+                    fileName,
                 );
 
                 if (capturedFiles) {
-                    screenshotFilename = capturedFiles.screenshotFilename;
+                    screenshotFileName = capturedFiles.screenshotFileName;
                     htmlFileName = capturedFiles.htmlFileName;
                 }
 
                 // If the snapshot for browsers failed to capture the HTML, try to capture it from the page content
                 if (!htmlFileName) {
-                    const html = await page?.content() || undefined;
-                    htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, filename) : undefined;
+                    const html = await page.content();
+                    htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, fileName) : undefined;
                 }
             } else if (typeof body === 'string') { // for non-browser contexts
-                htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, filename);
+                htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, fileName);
             }
 
             if (process.env.APIFY_IS_AT_HOME) {
                 const platformPath = `${this.KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
                 return {
-                    screenshotFileUrl: screenshotFilename ? `${platformPath}/${screenshotFilename}` : undefined,
+                    screenshotFileUrl: screenshotFileName ? `${platformPath}/${screenshotFileName}` : undefined,
                     htmlFileUrl: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
                 };
             }
 
             const localPath = `${this.KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
             return {
-                screenshotFileUrl: screenshotFilename ? `${localPath}/${screenshotFilename}` : undefined,
+                screenshotFileUrl: screenshotFileName ? `${localPath}/${screenshotFileName}` : undefined,
                 htmlFileUrl: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
             };
-        } catch (e) {
+        } catch {
             return {};
         }
     }
 
     /**
-     * Capture a screenshot and HTML of the page (For Browser only), and return the filename with the extension.
+     * Captures a snapshot of the current page using the context.saveSnapshot function.
+     * This function is applicable for browser contexts only.
+     * Returns an object containing the filenames of the screenshot and HTML file.
      */
-    async captureSnapShot(context: PlaywrightCrawlingContext | PuppeteerCrawlingContext, filename: string): Promise<SnapshotResult> {
+    async contextCaptureSnapshot(context: BrowserCrawlingContext, fileName: string): Promise<SnapshotResult> {
         try {
-            await context.saveSnapshot({ key: filename });
+            await context.saveSnapshot({ key: fileName });
             return {
                 // The screenshot file extension is different for Apify and local environments
-                screenshotFilename: `${filename}${process.env.APIFY_IS_AT_HOME ? '.jpg' : '.jpeg'}`,
-                htmlFileName: `${filename}.html`,
+                screenshotFileName: `${fileName}.jpg`,
+                htmlFileName: `${fileName}.html`,
             };
-        } catch (e) {
+        } catch {
             return undefined;
         }
     }
 
     /**
-     * Save the HTML snapshot of the page, and return the filename with the extension.
+     * Save the HTML snapshot of the page, and return the fileName with the extension.
      */
-    async saveHTMLSnapshot(html: string, keyValueStore: KeyValueStore, filename: string): Promise<string | undefined> {
+    async saveHTMLSnapshot(html: string, keyValueStore: KeyValueStore, fileName: string): Promise<string | undefined> {
         try {
-            await keyValueStore.setValue(filename, html, { contentType: 'text/html' });
-            return `${filename}.html`;
-        } catch (e) {
+            await keyValueStore.setValue(fileName, html, { contentType: 'text/html' });
+            return `${fileName}.html`;
+        } catch {
             return undefined;
         }
     }
 
     /**
-     * Generate a unique filename for each error snapshot.
+     * Generate a unique fileName for each error snapshot.
      */
     generateFilename(error: ErrnoException): string {
         const { SNAPSHOT_PREFIX, BASE_MESSAGE, MAX_HASH_LENGTH, MAX_ERROR_CHARACTERS, MAX_FILENAME_LENGTH } = ErrorSnapshotter;
@@ -138,11 +126,11 @@ export class ErrorSnapshotter {
             return str.replace(/^\W+|\W+$/g, '');
         };
 
-        // Generate filename and remove disallowed characters
-        const filename = `${SNAPSHOT_PREFIX}_${sanitizeString(errorStackHash)}_${sanitizeString(errorMessagePrefix)}`
+        // Generate fileName and remove disallowed characters
+        const fileName = `${SNAPSHOT_PREFIX}_${sanitizeString(errorStackHash)}_${sanitizeString(errorMessagePrefix)}`
             .replace(/\W+/g, '-') // Replace non-word characters with a dash
             .slice(0, MAX_FILENAME_LENGTH);
 
-        return filename;
+        return fileName;
     }
 }

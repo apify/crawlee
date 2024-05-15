@@ -7,10 +7,10 @@ import type { CrawlingContext } from '../crawlers/crawler_commons';
  * Node.js Error interface
  */
 export interface ErrnoException extends Error {
-    errno?: number | undefined;
-    code?: string | number | undefined;
-    path?: string | undefined;
-    syscall?: string | undefined;
+    errno?: number;
+    code?: string | number;
+    path?: string;
+    syscall?: string;
     cause?: any;
 }
 

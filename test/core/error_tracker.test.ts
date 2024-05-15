@@ -155,7 +155,7 @@ test('no code is null code', () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('can hide error code', async () => {
+test('can hide error code', () => {
     const tracker = new ErrorTracker({
         showErrorCode: false,
         showErrorMessage: true,
@@ -182,7 +182,7 @@ test('can hide error code', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('can hide error name', async () => {
+test('can hide error name', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -209,7 +209,7 @@ test('can hide error name', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('can hide error message', async () => {
+test('can hide error message', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: false,
@@ -236,7 +236,7 @@ test('can hide error message', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('can hide error stack', async () => {
+test('can hide error stack', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -261,7 +261,7 @@ test('can hide error stack', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('can display full stack', async () => {
+test('can display full stack', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -290,7 +290,7 @@ test('can display full stack', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('stack looks for user files first', async () => {
+test('stack looks for user files first', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -319,7 +319,7 @@ test('stack looks for user files first', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('can shorten the message to the first line', async () => {
+test('can shorten the message to the first line', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -347,7 +347,7 @@ test('can shorten the message to the first line', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('supports error.cause', async () => {
+test('supports error.cause', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -379,7 +379,7 @@ test('supports error.cause', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(2);
 });
 
-test('placeholder #1', async () => {
+test('placeholder #1', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -418,7 +418,7 @@ test('placeholder #1', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #2', async () => {
+test('placeholder #2', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -457,7 +457,7 @@ test('placeholder #2', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #3', async () => {
+test('placeholder #3', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -496,7 +496,7 @@ test('placeholder #3', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #4', async () => {
+test('placeholder #4', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -535,7 +535,7 @@ test('placeholder #4', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #5', async () => {
+test('placeholder #5', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -574,7 +574,7 @@ test('placeholder #5', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #6', async () => {
+test('placeholder #6', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -613,7 +613,7 @@ test('placeholder #6', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #7', async () => {
+test('placeholder #7', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -665,7 +665,7 @@ test('placeholder #7', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(1);
 });
 
-test('placeholder #8', async () => {
+test('placeholder #8', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
@@ -702,7 +702,7 @@ test('placeholder #8', async () => {
     expect(tracker.getUniqueErrorCount()).toBe(2);
 });
 
-test('placeholder #9', async () => {
+test('placeholder #9', () => {
     const tracker = new ErrorTracker({
         showErrorCode: true,
         showErrorMessage: true,
