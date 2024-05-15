@@ -42,7 +42,7 @@ Scrapy does not support headless browsers natively, but it supports them with it
 
 Apify Store is a JavaScript rendered website, so we will scrape it in this example using the `scrapy-playwright` integration. 
 
-For installation and making changes to [`settings.py`], please follow the instructions on `scrapy-playwright` [repository on GitHub](https://github.com/scrapy-plugins/scrapy-playwright/tree/main?tab=readme-ov-file#installation).
+For installation and to make changes to [`settings.py`], please follow the instructions on the `scrapy-playwright` [repository on GitHub](https://github.com/scrapy-plugins/scrapy-playwright/tree/main?tab=readme-ov-file#installation).
 
 Then, create a spider with this code to scrape the data:
 
