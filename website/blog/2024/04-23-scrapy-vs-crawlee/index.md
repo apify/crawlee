@@ -1,7 +1,7 @@
 ---
 slug: scrapy-vs-crawlee
 title: 'Scrapy vs. Crawlee'
-description: 'Which web scraping library is best for you?'
+description: 'Which web scraping library should you use in 2024? Learn how each handles headless mode, autoscaling, proxy rotation, errors, and anti-scraping techniques.'
 image: ./img/scrapy-vs-crawlee.png
 author: Saurav Jain
 authorTitle: Developer Community Manager
@@ -13,7 +13,7 @@ authorTwitter: sauain
 
 Hey, crawling masters!
 
-Welcome to another post on the Crawlee blog; this time, we are going to compare Scrapy, one of the oldest and most popular web scraping libraries in the world, with Crawlee, a relative newcomer. This article will answer your questions about when to use Scrapy and help you decide when it would be better to use Crawlee instead. This article will be the first part of many articles comparing Crawlee with Scrapy in various technical aspects. 
+Welcome to another post on the Crawlee blog; this time, we are going to compare Scrapy, one of the oldest and most popular web scraping libraries in the world, with Crawlee, a relative newcomer. This article will answer your questions about when to use Scrapy and help you decide when it would be better to use Crawlee instead. This article will be the first in a series comparing the various technical aspects of Crawlee with Scrapy. 
 
 ## Introduction:
 
@@ -25,9 +25,8 @@ Crawlee is also an open-source library that originated as [Apify SDK](https://do
 
 ## Feature comparison
 
-There are a lot of things that we can compare between Scrapy and Crawlee. This article will be the first part of a series comparing Scrapy and Crawlee on various parameters. 
 
-We will compare both libraries on various parameters, starting with language and development environments and essential features that make the scraping process easy for developers, like autoscaling, headless browsing, queue management, and more. 
+We'll start comparing Scrapy and Crawlee by looking at language and development environments, and then features to make the scraping process easier for developers, like autoscaling, headless browsing, queue management, and more. 
 
 
 ## Language and development environments:
@@ -77,7 +76,7 @@ Then, create a spider with this code to scrape the data:
 ```
 
 
-In Crawlee, you can scrape JavaScript rendered websites using the built-in headless [Puppeteer](https://github.com/puppeteer/puppeteer/) and [Playwright](https://github.com/microsoft/playwright) browsers. It is important to note that, by default, Crawlee scrapes in headless mode, if you don't want headless then just set `headless: false`.
+In Crawlee, you can scrape JavaScript rendered websites using the built-in headless [Puppeteer](https://github.com/puppeteer/puppeteer/) and [Playwright](https://github.com/microsoft/playwright) browsers. It is important to note that, by default, Crawlee scrapes in headless mode. If you don't want headless, then just set `headless: false`.
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -186,7 +185,7 @@ Then in the `settings.py` file, add `ROTATING_PROXY_LIST` and the middleware to 
 
 Now create a spider with the code you want to scrape any site and the `ROTATING_PROXY_LIST` in `settings.py` will manage which proxy to use for each request. Here middleware will treat each proxy initially as valid and then when a request is made, the middleware selects a proxy from the list of available proxies. The selection isn't purely sequential but is influenced by the recent history of proxy performance. The middleware has mechanisms to detect when a proxy might be banned or rendered ineffective. When such conditions are detected, the proxy is temporarily deactivated and put into a cooldown period. After the cooldown period expires, the proxy is reconsidered for use.
 
-In Crawlee, you can [use your own proxy servers](https://crawlee.dev/docs/guides/proxy-management) or proxy servers acquired from third-party providers. If you already have your proxy URLs, you can start using them as easy as this:
+In Crawlee, you can [use your own proxy servers](https://crawlee.dev/docs/guides/proxy-management) or proxy servers acquired from third-party providers. If you already have your proxy URLs, you can start using them like this:
 
 ```js
 import { ProxyConfiguration } from 'crawlee';
