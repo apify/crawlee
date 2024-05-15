@@ -10,6 +10,8 @@ authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4
 authorTwitter: sauain
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 Hey, crawling masters!
 
@@ -29,13 +31,13 @@ Crawlee is also an open-source library that originated as [Apify SDK](https://do
 We'll start comparing Scrapy and Crawlee by looking at language and development environments, and then features to make the scraping process easier for developers, like autoscaling, headless browsing, queue management, and more. 
 
 
-## Language and development environments:
+### Language and development environments:
 
 Scrapy is written in Python, making it easier for the data science community to integrate it with various tools. While Scrapy offers very detailed documentation, it can take a lot of work to get started with Scrapy. One of the reasons why it is considered not so beginner-friendly[[1]](https://towardsdatascience.com/web-scraping-with-scrapy-theoretical-understanding-f8639a25d9cd)[[2]](https://www.accordbox.com/blog/scrapy-tutorial-1-scrapy-vs-beautiful-soup/#:~:text=Since%20Scrapy%20does%20no%20only,to%20become%20a%20Scrapy%20expert.)[[3]](https://www.udemy.com/tutorial/scrapy-tutorial-web-scraping-with-python/scrapy-vs-beautiful-soup-vs-selenium//1000) is its [complex architecture](https://docs.scrapy.org/en/latest/topics/architecture.html), which consists of various components like spiders, middleware, item pipelines, and settings. These can be challenging for beginners.
 
 Crawlee is one of the few web scraping and automation libraries that supports JavaScript and TypeScript. Crawlee supports CLI just like Scrapy, but it also provides [pre-built templates](https://github.com/apify/crawlee/tree/master/packages/templates/templates) in TypeScript and JavaScript with support for Playwright and Puppeteer. These templates help beginners to quickly understand the file structure and how it works.
 
-## Headless browsing and JS rendering
+### Headless browsing and JS rendering
 
 Scrapy does not support headless browsers natively, but it supports them with its plugin system, similarly it does not support scraping JavaScript rendered websites, but the plugin system makes this possible. One of the best examples is its [Playwright plugin](https://github.com/scrapy-plugins/scrapy-playwright/tree/main).  
 
@@ -46,46 +48,42 @@ For installation and to make changes to [`settings.py`], please follow the instr
 Then, create a spider with this code to scrape the data:
 
 
-```py
-    import scrapy
+```py title="spider.py"
+import scrapy
 
-    class ActorSpider(scrapy.Spider):
-        name = 'actor_spider'
-        start_urls = ['https://apify.com/store']
+class ActorSpider(scrapy.Spider):
+    name = 'actor_spider'
+    start_urls = ['https://apify.com/store']
 
-        def start_requests(self):
-            for url in self.start_urls:
-                yield scrapy.Request(
-                    url,
-                    meta={"playwright": True, "playwright_include_page": True},
-                    callback=self.parse_playwright
-                )
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(
+                url,
+                meta={"playwright": True, "playwright_include_page": True},
+                callback=self.parse_playwright
+            )
 
-        async def parse_playwright(self, response):
-            page = response.meta['playwright_page']
-            await page.wait_for_selector('.ActorStoreItem-title-wrapper')
-            actor_card = await page.query_selector('.ActorStoreItem-title-wrapper')
+    async def parse_playwright(self, response):
+        page = response.meta['playwright_page']
+        await page.wait_for_selector('.ActorStoreItem-title-wrapper')
+        actor_card = await page.query_selector('.ActorStoreItem-title-wrapper')
             
-            if actor_card:
-                actor_text = await actor_card.text_content()
-                yield {
-                    'actor': actor_text.strip() if actor_text else 'N/A'
-                }
+        if actor_card:
+            actor_text = await actor_card.text_content()
+            yield {
+                'actor': actor_text.strip() if actor_text else 'N/A'
+            }
 
-            await page.close()
+        await page.close()
 ```
 
 
 In Crawlee, you can scrape JavaScript rendered websites using the built-in headless [Puppeteer](https://github.com/puppeteer/puppeteer/) and [Playwright](https://github.com/microsoft/playwright) browsers. It is important to note that, by default, Crawlee scrapes in headless mode. If you don't want headless, then just set `headless: false`.
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
-
 <Tabs>
 <TabItem value="javscript" label="Playwright">
 
-```js
+```js title="crawler.js"
 import { PlaywrightCrawler } from 'crawlee';
 
 const crawler = new PlaywrightCrawler({
@@ -104,7 +102,7 @@ await crawler.run(['https://apify.com/store']);
 </TabItem>
 <TabItem value="js" label="Puppeteer">
 
-```js
+```js title="crawler.js"
 import { PuppeteerCrawler } from 'crawlee';
 
 const crawler = new PuppeteerCrawler({
@@ -125,8 +123,6 @@ await crawler.run(['https://apify.com/store']);
 </TabItem>
 </Tabs>
 
-
-
 ### Autoscaling Support
 
 Autoscaling refers to the capability of a library to automatically adjusting the number of concurrent tasks (such as browser instances, HTTP requests, etc.) based on the current load and system resources. This feature is particularly useful when handling web scraping and crawling tasks that may require dynamically scaled resources to optimize performance, manage system load, and handle rate limitations efficiently.
@@ -139,7 +135,7 @@ Crawlee has [built-in autoscaling](https://crawlee.dev/api/core/class/Autoscaled
 
 Scrapy supports both breadth-first and depth-first crawling strategies using a disk-based queuing system. By default, it uses the LIFO queue for the pending requests, which means it is using depth-first order, but if you want to use breadth-first order, you can do it by changing these settings:
 
-```py
+```py title="settings.py"
 DEPTH_PRIORITY = 1 
 SCHEDULER_DISK_QUEUE = "scrapy.squeues.PickleFifoDiskQueue" 
 SCHEDULER_MEMORY_QUEUE = "scrapy.squeues.FifoMemoryQueue"
@@ -153,41 +149,46 @@ Scrapy has a [powerful command-line interface](https://docs.scrapy.org/en/latest
 
 Scrapy CLI comes with Scrapy. Just run this command, and you are good to go:
 
-`pip install scrapy`
+```bash
+pip install scrapy
+```
 
 Crawlee also [includes a CLI tool](https://crawlee.dev/docs/quick-start#installation-with-crawlee-cli) (`crawlee-cli`) that facilitates project setup, crawler creation and execution, streamlining the development process for users familiar with Node.js environments. The command for installation is: 
 
-`npx crawlee create my-crawler`
+```bash
+npx crawlee create my-crawler
+```
  
 ### Proxy Rotation and Storage Management
 
 Scrapy handles it via custom middleware. You have to install their [`scrapy-rotating-proxies`](https://pypi.org/project/scrapy-rotating-proxies/) package using pip. 
 
-`pip install scrapy-rotating-proxies`
+```bash
+pip install scrapy-rotating-proxies
+```
 
 Then in the `settings.py` file, add `ROTATING_PROXY_LIST` and the middleware to the `DOWNLOADER_MIDDLEWARES` and specify the list of proxy servers. For example:
 
+```py title="settings.py"
+DOWNLOADER_MIDDLEWARES = {
+    # Lower value means higher priority
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
+    'scrapy_rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+    'scrapy_rotating_proxies.middlewares.BanDetectionMiddleware': 620,
+}
 
-```py
-    DOWNLOADER_MIDDLEWARES = {
-        # Lower value means higher priority
-        'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
-        'scrapy_rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
-        'scrapy_rotating_proxies.middlewares.BanDetectionMiddleware': 620,
-    }
-
-    ROTATING_PROXY_LIST = [
-        'proxy1.com:8000',
-        'proxy2.com:8031',
-        # Add more proxies as needed
-    ]
+ROTATING_PROXY_LIST = [
+    'proxy1.com:8000',
+    'proxy2.com:8031',
+    # Add more proxies as needed
+]
 ```
 
 Now create a spider with the code you want to scrape any site and the `ROTATING_PROXY_LIST` in `settings.py` will manage which proxy to use for each request. Here middleware will treat each proxy initially as valid and then when a request is made, the middleware selects a proxy from the list of available proxies. The selection isn't purely sequential but is influenced by the recent history of proxy performance. The middleware has mechanisms to detect when a proxy might be banned or rendered ineffective. When such conditions are detected, the proxy is temporarily deactivated and put into a cooldown period. After the cooldown period expires, the proxy is reconsidered for use.
 
 In Crawlee, you can [use your own proxy servers](https://crawlee.dev/docs/guides/proxy-management) or proxy servers acquired from third-party providers. If you already have your proxy URLs, you can start using them like this:
 
-```js
+```js title="crawler.js"
 import { ProxyConfiguration } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
@@ -212,7 +213,7 @@ Scrapy provides this functionality out of the box with the [`Feed Exports`](http
 
 To do this, you need to modify your `settings.py` file and enter:
 
-```py
+```py title="settings.py"
     # To store in CSV format 
     FEEDS = { 
         'data/crawl_data.csv': {'format': 'csv', 'overwrite': True} 
@@ -233,33 +234,33 @@ Let's see how Crawlee stores the result:
 
 - You can use local storage with dataset
 
-```js
-import { PlaywrightCrawler } from 'crawlee';
+    ```js title="crawler.js"
+    import { PlaywrightCrawler } from 'crawlee';
 
-const crawler = new PlaywrightCrawler({
-    requestHandler: async ({ page }) => {
+    const crawler = new PlaywrightCrawler({
+        requestHandler: async ({ page }) => {
 
-        const title = await page.title();
-        const price = await page.textContent('.price');
+            const title = await page.title();
+            const price = await page.textContent('.price');
     
-        await crawler.pushData({
-            url: request.url,
-            title,
-            price
-        });
-    }
-})
+            await crawler.pushData({
+                url: request.url,
+                title,
+                price
+            });
+        }
+    })
 
-await crawler.run(['http://example.com']);
-```
+    await crawler.run(['http://example.com']);
+    ```
 
 - Using Key-Value Store
 
-```js
-import { KeyValueStore } from 'crawlee';
-//... Code to crawl the data
-await KeyValueStore.setValue('key', { foo: 'bar' });
-```
+    ```js title="crawler.js"
+    import { KeyValueStore } from 'crawlee';
+    //... Code to crawl the data
+    await KeyValueStore.setValue('key', { foo: 'bar' });
+    ```
 
 ### Anti-blocking and fingerprints
 
@@ -275,8 +276,7 @@ In Scrapy, you can handle errors using middleware and [signals](https://docs.scr
 
 Scrapy has built-in support for retrying failed requests. You can configure the retry policy (e.g., the number of retries, retrying on particular HTTP codes) via settings such as `RETRY_TIMES`, as shown in the example:
 
-```py
-    # In settings.py
+```py title="settings.py"
     RETRY_ENABLED = True
     RETRY_TIMES = 2  # Number of retry attempts
     RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
@@ -284,7 +284,7 @@ Scrapy has built-in support for retrying failed requests. You can configure the 
 
 In Crawlee, you can also set up a custom error handler. For retries, `maxRequestRetries` controls how often Crawlee will retry a request before marking it as failed. To set it up, you just need to add the following line of code in your crawler.
 
-```js
+```js title="crawler.js"
 const crawler = new CheerioCrawler({
     maxRequestRetries: 3 // Crawler will retry three times.
     // ...
