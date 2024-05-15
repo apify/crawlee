@@ -142,9 +142,7 @@ class ProxyTierTracker {
 
         if (this.histogram[this.currentTier] > Math.min(left, right)) {
             this.currentTier = left <= right ? this.currentTier - 1 : this.currentTier + 1;
-        }
-
-        if (this.histogram[this.currentTier] === left) {
+        } else if (this.histogram[this.currentTier] === left) {
             this.currentTier--;
         }
     }
