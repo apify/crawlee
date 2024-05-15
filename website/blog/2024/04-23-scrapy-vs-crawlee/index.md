@@ -13,7 +13,7 @@ authorTwitter: sauain
 
 Hey, crawling masters!
 
-Welcome to another post on the Crawlee blog; this time, we are going to compare Scrapy with Crawlee, one of the oldest and most popular web scraping libraries in the world. This article will answer questions about when to use Scrapy or when it would be better to use Crawlee instead. This article will be the first part of many articles comparing Crawlee with Scrapy in various technical aspects. 
+Welcome to another post on the Crawlee blog; this time, we are going to compare Scrapy, one of the oldest and most popular web scraping libraries in the world, with Crawlee, a relative newcomer. This article will answer your usual questions about when to use Scrapy or when it would be better to use Crawlee instead. This article will be the first part of many articles comparing Crawlee with Scrapy in various technical aspects. 
 
 ## Introduction:
 
@@ -209,7 +209,7 @@ Crawlee also has [`SessionPool`](https://crawlee.dev/api/core/class/SessionPool)
 
 One of the most frequently required features when implementing scrapers is being able to store the scraped data as an "export file".
 
-Scrapy provides this functionality out of the box with [`Feed Exports`](https://docs.scrapy.org/en/latest/topics/feed-exports.html), which allows to generate feeds with the scraped items, using multiple serialization formats and storage backends. It supports `csv, json, json lines, xml.`
+Scrapy provides this functionality out of the box with the [`Feed Exports`](https://docs.scrapy.org/en/latest/topics/feed-exports.html), which allows it to generate feeds with the scraped items, using multiple serialization formats and storage backends. It supports `CSV, JSON, JSON Lines, and XML.`
 
 To do this, you need to modify your `settings.py` file and enter:
 
