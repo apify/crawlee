@@ -24,7 +24,7 @@ Since then, our dev community has grown exponentially. I’m proud to tell you t
 
 Crawlee has progressively evolved with the introduction of key features to enhance web scraping and automation:
 
-- [v3.1](https://github.com/apify/crawlee/releases/tag/v3.1.0) added an [error tracker](https://crawlee.dev/api/utils/class/ErrorTracker) for analyzing and summarizing failed requests.
+- [v3.1](https://github.com/apify/crawlee/releases/tag/v3.1.0) added an [error tracker](https://crawlee.dev/api/core/class/ErrorTracker) for analyzing and summarizing failed requests.
 - The [v3.3](https://github.com/apify/crawlee/releases/tag/v3.3.0) update brought an `exclude` option to the `enqueueLinks` helper and integrated status messages. This improved usability on the Apify platform with automatic summary updates in the console UI.
 - [v3.4](https://github.com/apify/crawlee/releases/tag/v3.4.0) introduced the [`linkedom` crawler](https://crawlee.dev/api/linkedom-crawler), offering a new parsing option.
 - The [v3.5](https://github.com/apify/crawlee/releases/tag/v3.5.0) update optimized link enqueuing for efficiency.
