@@ -57,16 +57,15 @@ export type FileDownloadRequestHandler<
  *
  * Since `FileDownload` uses raw HTTP requests to download the files, it is very fast and bandwith-efficient.
  * However, it doesn't parse the content - if you need to e.g. extract data from the downloaded files,
- * you might need to use [CheerioCrawler](https://crawlee.dev/api/cheerio-crawler/class/CheerioCrawler),
- * [PuppeteerCrawler](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler) or [PlaywrightCrawler](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler) instead.
+ * you might need to use {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead.
  *
- * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided [FileDownloadOptions.requestHandler](https://crawlee.dev/api/http-crawler/interface/FileDownloadOptions#requestHandler) where the user can specify what to do with the downloaded data.
+ * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink FileDownloadOptions.requestHandler} where the user can specify what to do with the downloaded data.
  *
- * The source URLs are represented using [Request](https://crawlee.dev/api/core/class/Request) objects that are fed from [RequestList](https://crawlee.dev/api/core/class/RequestList) or [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) instances provided by the [FileDownloadOptions.requestList](https://crawlee.dev/api/http-crawler/interface/FileDownloadOptions#requestList) or [FileDownloadOptions.requestQueue](https://crawlee.dev/api/http-crawler/interface/FileDownloadOptions#requestQueue) constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink FileDownloadOptions.requestList} or {@apilink FileDownloadOptions.requestQueue} constructor options, respectively.
  *
- * If both [FileDownloadOptions.requestList](https://crawlee.dev/api/http-crawler/interface/FileDownloadOptions#requestList) and [FileDownloadOptions.requestQueue](https://crawlee.dev/api/http-crawler/interface/FileDownloadOptions#requestQueue) are used, the instance first processes URLs from the [RequestList](https://crawlee.dev/api/core/class/RequestList) and automatically enqueues all of them to [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both {@apilink FileDownloadOptions.requestList} and {@apilink FileDownloadOptions.requestQueue} are used, the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
- * The crawler finishes when there are no more [Request](https://crawlee.dev/api/core/class/Request) objects to crawl.
+ * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
  * We can use the `preNavigationHooks` to adjust `gotOptions`:
  *
@@ -78,7 +77,7 @@ export type FileDownloadRequestHandler<
  * ]
  * ```
  *
- * New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the [AutoscaledPool](https://crawlee.dev/api/core/class/AutoscaledPool) class. All [AutoscaledPool](https://crawlee.dev/api/core/class/AutoscaledPool) configuration options can be passed to the `autoscaledPoolOptions` parameter of the `FileCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency` [AutoscaledPool](https://crawlee.dev/api/core/class/AutoscaledPool) options are available directly in the `FileCrawler` constructor.
+ * New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the {@apilink AutoscaledPool} class. All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions` parameter of the `FileCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency` {@apilink AutoscaledPool} options are available directly in the `FileCrawler` constructor.
  *
  * ## Example usage
  *
