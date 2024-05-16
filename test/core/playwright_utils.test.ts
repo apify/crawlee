@@ -294,23 +294,21 @@ describe('playwrightUtils', () => {
         const openKVSSpy = vitest.spyOn(KeyValueStore, 'open');
         const browser = await chromium.launch({ headless: true });
         // TODO: get rid of this somehow, crawlee API cannot depend on apify env vars directly
-        const isAtHome = process.env.APIFY_IS_AT_HOME;
 
         try {
             const page = await browser.newPage();
             const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
             await page.setContent(contentHTML);
 
-            const screenshot = await page.screenshot(
-              { fullPage: true, type: 'jpeg', quality: 60 });
+            const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
 
             // Test saving both image and html
             const object = { setValue: vitest.fn() };
             openKVSSpy.mockResolvedValue(object as any);
             await playwrightUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
-            expect(object.setValue).toBeCalledWith(isAtHome ? 'TEST.jpg' : 'TEST', screenshot, { contentType: 'image/jpeg' });
-            expect(object.setValue).toBeCalledWith(isAtHome ? 'TEST.html' : 'TEST', contentHTML, { contentType: 'text/html' });
+            expect(object.setValue).toBeCalledWith('TEST.jpg', screenshot, { contentType: 'image/jpeg' });
+            expect(object.setValue).toBeCalledWith('TEST.html', contentHTML, { contentType: 'text/html' });
             object.setValue.mockReset();
 
             // Test saving only image
@@ -318,7 +316,7 @@ describe('playwrightUtils', () => {
 
             // Default quality is 50
             const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 50 });
-            expect(object.setValue).toBeCalledWith(isAtHome ? 'SNAPSHOT.jpg' : 'SNAPSHOT', screenshot2, { contentType: 'image/jpeg' });
+            expect(object.setValue).toBeCalledWith('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' });
         } finally {
             await browser.close();
         }

@@ -411,7 +411,6 @@ describe('puppeteerUtils', () => {
         it('saveSnapshot() works', async () => {
             const openKVSSpy = vitest.spyOn(KeyValueStore, 'open');
             const browser = await launchPuppeteer(launchContext);
-            const isAtHome = process.env.APIFY_IS_AT_HOME;
 
             try {
                 const page = await browser.newPage();
@@ -425,8 +424,8 @@ describe('puppeteerUtils', () => {
                 openKVSSpy.mockResolvedValue(object as any);
                 await puppeteerUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
 
-                expect(object.setValue).toBeCalledWith(isAtHome ? 'TEST.jpg' : 'TEST', screenshot, { contentType: 'image/jpeg' });
-                expect(object.setValue).toBeCalledWith(isAtHome ? 'TEST.html' : 'TEST', contentHTML, { contentType: 'text/html' });
+                expect(object.setValue).toBeCalledWith('TEST.jpg', screenshot, { contentType: 'image/jpeg' });
+                expect(object.setValue).toBeCalledWith('TEST.html', contentHTML, { contentType: 'text/html' });
                 object.setValue.mockReset();
 
                 // Test saving only image
@@ -434,7 +433,7 @@ describe('puppeteerUtils', () => {
 
                 // Default quality is 50
                 const screenshot2 = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 50 });
-                expect(object.setValue).toBeCalledWith(isAtHome ? 'SNAPSHOT.jpg' : 'SNAPSHOT', screenshot2, { contentType: 'image/jpeg' });
+                expect(object.setValue).toBeCalledWith('SNAPSHOT.jpg', screenshot2, { contentType: 'image/jpeg' });
             } finally {
                 await browser.close();
             }

@@ -72,7 +72,6 @@ export class ErrorSnapshotter {
         try {
             await context.saveSnapshot({ key: fileName });
             return {
-                // The screenshot file extension is different for Apify and local environments
                 screenshotFileName: `${fileName}.jpg`,
                 htmlFileName: `${fileName}.html`,
             };
