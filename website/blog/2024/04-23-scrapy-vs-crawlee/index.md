@@ -31,7 +31,7 @@ Crawlee is also an open-source library that originated as [Apify SDK](https://do
 We'll start comparing Scrapy and Crawlee by looking at language and development environments, and then features to make the scraping process easier for developers, like autoscaling, headless browsing, queue management, and more. 
 
 
-### Language and development environments:
+### Language and development environments
 
 Scrapy is written in Python, making it easier for the data science community to integrate it with various tools. While Scrapy offers very detailed documentation, it can take a lot of work to get started with Scrapy. One of the reasons why it is considered not so beginner-friendly[[1]](https://towardsdatascience.com/web-scraping-with-scrapy-theoretical-understanding-f8639a25d9cd)[[2]](https://www.accordbox.com/blog/scrapy-tutorial-1-scrapy-vs-beautiful-soup/#:~:text=Since%20Scrapy%20does%20no%20only,to%20become%20a%20Scrapy%20expert.)[[3]](https://www.udemy.com/tutorial/scrapy-tutorial-web-scraping-with-python/scrapy-vs-beautiful-soup-vs-selenium//1000) is its [complex architecture](https://docs.scrapy.org/en/latest/topics/architecture.html), which consists of various components like spiders, middleware, item pipelines, and settings. These can be challenging for beginners.
 
@@ -123,7 +123,7 @@ await crawler.run(['https://apify.com/store']);
 </TabItem>
 </Tabs>
 
-### Autoscaling Support
+### Autoscaling support
 
 Autoscaling refers to the capability of a library to automatically adjusting the number of concurrent tasks (such as browser instances, HTTP requests, etc.) based on the current load and system resources. This feature is particularly useful when handling web scraping and crawling tasks that may require dynamically scaled resources to optimize performance, manage system load, and handle rate limitations efficiently.
 
@@ -131,7 +131,7 @@ Scrapy does not have built-in autoscaling capabilities, but it can be done using
 
 Crawlee has [built-in autoscaling](https://crawlee.dev/api/core/class/AutoscaledPool) with `AutoscaledPool`. It increases the number of requests that are processed concurrently within one crawler.
 
-### Queue Management
+### Queue management
 
 Scrapy supports both breadth-first and depth-first crawling strategies using a disk-based queuing system. By default, it uses the LIFO queue for the pending requests, which means it is using depth-first order, but if you want to use breadth-first order, you can do it by changing these settings:
 
@@ -143,7 +143,7 @@ SCHEDULER_MEMORY_QUEUE = "scrapy.squeues.FifoMemoryQueue"
 
 Crawlee uses breadth-first by default and you can override it on a per-request basis by using the `forefront: true` argument in `addRequest` and its derivatives. If you use `forefront: true` for all requests, it becomes a depth-first process.
 
-### CLI Support
+### CLI support
 
 Scrapy has a [powerful command-line interface](https://docs.scrapy.org/en/latest/topics/commands.html#command-line-tool) that offers functionalities like starting a project, generating spiders, and controlling the crawling process.
 
@@ -159,7 +159,7 @@ Crawlee also [includes a CLI tool](https://crawlee.dev/docs/quick-start#installa
 npx crawlee create my-crawler
 ```
  
-### Proxy Rotation and Storage Management
+### Proxy rotation and storage management
 
 Scrapy handles it via custom middleware. You have to install their [`scrapy-rotating-proxies`](https://pypi.org/project/scrapy-rotating-proxies/) package using pip. 
 
@@ -205,7 +205,7 @@ const crawler = new CheerioCrawler({
 
 Crawlee also has [`SessionPool`](https://crawlee.dev/api/core/class/SessionPool), a built-in allocation system for proxies. It handles the rotation, creation, and persistence of user-like sessions. It creates a pool of session instances that are randomly rotated.
 
-### Data Storage
+### Data storage
 
 One of the most frequently required features when implementing scrapers is being able to store the scraped data as an "export file".
 
@@ -277,9 +277,9 @@ In Scrapy, you can handle errors using middleware and [signals](https://docs.scr
 Scrapy has built-in support for retrying failed requests. You can configure the retry policy (e.g., the number of retries, retrying on particular HTTP codes) via settings such as `RETRY_TIMES`, as shown in the example:
 
 ```py title="settings.py"
-    RETRY_ENABLED = True
-    RETRY_TIMES = 2  # Number of retry attempts
-    RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
+RETRY_ENABLED = True
+RETRY_TIMES = 2  # Number of retry attempts
+RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
 ```
 
 In Crawlee, you can also set up a custom error handler. For retries, `maxRequestRetries` controls how often Crawlee will retry a request before marking it as failed. To set it up, you just need to add the following line of code in your crawler.
@@ -305,7 +305,7 @@ Both projects are open source. Scrapy benefits from a large and well-established
 
 Crawlee started its journey as Apify SDK in 2018. It now has more than [12K stars on GitHub](https://github.com/apify/crawlee), a community of more than 7,000 developers in its [Discord Community](https://apify.com/discord), and is used by the TypeScript and JavaScript community.
 
-## Conclusion
+## So which is better - Scrapy or Crawlee?
 
 Both frameworks can handle a wide range of scraping tasks, and the best choice will depend on specific technical needs like language preference, project requirements, ease of use, etc.
 
