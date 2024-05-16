@@ -19,6 +19,9 @@ await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         requestHandlerTimeoutSecs: 2,
         maxRequestRetries: 0,
+        statisticsOptions: {
+            saveErrorSnapshots: true,
+        },
         async requestHandler({ $, request, log }) {
             const { userData: { label } } = request;
 

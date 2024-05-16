@@ -19,6 +19,9 @@ await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         requestHandlerTimeoutSecs: 15,
         maxRequestRetries: 0,
+        statisticsOptions: {
+            saveErrorSnapshots: true,
+        },
         async requestHandler({ request, log, page }) {
             const { userData: { label } } = request;
 
