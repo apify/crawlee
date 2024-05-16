@@ -15,14 +15,6 @@ export class ErrorSnapshotter {
     static readonly BASE_MESSAGE = 'An error occurred';
     static readonly SNAPSHOT_PREFIX = 'ERROR_SNAPSHOT';
 
-    private KEY_VALUE_STORE_LOCAL_PATH: string;
-    private KEY_VALUE_PLATFORM_PATH :string;
-
-    constructor() {
-        this.KEY_VALUE_PLATFORM_PATH = 'https://api.apify.com/v2/key-value-stores';
-        this.KEY_VALUE_STORE_LOCAL_PATH = `file://${process.env.PWD}/storage/key_value_stores`;
-    }
-
     /**
      * Capture a snapshot of the error context.
      */
@@ -62,18 +54,9 @@ export class ErrorSnapshotter {
                 htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, fileName);
             }
 
-            if (process.env.APIFY_IS_AT_HOME) {
-                const platformPath = `${this.KEY_VALUE_PLATFORM_PATH}/${keyValueStore.id}/records`;
-                return {
-                    screenshotFileUrl: screenshotFileName ? `${platformPath}/${screenshotFileName}` : undefined,
-                    htmlFileUrl: htmlFileName ? `${platformPath}/${htmlFileName}` : undefined,
-                };
-            }
-
-            const localPath = `${this.KEY_VALUE_STORE_LOCAL_PATH}/${keyValueStore.name || 'default'}`;
             return {
-                screenshotFileUrl: screenshotFileName ? `${localPath}/${screenshotFileName}` : undefined,
-                htmlFileUrl: htmlFileName ? `${localPath}/${htmlFileName}` : undefined,
+                screenshotFileUrl: screenshotFileName,
+                htmlFileUrl: htmlFileName,
             };
         } catch {
             return {};

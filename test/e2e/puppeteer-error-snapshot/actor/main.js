@@ -38,7 +38,7 @@ await Actor.main(async () => {
 
             if (label === LABELS.POST_NAVIGATION_ERROR) {
                 log.error('Post navigation error');
-                throw new Error(' Unable to navigate to the requested post');
+                throw new Error('Unable to navigate to the requested post');
             }
         }],
     });
