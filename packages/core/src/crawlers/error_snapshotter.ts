@@ -18,7 +18,7 @@ export class ErrorSnapshotter {
     /**
      * Capture a snapshot of the error context.
      */
-    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileUrl?: string; htmlFileUrl?: string }> {
+    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileName?: string; htmlFileName?: string }> {
         try {
             const page = context?.page as BrowserPage | undefined;
             const body = context?.body;
@@ -55,8 +55,8 @@ export class ErrorSnapshotter {
             }
 
             return {
-                screenshotFileUrl: screenshotFileName,
-                htmlFileUrl: htmlFileName,
+                screenshotFileName,
+                htmlFileName,
             };
         } catch {
             return {};

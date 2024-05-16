@@ -379,10 +379,10 @@ export class ErrorTracker {
     }
 
     async captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext) {
-        const { screenshotFileUrl, htmlFileUrl } = await this.errorSnapshotter.captureSnapshot(error, context);
+        const { screenshotFileName, htmlFileName } = await this.errorSnapshotter.captureSnapshot(error, context);
 
-        storage.firstErrorScreenshotUrl = screenshotFileUrl;
-        storage.firstErrorHtmlUrl = htmlFileUrl;
+        storage.firstErrorScreenshot = screenshotFileName;
+        storage.firstErrorHtml = htmlFileName;
     }
 
     reset() {
