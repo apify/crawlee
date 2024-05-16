@@ -277,9 +277,9 @@ In Scrapy, you can handle errors using middleware and [signals](https://docs.scr
 Scrapy has built-in support for retrying failed requests. You can configure the retry policy (e.g., the number of retries, retrying on particular HTTP codes) via settings such as `RETRY_TIMES`, as shown in the example:
 
 ```py title="settings.py"
-    RETRY_ENABLED = True
-    RETRY_TIMES = 2  # Number of retry attempts
-    RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
+RETRY_ENABLED = True
+RETRY_TIMES = 2  # Number of retry attempts
+RETRY_HTTP_CODES = [500, 502, 503, 504, 522, 524]  # HTTP error codes to retry
 ```
 
 In Crawlee, you can also set up a custom error handler. For retries, `maxRequestRetries` controls how often Crawlee will retry a request before marking it as failed. To set it up, you just need to add the following line of code in your crawler.
