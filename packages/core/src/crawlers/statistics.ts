@@ -66,12 +66,12 @@ export class Statistics {
     /**
      * An error tracker for final retry errors.
      */
-    errorTracker = new ErrorTracker(errorTrackerConfig);
+    errorTracker: ErrorTracker;
 
     /**
      * An error tracker for retry errors prior to the final retry.
      */
-    errorTrackerRetry = new ErrorTracker(errorTrackerConfig);
+    errorTrackerRetry: ErrorTracker;
 
     /**
      * Statistic instance id.
@@ -115,6 +115,7 @@ export class Statistics {
             keyValueStore: ow.optional.object,
             config: ow.optional.object,
             persistenceOptions: ow.optional.object,
+            saveErrorSnapshots: ow.optional.boolean,
         }));
 
         const {
@@ -125,8 +126,11 @@ export class Statistics {
             persistenceOptions = {
                 enable: true,
             },
+            saveErrorSnapshots = false,
         } = options;
 
+        this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
+        this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.logIntervalMillis = logIntervalSecs * 1000;
         this.logMessage = logMessage;
         this.keyValueStore = keyValueStore;
@@ -444,6 +448,12 @@ export interface StatisticsOptions {
      * Control how and when to persist the statistics.
      */
     persistenceOptions?: PersistenceOptions;
+
+    /**
+     * Save HTML snapshot (and a screenshot if possible) when an error occurs.
+     * @default false
+     */
+    saveErrorSnapshots?: boolean;
 }
 
 /**

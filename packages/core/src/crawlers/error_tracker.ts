@@ -21,6 +21,7 @@ export interface ErrorTrackerOptions {
     showFullStack: boolean;
     showErrorMessage: boolean;
     showFullMessage: boolean;
+    saveErrorSnapshots: boolean;
 }
 
 const extractPathFromStackTraceLine = (line: string) => {
@@ -286,7 +287,7 @@ export class ErrorTracker {
 
     total: number;
 
-    errorSnapshotter: ErrorSnapshotter;
+    errorSnapshotter?: ErrorSnapshotter;
 
     constructor(options: Partial<ErrorTrackerOptions> = {}) {
         this.#options = {
@@ -296,10 +297,13 @@ export class ErrorTracker {
             showFullStack: false,
             showErrorMessage: true,
             showFullMessage: false,
+            saveErrorSnapshots: false,
             ...options,
         };
 
-        this.errorSnapshotter = new ErrorSnapshotter();
+        if (this.#options.saveErrorSnapshots) {
+            this.errorSnapshotter = new ErrorSnapshotter();
+        }
 
         this.result = Object.create(null);
         this.total = 0;
@@ -399,6 +403,10 @@ export class ErrorTracker {
     }
 
     async captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext) {
+        if (!this.errorSnapshotter) {
+            return;
+        }
+
         const { screenshotFileName, htmlFileName } = await this.errorSnapshotter.captureSnapshot(error, context);
 
         storage.firstErrorScreenshot = screenshotFileName;

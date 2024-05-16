@@ -17,13 +17,3 @@ export function keys<T extends {}>(obj: T) {
 }
 
 export declare type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH';
-
-// Define the following types as we cannot import the complete types from the respective packages
-export interface BrowserCrawlingContext {
-    saveSnapshot: (options: { key: string }) => Promise<void>;
-}
-export interface BrowserPage {
-    content: () => Promise<string>;
-}
-
-export type SnapshotResult = { screenshotFileName?: string; htmlFileName?: string } | undefined;

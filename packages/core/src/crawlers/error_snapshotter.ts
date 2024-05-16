@@ -3,10 +3,34 @@ import crypto from 'node:crypto';
 import type { ErrnoException } from './error_tracker';
 import type { CrawlingContext } from '../crawlers/crawler_commons';
 import type { KeyValueStore } from '../storages';
-import type { BrowserCrawlingContext, BrowserPage, SnapshotResult } from '../typedefs';
+
+// Define the following types as we cannot import the complete types from the respective packages
+interface BrowserCrawlingContext {
+    saveSnapshot: (options: { key: string }) => Promise<void>;
+}
+
+interface BrowserPage {
+    content: () => Promise<string>;
+}
+
+export interface SnapshotResult {
+    screenshotFileName?: string;
+    htmlFileName?: string;
+}
 
 /**
- * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occur during web crawling.
+ * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occurs during web crawling.
+ *
+ * This functionality is opt-in, and can be enabled via the crawler options:
+ *
+ * ```ts
+ * const crawler = new BasicCrawler({
+ *   // ...
+ *   statisticsOptions: {
+ *     saveErrorSnapshots: true,
+ *   },
+ * });
+ * ```
  */
 export class ErrorSnapshotter {
     static readonly MAX_ERROR_CHARACTERS = 30;
@@ -68,7 +92,7 @@ export class ErrorSnapshotter {
      * This function is applicable for browser contexts only.
      * Returns an object containing the filenames of the screenshot and HTML file.
      */
-    async contextCaptureSnapshot(context: BrowserCrawlingContext, fileName: string): Promise<SnapshotResult> {
+    async contextCaptureSnapshot(context: BrowserCrawlingContext, fileName: string): Promise<SnapshotResult | undefined> {
         try {
             await context.saveSnapshot({ key: fileName });
             return {

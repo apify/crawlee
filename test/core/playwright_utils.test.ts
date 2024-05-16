@@ -293,7 +293,6 @@ describe('playwrightUtils', () => {
     test('saveSnapshot() works', async () => {
         const openKVSSpy = vitest.spyOn(KeyValueStore, 'open');
         const browser = await chromium.launch({ headless: true });
-        // TODO: get rid of this somehow, crawlee API cannot depend on apify env vars directly
 
         try {
             const page = await browser.newPage();
