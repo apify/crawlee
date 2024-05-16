@@ -28,7 +28,7 @@ export type StreamHandlerContext = Omit<FileDownloadCrawlingContext, 'body' | 'r
 
 type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
 
-export type FileDownloadCrawlerOptions<
+export type FileDownloadOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > =
@@ -60,11 +60,11 @@ export type FileDownloadRequestHandler<
  * you might need to use [CheerioCrawler](https://crawlee.dev/api/cheerio-crawler/class/CheerioCrawler),
  * [PuppeteerCrawler](https://crawlee.dev/api/puppeteer-crawler/class/PuppeteerCrawler) or [PlaywrightCrawler](https://crawlee.dev/api/playwright-crawler/class/PlaywrightCrawler) instead.
  *
- * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided [FileCrawlerOptions.requestHandler](https://crawlee.dev/api/file-crawler/interface/FileCrawlerOptions#requestHandler) where the user can specify what to do with the downloaded data.
+ * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided [FileDownloadOptions.requestHandler](https://crawlee.dev/api/file-crawler/interface/FileDownloadOptions#requestHandler) where the user can specify what to do with the downloaded data.
  *
- * The source URLs are represented using [Request](https://crawlee.dev/api/core/class/Request) objects that are fed from [RequestList](https://crawlee.dev/api/core/class/RequestList) or [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) instances provided by the [FileCrawlerOptions.requestList](https://crawlee.dev/api/file-crawler/interface/FileCrawlerOptions#requestList) or [FileCrawlerOptions.requestQueue](https://crawlee.dev/api/file-crawler/interface/FileCrawlerOptions#requestQueue) constructor options, respectively.
+ * The source URLs are represented using [Request](https://crawlee.dev/api/core/class/Request) objects that are fed from [RequestList](https://crawlee.dev/api/core/class/RequestList) or [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) instances provided by the [FileDownloadOptions.requestList](https://crawlee.dev/api/file-crawler/interface/FileDownloadOptions#requestList) or [FileDownloadOptions.requestQueue](https://crawlee.dev/api/file-crawler/interface/FileDownloadOptions#requestQueue) constructor options, respectively.
  *
- * If both [FileCrawlerOptions.requestList](https://crawlee.dev/api/file-crawler/interface/FileCrawlerOptions#requestList) and [FileCrawlerOptions.requestQueue](https://crawlee.dev/api/file-crawler/interface/FileCrawlerOptions#requestQueue) are used, the instance first processes URLs from the [RequestList](https://crawlee.dev/api/core/class/RequestList) and automatically enqueues all of them to [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * If both [FileDownloadOptions.requestList](https://crawlee.dev/api/file-crawler/interface/FileDownloadOptions#requestList) and [FileDownloadOptions.requestQueue](https://crawlee.dev/api/file-crawler/interface/FileDownloadOptions#requestQueue) are used, the instance first processes URLs from the [RequestList](https://crawlee.dev/api/core/class/RequestList) and automatically enqueues all of them to [RequestQueue](https://crawlee.dev/api/core/class/RequestQueue) before it starts their processing. This ensures that a single URL is not crawled multiple times.
  *
  * The crawler finishes when there are no more [Request](https://crawlee.dev/api/core/class/Request) objects to crawl.
  *
@@ -99,7 +99,7 @@ export type FileDownloadRequestHandler<
 export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
     private streamHandler?: StreamHandler;
 
-    constructor(options: FileDownloadCrawlerOptions = {}) {
+    constructor(options: FileDownloadOptions = {}) {
         const { streamHandler } = options;
         delete options.streamHandler;
 
