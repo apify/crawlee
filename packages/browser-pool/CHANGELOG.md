@@ -3,6 +3,69 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+**Note:** Version bump only for package @crawlee/browser-pool
+
+
+
+
+
+## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
+
+
+### Features
+
+* `browserPerProxy` browser launch option ([#2418](https://github.com/apify/crawlee/issues/2418)) ([df57b29](https://github.com/apify/crawlee/commit/df57b2965ac8c8b3adf807e3bad8a649814fa213))
+
+
+
+
+
+# [3.9.0](https://github.com/apify/crawlee/compare/v3.8.2...v3.9.0) (2024-04-10)
+
+
+### Features
+
+* `tieredProxyUrls` for ProxyConfiguration ([#2348](https://github.com/apify/crawlee/issues/2348)) ([5408c7f](https://github.com/apify/crawlee/commit/5408c7f60a5bf4dbdba92f2d7440e0946b94ea6e))
+* better `newUrlFunction` for ProxyConfiguration ([#2392](https://github.com/apify/crawlee/issues/2392)) ([330598b](https://github.com/apify/crawlee/commit/330598b348ad27bc7c73732294a14b655ccd3507)), closes [#2348](https://github.com/apify/crawlee/issues/2348) [#2065](https://github.com/apify/crawlee/issues/2065)
+
+
+
+
+
+## [3.8.2](https://github.com/apify/crawlee/compare/v3.8.1...v3.8.2) (2024-03-21)
+
+
+### Bug Fixes
+
+* fix detection of older puppeteer versions ([890669b](https://github.com/apify/crawlee/commit/890669b0b3eef94d00ad69aa022e13b3109a660c)), closes [#2370](https://github.com/apify/crawlee/issues/2370)
+* **puppeteer:** improve detection of older versions ([98d4e86](https://github.com/apify/crawlee/commit/98d4e8664a54c1a134446a1b6ab9042d14ed8629))
+
+
+
+
+
+## [3.8.1](https://github.com/apify/crawlee/compare/v3.8.0...v3.8.1) (2024-02-22)
+
+**Note:** Version bump only for package @crawlee/browser-pool
+
+
+
+
+
+# [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
+
+
+### Bug Fixes
+
+* **puppeteer:** add 'process' to the browser bound methods ([#2329](https://github.com/apify/crawlee/issues/2329)) ([2750ba6](https://github.com/apify/crawlee/commit/2750ba646ef3c1d51eacdd8e7d67be0e14fb2a97))
+* **puppeteer:** support `puppeteer@v22` ([#2337](https://github.com/apify/crawlee/issues/2337)) ([3cc360a](https://github.com/apify/crawlee/commit/3cc360a1ea94147133f9785d65834f360f7b42a7))
+
+
+
+
+
 ## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
 
 **Note:** Version bump only for package @crawlee/browser-pool

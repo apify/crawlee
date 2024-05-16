@@ -4,6 +4,7 @@ import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
 import type { Dictionary,
 } from '@crawlee/types';
 
+import { checkStorageAccess } from './access_checking';
 import type { RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
 import {
@@ -71,8 +72,10 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
  * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
  * ```
  * @category Sources
+ *
+ * @deprecated RequestQueue v1 is deprecated and will be removed in the future. Please use {@apilink RequestQueue} instead.
  */
-export class RequestQueue extends RequestProvider {
+class RequestQueue extends RequestProvider {
     private queryQueueHeadPromise?: Promise<{
         wasLimitReached: boolean;
         prevLimit: number;
@@ -113,6 +116,8 @@ export class RequestQueue extends RequestProvider {
      *   Returns the request object or `null` if there are no more pending requests.
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+        checkStorageAccess();
+
         await this.ensureHeadIsNonEmpty();
 
         const nextRequestId = this.queueHeadIds.removeFirst();
@@ -282,6 +287,8 @@ export class RequestQueue extends RequestProvider {
 
     // RequestQueue v1 behavior overrides below
     override async isFinished(): Promise<boolean> {
+        checkStorageAccess();
+
         if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
             const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
@@ -295,28 +302,64 @@ export class RequestQueue extends RequestProvider {
     }
 
     override async addRequest(...args: Parameters<RequestProvider['addRequest']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.addRequest(...args);
     }
 
     override async addRequests(...args: Parameters<RequestProvider['addRequests']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.addRequests(...args);
     }
 
     override async addRequestsBatched(...args: Parameters<RequestProvider['addRequestsBatched']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.addRequestsBatched(...args);
     }
 
     override async markRequestHandled(...args: Parameters<RequestProvider['markRequestHandled']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
         return super.markRequestHandled(...args);
     }
 
+    /**
+     * Reclaims a failed request back to the queue, so that it can be returned for processing later again
+     * by another call to {@apilink RequestQueue.fetchNextRequest}.
+     * The request record in the queue is updated using the provided `request` parameter.
+     * For example, this lets you store the number of retries or error messages for the request.
+     */
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
+        checkStorageAccess();
+
         this.lastActivity = new Date();
-        return super.reclaimRequest(...args);
+
+        const [request, options] = args;
+        const forefront = options?.forefront ?? false;
+
+        const result = await super.reclaimRequest(...args);
+
+        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
+        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
+        setTimeout(() => {
+            if (!this.inProgress.has(request.id!)) {
+                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                return;
+            }
+
+            this.inProgress.delete(request.id!);
+
+            // Performance optimization: add request straight to head if possible
+            this._maybeAddRequestToQueueHead(request.id!, forefront);
+        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
+
+        return result;
     }
 
     protected override _reset() {
@@ -324,7 +367,25 @@ export class RequestQueue extends RequestProvider {
         this.lastActivity = new Date();
     }
 
+    /**
+     * Opens a request queue and returns a promise resolving to an instance
+     * of the {@apilink RequestQueue} class.
+     *
+     * {@apilink RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+     * The queue is used for deep crawling of websites, where you start with several URLs and then
+     * recursively follow links to other pages. The data structure supports both breadth-first
+     * and depth-first crawling orders.
+     *
+     * For more details and code examples, see the {@apilink RequestQueue} class.
+     *
+     * @param [queueIdOrName]
+     *   ID or name of the request queue to be opened. If `null` or `undefined`,
+     *   the function returns the default request queue associated with the crawler run.
+     * @param [options] Open Request Queue options.
+     */
     static override async open(...args: Parameters<typeof RequestProvider.open>): Promise<RequestQueue> {
         return super.open(...args) as Promise<RequestQueue>;
     }
 }
+
+export { RequestQueue as RequestQueueV1 };

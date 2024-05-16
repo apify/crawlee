@@ -40,6 +40,7 @@ import { BROWSER_CONTROLLER_EVENTS, BrowserPool } from '@crawlee/browser-pool';
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
+import type { ReadonlyDeep } from 'type-fest';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
@@ -251,6 +252,12 @@ export interface BrowserCrawlerOptions<
      * Can be also set via {@apilink Configuration}.
      */
     headless?: boolean | 'new' | 'old'; // `new`/`old` are for puppeteer only
+
+    /**
+     * Whether to ignore custom elements (and their #shadow-roots) when processing the page content via `parseWithCheerio` helper.
+     * By default, they are expanded automatically. Use this option to disable this behavior.
+     */
+    ignoreShadowRoots?: boolean;
 }
 
 /**
@@ -492,19 +499,20 @@ export abstract class BrowserCrawler<
         const useIncognitoPages = this.launchContext?.useIncognitoPages;
         const experimentalContainers = this.launchContext?.experimentalContainers;
 
-        if (this.proxyConfiguration && (useIncognitoPages || experimentalContainers)) {
+        if (this.proxyConfiguration) {
             const { session } = crawlingContext;
 
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id);
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, { request: crawlingContext.request });
             crawlingContext.proxyInfo = proxyInfo;
 
-            newPageOptions.proxyUrl = proxyInfo.url;
+            newPageOptions.proxyUrl = proxyInfo?.url;
+            newPageOptions.proxyTier = proxyInfo?.proxyTier;
 
             if (this.proxyConfiguration.isManInTheMiddle) {
                 /**
-                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                 */
+                     * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                     * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                     */
                 newPageOptions.pageOptions = {
                     ignoreHTTPSErrors: true,
                 };
@@ -701,9 +709,12 @@ export abstract class BrowserCrawler<
             launchContextExtends.session = await this.sessionPool.getSession();
         }
 
-        if (this.proxyConfiguration) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session?.id);
-            launchContext.proxyUrl = proxyInfo.url;
+        if (this.proxyConfiguration && !launchContext.proxyUrl) {
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(
+                launchContextExtends.session?.id,
+                { proxyTier: (launchContext.proxyTier as number) ?? undefined },
+            );
+            launchContext.proxyUrl = proxyInfo?.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
             // Disable SSL verification for MITM proxies
@@ -749,7 +760,7 @@ export abstract class BrowserCrawler<
 
 /** @internal */
 interface EnqueueLinksInternalOptions {
-    options?: EnqueueLinksOptions;
+    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>;
     page: CommonPage;
     requestQueue: RequestProvider;
     originalRequestUrl: string;
@@ -786,7 +797,7 @@ export async function browserCrawlerEnqueueLinks({
  * @ignore
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
+export async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
     const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
     const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
     const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);

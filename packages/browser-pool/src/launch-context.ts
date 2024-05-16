@@ -35,6 +35,13 @@ export interface LaunchContextOptions<
      */
     launchOptions: LibraryOptions;
     /**
+     * If set to `true`, the crawler respects the proxy url generated for the given request.
+     * This aligns the browser-based crawlers with the `HttpCrawler`.
+     *
+     * Might cause performance issues, as Crawlee might launch too many browser instances.
+     */
+    browserPerProxy?: boolean;
+    /**
      * By default pages share the same browser context.
      * If set to `true` each page uses its own context that is destroyed once the page is closed or crashes.
      */
@@ -50,6 +57,7 @@ export interface LaunchContextOptions<
      */
     userDataDir?: string;
     proxyUrl?: string;
+    proxyTier?: number;
 }
 
 export class LaunchContext<
@@ -63,8 +71,10 @@ export class LaunchContext<
     browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     launchOptions: LibraryOptions;
     useIncognitoPages: boolean;
+    browserPerProxy?: boolean;
     experimentalContainers: boolean;
     userDataDir: string;
+    proxyTier?: number;
 
     private _proxyUrl?: string;
     private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
@@ -79,16 +89,20 @@ export class LaunchContext<
             launchOptions,
             proxyUrl,
             useIncognitoPages,
+            browserPerProxy,
             experimentalContainers,
             userDataDir = '',
+            proxyTier,
         } = options;
 
         this.id = id;
         this.browserPlugin = browserPlugin;
         this.launchOptions = launchOptions;
+        this.browserPerProxy = browserPerProxy ?? false;
         this.useIncognitoPages = useIncognitoPages ?? false;
         this.experimentalContainers = experimentalContainers ?? false;
         this.userDataDir = userDataDir;
+        this.proxyTier = proxyTier;
 
         this._proxyUrl = proxyUrl;
     }

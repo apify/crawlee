@@ -8,6 +8,7 @@ on:
 
 env:
     YARN_IGNORE_NODE: 1
+    RETRY_TESTS: 1
 
 jobs:
     # `yarn install` is done in a separate job and cached to speed up the following jobs.
@@ -22,7 +23,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-latest, windows-2019 ]
                 os: [ubuntu-latest]
-                node-version: [16, 18, 20]
+                node-version: [16, 18, 20, 22]
 
         steps:
             - name: Cancel Workflow Action

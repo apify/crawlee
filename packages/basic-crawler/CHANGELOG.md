@@ -3,6 +3,74 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+
+### Bug Fixes
+
+* don't call `notify` in `addRequests()` ([#2425](https://github.com/apify/crawlee/issues/2425)) ([c4d5446](https://github.com/apify/crawlee/commit/c4d54469120648a592b6898f849154fda60e3d59)), closes [#2421](https://github.com/apify/crawlee/issues/2421)
+
+
+
+
+
+## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
+
+**Note:** Version bump only for package @crawlee/basic
+
+
+
+
+
+# [3.9.0](https://github.com/apify/crawlee/compare/v3.8.2...v3.9.0) (2024-04-10)
+
+
+### Bug Fixes
+
+* notify autoscaled pool about newly added requests ([#2400](https://github.com/apify/crawlee/issues/2400)) ([a90177d](https://github.com/apify/crawlee/commit/a90177d5207794be1d6e401d746dd4c6e5961976))
+
+
+### Features
+
+* `tieredProxyUrls` for ProxyConfiguration ([#2348](https://github.com/apify/crawlee/issues/2348)) ([5408c7f](https://github.com/apify/crawlee/commit/5408c7f60a5bf4dbdba92f2d7440e0946b94ea6e))
+
+
+
+
+
+## [3.8.2](https://github.com/apify/crawlee/compare/v3.8.1...v3.8.2) (2024-03-21)
+
+**Note:** Version bump only for package @crawlee/basic
+
+
+
+
+
+## [3.8.1](https://github.com/apify/crawlee/compare/v3.8.0...v3.8.1) (2024-02-22)
+
+**Note:** Version bump only for package @crawlee/basic
+
+
+
+
+
+# [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
+
+
+### Bug Fixes
+
+* declare missing dependencies on `csv-stringify` and `fs-extra` ([#2326](https://github.com/apify/crawlee/issues/2326)) ([718959d](https://github.com/apify/crawlee/commit/718959dbbe1fa69f948d0b778d0f54d9c493ab25)), closes [/github.com/redabacha/crawlee/blob/2f05ed22b203f688095300400bb0e6d03a03283c/.eslintrc.json#L50](https://github.com//github.com/redabacha/crawlee/blob/2f05ed22b203f688095300400bb0e6d03a03283c/.eslintrc.json/issues/L50)
+
+
+### Features
+
+* accessing crawler state, key-value store and named datasets via crawling context ([#2283](https://github.com/apify/crawlee/issues/2283)) ([58dd5fc](https://github.com/apify/crawlee/commit/58dd5fcc25f31bb066402c46e48a9e5e91efd5c5))
+* adaptive playwright crawler ([#2316](https://github.com/apify/crawlee/issues/2316)) ([8e4218a](https://github.com/apify/crawlee/commit/8e4218ada03cf485751def46f8c465b2d2a825c7))
+
+
+
+
+
 ## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
 
 **Note:** Version bump only for package @crawlee/basic

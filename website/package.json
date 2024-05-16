@@ -16,11 +16,11 @@
     "devDependencies": {
         "@apify/eslint-config-ts": "^0.4.0",
         "@apify/tsconfig": "^0.1.0",
-        "@docusaurus/module-type-aliases": "3.1.1",
-        "@docusaurus/types": "3.1.1",
+        "@docusaurus/module-type-aliases": "3.3.2",
+        "@docusaurus/types": "3.3.2",
         "@types/react": "^18.0.28",
-        "@typescript-eslint/eslint-plugin": "^6.0.0",
-        "@typescript-eslint/parser": "^6.0.0",
+        "@typescript-eslint/eslint-plugin": "^7.0.0",
+        "@typescript-eslint/parser": "^7.0.0",
         "eslint": "^8.35.0",
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-react-hooks": "^4.6.0",
@@ -28,21 +28,22 @@
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^5.0.0",
-        "typescript": "5.3.3"
+        "typescript": "5.4.5"
     },
     "dependencies": {
         "@apify/utilities": "^2.8.0",
-        "@docusaurus/core": "3.1.1",
-        "@docusaurus/plugin-client-redirects": "3.1.1",
-        "@docusaurus/preset-classic": "3.1.1",
-        "@giscus/react": "^2.3.0",
-        "@mdx-js/react": "^3.0.0",
+        "@docusaurus/core": "3.3.2",
+        "@docusaurus/mdx-loader": "3.3.2",
+        "@docusaurus/plugin-client-redirects": "3.3.2",
+        "@docusaurus/preset-classic": "3.3.2",
+        "@giscus/react": "^3.0.0",
+        "@mdx-js/react": "^3.0.1",
         "axios": "^1.5.0",
         "buffer": "^6.0.3",
         "clsx": "^2.0.0",
         "crypto-browserify": "^3.12.0",
         "docusaurus-gtm-plugin": "^0.0.2",
-        "docusaurus-plugin-typedoc-api": "4.0.0",
+        "docusaurus-plugin-typedoc-api": "^4.2.0",
         "prism-react-renderer": "^2.1.0",
         "process": "^0.11.10",
         "prop-types": "^15.8.1",
@@ -53,5 +54,5 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
-    "packageManager": "yarn@4.0.2"
+    "packageManager": "yarn@4.2.2"
 }

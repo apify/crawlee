@@ -48,4 +48,17 @@ describe('RobotsFile', () => {
         const robots = await RobotsFile.find('http://not-exists.com/robots.txt');
         expect(robots.getSitemaps()).toEqual(['http://not-exists.com/sitemap_1.xml', 'http://not-exists.com/sitemap_2.xml']);
     });
+
+    it('parses allow/deny directives from explicitly provided robots.txt contents', async () => {
+        const contents = `User-agent: *',
+Disallow: *deny_all/
+crawl-delay: 10
+User-agent: Googlebot
+Disallow: *deny_googlebot/`;
+        const robots = RobotsFile.from('http://not-exists.com/robots.txt', contents);
+        expect(robots.isAllowed('http://not-exists.com/something/page.html')).toBe(true);
+        expect(robots.isAllowed('http://not-exists.com/deny_googlebot/page.html')).toBe(true);
+        expect(robots.isAllowed('http://not-exists.com/deny_googlebot/page.html', 'Googlebot')).toBe(false);
+        expect(robots.isAllowed('http://not-exists.com/deny_all/page.html')).toBe(true);
+    });
 });

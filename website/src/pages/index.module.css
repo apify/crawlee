@@ -40,8 +40,8 @@
 }
 
 .heroBanner h1:nth-child(1) {
-    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
-    linear-gradient(0deg, #41465D, #41465D);
+    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%), 
+        #FCA000;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -52,6 +52,21 @@
     top: 0;
     z-index: 1;
     width: calc(100% - 2rem);
+}
+
+.heroBanner h1::selection,
+.heroBanner h1 span::selection {
+    color: rgb(36, 39, 54) !important;
+    -webkit-text-fill-color: rgb(36, 39, 54);
+    background: #B4D7FE !important;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+}
+
+html[data-theme='dark'] .heroBanner ::selection {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    background: #385477 !important;
 }
 
 html .heroBanner h2 {

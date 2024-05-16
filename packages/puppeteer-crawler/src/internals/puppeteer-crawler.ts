@@ -141,7 +141,7 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(options: PuppeteerCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
+    constructor(private readonly options: PuppeteerCrawlerOptions = {}, override readonly config = Configuration.getGlobalConfig()) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
@@ -181,7 +181,7 @@ export class PuppeteerCrawler extends BrowserCrawler<{ browserPlugins: [Puppetee
     }
 
     protected override async _runRequestHandler(context: PuppeteerCrawlingContext) {
-        registerUtilsToContext(context);
+        registerUtilsToContext(context, this.options);
         await super._runRequestHandler(context);
     }
 

@@ -67,6 +67,13 @@ module.exports = {
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
+                    editUrl: (doc) => {
+                        return `https://github.com/apify/crawlee/edit/master/website/${doc.versionDocsDirPath}/${doc.docPath}`;
+                    },
+                },
+                blog: {
+                    blogTitle: 'Crawlee Blog - learn how to build better scrapers',
+                    blogDescription: 'Guides and tutorials on using Crawlee, the most reliable open-source web scraping and browser automation library for JavaScript and Node.js developers.',
                 },
                 theme: {
                     customCss: '/src/css/custom.css',
@@ -189,6 +196,11 @@ module.exports = {
                     activeBaseRegex: 'changelog',
                 },
                 {
+                    to: 'blog',
+                    label: 'Blog',
+                    position: 'left',
+                },
+                {
                     type: 'docsVersionDropdown',
                     position: 'left',
                     dropdownItemsAfter: [
@@ -257,6 +269,10 @@ module.exports = {
                 {
                     title: 'Community',
                     items: [
+                        {
+                            label: 'Blog',
+                            to: 'blog',
+                        },
                         {
                             label: 'Discord',
                             href: 'https://discord.com/invite/jyEM2PRvMU',

@@ -45,7 +45,7 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
         // Puppeteer and Playwright expect 'expires' to be 'Unix time in seconds', not ms
         // If there is no expires date (so defaults to Infinity), we don't provide it to the browsers
         expires: toughCookie.expires === 'Infinity' ? undefined : new Date(toughCookie.expires).getTime() / 1000,
-        domain: toughCookie.domain ?? undefined,
+        domain: toughCookie.domain ? `${toughCookie.hostOnly ? '' : '.'}${toughCookie.domain}` : undefined,
         path: toughCookie.path ?? undefined,
         secure: toughCookie.secure,
         httpOnly: toughCookie.httpOnly,
@@ -60,10 +60,8 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
 export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs: number) {
     const isExpiresValid = cookieObject.expires && typeof cookieObject.expires === 'number' && cookieObject.expires > 0;
     const expires = isExpiresValid ? new Date(cookieObject.expires! * 1000) : getDefaultCookieExpirationDate(maxAgeSecs);
-    const domain = typeof cookieObject.domain === 'string' && cookieObject.domain.startsWith('.')
-        ? cookieObject.domain.slice(1)
-        : cookieObject.domain;
-
+    const domainHasLeadingDot = cookieObject.domain?.startsWith?.('.');
+    const domain = domainHasLeadingDot ? cookieObject.domain?.slice?.(1) : cookieObject.domain;
     return new Cookie({
         key: cookieObject.name,
         value: cookieObject.value,
@@ -72,6 +70,7 @@ export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAg
         path: cookieObject.path,
         secure: cookieObject.secure,
         httpOnly: cookieObject.httpOnly,
+        hostOnly: !domainHasLeadingDot,
     });
 }
 

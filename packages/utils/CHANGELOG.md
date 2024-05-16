@@ -3,6 +3,73 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+
+### Features
+
+* **sitemap:** Support CDATA in sitemaps ([#2424](https://github.com/apify/crawlee/issues/2424)) ([635f046](https://github.com/apify/crawlee/commit/635f046b7933e0ad1b0ee627a22a9adaf21847d3))
+
+
+
+
+
+## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+# [3.9.0](https://github.com/apify/crawlee/compare/v3.8.2...v3.9.0) (2024-04-10)
+
+
+### Bug Fixes
+
+* sitemaps support `application/xml` ([#2408](https://github.com/apify/crawlee/issues/2408)) ([cbcf47a](https://github.com/apify/crawlee/commit/cbcf47a7b991a8b88a6c2a46f3684444d776fcdd))
+
+
+### Features
+
+* expand #shadow-root elements automatically in `parseWithCheerio` helper ([#2396](https://github.com/apify/crawlee/issues/2396)) ([a05b3a9](https://github.com/apify/crawlee/commit/a05b3a93a9b57926b353df0e79d846b5024c42ac))
+
+
+
+
+
+## [3.8.2](https://github.com/apify/crawlee/compare/v3.8.1...v3.8.2) (2024-03-21)
+
+
+### Bug Fixes
+
+* correctly report gzip decompression errors ([#2368](https://github.com/apify/crawlee/issues/2368)) ([84a2f17](https://github.com/apify/crawlee/commit/84a2f1733033bf247b2cede3f1728e75bf2c8ff9))
+
+
+
+
+
+## [3.8.1](https://github.com/apify/crawlee/compare/v3.8.0...v3.8.1) (2024-02-22)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+# [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
+
+
+### Features
+
+* add Sitemap.tryCommonNames to check well known sitemap locations ([#2311](https://github.com/apify/crawlee/issues/2311)) ([85589f1](https://github.com/apify/crawlee/commit/85589f167196ac49c0cc10664ab3e9e5595208ed)), closes [#2307](https://github.com/apify/crawlee/issues/2307)
+* **core:** add `userAgent` parameter to `RobotsFile.isAllowed()` + `RobotsFile.from()` helper ([#2338](https://github.com/apify/crawlee/issues/2338)) ([343c159](https://github.com/apify/crawlee/commit/343c159f20546a2006db33da4674e6ffd77db572))
+* Support plain-text sitemap files (sitemap.txt) ([#2315](https://github.com/apify/crawlee/issues/2315)) ([0bee7da](https://github.com/apify/crawlee/commit/0bee7daf9509fe61c8d83799e706f0bb030257ec))
+
+
+
+
+
 ## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
 
 

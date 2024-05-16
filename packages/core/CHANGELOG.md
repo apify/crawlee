@@ -3,6 +3,90 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.9.2](https://github.com/apify/crawlee/compare/v3.9.1...v3.9.2) (2024-04-17)
+
+
+### Bug Fixes
+
+* break up growing stack in `AutoscaledPool.notify` ([#2422](https://github.com/apify/crawlee/issues/2422)) ([6f2e6b0](https://github.com/apify/crawlee/commit/6f2e6b0ccb404ae66be372e87d762eed67c053bb)), closes [#2421](https://github.com/apify/crawlee/issues/2421)
+
+
+
+
+
+## [3.9.1](https://github.com/apify/crawlee/compare/v3.9.0...v3.9.1) (2024-04-11)
+
+**Note:** Version bump only for package @crawlee/core
+
+
+
+
+
+# [3.9.0](https://github.com/apify/crawlee/compare/v3.8.2...v3.9.0) (2024-04-10)
+
+
+### Bug Fixes
+
+* include actual key in error message of KVS' `setValue` ([#2411](https://github.com/apify/crawlee/issues/2411)) ([9089bf1](https://github.com/apify/crawlee/commit/9089bf139b717fecc6e8220c65a4d389862bd073))
+* notify autoscaled pool about newly added requests ([#2400](https://github.com/apify/crawlee/issues/2400)) ([a90177d](https://github.com/apify/crawlee/commit/a90177d5207794be1d6e401d746dd4c6e5961976))
+
+
+### Features
+
+* `createAdaptivePlaywrightRouter` utility ([#2415](https://github.com/apify/crawlee/issues/2415)) ([cee4778](https://github.com/apify/crawlee/commit/cee477814e4901d025c5376205ad884c2fe08e0e)), closes [#2407](https://github.com/apify/crawlee/issues/2407)
+* `tieredProxyUrls` for ProxyConfiguration ([#2348](https://github.com/apify/crawlee/issues/2348)) ([5408c7f](https://github.com/apify/crawlee/commit/5408c7f60a5bf4dbdba92f2d7440e0946b94ea6e))
+* better `newUrlFunction` for ProxyConfiguration ([#2392](https://github.com/apify/crawlee/issues/2392)) ([330598b](https://github.com/apify/crawlee/commit/330598b348ad27bc7c73732294a14b655ccd3507)), closes [#2348](https://github.com/apify/crawlee/issues/2348) [#2065](https://github.com/apify/crawlee/issues/2065)
+
+
+
+
+
+## [3.8.2](https://github.com/apify/crawlee/compare/v3.8.1...v3.8.2) (2024-03-21)
+
+
+### Bug Fixes
+
+* **core:** solve possible dead locks in `RequestQueueV2` ([#2376](https://github.com/apify/crawlee/issues/2376)) ([ffba095](https://github.com/apify/crawlee/commit/ffba095c8a74075901268cc49d970af4271d7abf))
+* use 0 (number) instead of false as default for sessionRotationCount ([#2372](https://github.com/apify/crawlee/issues/2372)) ([667a3e7](https://github.com/apify/crawlee/commit/667a3e7a2be31abb94adbdb6119c4a8f3a751d69))
+
+
+### Features
+
+* implement global storage access checking and use it to prevent unwanted side effects in adaptive crawler ([#2371](https://github.com/apify/crawlee/issues/2371)) ([fb3b7da](https://github.com/apify/crawlee/commit/fb3b7da402522ddff8c7394ac1253ba8aeac984c)), closes [#2364](https://github.com/apify/crawlee/issues/2364)
+
+
+
+
+
+## [3.8.1](https://github.com/apify/crawlee/compare/v3.8.0...v3.8.1) (2024-02-22)
+
+
+### Bug Fixes
+
+* fix crawling context type in `router.addHandler()` ([#2355](https://github.com/apify/crawlee/issues/2355)) ([d73c202](https://github.com/apify/crawlee/commit/d73c20240586aeeddaea99cd157771a01b61d917))
+
+
+
+
+
+# [3.8.0](https://github.com/apify/crawlee/compare/v3.7.3...v3.8.0) (2024-02-21)
+
+
+### Bug Fixes
+
+* `createRequests` works correctly with `exclude` (and nothing else) ([#2321](https://github.com/apify/crawlee/issues/2321)) ([048db09](https://github.com/apify/crawlee/commit/048db0964a57ac570320ad495425733128235491))
+
+
+### Features
+
+* `KeyValueStore.recordExists()` ([#2339](https://github.com/apify/crawlee/issues/2339)) ([8507a65](https://github.com/apify/crawlee/commit/8507a65d1ad079f64c752a6ddb1d8fac9b494228))
+* accessing crawler state, key-value store and named datasets via crawling context ([#2283](https://github.com/apify/crawlee/issues/2283)) ([58dd5fc](https://github.com/apify/crawlee/commit/58dd5fcc25f31bb066402c46e48a9e5e91efd5c5))
+* adaptive playwright crawler ([#2316](https://github.com/apify/crawlee/issues/2316)) ([8e4218a](https://github.com/apify/crawlee/commit/8e4218ada03cf485751def46f8c465b2d2a825c7))
+
+
+
+
+
 ## [3.7.3](https://github.com/apify/crawlee/compare/v3.7.2...v3.7.3) (2024-01-30)
 
 

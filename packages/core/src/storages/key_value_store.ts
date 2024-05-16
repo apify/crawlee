@@ -7,6 +7,7 @@ import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/ty
 import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
+import { checkStorageAccess } from './access_checking';
 import type { StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { purgeDefaultStorages } from './utils';
@@ -215,13 +216,30 @@ export class KeyValueStore {
      *   on the MIME content type of the record, or `null` if the key is missing from the store.
      */
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
+        checkStorageAccess();
+
         ow(key, ow.string.nonEmpty);
         const record = await this.client.getRecord(key);
 
         return record?.value as T ?? defaultValue ?? null;
     }
 
+    /**
+     * Tests whether a record with the given key exists in the key-value store without retrieving its value.
+     *
+     * @param key The queried record key.
+     * @returns `true` if the record exists, `false` if it does not.
+     */
+    async recordExists(key: string): Promise<boolean> {
+        checkStorageAccess();
+
+        ow(key, ow.string.nonEmpty);
+        return this.client.recordExists(key);
+    }
+
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
+        checkStorageAccess();
+
         if (this.cache.has(key)) {
             return this.cache.get(key) as T;
         }
@@ -300,10 +318,12 @@ export class KeyValueStore {
      * @param [options] Record options.
      */
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
+        checkStorageAccess();
+
         ow(key, 'key', ow.string.nonEmpty);
         ow(key, ow.string.validate((k) => ({
             validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
-            message: 'The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.\'()',
+            message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
         })));
         if (options.contentType
            && !(ow.isValid(value, ow.any(ow.string, ow.buffer)) || (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function'))) {
@@ -350,6 +370,8 @@ export class KeyValueStore {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
+        checkStorageAccess();
+
         await this.client.delete();
         const manager = StorageManager.getManager(KeyValueStore, this.config);
         manager.closeStorage(this);
@@ -357,6 +379,8 @@ export class KeyValueStore {
 
     /** @internal */
     clearCache(): void {
+        checkStorageAccess();
+
         this.cache.clear();
     }
 
@@ -382,6 +406,8 @@ export class KeyValueStore {
      * @param [options] All `forEachKey()` parameters.
      */
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
+        checkStorageAccess();
+
         return this._forEachKey(iteratee, options);
     }
 
@@ -417,6 +443,8 @@ export class KeyValueStore {
      * @param [options] Storage manager options.
      */
     static async open(storeIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<KeyValueStore> {
+        checkStorageAccess();
+
         ow(storeIdOrName, ow.optional.any(ow.string, ow.null));
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
@@ -523,6 +551,16 @@ export class KeyValueStore {
     static async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         const store = await this.open();
         return store.getValue<T>(key, defaultValue as T);
+    }
+
+    /**
+     * Tests whether a record with the given key exists in the default {@apilink KeyValueStore} associated with the current crawler run.
+     * @param key The queried record key.
+     * @returns `true` if the record exists, `false` if it does not.
+     */
+    static async recordExists(key: string): Promise<boolean> {
+        const store = await this.open();
+        return store.recordExists(key);
     }
 
     static async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {

@@ -26,7 +26,7 @@ import log_ from '@apify/log';
 import type { Request } from '@crawlee/browser';
 import { KeyValueStore, RequestState, validators, Configuration } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
-import type { CheerioRoot } from '@crawlee/utils';
+import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import { getInjectableScript } from 'idcac-playwright';
@@ -37,7 +37,7 @@ import type { InterceptHandler } from './puppeteer_request_interception';
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from './puppeteer_request_interception';
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PuppeteerCrawlingContext } from '../puppeteer-crawler';
+import type { PuppeteerCrawlerOptions, PuppeteerCrawlingContext } from '../puppeteer-crawler';
 
 const jqueryPath = require.resolve('jquery');
 
@@ -57,11 +57,13 @@ export interface DirectNavigationOptions {
 
     /**
      * When to consider operation succeeded, defaults to `load`. Events can be either:
-     * - `'domcontentloaded'` - consider operation to be finished when the `DOMContentLoaded` event is fired.
-     * - `'load'` - consider operation to be finished when the `load` event is fired.
-     * - `'networkidle'` - consider operation to be finished when there are no network connections for at least `500` ms.
+     * - `domcontentloaded` - consider operation to be finished when the `DOMContentLoaded` event is fired.
+     * - `load` - consider operation to be finished when the `load` event is fired.
+     * - `networkidle0` - consider operation to be finished when there are no network connections for at least `500` ms.
+     * - `networkidle2` - consider operation to be finished when there are no more than 2 network connections for at least `500` ms.
+     * - `networkidle` - alias for `networkidle0`
      */
-    waitUntil?: 'domcontentloaded' | 'load' | 'networkidle';
+    waitUntil?: 'domcontentloaded' | 'load' | 'networkidle' | 'networkidle0' | 'networkidle2';
 
     /**
      * Referer header value. If provided it will take preference over the referer header value set by page.setExtraHTTPHeaders(headers).
@@ -179,10 +181,14 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  * ```
  *
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
+ * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page): Promise<CheerioRoot> {
+export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
-    const pageContent = await page.content();
+
+    const html = ignoreShadowRoots ? null : await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
+    const pageContent = html || await page.content();
+
     return cheerio.load(pageContent);
 }
 
@@ -415,6 +421,12 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
     }));
     ow(gotoOptions, ow.object);
 
+    gotoOptions = { ...gotoOptions };
+
+    if (gotoOptions.waitUntil === 'networkidle') {
+        gotoOptions.waitUntil = 'networkidle0';
+    }
+
     const { url, method, headers, payload } = request;
     const isEmpty = (o?: object) => !o || Object.keys(o).length === 0;
 
@@ -524,7 +536,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
     let retry = 0;
 
     while (!body && retry < 10) {
-        await page.waitForTimeout(100);
+        await sleep(100);
         body = await page.$('body');
         retry++;
     }
@@ -584,7 +596,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
 
     while (!finished) {
         await doScroll();
-        await page.waitForTimeout(250);
+        await sleep(250);
         if (scrollDownAndUp) {
             await page.mouse.wheel({ deltaY: -1000 });
         }
@@ -945,7 +957,7 @@ export interface PuppeteerContextUtils {
 }
 
 /** @internal */
-export function registerUtilsToContext(context: PuppeteerCrawlingContext): void {
+export function registerUtilsToContext(context: PuppeteerCrawlingContext, crawlerOptions: PuppeteerCrawlerOptions): void {
     context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
     context.injectJQuery = (async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
@@ -955,7 +967,7 @@ export function registerUtilsToContext(context: PuppeteerCrawlingContext): void 
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     });
-    context.parseWithCheerio = async () => parseWithCheerio(context.page);
+    context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
     // eslint-disable-next-line max-len
     context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
         page: context.page,

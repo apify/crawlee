@@ -1,3 +1,5 @@
+import { inspect } from 'node:util';
+
 import { ListDictionary, LruCache } from '@apify/datastructures';
 import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
@@ -13,9 +15,10 @@ import type {
 import { chunk, downloadListOfUrls, sleep } from '@crawlee/utils';
 import ow from 'ow';
 
+import { checkStorageAccess } from './access_checking';
 import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
-import { QUERY_HEAD_MIN_LENGTH, STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId, purgeDefaultStorages } from './utils';
+import { QUERY_HEAD_MIN_LENGTH, getRequestId, purgeDefaultStorages } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import { log } from '../log';
@@ -103,6 +106,8 @@ export abstract class RequestProvider implements IStorage {
      * @param [options] Request queue operation options.
      */
     async addRequest(requestLike: Source, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo> {
+        checkStorageAccess();
+
         ow(requestLike, ow.object);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
@@ -172,12 +177,15 @@ export abstract class RequestProvider implements IStorage {
         requestsLike: Source[],
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
+        checkStorageAccess();
+
         ow(requestsLike, ow.array);
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
+            cache: ow.optional.boolean,
         }));
 
-        const { forefront = false } = options;
+        const { forefront = false, cache = true } = options;
 
         const uniqueKeyToCacheKey = new Map<string, string>();
         const getCachedRequestId = (uniqueKey: string) => {
@@ -248,7 +256,10 @@ export abstract class RequestProvider implements IStorage {
             const cacheKey = getCachedRequestId(newRequest.uniqueKey);
 
             const { requestId, wasAlreadyPresent } = newRequest;
-            this._cacheRequest(cacheKey, newRequest);
+
+            if (cache) {
+                this._cacheRequest(cacheKey, newRequest);
+            }
 
             if (!wasAlreadyPresent && !this.inProgress.has(requestId) && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
@@ -271,11 +282,8 @@ export abstract class RequestProvider implements IStorage {
      * @param options Options for the request queue
      */
     async addRequestsBatched(requests: (string | Source)[], options: AddRequestsBatchedOptions = {}): Promise<AddRequestsBatchedResult> {
-        ow(requests, ow.array.ofType(ow.any(
-            ow.string,
-            ow.object.partialShape({ url: ow.string, id: ow.undefined }),
-            ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
-        )));
+        checkStorageAccess();
+
         ow(options, ow.object.exactShape({
             forefront: ow.optional.boolean,
             waitForAllRequestsToBeAdded: ow.optional.boolean,
@@ -283,23 +291,51 @@ export abstract class RequestProvider implements IStorage {
             waitBetweenBatchesMillis: ow.optional.number,
         }));
 
+        // The `requests` array can be huge, and `ow` is very slow for anything more complex.
+        // This explicit iteration takes a few milliseconds, while the ow check can take tens of seconds.
+
+        // ow(requests, ow.array.ofType(ow.any(
+        //     ow.string,
+        //     ow.object.partialShape({ url: ow.string, id: ow.undefined }),
+        //     ow.object.partialShape({ requestsFromUrl: ow.string, regex: ow.optional.regExp }),
+        // )));
+
+        for (const request of requests) {
+            if (typeof request === 'string') {
+                continue;
+            }
+
+            if (typeof request === 'object' && request !== null) {
+                if (typeof request.url === 'string' && typeof request.id === 'undefined') {
+                    continue;
+                }
+
+                if (typeof (request as any).requestsFromUrl === 'string') {
+                    continue;
+                }
+            }
+
+            // eslint-disable-next-line max-len
+            throw new Error(`Request options are not valid, provide either a URL or an object with 'url' property (but without 'id' property), or an object with 'requestsFromUrl' property. Input: ${inspect(request)}`);
+        }
+
         const {
             batchSize = 1000,
             waitBetweenBatchesMillis = 1000,
         } = options;
-        const builtRequests: Request[] = [];
+        const sources: Source[] = [];
 
         for (const opts of requests) {
             if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
                 await this.addRequest(opts, { forefront: options.forefront });
             } else {
-                builtRequests.push(new Request(typeof opts === 'string' ? { url: opts } : opts as RequestOptions));
+                sources.push(typeof opts === 'string' ? { url: opts } : opts as RequestOptions);
             }
         }
 
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Request[]) => {
+        const attemptToAddToQueueAndAddAnyUnprocessed = async (providedRequests: Source[], cache = true) => {
             const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront });
+            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
             resultsToReturn.push(...apiResult.processedRequests);
 
             if (apiResult.unprocessedRequests.length) {
@@ -307,19 +343,20 @@ export abstract class RequestProvider implements IStorage {
 
                 resultsToReturn.push(...await attemptToAddToQueueAndAddAnyUnprocessed(
                     providedRequests.filter((r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey)),
+                    false,
                 ));
             }
 
             return resultsToReturn;
         };
 
-        const initialChunk = builtRequests.splice(0, batchSize);
+        const initialChunk = sources.splice(0, batchSize);
 
         // Add initial batch of `batchSize` to process them right away
         const addedRequests = await attemptToAddToQueueAndAddAnyUnprocessed(initialChunk);
 
         // If we have no more requests to add, return early
-        if (!builtRequests.length) {
+        if (!sources.length) {
             return {
                 addedRequests,
                 waitForAllRequestsToBeAdded: Promise.resolve([]),
@@ -328,11 +365,11 @@ export abstract class RequestProvider implements IStorage {
 
         // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            const chunks = chunk(builtRequests, batchSize);
+            const chunks = chunk(sources, batchSize);
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for (const requestChunk of chunks) {
-                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk));
+                finalAddedRequests.push(...await attemptToAddToQueueAndAddAnyUnprocessed(requestChunk, false));
 
                 await sleep(waitBetweenBatchesMillis);
             }
@@ -358,6 +395,8 @@ export abstract class RequestProvider implements IStorage {
      * @returns Returns the request object, or `null` if it was not found.
      */
     async getRequest<T extends Dictionary = Dictionary>(id: string): Promise<Request<T> | null> {
+        checkStorageAccess();
+
         ow(id, ow.string);
 
         const requestOptions = await this.client.getRequest(id);
@@ -366,6 +405,23 @@ export abstract class RequestProvider implements IStorage {
         return new Request(requestOptions as unknown as RequestOptions);
     }
 
+    /**
+     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
+     *
+     * Once you successfully finish processing of the request, you need to call
+     * {@apilink RequestQueue.markRequestHandled}
+     * to mark the request as handled in the queue. If there was some error in processing the request,
+     * call {@apilink RequestQueue.reclaimRequest} instead,
+     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
+     *
+     * Note that the `null` return value doesn't mean the queue processing finished,
+     * it means there are currently no pending requests.
+     * To check whether all requests in queue were finished,
+     * use {@apilink RequestQueue.isFinished} instead.
+     *
+     * @returns
+     *   Returns the request object or `null` if there are no more pending requests.
+     */
     abstract fetchNextRequest<T extends Dictionary = Dictionary>(options?: RequestOptions): Promise<Request<T> | null>;
 
     /**
@@ -375,6 +431,8 @@ export abstract class RequestProvider implements IStorage {
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+        checkStorageAccess();
+
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -410,6 +468,8 @@ export abstract class RequestProvider implements IStorage {
      * For example, this lets you store the number of retries or error messages for the request.
      */
     async reclaimRequest(request: Request, options: RequestQueueOperationOptions = {}): Promise<RequestQueueOperationInfo | null> {
+        checkStorageAccess();
+
         ow(request, ow.object.partialShape({
             id: ow.string,
             uniqueKey: ow.string,
@@ -430,20 +490,6 @@ export abstract class RequestProvider implements IStorage {
         const queueOperationInfo = await this.client.updateRequest(request, { forefront }) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
-
-        // Wait a little to increase a chance that the next call to fetchNextRequest() will return the request with updated data.
-        // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
-        setTimeout(() => {
-            if (!this.inProgress.has(request.id)) {
-                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
-                return;
-            }
-
-            this.inProgress.delete(request.id);
-
-            // Performance optimization: add request straight to head if possible
-            this._maybeAddRequestToQueueHead(request.id, forefront);
-        }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return queueOperationInfo;
     }
@@ -487,6 +533,9 @@ export abstract class RequestProvider implements IStorage {
      * Caches information about request to beware of unneeded addRequest() calls.
      */
     protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+        // Remove the previous entry, as otherwise our cache will never update 👀
+        this.requestCache.remove(cacheKey);
+
         this.requestCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
@@ -512,6 +561,8 @@ export abstract class RequestProvider implements IStorage {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
+        checkStorageAccess();
+
         await this.client.delete();
         const manager = StorageManager.getManager(this.constructor as Constructor<IStorage>, this.config);
         manager.closeStorage(this);
@@ -557,6 +608,8 @@ export abstract class RequestProvider implements IStorage {
      * ```
      */
     async getInfo(): Promise<RequestQueueInfo | undefined> {
+        checkStorageAccess();
+
         return this.client.get();
     }
 
@@ -626,6 +679,8 @@ export abstract class RequestProvider implements IStorage {
      * @param [options] Open Request Queue options.
      */
     static async open(queueIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<RequestProvider> {
+        checkStorageAccess();
+
         ow(queueIdOrName, ow.optional.any(ow.string, ow.null));
         ow(options, ow.object.exactShape({
             config: ow.optional.object.instanceOf(Configuration),
@@ -699,6 +754,12 @@ export interface RequestQueueOperationOptions {
      * @default false
      */
     forefront?: boolean;
+    /**
+     * Should the requests be added to the local LRU cache?
+     * @default false
+     * @internal
+     */
+    cache?: boolean;
 }
 
 /**

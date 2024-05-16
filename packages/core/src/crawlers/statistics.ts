@@ -93,8 +93,8 @@ export class Statistics {
      */
     private readonly config: Configuration;
 
-    private keyValueStore?: KeyValueStore = undefined;
-    private persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
+    protected keyValueStore?: KeyValueStore = undefined;
+    protected persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
     private logIntervalMillis: number;
     private logMessage: string;
     private listener: () => Promise<void>;

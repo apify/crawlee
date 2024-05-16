@@ -728,7 +728,7 @@ describe('RequestList', () => {
             const name = 'xxx';
             const SDK_KEY = `SDK_${name}`;
             const sources = ['https://example.com'];
-            const requests = sources.map((url) => new Request({ url }));
+            const requests = sources.map((url) => ({ url, uniqueKey: url }));
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
@@ -752,7 +752,7 @@ describe('RequestList', () => {
             const SDK_KEY = `SDK_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
-            const requests = sources.map(({ url }) => new Request({ url, uniqueKey: `${url}-${counter++}` }));
+            const requests = sources.map(({ url }) => ({ url, uniqueKey: `${url}-${counter++}` }));
             const options = {
                 keepDuplicateUrls: true,
                 persistStateKey: 'yyy',
@@ -780,7 +780,7 @@ describe('RequestList', () => {
 
             const name: string = null;
             const sources = [{ url: 'https://example.com' }];
-            const requests = sources.map(({ url }) => new Request({ url }));
+            const requests = sources.map(({ url }) => ({ url, uniqueKey: url }));
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);

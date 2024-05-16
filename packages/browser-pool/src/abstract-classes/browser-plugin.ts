@@ -75,6 +75,13 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
     userDataDir?: string;
+    /**
+     * If set to `true`, the crawler respects the proxy url generated for the given request.
+     * This aligns the browser-based crawlers with the `HttpCrawler`.
+     *
+     * Might cause performance issues, as Crawlee might launch too many browser instances.
+     */
+    browserPerProxy?: boolean;
 }
 
 export interface CreateLaunchContextOptions<
@@ -112,6 +119,8 @@ export abstract class BrowserPlugin<
 
     experimentalContainers: boolean;
 
+    browserPerProxy?: boolean;
+
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
             launchOptions = {} as LibraryOptions,
@@ -119,6 +128,7 @@ export abstract class BrowserPlugin<
             userDataDir,
             useIncognitoPages = false,
             experimentalContainers = false,
+            browserPerProxy = false,
         } = options;
 
         this.library = library;
@@ -127,6 +137,7 @@ export abstract class BrowserPlugin<
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
         this.experimentalContainers = experimentalContainers;
+        this.browserPerProxy = browserPerProxy;
     }
 
     /**
@@ -145,6 +156,8 @@ export abstract class BrowserPlugin<
             useIncognitoPages = this.useIncognitoPages,
             userDataDir = this.userDataDir,
             experimentalContainers = this.experimentalContainers,
+            browserPerProxy = this.browserPerProxy,
+            proxyTier,
         } = options;
 
         return new LaunchContext({
@@ -155,6 +168,8 @@ export abstract class BrowserPlugin<
             useIncognitoPages,
             experimentalContainers,
             userDataDir,
+            browserPerProxy,
+            proxyTier,
         });
     }
 

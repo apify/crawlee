@@ -193,7 +193,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
-        this.uniqueKey = uniqueKey || this._computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+        this.uniqueKey = uniqueKey || Request.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -271,7 +271,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
     get sessionRotationCount(): number {
-        return this.userData.__crawlee?.sessionRotationCount ?? false;
+        return this.userData.__crawlee?.sessionRotationCount ?? 0;
     }
 
     /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
@@ -378,7 +378,18 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.errorMessages.push(message);
     }
 
-    protected _computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey }: ComputeUniqueKeyOptions) {
+    // TODO: only for better BC, remove in v4
+    protected _computeUniqueKey(options: ComputeUniqueKeyOptions) {
+        return Request.computeUniqueKey(options);
+    }
+
+    // TODO: only for better BC, remove in v4
+    protected _hashPayload(payload: BinaryLike): string {
+        return Request.hashPayload(payload);
+    }
+
+    /** @internal */
+    static computeUniqueKey({ url, method = 'GET', payload, keepUrlFragment = false, useExtendedUniqueKey = false }: ComputeUniqueKeyOptions) {
         const normalizedMethod = method.toUpperCase();
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
@@ -390,11 +401,12 @@ export class Request<UserData extends Dictionary = Dictionary> {
             }
             return normalizedUrl;
         }
-        const payloadHash = payload ? this._hashPayload(payload) : '';
+        const payloadHash = payload ? Request.hashPayload(payload) : '';
         return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
     }
 
-    protected _hashPayload(payload: BinaryLike): string {
+    /** @internal */
+    static hashPayload(payload: BinaryLike): string {
         return crypto
             .createHash('sha256')
             .update(payload)

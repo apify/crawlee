@@ -39,8 +39,8 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestQueueV1,
     RequestQueue,
-    RequestQueueV2,
     RequestState,
     RetryRequestError,
     Router,
@@ -356,8 +356,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
  */
 export interface CrawlerExperiments {
     /**
-     * Enables the use of the new RequestQueue API, which allows multiple clients to use the same queue,
-     * by locking the requests they are processing for a period of time.
+     * @deprecated This experiment is now enabled by default, and this flag will be removed in a future release.
+     * If you encounter issues due to this change, please:
+     * - report it to us: https://github.com/apify/crawlee
+     * - set `requestLocking` to `false` in the `experiments` option of the crawler
      */
     requestLocking?: boolean;
 }
@@ -427,7 +429,7 @@ export interface CrawlerExperiments {
  * @category Crawlers
  */
 export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext> {
-    private static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
+    protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
@@ -468,7 +470,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      */
     readonly router: RouterHandler<Context> = Router.create<Context>();
 
-    running?: boolean;
+    running = false;
+    hasFinishedBefore = false;
 
     protected log: Log;
     protected requestHandler!: RequestHandler<Context>;
@@ -591,14 +594,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
         this.experiments = experiments;
-
-        if (requestQueue && requestQueue instanceof RequestQueueV2 && !experiments.requestLocking) {
-            throw new Error([
-                'You provided the new RequestQueue v2 class into your crawler without enabling the experiment!',
-                "If you're sure you want to test out the new experimental RequestQueue v2, please provide `experiments: { requestLocking: true }` "
-                + 'in your crawler options, and try again.',
-            ].join('\n'));
-        }
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -835,19 +830,22 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const purgeRequestQueue = options?.purgeRequestQueue ?? true;
 
-        // When executing the run method for the second time explicitly (the first time `this.running` is `undefined`),
-        // we need to purge the default RQ to allow processing the same requests again - this is important so users can
-        // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
-        // ignored - as a failed requests is still handled.
-        if (this.running === false && this.requestQueue?.name === 'default' && purgeRequestQueue) {
-            await this.requestQueue.drop();
-            this.requestQueue = await this._getRequestQueue();
+        if (this.hasFinishedBefore) {
+            // When executing the run method for the second time explicitly,
+            // we need to purge the default RQ to allow processing the same requests again - this is important so users can
+            // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
+            // ignored - as a failed requests is still handled.
+            if (this.requestQueue?.name === 'default' && purgeRequestQueue) {
+                await this.requestQueue.drop();
+                this.requestQueue = await this._getRequestQueue();
+            }
+
+            this.stats.reset();
+            await this.stats.resetStore();
+            await this.sessionPool?.resetStore();
         }
 
         this.running = true;
-        this.stats.reset();
-        await this.stats.resetStore();
-        await this.sessionPool?.resetStore();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
@@ -919,6 +917,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // eslint-disable-next-line max-len
         await this.setStatusMessage(`Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`, { isStatusMessageTerminal: true, level: 'INFO' });
         this.running = false;
+        this.hasFinishedBefore = true;
 
         return stats;
     }
@@ -1148,7 +1147,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
             // eslint-disable-next-line dot-notation
             source['inProgress'].add(request.id!);
-            await source.reclaimRequest(request);
+            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
 
         return true;
@@ -1384,7 +1383,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     { id, url, retryCount },
                 );
 
-                await source.reclaimRequest(request);
+                await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
                 return;
             }
         }
@@ -1575,16 +1574,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     private async _getRequestQueue() {
-        if (this.experiments.requestLocking) {
+        // Check if it's explicitly disabled
+        if (this.experiments.requestLocking === false) {
             if (!this._experimentWarnings.requestLocking) {
-                this.log.warning([
-                    'The RequestQueue v2 is an experimental feature, and may have issues when used in a production environment.',
-                    'Please report any issues you encounter on GitHub: https://github.com/apify/crawlee',
-                ].join('\n'));
+                this.log.info('Using the old RequestQueue implementation without request locking.');
                 this._experimentWarnings.requestLocking = true;
             }
 
-            return RequestQueueV2.open(null, { config: this.config });
+            return RequestQueueV1.open(null, { config: this.config });
         }
 
         return RequestQueue.open(null, { config: this.config });
@@ -1631,7 +1628,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
             case EnqueueStrategy.All:
             default: {
-                return true;
+                return baseUrl.protocol === 'http:' || baseUrl.protocol === 'https:';
             }
         }
     }

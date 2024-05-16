@@ -7,7 +7,7 @@ describe('Sitemap', () => {
     beforeEach(() => {
         nock.disableNetConnect();
         nock('http://not-exists.com').persist()
-            .get('/sitemap_child.xml')
+            .get((url) => url === '/sitemap_child.xml' || url === '/sitemap_child_2.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -46,12 +46,21 @@ describe('Sitemap', () => {
                 'nr/w/Eb2Ll2RVWLcvwrWMlWtWLWJcBIl6TdW/R/ZZp3soAdV/Yy2w1mOUI63tz4itCRd3Cz9882y',
                 'NfMGy9bJ8CfTZkU4fXUavAGtDs17GwMAAA==',
             ].join('\n'), 'base64'))
+            .get('/invalid_sitemap_child.xml.gz')
+            .reply(200, Buffer.from([
+                'H4sIAAAAAAAAA62S306DMBTG73kK0gtvDLSFLSKWcucTzOulKR00QottGZtPbxfQEEWXqElzkvMv',
+                'NfMGy9bJ8CfTZkU4fXUavAGtDs17GwMAAA==',
+            ].join('\n'), 'base64'))
             .get('/sitemap_parent.xml')
             .reply(200, [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                 '<sitemap>',
                 '<loc>http://not-exists.com/sitemap_child.xml</loc>',
+                '<lastmod>2004-12-23</lastmod>',
+                '</sitemap>',
+                '<sitemap>',
+                '<loc>http://not-exists.com/sitemap_child_2.xml?from=94937939985&amp;to=1318570721404</loc>',
                 '<lastmod>2004-12-23</lastmod>',
                 '</sitemap>',
                 '</sitemapindex>',
@@ -64,6 +73,15 @@ describe('Sitemap', () => {
                 'The document has moved',
                 '<A HREF="https://ads.google.com/home/">here</A>.',
                 '</BODY></HTML>',
+            ].join('\n'))
+            .get('/sitemap_cdata.xml')
+            .reply(200, [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc><![CDATA[http://not-exists.com/catalog]]></loc>',
+                '</url>',
+                '</urlset>',
             ].join('\n'))
             .get('/sitemap.xml')
             .reply(200, [
@@ -115,6 +133,13 @@ describe('Sitemap', () => {
         ]));
     });
 
+    it('identifies incorrect gzipped sitemaps as malformed', async () => {
+        const sitemap = await Sitemap.load(
+            'http://not-exists.com/invalid_sitemap_child.xml.gz',
+        );
+        expect(new Set(sitemap.urls)).toEqual(new Set([]));
+    });
+
     it('follows links in sitemap indexes', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent.xml');
         expect(new Set(sitemap.urls)).toEqual(new Set([
@@ -129,6 +154,13 @@ describe('Sitemap', () => {
     it('does not break on invalid xml', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
         expect(sitemap.urls).toEqual([]);
+    });
+
+    it('handles CDATA in loc tags', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml');
+        expect(new Set(sitemap.urls)).toEqual(new Set([
+            'http://not-exists.com/catalog',
+        ]));
     });
 
     it('autodetects sitemaps', async () => {

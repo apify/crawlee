@@ -1,5 +1,5 @@
+import { CheerioCrawler, log, RequestQueueV1 } from '@crawlee/cheerio';
 import { Actor } from 'apify';
-import { CheerioCrawler, log, RequestQueue } from '@crawlee/cheerio';
 
 log.setLevel(log.LEVELS.DEBUG);
 
@@ -12,7 +12,7 @@ const mainOptions = {
 
 // RequestQueue auto-reset when stuck with requests in progress
 await Actor.main(async () => {
-    const requestQueue = await RequestQueue.open();
+    const requestQueue = await RequestQueueV1.open();
     await requestQueue.addRequest({ url: 'https://example.com/?q=1' });
     await requestQueue.addRequest({ url: 'https://example.com/?q=2' });
     const r3 = await requestQueue.addRequest({ url: 'https://example.com/?q=3' });

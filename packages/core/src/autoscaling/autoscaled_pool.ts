@@ -203,7 +203,6 @@ export class AutoscaledPool {
     private reject: ((reason?: unknown) => void) | null = null;
     private snapshotter: Snapshotter;
     private systemStatus: SystemStatus;
-    private poolPromise!: Promise<unknown>;
     private autoscaleInterval!: BetterIntervalID;
     private maybeRunInterval!: BetterIntervalID;
     private queryingIsTaskReady!: boolean;
@@ -243,8 +242,8 @@ export class AutoscaledPool {
             minConcurrency = 1,
             desiredConcurrency,
             desiredConcurrencyRatio = 0.90,
-            scaleUpStepRatio = 0.05,
-            scaleDownStepRatio = 0.05,
+            scaleUpStepRatio = 0.1,
+            scaleDownStepRatio = 0.1,
             maybeRunIntervalSecs = 0.5,
             loggingIntervalSecs = 60,
             taskTimeoutSecs = 0,
@@ -357,7 +356,7 @@ export class AutoscaledPool {
      * all the tasks are finished or one of them fails.
      */
     async run(): Promise<void> {
-        this.poolPromise = new Promise((resolve, reject) => {
+        const poolPromise = new Promise((resolve, reject) => {
             this.resolve = resolve;
             this.reject = reject;
         });
@@ -378,7 +377,7 @@ export class AutoscaledPool {
         }
 
         try {
-            await this.poolPromise;
+            await poolPromise;
         } finally {
             // If resolve is null, the pool is already destroyed.
             if (this.resolve) await this._destroy();
@@ -447,6 +446,14 @@ export class AutoscaledPool {
      */
     resume(): void {
         this.isStopped = false;
+    }
+
+    /**
+     * Explicitly check the queue for new tasks. The AutoscaledPool checks the queue for new tasks periodically,
+     * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
+     */
+    async notify(): Promise<void> {
+        setImmediate(this._maybeRunTask);
     }
 
     /**

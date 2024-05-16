@@ -62,6 +62,18 @@ describe('KeyValueStore', () => {
         expect(mockGetRecord).toBeCalledWith('key-1');
         expect(response).toEqual(record);
 
+        // Record Exists
+        const mockRecordExists = vitest
+            // @ts-expect-error Accessing private property
+            .spyOn(store.client, 'recordExists')
+            .mockResolvedValueOnce(true);
+
+        const exists = await store.recordExists('key-1');
+
+        expect(mockRecordExists).toBeCalledTimes(1);
+        expect(mockRecordExists).toBeCalledWith('key-1');
+        expect(exists).toBe(true);
+
         // Delete Record
         const mockDeleteRecord = vitest
             // @ts-expect-error Accessing private property
@@ -113,6 +125,32 @@ describe('KeyValueStore', () => {
             expect(getValueSpy).toBeCalledTimes(2);
             expect(getValueSpy).toBeCalledWith('key-2', 321);
             expect(val2).toBe(321);
+        });
+    });
+
+    describe('recordExists', () => {
+        test('throws on invalid args', async () => {
+            const store = new KeyValueStore({
+                id: 'some-id-1',
+                client,
+            });
+
+            // @ts-expect-error JS-side validation
+            await expect(store.recordExists()).rejects.toThrow('Expected argument to be of type `string` but received type `undefined`');
+            // @ts-expect-error JS-side validation
+            await expect(store.recordExists({})).rejects.toThrow('Expected argument to be of type `string` but received type `Object`');
+            await expect(store.recordExists(null)).rejects.toThrow('Expected argument to be of type `string` but received type `null`');
+            await expect(store.recordExists('')).rejects.toThrow('Expected string to not be empty');
+        });
+
+        test('KeyValueStore.recordExists()', async () => {
+            const recordExistsSpy = vitest.spyOn(KeyValueStore.prototype, 'recordExists');
+            recordExistsSpy.mockImplementationOnce(async () => false);
+
+            const val = await KeyValueStore.recordExists('key-1');
+            expect(recordExistsSpy).toBeCalledTimes(1);
+            expect(recordExistsSpy).toBeCalledWith('key-1');
+            expect(val).toBe(false);
         });
     });
 
@@ -187,26 +225,16 @@ describe('KeyValueStore', () => {
             });
 
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
-            let counter = 0;
-
             for (const char of INVALID_CHARACTERS) {
-                try {
-                    await store.setValue(`my_id_${char}`, 'value');
-                } catch (err) {
-                    if ((err as Error).message.match('The "key" argument must be at most 256 characters')) counter++;
-                }
+                const key = `my_id_${char}`;
+                const err = `The "key" argument "${key}" must be at most 256 characters`;
+                await expect(store.setValue(key, 'value')).rejects.toThrow(err);
             }
-            expect(counter).toEqual(INVALID_CHARACTERS.length);
-
-            // TODO: This throws "ENAMETOOLONG: name too long, unlink" !!!
-            // await store.setValue('X'.repeat(256), 'value');
 
             // test max length
-            try {
-                await store.setValue('X'.repeat(257), 'value');
-            } catch (err) {
-                if ((err as Error).message.match('The "key" parameter must be at most 256 characters')) counter++;
-            }
+            const longKey = 'X'.repeat(257);
+            const err = `The "key" argument "${longKey}" must be at most 256 characters`;
+            await expect(store.setValue(longKey)).rejects.toThrow(err);
         });
 
         test('correctly adds charset to content type', async () => {
