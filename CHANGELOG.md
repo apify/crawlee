@@ -9,9 +9,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Bug Fixes
 
 * `EnqueueStrategy.All` erroring with links using unsupported protocols ([#2389](https://github.com/apify/crawlee/issues/2389)) ([8db3908](https://github.com/apify/crawlee/commit/8db39080b7711ba3c27dff7fce1170ddb0ee3d05))
-* **core:** conversion between tough cookies and browser pool cookies ([#2443](https://github.com/apify/crawlee/issues/2443)) ([74f73ab](https://github.com/apify/crawlee/commit/74f73ab77a94ecd285d587b7b3532443deda07b4))
-* **core:** fire local `SystemInfo` events every second ([#2454](https://github.com/apify/crawlee/issues/2454)) ([1fa9a66](https://github.com/apify/crawlee/commit/1fa9a66388846505f84dcdea0393e7eaaebf84c3))
-* **core:** use createSessionFunction when loading Session from persisted state ([#2444](https://github.com/apify/crawlee/issues/2444)) ([3c56b4c](https://github.com/apify/crawlee/commit/3c56b4ca1efe327138aeb32c39dfd9dd67b6aceb))
+* conversion between tough cookies and browser pool cookies ([#2443](https://github.com/apify/crawlee/issues/2443)) ([74f73ab](https://github.com/apify/crawlee/commit/74f73ab77a94ecd285d587b7b3532443deda07b4))
+* fire local `SystemInfo` events every second ([#2454](https://github.com/apify/crawlee/issues/2454)) ([1fa9a66](https://github.com/apify/crawlee/commit/1fa9a66388846505f84dcdea0393e7eaaebf84c3))
+* use createSessionFunction when loading Session from persisted state ([#2444](https://github.com/apify/crawlee/issues/2444)) ([3c56b4c](https://github.com/apify/crawlee/commit/3c56b4ca1efe327138aeb32c39dfd9dd67b6aceb))
 * do not drop statistics on migration/resurrection/resume ([#2462](https://github.com/apify/crawlee/issues/2462)) ([8ce7dd4](https://github.com/apify/crawlee/commit/8ce7dd4ae6a3718dac95e784a53bd5661c827edc))
 * double tier decrement in tiered proxy ([#2468](https://github.com/apify/crawlee/issues/2468)) ([3a8204b](https://github.com/apify/crawlee/commit/3a8204ba417936570ec5569dc4e4eceed79939c1))
 * Fixed double extension for screenshots ([#2419](https://github.com/apify/crawlee/issues/2419)) ([e8b39c4](https://github.com/apify/crawlee/commit/e8b39c41764726280c995e52fa7d79a9240d993e)), closes [#1980](https://github.com/apify/crawlee/issues/1980)
