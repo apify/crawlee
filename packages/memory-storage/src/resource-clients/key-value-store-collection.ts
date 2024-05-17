@@ -29,8 +29,8 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
             offset: 0,
             limit: this.client.keyValueStoresHandled.length,
             desc: false,
-            items: this.client.keyValueStoresHandled.map(
-                (store) => store.toKeyValueStoreInfo())
+            items: this.client.keyValueStoresHandled
+                .map((store) => store.toKeyValueStoreInfo())
                 .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }
@@ -46,7 +46,11 @@ export class KeyValueStoreCollectionClient implements storage.KeyValueStoreColle
             }
         }
 
-        const newStore = new KeyValueStoreClient({ name, baseStorageDirectory: this.keyValueStoresDirectory, client: this.client });
+        const newStore = new KeyValueStoreClient({
+            name,
+            baseStorageDirectory: this.keyValueStoresDirectory,
+            client: this.client,
+        });
         this.client.keyValueStoresHandled.push(newStore);
 
         // Schedule the worker to write to the disk

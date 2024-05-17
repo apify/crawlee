@@ -66,7 +66,10 @@ describe('writeMetadata option', () => {
             await keyValueStore.setRecord({ key: 'foo', value: 'test' });
 
             const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
-            const expectedMetadataPath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.__metadata__.json`);
+            const expectedMetadataPath = resolve(
+                storage.keyValueStoresDirectory,
+                `${keyValueStoreInfo.id}/foo.__metadata__.json`,
+            );
             await Promise.all([waitTillWrittenToDisk(expectedFilePath), waitTillWrittenToDisk(expectedMetadataPath)]);
 
             const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}`));

@@ -20,7 +20,8 @@ export class InstallPlaywrightBrowsersCommand<T> implements CommandModule<T, Ins
             alias: 'f',
             default: false,
             type: 'boolean',
-            describe: 'Use `--force` to force installation of browsers even if the environment is marked as having them.',
+            describe:
+                'Use `--force` to force installation of browsers even if the environment is marked as having them.',
         });
 
         return args as Argv<InstallPlaywrightBrowsersArgs>;
@@ -33,7 +34,11 @@ export class InstallPlaywrightBrowsersCommand<T> implements CommandModule<T, Ins
                 return;
             }
 
-            console.warn(ansiColors.yellow('Installing Playwright browsers in an environment where browsers have already been installed...'));
+            console.warn(
+                ansiColors.yellow(
+                    'Installing Playwright browsers in an environment where browsers have already been installed...',
+                ),
+            );
         } else {
             console.log(ansiColors.green('Installing Playwright browsers...'));
         }

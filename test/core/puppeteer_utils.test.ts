@@ -50,7 +50,9 @@ describe('puppeteerUtils', () => {
                 // @ts-expect-error
                 let result = await page.evaluate(() => window.injectedVariable === 42);
                 expect(result).toBe(false);
-                await puppeteerUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'), { surviveNavigations: true });
+                await puppeteerUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'), {
+                    surviveNavigations: true,
+                });
                 // @ts-expect-error
                 result = await page.evaluate(() => window.injectedVariable);
                 expect(result).toBe(42);
@@ -110,7 +112,7 @@ describe('puppeteerUtils', () => {
 
                 await puppeteerUtils.injectJQuery(page);
                 const result2 = await page.evaluate(() => {
-                /* global $ */
+                    /* global $ */
                     return {
                         // @ts-expect-error
                         isDefined: window.jQuery === window.$,
@@ -174,10 +176,7 @@ describe('puppeteerUtils', () => {
                 await puppeteerUtils.blockRequests(page);
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
-                expect(loadedUrls).toEqual([
-                    `${serverAddress}/special/resources`,
-                    `${serverAddress}/script.js`,
-                ]);
+                expect(loadedUrls).toEqual([`${serverAddress}/special/resources`, `${serverAddress}/script.js`]);
             });
 
             test('works with overridden values', async () => {
@@ -190,11 +189,13 @@ describe('puppeteerUtils', () => {
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/image.png`,
-                    `${serverAddress}/script.js`,
-                    `${serverAddress}/image.gif`,
-                ]));
+                expect(loadedUrls).toEqual(
+                    expect.arrayContaining([
+                        `${serverAddress}/image.png`,
+                        `${serverAddress}/script.js`,
+                        `${serverAddress}/image.gif`,
+                    ]),
+                );
             });
 
             test('blockResources() supports default values', async () => {
@@ -205,9 +206,7 @@ describe('puppeteerUtils', () => {
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/script.js`,
-                ]));
+                expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/script.js`]));
             });
 
             test('blockResources() supports nondefault values', async () => {
@@ -218,10 +217,9 @@ describe('puppeteerUtils', () => {
                 page.on('response', (response) => loadedUrls.push(response.url()));
                 await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
 
-                expect(loadedUrls).toEqual(expect.arrayContaining([
-                    `${serverAddress}/style.css`,
-                    `${serverAddress}/image.png`,
-                ]));
+                expect(loadedUrls).toEqual(
+                    expect.arrayContaining([`${serverAddress}/style.css`, `${serverAddress}/image.png`]),
+                );
             });
         });
 
@@ -241,7 +239,7 @@ describe('puppeteerUtils', () => {
                         const buffer = await response.buffer();
                         downloadedBytes += buffer.byteLength;
                     } catch (e) {
-                    // do nothing
+                        // do nothing
                     }
                 });
                 await page.goto(`${serverAddress}/cacheable`, { waitUntil: 'networkidle0', timeout: 60e3 });
@@ -342,7 +340,7 @@ describe('puppeteerUtils', () => {
 
         describe('infiniteScroll()', () => {
             function isAtBottom() {
-                return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
+                return window.innerHeight + window.pageYOffset >= document.body.offsetHeight;
             }
 
             let browser: Browser;
@@ -357,9 +355,11 @@ describe('puppeteerUtils', () => {
             beforeEach(async () => {
                 page = await browser.newPage();
                 let count = 0;
-                const content = Array(1000).fill(null).map(() => {
-                    return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
-                });
+                const content = Array(1000)
+                    .fill(null)
+                    .map(() => {
+                        return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+                    });
                 const contentHTML = `<html><body>${content}</body></html>`;
                 await page.setContent(contentHTML);
             });
@@ -414,7 +414,8 @@ describe('puppeteerUtils', () => {
 
             try {
                 const page = await browser.newPage();
-                const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
+                const contentHTML =
+                    '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
                 await page.setContent(contentHTML);
 
                 const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
@@ -422,7 +423,11 @@ describe('puppeteerUtils', () => {
                 // Test saving both image and html
                 const object = { setValue: vitest.fn() };
                 openKVSSpy.mockResolvedValue(object as any);
-                await puppeteerUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
+                await puppeteerUtils.saveSnapshot(page, {
+                    key: 'TEST',
+                    keyValueStoreName: 'TEST-STORE',
+                    screenshotQuality: 60,
+                });
 
                 expect(object.setValue).toBeCalledWith('TEST.jpg', screenshot, { contentType: 'image/jpeg' });
                 expect(object.setValue).toBeCalledWith('TEST.html', contentHTML, { contentType: 'text/html' });

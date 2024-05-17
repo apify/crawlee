@@ -91,17 +91,20 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
             ...browserLauncherOptions
         } = launchContext;
 
-        super({
-            ...browserLauncherOptions,
-            launcher,
-        }, config);
+        super(
+            {
+                ...browserLauncherOptions,
+                launcher,
+            },
+            config,
+        );
 
         this.Plugin = PuppeteerPlugin;
     }
 
     protected override _getDefaultHeadlessOption(): boolean {
         const headless = super._getDefaultHeadlessOption();
-        return headless ? 'new' as any : headless;
+        return headless ? ('new' as any) : headless;
     }
 }
 
@@ -137,7 +140,10 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
  * @returns
  *   Promise that resolves to Puppeteer's `Browser` instance.
  */
-export async function launchPuppeteer(launchContext?: PuppeteerLaunchContext, config = Configuration.getGlobalConfig()): Promise<Browser> {
+export async function launchPuppeteer(
+    launchContext?: PuppeteerLaunchContext,
+    config = Configuration.getGlobalConfig(),
+): Promise<Browser> {
     const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
 
     return puppeteerLauncher.launch();

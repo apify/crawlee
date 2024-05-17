@@ -13,10 +13,7 @@ describe('BrowserPool - Using multiple plugins', () => {
     beforeEach(async () => {
         vitest.clearAllMocks();
         browserPool = new BrowserPool({
-            browserPlugins: [
-                chromePlugin,
-                firefoxPlugin,
-            ],
+            browserPlugins: [chromePlugin, firefoxPlugin],
             closeInactiveBrowserAfterSecs: 2,
             retireInactiveBrowserAfterSecs: 30,
         });
@@ -36,10 +33,7 @@ describe('BrowserPool - Using multiple plugins', () => {
     });
 
     test('should loop through plugins round-robin', async () => {
-        const correctPluginOrder = [
-            chromePlugin,
-            firefoxPlugin,
-        ];
+        const correctPluginOrder = [chromePlugin, firefoxPlugin];
 
         const pagePromises = correctPluginOrder.map(async () => browserPool.newPage());
 

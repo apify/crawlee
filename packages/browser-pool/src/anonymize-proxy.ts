@@ -26,14 +26,8 @@ export const anonymizeProxySugar = async (
             ];
         }
 
-        return [
-            undefined,
-            async () => {},
-        ];
+        return [undefined, async () => {}];
     }
 
-    return [
-        undefined,
-        async () => {},
-    ];
+    return [undefined, async () => {}];
 };

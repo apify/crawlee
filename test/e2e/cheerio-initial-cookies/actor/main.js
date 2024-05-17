@@ -26,25 +26,33 @@ const expectedCookies = [
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         additionalMimeTypes: ['application/json'],
-        preNavigationHooks: [({ session, request }, gotOptions) => {
-            session.setCookies([
-                {
-                    name: 'session',
-                    value: 'true',
-                },
-            ], request.url);
-            request.headers.cookie = 'hook_request=true';
+        preNavigationHooks: [
+            ({ session, request }, gotOptions) => {
+                session.setCookies(
+                    [
+                        {
+                            name: 'session',
+                            value: 'true',
+                        },
+                    ],
+                    request.url,
+                );
+                request.headers.cookie = 'hook_request=true';
 
-            gotOptions.headers ??= {};
-            gotOptions.headers.Cookie = 'got_options_upper_case=true';
-            gotOptions.headers.cookie = 'got_options_lower_case=true';
-        }],
+                gotOptions.headers ??= {};
+                gotOptions.headers.Cookie = 'got_options_upper_case=true';
+                gotOptions.headers.cookie = 'got_options_lower_case=true';
+            },
+        ],
         async requestHandler({ json }) {
             const initialCookiesLength = expectedCookies.length;
 
@@ -56,7 +64,11 @@ await Actor.main(async () => {
 
             let numberOfMatchingCookies = 0;
             for (const cookie of expectedCookies) {
-                if (pageCookies.some((pageCookie) => pageCookie.name === cookie.name && pageCookie.value === cookie.value)) {
+                if (
+                    pageCookies.some(
+                        (pageCookie) => pageCookie.name === cookie.name && pageCookie.value === cookie.value,
+                    )
+                ) {
                     numberOfMatchingCookies++;
                 }
             }

@@ -12,12 +12,7 @@ import type {
     Configuration,
     RequestProvider,
 } from '@crawlee/http';
-import {
-    HttpCrawler,
-    enqueueLinks,
-    Router,
-    resolveBaseUrlForEnqueueLinksFiltering,
-} from '@crawlee/http';
+import { HttpCrawler, enqueueLinks, Router, resolveBaseUrlForEnqueueLinksFiltering } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils';
 import type { CheerioOptions } from 'cheerio';
@@ -28,22 +23,22 @@ import { WritableStream } from 'htmlparser2/lib/WritableStream';
 export type CheerioErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
+> = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>> {}
+> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
+> = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > extends InternalHttpCrawlingContext<UserData, JSONData, CheerioCrawler> {
+> extends InternalHttpCrawlingContext<UserData, JSONData, CheerioCrawler> {
     /**
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      * Cheerio is available only for HTML and XML content types.
@@ -69,7 +64,7 @@ export interface CheerioCrawlingContext<
 export type CheerioRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    > = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
+> = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -157,16 +152,23 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
         super(options, config);
     }
 
-    protected override async _parseHTML(response: IncomingMessage, isXml: boolean, crawlingContext: CheerioCrawlingContext) {
+    protected override async _parseHTML(
+        response: IncomingMessage,
+        isXml: boolean,
+        crawlingContext: CheerioCrawlingContext,
+    ) {
         const dom = await this._parseHtmlToDom(response, isXml);
 
-        const $ = cheerio.load(dom as string, {
-            xmlMode: isXml,
-            // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
-            // and not good for scraping. It also does not have a great streaming interface.
-            // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
-            _useHtmlParser2: true,
-        } as CheerioOptions);
+        const $ = cheerio.load(
+            dom as string,
+            {
+                xmlMode: isXml,
+                // Recent versions of cheerio use parse5 as the HTML parser/serializer. It's more strict than htmlparser2
+                // and not good for scraping. It also does not have a great streaming interface.
+                // Here we tell cheerio to use htmlparser2 for serialization, otherwise the conflict produces weird errors.
+                _useHtmlParser2: true,
+            } as CheerioOptions,
+        );
 
         return {
             dom,
@@ -188,15 +190,16 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
 
     protected async _parseHtmlToDom(response: IncomingMessage, isXml: boolean) {
         return new Promise((resolve, reject) => {
-            const domHandler = new DomHandler((err, dom) => {
-                if (err) reject(err);
-                else resolve(dom);
-            }, { xmlMode: isXml });
+            const domHandler = new DomHandler(
+                (err, dom) => {
+                    if (err) reject(err);
+                    else resolve(dom);
+                },
+                { xmlMode: isXml },
+            );
             const parser = new WritableStream(domHandler, { decodeEntities: true, xmlMode: isXml });
             parser.on('error', reject);
-            response
-                .on('error', reject)
-                .pipe(parser);
+            response.on('error', reject).pipe(parser);
         });
     }
 
@@ -215,7 +218,13 @@ interface EnqueueLinksInternalOptions {
 }
 
 /** @internal */
-export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, originalRequestUrl, finalRequestUrl }: EnqueueLinksInternalOptions) {
+export async function cheerioCrawlerEnqueueLinks({
+    options,
+    $,
+    requestQueue,
+    originalRequestUrl,
+    finalRequestUrl,
+}: EnqueueLinksInternalOptions) {
     if (!$) {
         throw new Error('Cannot enqueue links because the DOM is not available.');
     }
@@ -227,7 +236,11 @@ export async function cheerioCrawlerEnqueueLinks({ options, $, requestQueue, ori
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = extractUrlsFromCheerio($, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
+    const urls = extractUrlsFromCheerio(
+        $,
+        options?.selector ?? 'a',
+        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+    );
 
     return enqueueLinks({
         requestQueue,

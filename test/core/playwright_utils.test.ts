@@ -49,7 +49,9 @@ describe('playwrightUtils', () => {
             // @ts-expect-error
             let result = await page.evaluate(() => window.injectedVariable === 42);
             expect(result).toBe(false);
-            await playwrightUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'), { surviveNavigations: true });
+            await playwrightUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'), {
+                surviveNavigations: true,
+            });
             // @ts-expect-error
             result = await page.evaluate(() => window.injectedVariable);
             expect(result).toBe(42);
@@ -189,11 +191,13 @@ describe('playwrightUtils', () => {
             });
             page.on('response', (response) => loadedUrls.push(response.url()));
             await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'networkidle' });
-            expect(loadedUrls).toEqual(expect.arrayContaining([
-                `${serverAddress}/image.png`,
-                `${serverAddress}/script.js`,
-                `${serverAddress}/image.gif`,
-            ]));
+            expect(loadedUrls).toEqual(
+                expect.arrayContaining([
+                    `${serverAddress}/image.png`,
+                    `${serverAddress}/script.js`,
+                    `${serverAddress}/image.gif`,
+                ]),
+            );
         });
     });
 
@@ -224,7 +228,7 @@ describe('playwrightUtils', () => {
 
     describe('infiniteScroll()', () => {
         function isAtBottom() {
-            return (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight;
+            return window.innerHeight + window.pageYOffset >= document.body.offsetHeight;
         }
 
         let browser: Browser;
@@ -239,9 +243,11 @@ describe('playwrightUtils', () => {
         beforeEach(async () => {
             page = await browser.newPage();
             let count = 0;
-            const content = Array(1000).fill(null).map(() => {
-                return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
-            });
+            const content = Array(1000)
+                .fill(null)
+                .map(() => {
+                    return `<div style="border: 1px solid black">Div number: ${count++}</div>`;
+                });
             const contentHTML = `<html><body>${content}</body></html>`;
             await page.setContent(contentHTML);
         });
@@ -296,7 +302,8 @@ describe('playwrightUtils', () => {
 
         try {
             const page = await browser.newPage();
-            const contentHTML = '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
+            const contentHTML =
+                '<html><head></head><body><div style="border: 1px solid black">Div number: 1</div></body></html>';
             await page.setContent(contentHTML);
 
             const screenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
@@ -304,7 +311,11 @@ describe('playwrightUtils', () => {
             // Test saving both image and html
             const object = { setValue: vitest.fn() };
             openKVSSpy.mockResolvedValue(object as any);
-            await playwrightUtils.saveSnapshot(page, { key: 'TEST', keyValueStoreName: 'TEST-STORE', screenshotQuality: 60 });
+            await playwrightUtils.saveSnapshot(page, {
+                key: 'TEST',
+                keyValueStoreName: 'TEST-STORE',
+                screenshotQuality: 60,
+            });
 
             expect(object.setValue).toBeCalledWith('TEST.jpg', screenshot, { contentType: 'image/jpeg' });
             expect(object.setValue).toBeCalledWith('TEST.html', contentHTML, { contentType: 'text/html' });

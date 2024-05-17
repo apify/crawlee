@@ -182,9 +182,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             handledAt?: string | Date;
         };
 
-        let {
-            method = 'GET',
-        } = options;
+        let { method = 'GET' } = options;
 
         method = method.toUpperCase() as AllowedHttpMethods;
 
@@ -193,7 +191,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
-        this.uniqueKey = uniqueKey || Request.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+        this.uniqueKey =
+            uniqueKey || Request.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -201,7 +200,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.sessionRotationCount = sessionRotationCount;
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
-        this.handledAt = handledAt as unknown instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
+        this.handledAt = (handledAt as unknown) instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
 
         if (label) {
             userData.label = label;
@@ -225,10 +224,10 @@ export class Request<UserData extends Dictionary = Dictionary> {
                         toJSON: {
                             value: () => {
                                 if (Object.keys(this._userData.__crawlee).length > 0) {
-                                    return ({
+                                    return {
                                         ...this._userData,
                                         __crawlee: this._userData.__crawlee,
-                                    });
+                                    };
                                 }
 
                                 return this._userData;
@@ -356,8 +355,8 @@ export class Request<UserData extends Dictionary = Dictionary> {
             } else if (errorOrMessage instanceof Error) {
                 message = omitStack
                     ? errorOrMessage.message
-                    // .stack includes the message
-                    : errorOrMessage.stack;
+                    : // .stack includes the message
+                      errorOrMessage.stack;
             } else if (Reflect.has(Object(errorOrMessage), 'message')) {
                 message = Reflect.get(Object(errorOrMessage), 'message');
             } else if ((errorOrMessage as string).toString() !== '[object Object]') {
@@ -389,15 +388,23 @@ export class Request<UserData extends Dictionary = Dictionary> {
     }
 
     /** @internal */
-    static computeUniqueKey({ url, method = 'GET', payload, keepUrlFragment = false, useExtendedUniqueKey = false }: ComputeUniqueKeyOptions) {
+    static computeUniqueKey({
+        url,
+        method = 'GET',
+        payload,
+        keepUrlFragment = false,
+        useExtendedUniqueKey = false,
+    }: ComputeUniqueKeyOptions) {
         const normalizedMethod = method.toUpperCase();
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
                 // Using log.deprecated to log only once. We should add log.once or some such.
-                log.deprecated(`We've encountered a ${normalizedMethod} Request with a payload. `
-                    + 'This is fine. Just letting you know that if your requests point to the same URL '
-                    + 'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.');
+                log.deprecated(
+                    `We've encountered a ${normalizedMethod} Request with a payload. ` +
+                        'This is fine. Just letting you know that if your requests point to the same URL ' +
+                        'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
+                );
             }
             return normalizedUrl;
         }
@@ -407,12 +414,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
     /** @internal */
     static hashPayload(payload: BinaryLike): string {
-        return crypto
-            .createHash('sha256')
-            .update(payload)
-            .digest('base64')
-            .replace(/[+/=]/g, '')
-            .substring(0, 8);
+        return crypto.createHash('sha256').update(payload).digest('base64').replace(/[+/=]/g, '').substring(0, 8);
     }
 }
 
@@ -420,7 +422,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
  * Specifies required and optional fields for constructing a {@apilink Request}.
  */
 export interface RequestOptions<UserData extends Dictionary = Dictionary> {
-
     /** URL of the web page to crawl. It must be a non-empty string. */
     url: string;
 

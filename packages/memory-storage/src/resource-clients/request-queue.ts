@@ -70,7 +70,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         this.client = options.client;
     }
 
-    private async getQueue() : Promise<RequestQueueClient> {
+    private async getQueue(): Promise<RequestQueueClient> {
         const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
         if (!existingQueueById) {
@@ -96,9 +96,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async update(newFields: { name?: string | undefined }): Promise<storage.RequestQueueInfo | undefined> {
         // The validation is intentionally loose to prevent issues
         // when swapping to a remote queue in production.
-        const parsed = s.object({
-            name: s.string.lengthGreaterThan(0).optional,
-        }).passthrough.parse(newFields);
+        const parsed = s
+            .object({
+                name: s.string.lengthGreaterThan(0).optional,
+            })
+            .passthrough.parse(newFields);
 
         const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
@@ -112,7 +114,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
 
         // Check that name is not in use already
-        const existingQueueByName = this.client.requestQueuesHandled.find((queue) => queue.name?.toLowerCase() === parsed.name!.toLowerCase());
+        const existingQueueByName = this.client.requestQueuesHandled.find(
+            (queue) => queue.name?.toLowerCase() === parsed.name!.toLowerCase(),
+        );
 
         if (existingQueueByName) {
             this.throwOnDuplicateEntry(StorageTypes.RequestQueue, 'name', parsed.name);
@@ -122,7 +126,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const previousDir = existingQueueById.requestQueueDirectory;
 
-        existingQueueById.requestQueueDirectory = resolve(this.client.requestQueuesDirectory, parsed.name ?? existingQueueById.name ?? existingQueueById.id);
+        existingQueueById.requestQueueDirectory = resolve(
+            this.client.requestQueuesDirectory,
+            parsed.name ?? existingQueueById.name ?? existingQueueById.id,
+        );
 
         await move(previousDir, existingQueueById.requestQueueDirectory, { overwrite: true });
 
@@ -145,9 +152,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async listHead(options: storage.ListOptions = {}): Promise<storage.QueueHead> {
-        const { limit } = s.object({
-            limit: s.number.optional.default(100),
-        }).parse(options);
+        const { limit } = s
+            .object({
+                limit: s.number.optional.default(100),
+            })
+            .parse(options);
 
         const existingQueueById = await findRequestQueueByPossibleId(this.client, this.name ?? this.id);
 
@@ -180,15 +189,18 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     }
 
     async listAndLockHead(options: storage.ListAndLockOptions): Promise<storage.ListAndLockHeadResult> {
-        const { limit, lockSecs } = s.object({
-            limit: s.number.lessThanOrEqual(25).optional.default(25),
-            lockSecs: s.number,
-        }).parse(options);
+        const { limit, lockSecs } = s
+            .object({
+                limit: s.number.lessThanOrEqual(25).optional.default(25),
+                lockSecs: s.number,
+            })
+            .parse(options);
 
         const queue = await this.getQueue();
 
         const start = Date.now();
-        const isLocked = (request: InternalRequest) => !request.orderNo || request.orderNo > start || request.orderNo < -start;
+        const isLocked = (request: InternalRequest) =>
+            !request.orderNo || request.orderNo > start || request.orderNo < -start;
 
         const items = [];
 
@@ -225,12 +237,17 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
-    async prolongRequestLock(id: string, options: storage.ProlongRequestLockOptions) : Promise<storage.ProlongRequestLockResult> {
+    async prolongRequestLock(
+        id: string,
+        options: storage.ProlongRequestLockOptions,
+    ): Promise<storage.ProlongRequestLockResult> {
         s.string.parse(id);
-        const { lockSecs, forefront } = s.object({
-            lockSecs: s.number,
-            forefront: s.boolean.optional.default(false),
-        }).parse(options);
+        const { lockSecs, forefront } = s
+            .object({
+                lockSecs: s.number,
+                forefront: s.boolean.optional.default(false),
+            })
+            .parse(options);
 
         const queue = await this.getQueue();
         const request = queue.requests.get(id);
@@ -257,11 +274,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}) : Promise<void> {
+    async deleteRequestLock(id: string, options: storage.DeleteRequestLockOptions = {}): Promise<void> {
         s.string.parse(id);
-        const { forefront } = s.object({
-            forefront: s.boolean.optional.default(false),
-        }).parse(options);
+        const { forefront } = s
+            .object({
+                forefront: s.boolean.optional.default(false),
+            })
+            .parse(options);
 
         const queue = await this.getQueue();
         const request = queue.requests.get(id);
@@ -284,7 +303,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await request?.update(internalRequest);
     }
 
-    async addRequest(request: storage.RequestSchema, options: storage.RequestOptions = {}): Promise<storage.QueueOperationInfo> {
+    async addRequest(
+        request: storage.RequestSchema,
+        options: storage.RequestOptions = {},
+    ): Promise<storage.QueueOperationInfo> {
         requestShapeWithoutId.parse(request);
         requestOptionsShape.parse(options);
 
@@ -336,7 +358,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async batchAddRequests(requests: storage.RequestSchema[], options: storage.RequestOptions = {}): Promise<storage.BatchAddRequestsResult> {
+    async batchAddRequests(
+        requests: storage.RequestSchema[],
+        options: storage.RequestOptions = {},
+    ): Promise<storage.BatchAddRequestsResult> {
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
 
@@ -407,7 +432,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return this._jsonToRequest(json);
     }
 
-    async updateRequest(request: storage.UpdateRequestSchema, options: storage.RequestOptions = {}): Promise<storage.QueueOperationInfo> {
+    async updateRequest(
+        request: storage.UpdateRequestSchema,
+        options: storage.RequestOptions = {},
+    ): Promise<storage.QueueOperationInfo> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
 

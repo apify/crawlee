@@ -5,7 +5,10 @@ import { Cookie } from 'tough-cookie';
 describe('getCookiesFromResponse', () => {
     test('should parse cookies if set-cookie is array', () => {
         const headers: Dictionary<string | string[]> = {};
-        const dummyCookies = ['CSRF=e8b667; Domain=example.com; Secure', 'id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT'];
+        const dummyCookies = [
+            'CSRF=e8b667; Domain=example.com; Secure',
+            'id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT',
+        ];
         headers['set-cookie'] = dummyCookies;
         const cookies = getCookiesFromResponse({ headers });
 

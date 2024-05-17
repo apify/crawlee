@@ -50,12 +50,14 @@ if (!process.env.IN_WORKER_THREAD) {
             await Dataset.pushData(data);
         });
 
-        promises.push(new Promise((resolve) => {
-            proc.once('exit', (code, signal) => {
-                log.info(`Process ${i} exited with code ${code} and signal ${signal}`);
-                resolve();
-            });
-        }));
+        promises.push(
+            new Promise((resolve) => {
+                proc.once('exit', (code, signal) => {
+                    log.info(`Process ${i} exited with code ${code} and signal ${signal}`);
+                    resolve();
+                });
+            }),
+        );
     }
 
     await Promise.all(promises);
@@ -86,22 +88,25 @@ if (!process.env.IN_WORKER_THREAD) {
     });
 
     workerLogger.debug('Setting up crawler.');
-    const crawler = new PlaywrightCrawler({
-        log: workerLogger,
-        // Instead of the long requestHandler with
-        // if clauses we provide a router instance.
-        requestHandler: router,
-        // Enable the request locking experiment so that we can actually use the queue.
-        // highlight-start
-        experiments: {
-            requestLocking: true,
+    const crawler = new PlaywrightCrawler(
+        {
+            log: workerLogger,
+            // Instead of the long requestHandler with
+            // if clauses we provide a router instance.
+            requestHandler: router,
+            // Enable the request locking experiment so that we can actually use the queue.
+            // highlight-start
+            experiments: {
+                requestLocking: true,
+            },
+            // Provide the request queue we've pre-filled in previous steps
+            requestQueue,
+            // highlight-end
+            // Let's also limit the crawler's concurrency, we don't want to overload a single process 🐌
+            maxConcurrency: 5,
         },
-        // Provide the request queue we've pre-filled in previous steps
-        requestQueue,
-        // highlight-end
-        // Let's also limit the crawler's concurrency, we don't want to overload a single process 🐌
-        maxConcurrency: 5,
-    }, config);
+        config,
+    );
 
     await crawler.run();
 }

@@ -9,7 +9,9 @@ import { CookieParseError } from './session_pool/errors';
 /**
  * @internal
  */
-export function getCookiesFromResponse(response: IncomingMessage | BrowserLikeResponse | { headers: Dictionary<string | string[]> }): Cookie[] {
+export function getCookiesFromResponse(
+    response: IncomingMessage | BrowserLikeResponse | { headers: Dictionary<string | string[]> },
+): Cookie[] {
     const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
     const cookieHeader = headers['set-cookie'] || '';
 
@@ -29,7 +31,7 @@ export function getCookiesFromResponse(response: IncomingMessage | BrowserLikeRe
  * @internal
  */
 export function getDefaultCookieExpirationDate(maxAgeSecs: number) {
-    return new Date(Date.now() + (maxAgeSecs * 1000));
+    return new Date(Date.now() + maxAgeSecs * 1000);
 }
 
 /**
@@ -59,7 +61,9 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
  */
 export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs: number) {
     const isExpiresValid = cookieObject.expires && typeof cookieObject.expires === 'number' && cookieObject.expires > 0;
-    const expires = isExpiresValid ? new Date(cookieObject.expires! * 1000) : getDefaultCookieExpirationDate(maxAgeSecs);
+    const expires = isExpiresValid
+        ? new Date(cookieObject.expires! * 1000)
+        : getDefaultCookieExpirationDate(maxAgeSecs);
     const domainHasLeadingDot = cookieObject.domain?.startsWith?.('.');
     const domain = domainHasLeadingDot ? cookieObject.domain?.slice?.(1) : cookieObject.domain;
     return new Cookie({
@@ -114,7 +118,9 @@ export function mergeCookies(url: string, sourceCookies: string[]): string {
             });
 
             if (similarKeyCookie) {
-                log.deprecated(`Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`);
+                log.deprecated(
+                    `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,
+                );
             }
 
             jar.setCookieSync(cookie, url);

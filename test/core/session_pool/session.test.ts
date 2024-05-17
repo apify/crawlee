@@ -68,7 +68,10 @@ describe('Session - testing session behaviour ', () => {
         let error;
 
         try {
-            session.setCookiesFromResponse({ headers: { Cookie: 'invaldi*{*{*{*-----***@s' }, url: 'http://localhost:1337' });
+            session.setCookiesFromResponse({
+                headers: { Cookie: 'invaldi*{*{*{*-----***@s' },
+                url: 'http://localhost:1337',
+            });
         } catch (e) {
             error = e;
         }
@@ -183,7 +186,9 @@ describe('Session - testing session behaviour ', () => {
         sessionPool.blockedStatusCodes.forEach((status) => {
             const sess = new Session({ sessionPool });
             let isCalled;
-            const call = () => { isCalled = true; };
+            const call = () => {
+                isCalled = true;
+            };
             sess.retire = call;
             expect(sess.retireOnBlockedStatusCodes(status)).toBeTruthy();
             expect(isCalled).toBeTruthy();
@@ -215,9 +220,7 @@ describe('Session - testing session behaviour ', () => {
 
     test('setCookies should work for session (with expiration date: -1) cookies', () => {
         const url = 'https://example.com';
-        const cookies = [
-            { name: 'session_cookie', value: 'session-cookie-value', expires: -1 },
-        ];
+        const cookies = [{ name: 'session_cookie', value: 'session-cookie-value', expires: -1 }];
 
         session = new Session({ sessionPool });
         session.setCookies(cookies, url);
@@ -254,24 +257,28 @@ describe('Session - testing session behaviour ', () => {
 
         session = new Session({
             sessionPool,
-            cookieJar: CookieJar.fromJSON(JSON.stringify({
-                cookies: [
-                    {
-                        'key': 'foo',
-                        'value': 'bar',
-                        'domain': 'example.com',
-                        'path': '/',
-                        'hostOnly': false,
-                    },
-                ],
-            })),
+            cookieJar: CookieJar.fromJSON(
+                JSON.stringify({
+                    cookies: [
+                        {
+                            'key': 'foo',
+                            'value': 'bar',
+                            'domain': 'example.com',
+                            'path': '/',
+                            'hostOnly': false,
+                        },
+                    ],
+                }),
+            ),
         });
 
-        expect(session.getCookies(url)).to.containSubset([{
-            name: 'foo',
-            value: 'bar',
-            domain: '.example.com',
-        }]);
+        expect(session.getCookies(url)).to.containSubset([
+            {
+                name: 'foo',
+                value: 'bar',
+                domain: '.example.com',
+            },
+        ]);
         expect(session.getCookies(url)).to.deep.equal(session.getCookies('https://example.com'));
     });
 
@@ -280,25 +287,29 @@ describe('Session - testing session behaviour ', () => {
 
         session = new Session({
             sessionPool,
-            cookieJar: CookieJar.fromJSON(JSON.stringify({
-                cookies: [
-                    {
-                        'key': 'foo',
-                        'value': 'bar',
-                        'domain': 'example.com',
-                        'path': '/',
-                        'hostOnly': true,
-                    },
-                ],
-            })),
+            cookieJar: CookieJar.fromJSON(
+                JSON.stringify({
+                    cookies: [
+                        {
+                            'key': 'foo',
+                            'value': 'bar',
+                            'domain': 'example.com',
+                            'path': '/',
+                            'hostOnly': true,
+                        },
+                    ],
+                }),
+            ),
         });
 
         expect(session.getCookies(url)).toHaveLength(0);
-        expect(session.getCookies('https://example.com')).to.containSubset([{
-            name: 'foo',
-            value: 'bar',
-            domain: 'example.com',
-        }]);
+        expect(session.getCookies('https://example.com')).to.containSubset([
+            {
+                name: 'foo',
+                value: 'bar',
+                domain: 'example.com',
+            },
+        ]);
     });
 
     describe('.putResponse & .getCookieString', () => {

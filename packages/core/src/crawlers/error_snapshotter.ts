@@ -81,7 +81,8 @@ export class ErrorSnapshotter {
                     const html = await page.content();
                     htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, fileName) : undefined;
                 }
-            } else if (typeof body === 'string') { // for non-browser contexts
+            } else if (typeof body === 'string') {
+                // for non-browser contexts
                 htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, fileName);
             }
 
@@ -101,7 +102,10 @@ export class ErrorSnapshotter {
      * This function is applicable for browser contexts only.
      * Returns an object containing the filenames of the screenshot and HTML file.
      */
-    async contextCaptureSnapshot(context: BrowserCrawlingContext, fileName: string): Promise<SnapshotResult | undefined> {
+    async contextCaptureSnapshot(
+        context: BrowserCrawlingContext,
+        fileName: string,
+    ): Promise<SnapshotResult | undefined> {
         try {
             await context.saveSnapshot({ key: fileName });
             return {
@@ -129,9 +133,14 @@ export class ErrorSnapshotter {
      * Generate a unique fileName for each error snapshot.
      */
     generateFilename(error: ErrnoException): string {
-        const { SNAPSHOT_PREFIX, BASE_MESSAGE, MAX_HASH_LENGTH, MAX_ERROR_CHARACTERS, MAX_FILENAME_LENGTH } = ErrorSnapshotter;
+        const { SNAPSHOT_PREFIX, BASE_MESSAGE, MAX_HASH_LENGTH, MAX_ERROR_CHARACTERS, MAX_FILENAME_LENGTH } =
+            ErrorSnapshotter;
         // Create a hash of the error stack trace
-        const errorStackHash = crypto.createHash('sha1').update(error.stack || error.message || '').digest('hex').slice(0, MAX_HASH_LENGTH);
+        const errorStackHash = crypto
+            .createHash('sha1')
+            .update(error.stack || error.message || '')
+            .digest('hex')
+            .slice(0, MAX_HASH_LENGTH);
         const errorMessagePrefix = (error.message || BASE_MESSAGE).slice(0, MAX_ERROR_CHARACTERS).trim();
 
         /**

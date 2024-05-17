@@ -43,11 +43,7 @@ const getPathFromStackTrace = (stack: string[]) => {
     for (const line of stack) {
         const path = extractPathFromStackTraceLine(line);
 
-        if (
-            path.startsWith('node:')
-            || path.includes('/node_modules/')
-            || path.includes('\\node_modules\\')
-        ) {
+        if (path.startsWith('node:') || path.includes('/node_modules/') || path.includes('\\node_modules\\')) {
             continue;
         }
 
@@ -73,7 +69,12 @@ const getStackTraceGroup = (error: ErrnoException, storage: Record<string, unkno
 
     let normalizedStackTrace = null;
     if (sliceAt !== -1) {
-        normalizedStackTrace = showFullStack ? stack!.slice(sliceAt).map((x) => x.trim()).join('\n') : getPathFromStackTrace(stack!.slice(sliceAt));
+        normalizedStackTrace = showFullStack
+            ? stack!
+                  .slice(sliceAt)
+                  .map((x) => x.trim())
+                  .join('\n')
+            : getPathFromStackTrace(stack!.slice(sliceAt));
     }
 
     if (!normalizedStackTrace) {
@@ -188,7 +189,7 @@ const normalizedCalculatePlaceholder = (a: string[], b: string[]) => {
     const output = calculatePlaceholder(a, b);
 
     // We can't be too general
-    if ((arrayCount(output, '_') / output.length) >= 0.5) {
+    if (arrayCount(output, '_') / output.length >= 0.5) {
         return ['_'];
     }
 
@@ -197,10 +198,7 @@ const normalizedCalculatePlaceholder = (a: string[], b: string[]) => {
 
 // Merge A (missing placeholders) into B (can contain placeholders but does not have to)
 const mergeMessages = (a: string, b: string, storage: Record<string, unknown>) => {
-    const placeholder = normalizedCalculatePlaceholder(
-        a.split(' '),
-        b.split(' '),
-    ).join(' ');
+    const placeholder = normalizedCalculatePlaceholder(a.split(' '), b.split(' ')).join(' ');
 
     if (placeholder === '_') {
         return undefined;
@@ -227,9 +225,14 @@ const getErrorMessageGroup = (error: ErrnoException, storage: Record<string, unk
 
     if (!message) {
         try {
-            message = typeof error === 'string' ? error : `Unknown error message. Received non-error object: ${JSON.stringify(error)}`;
+            message =
+                typeof error === 'string'
+                    ? error
+                    : `Unknown error message. Received non-error object: ${JSON.stringify(error)}`;
         } catch {
-            message = `Unknown error message. Received non-error object, and could not stringify it: ${inspect(error, { depth: 0 })}`;
+            message = `Unknown error message. Received non-error object, and could not stringify it: ${inspect(error, {
+                depth: 0,
+            })}`;
         }
     }
 
@@ -354,7 +357,7 @@ export class ErrorTracker {
 
         // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
         if (group.count === 1 && context) {
-            await this.captureSnapshot(group, error, context).catch(() => { });
+            await this.captureSnapshot(group, error, context).catch(() => {});
         }
 
         if (typeof error.cause === 'object' && error.cause !== null) {

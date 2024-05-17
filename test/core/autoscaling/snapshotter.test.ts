@@ -125,12 +125,14 @@ describe('Snapshotter', () => {
 
     test('correctly marks CPU overloaded using OS metrics', async () => {
         const cpusMock = vitest.spyOn(os, 'cpus');
-        const fakeCpu = [{
-            times: {
-                idle: 0,
-                other: 0,
+        const fakeCpu = [
+            {
+                times: {
+                    idle: 0,
+                    other: 0,
+                },
             },
-        }];
+        ];
         const { times } = fakeCpu[0];
 
         cpusMock.mockReturnValue(fakeCpu as any);
@@ -211,7 +213,9 @@ describe('Snapshotter', () => {
         } as MemoryInfo;
         const getMemoryInfo = async () => ({ ...memoryData });
         vitest.spyOn(LocalEventManager.prototype as any, '_getMemoryInfo').mockImplementation(getMemoryInfo);
-        vitest.spyOn(Snapshotter.prototype as any, '_getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) });
+        vitest
+            .spyOn(Snapshotter.prototype as any, '_getMemoryInfo')
+            .mockResolvedValueOnce({ totalBytes: toBytes(10000) });
 
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
@@ -243,7 +247,9 @@ describe('Snapshotter', () => {
     });
 
     test('correctly logs critical memory overload', async () => {
-        vitest.spyOn(Snapshotter.prototype as any, '_getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) });
+        vitest
+            .spyOn(Snapshotter.prototype as any, '_getMemoryInfo')
+            .mockResolvedValueOnce({ totalBytes: toBytes(10000) });
         const config = new Configuration({ availableMemoryRatio: 1 });
         const snapshotter = new Snapshotter({ config, maxUsedMemoryRatio: 0.5 });
         await snapshotter.start();
@@ -322,9 +328,11 @@ describe('Snapshotter', () => {
             const snapshot = eventLoopSnapshots[eventLoopSnapshots.length - 1 - i];
             expect(sample).toEqual(snapshot);
         }
-        const diffBetween = eventLoopSample[eventLoopSample.length - 1].createdAt.getTime()
-            - eventLoopSnapshots[eventLoopSnapshots.length - 1].createdAt.getTime();
-        const diffWithin = eventLoopSample[0].createdAt.getTime() - eventLoopSample[eventLoopSample.length - 1].createdAt.getTime();
+        const diffBetween =
+            eventLoopSample[eventLoopSample.length - 1].createdAt.getTime() -
+            eventLoopSnapshots[eventLoopSnapshots.length - 1].createdAt.getTime();
+        const diffWithin =
+            eventLoopSample[0].createdAt.getTime() - eventLoopSample[eventLoopSample.length - 1].createdAt.getTime();
         expect(diffBetween).toBeLessThan(SAMPLE_SIZE_MILLIS);
         expect(diffWithin).toBeLessThan(SAMPLE_SIZE_MILLIS);
     });

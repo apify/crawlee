@@ -3,7 +3,10 @@ import { Dataset, KeyValueStore, PuppeteerCrawler } from '@crawlee/puppeteer';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 await Actor.main(async () => {
@@ -24,8 +27,7 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run(Array.from(
-        { length: 5 },
-        (_, i) => ({ url: 'https://api.apify.com/v2/browser-info', uniqueKey: `${i}` }),
-    ));
+    await crawler.run(
+        Array.from({ length: 5 }, (_, i) => ({ url: 'https://api.apify.com/v2/browser-info', uniqueKey: `${i}` })),
+    );
 }, mainOptions);

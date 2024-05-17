@@ -18,7 +18,7 @@ import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './play
 import { PlaywrightCrawler } from './playwright-crawler';
 import { RenderingTypePredictor, type RenderingType } from './utils/rendering-type-prediction';
 
-type Result<TResult> = { result: TResult; ok: true } | { error: unknown; ok: false }
+type Result<TResult> = { result: TResult; ok: true } | { error: unknown; ok: false };
 
 interface AdaptivePlaywrightCrawlerStatisticState extends StatisticState {
     httpOnlyRequestHandlerRuns?: number;
@@ -49,7 +49,9 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
 
     protected override async _maybeLoadStatistics(): Promise<void> {
         await super._maybeLoadStatistics();
-        const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(this.persistStateKey);
+        const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(
+            this.persistStateKey,
+        );
 
         if (!savedState) {
             return;
@@ -83,7 +85,8 @@ export interface AdaptivePlaywrightCrawlerContext extends RestrictedCrawlingCont
     querySelector: (selector: string, timeoutMs?: number) => Awaitable<Cheerio<Element>>;
 }
 
-export interface AdaptivePlaywrightCrawlerOptions extends Omit<PlaywrightCrawlerOptions, 'requestHandler' | 'handlePageFunction'> {
+export interface AdaptivePlaywrightCrawlerOptions
+    extends Omit<PlaywrightCrawlerOptions, 'requestHandler' | 'handlePageFunction'> {
     /**
      * Function that is called to process each request.
      *
@@ -173,7 +176,8 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     ) {
         super(options, config);
         this.adaptiveRequestHandler = requestHandler;
-        this.renderingTypePredictor = renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
+        this.renderingTypePredictor =
+            renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
 
         if (resultComparator !== undefined) {
@@ -182,11 +186,13 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             this.resultComparator = (resultA, resultB) => this.resultChecker(resultA) && this.resultChecker(resultB);
         } else {
             this.resultComparator = (resultA, resultB) => {
-                return resultA.datasetItems.length === resultB.datasetItems.length
-                    && resultA.datasetItems.every((itemA, i) => {
+                return (
+                    resultA.datasetItems.length === resultB.datasetItems.length &&
+                    resultA.datasetItems.every((itemA, i) => {
                         const itemB = resultB.datasetItems[i];
                         return isEqual(itemA, itemB);
-                    });
+                    })
+                );
             };
         }
 
@@ -204,7 +210,9 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
-            crawlingContext.log.info(`Predicted rendering type ${renderingTypePrediction.renderingType} for ${crawlingContext.request.url}`);
+            crawlingContext.log.info(
+                `Predicted rendering type ${renderingTypePrediction.renderingType} for ${crawlingContext.request.url}`,
+            );
         }
 
         if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
@@ -217,10 +225,16 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 crawlingContext.log.info(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
                 await this.commitResult(crawlingContext, plainHTTPRun.result);
                 return;
-            } if (!plainHTTPRun.ok) {
-                crawlingContext.log.exception(plainHTTPRun.error as Error, `HTTP-only request handler failed for ${crawlingContext.request.url}`);
+            }
+            if (!plainHTTPRun.ok) {
+                crawlingContext.log.exception(
+                    plainHTTPRun.error as Error,
+                    `HTTP-only request handler failed for ${crawlingContext.request.url}`,
+                );
             } else {
-                crawlingContext.log.warning(`HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`);
+                crawlingContext.log.warning(
+                    `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
+                );
                 this.stats.trackRenderingTypeMisprediction();
             }
         }
@@ -267,20 +281,27 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
             ...Object.entries(keyValueStoreChanges).map(async ([storeIdOrName, changes]) => {
                 const store = await crawlingContext.getKeyValueStore(storeIdOrName);
                 await Promise.all(
-                    Object.entries(changes).map(async ([key, { changedValue, options }]) => store.setValue(key, changedValue, options)),
+                    Object.entries(changes).map(async ([key, { changedValue, options }]) =>
+                        store.setValue(key, changedValue, options),
+                    ),
                 );
             }),
         ]);
     }
 
-    protected allowStorageAccess<R, TArgs extends any[]>(func: (...args: TArgs) => Promise<R>): ((...args: TArgs) => Promise<R>) {
-        return async (...args: TArgs) => withCheckedStorageAccess(
-            () => { },
-            async () => func(...args),
-        );
+    protected allowStorageAccess<R, TArgs extends any[]>(
+        func: (...args: TArgs) => Promise<R>,
+    ): (...args: TArgs) => Promise<R> {
+        return async (...args: TArgs) =>
+            withCheckedStorageAccess(
+                () => {},
+                async () => func(...args),
+            );
     }
 
-    protected async runRequestHandlerInBrowser(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
+    protected async runRequestHandlerInBrowser(
+        crawlingContext: PlaywrightCrawlingContext<Dictionary>,
+    ): Promise<Result<RequestHandlerResult>> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
 
         try {
@@ -288,36 +309,44 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 new Proxy(this, {
                     get: (target, propertyName, receiver) => {
                         if (propertyName === 'userProvidedRequestHandler') {
-                            return (async (playwrightContext: PlaywrightCrawlingContext) => withCheckedStorageAccess(
-                                () => {
-                                    throw new Error('Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler');
-                                },
-                                () => this.adaptiveRequestHandler({
-                                    request: crawlingContext.request,
-                                    log: crawlingContext.log,
-                                    querySelector: async (selector, timeoutMs) => {
-                                        const locator = playwrightContext.page.locator(selector).first();
-                                        await locator.waitFor({ timeout: timeoutMs });
-                                        return (await playwrightContext.parseWithCheerio())(selector) as Cheerio<Element>;
-                                    },
-                                    enqueueLinks: async (options = {}) => {
-                                        const selector = options.selector ?? 'a';
-                                        const locator = playwrightContext.page.locator(selector).first();
-                                        await locator.waitFor();
-
-                                        const urls = await extractUrlsFromPage(
-                                            playwrightContext.page,
-                                            selector,
-                                            options.baseUrl ?? playwrightContext.request.loadedUrl ?? playwrightContext.request.url,
+                            return async (playwrightContext: PlaywrightCrawlingContext) =>
+                                withCheckedStorageAccess(
+                                    () => {
+                                        throw new Error(
+                                            'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
                                         );
-                                        await result.enqueueLinks({ ...options, urls });
                                     },
-                                    addRequests: result.addRequests,
-                                    pushData: result.pushData,
-                                    useState: this.allowStorageAccess(result.useState),
-                                    getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-                                }),
-                            ));
+                                    () =>
+                                        this.adaptiveRequestHandler({
+                                            request: crawlingContext.request,
+                                            log: crawlingContext.log,
+                                            querySelector: async (selector, timeoutMs) => {
+                                                const locator = playwrightContext.page.locator(selector).first();
+                                                await locator.waitFor({ timeout: timeoutMs });
+                                                return (await playwrightContext.parseWithCheerio())(
+                                                    selector,
+                                                ) as Cheerio<Element>;
+                                            },
+                                            enqueueLinks: async (options = {}) => {
+                                                const selector = options.selector ?? 'a';
+                                                const locator = playwrightContext.page.locator(selector).first();
+                                                await locator.waitFor();
+
+                                                const urls = await extractUrlsFromPage(
+                                                    playwrightContext.page,
+                                                    selector,
+                                                    options.baseUrl ??
+                                                        playwrightContext.request.loadedUrl ??
+                                                        playwrightContext.request.url,
+                                                );
+                                                await result.enqueueLinks({ ...options, urls });
+                                            },
+                                            addRequests: result.addRequests,
+                                            pushData: result.pushData,
+                                            useState: this.allowStorageAccess(result.useState),
+                                            getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
+                                        }),
+                                );
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
@@ -330,7 +359,9 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         }
     }
 
-    protected async runRequestHandlerWithPlainHTTP(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<Result<RequestHandlerResult>> {
+    protected async runRequestHandlerWithPlainHTTP(
+        crawlingContext: PlaywrightCrawlingContext<Dictionary>,
+    ): Promise<Result<RequestHandlerResult>> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
 
         const response = await crawlingContext.sendRequest({});
@@ -341,25 +372,35 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         try {
             await withCheckedStorageAccess(
                 () => {
-                    throw new Error('Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler');
+                    throw new Error(
+                        'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
+                    );
                 },
-                async () => addTimeoutToPromise(
-                    async () => this.adaptiveRequestHandler({
-                        request: crawlingContext.request,
-                        log: crawlingContext.log,
-                        querySelector: (selector) => $(selector) as Cheerio<Element>,
-                        enqueueLinks: async (options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) => {
-                            const urls = extractUrlsFromCheerio($, options.selector, options.baseUrl ?? loadedUrl);
-                            await result.enqueueLinks({ ...options, urls });
-                        },
-                        addRequests: result.addRequests,
-                        pushData: result.pushData,
-                        useState: this.allowStorageAccess(result.useState),
-                        getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
-                    }),
-                    this.requestHandlerTimeoutInnerMillis,
-                    'Request handler timed out',
-                ),
+                async () =>
+                    addTimeoutToPromise(
+                        async () =>
+                            this.adaptiveRequestHandler({
+                                request: crawlingContext.request,
+                                log: crawlingContext.log,
+                                querySelector: (selector) => $(selector) as Cheerio<Element>,
+                                enqueueLinks: async (
+                                    options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {},
+                                ) => {
+                                    const urls = extractUrlsFromCheerio(
+                                        $,
+                                        options.selector,
+                                        options.baseUrl ?? loadedUrl,
+                                    );
+                                    await result.enqueueLinks({ ...options, urls });
+                                },
+                                addRequests: result.addRequests,
+                                pushData: result.pushData,
+                                useState: this.allowStorageAccess(result.useState),
+                                getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
+                            }),
+                        this.requestHandlerTimeoutInnerMillis,
+                        'Request handler timed out',
+                    ),
             );
 
             return { result, ok: true };

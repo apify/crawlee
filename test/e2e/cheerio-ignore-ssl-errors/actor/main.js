@@ -3,14 +3,20 @@ import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         ignoreSslErrors: true,
         async requestHandler({ $, enqueueLinks, request, log }) {
-            const { url, userData: { label } } = request;
+            const {
+                url,
+                userData: { label },
+            } = request;
 
             if (label === 'START') {
                 log.info('Bad ssl page opened!');

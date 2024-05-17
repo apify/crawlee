@@ -5,7 +5,6 @@ import type { AllowedHttpMethods, Dictionary } from './utility-types';
  * {@apilink RequestQueue} functions as well as {@apilink enqueueLinks}.
  */
 export interface QueueOperationInfo {
-
     /** Indicates if request was already present in the queue. */
     wasAlreadyPresent: boolean;
 
@@ -14,7 +13,6 @@ export interface QueueOperationInfo {
 
     /** The ID of the added request */
     requestId: string;
-
 }
 
 export interface DatasetCollectionClientOptions {

@@ -12,17 +12,17 @@ import type {
     RequestHandler,
     RouterRoutes,
 } from '../index';
-import {
-    HttpCrawler,
-    Router,
-} from '../index';
+import { HttpCrawler, Router } from '../index';
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = ErrorHandler<FileDownloadCrawlingContext<UserData, JSONData>>;
 
-export type StreamHandlerContext = Omit<FileDownloadCrawlingContext, 'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'> & {
+export type StreamHandlerContext = Omit<
+    FileDownloadCrawlingContext,
+    'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
+> & {
     stream: ReadableStream;
 };
 
@@ -31,11 +31,16 @@ type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
 export type FileDownloadOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> =
-    // eslint-disable-next-line max-len
-    (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler?: never; streamHandler?: StreamHandler }) |
-    // eslint-disable-next-line max-len
-    (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler' > & { requestHandler: FileDownloadRequestHandler; streamHandler?: never });
+> = // eslint-disable-next-line max-len
+| (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
+      requestHandler?: never;
+      streamHandler?: StreamHandler;
+  })
+// eslint-disable-next-line max-len
+| (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
+      requestHandler: FileDownloadRequestHandler;
+      streamHandler?: never;
+  });
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -128,7 +133,10 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
     }
 
     private async streamRequestHandler(context: FileDownloadCrawlingContext) {
-        const { log, request: { url } } = context;
+        const {
+            log,
+            request: { url },
+        } = context;
 
         const { gotScraping } = await import('got-scraping');
 
@@ -151,9 +159,7 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
                 const { total, transferred } = stream.downloadProgress;
 
                 if (transferred > 0) {
-                    log.debug(
-                        `Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`,
-                    );
+                    log.debug(`Downloaded ${transferred} bytes of ${total ?? 0} bytes from ${url}.`);
                 }
             }, 5000);
 
@@ -173,21 +179,20 @@ export class FileDownload extends HttpCrawler<FileDownloadCrawlingContext> {
             }
 
             if (isPromise(streamHandlerResult)) {
-                streamHandlerResult.then(() => {
-                    resolve();
-                }).catch((e: Error) => {
-                    cleanUp();
-                    reject(e);
-                });
+                streamHandlerResult
+                    .then(() => {
+                        resolve();
+                    })
+                    .catch((e: Error) => {
+                        cleanUp();
+                        reject(e);
+                    });
             } else {
                 resolve();
             }
         });
 
-        await Promise.all([
-            downloadPromise,
-            finished(stream),
-        ]);
+        await Promise.all([downloadPromise, finished(stream)]);
 
         cleanUp();
     }

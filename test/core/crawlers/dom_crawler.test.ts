@@ -23,10 +23,12 @@ beforeAll(async () => {
         }
     });
 
-    await new Promise<void>((resolve) => server.listen(() => {
-        url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-        resolve();
-    }));
+    await new Promise<void>((resolve) =>
+        server.listen(() => {
+            url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+            resolve();
+        }),
+    );
 });
 
 afterAll(async (cb) => {
@@ -55,8 +57,5 @@ test('works', async () => {
 
     await crawler.run([url]);
 
-    expect(results).toStrictEqual([
-        'Example Domain',
-        'Hello, world!',
-    ]);
+    expect(results).toStrictEqual(['Example Domain', 'Hello, world!']);
 });

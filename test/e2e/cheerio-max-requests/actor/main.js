@@ -3,7 +3,10 @@ import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 await Actor.main(async () => {
@@ -11,16 +14,23 @@ await Actor.main(async () => {
         maxRequestsPerCrawl: 10,
         autoscaledPoolOptions: { desiredConcurrency: 2 },
         async requestHandler({ $, request }) {
-            const { url, userData: { label } } = request;
+            const {
+                url,
+                userData: { label },
+            } = request;
 
             if (label === 'START') {
-                const links = $('a.card').toArray().map((item) => $(item).attr('href'));
+                const links = $('a.card')
+                    .toArray()
+                    .map((item) => $(item).attr('href'));
                 for (const link of links) {
                     const actorDetailUrl = `https://crawlee.dev${link}`;
-                    await crawler.addRequests([{
-                        url: actorDetailUrl,
-                        userData: { label: 'DETAIL' },
-                    }]);
+                    await crawler.addRequests([
+                        {
+                            url: actorDetailUrl,
+                            userData: { label: 'DETAIL' },
+                        },
+                    ]);
                 }
             } else if (label === 'DETAIL') {
                 const uniqueIdentifier = url.split('/').slice(-2).join('/');

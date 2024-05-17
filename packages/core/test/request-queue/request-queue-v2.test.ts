@@ -1,6 +1,13 @@
 /* eslint-disable dot-notation */
 import { MemoryStorage } from '@crawlee/memory-storage';
-import type { ListAndLockHeadResult, ListAndLockOptions, ListOptions, ProlongRequestLockOptions, ProlongRequestLockResult, QueueHead } from '@crawlee/types';
+import type {
+    ListAndLockHeadResult,
+    ListAndLockOptions,
+    ListOptions,
+    ProlongRequestLockOptions,
+    ProlongRequestLockResult,
+    QueueHead,
+} from '@crawlee/types';
 import { RequestQueueV2 } from 'crawlee';
 import type { SpyInstance } from 'vitest';
 
@@ -13,10 +20,7 @@ async function makeQueue(name: string, numOfRequestsToAdd = 0) {
 
     if (numOfRequestsToAdd) {
         await queue.addRequests(
-            Array.from(
-                { length: numOfRequestsToAdd },
-                (_, i) => ({ url: 'https://example.com', uniqueKey: `${i}` }),
-            ),
+            Array.from({ length: numOfRequestsToAdd }, (_, i) => ({ url: 'https://example.com', uniqueKey: `${i}` })),
         );
     }
 
@@ -92,7 +96,10 @@ describe('RequestQueueV2#fetchNextRequest should use locking API', () => {
     let queue: RequestQueueV2;
     let clientListHeadSpy: SpyInstance<[options?: ListOptions | undefined], Promise<QueueHead>>;
     let clientListAndLockHeadSpy: SpyInstance<[options: ListAndLockOptions], Promise<ListAndLockHeadResult>>;
-    let clientProlongLockSpy: SpyInstance<[id: string, options: ProlongRequestLockOptions], Promise<ProlongRequestLockResult>>;
+    let clientProlongLockSpy: SpyInstance<
+        [id: string, options: ProlongRequestLockOptions],
+        Promise<ProlongRequestLockResult>
+    >;
     let listAndLockHeadCallCount = 0;
 
     beforeAll(async () => {

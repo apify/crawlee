@@ -1,22 +1,22 @@
 declare module 'ml-logistic-regression' {
-  import Matrix from 'ml-matrix';
+    import Matrix from 'ml-matrix';
 
-  class LogisticRegressionTwoClasses {
-    testScores(Xtest: Matrix): number;
-  }
+    class LogisticRegressionTwoClasses {
+        testScores(Xtest: Matrix): number;
+    }
 
-  export default class LogisticRegression {
-    classifiers: LogisticRegressionTwoClasses[];
+    export default class LogisticRegression {
+        classifiers: LogisticRegressionTwoClasses[];
 
-    constructor(
-      options: Partial<{
-        numSteps: number;
-        learningRate: number;
-      }>,
-    );
+        constructor(
+            options: Partial<{
+                numSteps: number;
+                learningRate: number;
+            }>,
+        );
 
-    train(X: Matrix, Y: Matrix): void;
+        train(X: Matrix, Y: Matrix): void;
 
-    predict(Xtest: Matrix): number[];
-  }
+        predict(Xtest: Matrix): number[];
+    }
 }

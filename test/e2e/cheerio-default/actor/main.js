@@ -3,13 +3,18 @@ import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         statusMessageCallback: async (ctx) => {
-            return ctx.crawler.setStatusMessage(`this is status message from ${new Date().toISOString()}`, { level: 'INFO' });
+            return ctx.crawler.setStatusMessage(`this is status message from ${new Date().toISOString()}`, {
+                level: 'INFO',
+            });
         },
         statusMessageLoggingInterval: 1,
         async requestHandler({ $, enqueueLinks, request, log }) {

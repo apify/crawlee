@@ -36,11 +36,13 @@ describe('Moving from handleRequest* to requestHandler*', () => {
                 handlePageFunction: oldHandler,
             });
 
-            expect(warningSpy).toHaveBeenCalledWith<[string]>([
-                `Both "requestHandler" and "handlePageFunction" were provided in the crawler options.`,
-                `"handlePageFunction" has been renamed to "requestHandler", and will be removed in a future version.`,
-                `As such, "requestHandler" will be used instead.`,
-            ].join('\n'));
+            expect(warningSpy).toHaveBeenCalledWith<[string]>(
+                [
+                    `Both "requestHandler" and "handlePageFunction" were provided in the crawler options.`,
+                    `"handlePageFunction" has been renamed to "requestHandler", and will be removed in a future version.`,
+                    `As such, "requestHandler" will be used instead.`,
+                ].join('\n'),
+            );
 
             // eslint-disable-next-line dot-notation -- accessing private property
             expect(crawler['requestHandler']).toBe(newHandler);
@@ -56,10 +58,12 @@ describe('Moving from handleRequest* to requestHandler*', () => {
                 handlePageFunction: oldHandler,
             });
 
-            expect(warningSpy).toHaveBeenCalledWith<[string]>([
-                `"handlePageFunction" has been renamed to "requestHandler", and will be removed in a future version.`,
-                `The provided value will be used, but you should rename "handlePageFunction" to "requestHandler" in your crawler options.`,
-            ].join('\n'));
+            expect(warningSpy).toHaveBeenCalledWith<[string]>(
+                [
+                    `"handlePageFunction" has been renamed to "requestHandler", and will be removed in a future version.`,
+                    `The provided value will be used, but you should rename "handlePageFunction" to "requestHandler" in your crawler options.`,
+                ].join('\n'),
+            );
 
             // eslint-disable-next-line dot-notation -- accessing private property
             expect(crawler['requestHandler']).toBe(oldHandler);
@@ -96,11 +100,13 @@ describe('Moving from handleRequest* to requestHandler*', () => {
                 handleFailedRequestFunction: oldHandler,
             });
 
-            expect(warningSpy).toHaveBeenCalledWith<[string]>([
-                `Both "failedRequestHandler" and "handleFailedRequestFunction" were provided in the crawler options.`,
-                `"handleFailedRequestFunction" has been renamed to "failedRequestHandler", and will be removed in a future version.`,
-                `As such, "failedRequestHandler" will be used instead.`,
-            ].join('\n'));
+            expect(warningSpy).toHaveBeenCalledWith<[string]>(
+                [
+                    `Both "failedRequestHandler" and "handleFailedRequestFunction" were provided in the crawler options.`,
+                    `"handleFailedRequestFunction" has been renamed to "failedRequestHandler", and will be removed in a future version.`,
+                    `As such, "failedRequestHandler" will be used instead.`,
+                ].join('\n'),
+            );
 
             // eslint-disable-next-line dot-notation -- accessing private property
             expect(crawler['failedRequestHandler']).toBe(newHandler);
@@ -117,10 +123,12 @@ describe('Moving from handleRequest* to requestHandler*', () => {
                 handleFailedRequestFunction: oldHandler,
             });
 
-            expect(warningSpy).toHaveBeenCalledWith<[string]>([
-                `"handleFailedRequestFunction" has been renamed to "failedRequestHandler", and will be removed in a future version.`,
-                `The provided value will be used, but you should rename "handleFailedRequestFunction" to "failedRequestHandler" in your crawler options.`,
-            ].join('\n'));
+            expect(warningSpy).toHaveBeenCalledWith<[string]>(
+                [
+                    `"handleFailedRequestFunction" has been renamed to "failedRequestHandler", and will be removed in a future version.`,
+                    `The provided value will be used, but you should rename "handleFailedRequestFunction" to "failedRequestHandler" in your crawler options.`,
+                ].join('\n'),
+            );
 
             // eslint-disable-next-line dot-notation -- accessing private property
             expect(crawler['failedRequestHandler']).toBe(oldHandler);

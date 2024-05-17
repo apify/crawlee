@@ -47,14 +47,14 @@ export async function purgeDefaultStorages(
     configOrOptions?: Configuration | PurgeDefaultStorageOptions,
     client?: StorageClient,
 ) {
-    const options: PurgeDefaultStorageOptions = configOrOptions instanceof Configuration ? {
-        client,
-        config: configOrOptions,
-    } : configOrOptions ?? {};
-    const {
-        config = Configuration.getGlobalConfig(),
-        onlyPurgeOnce = false,
-    } = options;
+    const options: PurgeDefaultStorageOptions =
+        configOrOptions instanceof Configuration
+            ? {
+                  client,
+                  config: configOrOptions,
+              }
+            : configOrOptions ?? {};
+    const { config = Configuration.getGlobalConfig(), onlyPurgeOnce = false } = options;
     ({ client = config.getStorageClient() } = options);
 
     const casted = client as StorageClient & { __purged?: boolean };
@@ -89,7 +89,9 @@ export async function useState<State extends Dictionary = Dictionary>(
     defaultValue = {} as State,
     options?: UseStateOptions,
 ) {
-    const kvStore = await KeyValueStore.open(options?.keyValueStoreName, { config: options?.config || Configuration.getGlobalConfig() });
+    const kvStore = await KeyValueStore.open(options?.keyValueStoreName, {
+        config: options?.config || Configuration.getGlobalConfig(),
+    });
     return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
 }
 
@@ -103,11 +105,7 @@ export async function useState<State extends Dictionary = Dictionary>(
  * @internal
  */
 export function getRequestId(uniqueKey: string) {
-    const str = crypto
-        .createHash('sha256')
-        .update(uniqueKey)
-        .digest('base64')
-        .replace(/[+/=]/g, '');
+    const str = crypto.createHash('sha256').update(uniqueKey).digest('base64').replace(/[+/=]/g, '');
 
     return str.slice(0, 15);
 }

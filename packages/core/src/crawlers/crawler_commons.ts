@@ -14,7 +14,8 @@ import { KeyValueStore } from '../storages';
 
 // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
 // eslint-disable-next-line
-export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> extends Record<string & {}, unknown> {
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
+    extends Record<string & {}, unknown> {
     /**
      * The original {@apilink Request} object.
      */
@@ -74,7 +75,9 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     /**
      * Get a key-value store with given name or id, or the default one for the crawler.
      */
-    getKeyValueStore: (idOrName?: string) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
+    getKeyValueStore: (
+        idOrName?: string,
+    ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue'>>;
 
     /**
      * A preconfigured logger for the request handler.
@@ -82,7 +85,8 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     log: Log;
 }
 
-export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
+export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary>
+    extends RestrictedCrawlingContext<UserData> {
     id: string;
     session?: Session;
 
@@ -120,7 +124,7 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinks(
-        options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>
+        options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>,
     ): Promise<BatchAddRequestsResult>;
 
     /**
@@ -154,12 +158,16 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
  * @experimental
  */
 export class RequestHandlerResult {
-    private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> = {};
+    private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> =
+        {};
     private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
     private enqueueLinksCalls: Parameters<RestrictedCrawlingContext['enqueueLinks']>[] = [];
 
-    constructor(private config: Configuration, private crawleeStateKey: string) {}
+    constructor(
+        private config: Configuration,
+        private crawleeStateKey: string,
+    ) {}
 
     /**
      * A record of calls to {@apilink RestrictedCrawlingContext.pushData}, {@apilink RestrictedCrawlingContext.addRequests}, {@apilink RestrictedCrawlingContext.enqueueLinks} made by a request handler.
@@ -169,13 +177,19 @@ export class RequestHandlerResult {
         addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
         enqueueLinks: Parameters<RestrictedCrawlingContext['enqueueLinks']>[];
     }> {
-        return { pushData: this.pushDataCalls, addRequests: this.addRequestsCalls, enqueueLinks: this.enqueueLinksCalls };
+        return {
+            pushData: this.pushDataCalls,
+            addRequests: this.addRequestsCalls,
+            enqueueLinks: this.enqueueLinksCalls,
+        };
     }
 
     /**
      * A record of changes made to key-value stores by a request handler.
      */
-    get keyValueStoreChanges(): ReadonlyDeep<Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>>> {
+    get keyValueStoreChanges(): ReadonlyDeep<
+        Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>>
+    > {
         return this._keyValueStoreChanges;
     }
 
@@ -183,14 +197,16 @@ export class RequestHandlerResult {
      * Items added to datasets by a request handler.
      */
     get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdOrName?: string }[]> {
-        return this.pushDataCalls.flatMap(([data, datasetIdOrName]) => (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })));
+        return this.pushDataCalls.flatMap(([data, datasetIdOrName]) =>
+            (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })),
+        );
     }
 
     /**
      * URLs enqueued to the request queue by a request handler, either via {@apilink RestrictedCrawlingContext.addRequests} or {@apilink RestrictedCrawlingContext.enqueueLinks}
      */
     get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
-        const result: {url: string; label? : string}[] = [];
+        const result: { url: string; label?: string }[] = [];
 
         for (const [options] of this.enqueueLinksCalls) {
             result.push(...(options?.urls?.map((url) => ({ url, label: options?.label })) ?? []));
@@ -198,7 +214,11 @@ export class RequestHandlerResult {
 
         for (const [requests] of this.addRequestsCalls) {
             for (const request of requests) {
-                if (typeof request === 'object' && (!('requestsFromUrl' in request) || request.requestsFromUrl !== undefined) && request.url !== undefined) {
+                if (
+                    typeof request === 'object' &&
+                    (!('requestsFromUrl' in request) || request.requestsFromUrl !== undefined) &&
+                    request.url !== undefined
+                ) {
                     result.push({ url: request.url, label: request.label });
                 } else if (typeof request === 'string') {
                     result.push({ url: request });
@@ -212,12 +232,16 @@ export class RequestHandlerResult {
     /**
      * URL lists enqueued to the request queue by a request handler via {@apilink RestrictedCrawlingContext.addRequests} using the `requestsFromUrl` option.
      */
-    get enqueuedUrlLists(): ReadonlyDeep<{ listUrl: string; label? : string }[]> {
-        const result: {listUrl: string; label? : string}[] = [];
+    get enqueuedUrlLists(): ReadonlyDeep<{ listUrl: string; label?: string }[]> {
+        const result: { listUrl: string; label?: string }[] = [];
 
         for (const [requests] of this.addRequestsCalls) {
             for (const request of requests) {
-                if (typeof request === 'object' && 'requestsFromUrl' in request && request.requestsFromUrl !== undefined) {
+                if (
+                    typeof request === 'object' &&
+                    'requestsFromUrl' in request &&
+                    request.requestsFromUrl !== undefined
+                ) {
                     result.push({ listUrl: request.requestsFromUrl, label: request.label });
                 }
             }
@@ -249,11 +273,11 @@ export class RequestHandlerResult {
         return {
             id: this.idOrDefault(idOrName),
             name: idOrName,
-            getValue: async (key) => this.getKeyValueStoreChangedValue(idOrName, key) ?? await store.getValue(key),
+            getValue: async (key) => this.getKeyValueStoreChangedValue(idOrName, key) ?? (await store.getValue(key)),
             getAutoSavedValue: async <T extends Dictionary = Dictionary>(key: string, defaultValue: T = {} as T) => {
                 let value = this.getKeyValueStoreChangedValue(idOrName, key);
                 if (value === null) {
-                    value = await store.getValue(key) ?? defaultValue;
+                    value = (await store.getValue(key)) ?? defaultValue;
                     this.setKeyValueStoreChangedValue(idOrName, key, value);
                 }
 
@@ -273,7 +297,12 @@ export class RequestHandlerResult {
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
 
-    private setKeyValueStoreChangedValue = (idOrName: string | undefined, key: string, changedValue: unknown, options?: RecordOptions) => {
+    private setKeyValueStoreChangedValue = (
+        idOrName: string | undefined,
+        key: string,
+        changedValue: unknown,
+        options?: RecordOptions,
+    ) => {
         const id = this.idOrDefault(idOrName);
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };

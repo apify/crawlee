@@ -29,8 +29,8 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
             offset: 0,
             limit: this.client.requestQueuesHandled.length,
             desc: false,
-            items: this.client.requestQueuesHandled.map(
-                (store) => store.toRequestQueueInfo())
+            items: this.client.requestQueuesHandled
+                .map((store) => store.toRequestQueueInfo())
                 .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
         };
     }
@@ -46,7 +46,11 @@ export class RequestQueueCollectionClient implements storage.RequestQueueCollect
             }
         }
 
-        const newStore = new RequestQueueClient({ name, baseStorageDirectory: this.requestQueuesDirectory, client: this.client });
+        const newStore = new RequestQueueClient({
+            name,
+            baseStorageDirectory: this.requestQueuesDirectory,
+            client: this.client,
+        });
         this.client.requestQueuesHandled.push(newStore);
 
         // Schedule the worker to write to the disk

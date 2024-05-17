@@ -35,10 +35,19 @@ for (const manifestTemplate of manifest.templates) {
         } catch (err) {
             if (err.code === 'ENOENT') {
                 hasError = true;
-                console.error(`${colors.grey(`[${colors.yellow(manifestTemplate.name)}]:`)} Failed to find file ${colors.yellow(requiredFile)}`);
+                console.error(
+                    `${colors.grey(`[${colors.yellow(manifestTemplate.name)}]:`)} Failed to find file ${colors.yellow(
+                        requiredFile,
+                    )}`,
+                );
                 console.error(err);
             } else {
-                console.warn(`${colors.grey(`[${colors.yellow(manifestTemplate.name)}]:`)} Failed to read file ${colors.yellow(requiredFile)}`, err);
+                console.warn(
+                    `${colors.grey(`[${colors.yellow(manifestTemplate.name)}]:`)} Failed to read file ${colors.yellow(
+                        requiredFile,
+                    )}`,
+                    err,
+                );
             }
         }
     }

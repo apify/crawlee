@@ -5,9 +5,7 @@ router.addHandler('DETAIL', async ({ request, page, log }) => {
     const manufacturer = urlPart[0].split('-')[0]; // 'sennheiser'
 
     const title = await page.locator('.product-meta h1').textContent();
-    const sku = await page
-        .locator('span.product-meta__sku-number')
-        .textContent();
+    const sku = await page.locator('span.product-meta__sku-number').textContent();
 
     const priceElement = page
         .locator('span.price')

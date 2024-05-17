@@ -3,12 +3,19 @@ import type { PuppeteerCrawlingContext, PuppeteerCrawlerOptions, PuppeteerGoToOp
 import { BrowserCrawler } from '@crawlee/puppeteer';
 import type { HTTPResponse, LaunchOptions } from 'puppeteer';
 
-export class BrowserCrawlerTest extends BrowserCrawler<{ browserPlugins: [PuppeteerPlugin] }, LaunchOptions, PuppeteerCrawlingContext> {
+export class BrowserCrawlerTest extends BrowserCrawler<
+    { browserPlugins: [PuppeteerPlugin] },
+    LaunchOptions,
+    PuppeteerCrawlingContext
+> {
     constructor(options: Partial<PuppeteerCrawlerOptions> = {}) {
         super(options as any);
     }
 
-    protected async _navigationHandler(ctx: PuppeteerCrawlingContext, gotoOptions: PuppeteerGoToOptions): Promise<HTTPResponse | null | undefined> {
+    protected async _navigationHandler(
+        ctx: PuppeteerCrawlingContext,
+        gotoOptions: PuppeteerGoToOptions,
+    ): Promise<HTTPResponse | null | undefined> {
         return ctx.page.goto(ctx.request.url, gotoOptions);
     }
 }

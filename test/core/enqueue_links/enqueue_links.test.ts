@@ -67,15 +67,12 @@ describe('enqueueLinks()', () => {
         log.setLevel(ll);
     });
 
-    describe.each([
-        [launchPuppeteer],
-        [launchPlaywright],
-    ] as const)('using %s', (method) => {
+    describe.each([[launchPuppeteer], [launchPlaywright]] as const)('using %s', (method) => {
         let browser: PuppeteerBrowser | PlaywrightBrowser;
         let page: PuppeteerPage | PlaywrightPage;
 
         beforeEach(async () => {
-            browser = await method({ launchOptions: { headless: true } }) as PlaywrightBrowser | PuppeteerBrowser;
+            browser = (await method({ launchOptions: { headless: true } })) as PlaywrightBrowser | PuppeteerBrowser;
             page = await browser.newPage();
             await page.setContent(HTML);
         });
@@ -114,10 +111,7 @@ describe('enqueueLinks()', () => {
 
         test('works with globs', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const globs = [
-                'https://example.com/**/*',
-                { glob: '?(http|https)://cool.com/', method: 'POST' as const },
-            ];
+            const globs = ['https://example.com/**/*', { glob: '?(http|https)://cool.com/', method: 'POST' as const }];
 
             await browserCrawlerEnqueueLinks({
                 options: {
@@ -162,12 +156,14 @@ describe('enqueueLinks()', () => {
                 { glob: '?(http|https)://cool.com/', method: 'POST' as const },
             ];
 
-            await expect(browserCrawlerEnqueueLinks({
-                options: { selector: '.click', globs },
-                page,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).resolves.not.toThrow();
+            await expect(
+                browserCrawlerEnqueueLinks({
+                    options: { selector: '.click', globs },
+                    page,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).resolves.not.toThrow();
 
             expect(enqueued).toHaveLength(3);
         });
@@ -232,10 +228,7 @@ describe('enqueueLinks()', () => {
 
         test('works with exclude glob', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const globs = [
-                'https://example.com/**/*',
-                { glob: '?(http|https)://cool.com/', method: 'POST' as const },
-            ];
+            const globs = ['https://example.com/**/*', { glob: '?(http|https)://cool.com/', method: 'POST' as const }];
 
             const exclude = ['**/first'];
 
@@ -273,10 +266,7 @@ describe('enqueueLinks()', () => {
 
         test('works with exclude regexp', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const globs = [
-                'https://example.com/**/*',
-                { glob: '?(http|https)://cool.com/', method: 'POST' as const },
-            ];
+            const globs = ['https://example.com/**/*', { glob: '?(http|https)://cool.com/', method: 'POST' as const }];
 
             const exclude = [/first/];
 
@@ -353,18 +343,17 @@ describe('enqueueLinks()', () => {
         test('throws with RegExp pseudoUrls', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
 
-            const pseudoUrls = [
-                /https:\/\/example\.com\/(\w|-|\/)*/,
-                /(http|https):\/\/cool\.com\//,
-            ];
+            const pseudoUrls = [/https:\/\/example\.com\/(\w|-|\/)*/, /(http|https):\/\/cool\.com\//];
 
-            await expect(browserCrawlerEnqueueLinks({
-                // @ts-expect-error Type 'RegExp[]' is not assignable to type 'PseudoUrlInput[]'
-                options: { selector: '.click', pseudoUrls },
-                page,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
+            await expect(
+                browserCrawlerEnqueueLinks({
+                    // @ts-expect-error Type 'RegExp[]' is not assignable to type 'PseudoUrlInput[]'
+                    options: { selector: '.click', pseudoUrls },
+                    page,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
         });
 
         test('works with undefined pseudoUrls[]', async () => {
@@ -398,12 +387,14 @@ describe('enqueueLinks()', () => {
 
         test('throws with null pseudoUrls[]', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            await expect(browserCrawlerEnqueueLinks({
-                options: { selector: '.click', pseudoUrls: null },
-                page,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
+            await expect(
+                browserCrawlerEnqueueLinks({
+                    options: { selector: '.click', pseudoUrls: null },
+                    page,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
         });
 
         test('works with empty pseudoUrls[]', async () => {
@@ -436,18 +427,16 @@ describe('enqueueLinks()', () => {
 
         test('throws with sparse pseudoUrls[]', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const pseudoUrls = [
-                'https://example.com/[(\\w|-|/)*]',
-                null,
-                '[http|https]://cool.com/',
-            ];
+            const pseudoUrls = ['https://example.com/[(\\w|-|/)*]', null, '[http|https]://cool.com/'];
 
-            await expect(browserCrawlerEnqueueLinks({
-                options: { selector: '.click', pseudoUrls },
-                page,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
+            await expect(
+                browserCrawlerEnqueueLinks({
+                    options: { selector: '.click', pseudoUrls },
+                    page,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
             expect(enqueued).toHaveLength(0);
         });
 
@@ -542,10 +531,7 @@ describe('enqueueLinks()', () => {
         test('correctly works with transformRequestFunction', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
 
-            const pseudoUrls = [
-                'https://example.com/[(\\w|-|/)*]',
-                '[http|https]://cool.com/',
-            ];
+            const pseudoUrls = ['https://example.com/[(\\w|-|/)*]', '[http|https]://cool.com/'];
 
             await browserCrawlerEnqueueLinks({
                 options: {
@@ -639,12 +625,14 @@ describe('enqueueLinks()', () => {
                 { glob: ' ' },
             ];
 
-            await expect(cheerioCrawlerEnqueueLinks({
-                options: { selector: '.click', globs },
-                $,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).resolves.not.toThrow();
+            await expect(
+                cheerioCrawlerEnqueueLinks({
+                    options: { selector: '.click', globs },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).resolves.not.toThrow();
 
             expect(enqueued).toHaveLength(3);
         });
@@ -728,18 +716,17 @@ describe('enqueueLinks()', () => {
 
         test('throws with RegExp pseudoUrls', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const pseudoUrls = [
-                /https:\/\/example\.com\/(\w|-|\/)*/,
-                /(http|https):\/\/cool\.com\//,
-            ];
+            const pseudoUrls = [/https:\/\/example\.com\/(\w|-|\/)*/, /(http|https):\/\/cool\.com\//];
 
-            await expect(cheerioCrawlerEnqueueLinks({
-                // @ts-expect-error Type 'RegExp[]' is not assignable to type 'PseudoUrlInput[]'
-                options: { selector: '.click', pseudoUrls },
-                $,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
+            await expect(
+                cheerioCrawlerEnqueueLinks({
+                    // @ts-expect-error Type 'RegExp[]' is not assignable to type 'PseudoUrlInput[]'
+                    options: { selector: '.click', pseudoUrls },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
         });
 
         test('works with undefined pseudoUrls[]', async () => {
@@ -772,12 +759,14 @@ describe('enqueueLinks()', () => {
 
         test('throws with null pseudoUrls[]', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            await expect(cheerioCrawlerEnqueueLinks({
-                options: { selector: '.click', pseudoUrls: null },
-                $,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
+            await expect(
+                cheerioCrawlerEnqueueLinks({
+                    options: { selector: '.click', pseudoUrls: null },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
         });
 
         test('works with empty pseudoUrls[]', async () => {
@@ -810,18 +799,16 @@ describe('enqueueLinks()', () => {
 
         test('throws with sparse pseudoUrls[]', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const pseudoUrls = [
-                'https://example.com/[(\\w|-|/)*]',
-                null,
-                '[http|https]://cool.com/',
-            ];
+            const pseudoUrls = ['https://example.com/[(\\w|-|/)*]', null, '[http|https]://cool.com/'];
 
-            await expect(cheerioCrawlerEnqueueLinks({
-                options: { selector: '.click', pseudoUrls },
-                $,
-                requestQueue,
-                originalRequestUrl: 'https://example.com',
-            })).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
+            await expect(
+                cheerioCrawlerEnqueueLinks({
+                    options: { selector: '.click', pseudoUrls },
+                    $,
+                    requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
             expect(enqueued).toHaveLength(0);
         });
 
@@ -938,10 +925,7 @@ describe('enqueueLinks()', () => {
 
         test('correctly works with transformRequestFunction', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
-            const pseudoUrls = [
-                'https://example.com/[(\\w|-|/)*]',
-                '[http|https]://cool.com/',
-            ];
+            const pseudoUrls = ['https://example.com/[(\\w|-|/)*]', '[http|https]://cool.com/'];
 
             await cheerioCrawlerEnqueueLinks({
                 options: {

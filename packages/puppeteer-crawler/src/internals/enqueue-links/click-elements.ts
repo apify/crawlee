@@ -19,13 +19,7 @@ import {
 } from '@crawlee/browser';
 import type { Dictionary, BatchAddRequestsResult } from '@crawlee/types';
 import ow from 'ow';
-import type {
-    ClickOptions,
-    Frame,
-    HTTPRequest as PuppeteerRequest,
-    Page,
-    Target,
-} from 'puppeteer';
+import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception';
 
@@ -216,32 +210,28 @@ export interface EnqueueLinksByClickingElementsOptions {
  *
  * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
  */
-export async function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult> {
-    ow(options, ow.object.exactShape({
-        page: ow.object.hasKeys('goto', 'evaluate'),
-        requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-        selector: ow.string,
-        userData: ow.optional.object,
-        clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
-        pseudoUrls: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.object.hasKeys('purl'),
-        )),
-        globs: ow.optional.array.ofType(ow.any(
-            ow.string,
-            ow.object.hasKeys('glob'),
-        )),
-        regexps: ow.optional.array.ofType(ow.any(
-            ow.regExp,
-            ow.object.hasKeys('regexp'),
-        )),
-        transformRequestFunction: ow.optional.function,
-        waitForPageIdleSecs: ow.optional.number,
-        maxWaitForPageIdleSecs: ow.optional.number,
-        label: ow.optional.string,
-        forefront: ow.optional.boolean,
-        skipNavigation: ow.optional.boolean,
-    }));
+export async function enqueueLinksByClickingElements(
+    options: EnqueueLinksByClickingElementsOptions,
+): Promise<BatchAddRequestsResult> {
+    ow(
+        options,
+        ow.object.exactShape({
+            page: ow.object.hasKeys('goto', 'evaluate'),
+            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
+            selector: ow.string,
+            userData: ow.optional.object,
+            clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
+            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
+            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
+            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+            transformRequestFunction: ow.optional.function,
+            waitForPageIdleSecs: ow.optional.number,
+            maxWaitForPageIdleSecs: ow.optional.number,
+            label: ow.optional.string,
+            forefront: ow.optional.boolean,
+            skipNavigation: ow.optional.boolean,
+        }),
+    );
 
     const {
         page,
@@ -309,14 +299,10 @@ interface ClickElementsAndInterceptNavigationRequestsOptions extends WaitForPage
  * Returns a list of all target URLs.
  * @ignore
  */
-export async function clickElementsAndInterceptNavigationRequests(options: ClickElementsAndInterceptNavigationRequestsOptions): Promise<Dictionary[]> {
-    const {
-        page,
-        selector,
-        waitForPageIdleMillis,
-        maxWaitForPageIdleMillis,
-        clickOptions,
-    } = options;
+export async function clickElementsAndInterceptNavigationRequests(
+    options: ClickElementsAndInterceptNavigationRequestsOptions,
+): Promise<Dictionary[]> {
+    const { page, selector, waitForPageIdleMillis, maxWaitForPageIdleMillis, clickOptions } = options;
 
     const uniqueRequests = new Set<string>();
     const browser = page.browser();
@@ -351,12 +337,14 @@ function createInterceptRequestHandler(page: Page, requests: Set<string>): (req:
     return async function onInterceptedRequest(req) {
         if (!isTopFrameNavigationRequest(page, req)) return req.continue();
         const url = req.url();
-        requests.add(JSON.stringify({
-            url,
-            headers: req.headers(),
-            method: req.method(),
-            payload: req.postData(),
-        }));
+        requests.add(
+            JSON.stringify({
+                url,
+                headers: req.headers(),
+                method: req.method(),
+                payload: req.postData(),
+            }),
+        );
 
         if (req.redirectChain().length) {
             await req.respond({ body: '' }); // Prevents 301/302 redirect
@@ -370,8 +358,7 @@ function createInterceptRequestHandler(page: Page, requests: Set<string>): (req:
  * @ignore
  */
 function isTopFrameNavigationRequest(page: Page, req: PuppeteerRequest): boolean {
-    return req.isNavigationRequest()
-        && req.frame() === page.mainFrame();
+    return req.isNavigationRequest() && req.frame() === page.mainFrame();
 }
 
 /**
@@ -399,8 +386,7 @@ function createTargetCreatedHandler(page: Page, requests: Set<string>): (target:
  * There will generally be a lot of other targets being created in the browser.
  */
 export function isTargetRelevant(page: Page, target: Target): boolean {
-    return target.type() === 'page'
-        && page.target() === target.opener();
+    return target.type() === 'page' && page.target() === target.opener();
 }
 
 /**
@@ -472,15 +458,19 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
         } catch (err) {
             const e = err as Error;
             if (shouldLogWarning && e.stack!.includes('is detached from document')) {
-                log.warning(`An element with selector ${selector} that you're trying to click has been removed from the page. `
-                    + 'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. '
-                    + 'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.');
+                log.warning(
+                    `An element with selector ${selector} that you're trying to click has been removed from the page. ` +
+                        'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
+                        'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
+                );
                 shouldLogWarning = false;
             }
             log.debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
         }
     }
-    log.debug(`enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`);
+    log.debug(
+        `enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`,
+    );
 }
 
 /* istanbul ignore next */
@@ -514,7 +504,11 @@ function updateElementCssToEnableMouseClick(el: Element, zIndex: number): void {
  * when there's only a single element to click.
  * @ignore
  */
-async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdleMillis }: WaitForPageIdleOptions): Promise<void> {
+async function waitForPageIdle({
+    page,
+    waitForPageIdleMillis,
+    maxWaitForPageIdleMillis,
+}: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
         let maxTimeout: NodeJS.Timeout;
@@ -533,8 +527,10 @@ async function waitForPageIdle({ page, waitForPageIdleMillis, maxWaitForPageIdle
         }
 
         function maxTimeoutHandler() {
-            log.debug(`enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. `
-                + 'This is probably due to the website itself dispatching requests, but some links may also have been missed.');
+            log.debug(
+                `enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. ` +
+                    'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
+            );
             finish();
         }
 

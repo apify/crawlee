@@ -8,7 +8,8 @@ export type CheerioRoot = ReturnType<typeof load>;
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
-const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|div|fieldset|form|table|tr|select|option)$/i;
+const BLOCK_TAGS_REGEX =
+    /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|div|fieldset|form|table|tr|select|option)$/i;
 
 /**
  * The function converts a HTML document to a plain text.
@@ -41,7 +42,10 @@ const BLOCK_TAGS_REGEX = /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|
 export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
     if (!htmlOrCheerioElement) return '';
 
-    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : cheerio.load(htmlOrCheerioElement, { decodeEntities: true });
+    const $ =
+        typeof htmlOrCheerioElement === 'function'
+            ? htmlOrCheerioElement
+            : cheerio.load(htmlOrCheerioElement, { decodeEntities: true });
     let text = '';
 
     const process = (elems: Dictionary) => {
@@ -105,12 +109,12 @@ export function extractUrlsFromCheerio($: CheerioAPI, selector: string = 'a', ba
             // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
             const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
             if (!isHrefAbsolute && !baseUrl) {
-                throw new Error(`An extracted URL: ${href} is relative and baseUrl is not set. `
-                    + 'Provide a baseUrl to automatically resolve relative URLs.');
+                throw new Error(
+                    `An extracted URL: ${href} is relative and baseUrl is not set. ` +
+                        'Provide a baseUrl to automatically resolve relative URLs.',
+                );
             }
-            return baseUrl
-                ? tryAbsoluteURL(href, baseUrl)
-                : href;
+            return baseUrl ? tryAbsoluteURL(href, baseUrl) : href;
         })
         .filter(Boolean) as string[];
 }

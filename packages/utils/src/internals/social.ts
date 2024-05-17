@@ -3,7 +3,8 @@ import cheerio from 'cheerio';
 import { htmlToText } from './cheerio';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
-const EMAIL_REGEX_STRING = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
+const EMAIL_REGEX_STRING =
+    '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
 
 /**
  * Regular expression to exactly match a single email address.
@@ -27,7 +28,7 @@ const EMAIL_URL_PREFIX_REGEX = /^mailto:/i;
  * If no emails are found, the function returns an empty array.
  */
 export function emailsFromText(text: string): string[] {
-    if (typeof text as unknown !== 'string') return [];
+    if ((typeof text as unknown) !== 'string') return [];
     return text.match(EMAIL_REGEX_GLOBAL) || [];
 }
 
@@ -121,9 +122,9 @@ const SKIP_PHONE_REGEX = new RegExp(`^(${SKIP_PHONE_REGEXS.join('|')})$`, 'i');
  * If no phone numbers are found, the function returns an empty array.
  */
 export function phonesFromText(text: string): string[] {
-    if (typeof text as unknown !== 'string') return [];
+    if ((typeof text as unknown) !== 'string') return [];
 
-    let phones = text.match(PHONE_REGEX_GLOBAL) as string[] || [];
+    let phones = (text.match(PHONE_REGEX_GLOBAL) as string[]) || [];
     phones = phones.filter((phone) => {
         if (!phone) return false;
 
@@ -165,9 +166,11 @@ export function phonesFromUrls(urls: string[]): string[] {
 // - They use a negative lookbehind and lookahead assertions, which are only supported in Node 8+.
 //   They are used to prevent matching URLs in strings like "blahttps://www.example.com"
 
-const LINKEDIN_REGEX_STRING = '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=])))(?:\\/)?';
+const LINKEDIN_REGEX_STRING =
+    '(?<!\\w)(?:(?:http(?:s)?:\\/\\/)?(?:(?:(?:[a-z]+\\.)?linkedin\\.com\\/(?:in|company)\\/)([a-z0-9\\-_%=]{2,60})(?![a-z0-9\\-_%=])))(?:\\/)?';
 
-const INSTAGRAM_REGEX_STRING = '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
+const INSTAGRAM_REGEX_STRING =
+    '(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:(?:www\\.)?(?:instagram\\.com|instagr\\.am)\\/)(?!explore|_n|_u)([a-z0-9_.]{2,30})(?![a-z0-9_.])(?:/)?';
 
 const TWITTER_RESERVED_PATHS =
     'oauth|account|tos|privacy|signup|home|hashtag|search|login|widgets|i|settings|start|share|intent|oct';
@@ -253,7 +256,7 @@ export function parseHandlesFromHtml(html: string, data: Record<string, unknown>
         discords: [],
     };
 
-    if (typeof html as unknown !== 'string') return result;
+    if ((typeof html as unknown) !== 'string') return result;
 
     const $ = cheerio.load(html, { decodeEntities: true });
     if (data) data.$ = $;
@@ -391,22 +394,22 @@ export const INSTAGRAM_REGEX = new RegExp(`^${INSTAGRAM_REGEX_STRING}$`, 'i');
  * instagr.am/old_prague
  * ```
  *
-* If the profile URL contains subdirectories or query parameters, the regular expression
-* extracts just the base part of the profile URL. For example, from text such as:
-* ```
-* https://www.instagram.com/cristiano/followers
-* ```
-* the expression extracts just the following base URL:
-* ```
-* https://www.instagram.com/cristiano
-* ```
-*
-* The regular expression does NOT match the following URLs:
-* ```
-* https://www.instagram.com/explore/
-* https://www.instagram.com/_n/
-* https://www.instagram.com/_u/
-* ```
+ * If the profile URL contains subdirectories or query parameters, the regular expression
+ * extracts just the base part of the profile URL. For example, from text such as:
+ * ```
+ * https://www.instagram.com/cristiano/followers
+ * ```
+ * the expression extracts just the following base URL:
+ * ```
+ * https://www.instagram.com/cristiano
+ * ```
+ *
+ * The regular expression does NOT match the following URLs:
+ * ```
+ * https://www.instagram.com/explore/
+ * https://www.instagram.com/_n/
+ * https://www.instagram.com/_u/
+ * ```
  *
  * Example usage:
  * ```

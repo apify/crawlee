@@ -3,10 +3,7 @@ import type { Dictionary } from '@crawlee/types';
 import { checkStorageAccess } from './access_checking';
 import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
-import {
-    STORAGE_CONSISTENCY_DELAY_MILLIS,
-    getRequestId,
-} from './utils';
+import { STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import type { Request } from '../request';
@@ -59,12 +56,15 @@ export class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
-        super({
-            ...options,
-            logPrefix: 'RequestQueue2',
-            recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
-            requestCacheMaxSize: MAX_CACHED_REQUESTS,
-        }, config);
+        super(
+            {
+                ...options,
+                logPrefix: 'RequestQueue2',
+                recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
+                requestCacheMaxSize: MAX_CACHED_REQUESTS,
+            },
+            config,
+        );
 
         const eventManager = config.getEventManager();
 
@@ -141,7 +141,9 @@ export class RequestQueue extends RequestProvider {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            this.log.debug('Cannot find a request from the beginning of queue or lost lock, will be retried later', { nextRequestId });
+            this.log.debug('Cannot find a request from the beginning of queue or lost lock, will be retried later', {
+                nextRequestId,
+            });
 
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
@@ -166,7 +168,9 @@ export class RequestQueue extends RequestProvider {
     /**
      * @inheritDoc
      */
-    override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>): ReturnType<RequestProvider['reclaimRequest']> {
+    override async reclaimRequest(
+        ...args: Parameters<RequestProvider['reclaimRequest']>
+    ): ReturnType<RequestProvider['reclaimRequest']> {
         checkStorageAccess();
 
         const res = await super.reclaimRequest(...args);
@@ -246,7 +250,9 @@ export class RequestQueue extends RequestProvider {
         }
     }
 
-    private async getOrHydrateRequest<T extends Dictionary = Dictionary>(requestId: string): Promise<Request<T> | null> {
+    private async getOrHydrateRequest<T extends Dictionary = Dictionary>(
+        requestId: string,
+    ): Promise<Request<T> | null> {
         checkStorageAccess();
 
         const cachedEntry = this.requestCache.get(requestId);
@@ -338,9 +344,12 @@ export class RequestQueue extends RequestProvider {
             return res.lockExpiresAt;
         } catch (err: any) {
             // Most likely we do not own the lock anymore
-            this.log.warning(`Failed to prolong lock for cached request ${requestId}, either lost the lock or the request was already handled\n`, {
-                err,
-            });
+            this.log.warning(
+                `Failed to prolong lock for cached request ${requestId}, either lost the lock or the request was already handled\n`,
+                {
+                    err,
+                },
+            );
 
             return null;
         }

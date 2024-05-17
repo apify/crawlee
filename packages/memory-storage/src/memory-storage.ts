@@ -71,9 +71,16 @@ export class MemoryStorage implements storage.StorageClient {
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
-        this.writeMetadata = options.writeMetadata ?? process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false;
-        this.persistStorage = options.persistStorage
-            ?? (process.env.CRAWLEE_PERSIST_STORAGE ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!) : true);
+        this.writeMetadata =
+            options.writeMetadata ??
+            process.env.DEBUG?.includes('*') ??
+            process.env.DEBUG?.includes('crawlee:memory-storage') ??
+            false;
+        this.persistStorage =
+            options.persistStorage ??
+            (process.env.CRAWLEE_PERSIST_STORAGE
+                ? !['false', '0', ''].includes(process.env.CRAWLEE_PERSIST_STORAGE!)
+                : true);
     }
 
     datasets(): storage.DatasetCollectionClient {
@@ -116,7 +123,12 @@ export class MemoryStorage implements storage.StorageClient {
             timeoutSecs: s.number.optional,
         }).parse(options);
 
-        return new RequestQueueClient({ id, baseStorageDirectory: this.requestQueuesDirectory, client: this, ...options });
+        return new RequestQueueClient({
+            id,
+            baseStorageDirectory: this.requestQueuesDirectory,
+            client: this,
+            ...options,
+        });
     }
 
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
@@ -141,9 +153,13 @@ export class MemoryStorage implements storage.StorageClient {
 
         for (const keyValueStoreFolder of keyValueStores) {
             if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY') || keyValueStoreFolder.startsWith('__OLD')) {
-                keyValueStorePromises.push((await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))());
+                keyValueStorePromises.push(
+                    (await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))(),
+                );
             } else if (keyValueStoreFolder === 'default') {
-                keyValueStorePromises.push(this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder))());
+                keyValueStorePromises.push(
+                    this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder))(),
+                );
             }
         }
 
@@ -167,7 +183,9 @@ export class MemoryStorage implements storage.StorageClient {
 
         for (const requestQueueFolder of requestQueues) {
             if (requestQueueFolder === 'default' || requestQueueFolder.startsWith('__CRAWLEE_TEMPORARY')) {
-                requestQueuePromises.push((await this.batchRemoveFiles(resolve(this.requestQueuesDirectory, requestQueueFolder)))());
+                requestQueuePromises.push(
+                    (await this.batchRemoveFiles(resolve(this.requestQueuesDirectory, requestQueueFolder)))(),
+                );
             }
         }
 
@@ -188,12 +206,7 @@ export class MemoryStorage implements storage.StorageClient {
         const temporaryPath = resolve(folder, '../__CRAWLEE_MIGRATING_KEY_VALUE_STORE__');
 
         // For optimization, we want to only attempt to copy a few files from the default key-value store
-        const possibleInputKeys = [
-            'INPUT',
-            'INPUT.json',
-            'INPUT.bin',
-            'INPUT.txt',
-        ];
+        const possibleInputKeys = ['INPUT', 'INPUT.json', 'INPUT.bin', 'INPUT.txt'];
 
         if (storagePathExists) {
             // Create temporary folder to save important files in

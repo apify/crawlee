@@ -15,7 +15,12 @@ describe('KeyValueStore should append extension only when needed', () => {
             storeDirectory: testDir,
             writeMetadata: true,
         });
-        await storage.update({ key: 'jibberish', value: mockImageBuffer, contentType: 'image/jpeg', extension: 'jpeg' });
+        await storage.update({
+            key: 'jibberish',
+            value: mockImageBuffer,
+            contentType: 'image/jpeg',
+            extension: 'jpeg',
+        });
 
         expect(existsSync(resolve(testDir, 'jibberish.jpeg'))).toBeTruthy();
         expect(existsSync(resolve(testDir, 'jibberish'))).toBeFalsy();
@@ -28,7 +33,12 @@ describe('KeyValueStore should append extension only when needed', () => {
             storeDirectory: testDir,
             writeMetadata: true,
         });
-        await storage.update({ key: 'jibberish.jpg', value: mockImageBuffer, contentType: 'image/jpeg', extension: 'jpeg' });
+        await storage.update({
+            key: 'jibberish.jpg',
+            value: mockImageBuffer,
+            contentType: 'image/jpeg',
+            extension: 'jpeg',
+        });
 
         expect(existsSync(resolve(testDir, 'jibberish.jpg'))).toBeTruthy();
         expect(existsSync(resolve(testDir, 'jibberish.jpg.jpeg'))).toBeFalsy();
