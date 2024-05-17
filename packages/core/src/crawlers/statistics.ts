@@ -464,11 +464,8 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
     statsId: number;
     requestAvgFailedDurationMillis: number;
     requestAvgFinishedDurationMillis: number;
-    requestsFinishedPerMinute: number;
-    requestsFailedPerMinute: number;
     requestTotalDurationMillis: number;
     requestsTotal: number;
-    crawlerRuntimeMillis: number;
     crawlerLastStartTimestamp: number;
     statsPersistedAt: string;
 }
