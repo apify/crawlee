@@ -10,7 +10,7 @@ const FeatureList = [
             <>
                 We believe websites are best scraped in the language they're written in. Crawlee <b>runs on Node.js
                 and it's <a href="https://crawlee.dev/docs/guides/typescript-project">built in TypeScript</a></b> to improve code completion in your IDE,
-                even if you don't use TypeScript yourself.
+                even if you don't use TypeScript yourself. Crawlee supports both TypeScript and JavaScript crawling.
             </>
         ),
     },
