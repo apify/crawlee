@@ -977,10 +977,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@inquirer/figures@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "@inquirer/figures@npm:1.0.1"
-  checksum: 10c0/a1e9d3852e0d33c416eb39d7ee0e898971681a0a5a0d2fad5ebbb63047dd7e8b7bd32872cf2ef09578ce632bd9cc339f7e851dbd4640a9af11224481bf811e14
+"@inquirer/figures@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "@inquirer/figures@npm:1.0.2"
+  checksum: 10c0/7e74c41385d940d43a97d31386114669986548f878a1d12d8387c36e51f8e491d2cc307ece7670b068982dc3579269bd1258d30ebe36cb19006cf6a20a07dc66
   languageName: node
   linkType: hard
 
@@ -2091,9 +2091,9 @@ __metadata:
   linkType: hard
 
 "@types/lodash@npm:*":
-  version: 4.17.3
-  resolution: "@types/lodash@npm:4.17.3"
-  checksum: 10c0/04eb8cfde06b12f4b68251b8956a636c4e80e4ac85926f41d502e26b9c6d050dbbc9e586e4bf706c62e97d78309c3dad079e791f07efbe7ff6f19ccf62a414b4
+  version: 4.17.4
+  resolution: "@types/lodash@npm:4.17.4"
+  checksum: 10c0/0124c64cb9fe7a0f78b6777955abd05ef0d97844d49118652eae45f8fa57bfb7f5a7a9bccc0b5a84c0a6dc09631042e4590cb665acb9d58dfd5e6543c75341ec
   languageName: node
   linkType: hard
 
@@ -4422,9 +4422,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1301748
-  resolution: "devtools-protocol@npm:0.0.1301748"
-  checksum: 10c0/74823ed91d56bd40c9f68aebbe67b6a68a7127b98a852e5f387db3a3f90f0e099670d7c2904c2bc5fc31c9aaf440c6925457373c5815e2e39f666f67bb8a62b6
+  version: 0.0.1302401
+  resolution: "devtools-protocol@npm:0.0.1302401"
+  checksum: 10c0/02e769ba3c2085aaa1a62c7831d5a52a65df16d0aeefe59e4b929cd894cc615444941e3a776c7ef09e79e7e8bec7e49f12a780e43f9d02f4dd2e3dac8dd1230f
   languageName: node
   linkType: hard
 
@@ -4597,9 +4597,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.773
-  resolution: "electron-to-chromium@npm:1.4.773"
-  checksum: 10c0/eef684e2d64848418080715a76bc4147373d75ade07f65e64a97a3efd52d8c83dd8dd0daadba0d5ca891e3738144f8e97e1b7fe4545de3d15e71cd70ff14b2f1
+  version: 1.4.774
+  resolution: "electron-to-chromium@npm:1.4.774"
+  checksum: 10c0/dc957ee574d14838abd16f48fb3e4bd069bf47807fe02144b850d4903265810e17abc5800a361941f787bd78692cf4f81eab70046a6757eb39e44c91ff520dd4
   languageName: node
   linkType: hard
 
@@ -6729,10 +6729,10 @@ __metadata:
   linkType: hard
 
 "inquirer@npm:^9.0.0":
-  version: 9.2.21
-  resolution: "inquirer@npm:9.2.21"
+  version: 9.2.22
+  resolution: "inquirer@npm:9.2.22"
   dependencies:
-    "@inquirer/figures": "npm:^1.0.1"
+    "@inquirer/figures": "npm:^1.0.2"
     "@ljharb/through": "npm:^2.3.13"
     ansi-escapes: "npm:^4.3.2"
     chalk: "npm:^5.3.0"
@@ -6747,7 +6747,7 @@ __metadata:
     string-width: "npm:^4.2.3"
     strip-ansi: "npm:^6.0.1"
     wrap-ansi: "npm:^6.2.0"
-  checksum: 10c0/61c95ed0007b2293672302c22ffda4e7ec0c456fed8dc9249e2589149e16b86725eb011ee396a93a86a4ca7e2d54c14d78b8d02f5aa556c82892623a5cce3f41
+  checksum: 10c0/a7dc69a42b634a7222e75783d733a24d776bff43dcc77c6f0a47637dbc02a362de182b30165ede7978cd9fe7d22bae14fdd84e0cbfaec8c2b0a89d9131867bca
   languageName: node
   linkType: hard
 
@@ -11611,8 +11611,8 @@ __metadata:
   linkType: hard
 
 "tsx@npm:^4.4.0":
-  version: 4.10.3
-  resolution: "tsx@npm:4.10.3"
+  version: 4.10.4
+  resolution: "tsx@npm:4.10.4"
   dependencies:
     esbuild: "npm:~0.20.2"
     fsevents: "npm:~2.3.3"
@@ -11622,7 +11622,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/0036641dcc4d7970b5aa8e9db1a3365ec615d32e2b9b26e762e24c0588e79bc80c96639eb9b1c08b16befee75add0e527d8c24cfa4e519f1bf5805b95769eba5
+  checksum: 10c0/2782ff1f69ddff1e45b53b48842d48b9eef28d8a6a353268b641ad974660cfd2b8ecf6e9fa8a978bcd37a58229d760f432b21de5afc576326cbcc55a44d2adcf
   languageName: node
   linkType: hard
 
