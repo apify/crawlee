@@ -51,7 +51,7 @@
         "@apify/log": "^2.4.0",
         "@crawlee/types": "3.10.0",
         "@sapphire/async-queue": "^1.5.0",
-        "@sapphire/shapeshift": "^3.0.0",
+        "@sapphire/shapeshift": "^4.0.0",
         "content-type": "^1.0.4",
         "fs-extra": "^11.0.0",
         "json5": "^2.2.3",
