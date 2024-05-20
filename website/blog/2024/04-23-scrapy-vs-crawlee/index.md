@@ -316,4 +316,4 @@ But if you want to explore or are comfortable working with TypeScript or JavaScr
 
 As promised, this is just the first of the many articles comparing Scrapy and Crawlee. With the upcoming articles, you will learn more about every technical detail. 
 
-Meanwhile, if you want to learn more about Crawlee, read our [introduction to Crawlee](https://crawlee.dev/docs/introduction) or [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/).
+Meanwhile, if you want to learn more about Crawlee, read our [introduction to Crawlee](https://crawlee.dev/docs/introduction) or Apify's [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/).
