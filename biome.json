@@ -11,7 +11,8 @@
 			"lineWidth": 120,
 			"indentStyle": "space",
 			"indentWidth": 4,
-			"quoteProperties": "preserve"
+			"quoteProperties": "preserve",
+			"lineEnding": "lf"
 		}
 	}
 }
