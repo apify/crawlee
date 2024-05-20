@@ -123,4 +123,4 @@ The memory size can greatly affect the execution speed of your Lambda.
 
 See the [official documentation](https://docs.aws.amazon.com/lambda/latest/operatorguide/computing-power.html) to see how the performance and cost scale with more memory.
 
-::: 
+:::
