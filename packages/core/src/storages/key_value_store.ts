@@ -429,6 +429,14 @@ export class KeyValueStore {
     }
 
     /**
+     * Returns a file URL for the given key.
+     */
+    getPublicUrl(key: string): string {
+        const name = this.name ?? this.config.get('defaultKeyValueStoreId');
+        return `file://${process.cwd()}/storage/key_value_stores/${name}/${key}`;
+    }
+
+    /**
      * Opens a key-value store and returns a promise resolving to an instance of the {@apilink KeyValueStore} class.
      *
      * Key-value stores are used to store records or files, along with their MIME content type.

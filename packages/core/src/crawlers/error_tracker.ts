@@ -407,10 +407,10 @@ export class ErrorTracker {
             return;
         }
 
-        const { screenshotFileName, htmlFileName } = await this.errorSnapshotter.captureSnapshot(error, context);
+        const { screenshotFileUrl, htmlFileUrl } = await this.errorSnapshotter.captureSnapshot(error, context);
 
-        storage.firstErrorScreenshot = screenshotFileName;
-        storage.firstErrorHtml = htmlFileName;
+        storage.firstErrorScreenshotUrl = screenshotFileUrl;
+        storage.firstErrorHtmlUrl = htmlFileUrl;
     }
 
     reset() {
