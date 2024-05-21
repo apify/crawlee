@@ -11,13 +11,13 @@ await expect(stats.requestsFailed === 4, 'All requests failed');
 let totalErrorHtmlFiles = 0;
 let totalErrorScreenshotFiles = 0;
 for (const error of Object.values(stats.errors)) {
-    if (hasNestedKey(error, 'firstErrorHtml')) {
+    if (hasNestedKey(error, 'firstErrorHtmlUrl')) {
         totalErrorHtmlFiles++;
     }
 }
 
 for (const error of Object.values(stats.errors)) {
-    if (hasNestedKey(error, 'firstErrorScreenshot')) {
+    if (hasNestedKey(error, 'firstErrorScreenshotUrl')) {
         totalErrorScreenshotFiles++;
     }
 }
