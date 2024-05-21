@@ -407,11 +407,9 @@ export class ErrorTracker {
             return;
         }
 
-        const { screenshotFileName, htmlFileName, screenshotFileUrl, htmlFileUrl } = await this.errorSnapshotter.captureSnapshot(error, context);
+        const { screenshotFileUrl, htmlFileUrl } = await this.errorSnapshotter.captureSnapshot(error, context);
 
-        storage.firstErrorScreenshot = screenshotFileName;
         storage.firstErrorScreenshotUrl = screenshotFileUrl;
-        storage.firstErrorHtml = htmlFileName;
         storage.firstErrorHtmlUrl = htmlFileUrl;
     }
 
