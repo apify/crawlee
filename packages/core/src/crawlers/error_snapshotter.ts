@@ -18,6 +18,13 @@ export interface SnapshotResult {
     htmlFileName?: string;
 }
 
+interface ErrorSnapshot {
+    screenshotFileName?: string;
+    screenshotFileUrl?: string;
+    htmlFileName?: string;
+    htmlFileUrl?: string;
+}
+
 /**
  * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occurs during web crawling.
  *
@@ -42,7 +49,7 @@ export class ErrorSnapshotter {
     /**
      * Capture a snapshot of the error context.
      */
-    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<{ screenshotFileName?: string; htmlFileName?: string }> {
+    async captureSnapshot(error: ErrnoException, context: CrawlingContext): Promise<ErrorSnapshot> {
         try {
             const page = context?.page as BrowserPage | undefined;
             const body = context?.body;
@@ -80,7 +87,9 @@ export class ErrorSnapshotter {
 
             return {
                 screenshotFileName,
+                screenshotFileUrl: screenshotFileName && keyValueStore.getPublicUrl(screenshotFileName),
                 htmlFileName,
+                htmlFileUrl: htmlFileName && keyValueStore.getPublicUrl(htmlFileName),
             };
         } catch {
             return {};
