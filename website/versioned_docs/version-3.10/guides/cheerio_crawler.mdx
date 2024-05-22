@@ -11,7 +11,7 @@ import ApiLink from '@site/src/components/ApiLink';
 
 ## What is Cheerio
 
-[Cheerio](https://www.npmjs.com/package/cheerio) is essentially [jQuery](https://jquery.com/) for Node.js. It offers the same API, including the familiar `$` object. You can use it, as you would use jQuery for manipulating the DOM of an HTML page. In crawling, you'll mostly use it to select the needed elements and extract their values - the data you're interested in. But jQuery runs in a browser and attaches directly to the browser's DOM. Where does `cheerio` get its HTML? This is where the `Crawler` part of <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> comes in.
+[Cheerio](https://cheerio.js.org/) is essentially [jQuery](https://jquery.com/) for Node.js. It offers the same API, including the familiar `$` object. You can use it, as you would use jQuery for manipulating the DOM of an HTML page. In crawling, you'll mostly use it to select the needed elements and extract their values - the data you're interested in. But jQuery runs in a browser and attaches directly to the browser's DOM. Where does `cheerio` get its HTML? This is where the `Crawler` part of <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> comes in.
 
 ## How the crawler works
 
@@ -23,7 +23,7 @@ Modern web pages often do not serve all of their content in the first HTML respo
 
 :::
 
-Once the page's HTML is retrieved, the crawler will pass it to [Cheerio](https://www.npmjs.com/package/cheerio) for parsing. The result is the typical `$` function, which should be familiar to jQuery users. You can use the `$` function to do all sorts of lookups and manipulation of the page's HTML, but in scraping, you will mostly use it to find specific HTML elements and extract their data.
+Once the page's HTML is retrieved, the crawler will pass it to [Cheerio](https://github.com/cheeriojs/cheerio) for parsing. The result is the typical `$` function, which should be familiar to jQuery users. You can use the `$` function to do all sorts of lookups and manipulation of the page's HTML, but in scraping, you will mostly use it to find specific HTML elements and extract their data.
 
 Example use of Cheerio and its `$` function in comparison to browser JavaScript:
 
@@ -41,7 +41,7 @@ $('[href]')
 
 :::note
 
-This is not to show that Cheerio is better than plain browser JavaScript. Some might actually prefer the more expressive way plain JS provides. Unfortunately, the browser JavaScript methods are not available in Node.js, so Cheerio is your best bet to do the parsing in Node.
+This is not to show that Cheerio is better than plain browser JavaScript. Some might actually prefer the more expressive way plain JS provides. Unfortunately, the browser JavaScript methods are not available in Node.js, so Cheerio is your best bet to do the parsing in Node.js.
 
 :::
 
