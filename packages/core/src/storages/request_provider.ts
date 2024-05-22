@@ -342,7 +342,6 @@ export abstract class RequestProvider implements IStorage {
                 }
             }
 
-            // eslint-disable-next-line max-len
             throw new Error(
                 `Request options are not valid, provide either a URL or an object with 'url' property (but without 'id' property), or an object with 'requestsFromUrl' property. Input: ${inspect(
                     request,

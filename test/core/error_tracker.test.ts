@@ -1,4 +1,3 @@
-/* eslint-disable no-multi-spaces */
 import { ErrorTracker } from '../../packages/core/src/crawlers/error_tracker';
 
 const random = () => Math.random().toString(36).slice(2);
