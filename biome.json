@@ -1,6 +1,11 @@
 {
 	"formatter": {
-		"ignore": ["website/**", "packages/*/dist/**", "package.json"],
+		"ignore": [
+			"website/**",
+			"packages/*/dist/**",
+			"package.json",
+			"scripts/actions/docker-images/state.json"
+		],
 		"formatWithErrors": true
 	},
 	"javascript": {
