@@ -32,14 +32,14 @@ export type FileDownloadOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > =
-| (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
-      requestHandler?: never;
-      streamHandler?: StreamHandler;
-  })
-| (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
-      requestHandler: FileDownloadRequestHandler;
-      streamHandler?: never;
-  });
+    | (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
+          requestHandler?: never;
+          streamHandler?: StreamHandler;
+      })
+    | (Omit<HttpCrawlerOptions<FileDownloadCrawlingContext<UserData, JSONData>>, 'requestHandler'> & {
+          requestHandler: FileDownloadRequestHandler;
+          streamHandler?: never;
+      });
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
