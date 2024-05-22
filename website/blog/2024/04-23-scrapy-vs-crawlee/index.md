@@ -77,6 +77,7 @@ class ActorSpider(scrapy.Spider):
         await page.close()
 ```
 
+One of the drawbacks of this plugin is its [lack of native support for windows](https://github.com/scrapy-plugins/scrapy-playwright/tree/main?tab=readme-ov-file#lack-of-native-support-for-windows).
 
 In Crawlee, you can scrape JavaScript rendered websites using the built-in headless [Puppeteer](https://github.com/puppeteer/puppeteer/) and [Playwright](https://github.com/microsoft/playwright) browsers. It is important to note that, by default, Crawlee scrapes in headless mode. If you don't want headless, then just set `headless: false`.
 
@@ -315,4 +316,4 @@ But if you want to explore or are comfortable working with TypeScript or JavaScr
 
 As promised, this is just the first of the many articles comparing Scrapy and Crawlee. With the upcoming articles, you will learn more about every technical detail. 
 
-Meanwhile, if you want to learn more about Crawlee, read our [introduction to Crawlee](https://crawlee.dev/docs/introduction).
+Meanwhile, if you want to learn more about Crawlee, read our [introduction to Crawlee](https://crawlee.dev/docs/introduction) or Apify's [Crawlee web scraping tutorial](https://blog.apify.com/crawlee-web-scraping-tutorial/).
