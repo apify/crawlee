@@ -1,8 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { REQUEST_QUEUE_HEAD_MAX_LIMIT } from '@apify/consts';
-import type { Dictionary,
-} from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 
 import { checkStorageAccess } from './access_checking';
 import type { RequestProviderOptions } from './request_provider';
@@ -90,12 +89,15 @@ class RequestQueue extends RequestProvider {
      * @internal
      */
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
-        super({
-            ...options,
-            logPrefix: 'RequestQueue',
-            recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
-            requestCacheMaxSize: MAX_CACHED_REQUESTS,
-        }, config);
+        super(
+            {
+                ...options,
+                logPrefix: 'RequestQueue',
+                recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
+                requestCacheMaxSize: MAX_CACHED_REQUESTS,
+            },
+            config,
+        );
     }
 
     /**
@@ -155,7 +157,9 @@ class RequestQueue extends RequestProvider {
         //    into the queueHeadDict straight again. After the interval expires, fetchNextRequest()
         //    will try to fetch this request again, until it eventually appears in the main table.
         if (!request) {
-            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', { nextRequestId });
+            this.log.debug('Cannot find a request from the beginning of queue, will be retried later', {
+                nextRequestId,
+            });
             setTimeout(() => {
                 this.inProgress.delete(nextRequestId);
             }, STORAGE_CONSISTENCY_DELAY_MILLIS);
@@ -214,7 +218,13 @@ class RequestQueue extends RequestProvider {
                 .then(({ items, queueModifiedAt, hadMultipleClients }) => {
                     items.forEach(({ id: requestId, uniqueKey }) => {
                         // Queue head index might be behind the main table, so ensure we don't recycle requests
-                        if (!requestId || !uniqueKey || this.inProgress.has(requestId) || this.recentlyHandledRequestsCache.get(requestId!)) return;
+                        if (
+                            !requestId ||
+                            !uniqueKey ||
+                            this.inProgress.has(requestId) ||
+                            this.recentlyHandledRequestsCache.get(requestId!)
+                        )
+                            return;
 
                         this.queueHeadIds.add(requestId, requestId, false);
                         this._cacheRequest(getRequestId(uniqueKey), {
@@ -238,7 +248,8 @@ class RequestQueue extends RequestProvider {
                 });
         }
 
-        const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } = await this.queryQueueHeadPromise;
+        const { queueModifiedAt, wasLimitReached, prevLimit, queryStartedAt, hadMultipleClients } =
+            await this.queryQueueHeadPromise;
 
         // TODO: I feel this code below can be greatly simplified...
 
@@ -252,9 +263,8 @@ class RequestQueue extends RequestProvider {
         if (prevLimit >= REQUEST_QUEUE_HEAD_MAX_LIMIT) {
             this.log.warning(`Reached the maximum number of requests in progress: ${REQUEST_QUEUE_HEAD_MAX_LIMIT}.`);
         }
-        const shouldRepeatWithHigherLimit = this.queueHeadIds.length() === 0
-            && wasLimitReached
-            && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
+        const shouldRepeatWithHigherLimit =
+            this.queueHeadIds.length() === 0 && wasLimitReached && prevLimit < REQUEST_QUEUE_HEAD_MAX_LIMIT;
 
         // If ensureConsistency=true then we must ensure that either:
         // - queueModifiedAt is older than queryStartedAt by at least API_PROCESSED_REQUESTS_DELAY_MILLIS
@@ -271,14 +281,14 @@ class RequestQueue extends RequestProvider {
         // If this is reached then we return false so that empty() and finished() returns possibly false negative.
         if (!shouldRepeatWithHigherLimit && iteration > MAX_QUERIES_FOR_CONSISTENCY) return false;
 
-        const nextLimit = shouldRepeatWithHigherLimit
-            ? Math.round(prevLimit * 1.5)
-            : prevLimit;
+        const nextLimit = shouldRepeatWithHigherLimit ? Math.round(prevLimit * 1.5) : prevLimit;
 
         // If we are repeating for consistency then wait required time.
         if (shouldRepeatForConsistency) {
             const delayMillis = API_PROCESSED_REQUESTS_DELAY_MILLIS - (Date.now() - +queueModifiedAt);
-            this.log.info(`Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`);
+            this.log.info(
+                `Waiting for ${delayMillis}ms before considering the queue as finished to ensure that the data is consistent.`,
+            );
             await sleep(delayMillis);
         }
 
@@ -289,8 +299,10 @@ class RequestQueue extends RequestProvider {
     override async isFinished(): Promise<boolean> {
         checkStorageAccess();
 
-        if ((Date.now() - +this.lastActivity) > this.internalTimeoutMillis) {
-            const message = `The request queue seems to be stuck for ${this.internalTimeoutMillis / 1e3}s, resetting internal state.`;
+        if (Date.now() - +this.lastActivity > this.internalTimeoutMillis) {
+            const message = `The request queue seems to be stuck for ${
+                this.internalTimeoutMillis / 1e3
+            }s, resetting internal state.`;
             this.log.warning(message, { inProgress: [...this.inProgress] });
             this._reset();
         }
@@ -349,7 +361,9 @@ class RequestQueue extends RequestProvider {
         // This is to compensate for the limitation of DynamoDB, where writes might not be immediately visible to subsequent reads.
         setTimeout(() => {
             if (!this.inProgress.has(request.id!)) {
-                this.log.debug('The request is no longer marked as in progress in the queue?!', { requestId: request.id });
+                this.log.debug('The request is no longer marked as in progress in the queue?!', {
+                    requestId: request.id,
+                });
                 return;
             }
 

@@ -24,7 +24,8 @@ const getBrowserName = (browserPlugin: BrowserPlugin, launchOptions: any): Brows
 
     if (browserPlugin instanceof PlaywrightPlugin) {
         browserName = library.name!();
-    } if (browserPlugin instanceof PuppeteerPlugin) {
+    }
+    if (browserPlugin instanceof PuppeteerPlugin) {
         browserName = launchOptions.product || library.product;
     }
 

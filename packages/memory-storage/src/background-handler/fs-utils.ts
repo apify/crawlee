@@ -19,7 +19,9 @@ export async function handleMessage(message: BackgroundHandlerReceivedMessage) {
         default:
             // We're keeping this to make eslint happy + in the event we add a new action without adding checks for it
             // we should be aware of them
-            backgroundHandlerLog.warning(`Unknown background handler message action ${(message as BackgroundHandlerReceivedMessage).action}`);
+            backgroundHandlerLog.warning(
+                `Unknown background handler message action ${(message as BackgroundHandlerReceivedMessage).action}`,
+            );
     }
 }
 
@@ -38,18 +40,29 @@ async function updateMetadata(message: BackgroundHandlerUpdateMetadataMessage) {
     await writeFileP(filePath, JSON.stringify(message.data, null, '\t'));
 }
 
-export async function lockAndWrite(filePath: string, data: unknown, stringify = true, retry = 10, timeout = 10): Promise<void> {
-    await lockAndCallback(filePath, async () => {
-        await new Promise<void>((pResolve, reject) => {
-            writeFile(filePath, stringify ? JSON.stringify(data, null, '\t') : data as Buffer, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    pResolve();
-                }
+export async function lockAndWrite(
+    filePath: string,
+    data: unknown,
+    stringify = true,
+    retry = 10,
+    timeout = 10,
+): Promise<void> {
+    await lockAndCallback(
+        filePath,
+        async () => {
+            await new Promise<void>((pResolve, reject) => {
+                writeFile(filePath, stringify ? JSON.stringify(data, null, '\t') : (data as Buffer), (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        pResolve();
+                    }
+                });
             });
-        });
-    }, retry, timeout);
+        },
+        retry,
+        timeout,
+    );
 }
 
 export async function lockAndCallback<Callback extends () => Promise<any>>(

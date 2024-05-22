@@ -24,8 +24,6 @@ const crawler = new JSDOMCrawler({
     },
 });
 
-await crawler.run([
-    'https://ahfarmer.github.io/calculator/',
-]);
+await crawler.run(['https://ahfarmer.github.io/calculator/']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

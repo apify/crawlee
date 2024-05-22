@@ -9,8 +9,4 @@ const crawler = new CheerioCrawler({
 });
 
 // Run the crawler with initial request
-await crawler.run([
-    'http://www.example.com/page-1',
-    'http://www.example.com/page-2',
-    'http://www.example.com/page-3',
-]);
+await crawler.run(['http://www.example.com/page-1', 'http://www.example.com/page-2', 'http://www.example.com/page-3']);

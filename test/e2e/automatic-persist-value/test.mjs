@@ -16,4 +16,7 @@ await expect(item !== undefined, 'Key-value store auto-saved value is named "cra
 const parsed = JSON.parse(item.raw.toString());
 
 await expect(typeof parsed === 'object' && parsed !== null, 'Key-value store auto-save value is a non-nullable object');
-await expect(parsed.crawlee === 'awesome!', 'Key-value store auto-save value has a property "crawlee" that is set to "awesome!"');
+await expect(
+    parsed.crawlee === 'awesome!',
+    'Key-value store auto-save value has a property "crawlee" that is set to "awesome!"',
+);

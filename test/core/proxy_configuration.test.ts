@@ -40,8 +40,14 @@ describe('ProxyConfiguration', () => {
     });
 
     test('newUrlFunction should correctly generate URLs', async () => {
-        const customUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333',
-            'http://proxy.com:4444', 'http://proxy.com:5555', 'http://proxy.com:6666'];
+        const customUrls = [
+            'http://proxy.com:1111',
+            'http://proxy.com:2222',
+            'http://proxy.com:3333',
+            'http://proxy.com:4444',
+            'http://proxy.com:5555',
+            'http://proxy.com:6666',
+        ];
         const newUrlFunction = () => {
             return customUrls.pop();
         };
@@ -61,8 +67,14 @@ describe('ProxyConfiguration', () => {
     });
 
     test('async newUrlFunction should work correctly', async () => {
-        const customUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333',
-            'http://proxy.com:4444', 'http://proxy.com:5555', 'http://proxy.com:6666'];
+        const customUrls = [
+            'http://proxy.com:1111',
+            'http://proxy.com:2222',
+            'http://proxy.com:3333',
+            'http://proxy.com:4444',
+            'http://proxy.com:5555',
+            'http://proxy.com:6666',
+        ];
         const newUrlFunction = async () => {
             await new Promise((r) => setTimeout(r, 5));
             return customUrls.pop();
@@ -197,11 +209,7 @@ describe('ProxyConfiguration', () => {
 
         test('rotating a request results in higher-level proxies', async () => {
             const proxyConfiguration = new ProxyConfiguration({
-                tieredProxyUrls: [
-                    ['http://proxy.com:1111'],
-                    ['http://proxy.com:2222'],
-                    ['http://proxy.com:3333'],
-                ],
+                tieredProxyUrls: [['http://proxy.com:1111'], ['http://proxy.com:2222'], ['http://proxy.com:3333']],
             });
 
             const request = new Request({
@@ -223,11 +231,7 @@ describe('ProxyConfiguration', () => {
         });
 
         test('upshifts and downshifts properly', async () => {
-            const tieredProxyUrls = [
-                ['http://proxy.com:1111'],
-                ['http://proxy.com:2222'],
-                ['http://proxy.com:3333'],
-            ];
+            const tieredProxyUrls = [['http://proxy.com:1111'], ['http://proxy.com:2222'], ['http://proxy.com:3333']];
 
             const proxyConfiguration = new ProxyConfiguration({
                 tieredProxyUrls,

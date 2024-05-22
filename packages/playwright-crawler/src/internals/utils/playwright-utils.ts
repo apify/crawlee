@@ -87,9 +87,12 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
 export async function injectFile(page: Page, filePath: string, options: InjectFileOptions = {}): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
     ow(filePath, ow.string);
-    ow(options, ow.object.exactShape({
-        surviveNavigations: ow.optional.boolean,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            surviveNavigations: ow.optional.boolean,
+        }),
+    );
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
@@ -99,9 +102,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     const evalP = page.evaluate(contents);
 
     if (options.surviveNavigations) {
-        page.on('framenavigated',
-            async () => page.evaluate(contents)
-                .catch((error) => log.warning('An error occurred during the script injection!', { error })));
+        page.on('framenavigated', async () =>
+            page
+                .evaluate(contents)
+                .catch((error) => log.warning('An error occurred during the script injection!', { error })),
+        );
     }
 
     return evalP;
@@ -173,14 +178,21 @@ export interface DirectNavigationOptions {
  * @param request
  * @param [gotoOptions] Custom options for `page.goto()`.
  */
-export async function gotoExtended(page: Page, request: Request, gotoOptions: DirectNavigationOptions = {}): Promise<Response | null> {
+export async function gotoExtended(
+    page: Page,
+    request: Request,
+    gotoOptions: DirectNavigationOptions = {},
+): Promise<Response | null> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(request, ow.object.partialShape({
-        url: ow.string.url,
-        method: ow.optional.string,
-        headers: ow.optional.object,
-        payload: ow.optional.any(ow.string, ow.buffer),
-    }));
+    ow(
+        request,
+        ow.object.partialShape({
+            url: ow.string.url,
+            method: ow.optional.string,
+            headers: ow.optional.object,
+            payload: ow.optional.any(ow.string, ow.buffer),
+        }),
+    );
     ow(gotoOptions, ow.object);
 
     const { url, method, headers, payload } = request;
@@ -188,8 +200,10 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        log.deprecated('Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance '
-            + 'in recent versions of Playwright. Use only when necessary.');
+        log.deprecated(
+            'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
+                'in recent versions of Playwright. Use only when necessary.',
+        );
         let wasCalled = false;
         const interceptRequestHandler = async (route: Route) => {
             try {
@@ -266,15 +280,15 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
  */
 export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(options, ow.object.exactShape({
-        urlPatterns: ow.optional.array.ofType(ow.string),
-        extraUrlPatterns: ow.optional.array.ofType(ow.string),
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            urlPatterns: ow.optional.array.ofType(ow.string),
+            extraUrlPatterns: ow.optional.array.ofType(ow.string),
+        }),
+    );
 
-    const {
-        urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
-        extraUrlPatterns = [],
-    } = options;
+    const { urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS, extraUrlPatterns = [] } = options;
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
@@ -381,16 +395,26 @@ export interface InfiniteScrollOptions {
  */
 export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(options, ow.object.exactShape({
-        timeoutSecs: ow.optional.number,
-        maxScrollHeight: ow.optional.number,
-        waitForSecs: ow.optional.number,
-        scrollDownAndUp: ow.optional.boolean,
-        buttonSelector: ow.optional.string,
-        stopScrollCallback: ow.optional.function,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            timeoutSecs: ow.optional.number,
+            maxScrollHeight: ow.optional.number,
+            waitForSecs: ow.optional.number,
+            scrollDownAndUp: ow.optional.boolean,
+            buttonSelector: ow.optional.string,
+            stopScrollCallback: ow.optional.function,
+        }),
+    );
 
-    const { timeoutSecs = 0, maxScrollHeight = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector, stopScrollCallback } = options;
+    const {
+        timeoutSecs = 0,
+        maxScrollHeight = 0,
+        waitForSecs = 4,
+        scrollDownAndUp = false,
+        buttonSelector,
+        stopScrollCallback,
+    } = options;
 
     let finished;
     const startTime = Date.now();
@@ -446,7 +470,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
     const maybeClickButton = async () => {
         const button = await page.$(buttonSelector!);
         // Box model returns null if the button is not visible
-        if (button && await button.boundingBox()) {
+        if (button && (await button.boundingBox())) {
             await button.click({ delay: 10 });
         }
     };
@@ -514,14 +538,17 @@ export interface SaveSnapshotOptions {
  */
 export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(options, ow.object.exactShape({
-        key: ow.optional.string.nonEmpty,
-        screenshotQuality: ow.optional.number,
-        saveScreenshot: ow.optional.boolean,
-        saveHtml: ow.optional.boolean,
-        keyValueStoreName: ow.optional.string,
-        config: ow.optional.object,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            key: ow.optional.string.nonEmpty,
+            screenshotQuality: ow.optional.number,
+            saveScreenshot: ow.optional.boolean,
+            saveHtml: ow.optional.boolean,
+            keyValueStoreName: ow.optional.string,
+            config: ow.optional.object,
+        }),
+    );
 
     const {
         key = 'SNAPSHOT',
@@ -533,11 +560,18 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     } = options;
 
     try {
-        const store = await KeyValueStore.open(keyValueStoreName, { config: config ?? Configuration.getGlobalConfig() });
+        const store = await KeyValueStore.open(keyValueStoreName, {
+            config: config ?? Configuration.getGlobalConfig(),
+        });
 
         if (saveScreenshot) {
             const screenshotName = `${key}.jpg`;
-            const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg', animations: 'disabled' });
+            const screenshotBuffer = await page.screenshot({
+                fullPage: true,
+                quality: screenshotQuality,
+                type: 'jpeg',
+                animations: 'disabled',
+            });
             await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
 
@@ -566,8 +600,10 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
 export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
-    const html = ignoreShadowRoots ? null : await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
-    const pageContent = html || await page.content();
+    const html = ignoreShadowRoots
+        ? null
+        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
+    const pageContent = html || (await page.content());
 
     return cheerio.load(pageContent);
 }
@@ -720,34 +756,36 @@ export interface PlaywrightContextUtils {
      *
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
-    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
+    enqueueLinksByClickingElements(
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+    ): Promise<BatchAddRequestsResult>;
 
     /**
-    * Compiles a Playwright script into an async function that may be executed at any time
-    * by providing it with the following object:
-    * ```
-    * {
-    *    page: Page,
-    *    request: Request,
-    * }
-    * ```
-    * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
-    * and `request` is a {@apilink Request}.
-    *
-    * The function is compiled by using the `scriptString` parameter as the function's body,
-    * so any limitations to function bodies apply. Return value of the compiled function
-    * is the return value of the function body = the `scriptString` parameter.
-    *
-    * As a security measure, no globals such as `process` or `require` are accessible
-    * from within the function body. Note that the function does not provide a safe
-    * sandbox and even though globals are not easily accessible, malicious code may
-    * still execute in the main process via prototype manipulation. Therefore you
-    * should only use this function to execute sanitized or safe code.
-    *
-    * Custom context may also be provided using the `context` parameter. To improve security,
-    * make sure to only pass the really necessary objects to the context. Preferably making
-    * secured copies beforehand.
-    */
+     * Compiles a Playwright script into an async function that may be executed at any time
+     * by providing it with the following object:
+     * ```
+     * {
+     *    page: Page,
+     *    request: Request,
+     * }
+     * ```
+     * Where `page` is a Playwright [`Page`](https://playwright.dev/docs/api/class-page)
+     * and `request` is a {@apilink Request}.
+     *
+     * The function is compiled by using the `scriptString` parameter as the function's body,
+     * so any limitations to function bodies apply. Return value of the compiled function
+     * is the return value of the function body = the `scriptString` parameter.
+     *
+     * As a security measure, no globals such as `process` or `require` are accessible
+     * from within the function body. Note that the function does not provide a safe
+     * sandbox and even though globals are not easily accessible, malicious code may
+     * still execute in the main process via prototype manipulation. Therefore you
+     * should only use this function to execute sanitized or safe code.
+     *
+     * Custom context may also be provided using the `context` parameter. To improve security,
+     * make sure to only pass the really necessary objects to the context. Preferably making
+     * secured copies beforehand.
+     */
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
 
     /**
@@ -756,26 +794,35 @@ export interface PlaywrightContextUtils {
     closeCookieModals(): Promise<void>;
 }
 
-export function registerUtilsToContext(context: PlaywrightCrawlingContext, crawlerOptions: PlaywrightCrawlerOptions): void {
-    context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = (async () => {
+export function registerUtilsToContext(
+    context: PlaywrightCrawlingContext,
+    crawlerOptions: PlaywrightCrawlerOptions,
+): void {
+    context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
+        injectFile(context.page, filePath, options);
+    context.injectJQuery = async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
-            log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
+            log.warning(
+                'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
+            );
             await injectJQuery(context.page);
             return;
         }
         await injectJQuery(context.page, { surviveNavigations: false });
-    });
+    };
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = async (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    // eslint-disable-next-line max-len
-    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
-        ...options,
-        page: context.page,
-        requestQueue: context.crawler.requestQueue!,
-    });
+    context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
+        saveSnapshot(context.page, { ...options, config: context.crawler.config });
+    context.enqueueLinksByClickingElements = async (
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+    ) =>
+        enqueueLinksByClickingElements({
+            ...options,
+            page: context.page,
+            requestQueue: context.crawler.requestQueue!,
+        });
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
     context.closeCookieModals = async () => closeCookieModals(context.page);
 }

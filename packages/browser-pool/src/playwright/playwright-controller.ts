@@ -10,7 +10,11 @@ import type { SafeParameters } from '../utils';
 const tabIds = new WeakMap<Page, number>();
 const keyFromTabId = (tabId: string | number) => `.${tabId}.`;
 
-export class PlaywrightController extends BrowserController<BrowserType, SafeParameters<BrowserType['launch']>[0], Browser> {
+export class PlaywrightController extends BrowserController<
+    BrowserType,
+    SafeParameters<BrowserType['launch']>[0],
+    Browser
+> {
     normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown> {
         if (!proxyUrl) {
             return {};
@@ -31,8 +35,14 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
     }
 
     protected async _newPage(contextOptions?: SafeParameters<Browser['newPage']>[0]): Promise<Page> {
-        if (contextOptions !== undefined && !this.launchContext.useIncognitoPages && !this.launchContext.experimentalContainers) {
-            throw new Error('A new page can be created with provided context only when using incognito pages or experimental containers.');
+        if (
+            contextOptions !== undefined &&
+            !this.launchContext.useIncognitoPages &&
+            !this.launchContext.experimentalContainers
+        ) {
+            throw new Error(
+                'A new page can be created with provided context only when using incognito pages or experimental containers.',
+            );
         }
 
         let close = async () => {};
@@ -66,7 +76,9 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
             if (this.launchContext.experimentalContainers) {
                 await page.goto('data:text/plain,tabid');
                 await page.waitForNavigation();
-                const { tabid, proxyip }: { tabid: number; proxyip: string } = JSON.parse(decodeURIComponent(page.url().slice('about:blank#'.length)));
+                const { tabid, proxyip }: { tabid: number; proxyip: string } = JSON.parse(
+                    decodeURIComponent(page.url().slice('about:blank#'.length)),
+                );
 
                 if (contextOptions?.proxy) {
                     const url = new URL(contextOptions.proxy.server);
@@ -96,7 +108,9 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
                         const { remoteIPAddress } = response;
                         if (remoteIPAddress && remoteIPAddress !== proxyip) {
                             // eslint-disable-next-line no-console
-                            console.warn(`Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`);
+                            console.warn(
+                                `Request to ${response.url} was through ${remoteIPAddress} instead of ${proxyip}`,
+                            );
                         }
                     });
                 }

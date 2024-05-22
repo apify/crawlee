@@ -4,7 +4,10 @@ import { Actor } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
-    storage: process.env.STORAGE_IMPLEMENTATION === 'LOCAL' ? new (await import('@apify/storage-local')).ApifyStorageLocal() : undefined,
+    storage:
+        process.env.STORAGE_IMPLEMENTATION === 'LOCAL'
+            ? new (await import('@apify/storage-local')).ApifyStorageLocal()
+            : undefined,
 };
 
 const LABELS = {
@@ -23,12 +26,15 @@ await Actor.main(async () => {
             saveErrorSnapshots: true,
         },
         async requestHandler({ request, log, page }) {
-            const { userData: { label } } = request;
+            const {
+                userData: { label },
+            } = request;
 
             if (label === LABELS.TIMEOUT) {
                 log.error('Timeout error');
                 await sleep(30_000);
-            } if (label === LABELS.TYPE_ERROR) {
+            }
+            if (label === LABELS.TYPE_ERROR) {
                 log.error('TypeError: page.error is not a function');
                 page.error();
             } else if (label === LABELS.ERROR_OPENING_PAGE) {
@@ -36,15 +42,21 @@ await Actor.main(async () => {
                 throw new Error('An error occurred while opening the page');
             }
         },
-        postNavigationHooks: [async ({ request, log }) => {
-            const { userData: { label } } = request;
+        postNavigationHooks: [
+            async ({ request, log }) => {
+                const {
+                    userData: { label },
+                } = request;
 
-            if (label === LABELS.POST_NAVIGATION_ERROR) {
-                log.error('Post navigation error');
-                throw new Error('Unable to navigate to the requested post');
-            }
-        }],
+                if (label === LABELS.POST_NAVIGATION_ERROR) {
+                    log.error('Post navigation error');
+                    throw new Error('Unable to navigate to the requested post');
+                }
+            },
+        ],
     });
 
-    await crawler.run(Object.values(LABELS).map((label) => ({ url: 'https://example.com', userData: { label }, uniqueKey: label })));
+    await crawler.run(
+        Object.values(LABELS).map((label) => ({ url: 'https://example.com', userData: { label }, uniqueKey: label })),
+    );
 }, mainOptions);

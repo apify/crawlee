@@ -27,4 +27,7 @@ await expect(totalErrorHtmlFiles === 4, 'Number of HTML error files in stats sho
 // Count of error Screenshot files stored in the stats to make sure they are saved
 await expect(totalErrorScreenshotFiles === 4, 'Number of screenshots error files in stats should be 4');
 // Count of error HTML files and screenshot files stored in the Key-Value store
-await expect(defaultKeyValueStoreItems.length === 8, 'Number of HTML and screenshot error snapshots in KV store should be 8');
+await expect(
+    defaultKeyValueStoreItems.length === 8,
+    'Number of HTML and screenshot error snapshots in KV store should be 8',
+);

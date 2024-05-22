@@ -127,7 +127,9 @@ describe('Router', () => {
         router.addHandler('A', async (ctx) => {});
         expect(() => router.addHandler('A', async (ctx) => {})).toThrow();
         const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
-        await expect(router({ request: { loadedUrl: 'https://example.com/C', label: 'C' }, log } as any)).rejects.toThrow(MissingRouteError);
+        await expect(
+            router({ request: { loadedUrl: 'https://example.com/C', label: 'C' }, log } as any),
+        ).rejects.toThrow(MissingRouteError);
         router.addDefaultHandler(async (ctx) => {});
         expect(() => router.addDefaultHandler(async (ctx) => {})).toThrow();
     });
@@ -150,7 +152,7 @@ describe('Router', () => {
     test('addHandler accepts userdata generic', async () => {
         const testType = <T>(t: T): void => {};
 
-        const router: Router<CrawlingContext<{foo: 'foo'}>> = {
+        const router: Router<CrawlingContext<{ foo: 'foo' }>> = {
             addHandler: () => {},
             addDefaultHandler: () => {},
         } as any;
@@ -159,7 +161,7 @@ describe('Router', () => {
             testType<'foo'>(ctx.request.userData.foo);
         });
 
-        router.addHandler<{foo: 'bar'}>('2', (ctx) => {
+        router.addHandler<{ foo: 'bar' }>('2', (ctx) => {
             testType<'bar'>(ctx.request.userData.foo);
         });
 
@@ -167,7 +169,7 @@ describe('Router', () => {
             testType<'foo'>(ctx.request.userData.foo);
         });
 
-        router.addDefaultHandler<{foo: 'bar'}>((ctx) => {
+        router.addDefaultHandler<{ foo: 'bar' }>((ctx) => {
             testType<'bar'>(ctx.request.userData.foo);
         });
     });

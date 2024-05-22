@@ -1,17 +1,13 @@
 {
 	"root": true,
-	"extends": "@apify/eslint-config-ts",
+	"extends": ["@apify/eslint-config-ts", "prettier"],
 	"parserOptions": {
-        "project": null,
+		"project": null,
 		"ecmaVersion": 2022
 	},
-    "ignorePatterns": [
-        "node_modules",
-        "dist",
-        "**/*.d.ts"
-    ],
+	"ignorePatterns": ["node_modules", "dist", "**/*.d.ts"],
 	"rules": {
-        "@typescript-eslint/ban-ts-comment": 0,
+		"@typescript-eslint/ban-ts-comment": 0,
 		"import/extensions": 0,
 		"import/no-extraneous-dependencies": 0
 	}

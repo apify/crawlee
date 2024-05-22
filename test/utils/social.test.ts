@@ -47,30 +47,33 @@ describe('utils.social', () => {
         test('extracts emails correctly', () => {
             testEmailsFromText(' info@example.com ', ['info@example.com']);
 
-            testEmailsFromText(`
+            testEmailsFromText(
+                `
                 info@example.com
                 info+something@example.NET
                 john.bob.dole@some-domain.co.uk
-            `, [
-                'info@example.com',
-                'info+something@example.NET',
-                'john.bob.dole@some-domain.co.uk',
-            ]);
+            `,
+                ['info@example.com', 'info+something@example.NET', 'john.bob.dole@some-domain.co.uk'],
+            );
 
-            testEmailsFromText(`
+            testEmailsFromText(
+                `
                 this'is'also'valid'email@EXAMPLE.travel
                 easy-address@some-domain.co.uk \n\n
                  easy-address@some-domain.co.uk
                   not @ an.email.com
                   @also.not.an.email
-                  `, [
-                'this\'is\'also\'valid\'email@EXAMPLE.travel',
-                'easy-address@some-domain.co.uk',
-                'easy-address@some-domain.co.uk',
-            ]);
+                  `,
+                [
+                    "this'is'also'valid'email@EXAMPLE.travel",
+                    'easy-address@some-domain.co.uk',
+                    'easy-address@some-domain.co.uk',
+                ],
+            );
 
-            testEmailsFromText(' some.super.long.email.address@some.super.long.domain.name.co.br ',
-                ['some.super.long.email.address@some.super.long.domain.name.co.br']);
+            testEmailsFromText(' some.super.long.email.address@some.super.long.domain.name.co.br ', [
+                'some.super.long.email.address@some.super.long.domain.name.co.br',
+            ]);
         });
     });
 
@@ -102,35 +105,29 @@ describe('utils.social', () => {
             // @ts-expect-error invalid input type
             expect(emailsFromUrls([1, 2, {}, 'fwef', null, undefined])).toEqual([]);
 
-            expect(emailsFromUrls([
-                'mailto:info@example.com',
-            ])).toEqual([
-                'info@example.com',
-            ]);
+            expect(emailsFromUrls(['mailto:info@example.com'])).toEqual(['info@example.com']);
 
-            expect(emailsFromUrls([
-                'http://www.example.com',
-                'mailto:info@example.com',
-                'mailto:info@example.com',
-                'email.without.mailto.prefix@example.com',
-                '',
-                '\n\n\n',
-            ])).toEqual([
-                'info@example.com',
-                'info@example.com',
-            ]);
+            expect(
+                emailsFromUrls([
+                    'http://www.example.com',
+                    'mailto:info@example.com',
+                    'mailto:info@example.com',
+                    'email.without.mailto.prefix@example.com',
+                    '',
+                    '\n\n\n',
+                ]),
+            ).toEqual(['info@example.com', 'info@example.com']);
 
-            expect(emailsFromUrls([
-                'http://www.example.com',
-                'mailto:info@example.com',
-                'mailto:info@example.com',
-                'email.without.mailto.prefix@example.com',
-                '',
-                '\n\n\n',
-            ])).toEqual([
-                'info@example.com',
-                'info@example.com',
-            ]);
+            expect(
+                emailsFromUrls([
+                    'http://www.example.com',
+                    'mailto:info@example.com',
+                    'mailto:info@example.com',
+                    'email.without.mailto.prefix@example.com',
+                    '',
+                    '\n\n\n',
+                ]),
+            ).toEqual(['info@example.com', 'info@example.com']);
         });
     });
 
@@ -153,7 +150,8 @@ describe('utils.social', () => {
         });
 
         test('extracts phones correctly', () => {
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                 +420775123456 +420775123456
 
                 +420 775 123 456
@@ -162,88 +160,97 @@ describe('utils.social', () => {
                 00420775123456
                 1234567 1234567890
                 +44 7911 123456
-            `, [
-                '+420775123456',
-                '+420775123456',
-                '+420 775 123 456',
-                '775123456',
-                '775123456',
-                '00420775123456',
-                '1234567',
-                '1234567890',
-                '+44 7911 123456',
-            ]);
+            `,
+                [
+                    '+420775123456',
+                    '+420775123456',
+                    '+420 775 123 456',
+                    '775123456',
+                    '775123456',
+                    '00420775123456',
+                    '1234567',
+                    '1234567890',
+                    '+44 7911 123456',
+                ],
+            );
 
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                 413-577-1234
                 00413-577-1234
                 981-413-777-8888
                 413.233.2343  +413.233.2343  or 413 233 2343
                 562-3113
                 123456789  401 311 7898  123456789
-            `, [
-                '413-577-1234',
-                '00413-577-1234',
-                '981-413-777-8888',
-                '413.233.2343',
-                '+413.233.2343',
-                '413 233 2343',
-                '562-3113',
-                '123456789',
-                '401 311 7898',
-                '123456789',
-            ]);
+            `,
+                [
+                    '413-577-1234',
+                    '00413-577-1234',
+                    '981-413-777-8888',
+                    '413.233.2343',
+                    '+413.233.2343',
+                    '413 233 2343',
+                    '562-3113',
+                    '123456789',
+                    '401 311 7898',
+                    '123456789',
+                ],
+            );
 
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                 1 (413) 555-2378
                 +1 (413) 555-2378
                 1(413)555-2378
                 001 (413) 555-2378  1 (413) 555 2378
                 1(413)555-2378 or 1(413)555.2378 or 1 (413) 555-2378 or 1 (413) 555 2378 or (303) 494-2320
-            `, [
-                '1 (413) 555-2378',
-                '+1 (413) 555-2378',
-                '1(413)555-2378',
-                '001 (413) 555-2378',
-                '1 (413) 555 2378',
-                '1(413)555-2378',
-                '1(413)555.2378',
-                '1 (413) 555-2378',
-                '1 (413) 555 2378',
-                '(303) 494-2320',
-            ]);
+            `,
+                [
+                    '1 (413) 555-2378',
+                    '+1 (413) 555-2378',
+                    '1(413)555-2378',
+                    '001 (413) 555-2378',
+                    '1 (413) 555 2378',
+                    '1(413)555-2378',
+                    '1(413)555.2378',
+                    '1 (413) 555-2378',
+                    '1 (413) 555 2378',
+                    '(303) 494-2320',
+                ],
+            );
 
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                 123-456-789
                 123 456 789
                   123.456.789
                    123.456.789.123
                    +123.456.789.123
-            `, [
-                '123-456-789',
-                '123 456 789',
-                '123.456.789',
-                '123.456.789.123',
-                '+123.456.789.123',
-            ]);
+            `,
+                ['123-456-789', '123 456 789', '123.456.789', '123.456.789.123', '+123.456.789.123'],
+            );
 
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                (000)000-0000
                 (000)000 0000
                 (000)000.0000
                 (000) 000-0000
                 (000) 000 0000
                 (000) 000.0000
-            `, [
-                '(000)000-0000',
-                '(000)000 0000',
-                '(000)000.0000',
-                '(000) 000-0000',
-                '(000) 000 0000',
-                '(000) 000.0000',
-            ]);
+            `,
+                [
+                    '(000)000-0000',
+                    '(000)000 0000',
+                    '(000)000.0000',
+                    '(000) 000-0000',
+                    '(000) 000 0000',
+                    '(000) 000.0000',
+                ],
+            );
 
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                000-0000
                 000 0000
                 000.0000
@@ -251,22 +258,20 @@ describe('utils.social', () => {
                 0000000
                 0000000000
                 (000)0000000
-            `, [
-                '000-0000',
-                '000 0000',
-                '000.0000',
-                '0000000',
-                '0000000000',
-                '(000)0000000',
-            ]);
+            `,
+                ['000-0000', '000 0000', '000.0000', '0000000', '0000000000', '(000)0000000'],
+            );
         });
 
         test('skips invalid phones', () => {
-            testPhonesFromText(`
+            testPhonesFromText(
+                `
                 2018-10-11  123
                 456789  345
                 1 2 3 4 5 6 7 8
-            `, []);
+            `,
+                [],
+            );
         });
     });
 
@@ -298,20 +303,22 @@ describe('utils.social', () => {
             // @ts-expect-error invalid input type
             expect(phonesFromUrls([1, 2, {}, 'fwef', null, undefined])).toEqual([]);
 
-            expect(phonesFromUrls([
-                'tel:12345678',
-                'tel:/22345678', //
-                'tel://32345678',
-                'PHONE:42345678', //
-                'phone:/52345678',
-                'phone://62345678',
-                'telephone:72345678',
-                'telephone:/82345678',
-                'telephone://92345678',
-                'callto:97345678',
-                'CALLTO:/+98345678',
-                'callto://9992345678',
-            ])).toEqual([
+            expect(
+                phonesFromUrls([
+                    'tel:12345678',
+                    'tel:/22345678', //
+                    'tel://32345678',
+                    'PHONE:42345678', //
+                    'phone:/52345678',
+                    'phone://62345678',
+                    'telephone:72345678',
+                    'telephone:/82345678',
+                    'telephone://92345678',
+                    'callto:97345678',
+                    'CALLTO:/+98345678',
+                    'callto://9992345678',
+                ]),
+            ).toEqual([
                 '12345678',
                 '22345678',
                 '32345678',
@@ -326,18 +333,17 @@ describe('utils.social', () => {
                 '9992345678',
             ]);
 
-            expect(phonesFromUrls([
-                'https://www.example.com',
-                'ftp://www.example.com',
-                '1234567',
-                '+42055555567',
-                'tel://+42012345678',
-                'tel://+420.123.456',
-                'http://www.example.com',
-            ])).toEqual([
-                '+42012345678',
-                '+420.123.456',
-            ]);
+            expect(
+                phonesFromUrls([
+                    'https://www.example.com',
+                    'ftp://www.example.com',
+                    '1234567',
+                    '+42055555567',
+                    'tel://+42012345678',
+                    'tel://+420.123.456',
+                    'http://www.example.com',
+                ]),
+            ).toEqual(['+42012345678', '+420.123.456']);
         });
     });
 
@@ -370,8 +376,9 @@ describe('utils.social', () => {
         test('works', () => {
             expect(parseHandlesFromHtml('')).toEqual(EMPTY_RESULT);
             expect(parseHandlesFromHtml('         ')).toEqual(EMPTY_RESULT);
-            const html = 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKdYWQ).\\n\\n## Sample result\\n'
-                + 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKd123).\\\\n\\\\n## Sample result\\\\n';
+            const html =
+                'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKdYWQ).\\n\\n## Sample result\\n' +
+                'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKd123).\\\\n\\\\n## Sample result\\\\n';
             expect(parseHandlesFromHtml(html)).toMatchObject({
                 youtubes: [
                     'https://www.youtube.com/watch?v=BsidLZKd123',
@@ -379,7 +386,8 @@ describe('utils.social', () => {
                 ],
             });
 
-            expect(parseHandlesFromHtml(`
+            expect(
+                parseHandlesFromHtml(`
                 <html>
                     <head>
                         <title>Bla</title>
@@ -447,11 +455,9 @@ describe('utils.social', () => {
                         <a href="discord.gg/discord-developers">Join our Discord community</a>
                     </body>
                 </html>
-            `)).toEqual({
-                discords: [
-                    'discord.gg/discord-developers',
-                    'https://discord.com/invite/jyEM2PRvMU/',
-                ],
+            `),
+            ).toEqual({
+                discords: ['discord.gg/discord-developers', 'https://discord.com/invite/jyEM2PRvMU/'],
                 emails: ['alice@example.com', 'bob@example.com', 'carl@example.com', 'david@example.com'],
                 phones: ['+42077533333'],
                 phonesUncertain: [
@@ -491,11 +497,7 @@ describe('utils.social', () => {
                     'https://www.tiktok.com/trending?shareId=1234567890123456789/',
                     'm.tiktok.com/v/1234567890123456789',
                 ],
-                twitters: [
-                    'https://www.twitter.com/apify',
-                    'twitter.com/betasomething',
-                    'twitter.com/cblabla/',
-                ],
+                twitters: ['https://www.twitter.com/apify', 'twitter.com/betasomething', 'twitter.com/cblabla/'],
                 facebooks: [
                     'facebook.com/carl.username123/',
                     'fb.com/dada5678',
@@ -503,15 +505,14 @@ describe('utils.social', () => {
                     'https://www.facebook.com/bob.username123/',
                     'https://www.facebook.com/profile.php?id=1155802082',
                 ],
-                youtubes: [
-                    'https://youtu.be/kM7YfhfkiEE',
-                ],
+                youtubes: ['https://youtu.be/kM7YfhfkiEE'],
             });
         });
 
         test('data is set correctly', () => {
             const data = {} as any;
-            parseHandlesFromHtml(`
+            parseHandlesFromHtml(
+                `
                 <html>
                     <head>
                         <title>Bla</title>
@@ -520,7 +521,9 @@ describe('utils.social', () => {
                         Body content
                     </body>
                 </html>
-            `, data);
+            `,
+                data,
+            );
 
             expect(data.$('body').text().trim()).toBe('Body content');
             expect(data.text.trim()).toBe('Body content');
@@ -549,7 +552,10 @@ describe('utils.social', () => {
             expect(EMAIL_REGEX.test('dummy')).toBe(false);
 
             expect(EMAIL_REGEX_GLOBAL.test('bob@example.com')).toBe(true);
-            expect('bob@example.com alice@example.com'.match(EMAIL_REGEX_GLOBAL)).toEqual(['bob@example.com', 'alice@example.com']);
+            expect('bob@example.com alice@example.com'.match(EMAIL_REGEX_GLOBAL)).toEqual([
+                'bob@example.com',
+                'alice@example.com',
+            ]);
 
             expect(''.match(EMAIL_REGEX_GLOBAL)).toBe(null);
             expect(' dummy '.match(EMAIL_REGEX_GLOBAL)).toBe(null);
@@ -598,29 +604,32 @@ describe('utils.social', () => {
             expect(LINKEDIN_REGEX.test('0linkedin.com/in/bobnewman')).toBe(false);
             expect(LINKEDIN_REGEX.test('https://www.linkedin.com/in/bobnewman/?param=bla')).toBe(false);
             expect(LINKEDIN_REGEX.test('://linkedin.com/in/bobnewman')).toBe(false);
-            expect(LINKEDIN_REGEX.test('https://www.linkedin.com/in/bob https://www.linkedin.com/in/alice')).toBe(false);
+            expect(LINKEDIN_REGEX.test('https://www.linkedin.com/in/bob https://www.linkedin.com/in/alice')).toBe(
+                false,
+            );
 
             expect(LINKEDIN_REGEX_GLOBAL.test('https://www.linkedin.com/in/bobnewman')).toBe(true);
-            expect(`
+            expect(
+                `
                 https://www.linkedin.com/in/bobnewman
                 "http://ie.linkedin.com/in/alicenewman"
                 https://www.linkedin.com/in/someverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongnamesomeverylongname
                 linkedin.com/in/carlnewman
-                `.match(LINKEDIN_REGEX_GLOBAL)).toEqual([
+                `.match(LINKEDIN_REGEX_GLOBAL),
+            ).toEqual([
                 'https://www.linkedin.com/in/bobnewman',
                 'http://ie.linkedin.com/in/alicenewman',
                 'linkedin.com/in/carlnewman',
             ]);
-            expect(`
+            expect(
+                `
                 -https://www.linkedin.com/in/bobnewman/sub-dir
                 :http://ie.linkedin.com/in/alicenewman?param=1
                 xlinkedin.com/in/carlnewman
                 alinkedin.com/in/carlnewman
                 _linkedin.com/in/carlnewman
-                `.match(LINKEDIN_REGEX_GLOBAL)).toEqual([
-                'https://www.linkedin.com/in/bobnewman/',
-                'http://ie.linkedin.com/in/alicenewman',
-            ]);
+                `.match(LINKEDIN_REGEX_GLOBAL),
+            ).toEqual(['https://www.linkedin.com/in/bobnewman/', 'http://ie.linkedin.com/in/alicenewman']);
             expect(''.match(LINKEDIN_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -667,29 +676,32 @@ describe('utils.social', () => {
             expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/_u/')).toBe(false);
             expect(INSTAGRAM_REGEX.test('https://www.instagram.com/old_prague/?param=bla')).toBe(false);
             expect(INSTAGRAM_REGEX.test('://www.instagram.com/old_prague')).toBe(false);
-            expect(INSTAGRAM_REGEX.test('http://www.instagram.com/old_prague http://www.instagram.com/old_brno')).toBe(false);
+            expect(INSTAGRAM_REGEX.test('http://www.instagram.com/old_prague http://www.instagram.com/old_brno')).toBe(
+                false,
+            );
 
             expect(INSTAGRAM_REGEX_GLOBAL.test('https://www.instagram.com/old_prague')).toBe(true);
-            expect(`
+            expect(
+                `
                     https://www.instagram.com/old_prague
                     https://www.instagram.com/someverylongusernamethatisnotgood
                     "instagram.com/old_brno"
                     http://instagr.am/old_plzen
-                    `.match(INSTAGRAM_REGEX_GLOBAL)).toEqual([
+                    `.match(INSTAGRAM_REGEX_GLOBAL),
+            ).toEqual([
                 'https://www.instagram.com/old_prague',
                 'instagram.com/old_brno',
                 'http://instagr.am/old_plzen',
             ]);
-            expect(`
+            expect(
+                `
                     -https://www.instagram.com/old_prague/sub-dir
                     instagr.am/old_plzen?param=1
                     xinstagram.com/old_brno
                     ainstagram.com/old_brno
                     _instagram.com/old_brno
-                    `.match(INSTAGRAM_REGEX_GLOBAL)).toEqual([
-                'https://www.instagram.com/old_prague/',
-                'instagr.am/old_plzen',
-            ]);
+                    `.match(INSTAGRAM_REGEX_GLOBAL),
+            ).toEqual(['https://www.instagram.com/old_prague/', 'instagr.am/old_plzen']);
             expect(''.match(INSTAGRAM_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -735,28 +747,24 @@ describe('utils.social', () => {
             expect(TWITTER_REGEX.test('https://www.twitter.com/privacy/')).toBe(false);
 
             expect(TWITTER_REGEX_GLOBAL.test('https://www.twitter.com/apify')).toBe(true);
-            expect(`
+            expect(
+                `
                     https://www.twitter.com/apify
                     www.twitter.com/jack/sub-dir
                     www.twitter.com/invalidverylongtwitterhandlenotgood
                     twitter.com/bob123?param=1
-                    `.match(TWITTER_REGEX_GLOBAL)).toEqual([
-                'https://www.twitter.com/apify',
-                'www.twitter.com/jack/',
-                'twitter.com/bob123',
-            ]);
-            expect(`
+                    `.match(TWITTER_REGEX_GLOBAL),
+            ).toEqual(['https://www.twitter.com/apify', 'www.twitter.com/jack/', 'twitter.com/bob123']);
+            expect(
+                `
                     -https://www.twitter.com/apify
                     twitter.com/jack
                     twitter.com/carl123
                     xtwitter.com/bob
                     atwitter.com/bob
                     _twitter.com/bob
-                    `.match(TWITTER_REGEX_GLOBAL)).toEqual([
-                'https://www.twitter.com/apify',
-                'twitter.com/jack',
-                'twitter.com/carl123',
-            ]);
+                    `.match(TWITTER_REGEX_GLOBAL),
+            ).toEqual(['https://www.twitter.com/apify', 'twitter.com/jack', 'twitter.com/carl123']);
             expect(''.match(TWITTER_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -789,7 +797,9 @@ describe('utils.social', () => {
             // Test there is just on matching group for the username
             expect('https://www.facebook.com/someusername/'.match(FACEBOOK_REGEX)[1]).toBe('someusername');
             expect('https://www.facebook.com/someusername'.match(FACEBOOK_REGEX)[1]).toBe('someusername');
-            expect('https://www.facebook.com/profile.php?id=1155802082'.match(FACEBOOK_REGEX)[1]).toBe('profile.php?id=1155802082');
+            expect('https://www.facebook.com/profile.php?id=1155802082'.match(FACEBOOK_REGEX)[1]).toBe(
+                'profile.php?id=1155802082',
+            );
             expect('fb.com/someusername'.match(FACEBOOK_REGEX)[1]).toBe('someusername');
 
             expect(FACEBOOK_REGEX.test('')).toBe(false);
@@ -807,34 +817,32 @@ describe('utils.social', () => {
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername?param=bla')).toBe(false);
 
             expect(FACEBOOK_REGEX.test('://www.facebook.com/someusername')).toBe(false);
-            expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername https://www.facebook.com/jack')).toBe(false);
+            expect(FACEBOOK_REGEX.test('https://www.facebook.com/someusername https://www.facebook.com/jack')).toBe(
+                false,
+            );
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/groups')).toBe(false);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/events')).toBe(false);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/policies/')).toBe(false);
 
             expect(FACEBOOK_REGEX_GLOBAL.test('https://www.facebook.com/someusername')).toBe(true);
-            expect(`
+            expect(
+                `
                     https://www.facebook.com/someusername?param=123
                     www.facebook.com/another123/sub-dir
                     https://www.facebook.com/waytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusernamewaytoolongusername
                     fb.com/bob123
-                    `.match(FACEBOOK_REGEX_GLOBAL)).toEqual([
-                'https://www.facebook.com/someusername',
-                'www.facebook.com/another123/',
-                'fb.com/bob123',
-            ]);
-            expect(`
+                    `.match(FACEBOOK_REGEX_GLOBAL),
+            ).toEqual(['https://www.facebook.com/someusername', 'www.facebook.com/another123/', 'fb.com/bob123']);
+            expect(
+                `
                     -https://www.facebook.com/someusername/
                     facebook.com/jack4567
                     fb.com/carl123
                     xfacebook.com/bob
                     afacebook.com/bob
                     _facebook.com/bob
-                    `.match(FACEBOOK_REGEX_GLOBAL)).toEqual([
-                'https://www.facebook.com/someusername/',
-                'facebook.com/jack4567',
-                'fb.com/carl123',
-            ]);
+                    `.match(FACEBOOK_REGEX_GLOBAL),
+            ).toEqual(['https://www.facebook.com/someusername/', 'facebook.com/jack4567', 'fb.com/carl123']);
             expect(''.match(FACEBOOK_REGEX_GLOBAL)).toBe(null);
         });
     });
@@ -856,7 +864,9 @@ describe('utils.social', () => {
             expect(YOUTUBE_REGEX.test('https://www.youtube.com/user/pewdiepie')).toBe(true);
 
             expect(YOUTUBE_REGEX.test('://www.youtube.com/c/TrapNation')).toBe(false);
-            expect(YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE https://www.youtube.com/user/pewdiepie')).toBe(false);
+            expect(YOUTUBE_REGEX.test('https://youtu.be/kM7YfhfkiEE https://www.youtube.com/user/pewdiepie')).toBe(
+                false,
+            );
             expect(YOUTUBE_REGEX.test('xyoutu.be/kM7YfhfkiEE')).toBe(false);
             expect(YOUTUBE_REGEX.test('-https://www.youtube.com/user/pewdiepie')).toBe(false);
 
@@ -864,10 +874,13 @@ describe('utils.social', () => {
             expect('https://www.youtube.com/watch?v=kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)[1]).toBe('kM7YfhfkiEE');
             expect('https://youtu.be/kM7YfhfkiEE'.match(social.YOUTUBE_REGEX)[1]).toBe('kM7YfhfkiEE');
             expect('https://www.youtube.com/c/TrapNation'.match(social.YOUTUBE_REGEX)[1]).toBe('TrapNation');
-            expect('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA'.match(social.YOUTUBE_REGEX)[1]).toBe('UCklie6BM0fhFvzWYqQVoCTA');
+            expect('https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA'.match(social.YOUTUBE_REGEX)[1]).toBe(
+                'UCklie6BM0fhFvzWYqQVoCTA',
+            );
             expect('https://www.youtube.com/user/pewdiepie'.match(social.YOUTUBE_REGEX)[1]).toBe('pewdiepie');
 
-            expect(`
+            expect(
+                `
                     https://www.youtube.com/apify/
                     -https://www.youtube.com/someusername/
                     youtube.com/jack4567
@@ -878,16 +891,16 @@ describe('utils.social', () => {
                     www.youtube.com/c/TrapNation
                     https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA
                     youtube.com/user/pewdiepie
-                    `.match(YOUTUBE_REGEX_GLOBAL))
-                .toEqual([
-                    'https://www.youtube.com/apify',
-                    'https://www.youtube.com/someusername',
-                    'youtube.com/jack4567',
-                    'https://www.youtube.com/watch?v=kM7YfhfkiEE',
-                    'www.youtube.com/c/TrapNation',
-                    'https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA',
-                    'youtube.com/user/pewdiepie',
-                ]);
+                    `.match(YOUTUBE_REGEX_GLOBAL),
+            ).toEqual([
+                'https://www.youtube.com/apify',
+                'https://www.youtube.com/someusername',
+                'youtube.com/jack4567',
+                'https://www.youtube.com/watch?v=kM7YfhfkiEE',
+                'www.youtube.com/c/TrapNation',
+                'https://www.youtube.com/channel/UCklie6BM0fhFvzWYqQVoCTA',
+                'youtube.com/user/pewdiepie',
+            ]);
         });
     });
     describe('TIKTOK_REGEX', () => {
@@ -913,12 +926,17 @@ describe('utils.social', () => {
             expect(TIKTOK_REGEX.test('0https://www.tiktok.com/trending?shareId=123456789')).toBe(false);
 
             // Test there is just one matching group for video id or username
-            expect('https://www.tiktok.com/trending?shareId=123456789'.match(TIKTOK_REGEX)[1]).toBe('trending?shareId=123456789');
+            expect('https://www.tiktok.com/trending?shareId=123456789'.match(TIKTOK_REGEX)[1]).toBe(
+                'trending?shareId=123456789',
+            );
             expect('www.tiktok.com/embed/123456789/'.match(TIKTOK_REGEX)[1]).toBe('embed/123456789');
             expect('tiktok.com/@jack'.match(TIKTOK_REGEX)[1]).toBe('@jack');
-            expect('https://www.tiktok.com/@username/video/123456789'.match(TIKTOK_REGEX)[1]).toBe('@username/video/123456789');
+            expect('https://www.tiktok.com/@username/video/123456789'.match(TIKTOK_REGEX)[1]).toBe(
+                '@username/video/123456789',
+            );
 
-            expect(`
+            expect(
+                `
                     https://www.tiktok.com/trending?shareId=123456789
                     www.tiktok.com/embed/123456789/
                     m.tiktok.com/v/123456789
@@ -931,17 +949,17 @@ describe('utils.social', () => {
                     https://www.tiktok.com/@jack1234/invalidSubpath/
                     https://www.tiktok.com/trending?shareId=1234567898904582904537057328079034789063454432789054378
                     https://www.tiktok.com/@userWithLongVideoName/video/123456789890458290453705732807903478904327890543654645365478
-                    `.match(TIKTOK_REGEX_GLOBAL))
-                .toEqual([
-                    'https://www.tiktok.com/trending?shareId=123456789',
-                    'www.tiktok.com/embed/123456789/',
-                    'm.tiktok.com/v/123456789',
-                    'tiktok.com/@user',
-                    'https://www.tiktok.com/@username/video/123456789',
-                    'https://www.tiktok.com/@username/video/82347868',
-                    'https://www.tiktok.com/@jack1234/',
-                    'https://www.tiktok.com/@userWithLongVideoName/',
-                ]);
+                    `.match(TIKTOK_REGEX_GLOBAL),
+            ).toEqual([
+                'https://www.tiktok.com/trending?shareId=123456789',
+                'www.tiktok.com/embed/123456789/',
+                'm.tiktok.com/v/123456789',
+                'tiktok.com/@user',
+                'https://www.tiktok.com/@username/video/123456789',
+                'https://www.tiktok.com/@username/video/82347868',
+                'https://www.tiktok.com/@jack1234/',
+                'https://www.tiktok.com/@userWithLongVideoName/',
+            ]);
         });
     });
 
@@ -974,7 +992,8 @@ describe('utils.social', () => {
             expect('pinterest.com/user_name.gold'.match(PINTEREST_REGEX)[1]).toBe('user_name.gold');
             expect('https://cz.pinterest.com/username/board'.match(PINTEREST_REGEX)[1]).toBe('username/board');
 
-            expect(`
+            expect(
+                `
                     https://pinterest.com/pin/123456789
                     -https://pinterest.com/pin/10084556789/
                     https://www.pinterest.cz/pin/123456789
@@ -984,17 +1003,17 @@ describe('utils.social', () => {
                     pinterest.com/user_name.gold
                     https://cz.pinterest.com/user/board
                     https://www.pinterest.cz/pin/nonNumericPinId
-                    `.match(PINTEREST_REGEX_GLOBAL))
-                .toEqual([
-                    'https://pinterest.com/pin/123456789',
-                    'https://pinterest.com/pin/10084556789/',
-                    'https://www.pinterest.cz/pin/123456789',
-                    'https://www.pinterest.com/user',
-                    'https://uk.pinterest.com/user',
-                    'https://www.pinterest.co.uk/user',
-                    'pinterest.com/user_name.gold',
-                    'https://cz.pinterest.com/user/board',
-                ]);
+                    `.match(PINTEREST_REGEX_GLOBAL),
+            ).toEqual([
+                'https://pinterest.com/pin/123456789',
+                'https://pinterest.com/pin/10084556789/',
+                'https://www.pinterest.cz/pin/123456789',
+                'https://www.pinterest.com/user',
+                'https://uk.pinterest.com/user',
+                'https://www.pinterest.co.uk/user',
+                'pinterest.com/user_name.gold',
+                'https://cz.pinterest.com/user/board',
+            ]);
         });
     });
 
@@ -1012,8 +1031,12 @@ describe('utils.social', () => {
             expect(DISCORD_REGEX.test('https://discord.gg/discord-developers')).toBe(true);
             expect(DISCORD_REGEX.test('https://discord.com/invite/jyEM2PRvMU')).toBe(true);
             expect(DISCORD_REGEX.test('https://discordapp.com/channels/231496023303957476')).toBe(true);
-            expect(DISCORD_REGEX.test('https://discord.com/channels/231496023303957476/2332823543826404586')).toBe(true);
-            expect(DISCORD_REGEX.test('https://ptb.discord.com/channels/231496023303957476/2332823543826404586')).toBe(true);
+            expect(DISCORD_REGEX.test('https://discord.com/channels/231496023303957476/2332823543826404586')).toBe(
+                true,
+            );
+            expect(DISCORD_REGEX.test('https://ptb.discord.com/channels/231496023303957476/2332823543826404586')).toBe(
+                true,
+            );
             expect(DISCORD_REGEX.test('ptb.discord.com/invite/jyEM2PRvMU')).toBe(true);
             expect(DISCORD_REGEX.test('canary.discord.com/invite/jyEM2PRvMU')).toBe(true);
 
@@ -1022,26 +1045,35 @@ describe('utils.social', () => {
             expect(DISCORD_REGEX.test('-discordapp.com/channels/231496023303957476/')).toBe(false);
 
             // Test there is just on matching group for the channel or invite (matches discord.* / discordapp.* prefix as well as they differ)
-            expect('https://discord.gg/discord-developers'.match(DISCORD_REGEX)[1]).toBe('discord.gg/discord-developers');
-            expect('https://discord.com/invite/jyEM2PRvMU'.match(DISCORD_REGEX)[1]).toBe('discord.com/invite/jyEM2PRvMU');
-            expect('https://discordapp.com/channels/231496023303957476'.match(DISCORD_REGEX)[1]).toBe('discordapp.com/channels/231496023303957476');
-            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(DISCORD_REGEX)[1]).toBe('discord.com/channels/231496023303957476/2332823543826404586');
+            expect('https://discord.gg/discord-developers'.match(DISCORD_REGEX)[1]).toBe(
+                'discord.gg/discord-developers',
+            );
+            expect('https://discord.com/invite/jyEM2PRvMU'.match(DISCORD_REGEX)[1]).toBe(
+                'discord.com/invite/jyEM2PRvMU',
+            );
+            expect('https://discordapp.com/channels/231496023303957476'.match(DISCORD_REGEX)[1]).toBe(
+                'discordapp.com/channels/231496023303957476',
+            );
+            expect('https://discord.com/channels/231496023303957476/2332823543826404586'.match(DISCORD_REGEX)[1]).toBe(
+                'discord.com/channels/231496023303957476/2332823543826404586',
+            );
 
-            expect(`
+            expect(
+                `
                     https://discord.gg/discord-developers/
                     https://discord.com/invite/jyEM2PRvMU
                     -https://discordapp.com/channels/231496023303957476/
                     https://discord.com/channels/231496023303957476/2332823543826404586
                     discord.gg/discord-developers
                     https://discordapp.com/channels/nonNumbericChannelId
-                    `.match(DISCORD_REGEX_GLOBAL))
-                .toEqual([
-                    'https://discord.gg/discord-developers/',
-                    'https://discord.com/invite/jyEM2PRvMU',
-                    'https://discordapp.com/channels/231496023303957476/',
-                    'https://discord.com/channels/231496023303957476/2332823543826404586',
-                    'discord.gg/discord-developers',
-                ]);
+                    `.match(DISCORD_REGEX_GLOBAL),
+            ).toEqual([
+                'https://discord.gg/discord-developers/',
+                'https://discord.com/invite/jyEM2PRvMU',
+                'https://discordapp.com/channels/231496023303957476/',
+                'https://discord.com/channels/231496023303957476/2332823543826404586',
+                'discord.gg/discord-developers',
+            ]);
         });
     });
 });

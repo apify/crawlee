@@ -227,15 +227,19 @@ export class ProxyConfiguration {
      */
     constructor(options: ProxyConfigurationOptions = {}) {
         const { validateRequired, ...rest } = options as Dictionary;
-        ow(rest, ow.object.exactShape({
-            proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
-            newUrlFunction: ow.optional.function,
-            tieredProxyUrls: ow.optional.array.nonEmpty.ofType(ow.array.nonEmpty.ofType(ow.string.url)),
-        }));
+        ow(
+            rest,
+            ow.object.exactShape({
+                proxyUrls: ow.optional.array.nonEmpty.ofType(ow.string.url),
+                newUrlFunction: ow.optional.function,
+                tieredProxyUrls: ow.optional.array.nonEmpty.ofType(ow.array.nonEmpty.ofType(ow.string.url)),
+            }),
+        );
 
         const { proxyUrls, newUrlFunction, tieredProxyUrls } = options;
 
-        if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter((x) => x).length > 1) this._throwCannotCombineCustomMethods();
+        if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter((x) => x).length > 1)
+            this._throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this._throwNoOptionsProvided();
 
         this.proxyUrls = proxyUrls;
@@ -364,14 +368,11 @@ export class ProxyConfiguration {
         if (typeof sessionId === 'number') sessionId = `${sessionId}`;
 
         if (this.newUrlFunction) {
-            return (await this._callNewUrlFunction(sessionId, { request: options?.request }) ?? undefined);
+            return (await this._callNewUrlFunction(sessionId, { request: options?.request })) ?? undefined;
         }
 
         if (this.tieredProxyUrls) {
-            return this._handleTieredUrl(
-                sessionId ?? cryptoRandomObjectId(6),
-                options,
-            ).proxyUrl;
+            return this._handleTieredUrl(sessionId ?? cryptoRandomObjectId(6), options).proxyUrl;
         }
 
         return this._handleCustomUrl(sessionId);
@@ -412,15 +413,17 @@ export class ProxyConfiguration {
         }
     }
 
-    protected _throwNewUrlFunctionInvalid(err: Error) : never {
+    protected _throwNewUrlFunctionInvalid(err: Error): never {
         throw new Error(`The provided newUrlFunction did not return a valid URL.\nCause: ${err.message}`);
     }
 
-    protected _throwCannotCombineCustomMethods() : never {
-        throw new Error('Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".');
+    protected _throwCannotCombineCustomMethods(): never {
+        throw new Error(
+            'Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".',
+        );
     }
 
-    protected _throwNoOptionsProvided() : never {
+    protected _throwNoOptionsProvided(): never {
         throw new Error('One of "options.proxyUrls" or "options.newUrlFunction" needs to be provided.');
     }
 }

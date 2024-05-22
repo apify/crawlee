@@ -3,7 +3,9 @@ import { KeyValueMemoryEntry } from './memory';
 import type { InternalKeyRecord } from '../../resource-clients/key-value-store';
 import type { StorageImplementation } from '../common';
 
-export function createKeyValueStorageImplementation(options: CreateStorageImplementationOptions): StorageImplementation<InternalKeyRecord> {
+export function createKeyValueStorageImplementation(
+    options: CreateStorageImplementationOptions,
+): StorageImplementation<InternalKeyRecord> {
     if (options.persistStorage) {
         return new KeyValueFileSystemEntry(options);
     }

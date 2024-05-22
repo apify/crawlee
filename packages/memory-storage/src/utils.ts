@@ -34,11 +34,7 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
 
 export function isBuffer(value: unknown): boolean {
     try {
-        s.union(
-            s.instance(Buffer),
-            s.instance(ArrayBuffer),
-            s.typedArray(),
-        ).parse(value);
+        s.union(s.instance(Buffer), s.instance(ArrayBuffer), s.typedArray()).parse(value);
 
         return true;
     } catch {
@@ -47,7 +43,11 @@ export function isBuffer(value: unknown): boolean {
 }
 
 export function isStream(value: any): boolean {
-    return typeof value === 'object' && value && ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function');
+    return (
+        typeof value === 'object' &&
+        value &&
+        ['on', 'pipe'].every((key) => key in value && typeof value[key] === 'function')
+    );
 }
 
 export const memoryStorageLog = defaultLog.child({ prefix: 'MemoryStorage' });

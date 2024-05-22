@@ -4,7 +4,6 @@ import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
 import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
-import { throwImplementationNeeded } from './utils';
 import { BROWSER_CONTROLLER_EVENTS } from '../events';
 import type { LaunchContext } from '../launch-context';
 import { log } from '../logger';
@@ -19,8 +18,9 @@ export interface BrowserControllerEvents<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
-    [BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED]:
-        (controller: BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) => void;
+    [BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED]: (
+        controller: BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ) => void;
 }
 
 /**
@@ -109,7 +109,10 @@ export abstract class BrowserController<
     /**
      * @ignore
      */
-    assignBrowser(browser: LaunchResult, launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): void {
+    assignBrowser(
+        browser: LaunchResult,
+        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
+    ): void {
         if (this.browser) {
             throw new Error('BrowserController already has a browser instance assigned.');
         }
@@ -181,48 +184,28 @@ export abstract class BrowserController<
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract async _close(): Promise<void> {
-        throwImplementationNeeded('_close');
-    }
+    protected abstract _close(): Promise<void>;
+    /**
+     * @private
+     */
+    protected abstract _kill(): Promise<void>;
+    /**
+     * @private
+     */
+    protected abstract _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
 
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract async _kill(): Promise<void> {
-        throwImplementationNeeded('_kill');
-    }
+    protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
 
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract async _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult> {
-        throwImplementationNeeded('_newPage');
-    }
+    protected abstract _getCookies(page: NewPageResult): Promise<Cookie[]>;
 
     /**
      * @private
      */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract async _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void> {
-        throwImplementationNeeded('_setCookies');
-    }
-
-    /**
-     * @private
-     */
-    // @ts-expect-error Give runtime error as well as compile time
-    protected abstract async _getCookies(page: NewPageResult): Promise<Cookie[]> {
-        throwImplementationNeeded('_getCookies');
-    }
-
-    /**
-     * @private
-     */
-    // @ts-expect-error Give runtime error as well as compile time
-    abstract normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown> {
-        throwImplementationNeeded('_normalizeProxyOptions');
-    }
+    abstract normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown>;
 }

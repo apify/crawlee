@@ -15,7 +15,7 @@ class ReadableStreamGenerator {
         const buffer = Buffer.alloc(size);
         for (let i = 0; i < size; i++) {
             // eslint-disable-next-line no-bitwise
-            seed = Math.imul(48271, seed) | 0 % 2147483647;
+            seed = Math.imul(48271, seed) | (0 % 2147483647);
             buffer[i] = chars.charCodeAt(seed % chars.length);
         }
         return buffer;
@@ -131,12 +131,14 @@ test('crawler with streamHandler waits for the stream to finish', async () => {
     const crawler = new FileDownload({
         maxRequestRetries: 0,
         streamHandler: ({ stream }) => {
-            pipeline(stream as any, bufferingStream).then(() => {
-                bufferingStream.push(null);
-                bufferingStream.end();
-            }).catch((e) => {
-                bufferingStream.destroy(e);
-            });
+            pipeline(stream as any, bufferingStream)
+                .then(() => {
+                    bufferingStream.push(null);
+                    bufferingStream.end();
+                })
+                .catch((e) => {
+                    bufferingStream.destroy(e);
+                });
         },
     });
 

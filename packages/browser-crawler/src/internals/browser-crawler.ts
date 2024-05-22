@@ -56,14 +56,16 @@ export interface BrowserCrawlingContext<
     response?: Response;
 }
 
-export type BrowserRequestHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = RequestHandler<Context>;
+export type BrowserRequestHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> =
+    RequestHandler<Context>;
 
-export type BrowserErrorHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> = ErrorHandler<Context>;
+export type BrowserErrorHandler<Context extends BrowserCrawlingContext = BrowserCrawlingContext> =
+    ErrorHandler<Context>;
 
-export type BrowserHook<
-    Context = BrowserCrawlingContext,
-    GoToOptions extends Dictionary | undefined = Dictionary,
-> = (crawlingContext: Context, gotoOptions: GoToOptions) => Awaitable<void>;
+export type BrowserHook<Context = BrowserCrawlingContext, GoToOptions extends Dictionary | undefined = Dictionary> = (
+    crawlingContext: Context,
+    gotoOptions: GoToOptions,
+) => Awaitable<void>;
 
 export interface BrowserCrawlerOptions<
     Context extends BrowserCrawlingContext = BrowserCrawlingContext,
@@ -72,16 +74,14 @@ export interface BrowserCrawlerOptions<
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-    BasicCrawlerOptions,
-    // Overridden with browser context
-    | 'requestHandler'
-    | 'handleRequestFunction'
-
-    | 'failedRequestHandler'
-    | 'handleFailedRequestFunction'
-
-    | 'errorHandler'
-> {
+        BasicCrawlerOptions,
+        // Overridden with browser context
+        | 'requestHandler'
+        | 'handleRequestFunction'
+        | 'failedRequestHandler'
+        | 'handleFailedRequestFunction'
+        | 'errorHandler'
+    > {
     launchContext?: BrowserLaunchContext<any, any>;
 
     /**
@@ -186,7 +186,8 @@ export interface BrowserCrawlerOptions<
      * Custom options passed to the underlying {@apilink BrowserPool} constructor.
      * We can tweak those to fine-tune browser management.
      */
-    browserPoolOptions?: Partial<BrowserPoolOptions> & Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
+    browserPoolOptions?: Partial<BrowserPoolOptions> &
+        Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
 
     /**
      * If set, the crawler will be configured for all connections to use
@@ -345,7 +346,10 @@ export abstract class BrowserCrawler<
     /**
      * All `BrowserCrawler` parameters are passed via an options object.
      */
-    protected constructor(options: BrowserCrawlerOptions<Context> = {}, override readonly config = Configuration.getGlobalConfig()) {
+    protected constructor(
+        options: BrowserCrawlerOptions<Context> = {},
+        override readonly config = Configuration.getGlobalConfig(),
+    ) {
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
@@ -368,11 +372,15 @@ export abstract class BrowserCrawler<
             ...basicCrawlerOptions
         } = options;
 
-        super({
-            ...basicCrawlerOptions,
-            requestHandler: async (...args) => this._runRequestHandler(...args),
-            requestHandlerTimeoutSecs: navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-        }, config);
+        super(
+            {
+                ...basicCrawlerOptions,
+                requestHandler: async (...args) => this._runRequestHandler(...args),
+                requestHandlerTimeoutSecs:
+                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
+            },
+            config,
+        );
 
         this._handlePropertyNameChange({
             newName: 'requestHandler',
@@ -420,22 +428,17 @@ export abstract class BrowserCrawler<
         }
 
         if (launchContext?.userAgent) {
-            if (browserPoolOptions.useFingerprints) this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+            if (browserPoolOptions.useFingerprints)
+                this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
             browserPoolOptions.useFingerprints = false;
         }
 
         const { preLaunchHooks = [], postLaunchHooks = [], ...rest } = browserPoolOptions;
 
         this.browserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...rest as any,
-            preLaunchHooks: [
-                this._extendLaunchContext.bind(this),
-                ...preLaunchHooks,
-            ],
-            postLaunchHooks: [
-                this._maybeAddSessionRetiredListener.bind(this),
-                ...postLaunchHooks,
-            ],
+            ...(rest as any),
+            preLaunchHooks: [this._extendLaunchContext.bind(this), ...preLaunchHooks],
+            postLaunchHooks: [this._maybeAddSessionRetiredListener.bind(this), ...postLaunchHooks],
         });
     }
 
@@ -449,9 +452,7 @@ export abstract class BrowserCrawler<
     }
 
     private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
-        const foundSelectors = (await Promise.all(
-            selectors.map((selector) => (page as any).$(selector)))
-        )
+        const foundSelectors = (await Promise.all(selectors.map((selector) => (page as any).$(selector))))
             .map((x, i) => [x, selectors[i]] as [any, string])
             .filter(([x]) => x !== null)
             .map(([, selector]) => selector);
@@ -462,14 +463,15 @@ export abstract class BrowserCrawler<
     protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
         const { page, response } = crawlingContext;
 
-        // eslint-disable-next-line dot-notation
-        const blockedStatusCodes = ((this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0)
+        const blockedStatusCodes =
             // eslint-disable-next-line dot-notation
-            ? this.sessionPool!['blockedStatusCodes']
-            : DEFAULT_BLOCKED_STATUS_CODES;
+            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
+                ? // eslint-disable-next-line dot-notation
+                  this.sessionPool!['blockedStatusCodes']
+                : DEFAULT_BLOCKED_STATUS_CODES;
 
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
-        if (await this.containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS) && response?.status() === 403) {
+        if ((await this.containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS)) && response?.status() === 403) {
             await sleep(5000);
 
             // here we cannot test for response code, because we only have the original response, not the possible Cloudflare redirect on passed challenge.
@@ -502,7 +504,9 @@ export abstract class BrowserCrawler<
         if (this.proxyConfiguration) {
             const { session } = crawlingContext;
 
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, { request: crawlingContext.request });
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(session?.id, {
+                request: crawlingContext.request,
+            });
             crawlingContext.proxyInfo = proxyInfo;
 
             newPageOptions.proxyUrl = proxyInfo?.url;
@@ -510,16 +514,16 @@ export abstract class BrowserCrawler<
 
             if (this.proxyConfiguration.isManInTheMiddle) {
                 /**
-                     * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
-                     * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
-                     */
+                 * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+                 * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+                 */
                 newPageOptions.pageOptions = {
                     ignoreHTTPSErrors: true,
                 };
             }
         }
 
-        const page = await this.browserPool.newPage(newPageOptions) as CommonPage;
+        const page = (await this.browserPool.newPage(newPageOptions)) as CommonPage;
         tryCancel();
         this._enhanceCrawlingContextWithPageInfo(crawlingContext, page, useIncognitoPages || experimentalContainers);
 
@@ -547,7 +551,7 @@ export abstract class BrowserCrawler<
 
         if (!this.requestMatchesEnqueueStrategy(request)) {
             this.log.debug(
-                // eslint-disable-next-line max-len, dot-notation
+                // eslint-disable-next-line dot-notation
                 `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
             );
 
@@ -580,14 +584,20 @@ export abstract class BrowserCrawler<
         if (session) session.markGood();
     }
 
-    protected _enhanceCrawlingContextWithPageInfo(crawlingContext: Context, page: CommonPage, createNewSession?: boolean): void {
+    protected _enhanceCrawlingContextWithPageInfo(
+        crawlingContext: Context,
+        page: CommonPage,
+        createNewSession?: boolean,
+    ): void {
         crawlingContext.page = page;
 
         // This switch is because the crawlingContexts are created on per request basis.
         // However, we need to add the proxy info and session from browser, which is created based on the browser-pool configuration.
         // We would not have to do this switch if the proxy and configuration worked as in CheerioCrawler,
         // which configures proxy and session for every new request
-        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(page as any) as Context['browserController'];
+        const browserControllerInstance = this.browserPool.getBrowserControllerByPage(
+            page as any,
+        ) as Context['browserController'];
         crawlingContext.browserController = browserControllerInstance;
 
         if (!createNewSession) {
@@ -623,7 +633,7 @@ export abstract class BrowserCrawler<
         await this._applyCookies(crawlingContext, preNavigationHooksCookies, postNavigationHooksCookies);
 
         try {
-            crawlingContext.response = await this._navigationHandler(crawlingContext, gotoOptions) ?? undefined;
+            crawlingContext.response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
             await this._handleNavigationTimeout(crawlingContext, error as Error);
 
@@ -638,18 +648,18 @@ export abstract class BrowserCrawler<
         await this._executeHooks(this.postNavigationHooks, crawlingContext, gotoOptions);
     }
 
-    protected async _applyCookies({ session, request, page, browserController }: Context, preHooksCookies: string, postHooksCookies: string) {
+    protected async _applyCookies(
+        { session, request, page, browserController }: Context,
+        preHooksCookies: string,
+        postHooksCookies: string,
+    ) {
         const sessionCookie = session?.getCookies(request.url) ?? [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 
         await browserController.setCookies(
             page,
-            [
-                ...sessionCookie,
-                ...parsedPreHooksCookies,
-                ...parsedPostHooksCookies,
-            ]
+            [...sessionCookie, ...parsedPreHooksCookies, ...parsedPostHooksCookies]
                 .filter((c): c is CookieObject => typeof c !== 'undefined' && c !== null)
                 .map((c) => ({ ...c, url: c.domain ? undefined : request.url })),
         );
@@ -677,7 +687,10 @@ export abstract class BrowserCrawler<
         }
     }
 
-    protected abstract _navigationHandler(crawlingContext: Context, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
+    protected abstract _navigationHandler(
+        crawlingContext: Context,
+        gotoOptions: GoToOptions,
+    ): Promise<Context['response'] | null | undefined>;
 
     /**
      * Should be overridden in case of different automation library that does not support this response API.
@@ -710,10 +723,9 @@ export abstract class BrowserCrawler<
         }
 
         if (this.proxyConfiguration && !launchContext.proxyUrl) {
-            const proxyInfo = await this.proxyConfiguration.newProxyInfo(
-                launchContextExtends.session?.id,
-                { proxyTier: (launchContext.proxyTier as number) ?? undefined },
-            );
+            const proxyInfo = await this.proxyConfiguration.newProxyInfo(launchContextExtends.session?.id, {
+                proxyTier: (launchContext.proxyTier as number) ?? undefined,
+            });
             launchContext.proxyUrl = proxyInfo?.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
@@ -736,7 +748,9 @@ export abstract class BrowserCrawler<
                 const { launchContext } = browserController;
                 if (session.id === (launchContext.session as Session).id) {
                     this.browserPool.retireBrowserController(
-                        browserController as Parameters<BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']>[0],
+                        browserController as Parameters<
+                            BrowserPool<InternalBrowserPoolOptions>['retireBrowserController']
+                        >[0],
                     );
                 }
             };
@@ -782,7 +796,11 @@ export async function browserCrawlerEnqueueLinks({
         userProvidedBaseUrl: options?.baseUrl,
     });
 
-    const urls = await extractUrlsFromPage(page as any, options?.selector ?? 'a', options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl);
+    const urls = await extractUrlsFromPage(
+        page as any,
+        options?.selector ?? 'a',
+        options?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
+    );
 
     return enqueueLinks({
         requestQueue,
@@ -796,9 +814,16 @@ export async function browserCrawlerEnqueueLinks({
  * Extracts URLs from a given page.
  * @ignore
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
-export async function extractUrlsFromPage(page: { $$eval: Function }, selector: string, baseUrl: string): Promise<string[]> {
-    const urls = await page.$$eval(selector, (linkEls: HTMLLinkElement[]) => linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href)) ?? [];
+export async function extractUrlsFromPage(
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    page: { $$eval: Function },
+    selector: string,
+    baseUrl: string,
+): Promise<string[]> {
+    const urls =
+        (await page.$$eval(selector, (linkEls: HTMLLinkElement[]) =>
+            linkEls.map((link) => link.getAttribute('href')).filter((href) => !!href),
+        )) ?? [];
     const [base] = await page.$$eval('base', (els: HTMLLinkElement[]) => els.map((el) => el.getAttribute('href')));
     const absoluteBaseUrl = base && tryAbsoluteURL(base, baseUrl);
 
@@ -806,17 +831,18 @@ export async function extractUrlsFromPage(page: { $$eval: Function }, selector: 
         baseUrl = absoluteBaseUrl;
     }
 
-    return urls.map((href: string) => {
-        // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
-        const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
-        if (!isHrefAbsolute && !baseUrl) {
-            throw new Error(`An extracted URL: ${href} is relative and options.baseUrl is not set. `
-                + 'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.');
-        }
+    return urls
+        .map((href: string) => {
+            // Throw a meaningful error when only a relative URL would be extracted instead of waiting for the Request to fail later.
+            const isHrefAbsolute = /^[a-z][a-z0-9+.-]*:/.test(href); // Grabbed this in 'is-absolute-url' package.
+            if (!isHrefAbsolute && !baseUrl) {
+                throw new Error(
+                    `An extracted URL: ${href} is relative and options.baseUrl is not set. ` +
+                        'Use options.baseUrl in enqueueLinks() to automatically resolve relative URLs.',
+                );
+            }
 
-        return baseUrl
-            ? tryAbsoluteURL(href, baseUrl)
-            : href;
-    })
+            return baseUrl ? tryAbsoluteURL(href, baseUrl) : href;
+        })
         .filter((href: string | undefined) => !!href);
 }

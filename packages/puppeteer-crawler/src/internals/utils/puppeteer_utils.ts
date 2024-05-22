@@ -121,9 +121,12 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
 export async function injectFile(page: Page, filePath: string, options: InjectFileOptions = {}): Promise<unknown> {
     ow(page, ow.object.validate(validators.browserPage));
     ow(filePath, ow.string);
-    ow(options, ow.object.exactShape({
-        surviveNavigations: ow.optional.boolean,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            surviveNavigations: ow.optional.boolean,
+        }),
+    );
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
@@ -132,9 +135,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     }
     const evalP = page.evaluate(contents);
     if (options.surviveNavigations) {
-        page.on('framenavigated',
-            async () => page.evaluate(contents)
-                .catch((error) => log.warning('An error occurred during the script injection!', { error })));
+        page.on('framenavigated', async () =>
+            page
+                .evaluate(contents)
+                .catch((error) => log.warning('An error occurred during the script injection!', { error })),
+        );
     }
 
     return evalP;
@@ -186,8 +191,10 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
 export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
-    const html = ignoreShadowRoots ? null : await page.evaluate(`(${expandShadowRoots.toString()})(document)`) as string;
-    const pageContent = html || await page.content();
+    const html = ignoreShadowRoots
+        ? null
+        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
+    const pageContent = html || (await page.content());
 
     return cheerio.load(pageContent);
 }
@@ -236,15 +243,15 @@ export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): P
  */
 export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(options, ow.object.exactShape({
-        urlPatterns: ow.optional.array.ofType(ow.string),
-        extraUrlPatterns: ow.optional.array.ofType(ow.string),
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            urlPatterns: ow.optional.array.ofType(ow.string),
+            extraUrlPatterns: ow.optional.array.ofType(ow.string),
+        }),
+    );
 
-    const {
-        urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS,
-        extraUrlPatterns = [],
-    } = options;
+    const { urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS, extraUrlPatterns = [] } = options;
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
@@ -276,8 +283,9 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     const jsonPath = require.resolve('puppeteer/package.json');
     const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
 
-    // eslint-disable-next-line max-len
-    throw new Error(`Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`);
+    throw new Error(
+        `Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`,
+    );
 }
 
 /**
@@ -286,8 +294,10 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
  * @deprecated
  */
 export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
-    log.deprecated('utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. '
-        + 'Until this resolves, please use utils.puppeteer.blockRequests()');
+    log.deprecated(
+        'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
+            'Until this resolves, please use utils.puppeteer.blockRequests()',
+    );
     await addInterceptRequestHandler(page, async (request) => {
         const type = request.resourceType();
         if (resourceTypes.includes(type)) await request.abort();
@@ -311,13 +321,19 @@ export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 
  *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
  * @deprecated
  */
-export async function cacheResponses(page: Page, cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void> {
+export async function cacheResponses(
+    page: Page,
+    cache: Dictionary<Partial<ResponseForRequest>>,
+    responseUrlRules: (string | RegExp)[],
+): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
     ow(cache, ow.object);
     ow(responseUrlRules, ow.array.ofType(ow.any(ow.string, ow.regExp)));
 
-    log.deprecated('utils.puppeteer.cacheResponses() has a high impact on performance '
-        + 'in recent versions of Puppeteer so it\'s use is discouraged until this issue resolves.');
+    log.deprecated(
+        'utils.puppeteer.cacheResponses() has a high impact on performance ' +
+            "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
+    );
 
     await addInterceptRequestHandler(page, async (request) => {
         const url = request.url();
@@ -411,14 +427,21 @@ export function compileScript(scriptString: string, context: Dictionary = Object
  * @param request
  * @param [gotoOptions] Custom options for `page.goto()`.
  */
-export async function gotoExtended(page: Page, request: Request, gotoOptions: DirectNavigationOptions = {}): Promise<HTTPResponse | null> {
+export async function gotoExtended(
+    page: Page,
+    request: Request,
+    gotoOptions: DirectNavigationOptions = {},
+): Promise<HTTPResponse | null> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(request, ow.object.partialShape({
-        url: ow.string.url,
-        method: ow.optional.string,
-        headers: ow.optional.object,
-        payload: ow.optional.any(ow.string, ow.buffer),
-    }));
+    ow(
+        request,
+        ow.object.partialShape({
+            url: ow.string.url,
+            method: ow.optional.string,
+            headers: ow.optional.object,
+            payload: ow.optional.any(ow.string, ow.buffer),
+        }),
+    );
     ow(gotoOptions, ow.object);
 
     gotoOptions = { ...gotoOptions };
@@ -432,8 +455,10 @@ export async function gotoExtended(page: Page, request: Request, gotoOptions: Di
 
     if (method !== 'GET' || payload || !isEmpty(headers)) {
         // This is not deprecated, we use it to log only once.
-        log.deprecated('Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance '
-            + 'in recent versions of Puppeteer. Use only when necessary.');
+        log.deprecated(
+            'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
+                'in recent versions of Puppeteer. Use only when necessary.',
+        );
         let wasCalled = false;
         const interceptRequestHandler = async (interceptedRequest: PuppeteerRequest) => {
             // We want to ensure that this won't get executed again in a case that there is a subsequent request
@@ -502,16 +527,26 @@ export interface InfiniteScrollOptions {
  */
 export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(options, ow.object.exactShape({
-        timeoutSecs: ow.optional.number,
-        maxScrollHeight: ow.optional.number,
-        waitForSecs: ow.optional.number,
-        scrollDownAndUp: ow.optional.boolean,
-        buttonSelector: ow.optional.string,
-        stopScrollCallback: ow.optional.function,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            timeoutSecs: ow.optional.number,
+            maxScrollHeight: ow.optional.number,
+            waitForSecs: ow.optional.number,
+            scrollDownAndUp: ow.optional.boolean,
+            buttonSelector: ow.optional.string,
+            stopScrollCallback: ow.optional.function,
+        }),
+    );
 
-    const { timeoutSecs = 0, maxScrollHeight = 0, waitForSecs = 4, scrollDownAndUp = false, buttonSelector, stopScrollCallback } = options;
+    const {
+        timeoutSecs = 0,
+        maxScrollHeight = 0,
+        waitForSecs = 4,
+        scrollDownAndUp = false,
+        buttonSelector,
+        stopScrollCallback,
+    } = options;
 
     let finished;
     const startTime = Date.now();
@@ -589,7 +624,7 @@ export async function infiniteScroll(page: Page, options: InfiniteScrollOptions 
     const maybeClickButton = async () => {
         const button = await page.$(buttonSelector!);
         // Box model returns null if the button is not visible
-        if (button && await button.boxModel()) {
+        if (button && (await button.boxModel())) {
             await button.click({ delay: 10 });
         }
     };
@@ -657,14 +692,17 @@ export interface SaveSnapshotOptions {
  */
 export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
     ow(page, ow.object.validate(validators.browserPage));
-    ow(options, ow.object.exactShape({
-        key: ow.optional.string.nonEmpty,
-        screenshotQuality: ow.optional.number,
-        saveScreenshot: ow.optional.boolean,
-        saveHtml: ow.optional.boolean,
-        keyValueStoreName: ow.optional.string,
-        config: ow.optional.object,
-    }));
+    ow(
+        options,
+        ow.object.exactShape({
+            key: ow.optional.string.nonEmpty,
+            screenshotQuality: ow.optional.number,
+            saveScreenshot: ow.optional.boolean,
+            saveHtml: ow.optional.boolean,
+            keyValueStoreName: ow.optional.string,
+            config: ow.optional.object,
+        }),
+    );
 
     const {
         key = 'SNAPSHOT',
@@ -676,11 +714,17 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     } = options;
 
     try {
-        const store = await KeyValueStore.open(keyValueStoreName, { config: config ?? Configuration.getGlobalConfig() });
+        const store = await KeyValueStore.open(keyValueStoreName, {
+            config: config ?? Configuration.getGlobalConfig(),
+        });
 
         if (saveScreenshot) {
             const screenshotName = `${key}.jpg`;
-            const screenshotBuffer = await page.screenshot({ fullPage: true, quality: screenshotQuality, type: 'jpeg' });
+            const screenshotBuffer = await page.screenshot({
+                fullPage: true,
+                quality: screenshotQuality,
+                type: 'jpeg',
+            });
             await store.setValue(screenshotName, screenshotBuffer, { contentType: 'image/jpeg' });
         }
 
@@ -790,7 +834,9 @@ export interface PuppeteerContextUtils {
      *
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
-    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>): Promise<BatchAddRequestsResult>;
+    enqueueLinksByClickingElements(
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+    ): Promise<BatchAddRequestsResult>;
 
     /**
      * Forces the Puppeteer browser tab to block loading URLs that match a provided pattern.
@@ -851,7 +897,10 @@ export interface PuppeteerContextUtils {
      *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
      * @deprecated
      */
-    cacheResponses(cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
+    cacheResponses(
+        cache: Dictionary<Partial<ResponseForRequest>>,
+        responseUrlRules: (string | RegExp)[],
+    ): Promise<void>;
 
     /**
      * Compiles a Puppeteer script into an async function that may be executed at any time
@@ -957,41 +1006,51 @@ export interface PuppeteerContextUtils {
 }
 
 /** @internal */
-export function registerUtilsToContext(context: PuppeteerCrawlingContext, crawlerOptions: PuppeteerCrawlerOptions): void {
-    context.injectFile = async (filePath: string, options?: InjectFileOptions) => injectFile(context.page, filePath, options);
-    context.injectJQuery = (async () => {
+export function registerUtilsToContext(
+    context: PuppeteerCrawlingContext,
+    crawlerOptions: PuppeteerCrawlerOptions,
+): void {
+    context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
+        injectFile(context.page, filePath, options);
+    context.injectJQuery = async () => {
         if (context.request.state === RequestState.BEFORE_NAV) {
-            log.warning('Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.');
+            log.warning(
+                'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
+            );
             await injectJQuery(context.page);
             return;
         }
         await injectJQuery(context.page, { surviveNavigations: false });
-    });
+    };
     context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
-    // eslint-disable-next-line max-len
-    context.enqueueLinksByClickingElements = async (options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>) => enqueueLinksByClickingElements({
-        page: context.page,
-        requestQueue: context.crawler.requestQueue!,
-        ...options,
-    });
+    context.enqueueLinksByClickingElements = async (
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+    ) =>
+        enqueueLinksByClickingElements({
+            page: context.page,
+            requestQueue: context.crawler.requestQueue!,
+            ...options,
+        });
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
     context.blockResources = async (resourceTypes?: string[]) => blockResources(context.page, resourceTypes);
-    context.cacheResponses = async (cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]) => {
+    context.cacheResponses = async (
+        cache: Dictionary<Partial<ResponseForRequest>>,
+        responseUrlRules: (string | RegExp)[],
+    ) => {
         return cacheResponses(context.page, cache, responseUrlRules);
     };
     context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.addInterceptRequestHandler = async (handler: InterceptHandler) => addInterceptRequestHandler(context.page, handler);
-    context.removeInterceptRequestHandler = async (handler: InterceptHandler) => removeInterceptRequestHandler(context.page, handler);
+    context.addInterceptRequestHandler = async (handler: InterceptHandler) =>
+        addInterceptRequestHandler(context.page, handler);
+    context.removeInterceptRequestHandler = async (handler: InterceptHandler) =>
+        removeInterceptRequestHandler(context.page, handler);
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = async (options?: SaveSnapshotOptions) => saveSnapshot(context.page, { ...options, config: context.crawler.config });
+    context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
+        saveSnapshot(context.page, { ...options, config: context.crawler.config });
     context.closeCookieModals = async () => closeCookieModals(context.page);
 }
 
-export {
-    enqueueLinksByClickingElements,
-    addInterceptRequestHandler,
-    removeInterceptRequestHandler,
-};
+export { enqueueLinksByClickingElements, addInterceptRequestHandler, removeInterceptRequestHandler };
 
 /** @internal */
 export const puppeteerUtils = {
