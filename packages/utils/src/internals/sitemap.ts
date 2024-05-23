@@ -160,8 +160,8 @@ export class Sitemap {
     }
 
     /**
-     * Fetch sitemap content from given URL or URLs and return URLs of referenced pages.
-     * @param urls sitemap URL(s)
+     * Parse XML sitemap content from a string and return URLs of referenced pages. If the sitemap references other sitemaps, they will be loaded via HTTP.
+     * @param content XML sitemap content
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
     static async fromString(content: string, proxyUrl?: string): Promise<Sitemap> {
