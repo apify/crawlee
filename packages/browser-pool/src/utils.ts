@@ -25,20 +25,20 @@ export type InferBrowserPluginArray<
         : // Else if the first value is a PuppeteerPlugin
           FirstValue extends PuppeteerPlugin
           ? // Add it to the result, and continue parsing
-              InferBrowserPluginArray<Rest, [...Result, PuppeteerPlugin]>
+            InferBrowserPluginArray<Rest, [...Result, PuppeteerPlugin]>
           : // Return never as it isn't a valid type
-              never
+            never
     : // If there's no more inputs to parse
       Input extends []
       ? // Return the results
-          Result
+        Result
       : // If the input is a general array of elements (not a tuple), infer it's values type
-          Input extends readonly (infer U)[]
-          ? // If the values are a union of the plugins
-              [U] extends [PuppeteerPlugin | PlaywrightPlugin]
-                ? // Return an array of the union
-                  U[]
-                : // Return never as it isn't a valid type
-                  never
-          : // Return the result
-              Result;
+        Input extends readonly (infer U)[]
+        ? // If the values are a union of the plugins
+          [U] extends [PuppeteerPlugin | PlaywrightPlugin]
+            ? // Return an array of the union
+              U[]
+            : // Return never as it isn't a valid type
+              never
+        : // Return the result
+          Result;
