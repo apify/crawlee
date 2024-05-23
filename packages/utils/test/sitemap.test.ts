@@ -217,4 +217,57 @@ describe('Sitemap', () => {
             ]),
         );
     });
+
+    it('loads sitemaps from string', async () => {
+        const sitemap = await Sitemap.fromString(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=80&amp;desc=vacation_turkey</loc>',
+                '<lastmod>2004-11-23</lastmod>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=81&amp;desc=vacation_maledives</loc>',
+                '<lastmod>2004-11-23</lastmod>',
+                '</url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set([
+                'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
+                'http://not-exists.com/catalog?item=81&desc=vacation_maledives',
+            ]),
+        );
+    });
+
+    it('loads sitemaps that reference other sitemaps from string', async () => {
+        const sitemap = await Sitemap.fromString(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<sitemap>',
+                '<loc>http://not-exists.com/sitemap_child.xml</loc>',
+                '<lastmod>2004-12-23</lastmod>',
+                '</sitemap>',
+                '<sitemap>',
+                '<loc>http://not-exists.com/sitemap_child_2.xml?from=94937939985&amp;to=1318570721404</loc>',
+                '<lastmod>2004-12-23</lastmod>',
+                '</sitemap>',
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set([
+                'http://not-exists.com/',
+                'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+                'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+                'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+                'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+            ]),
+        );
+    });
 });
