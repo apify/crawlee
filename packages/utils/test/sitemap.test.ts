@@ -219,7 +219,7 @@ describe('Sitemap', () => {
     });
 
     it('loads sitemaps from string', async () => {
-        const sitemap = await Sitemap.fromString(
+        const sitemap = await Sitemap.fromXmlString(
             [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -244,7 +244,7 @@ describe('Sitemap', () => {
     });
 
     it('loads sitemaps that reference other sitemaps from string', async () => {
-        const sitemap = await Sitemap.fromString(
+        const sitemap = await Sitemap.fromXmlString(
             [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',

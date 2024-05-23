@@ -164,7 +164,7 @@ export class Sitemap {
      * @param content XML sitemap content
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
-    static async fromString(content: string, proxyUrl?: string): Promise<Sitemap> {
+    static async fromXmlString(content: string, proxyUrl?: string): Promise<Sitemap> {
         const parsingState = new ParsingState();
         parsingState.sources = [{ type: 'raw', content }];
 
