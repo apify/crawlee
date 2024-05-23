@@ -83,8 +83,6 @@ class RequestQueue extends RequestProvider {
         hadMultipleClients?: boolean;
     }> | null = null;
 
-    private lastActivity = new Date();
-
     /**
      * @internal
      */
@@ -119,6 +117,8 @@ class RequestQueue extends RequestProvider {
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
+
+        this.lastActivity = new Date();
 
         await this.ensureHeadIsNonEmpty();
 
@@ -313,34 +313,6 @@ class RequestQueue extends RequestProvider {
         return isHeadConsistent && this.queueHeadIds.length() === 0 && this.inProgressCount() === 0;
     }
 
-    override async addRequest(...args: Parameters<RequestProvider['addRequest']>) {
-        checkStorageAccess();
-
-        this.lastActivity = new Date();
-        return super.addRequest(...args);
-    }
-
-    override async addRequests(...args: Parameters<RequestProvider['addRequests']>) {
-        checkStorageAccess();
-
-        this.lastActivity = new Date();
-        return super.addRequests(...args);
-    }
-
-    override async addRequestsBatched(...args: Parameters<RequestProvider['addRequestsBatched']>) {
-        checkStorageAccess();
-
-        this.lastActivity = new Date();
-        return super.addRequestsBatched(...args);
-    }
-
-    override async markRequestHandled(...args: Parameters<RequestProvider['markRequestHandled']>) {
-        checkStorageAccess();
-
-        this.lastActivity = new Date();
-        return super.markRequestHandled(...args);
-    }
-
     /**
      * Reclaims a failed request back to the queue, so that it can be returned for processing later again
      * by another call to {@apilink RequestQueue.fetchNextRequest}.
@@ -349,8 +321,6 @@ class RequestQueue extends RequestProvider {
      */
     override async reclaimRequest(...args: Parameters<RequestProvider['reclaimRequest']>) {
         checkStorageAccess();
-
-        this.lastActivity = new Date();
 
         const [request, options] = args;
         const forefront = options?.forefront ?? false;
@@ -374,11 +344,6 @@ class RequestQueue extends RequestProvider {
         }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
         return result;
-    }
-
-    protected override _reset() {
-        super._reset();
-        this.lastActivity = new Date();
     }
 
     /**

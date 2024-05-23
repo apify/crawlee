@@ -81,8 +81,6 @@ export class RequestQueue extends RequestProvider {
      * Caches information about request to beware of unneeded addRequest() calls.
      */
     protected override _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
-        checkStorageAccess();
-
         super._cacheRequest(cacheKey, queueOperationInfo);
 
         this.requestCache.remove(queueOperationInfo.requestId);
@@ -101,6 +99,8 @@ export class RequestQueue extends RequestProvider {
      */
     override async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
+
+        this.lastActivity = new Date();
 
         await this.ensureHeadIsNonEmpty();
 
@@ -171,8 +171,6 @@ export class RequestQueue extends RequestProvider {
     override async reclaimRequest(
         ...args: Parameters<RequestProvider['reclaimRequest']>
     ): ReturnType<RequestProvider['reclaimRequest']> {
-        checkStorageAccess();
-
         const res = await super.reclaimRequest(...args);
 
         if (res) {
@@ -215,8 +213,6 @@ export class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
-        checkStorageAccess();
-
         const headData = await this.client.listAndLockHead({ limit: 25, lockSecs: this.requestLockSecs });
 
         for (const { id, uniqueKey } of headData.items) {
@@ -337,8 +333,6 @@ export class RequestQueue extends RequestProvider {
     }
 
     private async _prolongRequestLock(requestId: string): Promise<Date | null> {
-        checkStorageAccess();
-
         try {
             const res = await this.client.prolongRequestLock(requestId, { lockSecs: this.requestLockSecs });
             return res.lockExpiresAt;
@@ -356,8 +350,6 @@ export class RequestQueue extends RequestProvider {
     }
 
     protected override _reset() {
-        checkStorageAccess();
-
         super._reset();
         this._listHeadAndLockPromise = null;
     }
@@ -367,8 +359,6 @@ export class RequestQueue extends RequestProvider {
     }
 
     protected async _clearPossibleLocks() {
-        checkStorageAccess();
-
         this.queuePausedForMigration = true;
         let requestId: string | null;
 

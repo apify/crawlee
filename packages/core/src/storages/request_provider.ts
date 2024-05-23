@@ -54,6 +54,8 @@ export abstract class RequestProvider implements IStorage {
 
     protected queuePausedForMigration = false;
 
+    protected lastActivity = new Date();
+
     constructor(
         options: InternalRequestProviderOptions,
         readonly config = Configuration.getGlobalConfig(),
@@ -113,6 +115,8 @@ export abstract class RequestProvider implements IStorage {
         options: RequestQueueOperationOptions = {},
     ): Promise<RequestQueueOperationInfo> {
         checkStorageAccess();
+
+        this.lastActivity = new Date();
 
         ow(requestLike, ow.object);
         ow(
@@ -192,6 +196,8 @@ export abstract class RequestProvider implements IStorage {
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
         checkStorageAccess();
+
+        this.lastActivity = new Date();
 
         ow(requestsLike, ow.array);
         ow(
@@ -307,6 +313,8 @@ export abstract class RequestProvider implements IStorage {
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
+
+        this.lastActivity = new Date();
 
         ow(
             options,
@@ -464,6 +472,8 @@ export abstract class RequestProvider implements IStorage {
     async markRequestHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
 
+        this.lastActivity = new Date();
+
         ow(
             request,
             ow.object.partialShape({
@@ -511,6 +521,8 @@ export abstract class RequestProvider implements IStorage {
         options: RequestQueueOperationOptions = {},
     ): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
+
+        this.lastActivity = new Date();
 
         ow(
             request,
@@ -566,13 +578,51 @@ export abstract class RequestProvider implements IStorage {
      * but it will never return a false positive.
      */
     async isFinished(): Promise<boolean> {
-        if (this.queueHeadIds.length() > 0 || this.inProgressCount() > 0) return false;
+        // TODO: once/if we figure out why sometimes request queues get stuck (if it's even request queues), remove this once and for all :)
+        if (Date.now() - +this.lastActivity > this.internalTimeoutMillis) {
+            const message = `The request queue seems to be stuck for ${
+                this.internalTimeoutMillis / 1000
+            }s, resetting internal state.`;
+
+            this.log.warning(message, {
+                inProgress: [...this.inProgress],
+                queueHeadIdsPending: this.queueHeadIds.length(),
+            });
+
+            // We only need to reset these two variables, no need to reset all the other stats
+            this.queueHeadIds.clear();
+            this.inProgress.clear();
+        }
+
+        if (this.queueHeadIds.length() > 0) {
+            this.log.debug('There are still ids in the queue head that are pending processing', {
+                queueHeadIdsPending: this.queueHeadIds.length(),
+            });
+
+            return false;
+        }
+
+        if (this.inProgressCount() > 0) {
+            this.log.debug('There are still requests in progress (or zombie)', {
+                inProgress: [...this.inProgress],
+            });
+
+            return false;
+        }
 
         const currentHead = await this.client.listHead({ limit: 2 });
+
+        if (currentHead.items.length !== 0) {
+            this.log.debug(
+                'Queue head still returned requests that need to be processed (or that are locked by other clients)',
+            );
+        }
+
         return currentHead.items.length === 0 && this.inProgressCount() === 0;
     }
 
     protected _reset() {
+        this.lastActivity = new Date();
         this.queueHeadIds.clear();
         this.inProgress.clear();
         this.recentlyHandledRequestsCache.clear();

@@ -19,5 +19,8 @@
 			"quoteProperties": "preserve",
 			"lineEnding": "lf"
 		}
+	},
+	"linter": {
+		"enabled": false
 	}
 }
