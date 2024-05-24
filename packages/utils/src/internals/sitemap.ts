@@ -208,7 +208,13 @@ export class Sitemap {
                                     : sitemapUrl.pathname.endsWith('.gz')
                             ) {
                                 stream = stream.pipe(createGunzip()).on('error', reject);
-                                sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
+
+                                if (sitemapUrl.pathname.endsWith('.gz')) {
+                                    sitemapUrl.pathname = sitemapUrl.pathname.substring(
+                                        0,
+                                        sitemapUrl.pathname.length - 3,
+                                    );
+                                }
                             }
 
                             stream.pipe(this.createParser(resolve, reject, parsingState, contentType, sitemapUrl));
