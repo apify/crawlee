@@ -8,7 +8,7 @@ describe('Sitemap', () => {
         nock.disableNetConnect();
         nock('http://not-exists.com')
             .persist()
-            .get((url) => url === '/sitemap_child.xml' || url === '/sitemap_child_2.xml')
+            .get(/\/sitemap_child(_[0-9]+)?.xml/)
             .reply(
                 200,
                 [
@@ -66,6 +66,23 @@ describe('Sitemap', () => {
                     ].join('\n'),
                     'base64',
                 ),
+            )
+            .get('/non_gzipped_sitemap.xml.gz')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url>',
+                    '<loc>http://not-exists.com/catalog?item=80&amp;desc=vacation_turkey</loc>',
+                    '<lastmod>2004-11-23</lastmod>',
+                    '</url>',
+                    '<url>',
+                    '<loc>http://not-exists.com/catalog?item=81&amp;desc=vacation_maledives</loc>',
+                    '<lastmod>2004-11-23</lastmod>',
+                    '</url>',
+                    '</urlset>',
+                ].join('\n'),
             )
             .get('/sitemap_parent.xml')
             .reply(
@@ -267,6 +284,17 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
                 'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
                 'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+            ]),
+        );
+    });
+
+    it("loads XML sitemap even though the it's gzipped according to file extension", async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/non_gzipped_sitemap.xml.gz');
+
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set([
+                'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
+                'http://not-exists.com/catalog?item=81&desc=vacation_maledives',
             ]),
         );
     });
