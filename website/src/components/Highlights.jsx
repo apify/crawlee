@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import styles from './Highlights.module.css';
+import Gradients from './Gradients';
 
 const FeatureList = [
     {
@@ -86,10 +87,9 @@ function Feature({ Svg, title, description }) {
 }
 
 export default function Highlights() {
-    const Svg = require('../../static/img/features/gradient.svg').default;
     return (
         <section className={styles.features}>
-            {<Svg />}
+            <Gradients />
             <div className="container">
                 <div className="row">
                     {FeatureList.map((props, idx) => (
