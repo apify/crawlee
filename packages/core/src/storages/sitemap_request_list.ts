@@ -1,6 +1,7 @@
 import { Sitemap } from '@crawlee/utils';
+
+import type { IRequestList } from './request_list';
 import { Request } from '../request';
-import { IRequestList } from './request_list';
 
 export class SitemapRequestList implements IRequestList {
     inProgress = new Set<string>();
