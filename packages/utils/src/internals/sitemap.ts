@@ -1,4 +1,3 @@
-import type { Duplex } from 'node:stream';
 import { Readable, Writable } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
@@ -173,6 +172,7 @@ export class Sitemap {
 
     protected static async parse(parsingState: ParsingState, proxyUrl?: string): Promise<Sitemap> {
         const { gotScraping } = await import('got-scraping');
+        const { fileTypeStream } = await import('file-type');
 
         while (parsingState.sources.length > 0) {
             const source = parsingState.sources.pop()!;
@@ -192,26 +192,36 @@ export class Sitemap {
                     );
 
                     if (sitemapStream.response!.statusCode === 200) {
+                        let contentType = sitemapStream.response!.headers['content-type'];
+
+                        const streamWithType = await fileTypeStream(sitemapStream);
+                        if (streamWithType.fileType !== undefined) {
+                            contentType = streamWithType.fileType.mime;
+                        }
+
                         await new Promise((resolve, reject) => {
-                            let stream: Duplex = sitemapStream;
-                            if (sitemapUrl.pathname.endsWith('.gz')) {
+                            let stream: Readable = streamWithType;
+
+                            if (
+                                contentType !== undefined
+                                    ? contentType === 'application/gzip'
+                                    : sitemapUrl.pathname.endsWith('.gz')
+                            ) {
                                 stream = stream.pipe(createGunzip()).on('error', reject);
-                                sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
+
+                                if (sitemapUrl.pathname.endsWith('.gz')) {
+                                    sitemapUrl.pathname = sitemapUrl.pathname.substring(
+                                        0,
+                                        sitemapUrl.pathname.length - 3,
+                                    );
+                                }
                             }
 
-                            stream.pipe(
-                                this.createParser(
-                                    resolve,
-                                    reject,
-                                    parsingState,
-                                    sitemapStream.response!.headers['content-type'],
-                                    sitemapUrl,
-                                ),
-                            );
+                            stream.pipe(this.createParser(resolve, reject, parsingState, contentType, sitemapUrl));
                         });
                     }
                 } catch (e) {
-                    log.warning(`Malformed sitemap content: ${sitemapUrl}`);
+                    log.warning(`Malformed sitemap content: ${sitemapUrl}, ${e}`);
                 }
             }
 
@@ -248,6 +258,6 @@ export class Sitemap {
             return new SitemapTxtParser(parsingState, () => resolve(undefined));
         }
 
-        throw new Error('Unsupported sitemap content type');
+        throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);
     }
 }
