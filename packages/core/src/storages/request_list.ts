@@ -20,6 +20,64 @@ export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
+/**
+ * Represents a static list of URLs to crawl.
+ */
+export interface IRequestList {
+    /**
+     * Returns the total number of unique requests present in the list.
+     */
+    length(): number;
+
+    /**
+     * Returns `true` if all requests were already handled and there are no more left.
+     */
+    isFinished(): Promise<boolean>;
+
+    /**
+     * Resolves to `true` if the next call to {@apilink IRequestList.fetchNextRequest} function
+     * would return `null`, otherwise it resolves to `false`.
+     * Note that even if the list is empty, there might be some pending requests currently being processed.
+     */
+    isEmpty(): Promise<boolean>;
+
+    /**
+     * Returns number of handled requests.
+     */
+    handledCount(): number;
+
+    /**
+     * If supported, persists the current state of the request list into the default {@apilink KeyValueStore}.
+     */
+    persistState(): Promise<void>;
+
+    /**
+     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
+     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
+     * Otherwise it gets the next request from sources.
+     *
+     * The function's `Promise` resolves to `null` if there are no more
+     * requests to process.
+     */
+    fetchNextRequest(): Promise<Request | null>;
+
+    /**
+     * Reclaims request to the list if its processing failed.
+     * The request will become available in the next `this.fetchNextRequest()`.
+     */
+    reclaimRequest(request: Request): Promise<void>;
+
+    /**
+     * Marks request as handled after successful processing.
+     */
+    markRequestHandled(request: Request): Promise<void>;
+
+    /**
+     * @internal
+     */
+    inProgress: Set<string>;
+}
+
 export interface RequestListOptions {
     /**
      * An array of sources of URLs for the {@apilink RequestList}. It can be either an array of strings,
@@ -229,7 +287,7 @@ export interface RequestListOptions {
  * ```
  * @category Sources
  */
-export class RequestList {
+export class RequestList implements IRequestList {
     private log = log.child({ prefix: 'RequestList' });
 
     /**
@@ -570,9 +628,7 @@ export class RequestList {
     }
 
     /**
-     * Resolves to `true` if the next call to {@apilink RequestList.fetchNextRequest} function
-     * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the list is empty, there might be some pending requests currently being processed.
+     * @inheritdoc
      */
     async isEmpty(): Promise<boolean> {
         this._ensureIsInitialized();
@@ -581,7 +637,7 @@ export class RequestList {
     }
 
     /**
-     * Returns `true` if all requests were already handled and there are no more left.
+     * @inheritdoc
      */
     async isFinished(): Promise<boolean> {
         this._ensureIsInitialized();
@@ -590,12 +646,7 @@ export class RequestList {
     }
 
     /**
-     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
-     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
-     * Otherwise it gets the next request from sources.
-     *
-     * The function's `Promise` resolves to `null` if there are no more
-     * requests to process.
+     * @inheritdoc
      */
     async fetchNextRequest(): Promise<Request | null> {
         this._ensureIsInitialized();
@@ -631,7 +682,7 @@ export class RequestList {
     }
 
     /**
-     * Marks request as handled after successful processing.
+     * @inheritdoc
      */
     async markRequestHandled(request: Request): Promise<void> {
         const { uniqueKey } = request;
@@ -645,8 +696,7 @@ export class RequestList {
     }
 
     /**
-     * Reclaims request to the list if its processing failed.
-     * The request will become available in the next `this.fetchNextRequest()`.
+     * @inheritdoc
      */
     async reclaimRequest(request: Request): Promise<void> {
         const { uniqueKey } = request;
@@ -798,7 +848,7 @@ export class RequestList {
     }
 
     /**
-     * Returns number of handled requests.
+     * @inheritdoc
      */
     handledCount(): number {
         this._ensureIsInitialized();
