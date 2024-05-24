@@ -84,6 +84,21 @@ describe('Sitemap', () => {
                     '</urlset>',
                 ].join('\n'),
             )
+            .get('/sneakily_gzipped_sitemap.xml')
+            .reply(
+                200,
+                Buffer.from(
+                    [
+                        'H4sIAAAAAAAAA62S306DMBTG73kK0gtvDLSFLSKWcucTzOulKR00QottGZtPbxfQEEWXqElzkvMv',
+                        '3y/fKSlPXRsehbFSqwLgGIFQKK4rqeoCPO0eowyUNCCDaa1woR9WtgCNc30O4TiOsZVOdKy3sTY1',
+                        'tLzxiYVzEaL4HkzLPraa03lRaReJk7TOxlx3kMBLz08w6zpd0QShbYSwf74z1wLCG6ZqcTDihXZa',
+                        'uaY9E7ioBaQ3UhvpzhTFGYEfWUDgBHANgzPHWl2XF/gCJzes6x8qYXlxZL7l/dk3bGRSvuMuxEch',
+                        'nr/w/Eb2Ll2RVWLcvwrWMlWtWLWJcBIl6TdW/R/ZZp3soAdV/Yy2w1mOUI63tz4itCRd3Cz9882y',
+                        'NfMGy9bJ8CfTZkU4fXUavAGtDs17GwMAAA==',
+                    ].join('\n'),
+                    'base64',
+                ),
+            )
             .get('/sitemap_parent.xml')
             .reply(
                 200,
@@ -288,13 +303,27 @@ describe('Sitemap', () => {
         );
     });
 
-    it("loads XML sitemap even though the it's gzipped according to file extension", async () => {
+    it("loads XML sitemap even though it's gzipped according to file extension", async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/non_gzipped_sitemap.xml.gz');
 
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
                 'http://not-exists.com/catalog?item=81&desc=vacation_maledives',
+            ]),
+        );
+    });
+
+    it("loads gzipped sitemap even though it's not gzipped according to file extension", async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sneakily_gzipped_sitemap.xml');
+
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set([
+                'http://not-exists.com/',
+                'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+                'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+                'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+                'http://not-exists.com/catalog?item=83&desc=vacation_usa',
             ]),
         );
     });
