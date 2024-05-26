@@ -112,6 +112,14 @@ By default, Crawlee stores data to `./storage` in the current working directory.
 
 Crawlee is open-source and runs anywhere, but since it's developed by [Apify](https://apify.com), it's easy to set up on the Apify platform and run in the cloud. Visit the [Apify SDK website](https://sdk.apify.com) to learn more about deploying Crawlee to the Apify platform.
 
+## Explore the Crawlee Ecosystem
+
+[The usage trends of Crawlee ecosystem](https://npm-compare.com/@crawlee/basic,@crawlee/browser,@crawlee/browser-pool,@crawlee/cheerio,@crawlee/core,@crawlee/http,@crawlee/jsdom,@crawlee/linkedom,@crawlee/memory-storage,@crawlee/playwright,@crawlee/puppeteer,@crawlee/templates,crawlee)
+
+<a href="[https://npm-compare.com/react-intl-universal#timeRange=THREE_YEARS](https://npm-compare.com/@crawlee/basic,@crawlee/browser,@crawlee/browser-pool,@crawlee/cheerio,@crawlee/core,@crawlee/http,@crawlee/jsdom,@crawlee/linkedom,@crawlee/memory-storage,@crawlee/playwright,@crawlee/puppeteer,@crawlee/templates,crawlee)" target="_blank">
+  <img src="https://github.com/apify/crawlee/assets/3455798/e096d927-8bbd-479a-9988-bb1e032f7c57" width="100%" alt="NPM Usage Trend of Crawlee" />
+</a>
+
 ## Support
 
 If you find any bug or issue with Crawlee, please [submit an issue on GitHub](https://github.com/apify/crawlee/issues). For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/apify), in GitHub Discussions or you can join our [Discord server](https://discord.com/invite/jyEM2PRvMU).
