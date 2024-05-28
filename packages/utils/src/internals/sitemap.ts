@@ -6,7 +6,12 @@ import log from '@apify/log';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
-type SitemapUrl = { url: string };
+type SitemapUrl = {
+    url: string;
+    lastmod?: Date;
+    changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+    priority?: number;
+};
 type SitemapSource = ({ type: 'url' } & SitemapUrl) | { type: 'raw'; content: string };
 type SitemapItem = { type: 'url'; url: string } | { type: 'sitemapUrl'; url: string };
 
@@ -59,7 +64,8 @@ class SitemapXmlParser extends Transform {
     private parser = new sax.SAXParser(true);
 
     private rootTagName?: 'sitemapindex' | 'urlset';
-    private loc = false;
+    private currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
+    private url: Partial<SitemapUrl> = {};
 
     constructor() {
         super({
@@ -89,8 +95,15 @@ class SitemapXmlParser extends Transform {
     }
 
     private onOpenTag(node: sax.Tag | sax.QualifiedTag) {
-        if (node.name === 'loc' && this.rootTagName !== undefined) {
-            this.loc = true;
+        if (this.rootTagName !== undefined) {
+            if (
+                node.name === 'loc' ||
+                node.name === 'lastmod' ||
+                node.name === 'priority' ||
+                node.name === 'changefreq'
+            ) {
+                this.currentTag = node.name;
+            }
         }
         if (node.name === 'urlset') {
             this.rootTagName = 'urlset';
@@ -101,18 +114,41 @@ class SitemapXmlParser extends Transform {
     }
 
     private onCloseTag(name: string) {
-        if (name === 'loc') {
-            this.loc = false;
+        if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
+            this.currentTag = undefined;
+        }
+
+        if (name === 'url' && this.url.url !== undefined) {
+            this.push({ type: 'url', ...this.url, url: this.url.url } satisfies SitemapItem);
+            this.url = {};
         }
     }
 
     private onText(text: string) {
-        if (this.loc) {
+        if (this.currentTag === 'loc') {
             if (this.rootTagName === 'sitemapindex') {
                 this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
             }
+
             if (this.rootTagName === 'urlset') {
-                this.push({ type: 'url', url: text } satisfies SitemapItem);
+                this.url ??= {};
+                this.url.url = text;
+            }
+        }
+
+        text = text.trim();
+
+        if (this.currentTag === 'lastmod') {
+            this.url.lastmod = new Date(text);
+        }
+
+        if (this.currentTag === 'priority') {
+            this.url.priority = Number(text);
+        }
+
+        if (this.currentTag === 'changefreq') {
+            if (['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'].includes(text)) {
+                this.url.changefreq = text as SitemapUrl['changefreq'];
             }
         }
     }
