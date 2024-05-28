@@ -981,6 +981,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
      * the `waitForAllRequestsToBeAdded` promise you get in the response object.
      *
+     * This is an alias for calling `addRequestsBatched()` on the implicit `RequestQueue` for this crawler instance.
+     *
      * @param requests The requests to add
      * @param options Options for the request queue
      */

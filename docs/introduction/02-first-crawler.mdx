@@ -123,6 +123,12 @@ await crawler.run(['https://crawlee.dev']);
 
 When you run this code, you'll see exactly the same output as with the earlier, longer example. The `RequestQueue` is still there, it's just managed by the crawler automatically.
 
+:::info
+
+This method not only makes the code shorter, it will help with performance too! It will wait only for the initial batch of 1000 requests to be added to the queue before resolving, which means the processing will start almost instantly. After that, it will continue adding the rest of the requests in the background (again, in batches of 1000 items, once every second).
+
+:::
+
 ## Next steps
 
 Next, you'll learn about crawling links. That means finding new URLs on the pages you crawl and adding them to the `RequestQueue` for the crawler to visit.
