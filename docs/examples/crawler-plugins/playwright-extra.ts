@@ -72,3 +72,4 @@ await crawler.addRequests(['https://news.ycombinator.com/']);
 await crawler.run();
 
 console.log('Crawler finished.');
+
