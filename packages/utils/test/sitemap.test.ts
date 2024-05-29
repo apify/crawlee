@@ -1,7 +1,7 @@
 import nock from 'nock';
 import { describe, expect, it, beforeEach } from 'vitest';
 
-import { Sitemap } from '../src/internals/sitemap';
+import { Sitemap, parseSitemap, SitemapUrl } from '../src/internals/sitemap';
 
 describe('Sitemap', () => {
     beforeEach(() => {
@@ -16,7 +16,7 @@ describe('Sitemap', () => {
                     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                     '<url>',
                     '<loc>http://not-exists.com/</loc>',
-                    '<lastmod>2005-01-01</lastmod>',
+                    '<lastmod>2005-02-03</lastmod>',
                     '<changefreq>monthly</changefreq>',
                     '<priority>0.8</priority>',
                     '</url>',
@@ -184,6 +184,24 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
                 'http://not-exists.com/catalog?item=83&desc=vacation_usa',
             ]),
+        );
+    });
+
+    it('extracts metadata from sitemaps', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_child.xml' }])) {
+            items.push(item);
+        }
+
+        expect(items).toHaveLength(5);
+        expect(items).toContainEqual(
+            expect.objectContaining({
+                url: 'http://not-exists.com/',
+                priority: 0.8,
+                changefreq: 'monthly',
+                lastmod: new Date('2005-02-03'),
+            }),
         );
     });
 

@@ -6,7 +6,7 @@ import log from '@apify/log';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
-type SitemapUrl = {
+export type SitemapUrl = {
     url: string;
     lastmod?: Date;
     changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
