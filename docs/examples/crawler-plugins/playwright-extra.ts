@@ -1,4 +1,4 @@
-import { Dataset, PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler } from 'crawlee';
 
 // For playwright-extra you will need to import the browser type itself that you want to use!
 // By default, PlaywrightCrawler uses chromium, but you can also use firefox or webkit.
@@ -50,7 +50,7 @@ const crawler = new PlaywrightCrawler({
         });
 
         // Store the results to the default dataset.
-        await Dataset.pushData(data);
+        await crawler.pushData(data);
 
         // Find a link to the next page and enqueue it if it exists.
         const infos = await enqueueLinks({
