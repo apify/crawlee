@@ -98,6 +98,8 @@ export class SitemapRequestList implements IRequestList {
     }
 
     private addRequest(url: string): void {
-        this.requests.push(new Request({ url }));
+        const request = new Request({ url });
+        this.requests.push(request);
+        this.uniqueKeyToIndex.set(request.uniqueKey, this.requests.length - 1);
     }
 }
