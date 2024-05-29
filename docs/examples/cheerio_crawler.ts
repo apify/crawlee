@@ -1,4 +1,3 @@
-
 import { CheerioCrawler, log, LogLevel } from 'crawlee';
 
 // Crawlers come with various utilities, e.g. for logging.
@@ -30,7 +29,7 @@ const crawler = new CheerioCrawler({
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
     // - $: the cheerio object containing parsed HTML
-    async requestHandler({ request, $ }) {
+    async requestHandler({ pushData, request, $ }) {
         log.debug(`Processing ${request.url}...`);
 
         // Extract data from the page using cheerio.
@@ -44,7 +43,7 @@ const crawler = new CheerioCrawler({
 
         // Store the results to the dataset. In local configuration,
         // the data will be stored as JSON files in ./storage/datasets/default
-        await crawler.pushData({
+        await pushData({
             url: request.url,
             title,
             h1texts,
@@ -58,8 +57,6 @@ const crawler = new CheerioCrawler({
 });
 
 // Run the crawler and wait for it to finish.
-await crawler.run([
-    'https://crawlee.dev',
-]);
+await crawler.run(['https://crawlee.dev']);
 
 log.debug('Crawler finished.');

@@ -4,7 +4,7 @@ import { BasicCrawler } from 'crawlee';
 // users to implement the crawling logic themselves.
 const crawler = new BasicCrawler({
     // This function will be called for each URL to crawl.
-    async requestHandler({ request, sendRequest, log }) {
+    async requestHandler({ pushData, request, sendRequest, log }) {
         const { url } = request;
         log.info(`Processing ${url}...`);
 
@@ -14,7 +14,7 @@ const crawler = new BasicCrawler({
         const { body } = await sendRequest();
 
         // Store the HTML and URL to the default dataset.
-        await crawler.pushData({
+        await pushData({
             url,
             html: body,
         });
