@@ -47,7 +47,11 @@ export interface IRequestList {
     handledCount(): number;
 
     /**
-     * If supported, persists the current state of the request list into the default {@apilink KeyValueStore}.
+     * Persists the current state of the `IRequestList` into the default {@apilink KeyValueStore}.
+     * The state is persisted automatically in regular intervals, but calling this method manually
+     * is useful in cases where you want to have the most current state available after you pause
+     * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
+     * a server migration.
      */
     persistState(): Promise<void>;
 
@@ -489,11 +493,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * Persists the current state of the `RequestList` into the default {@apilink KeyValueStore}.
-     * The state is persisted automatically in regular intervals, but calling this method manually
-     * is useful in cases where you want to have the most current state available after you pause
-     * or stop fetching its requests. For example after you pause or abort a crawl. Or just before
-     * a server migration.
+     * @inheritDoc
      */
     async persistState(): Promise<void> {
         if (!this.persistStateKey) {
