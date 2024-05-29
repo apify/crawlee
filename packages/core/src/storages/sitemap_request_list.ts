@@ -1,4 +1,4 @@
-import { Sitemap } from '@crawlee/utils';
+import { parseSitemap } from '@crawlee/utils';
 
 import type { IRequestList } from './request_list';
 import { Request } from '../request';
@@ -14,14 +14,26 @@ export class SitemapRequestList implements IRequestList {
 
     private nextIndex = 0;
 
-    private constructor(sitemap: Sitemap) {
-        for (const url of sitemap.urls) {
-            this.addRequest(url);
-        }
+    private isSitemapFullyLoaded = false;
+
+    private constructor(...args: Parameters<typeof parseSitemap>) {
+        (async () => {
+            for await (const item of parseSitemap(args[0], args[1])) {
+                this.addRequest(item.url);
+            }
+        })()
+            .then(() => {
+                this.isSitemapFullyLoaded = true;
+            })
+            .catch(() => {
+                this.isSitemapFullyLoaded = true;
+            });
     }
 
     static async open({ sitemapUrls }: { sitemapUrls: string | string[] }): Promise<SitemapRequestList> {
-        return new SitemapRequestList(await Sitemap.load(sitemapUrls));
+        return new SitemapRequestList(
+            (Array.isArray(sitemapUrls) ? sitemapUrls : [sitemapUrls]).map((url) => ({ type: 'url', url })),
+        );
     }
 
     length(): number {
@@ -29,7 +41,7 @@ export class SitemapRequestList implements IRequestList {
     }
 
     async isFinished(): Promise<boolean> {
-        return this.inProgress.size === 0 && this.nextIndex >= this.requests.length;
+        return this.inProgress.size === 0 && this.nextIndex >= this.requests.length && this.isSitemapFullyLoaded;
     }
 
     async isEmpty(): Promise<boolean> {
@@ -46,15 +58,15 @@ export class SitemapRequestList implements IRequestList {
 
     async fetchNextRequest(): Promise<Request | null> {
         // Try to return a reclaimed request first
-        const uniqueKey = this.reclaimed.values().next().value;
-        if (uniqueKey) {
+        const uniqueKey = this.reclaimed.values().next().value as string | undefined;
+        if (uniqueKey !== undefined) {
             this.reclaimed.delete(uniqueKey);
             const index = this.uniqueKeyToIndex.get(uniqueKey)!;
             return this.requests[index];
         }
 
         // Otherwise return next request.
-        if (this.nextIndex <= this.requests.length) {
+        if (this.nextIndex < this.requests.length) {
             const request = this.requests[this.nextIndex];
             this.nextIndex += 1;
 
