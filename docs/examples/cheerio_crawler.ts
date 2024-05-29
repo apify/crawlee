@@ -1,4 +1,5 @@
-import { Dataset, CheerioCrawler, log, LogLevel } from 'crawlee';
+
+import { CheerioCrawler, log, LogLevel } from 'crawlee';
 
 // Crawlers come with various utilities, e.g. for logging.
 // Here we use debug level of logging to improve the debugging experience.
@@ -43,7 +44,7 @@ const crawler = new CheerioCrawler({
 
         // Store the results to the dataset. In local configuration,
         // the data will be stored as JSON files in ./storage/datasets/default
-        await Dataset.pushData({
+        await crawler.pushData({
             url: request.url,
             title,
             h1texts,
@@ -57,6 +58,8 @@ const crawler = new CheerioCrawler({
 });
 
 // Run the crawler and wait for it to finish.
-await crawler.run(['https://crawlee.dev']);
+await crawler.run([
+    'https://crawlee.dev',
+]);
 
 log.debug('Crawler finished.');

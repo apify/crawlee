@@ -1,4 +1,4 @@
-import { BasicCrawler, Dataset } from 'crawlee';
+import { BasicCrawler } from 'crawlee';
 
 // Create a BasicCrawler - the simplest crawler that enables
 // users to implement the crawling logic themselves.
@@ -14,7 +14,7 @@ const crawler = new BasicCrawler({
         const { body } = await sendRequest();
 
         // Store the HTML and URL to the default dataset.
-        await Dataset.pushData({
+        await crawler.pushData({
             url,
             html: body,
         });
