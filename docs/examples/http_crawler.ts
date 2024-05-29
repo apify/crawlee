@@ -1,4 +1,4 @@
-import { Dataset, HttpCrawler, log, LogLevel } from 'crawlee';
+import { HttpCrawler, log, LogLevel } from 'crawlee';
 
 // Crawlers come with various utilities, e.g. for logging.
 // Here we use debug level of logging to improve the debugging experience.
@@ -34,9 +34,9 @@ const crawler = new HttpCrawler({
 
         // Store the results to the dataset. In local configuration,
         // the data will be stored as JSON files in ./storage/datasets/default
-        await Dataset.pushData({
+        await crawler.pushData({
             url: request.url, // URL of the page
-            body, // HTML code of the page
+            body,  // HTML code of the page
         });
     },
 
@@ -48,6 +48,8 @@ const crawler = new HttpCrawler({
 
 // Run the crawler and wait for it to finish.
 // It will crawl a list of URLs from an external file, load each URL using a plain HTTP request, and save HTML
-await crawler.run(['https://crawlee.dev']);
+await crawler.run([
+    'https://crawlee.dev',
+]);
 
 log.debug('Crawler finished.');
