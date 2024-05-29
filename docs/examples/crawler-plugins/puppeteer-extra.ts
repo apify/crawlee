@@ -1,4 +1,4 @@
-import { Dataset, PuppeteerCrawler } from 'crawlee';
+import { PuppeteerCrawler } from 'crawlee';
 import puppeteerExtra from 'puppeteer-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 
@@ -27,7 +27,7 @@ const crawler = new PuppeteerCrawler({
     // The function accepts a single parameter, which is an object with the following fields:
     // - request: an instance of the Request class with information such as URL and HTTP method
     // - page: Puppeteer's Page object (see https://pptr.dev/#show=api-class-page)
-    async requestHandler({ request, page, enqueueLinks, log }) {
+    async requestHandler({ pushData, request, page, enqueueLinks, log }) {
         log.info(`Processing ${request.url}...`);
 
         // A function to be evaluated by Puppeteer within the browser context.
@@ -47,7 +47,7 @@ const crawler = new PuppeteerCrawler({
         });
 
         // Store the results to the default dataset.
-        await Dataset.pushData(data);
+        await pushData(data);
 
         // Find a link to the next page and enqueue it if it exists.
         const infos = await enqueueLinks({

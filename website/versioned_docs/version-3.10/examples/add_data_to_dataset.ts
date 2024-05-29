@@ -1,10 +1,10 @@
-import { Dataset, CheerioCrawler } from 'crawlee';
+import { CheerioCrawler } from 'crawlee';
 
 const crawler = new CheerioCrawler({
     // Function called for each URL
-    async requestHandler({ request, body }) {
+    async requestHandler({ pushData, request, body }) {
         // Save data to default dataset
-        await Dataset.pushData({
+        await pushData({
             url: request.url,
             html: body,
         });
