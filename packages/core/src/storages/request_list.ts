@@ -628,7 +628,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     async isEmpty(): Promise<boolean> {
         this._ensureIsInitialized();
@@ -637,7 +637,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     async isFinished(): Promise<boolean> {
         this._ensureIsInitialized();
@@ -646,7 +646,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     async fetchNextRequest(): Promise<Request | null> {
         this._ensureIsInitialized();
@@ -682,7 +682,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     async markRequestHandled(request: Request): Promise<void> {
         const { uniqueKey } = request;
@@ -696,7 +696,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     async reclaimRequest(request: Request): Promise<void> {
         const { uniqueKey } = request;
@@ -848,7 +848,7 @@ export class RequestList implements IRequestList {
     }
 
     /**
-     * @inheritdoc
+     * @inheritDoc
      */
     handledCount(): number {
         this._ensureIsInitialized();
