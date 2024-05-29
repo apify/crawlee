@@ -1,4 +1,4 @@
-import { Dataset, PuppeteerCrawler } from 'crawlee';
+import { PuppeteerCrawler } from 'crawlee';
 
 // Create an instance of the PuppeteerCrawler class - a crawler
 // that automatically loads the URLs in headless Chrome / Puppeteer.
@@ -40,7 +40,7 @@ const crawler = new PuppeteerCrawler({
         });
 
         // Store the results to the default dataset.
-        await Dataset.pushData(data);
+        await crawler.pushData(data);
 
         // Find a link to the next page and enqueue it if it exists.
         const infos = await enqueueLinks({
