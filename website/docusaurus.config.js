@@ -160,6 +160,14 @@ module.exports = {
                 hideable: true,
             },
         },
+        announcementBar: {
+            id: 'crawlee_webinar',
+            content:
+              'Join us for a free webinar about Crawlee at <a href="https://apify.com/resources/scraping-with-crawlee"> 9 AM EST on June 12th, 2024</a> to learn how to build reliable web scrapers fast!',
+            backgroundColor: '#1a1b23',
+            textColor: '#8d92af',
+            isCloseable: false,
+          },
         navbar: {
             hideOnScroll: true,
             title: 'Crawlee',
