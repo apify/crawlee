@@ -1,7 +1,8 @@
 import nock from 'nock';
 import { describe, expect, it, beforeEach } from 'vitest';
 
-import { Sitemap, parseSitemap, SitemapUrl } from '../src/internals/sitemap';
+import type { SitemapUrl } from '../src/internals/sitemap';
+import { Sitemap, parseSitemap } from '../src/internals/sitemap';
 
 describe('Sitemap', () => {
     beforeEach(() => {

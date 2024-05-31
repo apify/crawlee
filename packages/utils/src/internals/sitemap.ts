@@ -1,4 +1,6 @@
-import { Duplex, PassThrough, Readable, Transform, pipeline } from 'node:stream';
+import { createHash } from 'node:crypto';
+import type { Duplex} from 'node:stream';
+import { PassThrough, Readable, Transform, pipeline } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
@@ -6,14 +8,20 @@ import log from '@apify/log';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
-export type SitemapUrl = {
+
+interface SitemapUrlData {
     url: string;
     lastmod?: Date;
     changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
     priority?: number;
+}
+
+export type SitemapUrl = SitemapUrlData & {
+    originSitemapUrl: string;
 };
-type SitemapSource = ({ type: 'url' } & SitemapUrl) | { type: 'raw'; content: string };
-type SitemapItem = { type: 'url'; url: string } | { type: 'sitemapUrl'; url: string };
+
+type SitemapSource = { type: 'url'; url: string } | { type: 'raw'; content: string };
+type SitemapItem = ({ type: 'url' } & SitemapUrlData) | { type: 'sitemapUrl'; url: string };
 
 class SitemapTxtParser extends Transform {
     private decoder: StringDecoder = new StringDecoder('utf8');
@@ -182,7 +190,7 @@ export async function* parseSitemap(initialSources: SitemapSource[], proxyUrl?: 
     };
 
     while (sources.length > 0) {
-        const source = sources.pop()!;
+        const source = sources.shift()!;
         let items: AsyncIterable<SitemapItem> | null = null;
 
         if (source.type === 'url') {
@@ -250,7 +258,13 @@ export async function* parseSitemap(initialSources: SitemapSource[], proxyUrl?: 
             }
 
             if (item.type === 'url') {
-                yield item;
+                yield {
+                    ...item,
+                    originSitemapUrl:
+                        source.type === 'url'
+                            ? source.url
+                            : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
+                };
             }
         }
     }

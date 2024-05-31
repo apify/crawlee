@@ -1,17 +1,23 @@
-import express from 'express';
-import { Server } from 'http';
-import { AddressInfo } from 'net';
-import { sleep } from '@crawlee/utils';
+import type { Server } from 'http';
+import type { AddressInfo } from 'net';
 import { Readable } from 'stream';
-import { startExpressAppPromise } from 'test/shared/_helper';
 import { finished } from 'stream/promises';
-import { SitemapRequestList } from '@crawlee/core';
 
+import { SitemapRequestList } from '@crawlee/core';
+import { sleep } from '@crawlee/utils';
+import express from 'express';
+import { startExpressAppPromise } from 'test/shared/_helper';
+import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+
+// Express server for serving sitemaps
 let url = 'http://localhost';
 let server: Server;
 
 beforeAll(async () => {
     const app = express();
+
+    server = await startExpressAppPromise(app, 0);
+    url = `http://localhost:${(server.address() as AddressInfo).port}`;
 
     app.get('/sitemap.xml', async (req, res) => {
         res.setHeader('content-type', 'text/xml');
@@ -47,7 +53,9 @@ beforeAll(async () => {
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                 '<url>',
                 '<loc>http://not-exists.com/catalog?item=80&amp;desc=vacation_turkey</loc>',
-                '<lastmod>2004-11-23</lastmod>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=80&amp;desc=vacation_mauritius</loc>',
                 '</url>',
             ].join('\n');
 
@@ -56,7 +64,6 @@ beforeAll(async () => {
             yield [
                 '<url>',
                 '<loc>http://not-exists.com/catalog?item=81&amp;desc=vacation_maledives</loc>',
-                '<lastmod>2004-11-23</lastmod>',
                 '</url>',
                 '</urlset>',
             ].join('\n');
@@ -69,12 +76,64 @@ beforeAll(async () => {
         res.end();
     });
 
-    server = await startExpressAppPromise(app, 0);
-    url = `http://localhost:${(server.address() as AddressInfo).port}`;
+    app.get('/sitemap-stream-linger.xml', async (req, res) => {
+        async function* stream() {
+            yield [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=80&amp;desc=vacation_turkey</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=81&amp;desc=vacation_maledives</loc>',
+                '</url>',
+            ].join('\n');
+
+            await sleep(200);
+
+            yield '</urlset>';
+        }
+
+        res.setHeader('content-type', 'text/xml');
+
+        await finished(Readable.from(stream()).pipe(res));
+
+        res.end();
+    });
+
+    app.get('/sitemap-index.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<sitemap>',
+                `<loc>${url}/sitemap-stream-linger.xml</loc>`,
+                '</sitemap>',
+                '<sitemap>',
+                `<loc>${url}/sitemap.xml</loc>`,
+                '</sitemap>',
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+
+        res.end();
+    });
 });
 
 afterAll(async () => {
     server.close();
+});
+
+// Storage emulator for persistence
+const emulator = new MemoryStorageEmulator();
+
+beforeAll(async () => {
+    await emulator.init();
+});
+
+afterAll(async () => {
+    await emulator.destroy();
 });
 
 describe('SitemapRequestList', () => {
@@ -91,6 +150,9 @@ describe('SitemapRequestList', () => {
         const firstRequest = await list.fetchNextRequest();
         expect(firstRequest).not.toBe(null);
 
+        const secondRequest = await list.fetchNextRequest();
+        expect(secondRequest).not.toBe(null);
+
         await expect(list.fetchNextRequest()).resolves.toBe(null);
 
         await sleep(100);
@@ -98,8 +160,43 @@ describe('SitemapRequestList', () => {
         await expect(list.isFinished(), 'list should not be finished').resolves.toBe(false);
         await expect(list.isEmpty(), 'list should not be empty').resolves.toBe(false);
 
-        const secondRequest = await list.fetchNextRequest();
-        expect(secondRequest).not.toBe(null);
+        const thirdRequest = await list.fetchNextRequest();
+        expect(thirdRequest).not.toBe(null);
+    });
+
+    test('draining the request list between sitemaps', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+
+        while (await list.isEmpty()) {
+            await sleep(20);
+        }
+
+        const firstBatch: Request[] = [];
+
+        while (!(await list.isEmpty())) {
+            const request = await list.fetchNextRequest();
+            firstBatch.push(request);
+            await list.markRequestHandled(request);
+        }
+
+        expect(firstBatch).toHaveLength(2);
+
+        while (await list.isEmpty()) {
+            await sleep(20);
+        }
+
+        const secondBatch: Request[] = [];
+
+        while (!(await list.isEmpty())) {
+            const request = await list.fetchNextRequest();
+            secondBatch.push(request);
+            await list.markRequestHandled(request);
+        }
+
+        expect(secondBatch).toHaveLength(5);
+
+        expect(list.isFinished()).resolves.toBe(true);
+        expect(list.handledCount()).toBe(7);
     });
 
     test('processing the whole list', async () => {
@@ -144,7 +241,7 @@ describe('SitemapRequestList', () => {
         while (!(await list.isFinished())) {
             const request = await list.fetchNextRequest();
 
-            if (counter % 2 == 0) {
+            if (counter % 2 === 0) {
                 await list.markRequestHandled(request);
                 requests.push(request);
             } else {
@@ -166,5 +263,35 @@ describe('SitemapRequestList', () => {
         );
 
         expect(list.handledCount()).toEqual(5);
+    });
+
+    test('persists state', async () => {
+        const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key' };
+        const list = await SitemapRequestList.open(options);
+
+        while (await list.isEmpty()) {
+            await sleep(20);
+        }
+
+        const firstRequest = await list.fetchNextRequest();
+        await list.markRequestHandled(firstRequest);
+
+        await list.persistState();
+
+        const newList = await SitemapRequestList.open(options);
+        await expect(newList.isEmpty()).resolves.toBe(false);
+
+        while (!(await newList.isFinished())) {
+            if (await newList.isEmpty()) {
+                await sleep(20);
+                continue;
+            }
+
+            const request = await newList.fetchNextRequest();
+            await newList.markRequestHandled(request);
+        }
+
+        expect(list.handledCount()).toBe(1);
+        expect(newList.handledCount()).toBe(2);
     });
 });
