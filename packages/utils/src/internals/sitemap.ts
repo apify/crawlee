@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Duplex} from 'node:stream';
+import type { Duplex } from 'node:stream';
 import { PassThrough, Readable, Transform, pipeline } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
@@ -7,7 +7,6 @@ import { createGunzip } from 'node:zlib';
 import log from '@apify/log';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
-
 
 interface SitemapUrlData {
     url: string;
