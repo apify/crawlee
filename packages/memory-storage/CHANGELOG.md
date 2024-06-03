@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.10.2](https://github.com/apify/crawlee/compare/v3.10.1...v3.10.2) (2024-06-03)
+
+
+### Bug Fixes
+
+* improve fix for double extension in KVS with HTML files ([#2505](https://github.com/apify/crawlee/issues/2505)) ([157927d](https://github.com/apify/crawlee/commit/157927d67f42342c20fdf01ef81bdafd7095f0b8)), closes [#2419](https://github.com/apify/crawlee/issues/2419)
+
+
+
+
+
 ## [3.10.1](https://github.com/apify/crawlee/compare/v3.10.0...v3.10.1) (2024-05-23)
 
 **Note:** Version bump only for package @crawlee/memory-storage
