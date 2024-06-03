@@ -4,6 +4,7 @@
 			"website/**",
 			"packages/*/dist/**",
 			"package.json",
+			"lerna.json",
 			"scripts/actions/docker-images/state.json"
 		],
 		"formatWithErrors": true
