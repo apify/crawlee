@@ -2242,11 +2242,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.0.0":
-  version: 20.13.0
-  resolution: "@types/node@npm:20.13.0"
+  version: 20.14.0
+  resolution: "@types/node@npm:20.14.0"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/4fb1ab41d622bbf3434da138bd0f23052e5df3bc59852ea1228cdfe185fd9d66ea71171a68a3106452c883808be7eaa7bc4cd87f534708754d49849e817aa566
+  checksum: 10c0/29ccc7592e9ca6b81d00f3a6673241d08e9042d801b10adfd9ebcbbf326208e0a0133a8d146158db18d02a68b85d9ce1fd94e6e1e5be0da263129bf6e42eb22d
   languageName: node
   linkType: hard
 
@@ -3564,9 +3564,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001587":
-  version: 1.0.30001625
-  resolution: "caniuse-lite@npm:1.0.30001625"
-  checksum: 10c0/26752c65c775ce24b8cfd39a241a4ce33accf2d2e2982f37827c2f94caac3520a3493419e096c42578d372073a2e9f4359f0122ca4c00e51cb02463c512fc6b3
+  version: 1.0.30001626
+  resolution: "caniuse-lite@npm:1.0.30001626"
+  checksum: 10c0/112c7219fbfefb5f1d8c05194712ea08093daee7f245896bba9750c7512443178ac1e8de581b4e7868415c4cef28d7577c0078ed170e8d2deff948eb16aa761a
   languageName: node
   linkType: hard
 
@@ -12848,11 +12848,11 @@ __metadata:
   linkType: hard
 
 "yaml@npm:~2.4.2":
-  version: 2.4.2
-  resolution: "yaml@npm:2.4.2"
+  version: 2.4.3
+  resolution: "yaml@npm:2.4.3"
   bin:
     yaml: bin.mjs
-  checksum: 10c0/280ddb2e43ffa7d91a95738e80c8f33e860749cdc25aa6d9e4d350a28e174fd7e494e4aa023108aaee41388e451e3dc1292261d8f022aabcf90df9c63d647549
+  checksum: 10c0/b4a9dea34265f000402c909144ac310be42c4526dfd16dff1aee2b04a0d94051713651c0cd2b0a3d8109266997422120f16a7934629d12f22dc215839ebbeccf
   languageName: node
   linkType: hard
 
