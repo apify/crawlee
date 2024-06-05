@@ -330,7 +330,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             log: crawlingContext.log,
                                             querySelector: async (selector, timeoutMs) => {
                                                 const locator = playwrightContext.page.locator(selector).first();
-                                                await locator.waitFor({ timeout: timeoutMs });
+                                                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                                                 return (await playwrightContext.parseWithCheerio())(
                                                     selector,
                                                 ) as Cheerio<Element>;
