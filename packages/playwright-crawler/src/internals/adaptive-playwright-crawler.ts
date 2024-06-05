@@ -156,7 +156,7 @@ export interface AdaptivePlaywrightCrawlerOptions
  * @experimental
  */
 export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
-    private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
+    private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] & {};
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
@@ -183,7 +183,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         super(options, config);
-        this.adaptiveRequestHandler = requestHandler ?? (this.router as any);
+        this.adaptiveRequestHandler = requestHandler ?? this.router;
         this.renderingTypePredictor =
             renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
@@ -325,7 +325,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                         );
                                     },
                                     () =>
-                                        this.adaptiveRequestHandler!({
+                                        this.adaptiveRequestHandler({
                                             request: crawlingContext.request,
                                             log: crawlingContext.log,
                                             querySelector: async (selector, timeoutMs) => {
@@ -359,7 +359,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                         return Reflect.get(target, propertyName, receiver);
                     },
                 }),
-                crawlingContext as any,
+                crawlingContext,
             );
             return { result, ok: true };
         } catch (error) {
@@ -387,7 +387,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 async () =>
                     addTimeoutToPromise(
                         async () =>
-                            this.adaptiveRequestHandler!({
+                            this.adaptiveRequestHandler({
                                 request: crawlingContext.request,
                                 log: crawlingContext.log,
                                 querySelector: (selector) => $(selector) as Cheerio<Element>,
