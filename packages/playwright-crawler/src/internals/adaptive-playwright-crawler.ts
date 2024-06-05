@@ -175,7 +175,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         super(options, config);
-        this.adaptiveRequestHandler = requestHandler;
+        this.adaptiveRequestHandler = requestHandler ?? this.router;
         this.renderingTypePredictor =
             renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
