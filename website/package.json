@@ -1,6 +1,7 @@
 {
     "scripts": {
         "examples": "docusaurus-examples",
+        "postinstall": "npx patch-package",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
         "build": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs build",
@@ -25,6 +26,7 @@
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-react-hooks": "^4.6.0",
         "fs-extra": "^11.1.0",
+        "patch-package": "^8.0.0",
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^5.0.0",
