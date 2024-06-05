@@ -21,6 +21,28 @@ describe('parseOpenGraph', () => {
     const case6 = `<meta property="og:title" content="My Website"/>
     <meta property="og:type" content="website"/>`;
 
+    const case7 = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <!-- Example taken from https://ogp.me/ -->
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <meta property="og:title" content="The Rock" />
+        <meta property="og:type" content="video.movie" />
+        <meta property="og:url" content="https://www.imdb.com/title/tt0117500/" />
+        <meta property="og:image" content="https://ia.media-imdb.com/images/rock.jpg" />
+        <meta property="og:image" content="https://example.com/rock2.jpg" />
+        <meta property="og:image:width" content="300" />
+        <meta property="og:image:height" content="300" />
+        <meta property="og:image" content="https://example.com/rock3.jpg" />
+        <meta property="og:image:height" content="1000" />
+    </head>
+    <body>
+        <!-- Not important for this test. -->
+    </body>
+    </html>`;
+
     it('Should scrape properties', () => {
         expect(parseOpenGraph(case1)).toEqual({
             title: 'Under Pressure',
@@ -75,6 +97,35 @@ describe('parseOpenGraph', () => {
         expect(parseOpenGraph(case6)).toEqual({
             title: 'My Website',
             type: 'website',
+        });
+    });
+
+    it('Should parse arrays of images with props', () => {
+        const parsed = parseOpenGraph(case7);
+        console.log('expected:', case7);
+        console.log('parsed:', parsed);
+
+        expect(parsed).toEqual({
+            title: 'The Rock',
+            type: 'video.movie',
+            url: 'https://www.imdb.com/title/tt0117500/',
+            image: [
+                // Either this:
+                'https://ia.media-imdb.com/images/rock.jpg',
+                // Or this:
+                // {
+                //     url: "https://ia.media-imdb.com/images/rock.jpg",
+                // },
+                {
+                    url: 'https://example.com/rock2.jpg',
+                    width: 300,
+                    height: 300,
+                },
+                {
+                    url: 'https://example.com/rock3.jpg',
+                    height: 1000,
+                },
+            ],
         });
     });
 });
