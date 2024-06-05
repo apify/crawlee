@@ -1,5 +1,5 @@
 import { addTimeoutToPromise } from '@apify/timeout';
-import { extractUrlsFromPage } from '@crawlee/browser';
+import { extractUrlsFromPage, type RouterHandler } from '@crawlee/browser';
 import type {
     RestrictedCrawlingContext,
     StatisticState,
@@ -98,7 +98,7 @@ export interface AdaptivePlaywrightCrawlerOptions
      * If the function throws an exception, the crawler will try to re-crawl the
      * request later, up to `option.maxRequestRetries` times.
      */
-    requestHandler: (crawlingContext: AdaptivePlaywrightCrawlerContext) => Awaitable<void>;
+    requestHandler?: (crawlingContext: AdaptivePlaywrightCrawlerContext) => Awaitable<void>;
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -162,6 +162,14 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
     override readonly stats: AdaptivePlaywrightCrawlerStatistics;
 
+    /**
+     * Default {@apilink Router} instance that will be used if we don't specify any {@apilink AdaptivePlaywrightCrawlerOptions.requestHandler|`requestHandler`}.
+     * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
+     */
+    // @ts-ignore
+    override readonly router: RouterHandler<AdaptivePlaywrightCrawlerContext> =
+        Router.create<AdaptivePlaywrightCrawlerContext>();
+
     constructor(
         {
             requestHandler,
@@ -175,7 +183,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         super(options, config);
-        this.adaptiveRequestHandler = requestHandler ?? this.router;
+        this.adaptiveRequestHandler = requestHandler ?? (this.router as any);
         this.renderingTypePredictor =
             renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
@@ -317,7 +325,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                         );
                                     },
                                     () =>
-                                        this.adaptiveRequestHandler({
+                                        this.adaptiveRequestHandler!({
                                             request: crawlingContext.request,
                                             log: crawlingContext.log,
                                             querySelector: async (selector, timeoutMs) => {
@@ -351,7 +359,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                         return Reflect.get(target, propertyName, receiver);
                     },
                 }),
-                crawlingContext,
+                crawlingContext as any,
             );
             return { result, ok: true };
         } catch (error) {
@@ -379,7 +387,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                 async () =>
                     addTimeoutToPromise(
                         async () =>
-                            this.adaptiveRequestHandler({
+                            this.adaptiveRequestHandler!({
                                 request: crawlingContext.request,
                                 log: crawlingContext.log,
                                 querySelector: (selector) => $(selector) as Cheerio<Element>,
