@@ -194,7 +194,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
     }
 
     override async _runRequestHandler(context: LinkeDOMCrawlingContext) {
-        context.waitForSelector = async (selector: string, timeoutMs?: number) => {
+        context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             const $ = cheerio.load(context.body);
 
             if ($(selector).get().length === 0) {
@@ -206,7 +206,7 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                 throw new Error(`Selector '${selector}' not found.`);
             }
         };
-        context.parseWithCheerio = async (selector?: string, _timeoutMs?: number) => {
+        context.parseWithCheerio = async (selector?: string, _timeoutMs = 5_000) => {
             const $ = cheerio.load(context.body);
 
             if (selector && $(selector).get().length === 0) {

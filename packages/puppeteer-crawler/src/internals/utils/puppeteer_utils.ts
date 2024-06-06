@@ -1038,10 +1038,10 @@ export function registerUtilsToContext(
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     };
-    context.waitForSelector = async (selector: string, timeoutMs?: number) => {
+    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
         await context.page.waitForSelector(selector, { timeout: timeoutMs });
     };
-    context.parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
+    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
         if (selector) {
             await context.waitForSelector(selector, timeoutMs);
         }
