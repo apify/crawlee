@@ -2,7 +2,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
 
-// TODO: Finish generalizing or specializing this module.
+// TODO: Finish specializing this module, removing generalization as you go.
 
 /**
  * To turn your web pages into graph objects, you need to add basic metadata to your page. We've based the initial version
@@ -13,7 +13,7 @@ import { load } from 'cheerio';
  * - `og:title` - The title of your object as it should appear within the graph, e.g., "The Rock".
  * - `og:type` - The type of your object, e.g., "video.movie". Depending on the type you specify, other properties may also be required.
  * - `og:image` - An image URL which should represent your object within the graph.
- * 
+ *
  * See more at https://ogp.me/. Turtle specification available at https://ogp.me/ns/ogp.me.ttl.
  */
 export interface OpenGraphMetadata {
@@ -40,15 +40,15 @@ export interface OpenGraphMetadata {
     /**
      * `og:image` - An image URL which should represent your object within the graph.
      */
-    image?: OpenGraphImageMetadataUnion;
+    image?: OpenGraphImageMetadata | string | OpenGraphImageMetadata[] | string[] | [OpenGraphImageMetadata | string];
     /**
      * `og:video` - A URL to a video file that complements this object.
      **/
-    video?: OpenGraphVideoMetadataUnion;
-    /** 
+    video?: OpenGraphVideoMetadata | string | OpenGraphVideoMetadata[] | string[] | [OpenGraphVideoMetadata | string];
+    /**
      * `og:audio` - A URL to an audio file to accompany this object.
      **/
-    audio?: OpenGraphAudioMetadataUnion;
+    audio?: OpenGraphAudioMetadata | string | OpenGraphAudioMetadata[] | string[] | [OpenGraphAudioMetadata | string];
     /**
      * `og:description` - A one to two sentence description of your object.
      **/
@@ -63,24 +63,6 @@ export interface OpenGraphMetadata {
      **/
     determiner?: string;
 }
-
-/**
- * The `og:image` or `OpenGraphMetadata::image` property can be any of the following:
- *
- * 1. String: An image URL which should represent your object within the graph.
- * 2. Array of Strings: If a tag can have multiple values, just put multiple versions of the same `<meta>` tag on your page. The first tag (from top
- *    to bottom) is given preference during conflicts.
- * 3. OpenGraphImageMetadata: The `OpenGraphImageMetadata` class has some optional structured properties.
- * 4. Array of OpenGraphImageMetadatas: Put structured properties after you declare their root tag. Whenever another root element is parsed, that structured
- *    property is considered to be done and another one is started.
- * 5. Array of Strings or OpenGraphImageMetadatas: Some images may be specified without any properties, including the `og:image:url` property.
- */
-export type OpenGraphImageMetadataUnion =
-    | OpenGraphImageMetadata
-    | string
-    | [OpenGraphImageMetadata]
-    | [string]
-    | [OpenGraphImageMetadata | string];
 
 /**
  * The `OpenGraphImageMetadata` class has some optional structured properties.
@@ -113,24 +95,6 @@ export interface OpenGraphImageMetadata {
 }
 
 /**
- * The `og:video` or `OpenGraphMetadata::video` property can be any of the following:
- *
- * 1. String: A URL to a video file that complements this object.
- * 2. Array of Strings: If a tag can have multiple values, just put multiple versions of the same `<meta>` tag on your page. The first tag (from top
- *    to bottom) is given preference during conflicts.
- * 3. OpenGraphVideoMetadata: The `OpenGraphVideoMetadata` class has some optional structured properties.
- * 4. Array of OpenGraphVideoMetadatas: Put structured properties after you declare their root tag. Whenever another root element is parsed, that structured
- *    property is considered to be done and another one is started.
- * 5. Array of Strings or OpenGraphVideoMetadatas: Some images may be specified without any properties, including the `og:video:url` property.
-*/
-export type OpenGraphVideoMetadataUnion =
-| OpenGraphVideoMetadata
-| string
-| [OpenGraphVideoMetadata]
-| [string]
-| [OpenGraphVideoMetadata | string];
-
-/**
  * The `OpenGraphVideoMetadata` class has some optional structured properties.
  */
 export interface OpenGraphVideoMetadata {
@@ -155,24 +119,6 @@ export interface OpenGraphVideoMetadata {
      */
     height?: number;
 }
-
-/**
- * The `og:audio` or `OpenGraphMetadata::audio` property can be any of the following:
- *
- * 1. String: A URL to a audio file that complements this object.
- * 2. Array of Strings: If a tag can have multiple values, just put multiple versions of the same `<meta>` tag on your page. The first tag (from top
- *    to bottom) is given preference during conflicts.
- * 3. OpenGraphAudioMetadata: The `OpenGraphAudioMetadata` class has some optional structured properties.
- * 4. Array of OpenGraphAudioMetadatas: Put structured properties after you declare their root tag. Whenever another root element is parsed, that structured
- *    property is considered to be done and another one is started.
- * 5. Array of Strings or OpenGraphAudioMetadatas: Some images may be specified without any properties, including the `og:audio:url` property.
-*/
-export type OpenGraphAudioMetadataUnion =
-| OpenGraphAudioMetadata
-| string
-| [OpenGraphAudioMetadata]
-| [string]
-| [OpenGraphAudioMetadata | string];
 
 /**
  * The `OpenGraphAudioMetadata` class has some optional structured properties.
@@ -208,23 +154,63 @@ export interface OpenGraphProperty {
     // cardinality?: Number;
 }
 
-export type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
+export type OpenGraphResult = string | number | string[] | Dictionary<string | number | Dictionary>;
 
-export type OpenGraphMetadataUnion = OpenGraphMetadata;
+/**
+ * An OpenGraphParseHandler is triggered during parsing when the label and contents are read from the META tags.
+ * You can use a custom handler, or if you don't specify one it will by default copy the content read from the tag
+ * as a string. You may use a custom type.
+ */
+export type OpenGraphParseHandler<R> = <R>(label: string, content: string) => R;
+
+/**
+ * This is the default behavior for parsing the data. It copies the content to the return value.
+ * @param _label Unused in this implementation, the label for the Open Graph property.
+ * @param content The value for the Open Graph property.
+ * @returns The string value of the Open Graph content property.
+ */
+export function defaultCopyOnRead(_label: string, content: string): string {
+    // Copy the content to the return value.
+    return content;
+}
+
+/**
+ * This reads a number from content and returns the number.
+ * @param _label Unused in this implementation, the label for the Open Graph property.
+ * @param content The value for the Open Graph property.
+ * @returns The string value of the Open Graph content property.
+ */
+export function parseNumberOnRead(_label: string, content: string): number|undefined {
+    // Copy the content to the return value.
+    return content.length > 0 ? parseFloat(content.replaceAll(/[\D\.]/g, '') || '') : undefined;
+}
+
 
 /**
  * This will read the first `<meta>` tag whose `property` attribute matches the value in the `propertyName` argument.
  * Per the protocol, the first tag (from top to bottom) is given preference during conflicts.
  * @param $ A `CheerioAPI` object.
  * @param propertyName The property name to find the first content value of.
- * @returns A string unless there isn't any, then undefined.
+ * @param onPropertyFound An optional function which provides an action for when data is located how to parse it. If omitted, performs a default copy.
+ * @returns A generic content (defaults to string type) unless there isn't any, then undefined.
  */
-function parseFirstOpenGraphMetaTagContentStringMatching($: CheerioAPI, propertyName: string): string | undefined {
+export function parseFirstOpenGraphMetaTagContentMatching($: CheerioAPI, propertyName: string): string | undefined;
+export function parseFirstOpenGraphMetaTagContentMatching<R>($: CheerioAPI, propertyName: string, onPropertyFound?: OpenGraphParseHandler<R>): R | undefined {
+    if (typeof onPropertyFound !== 'function') {
+        onPropertyFound = defaultCopyOnRead as OpenGraphParseHandler<R>;
+    }
     const cssSelector = `meta[property="${propertyName}"]`;
-    const queryResult = $(cssSelector);
+    let queryResult = $(cssSelector);
     if (queryResult.length > 0) {
+        const property = queryResult.attr('property');
         const content = queryResult.attr('content');
-        return content;
+        do {
+            if (property === propertyName && content && content?.toString() && onPropertyFound) {
+                // return the first property found that matches the search label exactly
+                return onPropertyFound<R>(property!, content!);
+            }
+            queryResult = queryResult.next();
+        } while (queryResult.length > 0);
     }
     return undefined;
 }
@@ -234,85 +220,102 @@ function parseFirstOpenGraphMetaTagContentStringMatching($: CheerioAPI, property
  * Per the protocol, the first tag (from top to bottom) is given preference during conflicts.
  * @param $ A `CheerioAPI` object.
  * @param propertyName The property name to find the all content values of.
- * @returns An array of strings unless there are none, then undefined.
+ * @param onPropertyFound An optional function which provides an action for when data is located how to parse it. If omitted, performs a default copy.
+ * @returns An array of contents unless there are none, then undefined.
  */
-function parseAllOpenGraphMetaTagContentStringsMatching($: CheerioAPI, propertyName: string): string[] | undefined {
+export function parseAllOpenGraphMetaTagContentsMatching($: CheerioAPI, propertyName: string): string[] | undefined;
+export function parseAllOpenGraphMetaTagContentsMatching<R>($: CheerioAPI, propertyName: string, onPropertyFound?: OpenGraphParseHandler<R>): R[] | undefined {
+    if (typeof onPropertyFound !== 'function') {
+        onPropertyFound = defaultCopyOnRead as OpenGraphParseHandler<R>;
+    }
     const cssSelector = `meta[property="${propertyName}"]`;
     let queryResult = $(cssSelector);
     if (queryResult.length > 0) {
-        const returns: string[] = [];
+        const returns: R[] = [];
         do {
             const property = queryResult.attr('property');
             const content = queryResult.attr('content');
             if (property === propertyName && content && content?.toString()) {
-                returns.push(content.toString());
+                returns.push(onPropertyFound<R>(property!, content!));
             }
             queryResult = queryResult.next();
-        }
-        while (queryResult.length > 0);
+        } while (queryResult.length > 0);
         return returns;
     }
     return undefined;
 }
 
+/**
+ * One or more Open Graph structured object attributes along with parsers.
+ */
+export interface StructuredObjectAttributeParserConfiguration<R> {
+    propertyName: string;
+    onStructuredPropertyFound?: OpenGraphParseHandler<R>;
+};
 
-function parseOpenGraphImageMetaTags($: CheerioAPI, ogLabel: string): OpenGraphImageMetadataUnion | undefined {
-    const cssSelector = `meta[property="${ogLabel}"]`;
+/**
+ * 
+ * @param $ A `CheerioAPI` object.
+ * @param propertyName The property name to find the all content values of.
+ * @param defaultObjectPropertyName 
+ * @param onTopLevelPropertyFound An optional function which provides an action for when data is located how to parse it. If omitted, performs a default copy.
+ * @param attributeHandlers 
+ * @returns 
+ */
+function parseOpenGraphStructuredObjectMatching<R1, R2 extends Dictionary<any>>($: CheerioAPI, propertyName: string, defaultObjectPropertyName?: string, onTopLevelPropertyFound?: OpenGraphParseHandler<R1>, attributeHandlers?: StructuredObjectAttributeParserConfiguration<any>[]): R1 | R2 | R1[] | R2[] | [R1 | R2] | undefined {
+    if (typeof onTopLevelPropertyFound !== 'function') {
+        onTopLevelPropertyFound = defaultCopyOnRead as OpenGraphParseHandler<R1>;
+    }
+    if (typeof defaultObjectPropertyName === 'undefined') {
+        defaultObjectPropertyName = `${propertyName}:url`;
+    }
+    const cssSelector = `meta[property="${propertyName}"]`;
     let queryResult = $(cssSelector);
-    const result: OpenGraphImageMetadataUnion | [] = [];
+    const result: R1 | R2 | R1[] | R2[] | [R1 | R2] = [];
     if (queryResult.length > 0) {
         // let's track the most recent root element
-        let mostRecentLabelRoot: string | OpenGraphImageMetadata | undefined;
+        let mostRecentLabelRoot: Dictionary<any> | any;
 
         do {
             // re-read the property, it does match everything starting with og:image
             const property = queryResult.attr('property');
-            const content = queryResult.attr('content');
+            const content = queryResult.attr('content') as any;
 
-            // this is a new image root tag with a url value
-            if (property === ogLabel) {
+            // this is a new property root tag with a url value
+            if (property === propertyName) {
                 // if there was a previous image root tag, add it to the result
-                if (mostRecentLabelRoot) {
-                    result.push(mostRecentLabelRoot as never);
+                if (mostRecentLabelRoot!) {
+                    result.push(onTopLevelPropertyFound(property, mostRecentLabelRoot as never));
                 }
                 mostRecentLabelRoot = content;
             }
             // this is an image metadata tag
             else {
-                // convert any image root tags with only a url value into structures with a url field
-                if (typeof mostRecentLabelRoot === 'string') {
-                    mostRecentLabelRoot = { url: mostRecentLabelRoot };
-                } else if (typeof mostRecentLabelRoot === 'undefined') {
-                    mostRecentLabelRoot = {};
+                // if there isn't anything store yet be sure to create an empty object
+                if (typeof mostRecentLabelRoot! === 'undefined') {
+                    mostRecentLabelRoot = {} as Dictionary<any>;
                 }
-                // read further image metadata
-                switch (property) {
-                    case `${ogLabel}:secure_url`:
-                        mostRecentLabelRoot = { secureUrl: content, ...(mostRecentLabelRoot as OpenGraphImageMetadata) };
-                        break;
-                    case `${ogLabel}:type`:
-                        mostRecentLabelRoot = { type: content, ...(mostRecentLabelRoot as OpenGraphImageMetadata) };
-                        break;
-                    case `${ogLabel}:width`:
-                        mostRecentLabelRoot = {
-                            width: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
-                            ...(mostRecentLabelRoot as OpenGraphImageMetadata),
-                        };
-                        break;
-                    case `${ogLabel}:height`:
-                        mostRecentLabelRoot = {
-                            height: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
-                            ...(mostRecentLabelRoot as OpenGraphImageMetadata),
-                        };
-                        break;
-                    case `${ogLabel}:alt`:
-                        mostRecentLabelRoot = { alt: content, ...(mostRecentLabelRoot as OpenGraphImageMetadata) };
-                        break;
-                    default:
-                        break;
+                // convert any root tags with only a default value into structures with a default field
+                else if (typeof mostRecentLabelRoot !== 'object') {
+                    let newRecentLabelRoot = {} as Dictionary<any>;
+                    const subPropertyName = defaultObjectPropertyName.substring(propertyName.length+1);
+                    newRecentLabelRoot[subPropertyName] = mostRecentLabelRoot;
+                    mostRecentLabelRoot = newRecentLabelRoot;
+                }
+                if (typeof attributeHandlers !== "undefined") {
+                    for (const attributeHandler of attributeHandlers) {
+                        if (property === attributeHandler.propertyName) {
+                            const attributeHandlerOrDefaultCopyOnRead = attributeHandler.onStructuredPropertyFound ?? defaultCopyOnRead
+                            mostRecentLabelRoot[attributeHandler.propertyName.substring(propertyName.length+1)] = attributeHandlerOrDefaultCopyOnRead(property, content as any) as any;
+                            break; // break out of the inner loop, continuing with the outer loop
+                        }
+                    }
+                } else if (property?.indexOf(`${propertyName}:`) != -1) {
+                    // if you didn't provide attribute handlers, then we'll just go ahead and assume you wanted them anyways and use defaultCopyOnRead
+                    // to handle the parsing
+                    mostRecentLabelRoot[property!.substring(propertyName.length+1)] = defaultCopyOnRead(property!, content as any) as any;
                 }
             }
-
             // read the next result
             queryResult = queryResult.next();
 
@@ -320,162 +323,40 @@ function parseOpenGraphImageMetaTags($: CheerioAPI, ogLabel: string): OpenGraphI
         } while (queryResult.length > 0);
 
         // if there was a previous image root tag, add it to the result
-        if (mostRecentLabelRoot) {
+        if (mostRecentLabelRoot!) {
             result.push(mostRecentLabelRoot as never);
         }
     }
-    return result.length ? (result as OpenGraphImageMetadataUnion) : undefined;
-}
-
-function parseOpenGraphVideoMetaTags($: CheerioAPI, ogLabel: string): OpenGraphVideoMetadataUnion | undefined {
-    const cssSelector = `meta[property="${ogLabel}"]`;
-    let queryResult = $(cssSelector);
-    const result: OpenGraphVideoMetadataUnion | [] = [];
-    if (queryResult.length > 0) {
-        // let's track the most recent root element
-        let mostRecentLabelRoot: string | OpenGraphVideoMetadata | undefined;
-
-        do {
-            // re-read the property, it does match everything starting with og:image
-            const property = queryResult.attr('property');
-            const content = queryResult.attr('content');
-
-            // this is a new image root tag with a url value
-            if (property === ogLabel) {
-                // if there was a previous image root tag, add it to the result
-                if (mostRecentLabelRoot) {
-                    result.push(mostRecentLabelRoot as never);
-                }
-                mostRecentLabelRoot = content;
-            }
-            // this is an video metadata tag
-            else {
-                // convert any video root tags with only a url value into structures with a url field
-                if (typeof mostRecentLabelRoot === 'string') {
-                    mostRecentLabelRoot = { url: mostRecentLabelRoot };
-                } else if (typeof mostRecentLabelRoot === 'undefined') {
-                    mostRecentLabelRoot = {};
-                }
-                // read further video metadata
-                switch (property) {
-                    case `${ogLabel}:secure_url`:
-                        mostRecentLabelRoot = { secureUrl: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
-                        break;
-                    case `${ogLabel}:type`:
-                        mostRecentLabelRoot = { type: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
-                        break;
-                    case `${ogLabel}:width`:
-                        mostRecentLabelRoot = {
-                            width: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
-                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
-                        };
-                        break;
-                    case `${ogLabel}:height`:
-                        mostRecentLabelRoot = {
-                            height: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
-                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
-                        };
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            // read the next result
-            queryResult = queryResult.next();
-
-            // loop until there are no more results
-        } while (queryResult.length > 0);
-
-        // if there was a previous image root tag, add it to the result
-        if (mostRecentLabelRoot) {
-            result.push(mostRecentLabelRoot as never);
-        }
-    }
-    return result.length ? (result as OpenGraphVideoMetadataUnion) : undefined;
-}
-
-function parseOpenGraphAudioMetaTags($: CheerioAPI, ogLabel: string): OpenGraphAudioMetadataUnion | undefined {
-    const cssSelector = `meta[property="${ogLabel}"]`;
-    let queryResult = $(cssSelector);
-    const result: OpenGraphAudioMetadataUnion | [] = [];
-    if (queryResult.length > 0) {
-        // let's track the most recent root element
-        let mostRecentLabelRoot: string | OpenGraphAudioMetadata | undefined;
-
-        do {
-            // re-read the property, it does match everything starting with og:image
-            const property = queryResult.attr('property');
-            const content = queryResult.attr('content');
-
-            // this is a new image root tag with a url value
-            if (property === ogLabel) {
-                // if there was a previous image root tag, add it to the result
-                if (mostRecentLabelRoot) {
-                    result.push(mostRecentLabelRoot as never);
-                }
-                mostRecentLabelRoot = content;
-            }
-            // this is an audio metadata tag
-            else {
-                // convert any video root tags with only a url value into structures with a url field
-                if (typeof mostRecentLabelRoot === 'string') {
-                    mostRecentLabelRoot = { url: mostRecentLabelRoot };
-                } else if (typeof mostRecentLabelRoot === 'undefined') {
-                    mostRecentLabelRoot = {};
-                }
-                // read further audio metadata
-                switch (property) {
-                    case `${ogLabel}:secure_url`:
-                        mostRecentLabelRoot = { secureUrl: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
-                        break;
-                    case `${ogLabel}:type`:
-                        mostRecentLabelRoot = { type: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
-                        break;
-                    case `${ogLabel}:width`:
-                        mostRecentLabelRoot = {
-                            width: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
-                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
-                        };
-                        break;
-                    case `${ogLabel}:height`:
-                        mostRecentLabelRoot = {
-                            height: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
-                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
-                        };
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            // read the next result
-            queryResult = queryResult.next();
-
-            // loop until there are no more results
-        } while (queryResult.length > 0);
-
-        // if there was a previous image root tag, add it to the result
-        if (mostRecentLabelRoot) {
-            result.push(mostRecentLabelRoot as never);
-        }
-    }
-    return result.length ? (result as OpenGraphAudioMetadataUnion) : undefined;
+    return result.length ? (result as R1 | R2 | R1[] | R2[] | [R1 | R2]) : undefined;
 }
 
 function parseOpenGraphMetadata($: CheerioAPI): OpenGraphMetadata {
     return {
-        url: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:url'),
-        type: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:type'),
-        title: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:title'),
-        locale: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:locale'),
-        localeAlternate: parseAllOpenGraphMetaTagContentStringsMatching($, 'og:locale:alternate'),
-        image: parseOpenGraphImageMetaTags($, 'og:image'),
-        video: parseOpenGraphVideoMetaTags($, 'og:video'),
-        audio: parseOpenGraphAudioMetaTags($, 'og:audio'),
-        description: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:description'),
-        siteName: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:site_name'),
-        determiner: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:determiner'),
+        url: parseFirstOpenGraphMetaTagContentMatching($, 'og:url'),
+        type: parseFirstOpenGraphMetaTagContentMatching($, 'og:type'),
+        title: parseFirstOpenGraphMetaTagContentMatching($, 'og:title'),
+        locale: parseFirstOpenGraphMetaTagContentMatching($, 'og:locale'),
+        localeAlternate: parseAllOpenGraphMetaTagContentsMatching($, 'og:locale:alternate'),
+        image: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>($, 'og:image', 'og:image:url', defaultCopyOnRead as OpenGraphParseHandler<string>,[
+            { propertyName: 'og:image:secure_url', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:image:type', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:image:width', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:image:height', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:image:alt', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+        ]),
+        video: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>($, 'og:video', 'og:video:url', defaultCopyOnRead as OpenGraphParseHandler<string>, [
+            { propertyName: 'og:video:secure_url', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:video:type', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:video:width', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:video:height', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
+        ]),
+        audio: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>($, 'og:audio', 'og:audio:url', defaultCopyOnRead as OpenGraphParseHandler<string>, [
+            { propertyName: 'og:audio:secure_url', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+            { propertyName: 'og:audio:type', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
+        ]),
+        description: parseFirstOpenGraphMetaTagContentMatching($, 'og:description'),
+        siteName: parseFirstOpenGraphMetaTagContentMatching($, 'og:site_name'),
+        determiner: parseFirstOpenGraphMetaTagContentMatching($, 'og:determiner'),
     };
 }
 
@@ -490,141 +371,6 @@ const optionalSpread = (key: string, item: any) =>
     item !== undefined && !!Object.values(item)?.length ? { [key]: item } : {};
 
 const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
-    // disabled these for now:
-    // {
-    //     name: 'og:title',
-    //     outputName: 'title',
-    //     children: [],
-    // },
-    // {
-    //     name: 'og:type',
-    //     outputName: 'type',
-    //     children: [],
-    // },
-    // {
-    //     name: 'og:image',
-    //     outputName: 'image',
-    //     children: [
-    //         {
-    //             name: 'og:image:url',
-    //             outputName: 'url',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:image:secure_url',
-    //             outputName: 'secureUrl',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:image:type',
-    //             outputName: 'type',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:image:width',
-    //             outputName: 'width',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:image:height',
-    //             outputName: 'height',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:image:alt',
-    //             outputName: 'alt',
-    //             children: [],
-    //         },
-    //     ],
-    // },
-    // {
-    //     name: 'og:url',
-    //     outputName: 'url',
-    //     children: [],
-    // },
-    // {
-    //     name: 'og:audio',
-    //     outputName: 'audio',
-    //     children: [
-    //         {
-    //             name: 'og:audio:url',
-    //             outputName: 'url',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:audio:secure_url',
-    //             outputName: 'secureUrl',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:audio:type',
-    //             outputName: 'type',
-    //             children: [],
-    //         },
-    //     ],
-    // },
-    // {
-    //     name: 'og:description',
-    //     outputName: 'description',
-    //     children: [],
-    // },
-    // {
-    //     name: 'og:determiner',
-    //     outputName: 'determiner',
-    //     children: [],
-    // },
-    // {
-    //     name: 'og:locale',
-    //     outputName: 'locale',
-    //     children: [
-    //         {
-    //             name: 'og:locale:alternate',
-    //             outputName: 'alternate',
-    //             children: [],
-    //         },
-    //     ],
-    // },
-    // {
-    //     name: 'og:site_name',
-    //     outputName: 'siteName',
-    //     children: [],
-    // },
-    // {
-    //     name: 'og:video',
-    //     outputName: 'video',
-    //     children: [
-    //         {
-    //             name: 'og:video:url',
-    //             outputName: 'url',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:video:secure_url',
-    //             outputName: 'secureUrl',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:video:type',
-    //             outputName: 'type',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:video:width',
-    //             outputName: 'width',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:video:height',
-    //             outputName: 'height',
-    //             children: [],
-    //         },
-    //         {
-    //             name: 'og:video:alt',
-    //             outputName: 'alt',
-    //             children: [],
-    //         },
-    //     ],
-    // },
     // The properties below aren't prefixed with "og".
     // Part of the reason the properties have been hardcoded is because not all OpenGraph properties start with "og".
     // Especially the newer ones that extend "og:type".
@@ -876,7 +622,6 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
 
     // Parse metadata
     const basicMetaData: OpenGraphMetadata = parseOpenGraphMetadata($);
-    ogrDict = Object.assign(ogrDict, basicMetaData);
 
     // // Assemble open graph properties to search for
     let props = [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES];
@@ -884,6 +629,7 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
     // Determine cardinality of each element
     // props = props.map((prop) => {
     // });
+    
     ogrDict = Object.assign(
         ogrDict,
         props.reduce(
@@ -895,6 +641,7 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
             },
             {} as Dictionary<OpenGraphResult>,
         ),
+        basicMetaData
     );
     return ogrDict;
 }

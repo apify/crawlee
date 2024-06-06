@@ -1,5 +1,4 @@
-import { parseOpenGraph } from '@crawlee/utils';
-import { OpenGraphAudioMetadata } from '@crawlee/utils/src/index';
+import { parseOpenGraph, OpenGraphMetadata } from '@crawlee/utils';
 import { load } from 'cheerio';
 
 describe('parseOpenGraph', () => {
