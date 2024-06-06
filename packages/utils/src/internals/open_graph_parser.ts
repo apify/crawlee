@@ -182,7 +182,7 @@ export function defaultCopyOnRead(_label: string, content: string): string {
  */
 export function parseNumberOnRead(_label: string, content: string): number | undefined {
     // Copy the content to the return value.
-    return content.length > 0 ? parseFloat(content.replaceAll(/[\D\.]/g, '') || '') : undefined;
+    return content.length > 0 ? parseFloat(content.replaceAll(/[^\d\.]/g, '') || '') : undefined;
 }
 
 /**
