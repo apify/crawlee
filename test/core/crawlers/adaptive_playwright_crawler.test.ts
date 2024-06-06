@@ -112,9 +112,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
 
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-                async ({ pushData, querySelector }) => {
+                async ({ pushData, parseWithCheerio }) => {
+                    const $ = await parseWithCheerio('h1');
                     await pushData({
-                        heading: (await querySelector('h1')).text(),
+                        heading: $('h1').text(),
                     });
                 },
             );

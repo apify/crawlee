@@ -15,6 +15,15 @@ import { KeyValueStore } from '../storages';
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
     // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
     extends Record<string & {}, unknown> {
+    id: string;
+    session?: Session;
+
+    /**
+     * An object with information about currently used proxy by the crawler
+     * and configured by the {@apilink ProxyConfiguration} class.
+     */
+    proxyInfo?: ProxyInfo;
+
     /**
      * The original {@apilink Request} object.
      */
@@ -86,15 +95,6 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
 
 export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary>
     extends RestrictedCrawlingContext<UserData> {
-    id: string;
-    session?: Session;
-
-    /**
-     * An object with information about currently used proxy by the crawler
-     * and configured by the {@apilink ProxyConfiguration} class.
-     */
-    proxyInfo?: ProxyInfo;
-
     crawler: Crawler;
 
     /**

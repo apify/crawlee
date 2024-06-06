@@ -824,7 +824,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 const total = this.requestQueue?.getTotalCount() || this.requestList?.length();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
                     this.stats.state.requestsFailed
-                } failed requests.`;
+                } failed requests, desired concurrency ${this.autoscaledPool?.desiredConcurrency ?? 0}.`;
             }
 
             if (this.statusMessageCallback) {
