@@ -369,7 +369,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                                 const locator = playwrightContext.page.locator(selector).first();
                                                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                                             },
-                                            async parseWithCheerio(selector?: string, timeoutMs = 5_000): Promise<CheerioRoot> {
+                                            async parseWithCheerio(
+                                                selector?: string,
+                                                timeoutMs = 5_000,
+                                            ): Promise<CheerioRoot> {
                                                 if (selector) {
                                                     const locator = playwrightContext.page.locator(selector).first();
                                                     await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
@@ -433,7 +436,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 request: crawlingContext.request,
                                 log: crawlingContext.log,
                                 async querySelector(selector, _timeoutMs?: number) {
-                                    return $(selector) as Cheerio<Element>
+                                    return $(selector) as Cheerio<Element>;
                                 },
                                 async waitForSelector(selector, _timeoutMs?: number) {
                                     if ($(selector).get().length === 0) {
@@ -447,7 +450,9 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
                                     return $;
                                 },
-                                async enqueueLinks(options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {}) {
+                                async enqueueLinks(
+                                    options: Parameters<RestrictedCrawlingContext['enqueueLinks']>[0] = {},
+                                ) {
                                     const urls = extractUrlsFromCheerio(
                                         $,
                                         options.selector,
