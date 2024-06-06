@@ -1,5 +1,5 @@
 import { addTimeoutToPromise } from '@apify/timeout';
-import { extractUrlsFromPage } from '@crawlee/browser';
+import { extractUrlsFromPage, type RouterHandler } from '@crawlee/browser';
 import type {
     RestrictedCrawlingContext,
     StatisticState,
@@ -98,7 +98,7 @@ export interface AdaptivePlaywrightCrawlerOptions
      * If the function throws an exception, the crawler will try to re-crawl the
      * request later, up to `option.maxRequestRetries` times.
      */
-    requestHandler: (crawlingContext: AdaptivePlaywrightCrawlerContext) => Awaitable<void>;
+    requestHandler?: (crawlingContext: AdaptivePlaywrightCrawlerContext) => Awaitable<void>;
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -156,11 +156,19 @@ export interface AdaptivePlaywrightCrawlerOptions
  * @experimental
  */
 export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
-    private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'];
+    private adaptiveRequestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] & {};
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
     override readonly stats: AdaptivePlaywrightCrawlerStatistics;
+
+    /**
+     * Default {@apilink Router} instance that will be used if we don't specify any {@apilink AdaptivePlaywrightCrawlerOptions.requestHandler|`requestHandler`}.
+     * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
+     */
+    // @ts-ignore
+    override readonly router: RouterHandler<AdaptivePlaywrightCrawlerContext> =
+        Router.create<AdaptivePlaywrightCrawlerContext>();
 
     constructor(
         {
@@ -175,7 +183,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         super(options, config);
-        this.adaptiveRequestHandler = requestHandler;
+        this.adaptiveRequestHandler = requestHandler ?? this.router;
         this.renderingTypePredictor =
             renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
         this.resultChecker = resultChecker ?? (() => true);
@@ -322,7 +330,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             log: crawlingContext.log,
                                             querySelector: async (selector, timeoutMs) => {
                                                 const locator = playwrightContext.page.locator(selector).first();
-                                                await locator.waitFor({ timeout: timeoutMs });
+                                                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                                                 return (await playwrightContext.parseWithCheerio())(
                                                     selector,
                                                 ) as Cheerio<Element>;
