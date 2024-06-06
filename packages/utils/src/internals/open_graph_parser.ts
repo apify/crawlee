@@ -180,11 +180,10 @@ export function defaultCopyOnRead(_label: string, content: string): string {
  * @param content The value for the Open Graph property.
  * @returns The string value of the Open Graph content property.
  */
-export function parseNumberOnRead(_label: string, content: string): number|undefined {
+export function parseNumberOnRead(_label: string, content: string): number | undefined {
     // Copy the content to the return value.
     return content.length > 0 ? parseFloat(content.replaceAll(/[\D\.]/g, '') || '') : undefined;
 }
-
 
 /**
  * This will read the first `<meta>` tag whose `property` attribute matches the value in the `propertyName` argument.
@@ -195,7 +194,11 @@ export function parseNumberOnRead(_label: string, content: string): number|undef
  * @returns A generic content (defaults to string type) unless there isn't any, then undefined.
  */
 export function parseFirstOpenGraphMetaTagContentMatching($: CheerioAPI, propertyName: string): string | undefined;
-export function parseFirstOpenGraphMetaTagContentMatching<R>($: CheerioAPI, propertyName: string, onPropertyFound?: OpenGraphParseHandler<R>): R | undefined {
+export function parseFirstOpenGraphMetaTagContentMatching<R>(
+    $: CheerioAPI,
+    propertyName: string,
+    onPropertyFound?: OpenGraphParseHandler<R>,
+): R | undefined {
     if (typeof onPropertyFound !== 'function') {
         onPropertyFound = defaultCopyOnRead as OpenGraphParseHandler<R>;
     }
@@ -224,7 +227,11 @@ export function parseFirstOpenGraphMetaTagContentMatching<R>($: CheerioAPI, prop
  * @returns An array of contents unless there are none, then undefined.
  */
 export function parseAllOpenGraphMetaTagContentsMatching($: CheerioAPI, propertyName: string): string[] | undefined;
-export function parseAllOpenGraphMetaTagContentsMatching<R>($: CheerioAPI, propertyName: string, onPropertyFound?: OpenGraphParseHandler<R>): R[] | undefined {
+export function parseAllOpenGraphMetaTagContentsMatching<R>(
+    $: CheerioAPI,
+    propertyName: string,
+    onPropertyFound?: OpenGraphParseHandler<R>,
+): R[] | undefined {
     if (typeof onPropertyFound !== 'function') {
         onPropertyFound = defaultCopyOnRead as OpenGraphParseHandler<R>;
     }
@@ -251,18 +258,24 @@ export function parseAllOpenGraphMetaTagContentsMatching<R>($: CheerioAPI, prope
 export interface StructuredObjectAttributeParserConfiguration<R> {
     propertyName: string;
     onStructuredPropertyFound?: OpenGraphParseHandler<R>;
-};
+}
 
 /**
- * 
+ *
  * @param $ A `CheerioAPI` object.
  * @param propertyName The property name to find the all content values of.
- * @param defaultObjectPropertyName 
+ * @param defaultObjectPropertyName
  * @param onTopLevelPropertyFound An optional function which provides an action for when data is located how to parse it. If omitted, performs a default copy.
- * @param attributeHandlers 
- * @returns 
+ * @param attributeHandlers
+ * @returns
  */
-function parseOpenGraphStructuredObjectMatching<R1, R2 extends Dictionary<any>>($: CheerioAPI, propertyName: string, defaultObjectPropertyName?: string, onTopLevelPropertyFound?: OpenGraphParseHandler<R1>, attributeHandlers?: StructuredObjectAttributeParserConfiguration<any>[]): R1 | R2 | R1[] | R2[] | [R1 | R2] | undefined {
+export function parseOpenGraphStructuredObjectMatching<R1, R2 extends Dictionary<any>>(
+    $: CheerioAPI,
+    propertyName: string,
+    defaultObjectPropertyName?: string,
+    onTopLevelPropertyFound?: OpenGraphParseHandler<R1>,
+    attributeHandlers?: StructuredObjectAttributeParserConfiguration<any>[],
+): R1 | R2 | R1[] | R2[] | [R1 | R2] | undefined {
     if (typeof onTopLevelPropertyFound !== 'function') {
         onTopLevelPropertyFound = defaultCopyOnRead as OpenGraphParseHandler<R1>;
     }
@@ -298,22 +311,27 @@ function parseOpenGraphStructuredObjectMatching<R1, R2 extends Dictionary<any>>(
                 // convert any root tags with only a default value into structures with a default field
                 else if (typeof mostRecentLabelRoot !== 'object') {
                     let newRecentLabelRoot = {} as Dictionary<any>;
-                    const subPropertyName = defaultObjectPropertyName.substring(propertyName.length+1);
+                    const subPropertyName = defaultObjectPropertyName.substring(propertyName.length + 1);
                     newRecentLabelRoot[subPropertyName] = mostRecentLabelRoot;
                     mostRecentLabelRoot = newRecentLabelRoot;
                 }
-                if (typeof attributeHandlers !== "undefined") {
+                if (typeof attributeHandlers !== 'undefined') {
                     for (const attributeHandler of attributeHandlers) {
                         if (property === attributeHandler.propertyName) {
-                            const attributeHandlerOrDefaultCopyOnRead = attributeHandler.onStructuredPropertyFound ?? defaultCopyOnRead
-                            mostRecentLabelRoot[attributeHandler.propertyName.substring(propertyName.length+1)] = attributeHandlerOrDefaultCopyOnRead(property, content as any) as any;
+                            const attributeHandlerOrDefaultCopyOnRead =
+                                attributeHandler.onStructuredPropertyFound ?? defaultCopyOnRead;
+                            mostRecentLabelRoot[attributeHandler.propertyName.substring(propertyName.length + 1)] =
+                                attributeHandlerOrDefaultCopyOnRead(property, content as any) as any;
                             break; // break out of the inner loop, continuing with the outer loop
                         }
                     }
                 } else if (property?.indexOf(`${propertyName}:`) != -1) {
                     // if you didn't provide attribute handlers, then we'll just go ahead and assume you wanted them anyways and use defaultCopyOnRead
                     // to handle the parsing
-                    mostRecentLabelRoot[property!.substring(propertyName.length+1)] = defaultCopyOnRead(property!, content as any) as any;
+                    mostRecentLabelRoot[property!.substring(propertyName.length + 1)] = defaultCopyOnRead(
+                        property!,
+                        content as any,
+                    ) as any;
                 }
             }
             // read the next result
@@ -330,30 +348,81 @@ function parseOpenGraphStructuredObjectMatching<R1, R2 extends Dictionary<any>>(
     return result.length ? (result as R1 | R2 | R1[] | R2[] | [R1 | R2]) : undefined;
 }
 
-function parseOpenGraphMetadata($: CheerioAPI): OpenGraphMetadata {
+export function parseOpenGraphMetadata($: CheerioAPI): OpenGraphMetadata {
     return {
         url: parseFirstOpenGraphMetaTagContentMatching($, 'og:url'),
         type: parseFirstOpenGraphMetaTagContentMatching($, 'og:type'),
         title: parseFirstOpenGraphMetaTagContentMatching($, 'og:title'),
         locale: parseFirstOpenGraphMetaTagContentMatching($, 'og:locale'),
         localeAlternate: parseAllOpenGraphMetaTagContentsMatching($, 'og:locale:alternate'),
-        image: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>($, 'og:image', 'og:image:url', defaultCopyOnRead as OpenGraphParseHandler<string>,[
-            { propertyName: 'og:image:secure_url', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:image:type', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:image:width', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:image:height', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:image:alt', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-        ]),
-        video: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>($, 'og:video', 'og:video:url', defaultCopyOnRead as OpenGraphParseHandler<string>, [
-            { propertyName: 'og:video:secure_url', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:video:type', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:video:width', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:video:height', onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string> },
-        ]),
-        audio: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>($, 'og:audio', 'og:audio:url', defaultCopyOnRead as OpenGraphParseHandler<string>, [
-            { propertyName: 'og:audio:secure_url', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-            { propertyName: 'og:audio:type', onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string> },
-        ]),
+        image: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>(
+            $,
+            'og:image',
+            'og:image:url',
+            defaultCopyOnRead as OpenGraphParseHandler<string>,
+            [
+                {
+                    propertyName: 'og:image:secure_url',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:image:type',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:image:width',
+                    onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:image:height',
+                    onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:image:alt',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+            ],
+        ),
+        video: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>(
+            $,
+            'og:video',
+            'og:video:url',
+            defaultCopyOnRead as OpenGraphParseHandler<string>,
+            [
+                {
+                    propertyName: 'og:video:secure_url',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:video:type',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:video:width',
+                    onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:video:height',
+                    onStructuredPropertyFound: parseNumberOnRead as OpenGraphParseHandler<string>,
+                },
+            ],
+        ),
+        audio: parseOpenGraphStructuredObjectMatching<string, OpenGraphImageMetadata>(
+            $,
+            'og:audio',
+            'og:audio:url',
+            defaultCopyOnRead as OpenGraphParseHandler<string>,
+            [
+                {
+                    propertyName: 'og:audio:secure_url',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+                {
+                    propertyName: 'og:audio:type',
+                    onStructuredPropertyFound: defaultCopyOnRead as OpenGraphParseHandler<string>,
+                },
+            ],
+        ),
         description: parseFirstOpenGraphMetaTagContentMatching($, 'og:description'),
         siteName: parseFirstOpenGraphMetaTagContentMatching($, 'og:site_name'),
         determiner: parseFirstOpenGraphMetaTagContentMatching($, 'og:determiner'),
@@ -629,7 +698,7 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
     // Determine cardinality of each element
     // props = props.map((prop) => {
     // });
-    
+
     ogrDict = Object.assign(
         ogrDict,
         props.reduce(
@@ -641,7 +710,7 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
             },
             {} as Dictionary<OpenGraphResult>,
         ),
-        basicMetaData
+        basicMetaData,
     );
     return ogrDict;
 }
