@@ -1,3 +1,4 @@
+import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
 import { extractUrlsFromPage, type RouterHandler } from '@crawlee/browser';
 import type {
@@ -18,7 +19,9 @@ import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from './play
 import { PlaywrightCrawler } from './playwright-crawler';
 import { RenderingTypePredictor, type RenderingType } from './utils/rendering-type-prediction';
 
-type Result<TResult> = { result: TResult; ok: true } | { error: unknown; ok: false };
+type Result<TResult> =
+    | { result: TResult; ok: true; logs?: LogProxyCall[] }
+    | { error: unknown; ok: false; logs?: LogProxyCall[] };
 
 interface AdaptivePlaywrightCrawlerStatisticState extends StatisticState {
     httpOnlyRequestHandlerRuns?: number;
@@ -157,6 +160,19 @@ export interface AdaptivePlaywrightCrawlerOptions
     renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult'>;
 }
 
+const proxyLogMethods = [
+    'error',
+    'exception',
+    'softFail',
+    'info',
+    'debug',
+    'perf',
+    'warningOnce',
+    'deprecated',
+] as const;
+
+type LogProxyCall = [log: Log, method: (typeof proxyLogMethods)[number], ...args: unknown[]];
+
 /**
  * An extension of {@apilink PlaywrightCrawler} that uses a more limited request handler interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
  *
@@ -244,7 +260,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         });
     }
 
-    protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext<Dictionary>): Promise<void> {
+    protected override async _runRequestHandler(crawlingContext: PlaywrightCrawlingContext): Promise<void> {
         const url = new URL(crawlingContext.request.loadedUrl ?? crawlingContext.request.url);
 
         const renderingTypePrediction = this.renderingTypePredictor.predict(url, crawlingContext.request.label);
@@ -264,6 +280,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
             if (plainHTTPRun.ok && this.resultChecker(plainHTTPRun.result)) {
                 crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
+                plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
                 await this.commitResult(crawlingContext, plainHTTPRun.result);
                 return;
             }
@@ -284,6 +301,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         this.stats.trackBrowserRequestHandlerRun();
 
         const browserRun = await this.runRequestHandlerInBrowser(crawlingContext);
+
         if (!browserRun.ok) {
             throw browserRun.error;
         }
@@ -312,7 +330,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     }
 
     protected async commitResult(
-        crawlingContext: PlaywrightCrawlingContext<Dictionary>,
+        crawlingContext: PlaywrightCrawlingContext,
         { calls, keyValueStoreChanges }: RequestHandlerResult,
     ): Promise<void> {
         await Promise.all([
@@ -341,7 +359,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     }
 
     protected async runRequestHandlerInBrowser(
-        crawlingContext: PlaywrightCrawlingContext<Dictionary>,
+        crawlingContext: PlaywrightCrawlingContext,
     ): Promise<Result<RequestHandlerResult>> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
 
@@ -419,9 +437,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     }
 
     protected async runRequestHandlerWithPlainHTTP(
-        crawlingContext: PlaywrightCrawlingContext<Dictionary>,
+        crawlingContext: PlaywrightCrawlingContext,
     ): Promise<Result<RequestHandlerResult>> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
+        const logs: LogProxyCall[] = [];
 
         const response = await crawlingContext.sendRequest({});
         const loadedUrl = response.url;
@@ -443,7 +462,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 session: crawlingContext.session,
                                 proxyInfo: crawlingContext.proxyInfo,
                                 request: crawlingContext.request,
-                                log: crawlingContext.log,
+                                log: this.createLogProxy(crawlingContext.log, logs),
                                 async querySelector(selector, _timeoutMs?: number) {
                                     return $(selector) as Cheerio<Element>;
                                 },
@@ -479,10 +498,23 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                     ),
             );
 
-            return { result, ok: true };
+            return { result, logs, ok: true };
         } catch (error) {
-            return { error, ok: false };
+            return { error, logs, ok: false };
         }
+    }
+
+    private createLogProxy(log: Log, logs: LogProxyCall[]) {
+        return new Proxy(log, {
+            get(target: Log, propertyName: (typeof proxyLogMethods)[number], receiver: any) {
+                if (proxyLogMethods.includes(propertyName)) {
+                    return (...args: unknown[]) => {
+                        logs.push([target, propertyName, ...args]);
+                    };
+                }
+                return Reflect.get(target, propertyName, receiver);
+            },
+        });
     }
 }
 
