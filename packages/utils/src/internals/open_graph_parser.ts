@@ -9,32 +9,63 @@ import { load } from 'cheerio';
  * of the protocol on RDFa which means that you'll place additional <meta> tags in the <head> of your web page. The four
  * required properties for every page are:
  *
+ * - `og:url` - The canonical URL of your object that will be used as its permanent ID in the graph, e.g., "https://www.imdb.com/title/tt0117500/".
  * - `og:title` - The title of your object as it should appear within the graph, e.g., "The Rock".
  * - `og:type` - The type of your object, e.g., "video.movie". Depending on the type you specify, other properties may also be required.
  * - `og:image` - An image URL which should represent your object within the graph.
- * - `og:url` - The canonical URL of your object that will be used as its permanent ID in the graph, e.g., "https://www.imdb.com/title/tt0117500/".
+ * 
+ * See more at https://ogp.me/. Turtle specification available at https://ogp.me/ns/ogp.me.ttl.
  */
-export interface OpenGraphBasicMetadata {
+export interface OpenGraphMetadata {
     /**
-     * `og:title` - The title of your object as it should appear within the graph, e.g., "The Rock".
+     * `og:url` - The canonical URL of your object that will be used as its permanent ID in the graph, e.g., "https://www.imdb.com/title/tt0117500/".
      */
-    title?: string;
+    url?: string;
     /**
      * `og:type` - The type of your object, e.g., "video.movie". Depending on the type you specify, other properties may also be required.
      */
     type?: string;
     /**
+     * `og:title` - The title of your object as it should appear within the graph, e.g., "The Rock".
+     */
+    title?: string;
+    /**
+     * `og:locale` - The locale these tags are marked up in. Of the format language_TERRITORY. Default is en_US.
+     */
+    locale?: string;
+    /**
+     * `og:locale:alternate` - An array of other locales this page is available in.
+     **/
+    localeAlternate?: string[];
+    /**
      * `og:image` - An image URL which should represent your object within the graph.
      */
     image?: OpenGraphImageMetadataUnion;
     /**
-     * `og:url` - The canonical URL of your object that will be used as its permanent ID in the graph, e.g., "https://www.imdb.com/title/tt0117500/".
-     */
-    url?: string;
+     * `og:video` - A URL to a video file that complements this object.
+     **/
+    video?: OpenGraphVideoMetadataUnion;
+    /** 
+     * `og:audio` - A URL to an audio file to accompany this object.
+     **/
+    audio?: OpenGraphAudioMetadataUnion;
+    /**
+     * `og:description` - A one to two sentence description of your object.
+     **/
+    description?: string;
+    /**
+     * `og:site_name` - If your object is part of a larger web site, the name which should be displayed for the overall site. e.g., "IMDb".
+     **/
+    siteName?: string;
+    /**
+     * `og:determiner` - The word that appears before this object's title in a sentence. An enum of (a, an, the, "", auto). If auto is chosen, the
+     * consumer of your data should chose between "a" or "an". Default is "" (blank).
+     **/
+    determiner?: string;
 }
 
 /**
- * The `og:image` or `OpenGraphBasicMetadata::image` property can be any of the following:
+ * The `og:image` or `OpenGraphMetadata::image` property can be any of the following:
  *
  * 1. String: An image URL which should represent your object within the graph.
  * 2. Array of Strings: If a tag can have multiple values, just put multiple versions of the same `<meta>` tag on your page. The first tag (from top
@@ -42,8 +73,7 @@ export interface OpenGraphBasicMetadata {
  * 3. OpenGraphImageMetadata: The `OpenGraphImageMetadata` class has some optional structured properties.
  * 4. Array of OpenGraphImageMetadatas: Put structured properties after you declare their root tag. Whenever another root element is parsed, that structured
  *    property is considered to be done and another one is started.
- * 5. Array of Strings or OpenGraphImageMetadatas: Some images may be specified without any properties, including the `og:image:url` property, which
- *    can be inferred from the
+ * 5. Array of Strings or OpenGraphImageMetadatas: Some images may be specified without any properties, including the `og:image:url` property.
  */
 export type OpenGraphImageMetadataUnion =
     | OpenGraphImageMetadata
@@ -57,29 +87,117 @@ export type OpenGraphImageMetadataUnion =
  */
 export interface OpenGraphImageMetadata {
     /**
-     * Identical to `OpenGraphBasicMetadata::image`.
+     * `og:image` - An image URL which should represent your object within the graph.
      */
     url?: string;
     /**
-     * An alternate url to use if the webpage requires HTTPS.
+     * `og:image:secure_url` - An alternate url to use if the webpage requires HTTPS.
      */
     secureUrl?: string;
     /**
-     * A MIME type for this image.
+     * `og:image:type` - A MIME type for this image.
      */
     type?: string;
     /**
-     * The number of pixels wide.
+     * `og:image:width` - The number of pixels wide.
      */
     width?: number;
     /**
-     * The number of pixels high.
+     * `og:image:height` - The number of pixels high.
      */
     height?: number;
     /**
-     * A description of what is in the image (not a caption). If the page specifies an og:image it should specify `og:image:alt`.
+     * `og:image:alt` - A description of what is in the image (not a caption). If the page specifies an og:image it should specify `og:image:alt`.
      */
     alt?: string;
+}
+
+/**
+ * The `og:video` or `OpenGraphMetadata::video` property can be any of the following:
+ *
+ * 1. String: A URL to a video file that complements this object.
+ * 2. Array of Strings: If a tag can have multiple values, just put multiple versions of the same `<meta>` tag on your page. The first tag (from top
+ *    to bottom) is given preference during conflicts.
+ * 3. OpenGraphVideoMetadata: The `OpenGraphVideoMetadata` class has some optional structured properties.
+ * 4. Array of OpenGraphVideoMetadatas: Put structured properties after you declare their root tag. Whenever another root element is parsed, that structured
+ *    property is considered to be done and another one is started.
+ * 5. Array of Strings or OpenGraphVideoMetadatas: Some images may be specified without any properties, including the `og:video:url` property.
+*/
+export type OpenGraphVideoMetadataUnion =
+| OpenGraphVideoMetadata
+| string
+| [OpenGraphVideoMetadata]
+| [string]
+| [OpenGraphVideoMetadata | string];
+
+/**
+ * The `OpenGraphVideoMetadata` class has some optional structured properties.
+ */
+export interface OpenGraphVideoMetadata {
+    /**
+     * `og:video` - A relevant video URL for your object.
+     */
+    url?: string;
+    /**
+     * `og:video:secure_url` - A relevant, secure video URL for your object.
+     */
+    secureUrl?: string;
+    /**
+     * `og:video:type` - The mime type of a video e.g., "application/x-shockwave-flash".
+     */
+    type?: string;
+    /**
+     * `og:video:width` - The width of a video.
+     */
+    width?: number;
+    /**
+     * `og:video:height` - The height of a video.
+     */
+    height?: number;
+}
+
+/**
+ * The `og:audio` or `OpenGraphMetadata::audio` property can be any of the following:
+ *
+ * 1. String: A URL to a audio file that complements this object.
+ * 2. Array of Strings: If a tag can have multiple values, just put multiple versions of the same `<meta>` tag on your page. The first tag (from top
+ *    to bottom) is given preference during conflicts.
+ * 3. OpenGraphAudioMetadata: The `OpenGraphAudioMetadata` class has some optional structured properties.
+ * 4. Array of OpenGraphAudioMetadatas: Put structured properties after you declare their root tag. Whenever another root element is parsed, that structured
+ *    property is considered to be done and another one is started.
+ * 5. Array of Strings or OpenGraphAudioMetadatas: Some images may be specified without any properties, including the `og:audio:url` property.
+*/
+export type OpenGraphAudioMetadataUnion =
+| OpenGraphAudioMetadata
+| string
+| [OpenGraphAudioMetadata]
+| [string]
+| [OpenGraphAudioMetadata | string];
+
+/**
+ * The `OpenGraphAudioMetadata` class has some optional structured properties.
+ */
+export interface OpenGraphAudioMetadata {
+    /**
+     * `og:video` - A relevant audio URL for your object.
+     */
+    url?: string;
+    /**
+     * `og:video:secure_url` - A relevant, secure audio URL for your object.
+     */
+    secureUrl?: string;
+    /**
+     * `og:video:type` - The mime type of an audio file e.g., "application/mp3".
+     */
+    type?: string;
+    /**
+     * `og:video:width` - The width of a video.
+     */
+    width?: number;
+    /**
+     * `og:video:height` - The height of a video.
+     */
+    height?: number;
 }
 
 export interface OpenGraphProperty {
@@ -92,30 +210,59 @@ export interface OpenGraphProperty {
 
 export type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
 
-export type OpenGraphMetadataUnion = OpenGraphBasicMetadata;
+export type OpenGraphMetadataUnion = OpenGraphMetadata;
 
 /**
  * This will read the first `<meta>` tag whose `property` attribute matches the value in the `propertyName` argument.
  * Per the protocol, the first tag (from top to bottom) is given preference during conflicts.
  * @param $ A `CheerioAPI` object.
- * @param propertyName
+ * @param propertyName The property name to find the first content value of.
+ * @returns A string unless there isn't any, then undefined.
  */
-function parseFirstOpenGraphMetaTagContentString($: CheerioAPI, propertyName: string): string | undefined {
+function parseFirstOpenGraphMetaTagContentStringMatching($: CheerioAPI, propertyName: string): string | undefined {
     const cssSelector = `meta[property="${propertyName}"]`;
-    const result = $(cssSelector);
-    if (result.length > 0) {
-        return result.attr('content');
+    const queryResult = $(cssSelector);
+    if (queryResult.length > 0) {
+        const content = queryResult.attr('content');
+        return content;
     }
     return undefined;
 }
 
-function parseOpenGraphImageMetaTags($: CheerioAPI): OpenGraphImageMetadataUnion | undefined {
-    const cssSelector = `meta[property="og:image"]`;
+/**
+ * This will read all `<meta>` tag whose `property` attribute matches the value in the `propertyName` argument.
+ * Per the protocol, the first tag (from top to bottom) is given preference during conflicts.
+ * @param $ A `CheerioAPI` object.
+ * @param propertyName The property name to find the all content values of.
+ * @returns An array of strings unless there are none, then undefined.
+ */
+function parseAllOpenGraphMetaTagContentStringsMatching($: CheerioAPI, propertyName: string): string[] | undefined {
+    const cssSelector = `meta[property="${propertyName}"]`;
+    let queryResult = $(cssSelector);
+    if (queryResult.length > 0) {
+        const returns: string[] = [];
+        do {
+            const property = queryResult.attr('property');
+            const content = queryResult.attr('content');
+            if (property === propertyName && content && content?.toString()) {
+                returns.push(content.toString());
+            }
+            queryResult = queryResult.next();
+        }
+        while (queryResult.length > 0);
+        return returns;
+    }
+    return undefined;
+}
+
+
+function parseOpenGraphImageMetaTags($: CheerioAPI, ogLabel: string): OpenGraphImageMetadataUnion | undefined {
+    const cssSelector = `meta[property="${ogLabel}"]`;
     let queryResult = $(cssSelector);
     const result: OpenGraphImageMetadataUnion | [] = [];
     if (queryResult.length > 0) {
         // let's track the most recent root element
-        let mostRecentImage: string | OpenGraphImageMetadata | undefined;
+        let mostRecentLabelRoot: string | OpenGraphImageMetadata | undefined;
 
         do {
             // re-read the property, it does match everything starting with og:image
@@ -123,46 +270,43 @@ function parseOpenGraphImageMetaTags($: CheerioAPI): OpenGraphImageMetadataUnion
             const content = queryResult.attr('content');
 
             // this is a new image root tag with a url value
-            if (property === 'og:image') {
+            if (property === ogLabel) {
                 // if there was a previous image root tag, add it to the result
-                if (mostRecentImage) {
-                    result.push(mostRecentImage as never);
+                if (mostRecentLabelRoot) {
+                    result.push(mostRecentLabelRoot as never);
                 }
-                mostRecentImage = content;
+                mostRecentLabelRoot = content;
             }
             // this is an image metadata tag
             else {
                 // convert any image root tags with only a url value into structures with a url field
-                if (typeof mostRecentImage === 'string') {
-                    mostRecentImage = { url: mostRecentImage };
-                } else if (typeof mostRecentImage === 'undefined') {
-                    mostRecentImage = {};
+                if (typeof mostRecentLabelRoot === 'string') {
+                    mostRecentLabelRoot = { url: mostRecentLabelRoot };
+                } else if (typeof mostRecentLabelRoot === 'undefined') {
+                    mostRecentLabelRoot = {};
                 }
                 // read further image metadata
                 switch (property) {
-                    case 'og:image:url':
-                        mostRecentImage = { url: content, ...(mostRecentImage as OpenGraphImageMetadata) };
+                    case `${ogLabel}:secure_url`:
+                        mostRecentLabelRoot = { secureUrl: content, ...(mostRecentLabelRoot as OpenGraphImageMetadata) };
                         break;
-                    case 'og:image:secure_url':
-                        mostRecentImage = { secureUrl: content, ...(mostRecentImage as OpenGraphImageMetadata) };
+                    case `${ogLabel}:type`:
+                        mostRecentLabelRoot = { type: content, ...(mostRecentLabelRoot as OpenGraphImageMetadata) };
                         break;
-                    case 'og:image:type':
-                        mostRecentImage = { type: content, ...(mostRecentImage as OpenGraphImageMetadata) };
-                        break;
-                    case 'og:image:width':
-                        mostRecentImage = {
-                            width: parseFloat(content?.replaceAll(/[\D]/g, '') || '') || undefined,
-                            ...(mostRecentImage as OpenGraphImageMetadata),
+                    case `${ogLabel}:width`:
+                        mostRecentLabelRoot = {
+                            width: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
+                            ...(mostRecentLabelRoot as OpenGraphImageMetadata),
                         };
                         break;
-                    case 'og:image:height':
-                        mostRecentImage = {
-                            height: parseFloat(content?.replaceAll(/[\D]/g, '') || '') || undefined,
-                            ...(mostRecentImage as OpenGraphImageMetadata),
+                    case `${ogLabel}:height`:
+                        mostRecentLabelRoot = {
+                            height: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
+                            ...(mostRecentLabelRoot as OpenGraphImageMetadata),
                         };
                         break;
-                    case 'og:image:alt':
-                        mostRecentImage = { alt: content, ...(mostRecentImage as OpenGraphImageMetadata) };
+                    case `${ogLabel}:alt`:
+                        mostRecentLabelRoot = { alt: content, ...(mostRecentLabelRoot as OpenGraphImageMetadata) };
                         break;
                     default:
                         break;
@@ -176,19 +320,162 @@ function parseOpenGraphImageMetaTags($: CheerioAPI): OpenGraphImageMetadataUnion
         } while (queryResult.length > 0);
 
         // if there was a previous image root tag, add it to the result
-        if (mostRecentImage) {
-            result.push(mostRecentImage as never);
+        if (mostRecentLabelRoot) {
+            result.push(mostRecentLabelRoot as never);
         }
     }
     return result.length ? (result as OpenGraphImageMetadataUnion) : undefined;
 }
 
-function parseOpenGraphBasicMetadata($: CheerioAPI): OpenGraphBasicMetadata {
+function parseOpenGraphVideoMetaTags($: CheerioAPI, ogLabel: string): OpenGraphVideoMetadataUnion | undefined {
+    const cssSelector = `meta[property="${ogLabel}"]`;
+    let queryResult = $(cssSelector);
+    const result: OpenGraphVideoMetadataUnion | [] = [];
+    if (queryResult.length > 0) {
+        // let's track the most recent root element
+        let mostRecentLabelRoot: string | OpenGraphVideoMetadata | undefined;
+
+        do {
+            // re-read the property, it does match everything starting with og:image
+            const property = queryResult.attr('property');
+            const content = queryResult.attr('content');
+
+            // this is a new image root tag with a url value
+            if (property === ogLabel) {
+                // if there was a previous image root tag, add it to the result
+                if (mostRecentLabelRoot) {
+                    result.push(mostRecentLabelRoot as never);
+                }
+                mostRecentLabelRoot = content;
+            }
+            // this is an video metadata tag
+            else {
+                // convert any video root tags with only a url value into structures with a url field
+                if (typeof mostRecentLabelRoot === 'string') {
+                    mostRecentLabelRoot = { url: mostRecentLabelRoot };
+                } else if (typeof mostRecentLabelRoot === 'undefined') {
+                    mostRecentLabelRoot = {};
+                }
+                // read further video metadata
+                switch (property) {
+                    case `${ogLabel}:secure_url`:
+                        mostRecentLabelRoot = { secureUrl: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
+                        break;
+                    case `${ogLabel}:type`:
+                        mostRecentLabelRoot = { type: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
+                        break;
+                    case `${ogLabel}:width`:
+                        mostRecentLabelRoot = {
+                            width: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
+                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
+                        };
+                        break;
+                    case `${ogLabel}:height`:
+                        mostRecentLabelRoot = {
+                            height: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
+                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
+                        };
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            // read the next result
+            queryResult = queryResult.next();
+
+            // loop until there are no more results
+        } while (queryResult.length > 0);
+
+        // if there was a previous image root tag, add it to the result
+        if (mostRecentLabelRoot) {
+            result.push(mostRecentLabelRoot as never);
+        }
+    }
+    return result.length ? (result as OpenGraphVideoMetadataUnion) : undefined;
+}
+
+function parseOpenGraphAudioMetaTags($: CheerioAPI, ogLabel: string): OpenGraphAudioMetadataUnion | undefined {
+    const cssSelector = `meta[property="${ogLabel}"]`;
+    let queryResult = $(cssSelector);
+    const result: OpenGraphAudioMetadataUnion | [] = [];
+    if (queryResult.length > 0) {
+        // let's track the most recent root element
+        let mostRecentLabelRoot: string | OpenGraphAudioMetadata | undefined;
+
+        do {
+            // re-read the property, it does match everything starting with og:image
+            const property = queryResult.attr('property');
+            const content = queryResult.attr('content');
+
+            // this is a new image root tag with a url value
+            if (property === ogLabel) {
+                // if there was a previous image root tag, add it to the result
+                if (mostRecentLabelRoot) {
+                    result.push(mostRecentLabelRoot as never);
+                }
+                mostRecentLabelRoot = content;
+            }
+            // this is an audio metadata tag
+            else {
+                // convert any video root tags with only a url value into structures with a url field
+                if (typeof mostRecentLabelRoot === 'string') {
+                    mostRecentLabelRoot = { url: mostRecentLabelRoot };
+                } else if (typeof mostRecentLabelRoot === 'undefined') {
+                    mostRecentLabelRoot = {};
+                }
+                // read further audio metadata
+                switch (property) {
+                    case `${ogLabel}:secure_url`:
+                        mostRecentLabelRoot = { secureUrl: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
+                        break;
+                    case `${ogLabel}:type`:
+                        mostRecentLabelRoot = { type: content, ...(mostRecentLabelRoot as OpenGraphVideoMetadata) };
+                        break;
+                    case `${ogLabel}:width`:
+                        mostRecentLabelRoot = {
+                            width: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
+                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
+                        };
+                        break;
+                    case `${ogLabel}:height`:
+                        mostRecentLabelRoot = {
+                            height: parseFloat(content?.replaceAll(/[\D\.]/g, '') || '') || undefined,
+                            ...(mostRecentLabelRoot as OpenGraphVideoMetadata),
+                        };
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            // read the next result
+            queryResult = queryResult.next();
+
+            // loop until there are no more results
+        } while (queryResult.length > 0);
+
+        // if there was a previous image root tag, add it to the result
+        if (mostRecentLabelRoot) {
+            result.push(mostRecentLabelRoot as never);
+        }
+    }
+    return result.length ? (result as OpenGraphAudioMetadataUnion) : undefined;
+}
+
+function parseOpenGraphMetadata($: CheerioAPI): OpenGraphMetadata {
     return {
-        image: parseOpenGraphImageMetaTags($),
-        title: parseFirstOpenGraphMetaTagContentString($, 'og:title'),
-        type: parseFirstOpenGraphMetaTagContentString($, 'og:type'),
-        url: parseFirstOpenGraphMetaTagContentString($, 'og:url'),
+        url: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:url'),
+        type: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:type'),
+        title: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:title'),
+        locale: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:locale'),
+        localeAlternate: parseAllOpenGraphMetaTagContentStringsMatching($, 'og:locale:alternate'),
+        image: parseOpenGraphImageMetaTags($, 'og:image'),
+        video: parseOpenGraphVideoMetaTags($, 'og:video'),
+        audio: parseOpenGraphAudioMetaTags($, 'og:audio'),
+        description: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:description'),
+        siteName: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:site_name'),
+        determiner: parseFirstOpenGraphMetaTagContentStringMatching($, 'og:determiner'),
     };
 }
 
@@ -255,89 +542,89 @@ const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
     //     outputName: 'url',
     //     children: [],
     // },
-    {
-        name: 'og:audio',
-        outputName: 'audio',
-        children: [
-            {
-                name: 'og:audio:url',
-                outputName: 'url',
-                children: [],
-            },
-            {
-                name: 'og:audio:secure_url',
-                outputName: 'secureUrl',
-                children: [],
-            },
-            {
-                name: 'og:audio:type',
-                outputName: 'type',
-                children: [],
-            },
-        ],
-    },
-    {
-        name: 'og:description',
-        outputName: 'description',
-        children: [],
-    },
-    {
-        name: 'og:determiner',
-        outputName: 'determiner',
-        children: [],
-    },
-    {
-        name: 'og:locale',
-        outputName: 'locale',
-        children: [
-            {
-                name: 'og:locale:alternate',
-                outputName: 'alternate',
-                children: [],
-            },
-        ],
-    },
-    {
-        name: 'og:site_name',
-        outputName: 'siteName',
-        children: [],
-    },
-    {
-        name: 'og:video',
-        outputName: 'video',
-        children: [
-            {
-                name: 'og:video:url',
-                outputName: 'url',
-                children: [],
-            },
-            {
-                name: 'og:video:secure_url',
-                outputName: 'secureUrl',
-                children: [],
-            },
-            {
-                name: 'og:video:type',
-                outputName: 'type',
-                children: [],
-            },
-            {
-                name: 'og:video:width',
-                outputName: 'width',
-                children: [],
-            },
-            {
-                name: 'og:video:height',
-                outputName: 'height',
-                children: [],
-            },
-            {
-                name: 'og:video:alt',
-                outputName: 'alt',
-                children: [],
-            },
-        ],
-    },
+    // {
+    //     name: 'og:audio',
+    //     outputName: 'audio',
+    //     children: [
+    //         {
+    //             name: 'og:audio:url',
+    //             outputName: 'url',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:audio:secure_url',
+    //             outputName: 'secureUrl',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:audio:type',
+    //             outputName: 'type',
+    //             children: [],
+    //         },
+    //     ],
+    // },
+    // {
+    //     name: 'og:description',
+    //     outputName: 'description',
+    //     children: [],
+    // },
+    // {
+    //     name: 'og:determiner',
+    //     outputName: 'determiner',
+    //     children: [],
+    // },
+    // {
+    //     name: 'og:locale',
+    //     outputName: 'locale',
+    //     children: [
+    //         {
+    //             name: 'og:locale:alternate',
+    //             outputName: 'alternate',
+    //             children: [],
+    //         },
+    //     ],
+    // },
+    // {
+    //     name: 'og:site_name',
+    //     outputName: 'siteName',
+    //     children: [],
+    // },
+    // {
+    //     name: 'og:video',
+    //     outputName: 'video',
+    //     children: [
+    //         {
+    //             name: 'og:video:url',
+    //             outputName: 'url',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:video:secure_url',
+    //             outputName: 'secureUrl',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:video:type',
+    //             outputName: 'type',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:video:width',
+    //             outputName: 'width',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:video:height',
+    //             outputName: 'height',
+    //             children: [],
+    //         },
+    //         {
+    //             name: 'og:video:alt',
+    //             outputName: 'alt',
+    //             children: [],
+    //         },
+    //     ],
+    // },
     // The properties below aren't prefixed with "og".
     // Part of the reason the properties have been hardcoded is because not all OpenGraph properties start with "og".
     // Especially the newer ones that extend "og:type".
@@ -533,6 +820,8 @@ const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
                 children: [],
             },
         ],
+        //TODO: Include other deprecated properties such as geo:lat, geo:long, vcard:street-address, foaf:phone, isbn, upc, etc.
+        //As seen at https://ogp.me/ns/ogp.me.ttl.
     },
 ];
 
@@ -585,19 +874,19 @@ export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?:
 
     let ogrDict: Dictionary<OpenGraphResult> = {};
 
-    // Parse basic metadata
-    const basicMetaData: OpenGraphBasicMetadata = parseOpenGraphBasicMetadata($);
+    // Parse metadata
+    const basicMetaData: OpenGraphMetadata = parseOpenGraphMetadata($);
     ogrDict = Object.assign(ogrDict, basicMetaData);
 
     // // Assemble open graph properties to search for
-    // let props = [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES];
+    let props = [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES];
 
     // Determine cardinality of each element
     // props = props.map((prop) => {
     // });
     ogrDict = Object.assign(
         ogrDict,
-        [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce(
+        props.reduce(
             (acc, curr) => {
                 return {
                     ...acc,
