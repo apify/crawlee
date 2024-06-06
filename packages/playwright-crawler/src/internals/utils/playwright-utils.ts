@@ -827,11 +827,11 @@ export function registerUtilsToContext(
         await injectJQuery(context.page, { surviveNavigations: false });
     };
     context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.waitForSelector = async (selector: string, timeoutMs?: number) => {
+    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
         const locator = context.page.locator(selector).first();
         await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
     };
-    context.parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
+    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
         if (selector) {
             await context.waitForSelector(selector, timeoutMs);
         }

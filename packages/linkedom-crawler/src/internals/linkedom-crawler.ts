@@ -55,7 +55,7 @@ export interface LinkeDOMCrawlingContext<
     document: Document;
 
     /**
-     * Wait for an element matching the selector to appear. Timeout is ignored.
+     * Wait for an element matching the selector to appear.
      * Timeout defaults to 5s.
      *
      * **Example usage:**
