@@ -20,7 +20,8 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type * as cheerio from 'cheerio';
+import { type CheerioRoot, sleep } from '@crawlee/utils';
+import * as cheerio from 'cheerio';
 // @ts-expect-error This throws a compilation error due to TypeScript not inferring the module has CJS versions too
 import { DOMParser } from 'linkedom/cached';
 
@@ -54,7 +55,23 @@ export interface LinkeDOMCrawlingContext<
     document: Document;
 
     /**
+     * Wait for an element matching the selector to appear. Timeout is ignored.
+     * Timeout defaults to 5s.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
      * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it will first look for the selector with a 5s timeout.
      *
      * **Example usage:**
      * ```javascript
@@ -64,7 +81,7 @@ export interface LinkeDOMCrawlingContext<
      * });
      * ```
      */
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
 export type LinkeDOMRequestHandler<
@@ -174,6 +191,32 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
                 });
             },
         };
+    }
+
+    override async _runRequestHandler(context: LinkeDOMCrawlingContext) {
+        context.waitForSelector = async (selector: string, timeoutMs?: number) => {
+            const $ = cheerio.load(context.body);
+
+            if ($(selector).get().length === 0) {
+                if (timeoutMs) {
+                    await sleep(50);
+                    return context.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
+                }
+
+                throw new Error(`Selector '${selector}' not found.`);
+            }
+        };
+        context.parseWithCheerio = async (selector?: string, _timeoutMs?: number) => {
+            const $ = cheerio.load(context.body);
+
+            if (selector && $(selector).get().length === 0) {
+                throw new Error(`Selector '${selector}' not found.`);
+            }
+
+            return $;
+        };
+
+        await super._runRequestHandler(context);
     }
 }
 

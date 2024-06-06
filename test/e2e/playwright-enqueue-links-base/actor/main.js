@@ -16,7 +16,7 @@ await Actor.main(async () => {
         async requestHandler({ parseWithCheerio, enqueueLinks, request, log }) {
             const { url, loadedUrl } = request;
 
-            const $ = await parseWithCheerio();
+            const $ = await parseWithCheerio('title', 1_000);
             const pageTitle = $('title').first().text();
             log.info(`URL: ${url}; LOADED_URL: ${loadedUrl}; TITLE: ${pageTitle}`);
             await Dataset.pushData({ url, loadedUrl, pageTitle });

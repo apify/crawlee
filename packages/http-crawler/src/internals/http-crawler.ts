@@ -28,7 +28,7 @@ import {
     SessionError,
 } from '@crawlee/basic';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { RETRY_CSS_SELECTORS, gotScraping } from '@crawlee/utils';
+import { RETRY_CSS_SELECTORS, gotScraping, type CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
@@ -215,7 +215,33 @@ export interface InternalHttpCrawlingContext<
     contentType: { type: string; encoding: BufferEncoding };
     response: PlainResponse;
 
-    parseWithCheerio(): Promise<cheerio.CheerioAPI>;
+    /**
+     * Wait for an element matching the selector to appear. Timeout is ignored.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it will throw if it's not available.
+     *
+     * **Example usage:**
+     * ```ts
+     * async requestHandler({ parseWithCheerio }) {
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 }
 
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
@@ -488,7 +514,22 @@ export class HttpCrawler<
             tryCancel();
 
             // `??=` because descendant classes may already set optimized version
-            crawlingContext.parseWithCheerio ??= async () => cheerio.load(parsed.body!.toString());
+            crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
+                const $ = cheerio.load(parsed.body!.toString());
+
+                if ($(selector).get().length === 0) {
+                    throw new Error(`Selector '${selector}' not found.`);
+                }
+            };
+            crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
+                const $ = cheerio.load(parsed.body!.toString());
+
+                if (selector) {
+                    await crawlingContext.waitForSelector(selector, timeoutMs);
+                }
+
+                return $;
+            };
 
             if (this.useSessionPool) {
                 this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
