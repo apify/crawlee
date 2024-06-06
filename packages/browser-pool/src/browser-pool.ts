@@ -364,7 +364,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount = 100,
             operationTimeoutSecs = 15,
             closeInactiveBrowserAfterSecs = 300,
-            retireInactiveBrowserAfterSecs = 1,
+            retireInactiveBrowserAfterSecs = 10,
             preLaunchHooks = [],
             postLaunchHooks = [],
             prePageCreateHooks = [],
