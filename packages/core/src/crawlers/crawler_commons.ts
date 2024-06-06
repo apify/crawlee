@@ -14,7 +14,6 @@ import { KeyValueStore } from '../storages';
 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
     // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
-    // eslint-disable-next-line
     extends Record<string & {}, unknown> {
     /**
      * The original {@apilink Request} object.
