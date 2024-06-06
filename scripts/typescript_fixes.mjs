@@ -23,6 +23,8 @@ for (const filepath of files) {
             line.match(/: Puppeteer\.\w+/) ||
             // don't ask me why, but this one is needed too ¯\_(ツ)_/¯
             line.match(/^export interface (PlaywrightHook|PuppeteerHook)/) ||
+            // adaptive crawler needs router override that is incompatible with the base type
+            line.match(/readonly router: RouterHandler<AdaptivePlaywrightCrawlerContext>/) ||
             // /// <reference types="something" /> from newer nodenext resolutions
             line.match(/^\/\/\/ <reference types="[^"]+" \/>/) ||
             // import("something") from compatibility with ES2022 module -.-
