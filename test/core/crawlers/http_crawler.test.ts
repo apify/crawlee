@@ -114,7 +114,7 @@ test('parseWithCheerio works', async () => {
     const crawler = new HttpCrawler({
         maxRequestRetries: 0,
         requestHandler: async ({ parseWithCheerio }) => {
-            const $ = await parseWithCheerio();
+            const $ = await parseWithCheerio('title');
             results.push($('title').text());
         },
     });

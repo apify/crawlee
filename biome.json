@@ -13,7 +13,7 @@
 		"formatter": {
 			"quoteStyle": "single",
 			"semicolons": "always",
-			"trailingComma": "all",
+			"trailingCommas": "all",
 			"lineWidth": 120,
 			"indentStyle": "space",
 			"indentWidth": 4,
