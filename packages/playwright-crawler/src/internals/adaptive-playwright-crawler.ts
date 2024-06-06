@@ -404,10 +404,10 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
                                                 return playwrightContext.parseWithCheerio();
                                             },
-                                            async enqueueLinks(options = {}) {
+                                            async enqueueLinks(options = {}, timeoutMs = 5_000) {
                                                 const selector = options.selector ?? 'a';
                                                 const locator = playwrightContext.page.locator(selector).first();
-                                                await locator.waitFor();
+                                                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
 
                                                 const urls = await extractUrlsFromPage(
                                                     playwrightContext.page,
