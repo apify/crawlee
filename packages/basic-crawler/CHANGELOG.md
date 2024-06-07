@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.10.3](https://github.com/apify/crawlee/compare/v3.10.2...v3.10.3) (2024-06-07)
+
+
+### Features
+
+* log desired concurrency in the default status message ([9f0b796](https://github.com/apify/crawlee/commit/9f0b79684d9e27e6ba29634e7da2e9a095367eda))
+
+
+
+
+
 ## [3.10.2](https://github.com/apify/crawlee/compare/v3.10.1...v3.10.2) (2024-06-03)
 
 **Note:** Version bump only for package @crawlee/basic
