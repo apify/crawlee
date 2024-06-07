@@ -97,7 +97,7 @@ export interface ConfigurationOptions {
 
     /**
      Defines the interval of emitting the `systemInfo` event.
-     @default 60_000
+     @default 1_000
      */
     systemInfoIntervalMillis?: number;
 
