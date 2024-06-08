@@ -364,7 +364,7 @@ export function parseOpenGraphStructuredObjectMatching<R1, R2 extends Dictionary
             result.push(mostRecentLabelRoot as never);
         }
     }
-    return result.length ? (result.length > 1 ? result : result[0]) as R1 | R2 | R1[] | R2[] | [R1 | R2] : undefined;
+    return result.length ? ((result.length > 1 ? result : result[0]) as R1 | R2 | R1[] | R2[] | [R1 | R2]) : undefined;
 }
 
 export function parseOpenGraphMetadata($: CheerioAPI): OpenGraphMetadata {
@@ -471,24 +471,18 @@ export function parseOpenGraphMetadata($: CheerioAPI): OpenGraphMetadata {
         description: parseFirstOpenGraphMetaTagContentMatching($, 'og:description'),
         siteName: parseFirstOpenGraphMetaTagContentMatching($, 'og:site_name'),
         determiner: parseFirstOpenGraphMetaTagContentMatching($, 'og:determiner'),
-        geo: parseOpenGraphStructuredObjectMatching<any, OpenGraphGeoMetadata>(
-            $,
-            'og:geo',
-            '',
-            undefined,
-            [
-                {
-                    ogPropertyName: 'og:geo:lat',
-                    mapPropertyName: 'latitude',
-                    onStructuredPropertyFound: parseNumber as OpenGraphParseHandler<string>,
-                },
-                {
-                    ogPropertyName: 'og:geo:long',
-                    mapPropertyName: 'longitude',
-                    onStructuredPropertyFound: parseNumber as OpenGraphParseHandler<string>,
-                }
-            ],
-        ),
+        geo: parseOpenGraphStructuredObjectMatching<any, OpenGraphGeoMetadata>($, 'og:geo', '', undefined, [
+            {
+                ogPropertyName: 'og:geo:lat',
+                mapPropertyName: 'latitude',
+                onStructuredPropertyFound: parseNumber as OpenGraphParseHandler<string>,
+            },
+            {
+                ogPropertyName: 'og:geo:long',
+                mapPropertyName: 'longitude',
+                onStructuredPropertyFound: parseNumber as OpenGraphParseHandler<string>,
+            },
+        ]),
     };
 }
 
