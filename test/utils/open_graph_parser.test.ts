@@ -54,6 +54,12 @@ describe('parseOpenGraph', () => {
         <meta property="og:video" content="https://www.youtube.com/watch?v=313n0wga2xo" />
         <meta property="og:video:height" content="1080" />`;
 
+    const case9 = `
+        <!-- deprecated properties -->
+        <meta property="og:geo:lat" content="50.081534" />
+        <meta property="og:geo:long" content="14.426464" />
+    `;
+
     it('Should scrape properties', () => {
         expect(parseOpenGraph(case1)).toEqual({
             title: 'Under Pressure',
@@ -162,6 +168,17 @@ describe('parseOpenGraph', () => {
                     height: 1080,
                 },
             ],
+        });
+    });
+
+    it('Should parse deprecated geo:lat and geo:long', () => {
+        const parsed = parseOpenGraph(case9);
+
+        expect(parsed).toEqual({
+            geo: {
+                latitude: 50.081534,
+                longitude: 14.426464,
+            },
         });
     });
 });
