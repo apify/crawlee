@@ -477,7 +477,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     running = false;
     hasFinishedBefore = false;
 
-    protected log: Log;
+    readonly log: Log;
     protected requestHandler!: RequestHandler<Context>;
     protected errorHandler?: ErrorHandler<Context>;
     protected failedRequestHandler?: ErrorHandler<Context>;

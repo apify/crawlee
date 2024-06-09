@@ -694,6 +694,7 @@ export class HttpCrawler<
         gotOptions,
     }: RequestFunctionOptions): Promise<PlainResponse> {
         if (!TimeoutError) {
+            // @ts-ignore
             ({ TimeoutError } = await import('got-scraping'));
         }
 
