@@ -349,7 +349,7 @@ export class ProxyConfiguration {
             typeof request.userData.__crawlee.lastProxyTier === 'number' &&
             request.userData.__crawlee.lastProxyTier !== tierPrediction
         ) {
-            log.info(
+            log.debug(
                 `Changing proxy tier for domain "${domain}" from ${request.userData.__crawlee.lastProxyTier} to ${tierPrediction}.`,
             );
         }
