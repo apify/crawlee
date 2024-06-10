@@ -114,9 +114,9 @@
         "vite-tsconfig-paths": "^4.3.2",
         "vitest": "^1.4.0"
     },
-    "packageManager": "yarn@4.2.2",
+    "packageManager": "yarn@4.3.0",
     "volta": {
         "node": "20.14.0",
-        "yarn": "4.2.2"
+        "yarn": "4.3.0"
     }
 }
