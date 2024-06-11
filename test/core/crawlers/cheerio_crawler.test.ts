@@ -252,7 +252,7 @@ describe('CheerioCrawler', () => {
     });
 
     test('should serialize body and html', async () => {
-        expect.assertions(2);
+        expect.assertions(3);
         const sources = [`${serverAddress}/special/html-type`];
         const requestList = await RequestList.open(null, sources);
 
@@ -260,8 +260,10 @@ describe('CheerioCrawler', () => {
             requestList,
             maxRequestRetries: 0,
             maxConcurrency: 1,
-            requestHandler: ({ $, body }) => {
+            requestHandler: ({ $, body, request }) => {
                 expect(body).toBe(responseSamples.html);
+                // test that `request.loadedUrl` is no longer optional
+                expect(request.loadedUrl.length).toBe(sources[0].length);
                 expect($.html()).toBe(body);
             },
         });

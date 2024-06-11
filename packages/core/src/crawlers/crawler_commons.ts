@@ -12,6 +12,21 @@ import type { Session } from '../session_pool/session';
 import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
+/** @internal */
+export type IsAny<T> = 0 extends 1 & T ? true : false;
+
+/** @internal */
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+
+export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
+
+/** @internal */
+export type LoadedContext<Context extends RestrictedCrawlingContext> = IsAny<Context> extends true
+    ? Context
+    : {
+          request: LoadedRequest<Context['request']>;
+      } & Omit<Context, 'request'>;
+
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
     // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
     extends Record<string & {}, unknown> {

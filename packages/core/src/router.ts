@@ -1,6 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
 
-import type { CrawlingContext, RestrictedCrawlingContext } from './crawlers/crawler_commons';
+import type { CrawlingContext, LoadedRequest, RestrictedCrawlingContext } from './crawlers/crawler_commons';
 import { MissingRouteError } from './errors';
 import type { Request } from './request';
 import type { Awaitable } from './typedefs';
@@ -84,7 +84,7 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  * ```
  */
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>> {
-    private readonly routes: Map<string | symbol, (ctx: Context) => Awaitable<void>> = new Map();
+    private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
     private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
     /**
@@ -98,7 +98,7 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: string | symbol,
-        handler: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>,
+        handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
     ) {
         this.validate(label);
         this.routes.set(label, handler);
@@ -108,7 +108,7 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
      * Registers default route handler.
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        handler: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>,
+        handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
     ) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
