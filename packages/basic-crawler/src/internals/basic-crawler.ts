@@ -667,6 +667,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.handledRequestsCount = 0;
         this.stats = new Statistics({
             logMessage: `${log.getOptions().prefix} request statistics:`,
+            log,
             config,
             ...statisticsOptions,
         });
