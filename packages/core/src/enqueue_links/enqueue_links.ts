@@ -151,6 +151,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * @default EnqueueStrategy.SameHostname
      */
     strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+
+    /**
+     * By default, only the first batch (1000) of found requests will be added to the queue before resolving the call.
+     * You can use this option to wait for adding all of them.
+     */
+    waitForAllRequestsToBeAdded?: boolean;
 }
 
 /**
@@ -264,11 +270,22 @@ export async function enqueueLinks(
             regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
+            waitForAllRequestsToBeAdded: ow.optional.boolean,
         }),
     );
 
-    const { requestQueue, limit, urls, pseudoUrls, exclude, globs, regexps, transformRequestFunction, forefront } =
-        options;
+    const {
+        requestQueue,
+        limit,
+        urls,
+        pseudoUrls,
+        exclude,
+        globs,
+        regexps,
+        transformRequestFunction,
+        forefront,
+        waitForAllRequestsToBeAdded,
+    } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
@@ -371,7 +388,10 @@ export async function enqueueLinks(
     let requests = createFilteredRequests();
     if (limit) requests = requests.slice(0, limit);
 
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+    const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
+        forefront,
+        waitForAllRequestsToBeAdded,
+    });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }
