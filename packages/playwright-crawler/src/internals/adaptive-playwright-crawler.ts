@@ -224,7 +224,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         Router.create<AdaptivePlaywrightCrawlerContext>();
 
     constructor(
-        options: AdaptivePlaywrightCrawlerOptions,
+        options: AdaptivePlaywrightCrawlerOptions = {},
         override readonly config = Configuration.getGlobalConfig(),
     ) {
         const {
