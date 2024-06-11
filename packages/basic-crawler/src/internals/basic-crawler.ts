@@ -1260,6 +1260,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             },
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
+            useState: this.useState.bind(this),
             sendRequest: async (overrideOptions?: OptionsInit) => {
                 const cookieJar = session
                     ? {

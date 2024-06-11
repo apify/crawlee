@@ -75,7 +75,13 @@ describe('PlaywrightCrawler', () => {
             const processed: Request[] = [];
             const failed: Request[] = [];
             const requestListLarge = await RequestList.open({ sources: sourcesLarge });
-            const requestHandler = async ({ page, request, response }: Parameters<PlaywrightRequestHandler>[0]) => {
+            const requestHandler = async ({
+                page,
+                request,
+                response,
+                useState,
+            }: Parameters<PlaywrightRequestHandler>[0]) => {
+                const state = await useState([]);
                 expect(response.status()).toBe(200);
                 request.userData.title = await page.title();
                 processed.push(request);
