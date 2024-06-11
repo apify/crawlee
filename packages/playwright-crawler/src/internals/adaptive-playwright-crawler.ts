@@ -300,6 +300,12 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
         crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
         this.stats.trackBrowserRequestHandlerRun();
 
+        // Keep a copy of the `useState` value, we need to use the old state when trying the HTTP handler to have
+        // the same outcome. We don't need to care about its persistence, since we only run this for detection
+        // purposes. We read the value directly instead of using `useState` so there are no side effects.
+        const kvs = await crawlingContext.getKeyValueStore();
+        const oldState = await kvs.getValue(AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
+        const oldStateCopy = JSON.parse(JSON.stringify(oldState));
         const browserRun = await this.runRequestHandlerInBrowser(crawlingContext);
 
         if (!browserRun.ok) {
@@ -310,7 +316,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
         if (shouldDetectRenderingType) {
             crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
-            const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext);
+            const plainHTTPRun = await this.runRequestHandlerWithPlainHTTP(crawlingContext, oldStateCopy);
 
             const detectionResult: RenderingType = (() => {
                 if (!plainHTTPRun.ok) {
@@ -438,6 +444,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
 
     protected async runRequestHandlerWithPlainHTTP(
         crawlingContext: PlaywrightCrawlingContext,
+        oldStateCopy?: Dictionary,
     ): Promise<Result<RequestHandlerResult>> {
         const result = new RequestHandlerResult(this.config, AdaptivePlaywrightCrawler.CRAWLEE_STATE_KEY);
         const logs: LogProxyCall[] = [];
@@ -490,7 +497,15 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 },
                                 addRequests: result.addRequests,
                                 pushData: result.pushData,
-                                useState: this.allowStorageAccess(result.useState),
+                                useState: async (defaultValue) => {
+                                    // return the old state before the browser handler was executed
+                                    // when rerunning the handler via HTTP for detection
+                                    if (oldStateCopy !== undefined) {
+                                        return oldStateCopy ?? defaultValue; // fallback to the default for `null`
+                                    }
+
+                                    return this.allowStorageAccess(result.useState)(defaultValue);
+                                },
                                 getKeyValueStore: this.allowStorageAccess(result.getKeyValueStore),
                             }),
                         this.requestHandlerTimeoutInnerMillis,
