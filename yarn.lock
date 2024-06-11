@@ -545,9 +545,16 @@ __metadata:
     "@crawlee/types": "npm:3.10.4"
     "@crawlee/utils": "npm:3.10.4"
     ow: "npm:^0.28.1"
-    playwright: "npm:1.44.1"
     tslib: "npm:^2.4.0"
     type-fest: "npm:^4.0.0"
+  peerDependencies:
+    playwright: "*"
+    puppeteer: "*"
+  peerDependenciesMeta:
+    playwright:
+      optional: true
+    puppeteer:
+      optional: true
   languageName: unknown
   linkType: soft
 

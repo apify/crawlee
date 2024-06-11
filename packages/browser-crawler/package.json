@@ -61,5 +61,17 @@
         "ow": "^0.28.1",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"
+    },
+    "peerDependencies": {
+        "playwright": "*",
+        "puppeteer": "*"
+    },
+    "peerDependenciesMeta": {
+        "playwright": {
+            "optional": true
+        },
+        "puppeteer": {
+            "optional": true
+        }
     }
 }
