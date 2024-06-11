@@ -26,8 +26,11 @@ import type { Browser, BrowserType, LaunchOptions } from 'playwright';
  * ```
  */
 export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {
-    /** `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype#browser-type-launch) */
-    launchOptions?: LaunchOptions;
+    /**
+     * `browserType.launch` [options](https://playwright.dev/docs/api/class-browsertype#browser-type-launch) or
+     * `browserType.launchContextOptions` [options](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-persistent-context)
+     */
+    launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1];
 
     /**
      * URL to a HTTP proxy server. It must define the port number,
@@ -84,6 +87,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: ow.optional.object,
+        launchContextOptions: ow.optional.object,
     };
 
     /**
