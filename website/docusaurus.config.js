@@ -232,9 +232,9 @@ module.exports = {
         },
         announcementBar: {
             id: 'crawlee_webinar',
-            content: 'Join us for a free webinar about Crawlee at <a href="https://apify.com/resources/scraping-with-crawlee"> 9 AM EST on June 12th, 2024</a> to learn how to build reliable web scrapers fast!',
+            content: 'Learn about Crawlee new features and best practices from @B4nan, our lead maintainer. Join us live at 9 AM EST on June 12th. <a href="https://apify.com/resources/scraping-with-crawlee"> Sign Up now!</a>',
             backgroundColor: '#1a1b23',
-            textColor: '#8d92af',
+            textColor: '#ffffff',
             isCloseable: false,
         },
         colorMode: {
