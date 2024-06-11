@@ -26,6 +26,7 @@ import type {
     Source,
     StatisticState,
     StatisticsOptions,
+    LoadedContext,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -99,11 +100,11 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (
-    inputs: Context,
+    inputs: LoadedContext<Context>,
 ) => Awaitable<void>;
 
 export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (
-    inputs: Context,
+    inputs: LoadedContext<Context>,
     error: Error,
 ) => Awaitable<void>;
 
@@ -140,7 +141,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<Context>;
+    requestHandler?: RequestHandler<LoadedContext<Context>>;
 
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -472,7 +473,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
-    readonly router: RouterHandler<Context> = Router.create<Context>();
+    readonly router: RouterHandler<LoadedContext<Context>> = Router.create<LoadedContext<Context>>();
 
     running = false;
     hasFinishedBefore = false;
@@ -1079,7 +1080,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     protected async _runRequestHandler(crawlingContext: Context): Promise<void> {
-        await this.requestHandler(crawlingContext);
+        await this.requestHandler(crawlingContext as LoadedContext<Context>);
     }
 
     /**
@@ -1554,7 +1555,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             configurable: true,
         });
 
-        return context;
+        return context as LoadedContext<Context>;
     }
 
     /**

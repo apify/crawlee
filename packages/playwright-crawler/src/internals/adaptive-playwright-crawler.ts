@@ -1,6 +1,12 @@
 import type { Log } from '@apify/log';
 import { addTimeoutToPromise } from '@apify/timeout';
-import { extractUrlsFromPage, type RouterHandler } from '@crawlee/browser';
+import {
+    extractUrlsFromPage,
+    type LoadedContext,
+    type LoadedRequest,
+    type Request,
+    type RouterHandler,
+} from '@crawlee/browser';
 import type {
     RestrictedCrawlingContext,
     StatisticState,
@@ -131,7 +137,7 @@ export interface AdaptivePlaywrightCrawlerOptions
      * If the function throws an exception, the crawler will try to re-crawl the
      * request later, up to `option.maxRequestRetries` times.
      */
-    requestHandler?: (crawlingContext: AdaptivePlaywrightCrawlerContext) => Awaitable<void>;
+    requestHandler?: (crawlingContext: LoadedContext<AdaptivePlaywrightCrawlerContext>) => Awaitable<void>;
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -386,7 +392,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                             id: crawlingContext.id,
                                             session: crawlingContext.session,
                                             proxyInfo: crawlingContext.proxyInfo,
-                                            request: crawlingContext.request,
+                                            request: crawlingContext.request as LoadedRequest<Request>,
                                             log: crawlingContext.log,
                                             querySelector: async (selector, timeoutMs = 5_000) => {
                                                 const locator = playwrightContext.page.locator(selector).first();
@@ -468,7 +474,7 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
                                 id: crawlingContext.id,
                                 session: crawlingContext.session,
                                 proxyInfo: crawlingContext.proxyInfo,
-                                request: crawlingContext.request,
+                                request: crawlingContext.request as LoadedRequest<Request>,
                                 log: this.createLogProxy(crawlingContext.log, logs),
                                 async querySelector(selector, _timeoutMs?: number) {
                                     return $(selector) as Cheerio<Element>;

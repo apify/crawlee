@@ -10,6 +10,7 @@ import type {
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
+    LoadedContext,
     ProxyConfiguration,
     Request,
     RequestHandler,
@@ -572,7 +573,7 @@ export class HttpCrawler<
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
-                async () => Promise.resolve(this.requestHandler(crawlingContext)),
+                async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
                 this.userRequestHandlerTimeoutMillis,
                 `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
             );
