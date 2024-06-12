@@ -3678,12 +3678,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn-import-assertions@npm:^1.9.0":
-  version: 1.9.0
-  resolution: "acorn-import-assertions@npm:1.9.0"
+"acorn-import-attributes@npm:^1.9.5":
+  version: 1.9.5
+  resolution: "acorn-import-attributes@npm:1.9.5"
   peerDependencies:
     acorn: ^8
-  checksum: 10c0/3b4a194e128efdc9b86c2b1544f623aba4c1aa70d638f8ab7dc3971a5b4aa4c57bd62f99af6e5325bb5973c55863b4112e708a6f408bad7a138647ca72283afe
+  checksum: 10c0/5926eaaead2326d5a86f322ff1b617b0f698aa61dc719a5baa0e9d955c9885cc71febac3fb5bacff71bbf2c4f9c12db2056883c68c53eb962c048b952e1e013d
   languageName: node
   linkType: hard
 
@@ -5883,9 +5883,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.796":
-  version: 1.4.798
-  resolution: "electron-to-chromium@npm:1.4.798"
-  checksum: 10c0/0941f9d9e28d7c26fd96a429126782c79811ea0b96f3dc8953cfef83b7f0d3856cbfe0ceb3fae9e619d49ddb990e2c3505147c663ac9cd8e8189c3d2da658edc
+  version: 1.4.799
+  resolution: "electron-to-chromium@npm:1.4.799"
+  checksum: 10c0/d347e48f8844f983ab91a7a20455013731e91dabe01286bc77f0b8ec5e1d3158aca2473da79209890d139bb3a166019147ffdb9f5c8fbf5564fbf416aaaf6ed8
   languageName: node
   linkType: hard
 
@@ -5955,7 +5955,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"enhanced-resolve@npm:^5.12.0, enhanced-resolve@npm:^5.16.0":
+"enhanced-resolve@npm:^5.12.0, enhanced-resolve@npm:^5.17.0":
   version: 5.17.0
   resolution: "enhanced-resolve@npm:5.17.0"
   dependencies:
@@ -14048,8 +14048,8 @@ __metadata:
   linkType: hard
 
 "webpack@npm:^5.88.1":
-  version: 5.91.0
-  resolution: "webpack@npm:5.91.0"
+  version: 5.92.0
+  resolution: "webpack@npm:5.92.0"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.3"
     "@types/estree": "npm:^1.0.5"
@@ -14057,10 +14057,10 @@ __metadata:
     "@webassemblyjs/wasm-edit": "npm:^1.12.1"
     "@webassemblyjs/wasm-parser": "npm:^1.12.1"
     acorn: "npm:^8.7.1"
-    acorn-import-assertions: "npm:^1.9.0"
+    acorn-import-attributes: "npm:^1.9.5"
     browserslist: "npm:^4.21.10"
     chrome-trace-event: "npm:^1.0.2"
-    enhanced-resolve: "npm:^5.16.0"
+    enhanced-resolve: "npm:^5.17.0"
     es-module-lexer: "npm:^1.2.1"
     eslint-scope: "npm:5.1.1"
     events: "npm:^3.2.0"
@@ -14080,7 +14080,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 10c0/74a3e0ea1c9a492accf035317f31769ffeaaab415811524b9f17bc7bf7012c5b6e1a9860df5ca6903f3ae2618727b801eb47d9351a2595dfffb25941d368b88c
+  checksum: 10c0/588de5ce6f1e8fb4fec7300c2c36a8fc844fe71f4c871b06aca1a68553bea8f6479697615abb53cbbeb2e3859fc1b982f2f48ff23dd0e60024f69bb3d46d0712
   languageName: node
   linkType: hard
 
