@@ -5883,9 +5883,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.796":
-  version: 1.4.799
-  resolution: "electron-to-chromium@npm:1.4.799"
-  checksum: 10c0/d347e48f8844f983ab91a7a20455013731e91dabe01286bc77f0b8ec5e1d3158aca2473da79209890d139bb3a166019147ffdb9f5c8fbf5564fbf416aaaf6ed8
+  version: 1.4.800
+  resolution: "electron-to-chromium@npm:1.4.800"
+  checksum: 10c0/94bb64af4f8dc4f45adbd4249432082b5a3f8e8aa538004c1b3473de985bbd355c08d700b036e2bdaf105639ee25daf1513fd6596329b47c1e9315557aa95aae
   languageName: node
   linkType: hard
 
@@ -6919,12 +6919,12 @@ __metadata:
   linkType: hard
 
 "foreground-child@npm:^3.1.0":
-  version: 3.1.1
-  resolution: "foreground-child@npm:3.1.1"
+  version: 3.2.0
+  resolution: "foreground-child@npm:3.2.0"
   dependencies:
     cross-spawn: "npm:^7.0.0"
     signal-exit: "npm:^4.0.1"
-  checksum: 10c0/9700a0285628abaeb37007c9a4d92bd49f67210f09067638774338e146c8e9c825c5c877f072b2f75f41dc6a2d0be8664f79ffc03f6576649f54a84fb9b47de0
+  checksum: 10c0/4d577377847064ed101cc9fffd286a8838ceae5a0a137152bb27332987f799244a8afe30d1fe36b22e1ae30fa0972abe4a73d0d8dc91c40cdc9dfe441f7b325e
   languageName: node
   linkType: hard
 
@@ -9113,13 +9113,13 @@ __metadata:
   linkType: hard
 
 "marked-smartypants@npm:^1.1.5":
-  version: 1.1.6
-  resolution: "marked-smartypants@npm:1.1.6"
+  version: 1.1.7
+  resolution: "marked-smartypants@npm:1.1.7"
   dependencies:
     smartypants: "npm:^0.2.2"
   peerDependencies:
-    marked: ">=4 <13"
-  checksum: 10c0/2ced4f3aa3724f550d6625f134449ec028279b2cd4a1108471f0c40e2099cb58037afb3cb6d0745ce0b83bdc076228bebf24ce50af844c7895be313655b74978
+    marked: ">=4 <14"
+  checksum: 10c0/bb0098bba35e4ac2b566b70f280a67551aab04108913e276deef59382af87a5cbf010605750cb9529ad21ed8b26b8a93990ddfe0cadf8a5556cfb6d9adda7d1e
   languageName: node
   linkType: hard
 
