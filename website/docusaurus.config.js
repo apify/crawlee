@@ -230,13 +230,6 @@ module.exports = {
                 },
             ],
         },
-        announcementBar: {
-            id: 'crawlee_webinar',
-            content: 'Learn about Crawlee new features and best practices from @B4nan, our lead maintainer. Join us live at 9 AM EST on June 12th. <a href="https://apify.com/resources/scraping-with-crawlee"> Sign Up now!</a>',
-            backgroundColor: '#1a1b23',
-            textColor: '#ffffff',
-            isCloseable: false,
-        },
         colorMode: {
             defaultMode: 'light',
             disableSwitch: false,

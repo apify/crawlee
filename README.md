@@ -16,17 +16,6 @@
     <a href="https://github.com/apify/crawlee/actions/workflows/test-ci.yml"><img src="https://github.com/apify/crawlee/actions/workflows/test-ci.yml/badge.svg?branch=master" alt="Build Status" style="max-width: 100%;"></a>
 </p>
 
-<h1 align="center">
-    <a href="https://apify.com/resources/scraping-with-crawlee">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://cdn-cms.apify.com/Scraping_with_Crawlee_101_de11e9de45.png">
-          <img alt="Crawlee" src="https://cdn-cms.apify.com/Scraping_with_Crawlee_101_de11e9de45.png" width="500">
-        </picture>
-    </a>
-    <br>
-    <small>Join us for a free webinar about Crawlee at <a href="https://apify.com/resources/scraping-with-crawlee"> 9 AM EST on June 12th, 2024</a> to learn how to build reliable web scrapers fast!</small>
-</h1>
-
 Crawlee covers your crawling and scraping end-to-end and **helps you build reliable scrapers. Fast.**
 
 Your crawlers will appear human-like and fly under the radar of modern bot protections even with the default configuration. Crawlee gives you the tools to crawl the web for links, scrape data, and store it to disk or cloud while staying configurable to suit your project's needs.
