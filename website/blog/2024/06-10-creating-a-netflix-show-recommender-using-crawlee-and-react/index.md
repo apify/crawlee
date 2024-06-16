@@ -29,6 +29,10 @@ Let’s get started!
 
 To use Crawlee, you need to have Node.js 16 or higher version.
 
+:::tip
+Before we start this tutorial, we recommend you [visit Crawlee's GitHub](https://github.com/apify/crawlee) and check out the codebase and installation guide. If you like Crawlee, do give us a star. 
+:::
+
 You can install the latest version of Node.js from the [official website](https://nodejs.org/en/). This great [Node.js installation guide](https://blog.apify.com/how-to-install-nodejs/) gives you tips to avoid issues later on. 
 
 ## Creating React app
