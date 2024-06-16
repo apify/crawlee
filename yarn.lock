@@ -4577,9 +4577,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1312386
-  resolution: "devtools-protocol@npm:0.0.1312386"
-  checksum: 10c0/1073b2edcee76db094fdce97fe8869f3469866513e864379e04311a429b439ba51e54809fdffb09b67bf0c37b5ac5bfd2b0536ae217b7ea2cbe2e571fbed7e8e
+  version: 0.0.1315554
+  resolution: "devtools-protocol@npm:0.0.1315554"
+  checksum: 10c0/ac5ef1108fba73df31b3f085b2d1c498aeef11fde2a7c5c00579b122e91d89fe91fdf64a89707eb7031e592813065ee004bd875f351701157b0143eda155231d
   languageName: node
   linkType: hard
 
@@ -11901,8 +11901,8 @@ __metadata:
   linkType: hard
 
 "tsx@npm:^4.4.0":
-  version: 4.15.4
-  resolution: "tsx@npm:4.15.4"
+  version: 4.15.5
+  resolution: "tsx@npm:4.15.5"
   dependencies:
     esbuild: "npm:~0.21.4"
     fsevents: "npm:~2.3.3"
@@ -11912,7 +11912,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/7f18c1f09bedba4ece7476ab56e647d74064a6f94429cd792cc8b38ef3fd2ee023e6fee1a18e42c4a64bb6903c2de497bc0c7ed8f96b74e817b5a23b9cf11263
+  checksum: 10c0/e05d72f50857224051675f81b64e1af47163d6b8a87cd5353ef94cdf8c7510e7c4707357ed461abddeac67cc2252866844e8c6c691ac1608fe1d8062f0a1c841
   languageName: node
   linkType: hard
 
@@ -12075,9 +12075,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^4.0.0, type-fest@npm:^4.19.0":
-  version: 4.20.0
-  resolution: "type-fest@npm:4.20.0"
-  checksum: 10c0/d0b35152f7f0b34b3048fb14d93d8d6dfe6288d443a2ab7b7b8c1dd902278e092aa057ad7cfc30f269f17d42eeb14a19d4d147ecb14dff74a5941c5c82248efa
+  version: 4.20.1
+  resolution: "type-fest@npm:4.20.1"
+  checksum: 10c0/c31da16fe170a74c5b7e102e70e764ba8ec6ade128e782a56f842aefa07307df5a6353e6b5601d3b30ff2d856d8b955f89813df639e4758fedcf8e426b2d854e
   languageName: node
   linkType: hard
 
