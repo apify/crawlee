@@ -611,7 +611,7 @@ export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): P
                     await frame.evaluate((f, c) => {
                         const replacementNode = document.createElement('div');
                         replacementNode.innerHTML = c;
-                        replacementNode.className = 'crawlee-shadow-root-replacement';
+                        replacementNode.className = 'crawlee-iframe-replacement';
 
                         f.replaceWith(replacementNode);
                     }, contents);
