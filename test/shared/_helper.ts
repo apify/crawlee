@@ -172,6 +172,28 @@ console.log('Hello world!');
     </div>
 </body>
 </html>`,
+    outsideIframe: `
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>Outside iframe</title>
+        </head>
+        <body>
+            <h1>Outside iframe</h1>
+            <iframe src="./inside-iframe"></iframe>
+        </body>
+    </html>`,
+    insideIframe: `
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>In iframe</title>
+        </head>
+        <body>
+            <h1>In iframe</h1>
+            <p>Some content from inside of an iframe.</p>
+        </body>
+    </html>`,
 };
 
 export async function runExampleComServer(): Promise<[Server, number]> {
@@ -267,6 +289,14 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/cloudflareBlocking', async (_req, res) => {
             res.type('html').status(403).send(responseSamples.cloudflareBlocking);
+        });
+
+        special.get('/outside-iframe', (_req, res) => {
+            res.type('html').send(responseSamples.outsideIframe);
+        });
+
+        special.get('/inside-iframe', (_req, res) => {
+            res.type('html').send(responseSamples.insideIframe);
         });
     })();
 

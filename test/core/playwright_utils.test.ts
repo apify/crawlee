@@ -12,7 +12,7 @@ let serverAddress = 'http://localhost:';
 let port: number;
 let server: Server;
 
-const launchContext = { launchOptions: { headless: true } };
+const launchContext = { launchOptions: { headless: false } };
 
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
@@ -154,6 +154,24 @@ describe('playwrightUtils', () => {
 
             const title = $('h1').text().trim();
             expect(title).toBe('Example Domain');
+        } finally {
+            await browser.close();
+        }
+    });
+
+    test('parseWithCheerio() iframe expansion works', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('h1')
+                .map((i, el) => $(el).text())
+                .get();
+            expect(headings).toEqual(['Outside iframe', 'In iframe']);
         } finally {
             await browser.close();
         }
