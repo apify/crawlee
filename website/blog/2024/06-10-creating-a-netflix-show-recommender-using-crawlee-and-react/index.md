@@ -5,7 +5,7 @@ tags: [community]
 description: 'Create a Netflix show recommendation system using Crawlee to scrape the data, JavaScript to code, and React to build the front end.'
 image: ./img/create-netflix-show-recommender.png
 author: Ayush Thakur
-authorTitle: Community Member @ Apify
+authorTitle: Community Member of Crawlee
 authorURL: https://github.com/ayush2390
 authorImageURL: https://avatars.githubusercontent.com/u/43995654?v=4
 authorTwitter: JSAyushThakur
@@ -27,15 +27,15 @@ Let’s get started!
 
 ## Prerequisites
 
-To use Crawlee, you need to have Node.js 16 or higher version.
+To use Crawlee, you need to have Node.js 16 or newer.
 
 :::tip
-Before we start this tutorial, we recommend you [visit Crawlee's GitHub](https://github.com/apify/crawlee) and check out the codebase and installation guide. If you like Crawlee, do give us a star. 
+If you are liking this blog so far, we request you to [give Crawlee a star on GitHub](https://github.com/apify/crawlee), it helps us to reach and help more developers. 
 :::
 
 You can install the latest version of Node.js from the [official website](https://nodejs.org/en/). This great [Node.js installation guide](https://blog.apify.com/how-to-install-nodejs/) gives you tips to avoid issues later on. 
 
-## Creating React app
+## Creating a React app
 
 First, we will create a React app (for the front end) using Vite. Run this command in the terminal to create it:
 
@@ -43,7 +43,7 @@ First, we will create a React app (for the front end) using Vite. Run this comma
 npx create-vite@latest
 ```
 
-You can check out the [Vite Docs](https://vitejs.dev/guide/) to create a React app.
+You can check out the [Vite Docs](https://vitejs.dev/guide/) for more details on how to create a React app.
 
 Once the React app is created, open it in VS Code.
 
@@ -73,64 +73,52 @@ npm install crawlee
 
 Crawlee utilizes Cheerio for [HTML parsing and scraping](https://crawlee.dev/blog/scrapy-vs-crawlee#html-parsing-and-scraping) of static websites. While faster and [less resource-intensive](https://crawlee.dev/docs/guides/scaling-crawlers), it can only scrape websites that do not require JavaScript rendering, making it unsuitable for SPAs (single page applications).
 
-Additionally, Crawlee supports headless browser libraries like [Playwright](https://playwright.dev/) and [Puppeteer](https://pptr.dev/) for scraping of websites that are JavaScript-rendered. 
+In this tutorial we can extract data from the HTML structure, so we will go with Cheerio but for extracting data from SPAs or JavaScript-rendered websites, Crawlee also supports headless browser libraries like [Playwright](https://playwright.dev/) and [Puppeteer](https://pptr.dev/)
 
 After installing the libraries, it’s time to create the scraper code.
 
 Create a file in `src` directory and name it `scraper.js`. The entire scraper code will be created in this file.
 
-### Scraping genres
+### Scraping genres and shows
 
-To scrape the genres, we will utilize the [browser DevTools](https://developer.mozilla.org/en-US/docs/Learn/Common`questions/Tools`and`setup/What`are`browser`developer`tools) to identify the tags and CSS selectors targeting the genre elements on the Netflix website.
+To scrape the genres and shows, we will utilize the [browser DevTools](https://developer.mozilla.org/en-US/docs/Learn/Common`questions/Tools`and`setup/What`are`browser`developer`tools) to identify the tags and CSS selectors targeting the genre elements on the Netflix website.
+
+We can capture the HTML structure and call `$(element)` to query the element's subtree.
 
 ![genre](./img/genre.png)
 
 Here, we can observe that the name of the genre is captured by a `span` tag with `nm-collections-row-name` class. So we can use the `span.nm-collections-row-name` selector to capture this and similar elements.
 
+![title](./img/title.png)
+
+Similarly, we can observe that the title of the show is captured by the `span` tag having `nm-collections-title-name` class. So we can use the `span.nm-collections-title-name` selector to capture this and similar elements.
+
 ```js
 // Use parseWithCheerio for efficient HTML parsing
 const $ = await parseWithCheerio();
-// Extract genre titles
-const titles = $(".nm-collections-row-name").map((_, el) => $(el).text().trim()).get();
+
+// Extract genre and shows directly from the HTML structure
+const data = $('[data-uia="collections-row"]')
+  .map((_, el) => {
+    const genre = $(el)
+      .find('[data-uia="collections-row-title"]')
+      .text()
+      .trim();
+    const items = $(el)
+      .find('[data-uia="collections-title"]')
+      .map((_, itemEl) => $(itemEl).text().trim())
+      .get();
+    return { genre, items };
+  })
+  .get();
+
+const genres = data.map((d) => d.genre);
+const shows = data.map((d) => d.items);
 ```
 
-This will give us the list of all the genres stored in the `titles` array.
+In the code snippet given above, we are using `parseWithCheerio` to parse the HTML content of the current page and extract `genre` and `shows` information from the HTML structure using Cheerio.
 
-### Scraping shows
-
-To scrape the titles of shows, we will use the same method we used for scraping genres. Let’s find out the tag capturing the shows’ names.
-
-![title](./img/title.png)
-
-Here, we can observe that the title of the show is captured by the `span` tag having `nm-collections-title-name` class. So we can use the `span.nm-collections-title-name` selector to capture this and similar elements.
-
-```js
-// Extract show titles
-const shows = $(".nm-collections-title-name").map((_, el) => $(el).text().trim()).get();
-```
-
-This will scrape the title of all the shows and store it in the `shows` array.
-
-Since the Netflix page we scraped has exactly 40 shows for each genre, we will create arrays of 40 shows.
-
-```js
-// Prepare data for pushing
-const allShows = [];
-let genreShows = [];
-shows.forEach((show) => {
-    genreShows.push(show);
-    if (genreShows.length === 40) {
-    allShows.push(genreShows);
-    genreShows = [];
-    }
-});
-if (genreShows.length > 0) {
-    allShows.push(genreShows);
-}
-```
-
-This code takes a large list of shows in `shows` and breaks them into groups of 40 in `genreShows`, storing these groups in the `allShows` array.
-
+This will give the `genres` and `shows` array having list of genres and shows stored in it respectively.
 ### Storing data
 
 Now we have all the data that we want for our project and it’s time to store or save the scraped data. To store the data, Crawlee comes with a `pushData()` method.
@@ -139,17 +127,17 @@ The [pushData()](https://crawlee.dev/docs/introduction/saving-data) method creat
 
 ```js
 await pushData({
-      genre: titles,
-      shows: allShows,
+      genre: genres,
+      shows: shows,
     });
 ```  
 
-This will save the `titles` and `totalShows` arrays as values in the `genre` and `shows` keys.
+This will save the `genres` and `shows` arrays as values in the `genre` and `shows` keys.
 
 Here’s the full code that we will use in our project:
 
 ```js
-import { CheerioCrawler, log, Dataset } from 'crawlee';
+import { CheerioCrawler, log, Dataset } from "crawlee";
 
 const crawler = new CheerioCrawler({
   requestHandler: async ({ request, parseWithCheerio, pushData }) => {
@@ -158,42 +146,38 @@ const crawler = new CheerioCrawler({
     // Use parseWithCheerio for efficient HTML parsing
     const $ = await parseWithCheerio();
 
-    // Extract genre titles
-    const titles = $('.nm-collections-row-name')
-      .map((_, el) => $(el).text().trim())
-      .get();
-
-    // Extract show titles
-    const shows = $('.nm-collections-title-name')
-      .map((_, el) => $(el).text().trim())
+    // Extract genre and shows directly from the HTML structure
+    const data = $('[data-uia="collections-row"]')
+      .map((_, el) => {
+        const genre = $(el)
+          .find('[data-uia="collections-row-title"]')
+          .text()
+          .trim();
+        const items = $(el)
+          .find('[data-uia="collections-title"]')
+          .map((_, itemEl) => $(itemEl).text().trim())
+          .get();
+        return { genre, items };
+      })
       .get();
 
     // Prepare data for pushing
-    const allShows = [];
-    let genreShows = [];
-    shows.forEach((show) => {
-      genreShows.push(show);
-      if (genreShows.length === 40) {
-        allShows.push(genreShows);
-        genreShows = [];
-      }
-    });
-    if (genreShows.length > 0) {
-      allShows.push(genreShows);
-    }
+    const genres = data.map((d) => d.genre);
+    const shows = data.map((d) => d.items);
 
     await pushData({
-      genre: titles,
-      shows: allShows,
+      genre: genres,
+      shows: shows,
     });
   },
 
   // Limit crawls for efficiency
-  // maxRequestsPerCrawl: 20,
+  maxRequestsPerCrawl: 20,
 });
 
-await crawler.run(['https://www.netflix.com/in/browse/genre/1191605']);
-await Dataset.exportToJSON('results');
+await crawler.run(["https://www.netflix.com/in/browse/genre/1191605"]);
+await Dataset.exportToJSON("results");
+
 ```
 
 Now, we will run Crawlee to scrape the website. Before running Crawlee, we need to tweak the `package.json` file. We will add the `start` script targeting the `scraper.js` file to run Crawlee.
@@ -201,7 +185,7 @@ Now, we will run Crawlee to scrape the website. Before running Crawlee, we need 
 Add the following code in `'scripts'` object:
 
 ```
-'start': 'node src/scraper.js'
+"start": "node src/scraper.js"
 ```
 
 and save it. Now run this command to run Crawlee to scrape the data:
@@ -210,24 +194,24 @@ and save it. Now run this command to run Crawlee to scrape the data:
 npm start
 ```
 
-After running this command, you will see a `storage` folder with the `key_value_stores/default/results.json` file. The scrapped data will be stored in JSON format in this file.
+After running this command, you will see a `storage` folder with the `key_value_stores/default/results.json` file. The scraped data will be stored in JSON format in this file.
 
 Now we can use this JSON data and display it in the `App.jsx` component to create the project.
 
 In the `App.jsx` component, we will import `jsonData` from the `results.json` file:
 
 ```js
-import { useState } from 'react';
-import './App.css';
-import jsonData from '../storage/key_value_stores/default/results.json';
+import { useState } from "react";
+import "./App.css";
+import jsonData from "../storage/key_value_stores/default/results.json";
 
 function HeaderAndSelector({ handleChange }) {
   return (
     <>
-      <h1 className='header'>Netflix Web Show Recommender</h1>
-      <div className='genre-selector'>
-        <select onChange={handleChange} className='select-genre'>
-          <option value=''>Select your genre</option>
+      <h1 className="header">Netflix Web Show Recommender</h1>
+      <div className="genre-selector">
+        <select onChange={handleChange} className="select-genre">
+          <option value="">Select your genre</option>
           {jsonData[0].genre.map((genre, key) => {
             return (
               <option key={key} value={key}>
@@ -253,24 +237,24 @@ function App() {
   const isValidCount = count !== null && count <= jsonData[0].shows.length;
 
   return (
-    <div className='app-container'>
+    <div className="app-container">
       <HeaderAndSelector handleChange={handleChange} />
-      <div className='shows-container'>
+      <div className="shows-container">
         {isValidCount && (
           <>
-            <div className='shows-list'>
+            <div className="shows-list">
               <ul>
                 {jsonData[0].shows[count].slice(0, 20).map((show, index) => (
-                  <li key={index} className='show-item'>
+                  <li key={index} className="show-item">
                     {show}
                   </li>
                 ))}
               </ul>
             </div>
-            <div className='shows-list'>
+            <div className="shows-list">
               <ul>
                 {jsonData[0].shows[count].slice(20).map((show, index) => (
-                  <li key={index} className='show-item'>
+                  <li key={index} className="show-item">
                     {show}
                   </li>
                 ))}
