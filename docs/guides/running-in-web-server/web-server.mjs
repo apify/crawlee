@@ -1,7 +1,7 @@
 import { CheerioCrawler, log } from 'crawlee';
 import { createServer } from 'http';
 
-// We will bound an HTTP response that we want to send to the Request.uniqueKey
+// We will bind an HTTP response that we want to send to the Request.uniqueKey
 const requestsToResponses = new Map();
 
 const crawler = new CheerioCrawler({
