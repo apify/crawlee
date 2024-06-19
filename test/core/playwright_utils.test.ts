@@ -12,7 +12,7 @@ let serverAddress = 'http://localhost:';
 let port: number;
 let server: Server;
 
-const launchContext = { launchOptions: { headless: false } };
+const launchContext = { launchOptions: { headless: true } };
 
 beforeAll(async () => {
     [server, port] = await runExampleComServer();
