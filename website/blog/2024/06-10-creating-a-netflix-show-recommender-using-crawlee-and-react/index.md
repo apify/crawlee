@@ -30,7 +30,7 @@ Let’s get started!
 To use Crawlee, you need to have Node.js 16 or newer.
 
 :::tip
-If you are liking this blog so far, we request you to [give Crawlee a star on GitHub](https://github.com/apify/crawlee), it helps us to reach and help more developers. 
+If you are Crawlee blog so far, we request you to [give Crawlee a star on GitHub](https://github.com/apify/crawlee), it helps us to reach and help more developers. 
 :::
 
 You can install the latest version of Node.js from the [official website](https://nodejs.org/en/). This great [Node.js installation guide](https://blog.apify.com/how-to-install-nodejs/) gives you tips to avoid issues later on. 
@@ -116,7 +116,7 @@ const genres = data.map((d) => d.genre);
 const shows = data.map((d) => d.items);
 ```
 
-In the code snippet given above, we are using `parseWithCheerio` to parse the HTML content of the current page and extract `genre` and `shows` information from the HTML structure using Cheerio.
+In the code snippet given above, we are using `parseWithCheerio` to parse the HTML content of the current page and extract `genres` and `shows` information from the HTML structure using Cheerio.
 
 This will give the `genres` and `shows` array having list of genres and shows stored in it respectively.
 ### Storing data
@@ -127,12 +127,12 @@ The [pushData()](https://crawlee.dev/docs/introduction/saving-data) method creat
 
 ```js
 await pushData({
-      genre: genres,
+      genres: genres,
       shows: shows,
     });
 ```  
 
-This will save the `genres` and `shows` arrays as values in the `genre` and `shows` keys.
+This will save the `genres` and `shows` arrays as values in the `genres` and `shows` keys.
 
 Here’s the full code that we will use in our project:
 
@@ -166,7 +166,7 @@ const crawler = new CheerioCrawler({
     const shows = data.map((d) => d.items);
 
     await pushData({
-      genre: genres,
+      genres: genres,
       shows: shows,
     });
   },
@@ -212,10 +212,10 @@ function HeaderAndSelector({ handleChange }) {
       <div className="genre-selector">
         <select onChange={handleChange} className="select-genre">
           <option value="">Select your genre</option>
-          {jsonData[0].genre.map((genre, key) => {
+          {jsonData[0].genres.map((genres, key) => {
             return (
               <option key={key} value={key}>
-                {genre}
+                {genres}
               </option>
             );
           })}
