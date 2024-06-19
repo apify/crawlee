@@ -196,9 +196,11 @@ export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): P
 
         await Promise.all(
             frames.map(async (frame) => {
-                const contents = await (await frame.contentFrame())?.content();
+                const iframe = await frame.contentFrame();
 
-                if (contents) {
+                if (iframe) {
+                    const contents = await iframe.content();
+
                     await frame.evaluate((f, c) => {
                         const replacementNode = document.createElement('div');
                         replacementNode.innerHTML = c;
