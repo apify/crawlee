@@ -12,7 +12,7 @@ Most of the time, Crawlee jobs are run as batch jobs. You have a list of URLs yo
 We will build a simple HTTP server that receives a page URL and returns the page title in the response. We will base this guide on the approach used in [Apify's Super Scraper API repository](https://github.com/apify/super-scraper) which maps incoming HTTP requests to Crawlee <ApiLink to="core/class/Request">Request</ApiLink>.
 
 
-## Setting up a web server
+## Set up a web server
 
 There are many popular web server frameworks for Node.js, such as Express, Koa, Fastify, and Hapi but in this guide, we will use the built-in `http` Node.js module to keep things simple.
 
@@ -35,7 +35,7 @@ server.listen(3000, () => {
 });
 ```
 
-## Creating the Crawler
+## Create the Crawler
 
 We will create a standard <ApiLink to="cheerio-crawler/class/CheerioCrawler">CheerioCrawler</ApiLink> and use the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#keepAlive">`keepAlive: true`</ApiLink> option to keep the crawler running even if there are no requests currently in the <ApiLink to="core/class/RequestQueue">Request Queue</ApiLink>. This way it will always be waiting for new requests to come in.
 
@@ -52,7 +52,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-## Glueing it together
+## Glue it together
 
 Now we need to glue the server and the crawler together using the mapping of Crawlee Requests to HTTP responses discussed above. The whole program is actually quite simple. For production-grade service, you will need to improve error handling, logging, and monitoring but this is a good starting point.
 
