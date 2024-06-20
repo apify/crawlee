@@ -191,6 +191,28 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
 export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
+    if (page.frames().length > 1) {
+        const frames = await page.$$('iframe');
+
+        await Promise.all(
+            frames.map(async (frame) => {
+                const iframe = await frame.contentFrame();
+
+                if (iframe) {
+                    const contents = await iframe.content();
+
+                    await frame.evaluate((f, c) => {
+                        const replacementNode = document.createElement('div');
+                        replacementNode.innerHTML = c;
+                        replacementNode.className = 'crawlee-iframe-replacement';
+
+                        f.replaceWith(replacementNode);
+                    }, contents);
+                }
+            }),
+        );
+    }
+
     const html = ignoreShadowRoots
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);

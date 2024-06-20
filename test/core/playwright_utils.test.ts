@@ -159,6 +159,24 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() iframe expansion works', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('h1')
+                .map((i, el) => $(el).text())
+                .get();
+            expect(headings).toEqual(['Outside iframe', 'In iframe']);
+        } finally {
+            await browser.close();
+        }
+    });
+
     describe('blockRequests()', () => {
         let browser: Browser = null;
         beforeAll(async () => {

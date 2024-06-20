@@ -342,6 +342,7 @@ export abstract class BrowserCrawler<
         persistCookiesPerSession: ow.optional.boolean,
         useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        ignoreShadowRoots: ow.optional.boolean,
     };
 
     /**
@@ -370,6 +371,7 @@ export abstract class BrowserCrawler<
             failedRequestHandler,
             handleFailedRequestFunction,
             headless,
+            ignoreShadowRoots,
             ...basicCrawlerOptions
         } = options;
 
