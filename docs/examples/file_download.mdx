@@ -1,0 +1,17 @@
+---
+id: file-download
+title: Download a file
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import FileDownloadSource from '!!raw-loader!roa-loader!./file_download.ts';
+
+When webcrawling, you sometimes need to download files such as images, PDFs, or other binary files. This example demonstrates how to download files using Crawlee and save them to the default dataset.
+
+The script simply downloads several files with plain HTTP requests using the custom <ApiLink to="http-crawler/class/FileDownload">`FileDownload`</ApiLink> crawler class and stores their contents in the default key-value store. 
+In local configuration, the data will be stored as files in `./storage/key_value_stores/default`.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{FileDownloadSource}
+</RunnableCodeBlock>
