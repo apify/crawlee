@@ -2,6 +2,8 @@ import { finished } from 'stream/promises';
 import { isPromise } from 'util/types';
 
 import type { Dictionary } from '@crawlee/types';
+// @ts-expect-error got-scraping is ESM only
+import type { Request } from 'got-scraping';
 
 import type {
     ErrorHandler,
@@ -23,7 +25,7 @@ export type StreamHandlerContext = Omit<
     FileDownloadCrawlingContext,
     'body' | 'response' | 'parseWithCheerio' | 'json' | 'addRequests' | 'contentType'
 > & {
-    stream: ReadableStream;
+    stream: Request;
 };
 
 type StreamHandler = (context: StreamHandlerContext) => void | Promise<void>;
