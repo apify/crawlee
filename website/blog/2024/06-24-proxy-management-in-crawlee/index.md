@@ -1,3 +1,4 @@
+---
 slug: proxy-management-in-crawlee
 title: 'How Crawlee uses tiered proxies to avoid getting blocked'
 tags: [proxy]
@@ -8,7 +9,6 @@ authorTitle: Developer Community Manager @ Crawlee
 authorURL: https://github.com/souravjain540
 authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4
 authorTwitter: sauain
-
 ---
 
 Hello Crawlee community,
