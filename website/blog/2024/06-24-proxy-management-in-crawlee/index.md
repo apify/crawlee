@@ -2,12 +2,13 @@ slug: proxy-management-in-crawlee
 title: 'How Crawlee uses tiered proxies to avoid getting blocked'
 tags: [proxy]
 description: 'Find out how Crawlee’s tiered proxy system rotates between different types of proxies to control web scraping costs and avoid getting blocked.'
-image: ./img/tiered-proxies.png
+image: ./img/tiered-proxies.webp
 author: Saurav Jain
 authorTitle: Developer Community Manager @ Crawlee
 authorURL: https://github.com/souravjain540
 authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4
 authorTwitter: sauain
+
 ---
 
 Hello Crawlee community,
@@ -16,7 +17,7 @@ We are back with another blog, this time explaining how Crawlee rotates proxies 
 
 Proxies vary in quality, speed, reliability, and cost. There are a [few types of proxies](https://blog.apify.com/types-of-proxies/), such as datacenter and residential proxies. Datacenter proxies are cheaper but, on the other hand, more prone to getting blocked, and vice versa with residential proxies.
 
-It is hard for developers to decide which proxy to use while scraping data. We might get blocked if we use [datacenter proxies](https://blog.apify.com/datacenter-proxies-when-to-use-them-and-how-to-make-the-most-of-them/) for low-cost scraping, but residential proxies are sometimes too expensive for bigger projects. Developers need a system that can manage both costs and avoid getting blocked. To manage this, we recently introduced `TieredProxies` in Crawlee. Let’s take a look at it.
+It is hard for developers to decide which proxy to use while scraping data. We might get blocked if we use [datacenter proxies](https://blog.apify.com/datacenter-proxies-when-to-use-them-and-how-to-make-the-most-of-them/) for low-cost scraping, but residential proxies are sometimes too expensive for bigger projects. Developers need a system that can manage both costs and avoid getting blocked. To manage this, we recently introduced tiered proxies in Crawlee. Let’s take a look at it.
 
 :::note
 
@@ -28,17 +29,17 @@ If you like reading this blog, we would be really happy if you gave [Crawlee a s
 
 Tiered proxies are a method of organizing and using different types of proxies based on their quality, speed, reliability, and cost. Tiered proxies allow you to rotate between a mix of proxy types to optimize your scraping activities.
 
-**Define proxy tiers**: You categorize your proxies into different tiers based on their quality. For example:
+You categorize your proxies into different tiers based on their quality. For example:
 
-- **High-tier proxies**: Fast, reliable, and expensive. Best for critical tasks where you need high performance.
-- **Mid-tier proxies**: Moderate speed and reliability. A good balance between cost and performance.
-- **Low-tier proxies**: Slow and less reliable but cheap. Useful for less critical tasks or high-volume scraping.
+-   **High-tier proxies**: Fast, reliable, and expensive. Best for critical tasks where you need high performance.
+-   **Mid-tier proxies**: Moderate speed and reliability. A good balance between cost and performance.
+-   **Low-tier proxies**: Slow and less reliable but cheap. Useful for less critical tasks or high-volume scraping.
 
 ## Features:
 
-- **Tracking errors**: The system monitors errors (e.g. failed requests, retries) for each domain.
-- **Adjusting tiers**: Higher-tier proxies are used if a domain shows more errors. Conversely, if a domain performs well with a high-tier proxy, the system will occasionally test lower-tier proxies. If successful, it continues using the lower tier, optimizing costs.
-- **Forgetting old errors**: Old errors are given less weight over time, allowing the system to adjust tiers dynamically as proxies' performance changes.
+-   **Tracking errors**: The system monitors errors (e.g. failed requests, retries) for each domain.
+-   **Adjusting tiers**: Higher-tier proxies are used if a domain shows more errors. Conversely, if a domain performs well with a high-tier proxy, the system will occasionally test lower-tier proxies. If successful, it continues using the lower tier, optimizing costs.
+-   **Forgetting old errors**: Old errors are given less weight over time, allowing the system to adjust tiers dynamically as proxies' performance changes.
 
 ### Working
 
@@ -52,10 +53,10 @@ The `tieredProxyUrls` option in Crawlee's `ProxyConfigurationOptions` allows you
 
 **Fallback Mechanism**: Crawlee starts with the first tier of proxies. If proxies in the current tier fail, it will switch to the next tier.
 
-### Implementation:
+### Working:
 
 ```js
-import { CheerioCrawler, ProxyConfiguration } from 'crawlee';
+const { CheerioCrawler, ProxyConfiguration } = require('crawlee');
 
 const proxyConfiguration = new ProxyConfiguration({
     tieredProxyUrls: [
@@ -87,7 +88,7 @@ A session pool is a way to manage multiple [sessions](https://crawlee.dev/api/co
 
 When you use tiered proxies, each proxy tier works with the [session pool](https://crawlee.dev/api/core/class/SessionPool) to enhance request distribution and manage errors effectively.
 
-![Diagram explaining how tiered proxies use Session Pool under the hood](./img/session-pool-working.png)
+![Diagram explaining how tiered proxies use Session Pool under the hood](./img/session-pool-working.webp)
 
 For each request, the crawler instance asks the `ProxyConfiguration` which proxy it should use. ' ProxyConfiguration` also keeps track of the requests domains, and if it sees more requests being retried or, say, more errors, it returns higher proxy tiers.
 
