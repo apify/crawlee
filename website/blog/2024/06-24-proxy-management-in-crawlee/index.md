@@ -19,7 +19,9 @@ Proxies vary in quality, speed, reliability, and cost. There are a [few types of
 It is hard for developers to decide which proxy to use while scraping data. We might get blocked if we use [datacenter proxies](https://blog.apify.com/datacenter-proxies-when-to-use-them-and-how-to-make-the-most-of-them/) for low-cost scraping, but residential proxies are sometimes too expensive for bigger projects. Developers need a system that can manage both costs and avoid getting blocked. To manage this, we recently introduced `TieredProxies` in Crawlee. Let’s take a look at it.
 
 :::note
+
 If you like reading this blog, we would be really happy if you gave [Crawlee a star on GitHub!](https://github.com/apify/crawlee/)
+
 :::
 
 ## What are tiered proxies?
@@ -29,17 +31,13 @@ Tiered proxies are a method of organizing and using different types of proxies b
 **Define proxy tiers**: You categorize your proxies into different tiers based on their quality. For example:
 
 - **High-tier proxies**: Fast, reliable, and expensive. Best for critical tasks where you need high performance.
-
 - **Mid-tier proxies**: Moderate speed and reliability. A good balance between cost and performance.
-
 - **Low-tier proxies**: Slow and less reliable but cheap. Useful for less critical tasks or high-volume scraping.
 
 ## Features:
 
 - **Tracking errors**: The system monitors errors (e.g. failed requests, retries) for each domain.
-
 - **Adjusting tiers**: Higher-tier proxies are used if a domain shows more errors. Conversely, if a domain performs well with a high-tier proxy, the system will occasionally test lower-tier proxies. If successful, it continues using the lower tier, optimizing costs.
-
 - **Forgetting old errors**: Old errors are given less weight over time, allowing the system to adjust tiers dynamically as proxies' performance changes.
 
 ### Working
@@ -57,32 +55,28 @@ The `tieredProxyUrls` option in Crawlee's `ProxyConfigurationOptions` allows you
 ### Implementation:
 
 ```js
-const { CheerioCrawler, ProxyConfiguration } = require('crawlee');
-
+import { CheerioCrawler, ProxyConfiguration } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
-   tieredProxyUrls: [
-['http://tier1-proxy1.example.com', 'http://tier1-proxy2.example.com'],
-['http://tier2-proxy1.example.com', 'http://tier2-proxy2.example.com'],
-['http://tier2-proxy1.example.com', 'http://tier3-proxy2.example.com'],
-   ],
+    tieredProxyUrls: [
+        ['http://tier1-proxy1.example.com', 'http://tier1-proxy2.example.com'],
+        ['http://tier2-proxy1.example.com', 'http://tier2-proxy2.example.com'],
+        ['http://tier2-proxy1.example.com', 'http://tier3-proxy2.example.com'],
+    ],
 });
-
 
 const crawler = new CheerioCrawler({
-   proxyConfiguration,
-   requestHandler: async ({ request, response }) => {
-       // Handle the request
-   },
+    proxyConfiguration,
+    requestHandler: async ({ request, response }) => {
+        // Handle the request
+    },
 });
 
-
 await crawler.addRequests([
-   { url: 'https://example.com/critical' },
-   { url: 'https://example.com/important' },
-   { url: 'https://example.com/regular' },
+    { url: 'https://example.com/critical' },
+    { url: 'https://example.com/important' },
+    { url: 'https://example.com/regular' },
 ]);
-
 
 await crawler.run();
 ```
