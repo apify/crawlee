@@ -14,7 +14,6 @@ Most of the time, Crawlee jobs are run as batch jobs. You have a list of URLs yo
 
 We will build a simple HTTP server that receives a page URL and returns the page title in the response. We will base this guide on the approach used in [Apify's Super Scraper API repository](https://github.com/apify/super-scraper) which maps incoming HTTP requests to Crawlee <ApiLink to="core/class/Request">Request</ApiLink>.
 
-
 ## Set up a web server
 
 There are many popular web server frameworks for Node.js, such as Express, Koa, Fastify, and Hapi but in this guide, we will use the built-in `http` Node.js module to keep things simple.

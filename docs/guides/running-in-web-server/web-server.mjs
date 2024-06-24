@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CheerioCrawler, log } from 'crawlee';
 import { createServer } from 'http';
 
@@ -35,7 +36,7 @@ const server = createServer(async (req, res) => {
 
     // We will add it first to the map and then enqueue it to the crawler that immediately processes it
     // uniqueKey must be random so we process the same URL again
-    const crawleeRequest = { url: requestedUrl, uniqueKey: `${Math.random()}` };
+    const crawleeRequest = { url: requestedUrl, uniqueKey: randomUUID() };
     requestsToResponses.set(crawleeRequest.uniqueKey, res);
     await crawler.addRequests([crawleeRequest]);
 });
