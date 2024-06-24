@@ -3,11 +3,11 @@ slug: netflix-show-recommender
 title: 'Building a Netflix show recommender using Crawlee and React'
 tags: [community]
 description: 'Create a Netflix show recommendation system using Crawlee to scrape the data, JavaScript to code, and React to build the front end.'
-image: ./img/create-netflix-show-recommender.png
+image: ./img/create-netflix-show-recommender.webp
 author: Ayush Thakur
 authorTitle: Community Member of Crawlee
 authorURL: https://github.com/ayush2390
-authorImageURL: https://avatars.githubusercontent.com/u/43995654?v=4
+authorImageURL: https://avatars.githubusercontent.com/u/43995654?v=4&s=48
 authorTwitter: JSAyushThakur
 ---
 
@@ -19,7 +19,7 @@ In this blog, we'll guide you through the process of using Vite and Crawlee to b
 One of our community members wrote this blog as a contribution to Crawlee Blog. If you want to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
 :::
 
-![How to scrape Netflix using Crawlee and React to build a show recommender](./img/create-netflix-show-recommender.png)
+![How to scrape Netflix using Crawlee and React to build a show recommender](./img/create-netflix-show-recommender.webp)
 
 <!-- truncate -->
 
@@ -47,13 +47,13 @@ You can check out the [Vite Docs](https://vitejs.dev/guide/) for more details on
 
 Once the React app is created, open it in VS Code.
 
-![react](./img/react.png)
+![react](./img/react.webp)
 
 This will be the structure of your React app.
 
 Run `npm run dev` command in the terminal to run the app.
 
-![viteandreact](./img/viteandreact.png)
+![viteandreact](./img/viteandreact.webp)
 
 This will be the output displayed.
 
@@ -85,11 +85,11 @@ To scrape the genres and shows, we will utilize the [browser DevTools](https://d
 
 We can capture the HTML structure and call `$(element)` to query the element's subtree.
 
-![genre](./img/genre.png)
+![genre](./img/genre.webp)
 
 Here, we can observe that the name of the genre is captured by a `span` tag with `nm-collections-row-name` class. So we can use the `span.nm-collections-row-name` selector to capture this and similar elements.
 
-![title](./img/title.png)
+![title](./img/title.webp)
 
 Similarly, we can observe that the title of the show is captured by the `span` tag having `nm-collections-title-name` class. So we can use the `span.nm-collections-title-name` selector to capture this and similar elements.
 
