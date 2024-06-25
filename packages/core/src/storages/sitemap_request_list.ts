@@ -1,3 +1,4 @@
+import defaultLog from '@apify/log';
 import { parseSitemap } from '@crawlee/utils';
 import ow from 'ow';
 
@@ -61,6 +62,8 @@ export class SitemapRequestList implements IRequestList {
 
     private proxyUrl: string | undefined;
 
+    private log = defaultLog.child({ prefix: 'SitemapRequestList' });
+
     /** @internal */
     private constructor(options: SitemapRequestListOptions) {
         ow(
@@ -77,8 +80,11 @@ export class SitemapRequestList implements IRequestList {
         this.proxyUrl = options.proxyUrl;
     }
 
-    private startLoadingInBackground(): void {
-        (async () => {
+    /**
+     * 
+     */
+    private async load(): Promise<void> {
+        try {
             for await (const item of parseSitemap(
                 this.sitemapUrls.map((url) => ({ type: 'url', url })),
                 this.proxyUrl,
@@ -97,13 +103,11 @@ export class SitemapRequestList implements IRequestList {
                     queue.push(item.url);
                 }
             }
-        })()
-            .then(() => {
-                this.isSitemapFullyLoaded = true;
-            })
-            .catch(() => {
-                this.isSitemapFullyLoaded = true;
-            });
+        } catch (e: any) {
+            this.log.error('Error loading sitemap contents:', e);
+        }
+
+        this.isSitemapFullyLoaded = true;
     }
 
     /**
@@ -112,7 +116,7 @@ export class SitemapRequestList implements IRequestList {
     static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
         const requestList = new SitemapRequestList(options);
         await requestList.restoreState();
-        requestList.startLoadingInBackground();
+        void requestList.load();
         return requestList;
     }
 
