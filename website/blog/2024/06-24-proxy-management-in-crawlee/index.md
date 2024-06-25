@@ -55,7 +55,7 @@ The `tieredProxyUrls` option in Crawlee's `ProxyConfigurationOptions` allows you
 
 
 ```js
-const { CheerioCrawler, ProxyConfiguration } = require('crawlee');
+import { CheerioCrawler, ProxyConfiguration } from 'crawlee';
 
 const proxyConfiguration = new ProxyConfiguration({
     tieredProxyUrls: [
