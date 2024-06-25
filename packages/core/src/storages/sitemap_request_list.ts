@@ -28,16 +28,13 @@ interface SitemapRequestListState {
  */
 export class SitemapRequestList implements IRequestList {
     /**
-     * Set of URLs that were returned by fetchNextRequest() and not marked as handled yet.
+     * Set of URLs that were returned by `fetchNextRequest()` and not marked as handled yet.
      * @internal
      */
     inProgress = new Set<string>();
 
-    /** Set of URLs for which reclaimRequest() was called. */
+    /** Set of URLs for which `reclaimRequest()` was called. */
     private reclaimed = new Set<string>();
-
-    /** Request objects for in-progress and reclaimed URLs so that we can keep track of state */
-    private requestData = new Map<string, Request>();
 
     /**
      * Object for keeping track of the sitemap parsing progress.
@@ -196,10 +193,6 @@ export class SitemapRequestList implements IRequestList {
         }
 
         this.reclaimed = new Set(state.reclaimed);
-        for (const url of state.reclaimed) {
-            this.requestData.set(url, new Request({ url }));
-        }
-
         this.sitemapParsingProgress = {
             processedSitemaps: new Set(state.processedSitemaps),
             currentSitemapEntries: new Set(state.currentSitemapEntries),
@@ -219,7 +212,7 @@ export class SitemapRequestList implements IRequestList {
         const url = this.reclaimed.values().next().value as string | undefined;
         if (url !== undefined) {
             this.reclaimed.delete(url);
-            return this.requestData.get(url)!;
+            return new Request({ url });
         }
 
         // Otherwise return next request.
@@ -228,7 +221,6 @@ export class SitemapRequestList implements IRequestList {
             const request = new Request({ url: queuedUrl });
             this.advanceQueue();
 
-            this.requestData.set(request.url, request);
             this.inProgress.add(request.url);
 
             return request;
@@ -290,7 +282,6 @@ export class SitemapRequestList implements IRequestList {
         this.handledUrlCount += 1;
         this.ensureInProgressAndNotReclaimed(request.url);
         this.inProgress.delete(request.url);
-        this.requestData.delete(request.url);
     }
 
     private ensureInProgressAndNotReclaimed(url: string): void {
