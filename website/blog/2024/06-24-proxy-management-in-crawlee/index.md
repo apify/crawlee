@@ -53,7 +53,6 @@ The `tieredProxyUrls` option in Crawlee's `ProxyConfigurationOptions` allows you
 
 **Fallback Mechanism**: Crawlee starts with the first tier of proxies. If proxies in the current tier fail, it will switch to the next tier.
 
-### Working:
 
 ```js
 const { CheerioCrawler, ProxyConfiguration } = require('crawlee');
