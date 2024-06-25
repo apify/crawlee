@@ -15,8 +15,8 @@ export interface SitemapRequestListOptions {
 
 interface SitemapRequestListState {
     reclaimed: string[];
-    handledSitemapUrls: string[];
-    handledUrls: string[];
+    processedSitemaps: string[];
+    currentSitemapEntries: string[];
     currentSitemapUrl?: string;
     currentSitemapUrlQueue?: string[];
 }
@@ -29,7 +29,8 @@ interface SitemapRequestListState {
 export class SitemapRequestList implements IRequestList {
     /**
      * Set of URLs that were returned by fetchNextRequest() and not marked as handled yet.
-     * @internal */
+     * @internal
+     */
     inProgress = new Set<string>();
 
     /** Set of URLs for which reclaimRequest() was called. */
@@ -39,11 +40,18 @@ export class SitemapRequestList implements IRequestList {
     private requestData = new Map<string, Request>();
 
     /**
-     * URLs of
-     * 1. sitemaps that have been completely processed and
-     * 2. processed sitemap items of the current (partially processed) sitemap
+     * Object for keeping track of the sitemap parsing progress.
      */
-    private handledUrls = { sitemapUrls: new Set<string>(), urls: new Set<string>() };
+    private sitemapParsingProgress = {
+        /**
+         * Set of sitemap URLs that were already fully parsed.
+         */
+        processedSitemaps: new Set<string>(),
+        /**
+         * Buffer for URLs from the currently parsed sitemap.
+         */
+        currentSitemapEntries: new Set<string>(),
+    };
 
     /** URLs loaded from the sitemaps */
     private queuedUrlsBySitemap = new Map<string, string[]>();
@@ -81,7 +89,7 @@ export class SitemapRequestList implements IRequestList {
     }
 
     /**
-     * 
+     *
      */
     private async load(): Promise<void> {
         try {
@@ -89,7 +97,7 @@ export class SitemapRequestList implements IRequestList {
                 this.sitemapUrls.map((url) => ({ type: 'url', url })),
                 this.proxyUrl,
             )) {
-                if (this.handledUrls.sitemapUrls.has(item.originSitemapUrl)) {
+                if (this.sitemapParsingProgress.processedSitemaps.has(item.originSitemapUrl)) {
                     continue;
                 }
 
@@ -99,7 +107,7 @@ export class SitemapRequestList implements IRequestList {
 
                 const queue = this.queuedUrlsBySitemap.get(item.originSitemapUrl)!;
 
-                if (!this.handledUrls.urls.has(item.url)) {
+                if (!this.sitemapParsingProgress.currentSitemapEntries.has(item.url)) {
                     queue.push(item.url);
                 }
             }
@@ -165,8 +173,8 @@ export class SitemapRequestList implements IRequestList {
         const sitemapUrl: string | undefined = this.queuedUrlsBySitemap.keys().next().value;
 
         await this.store.setValue(this.persistStateKey, {
-            handledSitemapUrls: Array.from(this.handledUrls.sitemapUrls),
-            handledUrls: Array.from(this.handledUrls.urls),
+            processedSitemaps: Array.from(this.sitemapParsingProgress.processedSitemaps),
+            currentSitemapEntries: Array.from(this.sitemapParsingProgress.currentSitemapEntries),
             reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
             currentSitemapUrl: sitemapUrl, // We only store the queue from a single sitemap for better storage efficiency
             currentSitemapUrlQueue: sitemapUrl !== undefined ? this.queuedUrlsBySitemap.get(sitemapUrl) : undefined,
@@ -192,9 +200,9 @@ export class SitemapRequestList implements IRequestList {
             this.requestData.set(url, new Request({ url }));
         }
 
-        this.handledUrls = {
-            sitemapUrls: new Set(state.handledSitemapUrls),
-            urls: new Set(state.handledUrls),
+        this.sitemapParsingProgress = {
+            processedSitemaps: new Set(state.processedSitemaps),
+            currentSitemapEntries: new Set(state.currentSitemapEntries),
         };
 
         this.queuedUrlsBySitemap.clear();
@@ -251,12 +259,12 @@ export class SitemapRequestList implements IRequestList {
 
             if (queue.length >= 1) {
                 found = true;
-                this.handledUrls.urls.add(queue.shift()!);
+                this.sitemapParsingProgress.currentSitemapEntries.add(queue.shift()!);
             }
 
             if (queue.length === 0 && (i + 1 < sitemapUrls.length || this.isSitemapFullyLoaded)) {
-                this.handledUrls.sitemapUrls.add(sitemapUrl);
-                this.handledUrls.urls.clear();
+                this.sitemapParsingProgress.processedSitemaps.add(sitemapUrl);
+                this.sitemapParsingProgress.currentSitemapEntries.clear();
 
                 this.queuedUrlsBySitemap.delete(sitemapUrl);
             }
