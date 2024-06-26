@@ -210,6 +210,65 @@ describe('SitemapRequestList', () => {
         expect(list.handledCount()).toBe(7);
     });
 
+    test('aborting long sitemap load works', async () => {
+        const controller = new AbortController();
+
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            signal: controller.signal,
+        });
+
+        await sleep(50); // Loads the first sub-sitemap, but not the second
+        controller.abort();
+
+        for await (const request of list.waitForNextRequest()) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.isFinished()).resolves.toBe(true);
+        expect(list.isSitemapFullyLoaded()).toBe(false);
+        expect(list.handledCount()).toBe(2);
+    });
+
+    test('timeout option works', async () => {
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
+        });
+
+        for await (const request of list.waitForNextRequest()) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.isFinished()).resolves.toBe(true);
+        expect(list.isSitemapFullyLoaded()).toBe(false);
+        expect(list.handledCount()).toBe(2);
+    });
+
+    test('resurrection does not resume aborted loading', async () => {
+        const options = {
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            persistStateKey: 'resurrection-abort',
+            timeoutMillis: 50,
+        };
+
+        {
+            const list = await SitemapRequestList.open(options);
+
+            await sleep(50);
+
+            expect(list.isEmpty()).resolves.toBe(false);
+            await list.persistState();
+        }
+
+        const newList = await SitemapRequestList.open(options);
+        for await (const request of newList.waitForNextRequest()) {
+            await newList.markRequestHandled(request);
+        }
+
+        expect(newList.handledCount()).toBe(2);
+    });
+
     test('processing the whole list', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
         const requests: Request[] = [];

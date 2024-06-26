@@ -8,9 +8,26 @@ import { purgeDefaultStorages } from './utils';
 import { Request } from '../request';
 
 export interface SitemapRequestListOptions {
+    /**
+     * List of sitemap URLs to parse.
+     */
     sitemapUrls: string[];
+    /**
+     * Proxy URL to be used for sitemap loading.
+     */
     proxyUrl?: string;
+    /**
+     * Key for persisting the state of the request list in the `KeyValueStore`.
+     */
     persistStateKey?: string;
+    /**
+     * Abort signal to be used for sitemap loading.
+     */
+    signal?: AbortSignal;
+    /**
+     * Timeout for sitemap loading in milliseconds. If both `signal` and `timeoutMillis` are provided, the first one to finish will abort the loading.
+     */
+    timeoutMillis?: number;
 }
 
 interface SitemapParsingProgress {
@@ -23,6 +40,7 @@ interface SitemapRequestListState {
     urlQueue: string[];
     reclaimed: string[];
     sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
+    abortLoading: boolean;
 }
 
 /**
@@ -70,6 +88,16 @@ export class SitemapRequestList implements IRequestList {
      */
     private urlQueue: string[] = [];
 
+    /**
+     * Indicates whether the request list sitemap loading was aborted.
+     *
+     * If the loading was aborted before the sitemaps were fully loaded, the request list might be missing some URLs.
+     * The `isSitemapFullyLoaded` method can be used to check if the sitemaps were fully loaded.
+     *
+     * If the loading is aborted and all the requests are handled, `isFinished()` will return `true`.
+     */
+    private abortLoading: boolean = false;
+
     /** Number of URLs that were marked as handled */
     private handledUrlCount = 0;
 
@@ -95,6 +123,8 @@ export class SitemapRequestList implements IRequestList {
                 sitemapUrls: ow.array.ofType(ow.string),
                 proxyUrl: ow.optional.string,
                 persistStateKey: ow.optional.string,
+                signal: ow.optional.any(),
+                timeoutMillis: ow.optional.number,
             }),
         );
 
@@ -117,7 +147,7 @@ export class SitemapRequestList implements IRequestList {
      * Resolves once all the sitemaps URLs have been fully loaded (sets `isSitemapFullyLoaded` to `true`).
      */
     private async load(): Promise<void> {
-        while (!this.isSitemapFullyLoaded()) {
+        while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
                 this.sitemapParsingProgress.inProgressUrl ??
                 this.sitemapParsingProgress.pendingUrls.values().next().value;
@@ -159,6 +189,17 @@ export class SitemapRequestList implements IRequestList {
         const requestList = new SitemapRequestList(options);
         await requestList.restoreState();
         void requestList.load();
+
+        options?.signal?.addEventListener('abort', () => {
+            requestList.abortLoading = true;
+        });
+
+        if (options.timeoutMillis) {
+            setTimeout(() => {
+                requestList.abortLoading = true;
+            }, options.timeoutMillis);
+        }
+
         return requestList;
     }
 
@@ -181,7 +222,7 @@ export class SitemapRequestList implements IRequestList {
             this.urlQueue.length === 0 &&
             this.inProgress.size === 0 &&
             this.reclaimed.size === 0 &&
-            this.isSitemapFullyLoaded()
+            (this.isSitemapFullyLoaded() || this.abortLoading)
         );
     }
 
@@ -217,6 +258,7 @@ export class SitemapRequestList implements IRequestList {
             },
             urlQueue: this.urlQueue,
             reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
+            abortLoading: this.abortLoading,
         } satisfies SitemapRequestListState);
     }
 
@@ -241,6 +283,7 @@ export class SitemapRequestList implements IRequestList {
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
         };
         this.urlQueue = state.urlQueue;
+        this.abortLoading = state.abortLoading;
 
         this.queuedUrlsBySitemap.clear();
     }
@@ -272,7 +315,7 @@ export class SitemapRequestList implements IRequestList {
      * @inheritDoc
      */
     async *waitForNextRequest() {
-        while (!this.isSitemapFullyLoaded() || this.urlQueue.length > 0) {
+        while ((!this.isSitemapFullyLoaded() && !this.abortLoading) || this.urlQueue.length > 0) {
             const request = await this.fetchNextRequest();
             if (request) {
                 yield request;
