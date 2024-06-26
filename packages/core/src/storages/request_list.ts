@@ -66,6 +66,17 @@ export interface IRequestList {
     fetchNextRequest(): Promise<Request | null>;
 
     /**
+     * Gets the next {@apilink Request} to process. First, the function gets a request previously reclaimed
+     * using the {@apilink RequestList.reclaimRequest} function, if there is any.
+     * Otherwise it gets the next request from sources.
+     *
+     * The function resolves to `null` if there are no more requests to process.
+     *
+     * Unlike `fetchNextRequest()`, this function returns an `AsyncGenerator` that can be used in a `for await...of` loop.
+     */
+    waitForNextRequest(): AsyncGenerator<Request | null>;
+
+    /**
      * Reclaims request to the list if its processing failed.
      * The request will become available in the next `this.fetchNextRequest()`.
      */
@@ -670,6 +681,15 @@ export class RequestList implements IRequestList {
         }
 
         return null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    async *waitForNextRequest() {
+        while (true) {
+            yield await this.fetchNextRequest();
+        }
     }
 
     private ensureRequest(requestLike: Request | RequestOptions, index: number): Request {

@@ -271,6 +271,20 @@ export class SitemapRequestList implements IRequestList {
     /**
      * @inheritDoc
      */
+    async *waitForNextRequest() {
+        while (!this.isSitemapFullyLoaded() || this.urlQueue.length > 0) {
+            const request = await this.fetchNextRequest();
+            if (request) {
+                yield request;
+            } else {
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
     async reclaimRequest(request: Request): Promise<void> {
         this.ensureInProgressAndNotReclaimed(request.url);
         this.reclaimed.add(request.url);

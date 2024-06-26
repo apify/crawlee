@@ -199,6 +199,17 @@ describe('SitemapRequestList', () => {
         expect(list.handledCount()).toBe(7);
     });
 
+    test('for..await syntax works with waitForNextRequest', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+
+        for await (const request of list.waitForNextRequest()) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.isFinished()).resolves.toBe(true);
+        expect(list.handledCount()).toBe(7);
+    });
+
     test('processing the whole list', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
         const requests: Request[] = [];
