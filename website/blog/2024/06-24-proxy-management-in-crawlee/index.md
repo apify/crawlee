@@ -41,15 +41,11 @@ You categorize your proxies into different tiers based on their quality. For exa
 -   **Adjusting tiers**: Higher-tier proxies are used if a domain shows more errors. Conversely, if a domain performs well with a high-tier proxy, the system will occasionally test lower-tier proxies. If successful, it continues using the lower tier, optimizing costs.
 -   **Forgetting old errors**: Old errors are given less weight over time, allowing the system to adjust tiers dynamically as proxies' performance changes.
 
-### Working
+## Working
 
 The `tieredProxyUrls` option in Crawlee's `ProxyConfigurationOptions` allows you to define a list of proxy URLs organized into tiers. Each tier represents a different level of quality, speed, and reliability.
 
-### Structure
-
-**Tiered Array**: Each element in the array is an object containing proxy URLs for that tier.
-
-### Usage
+## Usage
 
 **Fallback Mechanism**: Crawlee starts with the first tier of proxies. If proxies in the current tier fail, it will switch to the next tier.
 
