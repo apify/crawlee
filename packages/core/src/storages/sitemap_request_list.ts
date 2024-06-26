@@ -13,12 +13,16 @@ export interface SitemapRequestListOptions {
     persistStateKey?: string;
 }
 
+interface SitemapParsingProgress {
+    inProgressUrl: string | null;
+    inProgressEntries: Set<string>;
+    pendingUrls: Set<string>;
+}
+
 interface SitemapRequestListState {
+    urlQueue: string[];
     reclaimed: string[];
-    processedSitemaps: string[];
-    currentSitemapEntries: string[];
-    currentSitemapUrl?: string;
-    currentSitemapUrlQueue?: string[];
+    sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
 }
 
 /**
@@ -39,34 +43,48 @@ export class SitemapRequestList implements IRequestList {
     /**
      * Object for keeping track of the sitemap parsing progress.
      */
-    private sitemapParsingProgress = {
+    private sitemapParsingProgress: SitemapParsingProgress = {
         /**
-         * Set of sitemap URLs that were already fully parsed.
+         * URL of the sitemap that is currently being parsed. `null` if no sitemap is being parsed.
          */
-        processedSitemaps: new Set<string>(),
+        inProgressUrl: null,
         /**
-         * Buffer for URLs from the currently parsed sitemap.
+         * Buffer for URLs from the currently parsed sitemap. Used for tracking partially loaded sitemaps across migrations.
          */
-        currentSitemapEntries: new Set<string>(),
+        inProgressEntries: new Set<string>(),
+        /**
+         * Set of sitemap URLs that have not been fully parsed yet. If the set is empty and `inProgressUrl` is `null`, the sitemap loading is finished.
+         */
+        pendingUrls: new Set<string>(),
     };
 
-    /** URLs loaded from the sitemaps */
+    /**
+     * Mapping between sitemap URLs and their respective queues of URLs to be processed.
+     */
     private queuedUrlsBySitemap = new Map<string, string[]>();
+
+    /**
+     * Queue of URLs parsed from the sitemaps.
+     *
+     * Fetch the next URL to be processed using `fetchNextRequest()`.
+     */
+    private urlQueue: string[] = [];
 
     /** Number of URLs that were marked as handled */
     private handledUrlCount = 0;
-
-    /** Indicates whether the background processing of sitemap contents has already finished.  */
-    private isSitemapFullyLoaded = false;
 
     private persistStateKey?: string;
 
     private store?: KeyValueStore;
 
-    private sitemapUrls: string[];
-
+    /**
+     * Proxy URL to be used for sitemap loading.
+     */
     private proxyUrl: string | undefined;
 
+    /**
+     * Logger instance.
+     */
     private log = defaultLog.child({ prefix: 'SitemapRequestList' });
 
     /** @internal */
@@ -74,49 +92,68 @@ export class SitemapRequestList implements IRequestList {
         ow(
             options,
             ow.object.exactShape({
-                sitemapUrls: ow.array,
+                sitemapUrls: ow.array.ofType(ow.string),
                 proxyUrl: ow.optional.string,
                 persistStateKey: ow.optional.string,
             }),
         );
 
         this.persistStateKey = options.persistStateKey;
-        this.sitemapUrls = options.sitemapUrls;
         this.proxyUrl = options.proxyUrl;
+
+        this.sitemapParsingProgress.pendingUrls = new Set(options.sitemapUrls);
     }
 
     /**
+     * Indicates whether the background processing of sitemap contents has already finished.
+     */
+    isSitemapFullyLoaded(): boolean {
+        return this.sitemapParsingProgress.inProgressUrl === null && this.sitemapParsingProgress.pendingUrls.size === 0;
+    }
+
+    /**
+     * Start processing the sitemaps and loading the URLs.
      *
+     * Resolves once all the sitemaps URLs have been fully loaded (sets `isSitemapFullyLoaded` to `true`).
      */
     private async load(): Promise<void> {
-        try {
-            for await (const item of parseSitemap(
-                this.sitemapUrls.map((url) => ({ type: 'url', url })),
-                this.proxyUrl,
-            )) {
-                if (this.sitemapParsingProgress.processedSitemaps.has(item.originSitemapUrl)) {
-                    continue;
-                }
+        while (!this.isSitemapFullyLoaded()) {
+            const sitemapUrl =
+                this.sitemapParsingProgress.inProgressUrl ??
+                this.sitemapParsingProgress.pendingUrls.values().next().value;
 
-                if (!this.queuedUrlsBySitemap.has(item.originSitemapUrl)) {
-                    this.queuedUrlsBySitemap.set(item.originSitemapUrl, []);
-                }
+            try {
+                for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
+                    maxDepth: 0,
+                    emitNestedSitemaps: true,
+                })) {
+                    if (!item.originSitemapUrl) {
+                        // This is a nested sitemap
+                        this.sitemapParsingProgress.pendingUrls.add(item.loc);
+                        continue;
+                    }
 
-                const queue = this.queuedUrlsBySitemap.get(item.originSitemapUrl)!;
-
-                if (!this.sitemapParsingProgress.currentSitemapEntries.has(item.url)) {
-                    queue.push(item.url);
+                    if (!this.sitemapParsingProgress.inProgressEntries.has(item.loc)) {
+                        this.urlQueue.push(item.loc);
+                        this.sitemapParsingProgress.inProgressEntries.add(item.loc);
+                    }
                 }
+            } catch (e: any) {
+                this.log.error('Error loading sitemap contents:', e);
             }
-        } catch (e: any) {
-            this.log.error('Error loading sitemap contents:', e);
-        }
 
-        this.isSitemapFullyLoaded = true;
+            this.sitemapParsingProgress.pendingUrls.delete(sitemapUrl);
+            this.sitemapParsingProgress.inProgressEntries.clear();
+            this.sitemapParsingProgress.inProgressUrl = null;
+        }
     }
 
     /**
      * Open a sitemap and start processing it.
+     *
+     * Resolves to a new instance of `SitemapRequestList`, which **might not be fully loaded yet** - i.e. the sitemap might still be loading in the background.
+     *
+     * Track the loading progress using the `isSitemapFullyLoaded` property.
      */
     static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
         const requestList = new SitemapRequestList(options);
@@ -140,14 +177,19 @@ export class SitemapRequestList implements IRequestList {
      * @inheritDoc
      */
     async isFinished(): Promise<boolean> {
-        return this.inProgress.size === 0 && this.getQueuedRequestUrl() === null && this.isSitemapFullyLoaded;
+        return (
+            this.urlQueue.length === 0 &&
+            this.inProgress.size === 0 &&
+            this.reclaimed.size === 0 &&
+            this.isSitemapFullyLoaded()
+        );
     }
 
     /**
      * @inheritDoc
      */
     async isEmpty(): Promise<boolean> {
-        return this.getQueuedRequestUrl() === null;
+        return this.reclaimed.size === 0 && this.urlQueue.length === 0;
     }
 
     /**
@@ -167,14 +209,14 @@ export class SitemapRequestList implements IRequestList {
 
         this.store ??= await KeyValueStore.open();
 
-        const sitemapUrl: string | undefined = this.queuedUrlsBySitemap.keys().next().value;
-
         await this.store.setValue(this.persistStateKey, {
-            processedSitemaps: Array.from(this.sitemapParsingProgress.processedSitemaps),
-            currentSitemapEntries: Array.from(this.sitemapParsingProgress.currentSitemapEntries),
+            sitemapParsingProgress: {
+                pendingUrls: Array.from(this.sitemapParsingProgress.pendingUrls),
+                inProgressUrl: this.sitemapParsingProgress.inProgressUrl,
+                inProgressEntries: Array.from(this.sitemapParsingProgress.inProgressEntries),
+            },
+            urlQueue: this.urlQueue,
             reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
-            currentSitemapUrl: sitemapUrl, // We only store the queue from a single sitemap for better storage efficiency
-            currentSitemapUrlQueue: sitemapUrl !== undefined ? this.queuedUrlsBySitemap.get(sitemapUrl) : undefined,
         } satisfies SitemapRequestListState);
     }
 
@@ -194,14 +236,13 @@ export class SitemapRequestList implements IRequestList {
 
         this.reclaimed = new Set(state.reclaimed);
         this.sitemapParsingProgress = {
-            processedSitemaps: new Set(state.processedSitemaps),
-            currentSitemapEntries: new Set(state.currentSitemapEntries),
+            pendingUrls: new Set(state.sitemapParsingProgress.pendingUrls),
+            inProgressUrl: state.sitemapParsingProgress.inProgressUrl,
+            inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
         };
+        this.urlQueue = state.urlQueue;
 
         this.queuedUrlsBySitemap.clear();
-        if (state.currentSitemapUrl !== undefined) {
-            this.queuedUrlsBySitemap.set(state.currentSitemapUrl, state.currentSitemapUrlQueue ?? []);
-        }
     }
 
     /**
@@ -216,55 +257,15 @@ export class SitemapRequestList implements IRequestList {
         }
 
         // Otherwise return next request.
-        const queuedUrl = this.getQueuedRequestUrl();
-        if (queuedUrl !== null) {
-            const request = new Request({ url: queuedUrl });
-            this.advanceQueue();
-
-            this.inProgress.add(request.url);
-
-            return request;
+        const nextUrl = this.urlQueue.shift();
+        if (!nextUrl) {
+            return null;
         }
 
-        return null;
-    }
+        const request = new Request({ url: nextUrl });
+        this.inProgress.add(request.url);
 
-    /** Get the next URL to be processed, without changing the queue. */
-    private getQueuedRequestUrl(): string | null {
-        for (const queue of this.queuedUrlsBySitemap.values()) {
-            if (queue.length > 0) {
-                return queue[0];
-            }
-        }
-
-        return null;
-    }
-
-    /** Mark the URL at the front of the queue as handled (if any) and advance the queue (if possible) */
-    private advanceQueue(): void {
-        const sitemapUrls = Array.from(this.queuedUrlsBySitemap.keys());
-        let found = false;
-
-        for (let i = 0; i < sitemapUrls.length; i++) {
-            const sitemapUrl = sitemapUrls[i];
-            const queue = this.queuedUrlsBySitemap.get(sitemapUrl)!;
-
-            if (queue.length >= 1) {
-                found = true;
-                this.sitemapParsingProgress.currentSitemapEntries.add(queue.shift()!);
-            }
-
-            if (queue.length === 0 && (i + 1 < sitemapUrls.length || this.isSitemapFullyLoaded)) {
-                this.sitemapParsingProgress.processedSitemaps.add(sitemapUrl);
-                this.sitemapParsingProgress.currentSitemapEntries.clear();
-
-                this.queuedUrlsBySitemap.delete(sitemapUrl);
-            }
-
-            if (found) {
-                break;
-            }
-        }
+        return request;
     }
 
     /**

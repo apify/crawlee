@@ -9,7 +9,7 @@ import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
 interface SitemapUrlData {
-    url: string;
+    loc: string;
     lastmod?: Date;
     changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
     priority?: number;
@@ -19,7 +19,12 @@ export type SitemapUrl = SitemapUrlData & {
     originSitemapUrl: string;
 };
 
-type SitemapSource = { type: 'url'; url: string } | { type: 'raw'; content: string };
+interface NestedSitemap {
+    loc: string;
+    originSitemapUrl: null;
+}
+
+type SitemapSource = ({ type: 'url'; url: string } | { type: 'raw'; content: string }) & { depth?: number };
 type SitemapItem = ({ type: 'url' } & SitemapUrlData) | { type: 'sitemapUrl'; url: string };
 
 class SitemapTxtParser extends Transform {
@@ -51,13 +56,13 @@ class SitemapTxtParser extends Transform {
 
             if (finalize) {
                 for (const url of parts) {
-                    this.push({ type: 'url', url } satisfies SitemapItem);
+                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
                 }
 
                 this.buffer = '';
             } else if (parts.length > 0) {
                 for (const url of parts.slice(0, -1)) {
-                    this.push({ type: 'url', url } satisfies SitemapItem);
+                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
                 }
 
                 this.buffer = parts.at(-1)!;
@@ -125,8 +130,8 @@ class SitemapXmlParser extends Transform {
             this.currentTag = undefined;
         }
 
-        if (name === 'url' && this.url.url !== undefined) {
-            this.push({ type: 'url', ...this.url, url: this.url.url } satisfies SitemapItem);
+        if (name === 'url' && this.url.loc !== undefined) {
+            this.push({ type: 'url', ...this.url, loc: this.url.loc } satisfies SitemapItem);
             this.url = {};
         }
     }
@@ -139,7 +144,7 @@ class SitemapXmlParser extends Transform {
 
             if (this.rootTagName === 'urlset') {
                 this.url ??= {};
-                this.url.url = text;
+                this.url.loc = text;
             }
         }
 
@@ -161,7 +166,22 @@ class SitemapXmlParser extends Transform {
     }
 }
 
-export async function* parseSitemap(initialSources: SitemapSource[], proxyUrl?: string): AsyncIterable<SitemapUrl> {
+interface ParseSitemapOptions {
+    /**
+     * If set to `true`, elements reffering to other sitemaps will be emitted as special objects with a `bouba` property.
+     */
+    emitNestedSitemaps?: true | false;
+    /**
+     * Maximum depth of nested sitemaps to follow.
+     */
+    maxDepth?: number;
+}
+
+export async function* parseSitemap<T extends ParseSitemapOptions>(
+    initialSources: SitemapSource[],
+    proxyUrl?: string,
+    options?: T,
+): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
     const { gotScraping } = await import('got-scraping');
     const { fileTypeStream } = await import('file-type');
 
@@ -190,6 +210,14 @@ export async function* parseSitemap(initialSources: SitemapSource[], proxyUrl?: 
 
     while (sources.length > 0) {
         const source = sources.shift()!;
+
+        if ((source?.depth ?? 0) > (options?.maxDepth ?? Infinity)) {
+            log.debug(
+                `Skipping sitemap ${source.type === 'url' ? source.url : ''} because it reached max depth ${options!.maxDepth!}.`,
+            );
+            continue;
+        }
+
         let items: AsyncIterable<SitemapItem> | null = null;
 
         if (source.type === 'url') {
@@ -253,7 +281,11 @@ export async function* parseSitemap(initialSources: SitemapSource[], proxyUrl?: 
 
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
-                sources.push({ type: 'url', url: item.url });
+                sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
+                if (options?.emitNestedSitemaps) {
+                    // @ts-ignore
+                    yield { loc: item.url, originSitemapUrl: null };
+                }
             }
 
             if (item.type === 'url') {
@@ -331,7 +363,7 @@ export class Sitemap {
 
         try {
             for await (const item of parseSitemap(sources, proxyUrl)) {
-                urls.push(item.url);
+                urls.push(item.loc);
             }
         } catch (e) {
             return new Sitemap([]);
