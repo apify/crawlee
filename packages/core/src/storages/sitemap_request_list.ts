@@ -25,7 +25,7 @@ export interface SitemapRequestListOptions {
      */
     signal?: AbortSignal;
     /**
-     * Timeout for sitemap loading in milliseconds. If both `signal` and `timeoutMillis` are provided, the first one to finish will abort the loading.
+     * Timeout for sitemap loading in milliseconds. If both `signal` and `timeoutMillis` are provided, either of them can abort the loading.
      */
     timeoutMillis?: number;
 }
