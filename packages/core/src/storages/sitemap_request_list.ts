@@ -31,9 +31,9 @@ export interface SitemapRequestListOptions {
 }
 
 interface SitemapParsingProgress {
-    inProgressUrl: string | null;
+    inProgressSitemapUrl: string | null;
     inProgressEntries: Set<string>;
-    pendingUrls: Set<string>;
+    pendingSitemapUrls: Set<string>;
 }
 
 interface SitemapRequestListState {
@@ -65,15 +65,15 @@ export class SitemapRequestList implements IRequestList {
         /**
          * URL of the sitemap that is currently being parsed. `null` if no sitemap is being parsed.
          */
-        inProgressUrl: null,
+        inProgressSitemapUrl: null,
         /**
          * Buffer for URLs from the currently parsed sitemap. Used for tracking partially loaded sitemaps across migrations.
          */
         inProgressEntries: new Set<string>(),
         /**
-         * Set of sitemap URLs that have not been fully parsed yet. If the set is empty and `inProgressUrl` is `null`, the sitemap loading is finished.
+         * Set of sitemap URLs that have not been fully parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
          */
-        pendingUrls: new Set<string>(),
+        pendingSitemapUrls: new Set<string>(),
     };
 
     /**
@@ -126,14 +126,19 @@ export class SitemapRequestList implements IRequestList {
         this.persistStateKey = options.persistStateKey;
         this.proxyUrl = options.proxyUrl;
 
-        this.sitemapParsingProgress.pendingUrls = new Set(options.sitemapUrls);
+        this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
     }
 
     /**
-     * Indicates whether the background processing of sitemap contents has already finished.
+     * Indicates whether the background processing of sitemap contents has successfully finished.
+     *
+     * If this is `false`, the background processing is either still in progress or was aborted.
      */
     isSitemapFullyLoaded(): boolean {
-        return this.sitemapParsingProgress.inProgressUrl === null && this.sitemapParsingProgress.pendingUrls.size === 0;
+        return (
+            this.sitemapParsingProgress.inProgressSitemapUrl === null &&
+            this.sitemapParsingProgress.pendingSitemapUrls.size === 0
+        );
     }
 
     /**
@@ -144,8 +149,8 @@ export class SitemapRequestList implements IRequestList {
     private async load(): Promise<void> {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
-                this.sitemapParsingProgress.inProgressUrl ??
-                this.sitemapParsingProgress.pendingUrls.values().next().value;
+                this.sitemapParsingProgress.inProgressSitemapUrl ??
+                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value;
 
             try {
                 for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
@@ -154,7 +159,7 @@ export class SitemapRequestList implements IRequestList {
                 })) {
                     if (!item.originSitemapUrl) {
                         // This is a nested sitemap
-                        this.sitemapParsingProgress.pendingUrls.add(item.loc);
+                        this.sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
                         continue;
                     }
 
@@ -167,9 +172,9 @@ export class SitemapRequestList implements IRequestList {
                 this.log.error('Error loading sitemap contents:', e);
             }
 
-            this.sitemapParsingProgress.pendingUrls.delete(sitemapUrl);
+            this.sitemapParsingProgress.pendingSitemapUrls.delete(sitemapUrl);
             this.sitemapParsingProgress.inProgressEntries.clear();
-            this.sitemapParsingProgress.inProgressUrl = null;
+            this.sitemapParsingProgress.inProgressSitemapUrl = null;
         }
     }
 
@@ -243,8 +248,8 @@ export class SitemapRequestList implements IRequestList {
 
         await this.store.setValue(this.persistStateKey, {
             sitemapParsingProgress: {
-                pendingUrls: Array.from(this.sitemapParsingProgress.pendingUrls),
-                inProgressUrl: this.sitemapParsingProgress.inProgressUrl,
+                pendingSitemapUrls: Array.from(this.sitemapParsingProgress.pendingSitemapUrls),
+                inProgressSitemapUrl: this.sitemapParsingProgress.inProgressSitemapUrl,
                 inProgressEntries: Array.from(this.sitemapParsingProgress.inProgressEntries),
             },
             urlQueue: this.urlQueue,
@@ -269,8 +274,8 @@ export class SitemapRequestList implements IRequestList {
 
         this.reclaimed = new Set(state.reclaimed);
         this.sitemapParsingProgress = {
-            pendingUrls: new Set(state.sitemapParsingProgress.pendingUrls),
-            inProgressUrl: state.sitemapParsingProgress.inProgressUrl,
+            pendingSitemapUrls: new Set(state.sitemapParsingProgress.pendingSitemapUrls),
+            inProgressSitemapUrl: state.sitemapParsingProgress.inProgressSitemapUrl,
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
         };
         this.urlQueue = state.urlQueue;
