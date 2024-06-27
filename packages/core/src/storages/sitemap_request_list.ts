@@ -77,11 +77,6 @@ export class SitemapRequestList implements IRequestList {
     };
 
     /**
-     * Mapping between sitemap URLs and their respective queues of URLs to be processed.
-     */
-    private queuedUrlsBySitemap = new Map<string, string[]>();
-
-    /**
      * Queue of URLs parsed from the sitemaps.
      *
      * Fetch the next URL to be processed using `fetchNextRequest()`.
@@ -207,11 +202,7 @@ export class SitemapRequestList implements IRequestList {
      * @inheritDoc
      */
     length(): number {
-        const totalQueueSize = Array.from(this.queuedUrlsBySitemap.values())
-            .map((it) => it.length)
-            .reduce((acc, val) => acc + val);
-
-        return totalQueueSize + this.handledUrlCount - this.inProgress.size - this.reclaimed.size;
+        return this.urlQueue.length + this.handledUrlCount - this.inProgress.size - this.reclaimed.size;
     }
 
     /**
@@ -284,8 +275,6 @@ export class SitemapRequestList implements IRequestList {
         };
         this.urlQueue = state.urlQueue;
         this.abortLoading = state.abortLoading;
-
-        this.queuedUrlsBySitemap.clear();
     }
 
     /**
