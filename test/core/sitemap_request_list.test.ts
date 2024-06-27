@@ -153,13 +153,6 @@ describe('SitemapRequestList', () => {
         const secondRequest = await list.fetchNextRequest();
         expect(secondRequest).not.toBe(null);
 
-        await expect(list.fetchNextRequest()).resolves.toBe(null);
-
-        await sleep(100);
-
-        await expect(list.isFinished(), 'list should not be finished').resolves.toBe(false);
-        await expect(list.isEmpty(), 'list should not be empty').resolves.toBe(false);
-
         const thirdRequest = await list.fetchNextRequest();
         expect(thirdRequest).not.toBe(null);
     });
