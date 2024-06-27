@@ -260,6 +260,12 @@ export interface BrowserCrawlerOptions<
      * By default, they are expanded automatically. Use this option to disable this behavior.
      */
     ignoreShadowRoots?: boolean;
+
+    /**
+     * Whether to ignore `iframes` when processing the page content via `parseWithCheerio` helper.
+     * By default, `iframes` are expanded automatically. Use this option to disable this behavior.
+     */
+    ignoreIframes?: boolean;
 }
 
 /**
@@ -343,6 +349,7 @@ export abstract class BrowserCrawler<
         useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
         ignoreShadowRoots: ow.optional.boolean,
+        ignoreIframes: ow.optional.boolean,
     };
 
     /**
@@ -372,6 +379,7 @@ export abstract class BrowserCrawler<
             handleFailedRequestFunction,
             headless,
             ignoreShadowRoots,
+            ignoreIframes,
             ...basicCrawlerOptions
         } = options;
 

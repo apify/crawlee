@@ -188,10 +188,14 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
+export async function parseWithCheerio(
+    page: Page,
+    ignoreShadowRoots = false,
+    ignoreIframes = false,
+): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
-    if (page.frames().length > 1) {
+    if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');
 
         await Promise.all(
@@ -1068,7 +1072,7 @@ export function registerUtilsToContext(
             await context.waitForSelector(selector, timeoutMs);
         }
 
-        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
+        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
     };
     context.enqueueLinksByClickingElements = async (
         options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
