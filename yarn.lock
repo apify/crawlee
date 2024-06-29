@@ -11685,8 +11685,8 @@ __metadata:
   linkType: hard
 
 "tsx@npm:^4.4.0":
-  version: 4.15.7
-  resolution: "tsx@npm:4.15.7"
+  version: 4.15.8
+  resolution: "tsx@npm:4.15.8"
   dependencies:
     esbuild: "npm:~0.21.4"
     fsevents: "npm:~2.3.3"
@@ -11696,7 +11696,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/e960f4ee084b48cd3183e65946725fd9b0de4afae32a0fd9cd47416a41259fb2c72838b7aeba26adaecc2d89d70e976add9722e72ea5c876b3b493f137cbbf12
+  checksum: 10c0/2e4e077e05e9ec324246f30be0b61e85c5a9c61e4dca160eec542eee410cc0fbcccf26f4d529a8d977d470dd0e13f6897cee5d5ebc3cbf6c2cdfbc5e4033b26c
   languageName: node
   linkType: hard
 
@@ -12713,9 +12713,9 @@ __metadata:
   linkType: hard
 
 "yocto-queue@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "yocto-queue@npm:1.0.0"
-  checksum: 10c0/856117aa15cf5103d2a2fb173f0ab4acb12b4b4d0ed3ab249fdbbf612e55d1cadfd27a6110940e24746fb0a78cf640b522cc8bca76f30a3b00b66e90cf82abe0
+  version: 1.1.0
+  resolution: "yocto-queue@npm:1.1.0"
+  checksum: 10c0/00386edeb3afebebdc8f8b029c3d07ef7fe8d5cebed846ff988739bef978d0f5583c958f957578cb7b66a40bf987df98b3354a9a5078673f3c8de3c72b640d09
   languageName: node
   linkType: hard
 

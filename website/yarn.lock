@@ -14448,9 +14448,9 @@ __metadata:
   linkType: hard
 
 "yocto-queue@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "yocto-queue@npm:1.0.0"
-  checksum: 10c0/856117aa15cf5103d2a2fb173f0ab4acb12b4b4d0ed3ab249fdbbf612e55d1cadfd27a6110940e24746fb0a78cf640b522cc8bca76f30a3b00b66e90cf82abe0
+  version: 1.1.0
+  resolution: "yocto-queue@npm:1.1.0"
+  checksum: 10c0/00386edeb3afebebdc8f8b029c3d07ef7fe8d5cebed846ff988739bef978d0f5583c958f957578cb7b66a40bf987df98b3354a9a5078673f3c8de3c72b640d09
   languageName: node
   linkType: hard
 
