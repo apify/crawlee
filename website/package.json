@@ -30,7 +30,7 @@
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^5.0.0",
-        "typescript": "5.5.2"
+        "typescript": "5.5.3"
     },
     "dependencies": {
         "@apify/utilities": "^2.8.0",
