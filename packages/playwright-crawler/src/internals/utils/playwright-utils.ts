@@ -597,10 +597,14 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object.
  * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
+export async function parseWithCheerio(
+    page: Page,
+    ignoreShadowRoots = false,
+    ignoreIframes = false,
+): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
-    if (page.frames().length > 1) {
+    if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');
 
         await Promise.all(
@@ -858,7 +862,7 @@ export function registerUtilsToContext(
             await context.waitForSelector(selector, timeoutMs);
         }
 
-        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
+        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
     };
     context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
     context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
