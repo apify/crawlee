@@ -192,10 +192,10 @@ describe('SitemapRequestList', () => {
         expect(list.handledCount()).toBe(7);
     });
 
-    test('for..await syntax works with waitForNextRequest', async () => {
+    test('for..await syntax works with requestIterator', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
-        for await (const request of list.waitForNextRequest()) {
+        for await (const request of list.requestIterator()) {
             await list.markRequestHandled(request);
         }
 
@@ -214,7 +214,7 @@ describe('SitemapRequestList', () => {
         await sleep(50); // Loads the first sub-sitemap, but not the second
         controller.abort();
 
-        for await (const request of list.waitForNextRequest()) {
+        for await (const request of list.requestIterator()) {
             await list.markRequestHandled(request);
         }
 
@@ -229,7 +229,7 @@ describe('SitemapRequestList', () => {
             timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
         });
 
-        for await (const request of list.waitForNextRequest()) {
+        for await (const request of list.requestIterator()) {
             await list.markRequestHandled(request);
         }
 
@@ -255,7 +255,7 @@ describe('SitemapRequestList', () => {
         }
 
         const newList = await SitemapRequestList.open(options);
-        for await (const request of newList.waitForNextRequest()) {
+        for await (const request of newList.requestIterator()) {
             await newList.markRequestHandled(request);
         }
 
@@ -265,10 +265,6 @@ describe('SitemapRequestList', () => {
     test('processing the whole list', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
         const requests: Request[] = [];
-
-        while (await list.isEmpty()) {
-            await sleep(20);
-        }
 
         await expect(list.isFinished()).resolves.toBe(false);
 
@@ -293,10 +289,6 @@ describe('SitemapRequestList', () => {
     test('processing the whole list with reclaiming', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
         const requests: Request[] = [];
-
-        while (await list.isEmpty()) {
-            await sleep(20);
-        }
 
         await expect(list.isFinished()).resolves.toBe(false);
         let counter = 0;
@@ -332,10 +324,6 @@ describe('SitemapRequestList', () => {
         const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key' };
         const list = await SitemapRequestList.open(options);
 
-        while (await list.isEmpty()) {
-            await sleep(20);
-        }
-
         const firstRequest = await list.fetchNextRequest();
         await list.markRequestHandled(firstRequest);
 
@@ -345,16 +333,38 @@ describe('SitemapRequestList', () => {
         await expect(newList.isEmpty()).resolves.toBe(false);
 
         while (!(await newList.isFinished())) {
-            if (await newList.isEmpty()) {
-                await sleep(20);
-                continue;
-            }
-
             const request = await newList.fetchNextRequest();
             await newList.markRequestHandled(request);
         }
 
         expect(list.handledCount()).toBe(1);
         expect(newList.handledCount()).toBe(2);
+    });
+
+    test('state persistence tracks user changes', async () => {
+        const options = {
+            sitemapUrls: [`${url}/sitemap-stream.xml`],
+            persistStateKey: 'persist-user-changes',
+        };
+
+        const userDataPayload = { some: 'data' };
+        let firstLoadedUrl;
+
+        {
+            const list = await SitemapRequestList.open(options);
+
+            const firstRequest = await list.fetchNextRequest();
+            firstRequest.userData = userDataPayload;
+            firstLoadedUrl = firstRequest.url;
+
+            await list.persistState();
+            // simulates a migration in the middle of request processing
+        }
+
+        const newList = await SitemapRequestList.open(options);
+        const restoredRequest = await newList.fetchNextRequest();
+
+        expect(restoredRequest.url).toEqual(firstLoadedUrl);
+        expect(restoredRequest.userData).toEqual(userDataPayload);
     });
 });

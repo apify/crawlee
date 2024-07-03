@@ -30,6 +30,13 @@ export interface SitemapRequestListOptions {
      * Timeout for sitemap loading in milliseconds. If both `signal` and `timeoutMillis` are provided, either of them can abort the loading.
      */
     timeoutMillis?: number;
+    /**
+     * Maximum number of buffered URLs for the sitemap loading stream.
+     * If the buffer is full, the stream will pause until the buffer is drained.
+     *
+     * @default 200
+     */
+    maxBufferSize?: number;
 }
 
 interface SitemapParsingProgress {
@@ -43,6 +50,7 @@ interface SitemapRequestListState {
     reclaimed: string[];
     sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
     abortLoading: boolean;
+    requestData: [string, Request][];
 }
 
 /**
@@ -59,6 +67,13 @@ export class SitemapRequestList implements IRequestList {
 
     /** Set of URLs for which `reclaimRequest()` was called. */
     private reclaimed = new Set<string>();
+
+    /**
+     * Map of returned Request objects that have not been marked as handled yet.
+     *
+     * We use this to persist custom user fields on the in-progress (or reclaimed) requests.
+     */
+    private requestData = new Map<string, Request>();
 
     /**
      * Object for keeping track of the sitemap parsing progress.
@@ -123,6 +138,7 @@ export class SitemapRequestList implements IRequestList {
                 persistStateKey: ow.optional.string,
                 signal: ow.optional.any(),
                 timeoutMillis: ow.optional.number,
+                maxBufferSize: ow.optional.number,
             }),
         );
 
@@ -131,7 +147,7 @@ export class SitemapRequestList implements IRequestList {
 
         this.urlQueueStream = new Transform({
             objectMode: true,
-            highWaterMark: 100,
+            highWaterMark: options.maxBufferSize ?? 200,
         });
         this.urlQueueStream.pause();
 
@@ -316,6 +332,7 @@ export class SitemapRequestList implements IRequestList {
             },
             urlQueue,
             reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
+            requestData: Array.from(this.requestData.entries()),
             abortLoading: this.abortLoading,
         } satisfies SitemapRequestListState);
     }
@@ -341,6 +358,8 @@ export class SitemapRequestList implements IRequestList {
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
         };
 
+        this.requestData = new Map(state.requestData ?? []);
+
         for (const url of state.urlQueue) {
             this.urlQueueStream.push(url);
         }
@@ -353,28 +372,26 @@ export class SitemapRequestList implements IRequestList {
      */
     async fetchNextRequest(): Promise<Request | null> {
         // Try to return a reclaimed request first
-        const url = this.reclaimed.values().next().value as string | undefined;
-        if (url !== undefined) {
-            this.reclaimed.delete(url);
-            return new Request({ url });
+        let nextUrl: string | null = this.reclaimed.values().next().value;
+        if (nextUrl) {
+            this.reclaimed.delete(nextUrl);
+        } else {
+            // Otherwise read next url from the stream
+            nextUrl = await this.readNextUrl();
+            if (!nextUrl) {
+                return null;
+            }
+            this.requestData.set(nextUrl, new Request({ url: nextUrl }));
         }
 
-        // Otherwise return next request.
-        const nextUrl = await this.readNextUrl();
-        if (!nextUrl) {
-            return null;
-        }
-
-        const request = new Request({ url: nextUrl });
-        this.inProgress.add(request.url);
-
-        return request;
+        this.inProgress.add(nextUrl);
+        return this.requestData.get(nextUrl)!;
     }
 
     /**
      * @inheritDoc
      */
-    async *waitForNextRequest() {
+    async *requestIterator() {
         while ((!this.isSitemapFullyLoaded() && !this.abortLoading) || !(await this.isEmpty())) {
             const request = await this.fetchNextRequest();
             if (!request) break;
@@ -389,6 +406,7 @@ export class SitemapRequestList implements IRequestList {
     async reclaimRequest(request: Request): Promise<void> {
         this.ensureInProgressAndNotReclaimed(request.url);
         this.reclaimed.add(request.url);
+        this.inProgress.delete(request.url);
     }
 
     /**
@@ -398,6 +416,7 @@ export class SitemapRequestList implements IRequestList {
         this.handledUrlCount += 1;
         this.ensureInProgressAndNotReclaimed(request.url);
         this.inProgress.delete(request.url);
+        this.requestData.delete(request.url);
     }
 
     private ensureInProgressAndNotReclaimed(url: string): void {
