@@ -3,6 +3,72 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
+
+
+### Bug Fixes
+
+* allow creating new adaptive crawler instance without any parameters ([9b7f595](https://github.com/apify/crawlee/commit/9b7f595a2d70cab5c50e188581b21b0ef7e51780))
+* declare missing peer dependencies in `@crawlee/browser` package ([#2532](https://github.com/apify/crawlee/issues/2532)) ([3357c7f](https://github.com/apify/crawlee/commit/3357c7fc5ab071b12f72097c190dbee9990e3751))
+* fix detection of HTTP site when using the `useState` in adaptive crawler ([#2530](https://github.com/apify/crawlee/issues/2530)) ([7e195c1](https://github.com/apify/crawlee/commit/7e195c17cf1d9beae7f6f068fe505f1334a3a5b3))
+* mark `context.request.loadedUrl` and `id` as required inside the request handler ([#2531](https://github.com/apify/crawlee/issues/2531)) ([2b54660](https://github.com/apify/crawlee/commit/2b546600691d84852a2f9ef42f273cecf818d66d))
+
+
+
+
+
+## [3.10.4](https://github.com/apify/crawlee/compare/v3.10.3...v3.10.4) (2024-06-11)
+
+
+### Bug Fixes
+
+* add `waitForAllRequestsToBeAdded` option to `enqueueLinks` helper ([925546b](https://github.com/apify/crawlee/commit/925546b31130076c2dec98a83a42d15c216589a0)), closes [#2318](https://github.com/apify/crawlee/issues/2318)
+* add missing `useState` implementation into crawling context ([eec4a71](https://github.com/apify/crawlee/commit/eec4a71769f1236ca0876a4a32288241b1b63db1))
+* make `crawler.log` publicly accessible ([#2526](https://github.com/apify/crawlee/issues/2526)) ([3e9e665](https://github.com/apify/crawlee/commit/3e9e6652c0b5e4d0c2707985abbad7d80336b9af))
+* **playwright:** allow passing new context options in `launchOptions` on type level ([0519d40](https://github.com/apify/crawlee/commit/0519d4099d257bbc40ed091c131a674ea5f8d731)), closes [#1849](https://github.com/apify/crawlee/issues/1849)
+* respect `crawler.log` when creating child logger for `Statistics` ([0a0d75d](https://github.com/apify/crawlee/commit/0a0d75d40b5f78b329589535bbe3e0e84be76a7e)), closes [#2412](https://github.com/apify/crawlee/issues/2412)
+
+
+
+
+
+## [3.10.3](https://github.com/apify/crawlee/compare/v3.10.2...v3.10.3) (2024-06-07)
+
+
+### Bug Fixes
+
+* **adaptive-crawler:** log only once for the committed request handler execution ([#2524](https://github.com/apify/crawlee/issues/2524)) ([533bd3f](https://github.com/apify/crawlee/commit/533bd3f04671d54273f0861664d316269d08fbfb))
+* increase timeout for retiring inactive browsers ([#2523](https://github.com/apify/crawlee/issues/2523)) ([195f176](https://github.com/apify/crawlee/commit/195f1766a03293db19caa33f9fc3d4ab08081f71))
+* respect implicit router when no `requestHandler` is provided in `AdaptiveCrawler` ([#2518](https://github.com/apify/crawlee/issues/2518)) ([31083aa](https://github.com/apify/crawlee/commit/31083aa27ddd51827f73c7ac4290379ec7a81283))
+* revert the scaling steps back to 5% ([5bf32f8](https://github.com/apify/crawlee/commit/5bf32f855ad84037e68dd9053930fa7be4267cac))
+
+
+### Features
+
+* add `waitForSelector` context helper + `parseWithCheerio` in adaptive crawler ([#2522](https://github.com/apify/crawlee/issues/2522)) ([6f88e73](https://github.com/apify/crawlee/commit/6f88e738d43ab4774dc4ef3f78775a5d88728e0d))
+* log desired concurrency in the default status message ([9f0b796](https://github.com/apify/crawlee/commit/9f0b79684d9e27e6ba29634e7da2e9a095367eda))
+
+
+
+
+
+## [3.10.2](https://github.com/apify/crawlee/compare/v3.10.1...v3.10.2) (2024-06-03)
+
+
+### Bug Fixes
+
+* Autodetect sitemap filetype from content ([#2497](https://github.com/apify/crawlee/issues/2497)) ([62a9f40](https://github.com/apify/crawlee/commit/62a9f4036dba92d07547af489ac8b6c7974faa6f)), closes [#2461](https://github.com/apify/crawlee/issues/2461)
+* improve fix for double extension in KVS with HTML files ([#2505](https://github.com/apify/crawlee/issues/2505)) ([157927d](https://github.com/apify/crawlee/commit/157927d67f42342c20fdf01ef81bdafd7095f0b8)), closes [#2419](https://github.com/apify/crawlee/issues/2419)
+
+
+### Features
+
+* Loading sitemaps from string ([#2496](https://github.com/apify/crawlee/issues/2496)) ([38ed0d6](https://github.com/apify/crawlee/commit/38ed0d6ad90a868df9c02632334fec8db9ef29a0)), closes [#2460](https://github.com/apify/crawlee/issues/2460)
+
+
+
+
+
 ## [3.10.1](https://github.com/apify/crawlee/compare/v3.10.0...v3.10.1) (2024-05-23)
 
 

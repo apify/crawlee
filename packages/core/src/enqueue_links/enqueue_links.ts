@@ -21,7 +21,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     limit?: number;
 
     /** An array of URLs to enqueue. */
-    urls?: Readonly<string[]>;
+    urls?: readonly string[];
 
     /** A request queue to which the URLs will be enqueued. */
     requestQueue?: RequestProvider;
@@ -60,7 +60,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the function
      * enqueues the links with the same subdomain.
      */
-    globs?: Readonly<GlobInput[]>;
+    globs?: readonly GlobInput[];
 
     /**
      * An array of glob pattern strings, regexp patterns or plain objects
@@ -72,7 +72,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Glob matching is always case-insensitive.
      * If you need case-sensitive matching, provide a regexp.
      */
-    exclude?: Readonly<(GlobInput | RegExpInput)[]>;
+    exclude?: readonly (GlobInput | RegExpInput)[];
 
     /**
      * An array of regular expressions or plain objects
@@ -84,7 +84,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the function
      * enqueues the links with the same subdomain.
      */
-    regexps?: Readonly<RegExpInput[]>;
+    regexps?: readonly RegExpInput[];
 
     /**
      * *NOTE:* In future versions of SDK the options will be removed.
@@ -104,7 +104,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * @deprecated prefer using `globs` or `regexps` instead
      */
-    pseudoUrls?: Readonly<PseudoUrlInput[]>;
+    pseudoUrls?: readonly PseudoUrlInput[];
 
     /**
      * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
@@ -151,6 +151,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * @default EnqueueStrategy.SameHostname
      */
     strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+
+    /**
+     * By default, only the first batch (1000) of found requests will be added to the queue before resolving the call.
+     * You can use this option to wait for adding all of them.
+     */
+    waitForAllRequestsToBeAdded?: boolean;
 }
 
 /**
@@ -264,11 +270,22 @@ export async function enqueueLinks(
             regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
+            waitForAllRequestsToBeAdded: ow.optional.boolean,
         }),
     );
 
-    const { requestQueue, limit, urls, pseudoUrls, exclude, globs, regexps, transformRequestFunction, forefront } =
-        options;
+    const {
+        requestQueue,
+        limit,
+        urls,
+        pseudoUrls,
+        exclude,
+        globs,
+        regexps,
+        transformRequestFunction,
+        forefront,
+        waitForAllRequestsToBeAdded,
+    } = options;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
@@ -371,7 +388,10 @@ export async function enqueueLinks(
     let requests = createFilteredRequests();
     if (limit) requests = requests.slice(0, limit);
 
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+    const { addedRequests } = await requestQueue.addRequestsBatched(requests, {
+        forefront,
+        waitForAllRequestsToBeAdded,
+    });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }

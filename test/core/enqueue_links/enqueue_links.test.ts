@@ -1,5 +1,5 @@
 import log from '@apify/log';
-import { cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
+import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
 import {
@@ -984,6 +984,33 @@ describe('enqueueLinks()', () => {
 
             for (let i = 0; i < 5; i++) {
                 expect(enqueued[i].options.forefront).toBe(true);
+            }
+        });
+
+        test('accepts waitForAllRequestsToBeAdded option', async () => {
+            const enqueued: { request: string | Source; options: AddRequestsBatchedOptions }[] = [];
+            const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+
+            requestQueue.addRequestsBatched = async (requests, options) => {
+                // copy the requests to the enqueued list, along with options that were passed to addRequests,
+                // so that it doesn't matter how many calls were made
+                enqueued.push(...requests.map((request) => ({ request, options })));
+                return { addedRequests: [], waitForAllRequestsToBeAdded: Promise.resolve([]) };
+            };
+
+            await cheerioCrawlerEnqueueLinks({
+                options: {
+                    waitForAllRequestsToBeAdded: true,
+                },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(5);
+
+            for (let i = 0; i < 5; i++) {
+                expect(enqueued[i].options.waitForAllRequestsToBeAdded).toBe(true);
             }
         });
     });

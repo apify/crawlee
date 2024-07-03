@@ -12,10 +12,33 @@ import type { Session } from '../session_pool/session';
 import type { RequestQueueOperationOptions, Dataset, RecordOptions } from '../storages';
 import { KeyValueStore } from '../storages';
 
+/** @internal */
+export type IsAny<T> = 0 extends 1 & T ? true : false;
+
+/** @internal */
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+
+export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
+
+/** @internal */
+export type LoadedContext<Context extends RestrictedCrawlingContext> = IsAny<Context> extends true
+    ? Context
+    : {
+          request: LoadedRequest<Context['request']>;
+      } & Omit<Context, 'request'>;
+
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
     // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
-    // eslint-disable-next-line
     extends Record<string & {}, unknown> {
+    id: string;
+    session?: Session;
+
+    /**
+     * An object with information about currently used proxy by the crawler
+     * and configured by the {@apilink ProxyConfiguration} class.
+     */
+    proxyInfo?: ProxyInfo;
+
     /**
      * The original {@apilink Request} object.
      */
@@ -87,15 +110,6 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
 
 export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary>
     extends RestrictedCrawlingContext<UserData> {
-    id: string;
-    session?: Session;
-
-    /**
-     * An object with information about currently used proxy by the crawler
-     * and configured by the {@apilink ProxyConfiguration} class.
-     */
-    proxyInfo?: ProxyInfo;
-
     crawler: Crawler;
 
     /**

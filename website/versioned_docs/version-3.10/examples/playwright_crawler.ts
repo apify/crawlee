@@ -1,4 +1,4 @@
-import { Dataset, PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler } from 'crawlee';
 
 // Create an instance of the PlaywrightCrawler class - a crawler
 // that automatically loads the URLs in headless Chrome / Playwright.
@@ -20,7 +20,7 @@ const crawler = new PlaywrightCrawler({
     // the most important being:
     // - request: an instance of the Request class with information such as URL and HTTP method
     // - page: Playwright's Page object (see https://playwright.dev/docs/api/class-page)
-    async requestHandler({ request, page, enqueueLinks, log }) {
+    async requestHandler({ pushData, request, page, enqueueLinks, log }) {
         log.info(`Processing ${request.url}...`);
 
         // A function to be evaluated by Playwright within the browser context.
@@ -40,7 +40,7 @@ const crawler = new PlaywrightCrawler({
         });
 
         // Store the results to the default dataset.
-        await Dataset.pushData(data);
+        await pushData(data);
 
         // Find a link to the next page and enqueue it if it exists.
         const infos = await enqueueLinks({

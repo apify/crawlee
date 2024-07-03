@@ -26,6 +26,31 @@
 			]
 		},
 		{
+			"name": "empty-ts",
+			"description": "Empty project [TypeScript]",
+			"files": [
+				"src/main.ts",
+				".dockerignore",
+				".gitignore",
+				"Dockerfile",
+				"package.json",
+				"README.md",
+				"tsconfig.json"
+			]
+		},
+		{
+			"name": "empty-js",
+			"description": "Empty project [JavaScript]",
+			"files": [
+				"src/main.js",
+				".dockerignore",
+				".gitignore",
+				"Dockerfile",
+				"package.json",
+				"README.md"
+			]
+		},
+		{
 			"name": "cheerio-ts",
 			"description": "CheerioCrawler template project [TypeScript]",
 			"files": [

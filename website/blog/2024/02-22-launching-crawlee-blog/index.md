@@ -2,11 +2,11 @@
 slug: crawlee-blog-launch
 title: 'Launching Crawlee Blog'
 description: 'Your Node.js resource hub for web scraping and automation.'
-image: https://raw.githubusercontent.com/souravjain540/crawlee-first-blog/main/og-image.png
+image: https://raw.githubusercontent.com/souravjain540/crawlee-first-blog/main/og-image.webp
 author: Saurav Jain
 authorTitle: Developer Community Manager
 authorURL: https://github.com/souravjain540
-authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4
+authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4&s=48
 authorTwitter: sauain
 ---
 

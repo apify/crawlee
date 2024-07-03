@@ -1,4 +1,4 @@
-import { Dataset, JSDOMCrawler, log, LogLevel } from 'crawlee';
+import { JSDOMCrawler, log, LogLevel } from 'crawlee';
 
 // Crawlers come with various utilities, e.g. for logging.
 // Here we use debug level of logging to improve the debugging experience.
@@ -29,7 +29,7 @@ const crawler = new JSDOMCrawler({
     // We use for demonstration only 2 of them:
     // - request: an instance of the Request class with information such as the URL that is being crawled and HTTP method
     // - window: the JSDOM window object
-    async requestHandler({ request, window }) {
+    async requestHandler({ pushData, request, window }) {
         log.debug(`Processing ${request.url}...`);
 
         // Extract data from the page
@@ -43,7 +43,7 @@ const crawler = new JSDOMCrawler({
 
         // Store the results to the dataset. In local configuration,
         // the data will be stored as JSON files in ./storage/datasets/default
-        await Dataset.pushData({
+        await pushData({
             url: request.url,
             title,
             h1texts,

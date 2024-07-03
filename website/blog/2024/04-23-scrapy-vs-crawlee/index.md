@@ -2,11 +2,11 @@
 slug: scrapy-vs-crawlee
 title: 'Scrapy vs. Crawlee'
 description: 'Which web scraping library should you use in 2024? Learn how each handles headless mode, autoscaling, proxy rotation, errors, and anti-scraping techniques.'
-image: ./img/scrapy-vs-crawlee.png
+image: ./img/scrapy-vs-crawlee.webp
 author: Saurav Jain
 authorTitle: Developer Community Manager
 authorURL: https://github.com/souravjain540
-authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4
+authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4&s=48
 authorTwitter: sauain
 ---
 

@@ -3,6 +3,49 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.10.5](https://github.com/apify/crawlee/compare/v3.10.4...v3.10.5) (2024-06-12)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+## [3.10.4](https://github.com/apify/crawlee/compare/v3.10.3...v3.10.4) (2024-06-11)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+## [3.10.3](https://github.com/apify/crawlee/compare/v3.10.2...v3.10.3) (2024-06-07)
+
+
+### Bug Fixes
+
+* respect implicit router when no `requestHandler` is provided in `AdaptiveCrawler` ([#2518](https://github.com/apify/crawlee/issues/2518)) ([31083aa](https://github.com/apify/crawlee/commit/31083aa27ddd51827f73c7ac4290379ec7a81283))
+
+
+
+
+
+## [3.10.2](https://github.com/apify/crawlee/compare/v3.10.1...v3.10.2) (2024-06-03)
+
+
+### Bug Fixes
+
+* Autodetect sitemap filetype from content ([#2497](https://github.com/apify/crawlee/issues/2497)) ([62a9f40](https://github.com/apify/crawlee/commit/62a9f4036dba92d07547af489ac8b6c7974faa6f)), closes [#2461](https://github.com/apify/crawlee/issues/2461)
+
+
+### Features
+
+* Loading sitemaps from string ([#2496](https://github.com/apify/crawlee/issues/2496)) ([38ed0d6](https://github.com/apify/crawlee/commit/38ed0d6ad90a868df9c02632334fec8db9ef29a0)), closes [#2460](https://github.com/apify/crawlee/issues/2460)
+
+
+
+
+
 ## [3.10.1](https://github.com/apify/crawlee/compare/v3.10.0...v3.10.1) (2024-05-23)
 
 

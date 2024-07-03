@@ -6,6 +6,7 @@ import type {
     Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    LoadedContext,
     ProxyConfiguration,
     ProxyInfo,
     RequestHandler,
@@ -111,7 +112,7 @@ export interface BrowserCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: BrowserRequestHandler<Context>;
+    requestHandler?: BrowserRequestHandler<LoadedContext<Context>>;
 
     /**
      * Function that is called to process each request.
@@ -143,7 +144,7 @@ export interface BrowserCrawlerOptions<
      * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
      * @ignore
      */
-    handlePageFunction?: BrowserRequestHandler<Context>;
+    handlePageFunction?: BrowserRequestHandler<LoadedContext<Context>>;
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
@@ -259,6 +260,12 @@ export interface BrowserCrawlerOptions<
      * By default, they are expanded automatically. Use this option to disable this behavior.
      */
     ignoreShadowRoots?: boolean;
+
+    /**
+     * Whether to ignore `iframes` when processing the page content via `parseWithCheerio` helper.
+     * By default, `iframes` are expanded automatically. Use this option to disable this behavior.
+     */
+    ignoreIframes?: boolean;
 }
 
 /**
@@ -341,6 +348,8 @@ export abstract class BrowserCrawler<
         persistCookiesPerSession: ow.optional.boolean,
         useSessionPool: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        ignoreShadowRoots: ow.optional.boolean,
+        ignoreIframes: ow.optional.boolean,
     };
 
     /**
@@ -369,13 +378,15 @@ export abstract class BrowserCrawler<
             failedRequestHandler,
             handleFailedRequestFunction,
             headless,
+            ignoreShadowRoots,
+            ignoreIframes,
             ...basicCrawlerOptions
         } = options;
 
         super(
             {
                 ...basicCrawlerOptions,
-                requestHandler: async (...args) => this._runRequestHandler(...args),
+                requestHandler: async (...args) => this._runRequestHandler(...(args as [Context])),
                 requestHandlerTimeoutSecs:
                     navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
             },
@@ -569,7 +580,7 @@ export abstract class BrowserCrawler<
         request.state = RequestState.REQUEST_HANDLER;
         try {
             await addTimeoutToPromise(
-                async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext)),
+                async () => Promise.resolve(this.userProvidedRequestHandler(crawlingContext as LoadedContext<Context>)),
                 this.requestHandlerTimeoutInnerMillis,
                 `requestHandler timed out after ${this.requestHandlerTimeoutInnerMillis / 1000} seconds.`,
             );

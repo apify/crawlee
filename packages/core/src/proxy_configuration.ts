@@ -345,6 +345,15 @@ export class ProxyConfiguration {
 
         const tierPrediction = tracker.predictTier();
 
+        if (
+            typeof request.userData.__crawlee.lastProxyTier === 'number' &&
+            request.userData.__crawlee.lastProxyTier !== tierPrediction
+        ) {
+            log.debug(
+                `Changing proxy tier for domain "${domain}" from ${request.userData.__crawlee.lastProxyTier} to ${tierPrediction}.`,
+            );
+        }
+
         request.userData.__crawlee.lastProxyTier = tierPrediction;
         request.userData.__crawlee.forefront = true;
 

@@ -181,9 +181,12 @@ export abstract class RequestProvider implements IStorage {
     }
 
     /**
-     * Adds requests to the queue in batches of 25.
+     * Adds requests to the queue in batches of 25. This method will wait till all the requests are added
+     * to the queue before resolving. You should prefer using `queue.addRequestsBatched()` or `crawler.addRequests()`
+     * if you don't want to block the processing, as those methods will only wait for the initial 1000 requests,
+     * start processing right after that happens, and continue adding more in the background.
      *
-     * If a request that is passed in is already present due to its `uniqueKey` property being the same,
+     * If a request passed in is already present due to its `uniqueKey` property being the same,
      * it will not be updated. You can find out whether this happened by finding the request in the resulting
      * {@apilink BatchAddRequestsResult} object.
      *
@@ -301,7 +304,7 @@ export abstract class RequestProvider implements IStorage {
 
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
-     * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * adding the rest in the background. You can configure the batch size via `batchSize` option and the sleep time in between
      * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
      * the `waitForAllRequestsToBeAdded` promise you get in the response object.
      *

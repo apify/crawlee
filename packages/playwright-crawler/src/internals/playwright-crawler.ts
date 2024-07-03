@@ -4,6 +4,7 @@ import type {
     BrowserHook,
     BrowserRequestHandler,
     GetUserDataFromRequest,
+    LoadedContext,
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
@@ -21,7 +22,7 @@ export interface PlaywrightCrawlingContext<UserData extends Dictionary = Diction
     extends BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>,
         PlaywrightContextUtils {}
 export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
-export interface PlaywrightRequestHandler extends BrowserRequestHandler<PlaywrightCrawlingContext> {}
+export interface PlaywrightRequestHandler extends BrowserRequestHandler<LoadedContext<PlaywrightCrawlingContext>> {}
 export type PlaywrightGotoOptions = Parameters<Page['goto']>[1];
 
 export interface PlaywrightCrawlerOptions

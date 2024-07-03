@@ -105,7 +105,7 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
      *
      * Retired browsers are closed after all their pages are closed.
      *
-     * @default 1
+     * @default 10
      */
     retireInactiveBrowserAfterSecs?: number;
     /**
@@ -364,7 +364,7 @@ export class BrowserPool<
             retireBrowserAfterPageCount = 100,
             operationTimeoutSecs = 15,
             closeInactiveBrowserAfterSecs = 300,
-            retireInactiveBrowserAfterSecs = 1,
+            retireInactiveBrowserAfterSecs = 10,
             preLaunchHooks = [],
             postLaunchHooks = [],
             prePageCreateHooks = [],

@@ -188,8 +188,34 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  * @param page Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
  * @param ignoreShadowRoots
  */
-export async function parseWithCheerio(page: Page, ignoreShadowRoots = false): Promise<CheerioRoot> {
+export async function parseWithCheerio(
+    page: Page,
+    ignoreShadowRoots = false,
+    ignoreIframes = false,
+): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
+
+    if (page.frames().length > 1 && !ignoreIframes) {
+        const frames = await page.$$('iframe');
+
+        await Promise.all(
+            frames.map(async (frame) => {
+                const iframe = await frame.contentFrame();
+
+                if (iframe) {
+                    const contents = await iframe.content();
+
+                    await frame.evaluate((f, c) => {
+                        const replacementNode = document.createElement('div');
+                        replacementNode.innerHTML = c;
+                        replacementNode.className = 'crawlee-iframe-replacement';
+
+                        f.replaceWith(replacementNode);
+                    }, contents);
+                }
+            }),
+        );
+    }
 
     const html = ignoreShadowRoots
         ? null
@@ -781,17 +807,33 @@ export interface PuppeteerContextUtils {
     injectJQuery(): Promise<unknown>;
 
     /**
-     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * Wait for an element matching the selector to appear.
+     * Timeout defaults to 5s.
      *
      * **Example usage:**
-     * ```javascript
+     * ```ts
+     * async requestHandler({ waitForSelector, parseWithCheerio }) {
+     *     await waitForSelector('article h1');
+     *     const $ = await parseWithCheerio();
+     *     const title = $('title').text();
+     * });
+     * ```
+     */
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
+     * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
+     * When provided with the `selector` argument, it waits for it to be available first.
+     *
+     * **Example usage:**
+     * ```ts
      * async requestHandler({ parseWithCheerio }) {
      *     const $ = await parseWithCheerio();
      *     const title = $('title').text();
      * });
      * ```
      */
-    parseWithCheerio(): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
     /**
      * The function finds elements matching a specific CSS selector in a Puppeteer page,
@@ -1022,7 +1064,16 @@ export function registerUtilsToContext(
         }
         await injectJQuery(context.page, { surviveNavigations: false });
     };
-    context.parseWithCheerio = async () => parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots);
+    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+        await context.page.waitForSelector(selector, { timeout: timeoutMs });
+    };
+    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
+        if (selector) {
+            await context.waitForSelector(selector, timeoutMs);
+        }
+
+        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
+    };
     context.enqueueLinksByClickingElements = async (
         options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
     ) =>
