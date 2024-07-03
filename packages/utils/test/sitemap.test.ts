@@ -198,7 +198,7 @@ describe('Sitemap', () => {
         expect(items).toHaveLength(5);
         expect(items).toContainEqual(
             expect.objectContaining({
-                url: 'http://not-exists.com/',
+                loc: 'http://not-exists.com/',
                 priority: 0.8,
                 changefreq: 'monthly',
                 lastmod: new Date('2005-02-03'),
