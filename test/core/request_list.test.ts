@@ -138,6 +138,24 @@ describe('RequestList', () => {
         expect(await newList.isEmpty()).toBe(true);
     });
 
+    test('the `requestIterator` method works as expected', async () => {
+        const sources = [
+            'https://example.com/1',
+            'https://example.com/2',
+            'https://example.com/3',
+            'https://example.com/4',
+            'https://example.com/5',
+            'https://example.com/6',
+            'https://example.com/7',
+            'https://example.com/8',
+        ];
+        const requestList = await RequestList.open(null, sources);
+
+        for await (const request of requestList.requestIterator()) {
+            expect(request?.url).toBe(sources.shift());
+        }
+    });
+
     test('should correctly load list from hosted files in correct order', async () => {
         const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];

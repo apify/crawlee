@@ -688,7 +688,9 @@ export class RequestList implements IRequestList {
      */
     async *requestIterator() {
         while (true) {
-            yield await this.fetchNextRequest();
+            const req = await this.fetchNextRequest();
+            if (!req) break;
+            yield req;
         }
     }
 
