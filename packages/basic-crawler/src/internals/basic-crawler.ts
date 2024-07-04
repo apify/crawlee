@@ -14,9 +14,9 @@ import type {
     DatasetExportOptions,
     FinalStatistics,
     GetUserDataFromRequest,
+    IRequestList,
     ProxyInfo,
     Request,
-    RequestList,
     RequestOptions,
     RequestProvider,
     RouterHandler,
@@ -171,7 +171,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * > Alternatively, `requests` parameter of {@apilink BasicCrawler.run|`crawler.run()`} could be used to enqueue the initial requests -
      * it is a shortcut for running `crawler.addRequests()` before the `crawler.run()`.
      */
-    requestList?: RequestList;
+    requestList?: IRequestList;
 
     /**
      * Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
@@ -445,7 +445,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * A reference to the underlying {@apilink RequestList} class that manages the crawler's {@apilink Request|requests}.
      * Only available if used by the crawler.
      */
-    requestList?: RequestList;
+    requestList?: IRequestList;
 
     /**
      * Dynamic queue of URLs to be processed. This is useful for recursive crawling of websites.
@@ -1170,7 +1170,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: RequestList | RequestProvider) {
+    protected delayRequest(request: Request, source: IRequestList | RequestProvider) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1415,7 +1415,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _requestFunctionErrorHandler(
         error: Error,
         crawlingContext: Context,
-        source: RequestList | RequestProvider,
+        source: IRequestList | RequestProvider,
     ): Promise<void> {
         const { request } = crawlingContext;
         request.pushErrorMessage(error);

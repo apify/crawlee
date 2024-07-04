@@ -1,36 +1,48 @@
-import { Readable, Writable } from 'node:stream';
+import { createHash } from 'node:crypto';
+import type { Duplex } from 'node:stream';
+import { PassThrough, Readable, Transform, pipeline } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import log from '@apify/log';
-import type { SAXStream } from 'sax';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
-type SitemapSource = { type: 'url'; url: string } | { type: 'raw'; content: string };
-
-class ParsingState {
-    sources: SitemapSource[] = [];
-    urls: string[] = [];
-    visitedSitemapUrls: string[] = [];
-    context?: 'sitemapindex' | 'urlset';
-    loc = false;
-
-    resetContext() {
-        this.context = undefined;
-        this.loc = false;
-    }
+interface SitemapUrlData {
+    loc: string;
+    lastmod?: Date;
+    changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+    priority?: number;
 }
 
-class SitemapTxtParser extends Writable {
+export type SitemapUrl = SitemapUrlData & {
+    originSitemapUrl: string;
+};
+
+interface NestedSitemap {
+    loc: string;
+    originSitemapUrl: null;
+}
+
+type SitemapSource = ({ type: 'url'; url: string } | { type: 'raw'; content: string }) & { depth?: number };
+type SitemapItem = ({ type: 'url' } & SitemapUrlData) | { type: 'sitemapUrl'; url: string };
+
+class SitemapTxtParser extends Transform {
     private decoder: StringDecoder = new StringDecoder('utf8');
     private buffer: string = '';
 
-    constructor(
-        private parsingState: ParsingState,
-        private onEnd: () => void,
-    ) {
-        super();
+    constructor() {
+        super({
+            readableObjectMode: true,
+            transform: (chunk, _encoding, callback) => {
+                this.processBuffer(this.decoder.write(chunk), false);
+                callback();
+            },
+            flush: (callback) => {
+                this.processBuffer(this.decoder.end(), true);
+                callback();
+            },
+        });
     }
 
     private processBuffer(input: string, finalize: boolean): void {
@@ -43,24 +55,249 @@ class SitemapTxtParser extends Writable {
                 .filter((part) => part.length > 0);
 
             if (finalize) {
-                this.parsingState.urls.push(...parts);
+                for (const url of parts) {
+                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
+                }
+
                 this.buffer = '';
             } else if (parts.length > 0) {
-                this.parsingState.urls.push(...parts.slice(0, -1));
+                for (const url of parts.slice(0, -1)) {
+                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
+                }
+
                 this.buffer = parts.at(-1)!;
             }
         }
     }
+}
 
-    override _write(chunk: any, _encoding: BufferEncoding, callback: (error?: Error | null | undefined) => void): void {
-        this.processBuffer(this.decoder.write(chunk), false);
-        callback();
+class SitemapXmlParser extends Transform {
+    private decoder: StringDecoder = new StringDecoder('utf8');
+    private parser = new sax.SAXParser(true);
+
+    private rootTagName?: 'sitemapindex' | 'urlset';
+    private currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
+    private url: Partial<SitemapUrl> = {};
+
+    constructor() {
+        super({
+            readableObjectMode: true,
+            transform: (chunk, _encoding, callback) => {
+                this.parser.write(this.decoder.write(chunk));
+                callback();
+            },
+            flush: (callback) => {
+                const rest = this.decoder.end();
+                if (rest.length > 0) {
+                    this.parser.write(rest);
+                }
+
+                this.parser.end();
+                callback();
+            },
+        });
+
+        this.parser.onopentag = this.onOpenTag.bind(this);
+        this.parser.onclosetag = this.onCloseTag.bind(this);
+
+        this.parser.ontext = this.onText.bind(this);
+        this.parser.oncdata = this.onText.bind(this);
+
+        this.parser.onerror = this.destroy.bind(this);
     }
 
-    override _final(callback: (error?: Error | null | undefined) => void): void {
-        this.processBuffer(this.decoder.end(), true);
-        callback();
-        this.onEnd();
+    private onOpenTag(node: sax.Tag | sax.QualifiedTag) {
+        if (this.rootTagName !== undefined) {
+            if (
+                node.name === 'loc' ||
+                node.name === 'lastmod' ||
+                node.name === 'priority' ||
+                node.name === 'changefreq'
+            ) {
+                this.currentTag = node.name;
+            }
+        }
+        if (node.name === 'urlset') {
+            this.rootTagName = 'urlset';
+        }
+        if (node.name === 'sitemapindex') {
+            this.rootTagName = 'sitemapindex';
+        }
+    }
+
+    private onCloseTag(name: string) {
+        if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
+            this.currentTag = undefined;
+        }
+
+        if (name === 'url' && this.url.loc !== undefined) {
+            this.push({ type: 'url', ...this.url, loc: this.url.loc } satisfies SitemapItem);
+            this.url = {};
+        }
+    }
+
+    private onText(text: string) {
+        if (this.currentTag === 'loc') {
+            if (this.rootTagName === 'sitemapindex') {
+                this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
+            }
+
+            if (this.rootTagName === 'urlset') {
+                this.url ??= {};
+                this.url.loc = text;
+            }
+        }
+
+        text = text.trim();
+
+        if (this.currentTag === 'lastmod') {
+            this.url.lastmod = new Date(text);
+        }
+
+        if (this.currentTag === 'priority') {
+            this.url.priority = Number(text);
+        }
+
+        if (this.currentTag === 'changefreq') {
+            if (['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'].includes(text)) {
+                this.url.changefreq = text as SitemapUrl['changefreq'];
+            }
+        }
+    }
+}
+
+interface ParseSitemapOptions {
+    /**
+     * If set to `true`, elements reffering to other sitemaps will be emitted as special objects with a `bouba` property.
+     */
+    emitNestedSitemaps?: true | false;
+    /**
+     * Maximum depth of nested sitemaps to follow.
+     */
+    maxDepth?: number;
+}
+
+export async function* parseSitemap<T extends ParseSitemapOptions>(
+    initialSources: SitemapSource[],
+    proxyUrl?: string,
+    options?: T,
+): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
+    const { gotScraping } = await import('got-scraping');
+    const { fileTypeStream } = await import('file-type');
+
+    const sources = [...initialSources];
+    const visitedSitemapUrls = new Set<string>();
+
+    const createParser = (contentType: string = '', url?: URL): Duplex => {
+        let mimeType: MIMEType | null;
+
+        try {
+            mimeType = new MIMEType(contentType);
+        } catch (e) {
+            mimeType = null;
+        }
+
+        if (mimeType?.isXML() || url?.pathname.endsWith('.xml')) {
+            return new SitemapXmlParser();
+        }
+
+        if (mimeType?.essence === 'text/plain' || url?.pathname.endsWith('.txt')) {
+            return new SitemapTxtParser();
+        }
+
+        throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);
+    };
+
+    while (sources.length > 0) {
+        const source = sources.shift()!;
+
+        if ((source?.depth ?? 0) > (options?.maxDepth ?? Infinity)) {
+            log.debug(
+                `Skipping sitemap ${source.type === 'url' ? source.url : ''} because it reached max depth ${options!.maxDepth!}.`,
+            );
+            continue;
+        }
+
+        let items: AsyncIterable<SitemapItem> | null = null;
+
+        if (source.type === 'url') {
+            const sitemapUrl = new URL(source.url);
+            visitedSitemapUrls.add(sitemapUrl.toString());
+
+            try {
+                const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>((resolve, reject) => {
+                    const request = gotScraping.stream({ url: sitemapUrl, proxyUrl, method: 'GET' });
+                    request.on('response', () => resolve(request));
+                    request.on('error', reject);
+                });
+
+                if (sitemapStream.response!.statusCode === 200) {
+                    let contentType = sitemapStream.response!.headers['content-type'];
+
+                    const streamWithType = await fileTypeStream(sitemapStream);
+                    if (streamWithType.fileType !== undefined) {
+                        contentType = streamWithType.fileType.mime;
+                    }
+
+                    let isGzipped = false;
+
+                    if (
+                        contentType !== undefined
+                            ? contentType === 'application/gzip'
+                            : sitemapUrl.pathname.endsWith('.gz')
+                    ) {
+                        isGzipped = true;
+
+                        if (sitemapUrl.pathname.endsWith('.gz')) {
+                            sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
+                        }
+                    }
+
+                    items = pipeline(
+                        streamWithType,
+                        isGzipped ? createGunzip() : new PassThrough(),
+                        createParser(contentType, sitemapUrl),
+                        (error) => {
+                            if (error !== undefined) {
+                                log.warning(`Malformed sitemap content: ${sitemapUrl}, ${error}`);
+                            }
+                        },
+                    );
+                }
+            } catch (e) {
+                log.warning(`Malformed sitemap content: ${sitemapUrl}, ${e}`);
+            }
+        } else if (source.type === 'raw') {
+            items = pipeline(Readable.from([source.content]), createParser('text/xml'), (error) => {
+                if (error !== undefined) {
+                    log.warning(`Malformed sitemap content: ${error}`);
+                }
+            });
+        }
+
+        if (items === null) {
+            continue;
+        }
+
+        for await (const item of items) {
+            if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
+                sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
+                if (options?.emitNestedSitemaps) {
+                    // @ts-ignore
+                    yield { loc: item.url, originSitemapUrl: null };
+                }
+            }
+
+            if (item.type === 'url') {
+                yield {
+                    ...item,
+                    originSitemapUrl:
+                        source.type === 'url'
+                            ? source.url
+                            : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
+                };
+            }
+        }
     }
 }
 
@@ -78,52 +315,6 @@ class SitemapTxtParser extends Writable {
  */
 export class Sitemap {
     constructor(readonly urls: string[]) {}
-
-    protected static createXmlParser(
-        parsingState: ParsingState,
-        onEnd: () => void,
-        onError: (error: Error) => void,
-    ): SAXStream {
-        const parser = sax.createStream(true);
-
-        parser.on('opentag', (node) => {
-            if (node.name === 'loc' && parsingState.context !== undefined) {
-                parsingState.loc = true;
-            }
-            if (node.name === 'urlset') {
-                parsingState.context = 'urlset';
-            }
-            if (node.name === 'sitemapindex') {
-                parsingState.context = 'sitemapindex';
-            }
-        });
-
-        parser.on('closetag', (name) => {
-            if (name === 'loc') {
-                parsingState.loc = false;
-            }
-        });
-
-        const onText = (text: string) => {
-            if (parsingState.loc) {
-                if (parsingState.context === 'sitemapindex') {
-                    if (!parsingState.visitedSitemapUrls.includes(text)) {
-                        parsingState.sources.push({ type: 'url', url: text });
-                    }
-                }
-                if (parsingState.context === 'urlset') {
-                    parsingState.urls.push(text);
-                }
-            }
-        };
-        parser.on('text', onText);
-        parser.on('cdata', onText);
-
-        parser.on('end', onEnd);
-        parser.on('error', onError);
-
-        return parser;
-    }
 
     /**
      * Try to load sitemap from the most common locations - `/sitemap.xml` and `/sitemap.txt`.
@@ -152,10 +343,10 @@ export class Sitemap {
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
     static async load(urls: string | string[], proxyUrl?: string): Promise<Sitemap> {
-        const parsingState = new ParsingState();
-        parsingState.sources = (Array.isArray(urls) ? urls : [urls]).map((url) => ({ type: 'url', url }));
-
-        return await this.parse(parsingState, proxyUrl);
+        return await this.parse(
+            (Array.isArray(urls) ? urls : [urls]).map((url) => ({ type: 'url', url })),
+            proxyUrl,
+        );
     }
 
     /**
@@ -164,100 +355,20 @@ export class Sitemap {
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
     static async fromXmlString(content: string, proxyUrl?: string): Promise<Sitemap> {
-        const parsingState = new ParsingState();
-        parsingState.sources = [{ type: 'raw', content }];
-
-        return await this.parse(parsingState, proxyUrl);
+        return await this.parse([{ type: 'raw', content }], proxyUrl);
     }
 
-    protected static async parse(parsingState: ParsingState, proxyUrl?: string): Promise<Sitemap> {
-        const { gotScraping } = await import('got-scraping');
-        const { fileTypeStream } = await import('file-type');
-
-        while (parsingState.sources.length > 0) {
-            const source = parsingState.sources.pop()!;
-            parsingState.resetContext();
-
-            if (source.type === 'url') {
-                const sitemapUrl = new URL(source.url);
-                parsingState.visitedSitemapUrls.push(sitemapUrl.toString());
-
-                try {
-                    const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>(
-                        (resolve, reject) => {
-                            const request = gotScraping.stream({ url: sitemapUrl, proxyUrl, method: 'GET' });
-                            request.on('response', () => resolve(request));
-                            request.on('error', reject);
-                        },
-                    );
-
-                    if (sitemapStream.response!.statusCode === 200) {
-                        let contentType = sitemapStream.response!.headers['content-type'];
-
-                        const streamWithType = await fileTypeStream(sitemapStream);
-                        if (streamWithType.fileType !== undefined) {
-                            contentType = streamWithType.fileType.mime;
-                        }
-
-                        await new Promise((resolve, reject) => {
-                            let stream: Readable = streamWithType;
-
-                            if (
-                                contentType !== undefined
-                                    ? contentType === 'application/gzip'
-                                    : sitemapUrl.pathname.endsWith('.gz')
-                            ) {
-                                stream = stream.pipe(createGunzip()).on('error', reject);
-
-                                if (sitemapUrl.pathname.endsWith('.gz')) {
-                                    sitemapUrl.pathname = sitemapUrl.pathname.substring(
-                                        0,
-                                        sitemapUrl.pathname.length - 3,
-                                    );
-                                }
-                            }
-
-                            stream.pipe(this.createParser(resolve, reject, parsingState, contentType, sitemapUrl));
-                        });
-                    }
-                } catch (e) {
-                    log.warning(`Malformed sitemap content: ${sitemapUrl}, ${e}`);
-                }
-            }
-
-            if (source.type === 'raw') {
-                await new Promise((resolve, reject) => {
-                    Readable.from([source.content]).pipe(this.createParser(resolve, reject, parsingState, 'text/xml'));
-                });
-            }
-        }
-
-        return new Sitemap(parsingState.urls);
-    }
-
-    protected static createParser(
-        resolve: (value: unknown) => void,
-        reject: (value: unknown) => void,
-        parsingState: ParsingState,
-        contentType: string = '',
-        url?: URL,
-    ) {
-        let mimeType: MIMEType | null;
+    protected static async parse(sources: SitemapSource[], proxyUrl?: string): Promise<Sitemap> {
+        const urls: string[] = [];
 
         try {
-            mimeType = new MIMEType(contentType);
+            for await (const item of parseSitemap(sources, proxyUrl)) {
+                urls.push(item.loc);
+            }
         } catch (e) {
-            mimeType = null;
+            return new Sitemap([]);
         }
 
-        if (mimeType?.isXML() || url?.pathname.endsWith('.xml')) {
-            return Sitemap.createXmlParser(parsingState, () => resolve(undefined), reject);
-        }
-
-        if (mimeType?.essence === 'text/plain' || url?.pathname.endsWith('.txt')) {
-            return new SitemapTxtParser(parsingState, () => resolve(undefined));
-        }
-
-        throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);
+        return new Sitemap(urls);
     }
 }
