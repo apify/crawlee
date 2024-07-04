@@ -72,9 +72,10 @@ export interface IRequestList {
      *
      * The function resolves to `null` if there are no more requests to process.
      *
-     * Unlike `fetchNextRequest()`, this function returns an `AsyncGenerator` that can be used in a `for await...of` loop.
+     * Can be used to iterate over the `RequestList` instance in a `for await .. of` loop.
+     * Provides an alternative for the repeated use of `fetchNextRequest`.
      */
-    requestIterator(): AsyncGenerator<Request | null>;
+    [Symbol.asyncIterator](): AsyncGenerator<Request>;
 
     /**
      * Reclaims request to the list if its processing failed.
@@ -686,7 +687,7 @@ export class RequestList implements IRequestList {
     /**
      * @inheritDoc
      */
-    async *requestIterator() {
+    async *[Symbol.asyncIterator]() {
         while (true) {
             const req = await this.fetchNextRequest();
             if (!req) break;

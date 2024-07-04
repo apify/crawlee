@@ -391,7 +391,7 @@ export class SitemapRequestList implements IRequestList {
     /**
      * @inheritDoc
      */
-    async *requestIterator() {
+    async *[Symbol.asyncIterator]() {
         while ((!this.isSitemapFullyLoaded() && !this.abortLoading) || !(await this.isEmpty())) {
             const request = await this.fetchNextRequest();
             if (!request) break;

@@ -138,7 +138,7 @@ describe('RequestList', () => {
         expect(await newList.isEmpty()).toBe(true);
     });
 
-    test('the `requestIterator` method works as expected', async () => {
+    test('`RequestList` is `for .. await` iterable', async () => {
         const sources = [
             'https://example.com/1',
             'https://example.com/2',
@@ -151,7 +151,7 @@ describe('RequestList', () => {
         ];
         const requestList = await RequestList.open(null, sources);
 
-        for await (const request of requestList.requestIterator()) {
+        for await (const request of requestList) {
             expect(request?.url).toBe(sources.shift());
         }
     });

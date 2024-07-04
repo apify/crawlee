@@ -195,7 +195,7 @@ describe('SitemapRequestList', () => {
     test('for..await syntax works with requestIterator', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
-        for await (const request of list.requestIterator()) {
+        for await (const request of list) {
             await list.markRequestHandled(request);
         }
 
@@ -214,7 +214,7 @@ describe('SitemapRequestList', () => {
         await sleep(50); // Loads the first sub-sitemap, but not the second
         controller.abort();
 
-        for await (const request of list.requestIterator()) {
+        for await (const request of list) {
             await list.markRequestHandled(request);
         }
 
@@ -229,7 +229,7 @@ describe('SitemapRequestList', () => {
             timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
         });
 
-        for await (const request of list.requestIterator()) {
+        for await (const request of list) {
             await list.markRequestHandled(request);
         }
 
@@ -255,7 +255,7 @@ describe('SitemapRequestList', () => {
         }
 
         const newList = await SitemapRequestList.open(options);
-        for await (const request of newList.requestIterator()) {
+        for await (const request of newList) {
             await newList.markRequestHandled(request);
         }
 
