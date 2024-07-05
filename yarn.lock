@@ -15,10 +15,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.28.1":
-  version: 2.28.1
-  resolution: "@apify/consts@npm:2.28.1"
-  checksum: 10c0/986f2a9173abc71e56aa807310998a3ba1d9028c489bb15db314caef5cac005ebdc80597caf88b8777b8fd897482333b9daa14d2158954ca1935cd43816719eb
+"@apify/consts@npm:^2.20.0, @apify/consts@npm:^2.23.0, @apify/consts@npm:^2.25.0, @apify/consts@npm:^2.29.0":
+  version: 2.29.0
+  resolution: "@apify/consts@npm:2.29.0"
+  checksum: 10c0/d0618487cbd91e6c755650050663a77f188ebd3c7eef45d10c957c5e5d439231587dd51e0cdbf2e80c680565c577e4c5d1c0c8136e4e94ef84737921a94da0e3
   languageName: node
   linkType: hard
 
@@ -66,23 +66,23 @@ __metadata:
   linkType: hard
 
 "@apify/input_secrets@npm:^1.1.40":
-  version: 1.1.51
-  resolution: "@apify/input_secrets@npm:1.1.51"
+  version: 1.1.52
+  resolution: "@apify/input_secrets@npm:1.1.52"
   dependencies:
-    "@apify/log": "npm:^2.5.3"
-    "@apify/utilities": "npm:^2.10.4"
+    "@apify/log": "npm:^2.5.4"
+    "@apify/utilities": "npm:^2.10.5"
     ow: "npm:^0.28.2"
-  checksum: 10c0/fd197d270ad5ac1ec226911f4ea119a187d251a51dae0dad2007f310688009b034bfd5b0e49ccdbae643686c49beeea5178114ed2a6df0a06b19b1678ab53558
+  checksum: 10c0/ec292b9c9cf183c41228c2efdcf0b1b8036c34f92adb5d2294ff6879ee42e3c24fda2962f2b28a76d39cb1866588e2ae18e6f462ed1b4cbeb6b605d98700fe2a
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.3":
-  version: 2.5.3
-  resolution: "@apify/log@npm:2.5.3"
+"@apify/log@npm:^2.2.6, @apify/log@npm:^2.4.0, @apify/log@npm:^2.4.3, @apify/log@npm:^2.5.4":
+  version: 2.5.4
+  resolution: "@apify/log@npm:2.5.4"
   dependencies:
-    "@apify/consts": "npm:^2.28.1"
+    "@apify/consts": "npm:^2.29.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/a74f711e098e9ea93ee0cdb0c7b3da278b28821402bc4580eb4a7bdf57480e731aa5854b9346f9a28c81e96fee767ddbf970987836d4d12cf7632209b43acc6c
+  checksum: 10c0/cdd96c743c608c9f6fca554e26a3b35d5d7577e8ebaecded144afb2747c7b30846b7335de3517152adff3713e538fe534614f0998559b4a7b4d2215da679bd2b
   languageName: node
   linkType: hard
 
@@ -98,12 +98,12 @@ __metadata:
   linkType: hard
 
 "@apify/pseudo_url@npm:^2.0.30":
-  version: 2.0.43
-  resolution: "@apify/pseudo_url@npm:2.0.43"
+  version: 2.0.44
+  resolution: "@apify/pseudo_url@npm:2.0.44"
   dependencies:
-    "@apify/log": "npm:^2.5.3"
+    "@apify/log": "npm:^2.5.4"
     "@sapphire/shapeshift": "npm:^3.6.0"
-  checksum: 10c0/330dcb7a11a631a971db07ef3075924f215e2bddc99c4b1ec99ff9c2839cda3451ccd498368147c755c3e3684fe540a48f52228c7a6f806c30101c1a117d5815
+  checksum: 10c0/7a8e545ac09230c867511b3278dff30f5f4b600b151d5c833a4c5d63b88bb6b8c77fa8dcde78c5d73ae3948b7b3033725658542742e4189bfac4f3009f77c560
   languageName: node
   linkType: hard
 
@@ -121,13 +121,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/utilities@npm:^2.10.4, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
-  version: 2.10.4
-  resolution: "@apify/utilities@npm:2.10.4"
+"@apify/utilities@npm:^2.10.5, @apify/utilities@npm:^2.7.10, @apify/utilities@npm:^2.9.3":
+  version: 2.10.5
+  resolution: "@apify/utilities@npm:2.10.5"
   dependencies:
-    "@apify/consts": "npm:^2.28.1"
-    "@apify/log": "npm:^2.5.3"
-  checksum: 10c0/c94fce7bb9e7a71eb57c9774bdde0c21a5858969bc92eaeb3820ff6fb9e59b96de4751eaf1777407005910275e49ac81ba65e3e983174ada4a47687582a1471d
+    "@apify/consts": "npm:^2.29.0"
+    "@apify/log": "npm:^2.5.4"
+  checksum: 10c0/37ac897d9eafefbddfe54e6c7c60ebbbb08d8bf70f2048384313841656bec5188dd35cb0d0fd52f215d3bb4f1c10d0a9ceacea39f7c21f408220e0a2d3e140d5
   languageName: node
   linkType: hard
 
@@ -2884,8 +2884,8 @@ __metadata:
   linkType: hard
 
 "apify@npm:*":
-  version: 3.2.3
-  resolution: "apify@npm:3.2.3"
+  version: 3.2.4
+  resolution: "apify@npm:3.2.4"
   dependencies:
     "@apify/consts": "npm:^2.23.0"
     "@apify/input_secrets": "npm:^1.1.40"
@@ -2901,7 +2901,7 @@ __metadata:
     semver: "npm:^7.5.4"
     tslib: "npm:^2.6.2"
     ws: "npm:^7.5.9"
-  checksum: 10c0/91b750ed52de96489613c1033c99429b6a8995fba2bd7088c137662f4bc6be5cfaff5f814ce21275ac84185b1f8f485a701bbf1ffd6e74ddd7bd2525fdae1919
+  checksum: 10c0/5369ecce9ffb12ea4cad7033e1bfc8203dd87e01e43023daf758bfbc8323c37d251b3124b61c1313fb456f9c37d34e22a2c36d9ab0f33074c70b20010c7dcb1c
   languageName: node
   linkType: hard
 
@@ -4555,9 +4555,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1319565
-  resolution: "devtools-protocol@npm:0.0.1319565"
-  checksum: 10c0/1bcc88c76408e96d6b79dfb6e32944b97ae56a13a0d9bc90041a11585f7f1186d32fa0e6cc803488a116ddedd9e170a1ab3380a0012498841eac15f3fb9ea83d
+  version: 0.0.1323165
+  resolution: "devtools-protocol@npm:0.0.1323165"
+  checksum: 10c0/acd1cf9d161f8ba29d36130d6cfd2e91616d2e6691587959a20c19458016f49daa832a7a20a65bb59cb9dbd770e2ba5aa5a0b2650a52927534710a192a277a5c
   languageName: node
   linkType: hard
 
@@ -6856,8 +6856,8 @@ __metadata:
   linkType: hard
 
 "inquirer@npm:^9.0.0":
-  version: 9.3.3
-  resolution: "inquirer@npm:9.3.3"
+  version: 9.3.4
+  resolution: "inquirer@npm:9.3.4"
   dependencies:
     "@inquirer/figures": "npm:^1.0.3"
     ansi-escapes: "npm:^4.3.2"
@@ -6870,8 +6870,8 @@ __metadata:
     string-width: "npm:^4.2.3"
     strip-ansi: "npm:^6.0.1"
     wrap-ansi: "npm:^6.2.0"
-    yoctocolors-cjs: "npm:^2.1.1"
-  checksum: 10c0/f8dc71cda454b18e6a9ba2b67be5501a98d28225687683fa4acd3dcccbcce3684527534172d29a40e797491924f5d1748d5a9aa6b72add8f18dd64cc09d745b7
+    yoctocolors-cjs: "npm:^2.1.2"
+  checksum: 10c0/a8ce2b60c65cecfd87fd4b1ae1ff538a7dccb38dca3ee2c437cec2ce5cf9a73cc794fa58d1bbc47ba637f198f428ee9dd5b6608d0c00333703c6baaade52f05d
   languageName: node
   linkType: hard
 
@@ -9679,9 +9679,9 @@ __metadata:
   linkType: hard
 
 "peek-readable@npm:^5.0.0":
-  version: 5.1.0
-  resolution: "peek-readable@npm:5.1.0"
-  checksum: 10c0/24189888e96c0c6d3fd023c4fbf2b45ec94ca6af497b218f2451b97d1e3b3dfef120711a78c8d95d4708fed7cbdf3f0c0c364789584729c4ee24ebb521f567f7
+  version: 5.1.1
+  resolution: "peek-readable@npm:5.1.1"
+  checksum: 10c0/2f51dc8c3529d8252114d11c279f0045c06309322836586173d3b9c0b6da9c3f3d2576ab7cddef3088a95625f3a36762efd60507ad5781d21d4259c498e6334d
   languageName: node
   linkType: hard
 
@@ -12734,7 +12734,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yoctocolors-cjs@npm:^2.1.1":
+"yoctocolors-cjs@npm:^2.1.2":
   version: 2.1.2
   resolution: "yoctocolors-cjs@npm:2.1.2"
   checksum: 10c0/a0e36eb88fea2c7981eab22d1ba45e15d8d268626e6c4143305e2c1628fa17ebfaa40cd306161a8ce04c0a60ee0262058eab12567493d5eb1409780853454c6f

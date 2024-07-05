@@ -216,10 +216,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/consts@npm:^2.28.1":
-  version: 2.28.1
-  resolution: "@apify/consts@npm:2.28.1"
-  checksum: 10c0/986f2a9173abc71e56aa807310998a3ba1d9028c489bb15db314caef5cac005ebdc80597caf88b8777b8fd897482333b9daa14d2158954ca1935cd43816719eb
+"@apify/consts@npm:^2.29.0":
+  version: 2.29.0
+  resolution: "@apify/consts@npm:2.29.0"
+  checksum: 10c0/d0618487cbd91e6c755650050663a77f188ebd3c7eef45d10c957c5e5d439231587dd51e0cdbf2e80c680565c577e4c5d1c0c8136e4e94ef84737921a94da0e3
   languageName: node
   linkType: hard
 
@@ -259,13 +259,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.5.3":
-  version: 2.5.3
-  resolution: "@apify/log@npm:2.5.3"
+"@apify/log@npm:^2.5.4":
+  version: 2.5.4
+  resolution: "@apify/log@npm:2.5.4"
   dependencies:
-    "@apify/consts": "npm:^2.28.1"
+    "@apify/consts": "npm:^2.29.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/a74f711e098e9ea93ee0cdb0c7b3da278b28821402bc4580eb4a7bdf57480e731aa5854b9346f9a28c81e96fee767ddbf970987836d4d12cf7632209b43acc6c
+  checksum: 10c0/cdd96c743c608c9f6fca554e26a3b35d5d7577e8ebaecded144afb2747c7b30846b7335de3517152adff3713e538fe534614f0998559b4a7b4d2215da679bd2b
   languageName: node
   linkType: hard
 
@@ -277,12 +277,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.10.4
-  resolution: "@apify/utilities@npm:2.10.4"
+  version: 2.10.5
+  resolution: "@apify/utilities@npm:2.10.5"
   dependencies:
-    "@apify/consts": "npm:^2.28.1"
-    "@apify/log": "npm:^2.5.3"
-  checksum: 10c0/c94fce7bb9e7a71eb57c9774bdde0c21a5858969bc92eaeb3820ff6fb9e59b96de4751eaf1777407005910275e49ac81ba65e3e983174ada4a47687582a1471d
+    "@apify/consts": "npm:^2.29.0"
+    "@apify/log": "npm:^2.5.4"
+  checksum: 10c0/37ac897d9eafefbddfe54e6c7c60ebbbb08d8bf70f2048384313841656bec5188dd35cb0d0fd52f215d3bb4f1c10d0a9ceacea39f7c21f408220e0a2d3e140d5
   languageName: node
   linkType: hard
 
