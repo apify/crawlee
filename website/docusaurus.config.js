@@ -35,7 +35,7 @@ const packagesOrder = [
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
 module.exports = {
-    title: 'Crawlee',
+    title: 'Crawlee · Build reliable crawlers. Fast.',
     tagline: 'Build reliable crawlers. Fast.',
     url: 'https://crawlee.dev',
     baseUrl: '/',
@@ -73,6 +73,7 @@ module.exports = {
                 },
                 blog: {
                     blogTitle: 'Crawlee Blog - learn how to build better scrapers',
+                    // eslint-disable-next-line max-len
                     blogDescription: 'Guides and tutorials on using Crawlee, the most reliable open-source web scraping and browser automation library for JavaScript and Node.js developers.',
                 },
                 theme: {
@@ -241,7 +242,12 @@ module.exports = {
             darkTheme: require('prism-react-renderer').themes.dracula,
             additionalLanguages: ['docker', 'log', 'bash', 'diff', 'json'],
         },
-        metadata: [],
+        metadata: [
+            // eslint-disable-next-line max-len
+            { name: 'description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
+            // eslint-disable-next-line max-len
+            { name: 'og:description', content: `Crawlee helps you build and maintain your crawlers. It's open source, but built by developers who scrape millions of pages every day for a living.` },
+        ],
         image: 'img/crawlee-og.png',
         footer: {
             links: [
