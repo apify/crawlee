@@ -8,6 +8,7 @@ authorTitle: Developer Community Manager
 authorURL: https://github.com/souravjain540
 authorImageURL: https://avatars.githubusercontent.com/u/53312820?v=4&s=48
 authorTwitter: sauain
+draft: true
 ---
 
 :::danger Testimonial from early adopters
