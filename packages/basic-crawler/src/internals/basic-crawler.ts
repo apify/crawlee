@@ -487,6 +487,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected maxRequestRetries: number;
     protected sameDomainDelayMillis: number;
     protected domainAccessedTime: Map<string, number>;
+    protected domainDelayMillisMap: Map<String, number>;
     protected maxSessionRotations: number;
     protected handledRequestsCount: number;
     protected statusMessageLoggingInterval: number;
@@ -601,6 +602,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
+        this.domainDelayMillisMap = new Map();
         this.experiments = experiments;
 
         this._handlePropertyNameChange({
@@ -960,6 +962,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return stats;
     }
 
+    async setDomainDelaySecs(domain: string, delay: number) {
+        this.domainDelayMillisMap.set(domain, delay * 1000);
+    }
+
     async getRequestQueue() {
         if (!this.requestQueue && this.requestList) {
             this.log.warningOnce(
@@ -1180,23 +1186,25 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         const now = Date.now();
         const lastAccessTime = this.domainAccessedTime.get(domain);
 
-        if (!lastAccessTime || now - lastAccessTime >= this.sameDomainDelayMillis) {
+        const domainDelayMillis = this.domainDelayMillisMap?.get(domain) ?? this.sameDomainDelayMillis;
+
+        if (!lastAccessTime || now - lastAccessTime >= domainDelayMillis) {
             this.domainAccessedTime.set(domain, now);
             return false;
         }
 
         // eslint-disable-next-line dot-notation
         source['inProgress'].delete(request.id!);
-        const delay = lastAccessTime + this.sameDomainDelayMillis - now;
+        const requestDelayedMillis = lastAccessTime + domainDelayMillis - now;
         this.log.debug(
-            `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
+            `Request ${request.url} (${request.id}) will be reclaimed after ${requestDelayedMillis} milliseconds due to same domain delay`,
         );
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
             // eslint-disable-next-line dot-notation
             source['inProgress'].add(request.id!);
             await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
-        }, delay);
+        }, requestDelayedMillis);
 
         return true;
     }
