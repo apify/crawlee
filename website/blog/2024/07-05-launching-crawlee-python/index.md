@@ -1,6 +1,6 @@
 ---
 slug: launching-crawlee-python
-title: 'Announcing Crawlee Python: Now you can use Python to build reliable web crawlers'
+title: 'Announcing Crawlee for Python: Now you can use Python to build reliable web crawlers'
 description: 'Launching Crawlee for Python, a web scraping and automation libray to build reliable scrapers in Python fastly.'
 image: ./img/crawlee-python.webp
 author: Saurav Jain
@@ -20,11 +20,11 @@ Today, [Crawlee built-in TypeScript](https://github.com/apify/crawlee) has nearl
 
 Since the launch, the feedback we’ve received most often [[1]](https://discord.com/channels/801163717915574323/999250964554981446/1138826582581059585)[[2]](https://discord.com/channels/801163717915574323/801163719198638092/1137702376267059290)[[3]](https://discord.com/channels/801163717915574323/1090592836044476426/1103977818221719584) has been to build Crawlee in Python so that the Python community can use all the features the JavaScript community does.
 
-With all these requests in mind and to simplify the life of Python web scraping developers, **we’re launching [Crawlee Python](https://github.com/apify/crawlee-python) today.**
+With all these requests in mind and to simplify the life of Python web scraping developers, **we’re launching [Crawlee for Python](https://github.com/apify/crawlee-python) today.**
 
 The new library is still in **beta**, and we are looking for **early adopters**.
 
-![Crawlee Python is looking for early adopters](./img/early-adopters.webp)
+![Crawlee for Python is looking for early adopters](./img/early-adopters.webp)
 
 Crawlee for Python has some amazing initial features, such as a unified interface for HTTP and headless browser crawling, automatic retries, and much more.
 
@@ -117,7 +117,7 @@ Scrapy relies on the "legacy" Twisted framework. Integrating Scrapy with modern 
 
 ## Power of open source community and early adopters giveaway
 
-Crawlee for Python is fully open-sourced and the codebase is available on the [GitHub repository of Crawlee Python](https://github.com/apify/crawlee-python). 
+Crawlee for Python is fully open-sourced and the codebase is available on the [GitHub repository of Crawlee for Python](https://github.com/apify/crawlee-python). 
 
 We have already started receiving initial and very [valuable contributions from the Python community](https://github.com/apify/crawlee-python/pull/226). 
 
@@ -132,4 +132,4 @@ There’s still room for improvement. Feel free to open issues, make pull reques
 
 With such contributions, we’re excited and looking forward to building an amazing library for the Python community. 
 
-[Join our Discord community](https://apify.com/discord) with nearly 8,000 web scraping developers, where our team would be happy to help you with any problems or discuss any use case for Crawlee Python.
+[Join our Discord community](https://apify.com/discord) with nearly 8,000 web scraping developers, where our team would be happy to help you with any problems or discuss any use case for Crawlee for Python.
