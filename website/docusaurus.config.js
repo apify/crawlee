@@ -161,6 +161,10 @@ module.exports = {
                 hideable: true,
             },
         },
+        announcementBar: {
+            id: `announcement-bar-crawlee-for-python`,
+            content: `🎉️ <b><a href="https://crawlee.dev/blog/launching-crawlee-python">Crawlee for Python is open to early adopters!</b> 🥳️`,
+        },
         navbar: {
             hideOnScroll: true,
             title: 'Crawlee',
@@ -200,6 +204,21 @@ module.exports = {
                     to: 'blog',
                     label: 'Blog',
                     position: 'left',
+                },
+                {
+                    type: 'dropdown',
+                    label: 'Node.js',
+                    position: 'left',
+                    items: [
+                        {
+                            label: 'Node.js',
+                            href: 'https://crawlee.dev',
+                        },
+                        {
+                            label: 'Python',
+                            href: 'https://crawlee.dev/python',
+                        },
+                    ],
                 },
                 {
                     type: 'docsVersionDropdown',

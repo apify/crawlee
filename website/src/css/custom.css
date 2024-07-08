@@ -227,6 +227,7 @@ article .card h2 {
 
 nav.navbar .dropdown__menu {
     min-width: 6rem;
+    margin-left: 20px;
 }
 
 .navbar__logo {
@@ -475,4 +476,23 @@ html[data-theme='dark'] .runnable-code-block svg .apify-logo {
     opacity: .3;
     position: sticky;
     left: var(--ifm-pre-padding);
+}
+
+.crawlee-python {
+    border-radius: 100px;
+    background: #272c3d;
+    color: #f2f3fb;
+    padding: 5px 15px;
+    margin: 0 0 30px 0;
+    display: inline-block;
+    border: 1px solid #b3b8d2;
+}
+
+div[class^=announcementBar_] {
+    background: #d05c29;
+    color: #fff;
+}
+
+div[class^=announcementBar_] button {
+    color: #fff;
 }
