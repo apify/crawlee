@@ -212,7 +212,7 @@ module.exports = {
                     items: [
                         {
                             label: 'Node.js',
-                            href: 'https://crawlee.dev',
+                            href: '#',
                             target: '_self',
                             rel: 'dofollow',
                         },
