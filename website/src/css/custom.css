@@ -496,3 +496,23 @@ div[class^=announcementBar_] {
 div[class^=announcementBar_] button {
     color: #fff;
 }
+
+.markdown blockquote {
+    --ifm-alert-background-color: var(--ifm-color-info-contrast-background);
+    --ifm-alert-background-color-highlight: rgba(84,199,236,.15);
+    --ifm-alert-foreground-color: var(--ifm-color-info-contrast-foreground);
+    --ifm-alert-border-color: var(--ifm-color-info-dark);
+    --ifm-code-background: var(--ifm-alert-background-color-highlight);
+    --ifm-link-color: var(--ifm-alert-foreground-color);
+    --ifm-link-hover-color: var(--ifm-alert-foreground-color);
+    --ifm-link-decoration: underline;
+    --ifm-tabs-color: var(--ifm-alert-foreground-color);
+    --ifm-tabs-color-active: var(--ifm-alert-foreground-color);
+    --ifm-tabs-color-active-border: var(--ifm-alert-border-color);
+    background-color: var(--ifm-alert-background-color);
+    border: var(--ifm-alert-border-width) solid var(--ifm-alert-border-color);
+    border-left-width: var(--ifm-alert-border-left-width);
+    border-radius: var(--ifm-alert-border-radius);
+    box-shadow: var(--ifm-alert-shadow);
+    padding: var(--ifm-alert-padding-vertical) var(--ifm-alert-padding-horizontal);
+}
