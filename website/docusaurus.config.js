@@ -213,10 +213,14 @@ module.exports = {
                         {
                             label: 'Node.js',
                             href: 'https://crawlee.dev',
+                            target: '_self',
+                            rel: 'dofollow',
                         },
                         {
                             label: 'Python',
                             href: 'https://crawlee.dev/python',
+                            target: '_self',
+                            rel: 'dofollow',
                         },
                     ],
                 },
