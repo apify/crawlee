@@ -175,6 +175,10 @@ interface ParseSitemapOptions {
      * Maximum depth of nested sitemaps to follow.
      */
     maxDepth?: number;
+    /**
+     * Maximum amount of ms to wait for a network respond to respond. Defaults to 60_000 by got-scraping
+     */
+    timeout?: number;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -182,7 +186,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     proxyUrl?: string,
     options?: T,
 ): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
-    const { gotScraping } = await import('got-scraping');
+    const { gotScraping, TimeoutError } = await import('got-scraping');
     const { fileTypeStream } = await import('file-type');
 
     const sources = [...initialSources];
@@ -226,7 +230,12 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
             try {
                 const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>((resolve, reject) => {
-                    const request = gotScraping.stream({ url: sitemapUrl, proxyUrl, method: 'GET' });
+                    const request = gotScraping.stream({
+                        url: sitemapUrl,
+                        proxyUrl,
+                        method: 'GET',
+                        timeout: { response: options?.timeout },
+                    });
                     request.on('response', () => resolve(request));
                     request.on('error', reject);
                 });
@@ -265,7 +274,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     );
                 }
             } catch (e) {
-                log.warning(`Malformed sitemap content: ${sitemapUrl}, ${e}`);
+                if (e instanceof TimeoutError) {
+                    log.warning(`Request to sitemap has timed out: ${sitemapUrl}, ${e}`);
+                } else {
+                    log.warning(`Malformed sitemap content: ${sitemapUrl}, ${e}`);
+                }
             }
         } else if (source.type === 'raw') {
             items = pipeline(Readable.from([source.content]), createParser('text/xml'), (error) => {

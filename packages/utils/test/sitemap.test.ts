@@ -167,7 +167,11 @@ describe('Sitemap', () => {
                 ].join('\n'),
             )
             .get('*')
-            .reply(404);
+            .reply(404)
+            .get('/connection_timeout.xml')
+            // Very high delay to simulate server not responding
+            .delayConnection(100_000)
+            .reply(200, '');
     });
 
     afterEach(() => {
@@ -345,5 +349,26 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=83&desc=vacation_usa',
             ]),
         );
+    });
+
+    it('load sitemap that has long timeout', { timeout: 500 }, async () => {
+        const items: SitemapUrl[] = [];
+
+        const siteMapIterator = parseSitemap(
+            [
+                {
+                    type: 'url',
+                    url: 'http://not-exists.com/connection_timeout.xml',
+                },
+            ],
+            undefined,
+            { timeout: 100 },
+        );
+
+        for await (const item of siteMapIterator) {
+            items.push(item);
+        }
+
+        expect(items).toEqual([]);
     });
 });
