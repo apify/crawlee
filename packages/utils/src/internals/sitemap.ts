@@ -178,7 +178,7 @@ interface ParseSitemapOptions {
     /**
      * Maximum amount of ms to wait for a network respond to respond. Defaults to 60_000 by got-scraping
      */
-    timeout?: number;
+    requestTimeout?: number;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -234,7 +234,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         url: sitemapUrl,
                         proxyUrl,
                         method: 'GET',
-                        timeout: { response: options?.timeout },
+                        timeout: { response: options?.requestTimeout },
                     });
                     request.on('response', () => resolve(request));
                     request.on('error', reject);

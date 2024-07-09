@@ -362,7 +362,7 @@ describe('Sitemap', () => {
                 },
             ],
             undefined,
-            { timeout: 100 },
+            { requestTimeout: 100 },
         );
 
         for await (const item of siteMapIterator) {
