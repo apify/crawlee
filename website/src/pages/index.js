@@ -17,6 +17,11 @@ function Hero() {
     return (
         <header className={clsx('container', styles.heroBanner)}>
             <div className="row padding-horiz--md">
+                <div className="col col--12">
+                    <div className={styles.crawleeForPython}>
+                        🎉&nbsp;<a href="https://crawlee.dev/blog/launching-crawlee-python">Crawlee for Python is open to early adopters!️</a>&nbsp;🥳
+                    </div>
+                </div>
                 <div className="col col--7">
                     <div className={clsx(styles.relative, 'row')}>
                         <div className="col">

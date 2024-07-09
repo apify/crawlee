@@ -40,7 +40,7 @@
 }
 
 .heroBanner h1:nth-child(1) {
-    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%), 
+    background: linear-gradient(225deg, #FFB200 0.1%, #FFB100 8.15%, #FFAF02 15.6%, #FEAB04 22.55%, #FDA606 29.08%, #FCA00A 35.28%, #FB980E 41.26%, #FA9013 47.1%, #F98618 52.89%, #F77B1E 58.73%, #F56F24 64.71%, #F3632B 70.91%, #F25532 77.44%, #EF473A 84.39%, #ED3842 91.84%, #EB284B 99.9%),
         #FCA000;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -235,4 +235,19 @@ html[data-theme='dark'] .features {
 .bottomLogo path:nth-child(1) {
     fill: url(#gradient-1) !important;
     stroke: url(#gradient-1) !important;
+}
+
+.crawleeForPython {
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 60px;
+    text-align: center;
+    margin-bottom: 80px;
+}
+
+.crawleeForPython a {
+    background: linear-gradient(90deg, #833ab4, #fd1d1d 50%, #fcb045);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: #0000;
 }
