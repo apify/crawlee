@@ -365,6 +365,19 @@ html[data-theme='dark'] .theme-doc-toc-desktop .table-of-contents .table-of-cont
     }
 }
 
+@media (max-width: 1480px) {
+    .navbar__item {
+        padding: 4px 24px;
+    }
+}
+
+@media (max-width: 1380px) {
+    .navbar__item {
+        padding: 4px 15px;
+        font-size: 16px;
+    }
+}
+
 @media (min-width: 997px) and (max-width: 1439px) {
     footer .col--offset-9 {
         --ifm-col-width: calc(4 / 12 * 100%);
