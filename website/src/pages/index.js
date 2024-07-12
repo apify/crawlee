@@ -42,9 +42,6 @@ function Hero() {
                         <div className="col">
                             <div className={styles.heroButtons}>
                                 <Link to="docs/introduction" className={styles.getStarted}>Get Started</Link>
-                                <a href="https://www.ycombinator.com/launches/H3J-crawlee-the-web-scraping-and-browser-automation-library" target="_blank" rel="noreferrer" style={{ height: 52 }}>
-                                    <img alt="Launch YC: Crawlee 🕸 The web scraping and browser automation library" style={{ width: 240, height: 52 }} src="https://www.ycombinator.com/launches/H3J-crawlee-the-web-scraping-and-browser-automation-library/upvote_embed.svg/"/>
-                                </a>
                                 <iframe src="https://ghbtns.com/github-btn.html?user=apify&repo=crawlee&type=star&count=true&size=large" frameBorder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
                             </div>
                         </div>
