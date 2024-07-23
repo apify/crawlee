@@ -71,5 +71,7 @@ Using the context-aware <ApiLink to="puppeteer-crawler/namespace/puppeteerUtils#
 </TabItem>
 </Tabs>
 
+To take full page screenshot using puppeteer we need to pass parameter `fullPage` as `true`in the `screenshot()`: `page.screenshot(fullPage: true)`
+
 In both examples using `page.screenshot()`, a `key` variable is created based on the URL of the web page. This variable is used as the key when saving
 each screenshot into a key-value store.
