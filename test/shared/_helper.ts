@@ -194,6 +194,31 @@ console.log('Hello world!');
             <p>Some content from inside of an iframe.</p>
         </body>
     </html>`,
+    shadowRoots: `
+    <html>
+    <body>
+        <div id="open-container">
+            <template shadowrootmode="open">
+                <p>[GOOD] This is inside the OPEN shadow DOM.</p>
+                <div>
+                    <template shadowrootmode="open">
+                        <p>[GOOD] This is inside of inside of the OPEN shadow DOM.</p>
+                    </template>
+                </div>
+            </template>
+        </div> 
+        <div id="closed-container"> 
+            <template shadowrootmode="closed">
+                <p>[BAD] This is inside the CLOSED shadow DOM.</p>
+                <div>
+                    <template shadowrootmode="open">
+                        <p>[BAD] This is inside of inside of the CLOSED shadow DOM.</p>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </body>
+    </html>`,
 };
 
 export async function runExampleComServer(): Promise<[Server, number]> {
@@ -297,6 +322,10 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/inside-iframe', (_req, res) => {
             res.type('html').send(responseSamples.insideIframe);
+        });
+
+        special.get('/shadow-root', (_req, res) => {
+            res.type('html').send(responseSamples.shadowRoots);
         });
     })();
 

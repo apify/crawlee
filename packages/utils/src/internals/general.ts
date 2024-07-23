@@ -115,7 +115,9 @@ export function expandShadowRoots(document: Document): string {
         for (const el of rootElement.querySelectorAll('*')) {
             if (el.shadowRoot) {
                 replaceShadowDomsWithHtml(el.shadowRoot);
-                el.innerHTML += getShadowDomHtml(el.shadowRoot) ?? '';
+                const content = document.createElement('div');
+                content.innerHTML = getShadowDomHtml(el.shadowRoot) ?? '';
+                el.appendChild(content);
             }
         }
     }
