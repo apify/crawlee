@@ -163,7 +163,7 @@ module.exports = {
         },
         announcementBar: {
             id: `announcement-bar-crawlee-for-python`,
-            content: `🎉️ <b><a href="https://crawlee.dev/blog/launching-crawlee-python">Crawlee for Python is open to early adopters!</b> 🥳️`,
+            content: `🎉️ <b><a href="https://crawlee.dev/python">Crawlee for Python is open to early adopters!</b> 🥳️`,
         },
         navbar: {
             hideOnScroll: true,
