@@ -244,7 +244,7 @@ describe('playwrightUtils', () => {
         }
     }, 60_000);
 
-    describe.only('shadow root expansion', () => {
+    describe('shadow root expansion', () => {
         let browser: Browser;
         beforeAll(async () => {
             browser = await launchPlaywright(launchContext);

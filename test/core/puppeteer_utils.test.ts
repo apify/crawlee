@@ -178,6 +178,36 @@ describe('puppeteerUtils', () => {
             }
         });
 
+        describe('parseWithCheerio() shadow root expansion works', () => {
+            let browser: Browser;
+            beforeAll(async () => {
+                browser = await launchPuppeteer(launchContext);
+            });
+            afterAll(async () => {
+                await browser.close();
+            });
+
+            test('no expansion with ignoreShadowRoots: true', async () => {
+                const page = await browser.newPage();
+                await page.goto(`${serverAddress}/special/shadow-root`);
+                const result = await puppeteerUtils.parseWithCheerio(page, true);
+
+                const text = result('body').text().trim();
+                expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(0);
+                expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            });
+
+            test('expansion works', async () => {
+                const page = await browser.newPage();
+                await page.goto(`${serverAddress}/special/shadow-root`);
+                const result = await puppeteerUtils.parseWithCheerio(page);
+
+                const text = result('body').text().trim();
+                expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(2);
+                expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            });
+        });
+
         describe('blockRequests()', () => {
             let browser: Browser = null;
             beforeAll(async () => {
