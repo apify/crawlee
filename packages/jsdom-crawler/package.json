@@ -55,9 +55,9 @@
     "dependencies": {
         "@apify/timeout": "^0.3.0",
         "@apify/utilities": "^2.7.10",
-        "@crawlee/http": "^3.11.1",
-        "@crawlee/types": "^3.11.1",
-        "@crawlee/utils": "^3.11.1",
+        "@crawlee/http": "3.11.1",
+        "@crawlee/types": "3.11.1",
+        "@crawlee/utils": "3.11.1",
         "@types/jsdom": "^21.0.0",
         "cheerio": "^1.0.0-rc.12",
         "jsdom": "^24.0.0",

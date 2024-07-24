@@ -54,10 +54,10 @@
     },
     "dependencies": {
         "@apify/timeout": "^0.3.0",
-        "@crawlee/basic": "^3.11.1",
-        "@crawlee/browser-pool": "^3.11.1",
-        "@crawlee/types": "^3.11.1",
-        "@crawlee/utils": "^3.11.1",
+        "@crawlee/basic": "3.11.1",
+        "@crawlee/browser-pool": "3.11.1",
+        "@crawlee/types": "3.11.1",
+        "@crawlee/utils": "3.11.1",
         "ow": "^0.28.1",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"

@@ -38,8 +38,8 @@
     "dependencies": {
         "@apify/log": "^2.4.0",
         "@apify/timeout": "^0.3.0",
-        "@crawlee/core": "^3.11.1",
-        "@crawlee/types": "^3.11.1",
+        "@crawlee/core": "3.11.1",
+        "@crawlee/types": "3.11.1",
         "fingerprint-generator": "^2.0.6",
         "fingerprint-injector": "^2.0.5",
         "lodash.merge": "^4.6.2",

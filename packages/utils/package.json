@@ -49,7 +49,7 @@
     "dependencies": {
         "@apify/log": "^2.4.0",
         "@apify/ps-tree": "^1.2.0",
-        "@crawlee/types": "^3.11.1",
+        "@crawlee/types": "3.11.1",
         "@types/sax": "^1.2.7",
         "cheerio": "^1.0.0-rc.12",
         "file-type": "^19.0.0",

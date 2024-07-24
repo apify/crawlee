@@ -53,9 +53,9 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/http": "^3.11.1",
-        "@crawlee/types": "^3.11.1",
-        "@crawlee/utils": "^3.11.1",
+        "@crawlee/http": "3.11.1",
+        "@crawlee/types": "3.11.1",
+        "@crawlee/utils": "3.11.1",
         "cheerio": "^1.0.0-rc.12",
         "htmlparser2": "^9.0.0",
         "tslib": "^2.4.0"
