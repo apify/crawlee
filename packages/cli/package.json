@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/cli",
-    "version": "3.11.0",
+    "version": "3.11.1",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=16.0.0"
@@ -51,7 +51,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/templates": "3.11.0",
+        "@crawlee/templates": "^3.11.1",
         "ansi-colors": "^4.1.3",
         "fs-extra": "^11.0.0",
         "inquirer": "^8.2.4",

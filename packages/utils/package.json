@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/utils",
-    "version": "3.11.0",
+    "version": "3.11.1",
     "description": "A set of shared utilities that can be used by crawlers",
     "engines": {
         "node": ">=16.0.0"
@@ -49,7 +49,7 @@
     "dependencies": {
         "@apify/log": "^2.4.0",
         "@apify/ps-tree": "^1.2.0",
-        "@crawlee/types": "3.11.0",
+        "@crawlee/types": "^3.11.1",
         "@types/sax": "^1.2.7",
         "cheerio": "^1.0.0-rc.12",
         "file-type": "^19.0.0",

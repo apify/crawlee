@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/linkedom",
-    "version": "3.11.0",
+    "version": "3.11.1",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=16.0.0"
@@ -55,8 +55,8 @@
     "dependencies": {
         "@apify/timeout": "^0.3.0",
         "@apify/utilities": "^2.7.10",
-        "@crawlee/http": "3.11.0",
-        "@crawlee/types": "3.11.0",
+        "@crawlee/http": "^3.11.1",
+        "@crawlee/types": "^3.11.1",
         "linkedom": "^0.18.0",
         "ow": "^0.28.2",
         "tslib": "^2.4.0"

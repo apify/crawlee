@@ -1,6 +1,6 @@
 {
     "name": "@crawlee/puppeteer",
-    "version": "3.11.0",
+    "version": "3.11.1",
     "description": "The scalable web crawling and scraping library for JavaScript/Node.js. Enables development of data extraction and web automation jobs (not only) with headless Chrome and Puppeteer.",
     "engines": {
         "node": ">=16.0.0"
@@ -55,10 +55,10 @@
     "dependencies": {
         "@apify/datastructures": "^2.0.0",
         "@apify/log": "^2.4.0",
-        "@crawlee/browser": "3.11.0",
-        "@crawlee/browser-pool": "3.11.0",
-        "@crawlee/types": "3.11.0",
-        "@crawlee/utils": "3.11.0",
+        "@crawlee/browser": "^3.11.1",
+        "@crawlee/browser-pool": "^3.11.1",
+        "@crawlee/types": "^3.11.1",
+        "@crawlee/utils": "^3.11.1",
         "cheerio": "^1.0.0-rc.12",
         "devtools-protocol": "*",
         "idcac-playwright": "^0.1.2",

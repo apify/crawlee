@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
+
+
+### Bug Fixes
+
+* use `getHTML` in the shadow root expansion ([#2587](https://github.com/apify/crawlee/issues/2587)) ([a244d62](https://github.com/apify/crawlee/commit/a244d62cca03d628677eca8a5adcf41e33c51dee)), closes [#2583](https://github.com/apify/crawlee/issues/2583)
+
+
+
+
+
 # [3.11.0](https://github.com/apify/crawlee/compare/v3.10.5...v3.11.0) (2024-07-09)
 
 
