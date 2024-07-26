@@ -123,7 +123,7 @@ To prevent bloat and to make access to certain key objects easier, we exposed a 
 property on the handle page arguments.
 
 ```js
-const handePageFunction = async ({ request, page, crawler }) => {
+const handlePageFunction = async ({ request, page, crawler }) => {
     await crawler.requestQueue.addRequest({ url: 'https://example.com' });
     await crawler.autoscaledPool.pause();
 }
@@ -133,7 +133,7 @@ This also means that some shorthands like `puppeteerPool` or `autoscaledPool` we
 no longer necessary.
 
 ```js
-const handePageFunction = async (crawlingContext) => {
+const handlePageFunction = async (crawlingContext) => {
     crawlingContext.autoscaledPool // does NOT exist anymore
     crawlingContext.crawler.autoscaledPool // <= this is correct usage
 }

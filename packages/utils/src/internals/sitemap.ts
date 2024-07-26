@@ -100,7 +100,7 @@ class SitemapXmlParser extends Transform {
         this.parser.onopentag = this.onOpenTag.bind(this);
         this.parser.onclosetag = this.onCloseTag.bind(this);
 
-        this.parser.ontext = this.onText.bind(this);
+        this.parser.context = this.onText.bind(this);
         this.parser.oncdata = this.onText.bind(this);
 
         this.parser.onerror = this.destroy.bind(this);
@@ -168,7 +168,7 @@ class SitemapXmlParser extends Transform {
 
 interface ParseSitemapOptions {
     /**
-     * If set to `true`, elements reffering to other sitemaps will be emitted as special objects with a `bouba` property.
+     * If set to `true`, elements referring to other sitemaps will be emitted as special objects with a `bouba` property.
      */
     emitNestedSitemaps?: true | false;
     /**

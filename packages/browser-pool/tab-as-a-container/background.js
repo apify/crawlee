@@ -44,7 +44,7 @@ const getCookieURL = (cookie) => {
 };
 
 // Rewrite cookies that were programmatically set to tabId instead of openerId.
-// This is requried because we cannot reliably get openerId inside Playwright.
+// This is required because we cannot reliably get openerId inside Playwright.
 chrome.cookies.onChanged.addListener(async (changeInfo) => {
     if (!changeInfo.removed) {
         const { cookie } = changeInfo;
@@ -105,7 +105,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
             // Sometimes Chrome makes a request on a ghost tab.
             // We don't want these in order to prevent cluttering cookies.
-            // Yes, `webNavigation.onComitted` is emitted and `webNavigation.onCreatedNavigationTarget` is not.
+            // Yes, `webNavigation.onCommitted` is emitted and `webNavigation.onCreatedNavigationTarget` is not.
             if (header.name.toLowerCase() === 'purpose' && header.value === 'prefetch' && !counter.has(details.tabId)) {
                 // eslint-disable-next-line no-console
                 console.log(details);

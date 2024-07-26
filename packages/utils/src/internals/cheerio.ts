@@ -57,7 +57,7 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
                 let compr;
                 if (elem.parent && elem.parent.tagName === 'pre') compr = elem.data;
                 else compr = elem.data.replace(/\s+/g, ' ');
-                // If text is empty or ends with a whitespace, don't add the leading whitepsace
+                // If text is empty or ends with a whitespace, don't add the leading whitespace
                 if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);
                 text += compr;
             } else if (elem.type === 'comment' || SKIP_TAGS_REGEX.test(elem.tagName)) {

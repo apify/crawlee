@@ -146,7 +146,7 @@ describe('CheerioCrawler', () => {
         });
     });
 
-    test('should work with explcit router', async () => {
+    test('should work with explicit router', async () => {
         const requestList = await getRequestListForMirror();
         const processed: Request[] = [];
         const failed: Request[] = [];
@@ -463,7 +463,7 @@ describe('CheerioCrawler', () => {
                         headers: {
                             'content-type': 'text/html',
                         },
-                        body: 'DATABASE ERRROR',
+                        body: 'DATABASE ERROR',
                     }),
                     maxRequestRetries: 1,
                     requestHandler: () => {

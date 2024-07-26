@@ -82,7 +82,7 @@ One of the drawbacks of this plugin is its [lack of native support for windows](
 In Crawlee, you can scrape JavaScript rendered websites using the built-in headless [Puppeteer](https://github.com/puppeteer/puppeteer/) and [Playwright](https://github.com/microsoft/playwright) browsers. It is important to note that, by default, Crawlee scrapes in headless mode. If you don't want headless, then just set `headless: false`.
 
 <Tabs>
-<TabItem value="javscript" label="Playwright">
+<TabItem value="javascript" label="Playwright">
 
 ```js title="crawler.js"
 import { PlaywrightCrawler } from 'crawlee';
