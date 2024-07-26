@@ -100,7 +100,7 @@ class SitemapXmlParser extends Transform {
         this.parser.onopentag = this.onOpenTag.bind(this);
         this.parser.onclosetag = this.onCloseTag.bind(this);
 
-        this.parser.context = this.onText.bind(this);
+        this.parser.ontext = this.onText.bind(this);
         this.parser.oncdata = this.onText.bind(this);
 
         this.parser.onerror = this.destroy.bind(this);
