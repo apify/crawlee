@@ -162,8 +162,8 @@ module.exports = {
             },
         },
         announcementBar: {
-            id: `announcement-bar-crawlee-for-python`,
-            content: `🎉️ <b><a href="https://crawlee.dev/python">Crawlee for Python is open to early adopters!</b> 🥳️`,
+            id: `crawlee-for-python-webinar`,
+            content: `🎉️ <b>Learn about our latest beta release of Crawlee for Python from the creators of Crawlee. Join us at 9 AM EST on August 5th, 2024. <a href="https://apify.com/resources/crawlee-for-python-webinar">Sign up now!</a></b> 🥳️`,
         },
         navbar: {
             hideOnScroll: true,
