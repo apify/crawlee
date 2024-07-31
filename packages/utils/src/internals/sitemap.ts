@@ -168,7 +168,7 @@ class SitemapXmlParser extends Transform {
 
 interface ParseSitemapOptions {
     /**
-     * If set to `true`, elements reffering to other sitemaps will be emitted as special objects with a `bouba` property.
+     * If set to `true`, elements referring to other sitemaps will be emitted as special objects with a `bouba` property.
      */
     emitNestedSitemaps?: true | false;
     /**

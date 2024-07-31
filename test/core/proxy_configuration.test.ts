@@ -126,7 +126,7 @@ describe('ProxyConfiguration', () => {
         });
 
         test('should rotate custom URLs with sessions correctly', async () => {
-            const sessions = ['sesssion_01', 'sesssion_02', 'sesssion_03', 'sesssion_04', 'sesssion_05', 'sesssion_06'];
+            const sessions = ['session_01', 'session_02', 'session_03', 'session_04', 'session_05', 'session_06'];
             const proxyConfiguration = new ProxyConfiguration({
                 proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
             });

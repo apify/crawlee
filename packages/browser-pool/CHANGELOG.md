@@ -162,7 +162,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
-* **browser-pool:** respect user options before assigning fingerpints ([#2190](https://github.com/apify/crawlee/issues/2190)) ([f050776](https://github.com/apify/crawlee/commit/f050776a916a0530aca6727a447a49252e643417)), closes [#2164](https://github.com/apify/crawlee/issues/2164)
+* **browser-pool:** respect user options before assigning fingerprints ([#2190](https://github.com/apify/crawlee/issues/2190)) ([f050776](https://github.com/apify/crawlee/commit/f050776a916a0530aca6727a447a49252e643417)), closes [#2164](https://github.com/apify/crawlee/issues/2164)
 
 
 

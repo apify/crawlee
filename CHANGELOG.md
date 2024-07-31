@@ -287,7 +287,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 ### Bug Fixes
 
 * `retryOnBlocked` doesn't override the blocked HTTP codes ([#2243](https://github.com/apify/crawlee/issues/2243)) ([81672c3](https://github.com/apify/crawlee/commit/81672c3d1db1dcdcffb868de5740addff82cf112))
-* **browser-pool:** respect user options before assigning fingerpints ([#2190](https://github.com/apify/crawlee/issues/2190)) ([f050776](https://github.com/apify/crawlee/commit/f050776a916a0530aca6727a447a49252e643417)), closes [#2164](https://github.com/apify/crawlee/issues/2164)
+* **browser-pool:** respect user options before assigning fingerprints ([#2190](https://github.com/apify/crawlee/issues/2190)) ([f050776](https://github.com/apify/crawlee/commit/f050776a916a0530aca6727a447a49252e643417)), closes [#2164](https://github.com/apify/crawlee/issues/2164)
 * filter out empty globs ([#2205](https://github.com/apify/crawlee/issues/2205)) ([41322ab](https://github.com/apify/crawlee/commit/41322ab32d7db7baf61638d00fd7eaec9e5330f1)), closes [#2200](https://github.com/apify/crawlee/issues/2200)
 * make CLI work on Windows too with `--no-purge` ([#2244](https://github.com/apify/crawlee/issues/2244)) ([83f3179](https://github.com/apify/crawlee/commit/83f3179d6963dbaca4232d866356cc766db11dd8))
 * make SessionPool queue up getSession calls to prevent overruns ([#2239](https://github.com/apify/crawlee/issues/2239)) ([0f5665c](https://github.com/apify/crawlee/commit/0f5665c473371bff5a5d3abee3c3a9d23f2aeb23)), closes [#1667](https://github.com/apify/crawlee/issues/1667)

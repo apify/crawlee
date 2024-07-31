@@ -592,7 +592,7 @@ describe.each([
                                 fingerprintCacheSize: 1,
                             },
                         });
-                        // cast to any type in order to acces the maxSize property for testing purposes.
+                        // cast to any type in order to access the maxSize property for testing purposes.
                         const cache: any = browserPoolCache!.fingerprintCache!;
                         expect(cache.maxSize).toBe(1);
                     });

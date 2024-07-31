@@ -394,7 +394,7 @@ export async function cacheResponses(
                 };
             }
         } catch (e) {
-            // ignore errors, usualy means that buffer is empty or broken connection
+            // ignore errors, usually means that buffer is empty or broken connection
         }
     });
 }
