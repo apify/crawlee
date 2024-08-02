@@ -3,7 +3,7 @@ import type { Dictionary } from '@crawlee/types';
 import { checkStorageAccess } from './access_checking';
 import type { RequestQueueOperationInfo, RequestProviderOptions } from './request_provider';
 import { RequestProvider } from './request_provider';
-import { STORAGE_CONSISTENCY_DELAY_MILLIS, getRequestId } from './utils';
+import { getRequestId } from './utils';
 import { Configuration } from '../configuration';
 import { EventType } from '../events';
 import type { Request } from '../request';
@@ -112,26 +112,15 @@ export class RequestQueue extends RequestProvider {
         }
 
         // This should never happen, but...
-        if (this.inProgress.has(nextRequestId) || this.recentlyHandledRequestsCache.get(nextRequestId)) {
-            this.log.warning('Queue head returned a request that is already in progress?!', {
+        if (this.recentlyHandledRequestsCache.get(nextRequestId)) {
+            this.log.warning('Queue head returned a request that was recently marked as handled?!', {
                 nextRequestId,
-                inProgress: this.inProgress.has(nextRequestId),
                 recentlyHandled: !!this.recentlyHandledRequestsCache.get(nextRequestId),
             });
             return null;
         }
 
-        this.inProgress.add(nextRequestId);
-
-        let request: Request | null;
-
-        try {
-            request = await this.getOrHydrateRequest(nextRequestId);
-        } catch (e) {
-            // On error, remove the request from in progress, otherwise it would be there forever
-            this.inProgress.delete(nextRequestId);
-            throw e;
-        }
+        const request: Request | null = await this.getOrHydrateRequest(nextRequestId);
 
         // NOTE: It can happen that the queue head index is inconsistent with the main queue table. This can occur in two situations:
 
@@ -144,10 +133,6 @@ export class RequestQueue extends RequestProvider {
             this.log.debug('Cannot find a request from the beginning of queue or lost lock, will be retried later', {
                 nextRequestId,
             });
-
-            setTimeout(() => {
-                this.inProgress.delete(nextRequestId);
-            }, STORAGE_CONSISTENCY_DELAY_MILLIS);
 
             return null;
         }
@@ -175,11 +160,6 @@ export class RequestQueue extends RequestProvider {
 
         if (res) {
             const [request, options] = args;
-
-            // Mark the request as no longer in progress,
-            // as the moment we delete the lock, we could end up also re-fetching the request in a subsequent ensureHeadIsNonEmpty()
-            // which could potentially lock the request again
-            this.inProgress.delete(request.id!);
 
             // Try to delete the request lock if possible
             try {
@@ -217,11 +197,10 @@ export class RequestQueue extends RequestProvider {
 
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
-            if (!id || !uniqueKey || this.inProgress.has(id) || this.recentlyHandledRequestsCache.get(id)) {
-                this.log.debug(`Skipping request from queue head, already in progress or recently handled`, {
+            if (!id || !uniqueKey || this.recentlyHandledRequestsCache.get(id)) {
+                this.log.debug(`Skipping request from queue head as it's invalid or recently handled`, {
                     id,
                     uniqueKey,
-                    inProgress: this.inProgress.has(id),
                     recentlyHandled: !!this.recentlyHandledRequestsCache.get(id),
                 });
 

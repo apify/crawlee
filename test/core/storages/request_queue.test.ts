@@ -89,14 +89,6 @@ describe('RequestQueue remote', () => {
 
         // Test validations
         await queue
-            .markRequestHandled(new Request({ id: 'XXX', url: 'https://example.com' }))
-            .catch((err) =>
-                expect(err.message).toMatch(/Cannot mark request XXX as handled, because it is not in progress/),
-            );
-        await queue
-            .reclaimRequest(new Request({ id: 'XXX', url: 'https://example.com' }))
-            .catch((err) => expect(err.message).toMatch(/Cannot reclaim request XXX, because it is not in progress/));
-        await queue
             .addRequest(new Request({ id: 'id-already-set', url: 'https://example.com' }))
             .catch((err) =>
                 expect(err.message).toMatch(

@@ -18,7 +18,6 @@ import type {
     ProxyInfo,
     Request,
     RequestOptions,
-    RequestProvider,
     RouterHandler,
     RouterRoutes,
     Session,
@@ -40,6 +39,7 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    RequestProvider,
     RequestQueueV1,
     RequestQueue,
     RequestState,
@@ -1185,16 +1185,23 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return false;
         }
 
-        // eslint-disable-next-line dot-notation
-        source['inProgress'].delete(request.id!);
+        if (source instanceof RequestQueueV1) {
+            // eslint-disable-next-line dot-notation
+            source['inProgress']?.delete(request.id!);
+        }
+
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(
             `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
         );
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-            // eslint-disable-next-line dot-notation
-            source['inProgress'].add(request.id!);
+
+            if (source instanceof RequestQueueV1) {
+                // eslint-disable-next-line dot-notation
+                source['inProgress'].add(request.id!);
+            }
+
             await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
 
@@ -1350,6 +1357,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             await this._cleanupContext(crawlingContext);
 
             this.crawlingContexts.delete(crawlingContext.id);
+
+            if (source instanceof RequestProvider) {
+                // Always release a lock on a request at the end of the cycle
+                try {
+                    await source.client.deleteRequestLock(request.id!);
+                } catch {
+                    // We don't have the lock, or the request was never locked. Either way it's fine
+                }
+            }
         }
     }
 
