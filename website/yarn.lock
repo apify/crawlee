@@ -259,13 +259,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/log@npm:^2.5.4":
-  version: 2.5.4
-  resolution: "@apify/log@npm:2.5.4"
+"@apify/log@npm:^2.5.5":
+  version: 2.5.5
+  resolution: "@apify/log@npm:2.5.5"
   dependencies:
     "@apify/consts": "npm:^2.29.0"
     ansi-colors: "npm:^4.1.1"
-  checksum: 10c0/cdd96c743c608c9f6fca554e26a3b35d5d7577e8ebaecded144afb2747c7b30846b7335de3517152adff3713e538fe534614f0998559b4a7b4d2215da679bd2b
+  checksum: 10c0/3c0f85f4005e68a987b60d223e9cef9cb94b1cd8b90798a7fd6834ba4f308925e4eb527eb66d3edfb09341656fe2320a60cce47c4fa3d840049794ae9b802c30
   languageName: node
   linkType: hard
 
@@ -277,12 +277,12 @@ __metadata:
   linkType: hard
 
 "@apify/utilities@npm:^2.8.0":
-  version: 2.10.5
-  resolution: "@apify/utilities@npm:2.10.5"
+  version: 2.10.6
+  resolution: "@apify/utilities@npm:2.10.6"
   dependencies:
     "@apify/consts": "npm:^2.29.0"
-    "@apify/log": "npm:^2.5.4"
-  checksum: 10c0/37ac897d9eafefbddfe54e6c7c60ebbbb08d8bf70f2048384313841656bec5188dd35cb0d0fd52f215d3bb4f1c10d0a9ceacea39f7c21f408220e0a2d3e140d5
+    "@apify/log": "npm:^2.5.5"
+  checksum: 10c0/223848ce6f0cf9be123b5a1958faf0871bd6a7a46b01e7f666fc892d078f4ca61ab54ce557488a8e6bed812d0206daac11b3c21c8452dca4734f6683dbbd2942
   languageName: node
   linkType: hard
 
@@ -4122,13 +4122,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.5.0":
-  version: 1.7.2
-  resolution: "axios@npm:1.7.2"
+  version: 1.7.3
+  resolution: "axios@npm:1.7.3"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/cbd47ce380fe045313364e740bb03b936420b8b5558c7ea36a4563db1258c658f05e40feb5ddd41f6633fdd96d37ac2a76f884dad599c5b0224b4c451b3fa7ae
+  checksum: 10c0/a18cbe559203efa05fb1fec2d1898e23bf6329bd2575784ee32aa11b5bbe1d54b9f472c49a261294125519cf62aa4fe5ef6e647bb7482eafc15bffe15ab314ce
   languageName: node
   linkType: hard
 
@@ -4425,16 +4425,16 @@ __metadata:
   linkType: hard
 
 "browserslist@npm:^4.0.0, browserslist@npm:^4.18.1, browserslist@npm:^4.21.10, browserslist@npm:^4.23.0, browserslist@npm:^4.23.1":
-  version: 4.23.2
-  resolution: "browserslist@npm:4.23.2"
+  version: 4.23.3
+  resolution: "browserslist@npm:4.23.3"
   dependencies:
-    caniuse-lite: "npm:^1.0.30001640"
-    electron-to-chromium: "npm:^1.4.820"
-    node-releases: "npm:^2.0.14"
+    caniuse-lite: "npm:^1.0.30001646"
+    electron-to-chromium: "npm:^1.5.4"
+    node-releases: "npm:^2.0.18"
     update-browserslist-db: "npm:^1.1.0"
   bin:
     browserslist: cli.js
-  checksum: 10c0/0217d23c69ed61cdd2530c7019bf7c822cd74c51f8baab18dd62457fed3129f52499f8d3a6f809ae1fb7bb3050aa70caa9a529cc36c7478427966dbf429723a5
+  checksum: 10c0/3063bfdf812815346447f4796c8f04601bf5d62003374305fd323c2a463e42776475bcc5309264e39bcf9a8605851e53560695991a623be988138b3ff8c66642
   languageName: node
   linkType: hard
 
@@ -4574,10 +4574,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001599, caniuse-lite@npm:^1.0.30001640":
-  version: 1.0.30001645
-  resolution: "caniuse-lite@npm:1.0.30001645"
-  checksum: 10c0/973133d930a1a75b30a77350a795934610a5d9dee9876dbb45351a2b954ddc09ac36b51cfd819b00868f9d2d337ab7ed68b6a9ce6bf9edeacdbc46cc62236295
+"caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001599, caniuse-lite@npm:^1.0.30001646":
+  version: 1.0.30001646
+  resolution: "caniuse-lite@npm:1.0.30001646"
+  checksum: 10c0/ecdd87c08cd63fa32e11311dfa3543a52613b0b99498b6fe6f2c66af65cc27e2f7436fa5b2bc2bcf72174448a7670715b284d420de838bcf3e811864371a2465
   languageName: node
   linkType: hard
 
@@ -5880,7 +5880,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron-to-chromium@npm:^1.4.820":
+"electron-to-chromium@npm:^1.5.4":
   version: 1.5.4
   resolution: "electron-to-chromium@npm:1.5.4"
   checksum: 10c0/139abf1b7281c2f3288819fb9b114f09d541ac38c9f0373f194ce2d483d82d118b8751f1b2a59b04ed0d8f414071b58508a40050fc0f23b5aa7e38d11d0cf30c
@@ -10392,7 +10392,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-releases@npm:^2.0.14":
+"node-releases@npm:^2.0.18":
   version: 2.0.18
   resolution: "node-releases@npm:2.0.18"
   checksum: 10c0/786ac9db9d7226339e1dc84bbb42007cb054a346bd9257e6aa154d294f01bc6a6cddb1348fa099f079be6580acbb470e3c048effd5f719325abd0179e566fd27
