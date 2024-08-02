@@ -55,6 +55,8 @@ export abstract class RequestProvider implements IStorage {
 
     protected lastActivity = new Date();
 
+    protected isFinishedCalledWhileHeadWasNotEmpty = 0;
+
     constructor(
         options: InternalRequestProviderOptions,
         readonly config = Configuration.getGlobalConfig(),
@@ -580,9 +582,42 @@ export abstract class RequestProvider implements IStorage {
         const currentHead = await this.client.listHead({ limit: 2 });
 
         if (currentHead.items.length !== 0) {
-            this.log.debug(
-                'Queue head still returned requests that need to be processed (or that are locked by other clients)',
-            );
+            // Give users some more concrete info as to why their crawlers seem to be "hanging" doing nothing while we're waiting because the queue is technically
+            // not empty. We decided that a queue with elements in its head but that are also locked shouldn't return true in this function.
+            // If that ever changes, this function might need a rewrite
+            // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much. This is also a very specific path that most crawlers shouldn't hit
+            if (++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
+                const requests = await Promise.all(
+                    currentHead.items.map(async (item) => this.client.getRequest(item.id)),
+                );
+
+                this.log.info(
+                    `Queue head still returned requests that need to be processed (or that are locked by other clients)`,
+                    {
+                        requests: requests
+                            .map((r) => {
+                                if (!r) {
+                                    return null;
+                                }
+
+                                return {
+                                    id: r.id,
+                                    lockExpiresAt: r.lockExpiresAt,
+                                    lockedBy: r.lockByClient,
+                                };
+                            })
+                            .filter(Boolean),
+                        clientKey: this.clientKey,
+                    },
+                );
+            } else {
+                this.log.debug(
+                    'Queue head still returned requests that need to be processed (or that are locked by other clients)',
+                    {
+                        requestIds: currentHead.items.map((item) => item.id),
+                    },
+                );
+            }
         }
 
         return currentHead.items.length === 0;
