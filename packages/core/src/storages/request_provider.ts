@@ -486,6 +486,8 @@ export abstract class RequestProvider implements IStorage {
             this.assumedHandledCount++;
         }
 
+        this.queueHeadIds.remove(request.id);
+
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
