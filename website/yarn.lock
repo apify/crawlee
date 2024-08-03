@@ -2654,13 +2654,13 @@ __metadata:
   linkType: hard
 
 "@pnpm/npm-conf@npm:^2.1.0":
-  version: 2.2.2
-  resolution: "@pnpm/npm-conf@npm:2.2.2"
+  version: 2.3.0
+  resolution: "@pnpm/npm-conf@npm:2.3.0"
   dependencies:
     "@pnpm/config.env-replace": "npm:^1.1.0"
     "@pnpm/network.ca-file": "npm:^1.0.1"
     config-chain: "npm:^1.1.11"
-  checksum: 10c0/71393dcfce85603fddd8484b486767163000afab03918303253ae97992615b91d25942f83751366cb40ad2ee32b0ae0a033561de9d878199a024286ff98b0296
+  checksum: 10c0/605e986805b5bc46bde3d17cdc5a58f9da7da28ac331b83acde055eddefa8ca0e027844d8a97d337b8179ee6964db985214cec1206b76c29d0fcd5496c60abf2
   languageName: node
   linkType: hard
 
@@ -3146,11 +3146,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 22.0.2
-  resolution: "@types/node@npm:22.0.2"
+  version: 22.1.0
+  resolution: "@types/node@npm:22.1.0"
   dependencies:
-    undici-types: "npm:~6.11.1"
-  checksum: 10c0/59ee26fb1104674b2e23981d7569ad113aa8ee23c8449af8e4312aa9352ac738c5ffd0ae4d8077db0467704a3b9ccc662048e39716cb5ad51cdb24d106c7871b
+    undici-types: "npm:~6.13.0"
+  checksum: 10c0/553dafcb842b889c036d43b390d464e8ffcf3ca455ddd5b1a1ef98396381eafbeb0c112a15cc6bf9662b72bc25fc45efc4b6f604760e1e84c410f1b7936c488b
   languageName: node
   linkType: hard
 
@@ -4088,20 +4088,20 @@ __metadata:
   linkType: hard
 
 "autoprefixer@npm:^10.4.14, autoprefixer@npm:^10.4.19":
-  version: 10.4.19
-  resolution: "autoprefixer@npm:10.4.19"
+  version: 10.4.20
+  resolution: "autoprefixer@npm:10.4.20"
   dependencies:
-    browserslist: "npm:^4.23.0"
-    caniuse-lite: "npm:^1.0.30001599"
+    browserslist: "npm:^4.23.3"
+    caniuse-lite: "npm:^1.0.30001646"
     fraction.js: "npm:^4.3.7"
     normalize-range: "npm:^0.1.2"
-    picocolors: "npm:^1.0.0"
+    picocolors: "npm:^1.0.1"
     postcss-value-parser: "npm:^4.2.0"
   peerDependencies:
     postcss: ^8.1.0
   bin:
     autoprefixer: bin/autoprefixer
-  checksum: 10c0/fe0178eb8b1da4f15c6535cd329926609b22d1811e047371dccce50563623f8075dd06fb167daff059e4228da651b0bdff6d9b44281541eaf0ce0b79125bfd19
+  checksum: 10c0/e1f00978a26e7c5b54ab12036d8c13833fad7222828fc90914771b1263f51b28c7ddb5803049de4e77696cbd02bb25cfc3634e80533025bb26c26aacdf938940
   languageName: node
   linkType: hard
 
@@ -4424,7 +4424,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"browserslist@npm:^4.0.0, browserslist@npm:^4.18.1, browserslist@npm:^4.21.10, browserslist@npm:^4.23.0, browserslist@npm:^4.23.1":
+"browserslist@npm:^4.0.0, browserslist@npm:^4.18.1, browserslist@npm:^4.21.10, browserslist@npm:^4.23.0, browserslist@npm:^4.23.1, browserslist@npm:^4.23.3":
   version: 4.23.3
   resolution: "browserslist@npm:4.23.3"
   dependencies:
@@ -4574,7 +4574,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001599, caniuse-lite@npm:^1.0.30001646":
+"caniuse-lite@npm:^1.0.0, caniuse-lite@npm:^1.0.30001646":
   version: 1.0.30001646
   resolution: "caniuse-lite@npm:1.0.30001646"
   checksum: 10c0/ecdd87c08cd63fa32e11311dfa3543a52613b0b99498b6fe6f2c66af65cc27e2f7436fa5b2bc2bcf72174448a7670715b284d420de838bcf3e811864371a2465
@@ -13716,10 +13716,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~6.11.1":
-  version: 6.11.1
-  resolution: "undici-types@npm:6.11.1"
-  checksum: 10c0/d8f5739a8e6c779d72336c82deb49c56d5ac9f9f6e0eb2e8dd4d3f6929ae9db7cde370d2e46516fe6cad04ea53e790c5e16c4c75eed7cd0f9bd31b0763bb2fa3
+"undici-types@npm:~6.13.0":
+  version: 6.13.0
+  resolution: "undici-types@npm:6.13.0"
+  checksum: 10c0/2de55181f569c77a4f08063f8bf2722fcbb6ea312a26a9e927bd1f5ea5cf3a281c5ddf23155061db083e0a25838f54813543ff13b0ac34d230d5c1205ead66c1
   languageName: node
   linkType: hard
 
