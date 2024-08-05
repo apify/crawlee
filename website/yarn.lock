@@ -400,7 +400,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/helper-define-polyfill-provider@npm:^0.6.1, @babel/helper-define-polyfill-provider@npm:^0.6.2":
+"@babel/helper-define-polyfill-provider@npm:^0.6.2":
   version: 0.6.2
   resolution: "@babel/helper-define-polyfill-provider@npm:0.6.2"
   dependencies:
@@ -1996,7 +1996,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/plugin-content-docs@npm:3.4.0, @docusaurus/plugin-content-docs@npm:^3.1.0":
+"@docusaurus/plugin-content-docs@npm:3.4.0, @docusaurus/plugin-content-docs@npm:^3.4.0":
   version: 3.4.0
   resolution: "@docusaurus/plugin-content-docs@npm:3.4.0"
   dependencies:
@@ -2248,7 +2248,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/types@npm:3.4.0, @docusaurus/types@npm:^3.1.0":
+"@docusaurus/types@npm:3.4.0, @docusaurus/types@npm:^3.4.0":
   version: 3.4.0
   resolution: "@docusaurus/types@npm:3.4.0"
   dependencies:
@@ -2298,7 +2298,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@docusaurus/utils@npm:3.4.0, @docusaurus/utils@npm:^3.1.0":
+"@docusaurus/utils@npm:3.4.0, @docusaurus/utils@npm:^3.4.0":
   version: 3.4.0
   resolution: "@docusaurus/utils@npm:3.4.0"
   dependencies:
@@ -3464,10 +3464,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vscode/codicons@npm:^0.0.35":
-  version: 0.0.35
-  resolution: "@vscode/codicons@npm:0.0.35"
-  checksum: 10c0/203a9b250be69a8943fdea5652c9f2f9cfb002b0f8a45156e5edf8af83297dd0ea33fa2cad33ab910f51d4f08ca671b7630143ae87639ae32526c4eadbd040df
+"@vscode/codicons@npm:^0.0.36":
+  version: 0.0.36
+  resolution: "@vscode/codicons@npm:0.0.36"
+  checksum: 10c0/6bf944e87adc375cbad1bc939c05855d9430b53ad0132a00d539c3395c5877ac0a21865ae87c14bf903a667eb8dd1f846557015835c3d8c65c4972fafa5faaaa
   languageName: node
   linkType: hard
 
@@ -4177,14 +4177,14 @@ __metadata:
   linkType: hard
 
 "babel-plugin-polyfill-corejs3@npm:^0.10.1, babel-plugin-polyfill-corejs3@npm:^0.10.4":
-  version: 0.10.4
-  resolution: "babel-plugin-polyfill-corejs3@npm:0.10.4"
+  version: 0.10.6
+  resolution: "babel-plugin-polyfill-corejs3@npm:0.10.6"
   dependencies:
-    "@babel/helper-define-polyfill-provider": "npm:^0.6.1"
-    core-js-compat: "npm:^3.36.1"
+    "@babel/helper-define-polyfill-provider": "npm:^0.6.2"
+    core-js-compat: "npm:^3.38.0"
   peerDependencies:
     "@babel/core": ^7.4.0 || ^8.0.0-0 <8.0.0
-  checksum: 10c0/31b92cd3dfb5b417da8dfcf0deaa4b8b032b476d7bb31ca51c66127cf25d41e89260e89d17bc004b2520faa38aa9515fafabf81d89f9d4976e9dc1163e4a7c41
+  checksum: 10c0/3a69220471b07722c2ae6537310bf26b772514e12b601398082965459c838be70a0ca70b0662f0737070654ff6207673391221d48599abb4a2b27765206d9f79
   languageName: node
   linkType: hard
 
@@ -5044,26 +5044,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"core-js-compat@npm:^3.36.1, core-js-compat@npm:^3.37.1":
-  version: 3.37.1
-  resolution: "core-js-compat@npm:3.37.1"
+"core-js-compat@npm:^3.37.1, core-js-compat@npm:^3.38.0":
+  version: 3.38.0
+  resolution: "core-js-compat@npm:3.38.0"
   dependencies:
-    browserslist: "npm:^4.23.0"
-  checksum: 10c0/4e2da9c900f2951a57947af7aeef4d16f2c75d7f7e966c0d0b62953f65225003ade5e84d3ae98847f65b24c109c606821d9dc925db8ca418fb761e7c81963c2a
+    browserslist: "npm:^4.23.3"
+  checksum: 10c0/9d653a448b8a491034358d2f052e63dda86f75fb65646e2d313a938212470ba1c2f5a83bf31cc583d6c87a9e8d7b0d49458447cab2ff36c4caa097ae381de336
   languageName: node
   linkType: hard
 
 "core-js-pure@npm:^3.30.2":
-  version: 3.37.1
-  resolution: "core-js-pure@npm:3.37.1"
-  checksum: 10c0/38200d08862b4ef2207af72a7525f7b9ac750f5e1d84ef27a3e314aefa69518179a9b732f51ebe35c3b38606d9fa4f686fcf6eff067615cc293a3b1c84041e74
+  version: 3.38.0
+  resolution: "core-js-pure@npm:3.38.0"
+  checksum: 10c0/331937ef8c29fd6dc2f87e14a125d7e959881abfced84670cdd289949c85dd992013f9a8f85e9a234b55f912d3638a5873499f672b473a483d2750b22fafe8ac
   languageName: node
   linkType: hard
 
 "core-js@npm:^3.31.1":
-  version: 3.37.1
-  resolution: "core-js@npm:3.37.1"
-  checksum: 10c0/440eb51a7a39128a320225fe349f870a3641b96c9ecd26470227db730ef8c161ea298eaea621db66ec0ff622a85299efb4e23afebf889c0a1748616102307675
+  version: 3.38.0
+  resolution: "core-js@npm:3.38.0"
+  checksum: 10c0/3218ae19bfe0c6560663012cbd3e7f3dc1b36d50fc71e8c365f3b119185e8a35ac4e8bb9698ae510b3c201ef93f40bdc29f9215716ccf31aca28f77969bb4ed0
   languageName: node
   linkType: hard
 
@@ -5743,13 +5743,13 @@ __metadata:
   linkType: hard
 
 "docusaurus-plugin-typedoc-api@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "docusaurus-plugin-typedoc-api@npm:4.2.0"
+  version: 4.2.1
+  resolution: "docusaurus-plugin-typedoc-api@npm:4.2.1"
   dependencies:
-    "@docusaurus/plugin-content-docs": "npm:^3.1.0"
-    "@docusaurus/types": "npm:^3.1.0"
-    "@docusaurus/utils": "npm:^3.1.0"
-    "@vscode/codicons": "npm:^0.0.35"
+    "@docusaurus/plugin-content-docs": "npm:^3.4.0"
+    "@docusaurus/types": "npm:^3.4.0"
+    "@docusaurus/utils": "npm:^3.4.0"
+    "@vscode/codicons": "npm:^0.0.36"
     marked: "npm:^9.1.6"
     marked-smartypants: "npm:^1.1.5"
     typedoc: "npm:^0.25.7"
@@ -5758,7 +5758,7 @@ __metadata:
     "@docusaurus/mdx-loader": ^3.0.0
     react: ">=18.0.0"
     typescript: ^5.0.0
-  checksum: 10c0/627cc69972e88fa3591eb3cfb03fa00efb787328ee4323867626904021dfba5441736616f763054cbaeb69ea53aaf9d87fc14641d3512619b48622f8f4e2da4e
+  checksum: 10c0/c3cf4f2df11c30c0cd5f1d57df2ce856c2146b3f648f48bd8be00018d583e62b163a8b84abaf2199d4a626d45b21ac21371e86b1a323cfec1eb020a053690790
   languageName: node
   linkType: hard
 
