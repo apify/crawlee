@@ -22,6 +22,8 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
      */
     private sweepTimeout?: NodeJS.Timeout;
 
+    public orderNo?: number | null;
+
     constructor(options: CreateStorageImplementationOptions) {
         this.filePath = resolve(options.storeDirectory, `${options.requestId}.json`);
     }
@@ -39,6 +41,8 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
             return await lockAndCallback(this.filePath, async () => {
                 const req = JSON.parse(await readFile(this.filePath, 'utf-8'));
                 this.data = req;
+
+                this.orderNo = req.orderNo;
 
                 return req;
             });
@@ -58,6 +62,8 @@ export class RequestQueueFileSystemEntry implements StorageImplementation<Intern
             }
 
             await lockAndWrite(this.filePath, data);
+
+            this.orderNo = data.orderNo;
         } finally {
             this.setOrRefreshSweepTimeout();
             this.fsQueue.shift();

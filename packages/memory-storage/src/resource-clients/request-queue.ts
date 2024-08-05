@@ -6,12 +6,13 @@ import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
 import { move } from 'fs-extra';
+import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs';
+import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory';
 
 import { BaseClient } from './common/base-client';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
-import type { StorageImplementation } from '../fs/common';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 import type { MemoryStorage } from '../index';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
@@ -60,7 +61,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     requestQueueDirectory: string;
     private readonly mutex = new AsyncQueue();
 
-    private readonly requests = new Map<string, StorageImplementation<InternalRequest>>();
+    private readonly requests = new Map<string, RequestQueueFileSystemEntry | RequestQueueMemoryEntry>();
     private readonly client: MemoryStorage;
 
     constructor(options: RequestQueueClientOptions) {
@@ -173,10 +174,19 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 break;
             }
 
-            const request = await storageEntry.get();
+            let { orderNo } = storageEntry;
+            let loaded: InternalRequest;
 
-            if (request.orderNo) {
-                items.push(request);
+            // Uncached entry
+            if (typeof orderNo === 'undefined') {
+                loaded = await storageEntry.get();
+
+                orderNo = loaded.orderNo;
+            }
+
+            // Have an order no -> fetch from fs/memory and return
+            if (orderNo) {
+                items.push(await storageEntry.get());
             }
         }
 
@@ -210,6 +220,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             for (const storageEntry of queue.requests.values()) {
                 if (items.length === limit) {
                     break;
+                }
+
+                // This is set to null when the request has been handled, so we don't need to re-fetch from fs
+                if (storageEntry.orderNo === null) {
+                    continue;
                 }
 
                 // Always fetch from fs, as this also locks and we do not want to end up in a state where another process locked the request but we have cached it as unlocked
