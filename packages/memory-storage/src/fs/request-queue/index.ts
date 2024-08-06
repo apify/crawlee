@@ -1,11 +1,7 @@
 import { RequestQueueFileSystemEntry } from './fs';
 import { RequestQueueMemoryEntry } from './memory';
-import type { InternalRequest } from '../../resource-clients/request-queue';
-import type { StorageImplementation } from '../common';
 
-export function createRequestQueueStorageImplementation(
-    options: CreateStorageImplementationOptions,
-): StorageImplementation<InternalRequest> {
+export function createRequestQueueStorageImplementation(options: CreateStorageImplementationOptions) {
     if (options.persistStorage) {
         return new RequestQueueFileSystemEntry(options);
     }
