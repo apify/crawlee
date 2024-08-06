@@ -48,13 +48,14 @@ export abstract class RequestProvider implements IStorage {
 
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
-    /** @internal */
-    inProgress = new Set<string>();
+
     protected recentlyHandledRequestsCache: LruCache<boolean>;
 
     protected queuePausedForMigration = false;
 
     protected lastActivity = new Date();
+
+    protected isFinishedCalledWhileHeadWasNotEmpty = 0;
 
     constructor(
         options: InternalRequestProviderOptions,
@@ -71,20 +72,13 @@ export abstract class RequestProvider implements IStorage {
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
-        this.log = log.child({ prefix: options.logPrefix });
+        this.log = log.child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
         const eventManager = config.getEventManager();
 
         eventManager.on(EventType.MIGRATING, async () => {
             this.queuePausedForMigration = true;
         });
-    }
-
-    /**
-     * @ignore
-     */
-    inProgressCount() {
-        return this.inProgress.size;
     }
 
     /**
@@ -166,11 +160,7 @@ export abstract class RequestProvider implements IStorage {
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
 
-        if (
-            !wasAlreadyPresent &&
-            !this.inProgress.has(requestId) &&
-            !this.recentlyHandledRequestsCache.get(requestId)
-        ) {
+        if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
 
             // Performance optimization: add request straight to head if possible
@@ -287,11 +277,7 @@ export abstract class RequestProvider implements IStorage {
                 this._cacheRequest(cacheKey, newRequest);
             }
 
-            if (
-                !wasAlreadyPresent &&
-                !this.inProgress.has(requestId) &&
-                !this.recentlyHandledRequestsCache.get(requestId)
-            ) {
+            if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
 
                 // Performance optimization: add request straight to head if possible
@@ -486,13 +472,6 @@ export abstract class RequestProvider implements IStorage {
             }),
         );
 
-        if (!this.inProgress.has(request.id)) {
-            this.log.debug(`Cannot mark request ${request.id} as handled, because it is not in progress!`, {
-                requestId: request.id,
-            });
-            return null;
-        }
-
         const handledAt = request.handledAt ?? new Date().toISOString();
         const queueOperationInfo = (await this.client.updateRequest({
             ...request,
@@ -501,12 +480,13 @@ export abstract class RequestProvider implements IStorage {
         request.handledAt = handledAt;
         queueOperationInfo.uniqueKey = request.uniqueKey;
 
-        this.inProgress.delete(request.id);
         this.recentlyHandledRequestsCache.add(request.id, true);
 
         if (!queueOperationInfo.wasAlreadyHandled) {
             this.assumedHandledCount++;
         }
+
+        this.queueHeadIds.remove(request.id);
 
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
@@ -543,13 +523,6 @@ export abstract class RequestProvider implements IStorage {
 
         const { forefront = false } = options;
 
-        if (!this.inProgress.has(request.id)) {
-            this.log.debug(`Cannot reclaim request ${request.id}, because it is not in progress!`, {
-                requestId: request.id,
-            });
-            return null;
-        }
-
         // TODO: If request hasn't been changed since the last getRequest(),
         //   we don't need to call updateRequest() and thus improve performance.
         const queueOperationInfo = (await this.client.updateRequest(request, {
@@ -582,19 +555,22 @@ export abstract class RequestProvider implements IStorage {
      */
     async isFinished(): Promise<boolean> {
         // TODO: once/if we figure out why sometimes request queues get stuck (if it's even request queues), remove this once and for all :)
-        if (Date.now() - +this.lastActivity > this.internalTimeoutMillis) {
-            const message = `The request queue seems to be stuck for ${
+        if (Date.now() - this.lastActivity.getTime() > this.internalTimeoutMillis) {
+            const maybeHead = await this.client.listHead({ limit: 1 });
+
+            const request = maybeHead.items[0] ? await this.client.getRequest(maybeHead.items[0].id) : null;
+
+            const message = `The request queue hasn't had activity for ${
                 this.internalTimeoutMillis / 1000
             }s, resetting internal state.`;
 
             this.log.warning(message, {
-                inProgress: [...this.inProgress],
                 queueHeadIdsPending: this.queueHeadIds.length(),
+                hasPendingOrLockedRequests: maybeHead.items.length > 0,
+                pendingRequestIsLocked: request?.lockExpiresAt,
             });
 
-            // We only need to reset these two variables, no need to reset all the other stats
             this.queueHeadIds.clear();
-            this.inProgress.clear();
         }
 
         if (this.queueHeadIds.length() > 0) {
@@ -605,29 +581,53 @@ export abstract class RequestProvider implements IStorage {
             return false;
         }
 
-        if (this.inProgressCount() > 0) {
-            this.log.debug('There are still requests in progress (or zombie)', {
-                inProgress: [...this.inProgress],
-            });
-
-            return false;
-        }
-
         const currentHead = await this.client.listHead({ limit: 2 });
 
         if (currentHead.items.length !== 0) {
-            this.log.debug(
-                'Queue head still returned requests that need to be processed (or that are locked by other clients)',
-            );
+            // Give users some more concrete info as to why their crawlers seem to be "hanging" doing nothing while we're waiting because the queue is technically
+            // not empty. We decided that a queue with elements in its head but that are also locked shouldn't return true in this function.
+            // If that ever changes, this function might need a rewrite
+            // The `% 25` was absolutely arbitrarily picked. It's just to not spam the logs too much. This is also a very specific path that most crawlers shouldn't hit
+            if (++this.isFinishedCalledWhileHeadWasNotEmpty % 25 === 0) {
+                const requests = await Promise.all(
+                    currentHead.items.map(async (item) => this.client.getRequest(item.id)),
+                );
+
+                this.log.info(
+                    `Queue head still returned requests that need to be processed (or that are locked by other clients)`,
+                    {
+                        requests: requests
+                            .map((r) => {
+                                if (!r) {
+                                    return null;
+                                }
+
+                                return {
+                                    id: r.id,
+                                    lockExpiresAt: r.lockExpiresAt,
+                                    lockedBy: r.lockByClient,
+                                };
+                            })
+                            .filter(Boolean),
+                        clientKey: this.clientKey,
+                    },
+                );
+            } else {
+                this.log.debug(
+                    'Queue head still returned requests that need to be processed (or that are locked by other clients)',
+                    {
+                        requestIds: currentHead.items.map((item) => item.id),
+                    },
+                );
+            }
         }
 
-        return currentHead.items.length === 0 && this.inProgressCount() === 0;
+        return currentHead.items.length === 0;
     }
 
     protected _reset() {
         this.lastActivity = new Date();
         this.queueHeadIds.clear();
-        this.inProgress.clear();
         this.recentlyHandledRequestsCache.clear();
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;

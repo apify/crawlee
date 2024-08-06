@@ -308,7 +308,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const start = Date.now();
 
-        const isLocked = (r: InternalRequest) => !r.orderNo || r.orderNo > start || r.orderNo < -start;
+        // If there is no `orderNo` -> request was marked as handled
+        const isLocked = (r: InternalRequest) => r.orderNo && (r.orderNo > start || r.orderNo < -start);
         if (!isLocked(internalRequest)) {
             throw new Error(`Request with ID ${id} is not locked in queue ${queue.name ?? queue.id}`);
         }
