@@ -69,7 +69,7 @@
         "fs-extra": "^11.0.0",
         "got-scraping": "^4.0.0",
         "json5": "^2.2.3",
-        "minimatch": "^9.0.0",
+        "minimatch": "^10.0.0",
         "ow": "^0.28.1",
         "stream-chain": "^2.2.5",
         "stream-json": "^1.7.4",
