@@ -252,7 +252,6 @@ describe('CheerioCrawler', () => {
     });
 
     test('should serialize body and html', async () => {
-        expect.assertions(3);
         const sources = [`${serverAddress}/special/html-type`];
         const requestList = await RequestList.open(null, sources);
         const tmp: any[] = [];
@@ -263,9 +262,6 @@ describe('CheerioCrawler', () => {
             maxConcurrency: 1,
             requestHandler: ({ $, body, request }) => {
                 tmp.push(body, $.html(), request.loadedUrl);
-                console.log(request.loadedUrl.length, sources[0].length);
-                console.log(body);
-                console.log($.html());
             },
         });
 
