@@ -2478,20 +2478,20 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 22.1.0
-  resolution: "@types/node@npm:22.1.0"
+  version: 22.2.0
+  resolution: "@types/node@npm:22.2.0"
   dependencies:
     undici-types: "npm:~6.13.0"
-  checksum: 10c0/553dafcb842b889c036d43b390d464e8ffcf3ca455ddd5b1a1ef98396381eafbeb0c112a15cc6bf9662b72bc25fc45efc4b6f604760e1e84c410f1b7936c488b
+  checksum: 10c0/c17900b34faecfec204f72970bd658d0c217aaf739c1bf7690c969465b6b26b77a8be1cd9ba735aadbd1dd20b5c3e4f406ec33528bf7c6eec90744886c5d5608
   languageName: node
   linkType: hard
 
 "@types/node@npm:^20.0.0":
-  version: 20.14.14
-  resolution: "@types/node@npm:20.14.14"
+  version: 20.14.15
+  resolution: "@types/node@npm:20.14.15"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/4fc8d368df2b6f5497698327b30db68d7d20e32221ce7d057fb15cbd5834685b2fde0440609e4cb2204e5d305b928f008faf41b950a425f3fd55b60cb1b997cf
+  checksum: 10c0/093713db52dc544f3931a3dec9d7d8ef661f323e57becd083a7918c778cef1eb6ec32d1017bf5ade06bb06dc5c7551f4f4d749a14e40868cce44d51e54acd8ed
   languageName: node
   linkType: hard
 
@@ -4772,9 +4772,9 @@ __metadata:
   linkType: hard
 
 "devtools-protocol@npm:*":
-  version: 0.0.1338866
-  resolution: "devtools-protocol@npm:0.0.1338866"
-  checksum: 10c0/09b8662ee9151444ebdcf6c543aebf1e50945c8e82f49511b7f49beb6165b24b923b146da5e904f2a317fc575f3800206bac72679bbd04f8073b2e3cfb524ee0
+  version: 0.0.1340018
+  resolution: "devtools-protocol@npm:0.0.1340018"
+  checksum: 10c0/b920159f49921166900fed3435e497bd17f0ec6cc9724a64248babb7e0dc1de14269c7be220a4f6eba402e692434f53fc544e528bccfdd55ed86209dbf55d1a6
   languageName: node
   linkType: hard
 
@@ -4949,9 +4949,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.5.4":
-  version: 1.5.5
-  resolution: "electron-to-chromium@npm:1.5.5"
-  checksum: 10c0/6e5e12f729a74a78d9a7386ea32039262cb8a2f4611ab346da1f162c270d0569194c72169042080a1017220835ed30ee2d77ca5ba13c1acaa5fa0d373fbc0ad5
+  version: 1.5.6
+  resolution: "electron-to-chromium@npm:1.5.6"
+  checksum: 10c0/1dfef4feaa9f4e5231b8b0697f1f55623eb2ffd263b50e6d4ff995a0927653997ba116640ae06786661f8d24c7b99fa6727c0796e9c60d748f473674d78ab31e
   languageName: node
   linkType: hard
 
@@ -7060,9 +7060,9 @@ __metadata:
   linkType: hard
 
 "ignore@npm:^5.0.4, ignore@npm:^5.2.0, ignore@npm:^5.2.4, ignore@npm:^5.3.1":
-  version: 5.3.1
-  resolution: "ignore@npm:5.3.1"
-  checksum: 10c0/703f7f45ffb2a27fb2c5a8db0c32e7dee66b33a225d28e8db4e1be6474795f606686a6e3bcc50e1aa12f2042db4c9d4a7d60af3250511de74620fbed052ea4cd
+  version: 5.3.2
+  resolution: "ignore@npm:5.3.2"
+  checksum: 10c0/f9f652c957983634ded1e7f02da3b559a0d4cc210fca3792cb67f1b153623c9c42efdc1c4121af171e295444459fc4a9201101fb041b1104a3c000bccb188337
   languageName: node
   linkType: hard
 
@@ -10167,12 +10167,12 @@ __metadata:
   linkType: hard
 
 "postcss-selector-parser@npm:^6.0.10":
-  version: 6.1.1
-  resolution: "postcss-selector-parser@npm:6.1.1"
+  version: 6.1.2
+  resolution: "postcss-selector-parser@npm:6.1.2"
   dependencies:
     cssesc: "npm:^3.0.0"
     util-deprecate: "npm:^1.0.2"
-  checksum: 10c0/5608765e033fee35d448e1f607ffbaa750eb86901824a8bc4a911ea8bc137cb82f29239330787427c5d3695afd90d8721e190f211dbbf733e25033d8b3100763
+  checksum: 10c0/523196a6bd8cf660bdf537ad95abd79e546d54180f9afb165a4ab3e651ac705d0f8b8ce6b3164fb9e3279ce482c5f751a69eb2d3a1e8eb0fd5e82294fb3ef13e
   languageName: node
   linkType: hard
 
@@ -11874,21 +11874,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.38":
-  version: 6.1.38
-  resolution: "tldts-core@npm:6.1.38"
-  checksum: 10c0/fead49cdcb055b0eff4f8fcc187111835c264c8233f47940b34b9e235eb3e3213763e0fe6d2af56becb4df796ff59e8826644f280de432fbd105f5ba55cf254a
+"tldts-core@npm:^6.1.39":
+  version: 6.1.39
+  resolution: "tldts-core@npm:6.1.39"
+  checksum: 10c0/404a5b3b1633d67455bb97b7ffb4da011d0652c27ddf0c8881e253b65def46c7a9aef8910ad0bbd6f5e55ce107a2ac09c516ebe218443f25014c57d7ae1c7d33
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.0.0":
-  version: 6.1.38
-  resolution: "tldts@npm:6.1.38"
+  version: 6.1.39
+  resolution: "tldts@npm:6.1.39"
   dependencies:
-    tldts-core: "npm:^6.1.38"
+    tldts-core: "npm:^6.1.39"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/5e6f3399d8ea768983e244d03dd43b1eb91c705691502bfc77407a3a0fc24ac320f7945753178880594beb15d384806887edd01108237ecd5cab90cbe1cda9ff
+  checksum: 10c0/b60e5d747883c366bf56f7b971b8b17f1adbe809f0cf3ac53bb6c2300507992818ebee1ad76799e4f07c020c170bcf58be592430797606fca3412e1aba4d7869
   languageName: node
   linkType: hard
 
@@ -12289,11 +12289,11 @@ __metadata:
   linkType: hard
 
 "uglify-js@npm:^3.1.4":
-  version: 3.19.1
-  resolution: "uglify-js@npm:3.19.1"
+  version: 3.19.2
+  resolution: "uglify-js@npm:3.19.2"
   bin:
     uglifyjs: bin/uglifyjs
-  checksum: 10c0/7609ab3f10d54de5ef014770f845c747266a969e9092d2284ca0ba18f10a4488208c1491bd8b52bd4c40cf6687b47a77c495f08e4a625babcdd57f58e34a3976
+  checksum: 10c0/51dbe1304a91cac5daa01f6a2d4ecd545fab7b7d0625e11590b923e95a6d2263b3481dcea974abfc0282b33d2c76f74f1196a992df07eae0847175bc39ea45bb
   languageName: node
   linkType: hard
 
