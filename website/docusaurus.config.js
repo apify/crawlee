@@ -163,7 +163,7 @@ module.exports = {
         },
         announcementBar: {
             id: `crawlee-for-python-webinar`,
-            content: `🎉️ <b>Learn about Crawlee for Python from its creators. Join us at 9 am EST on August 5.<a href="https://apify.com/resources/crawlee-for-python-webinar">Sign up now!</a></b> 🥳️`,
+            content: `🎉️ <b><a href="https://crawlee.dev/python/">Crawlee for Python is open to early adopters!</a></b> 🥳️`,
         },
         navbar: {
             hideOnScroll: true,
