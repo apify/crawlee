@@ -59,7 +59,7 @@
         "@crawlee/browser-pool": "3.11.1",
         "@crawlee/types": "3.11.1",
         "@crawlee/utils": "3.11.1",
-        "cheerio": "^1.0.0-rc.12",
+        "cheerio": "1.0.0-rc.12",
         "devtools-protocol": "*",
         "idcac-playwright": "^0.1.2",
         "jquery": "^3.6.0",

@@ -59,7 +59,7 @@
         "@crawlee/types": "3.11.1",
         "@crawlee/utils": "3.11.1",
         "@types/content-type": "^1.1.5",
-        "cheerio": "^1.0.0-rc.12",
+        "cheerio": "1.0.0-rc.12",
         "content-type": "^1.0.4",
         "got-scraping": "^4.0.0",
         "iconv-lite": "^0.6.3",
