@@ -254,6 +254,8 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         },
                     );
 
+                    let error: Error | null = null;
+
                     if (sitemapStream.response!.statusCode === 200) {
                         let contentType = sitemapStream.response!.headers['content-type'];
 
@@ -276,8 +278,6 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             }
                         }
 
-                        let error: Error | null = null;
-
                         items = pipeline(
                             streamWithType,
                             isGzipped ? createGunzip() : new PassThrough(),
@@ -288,10 +288,14 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                                 }
                             },
                         );
+                    } else {
+                        error = new Error(
+                            `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
+                        );
+                    }
 
-                        if (error !== null) {
-                            throw error;
-                        }
+                    if (error !== null) {
+                        throw error;
                     }
                     break;
                 } catch (e) {
