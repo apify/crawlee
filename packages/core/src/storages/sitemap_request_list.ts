@@ -1,13 +1,16 @@
 import { Transform } from 'node:stream';
 
 import defaultLog from '@apify/log';
-import { parseSitemap } from '@crawlee/utils';
+import { type ParseSitemapOptions, parseSitemap } from '@crawlee/utils';
 import ow from 'ow';
 
 import { KeyValueStore } from './key_value_store';
 import type { IRequestList } from './request_list';
 import { purgeDefaultStorages } from './utils';
 import { Request } from '../request';
+
+/** @internal */
+export const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
 
 export interface SitemapRequestListOptions {
     /**
@@ -37,6 +40,10 @@ export interface SitemapRequestListOptions {
      * @default 200
      */
     maxBufferSize?: number;
+    /**
+     * Advanced options for the underlying `parseSitemap` call.
+     */
+    parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
 }
 
 interface SitemapParsingProgress {
@@ -50,6 +57,7 @@ interface SitemapRequestListState {
     reclaimed: string[];
     sitemapParsingProgress: Record<keyof SitemapParsingProgress, any>;
     abortLoading: boolean;
+    closed: boolean;
     requestData: [string, Request][];
 }
 
@@ -118,6 +126,8 @@ export class SitemapRequestList implements IRequestList {
 
     private store?: KeyValueStore;
 
+    private closed: boolean = false;
+
     /**
      * Proxy URL to be used for sitemap loading.
      */
@@ -139,6 +149,7 @@ export class SitemapRequestList implements IRequestList {
                 signal: ow.optional.any(),
                 timeoutMillis: ow.optional.number,
                 maxBufferSize: ow.optional.number,
+                parseSitemapOptions: ow.optional.object,
             }),
         );
 
@@ -161,6 +172,10 @@ export class SitemapRequestList implements IRequestList {
      */
     private async pushNextUrl(url: string | null) {
         return new Promise<void>((resolve) => {
+            if (this.closed) {
+                return resolve();
+            }
+
             if (!this.urlQueueStream.push(url)) {
                 // This doesn't work with the 'drain' event (it's not emitted for some reason).
                 this.urlQueueStream.once('readdata', () => {
@@ -180,6 +195,10 @@ export class SitemapRequestList implements IRequestList {
      */
     private async readNextUrl(): Promise<string | null> {
         return new Promise((resolve) => {
+            if (this.closed) {
+                return resolve(null);
+            }
+
             const result = this.urlQueueStream.read();
 
             if (!result && !this.isSitemapFullyLoaded()) {
@@ -211,7 +230,9 @@ export class SitemapRequestList implements IRequestList {
      *
      * Resolves once all the sitemaps URLs have been fully loaded (sets `isSitemapFullyLoaded` to `true`).
      */
-    private async load(): Promise<void> {
+    private async load({
+        parseSitemapOptions,
+    }: { parseSitemapOptions?: SitemapRequestListOptions['parseSitemapOptions'] }): Promise<void> {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
                 this.sitemapParsingProgress.inProgressSitemapUrl ??
@@ -219,6 +240,7 @@ export class SitemapRequestList implements IRequestList {
 
             try {
                 for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
+                    ...parseSitemapOptions,
                     maxDepth: 0,
                     emitNestedSitemaps: true,
                 })) {
@@ -253,9 +275,12 @@ export class SitemapRequestList implements IRequestList {
      * Track the loading progress using the `isSitemapFullyLoaded` property.
      */
     static async open(options: SitemapRequestListOptions): Promise<SitemapRequestList> {
-        const requestList = new SitemapRequestList(options);
+        const requestList = new SitemapRequestList({
+            ...options,
+            persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
+        });
         await requestList.restoreState();
-        void requestList.load();
+        void requestList.load({ parseSitemapOptions: options.parseSitemapOptions });
 
         options?.signal?.addEventListener('abort', () => {
             requestList.abortLoading = true;
@@ -334,6 +359,7 @@ export class SitemapRequestList implements IRequestList {
             reclaimed: [...this.inProgress, ...this.reclaimed], // In-progress and reclaimed requests will be both retried if state is restored
             requestData: Array.from(this.requestData.entries()),
             abortLoading: this.abortLoading,
+            closed: this.closed,
         } satisfies SitemapRequestListState);
     }
 
@@ -365,6 +391,7 @@ export class SitemapRequestList implements IRequestList {
         }
 
         this.abortLoading = state.abortLoading;
+        this.closed = state.closed;
     }
 
     /**
@@ -392,7 +419,7 @@ export class SitemapRequestList implements IRequestList {
      * @inheritDoc
      */
     async *[Symbol.asyncIterator]() {
-        while ((!this.isSitemapFullyLoaded() && !this.abortLoading) || !(await this.isEmpty())) {
+        while (!(await this.isFinished())) {
             const request = await this.fetchNextRequest();
             if (!request) break;
 
@@ -407,6 +434,19 @@ export class SitemapRequestList implements IRequestList {
         this.ensureInProgressAndNotReclaimed(request.url);
         this.reclaimed.add(request.url);
         this.inProgress.delete(request.url);
+    }
+
+    /**
+     * Aborts the internal sitemap loading, stops the processing of the sitemap contents and drops all the pending URLs.
+     *
+     * Calling `fetchNextRequest()` after this method will always return `null`.
+     */
+    async teardown(): Promise<void> {
+        this.closed = true;
+        this.abortLoading = true;
+        await this.persistState();
+
+        this.urlQueueStream.emit('readdata'); // unblocks the potentially waiting `pushNextUrl` call
     }
 
     /**
