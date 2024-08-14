@@ -18,6 +18,41 @@ beforeAll(async () => {
 
     server = await startExpressAppPromise(app, 0);
     url = `http://localhost:${(server.address() as AddressInfo).port}`;
+    let throwError = true;
+
+    app.get('/sitemap-unreliable.xml', async (req, res) => {
+        if (throwError) {
+            throwError = !throwError;
+            res.status(500).end();
+            return;
+        }
+        throwError = !throwError;
+
+        res.setHeader('content-type', 'text/xml');
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc>http://not-exists.com/</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=12&amp;desc=vacation_hawaii</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=73&amp;desc=vacation_new_zealand</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=74&amp;desc=vacation_newfoundland</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=83&amp;desc=vacation_usa</loc>',
+                '</url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+        res.end();
+    });
 
     app.get('/sitemap.xml', async (req, res) => {
         res.setHeader('content-type', 'text/xml');
@@ -155,6 +190,32 @@ describe('SitemapRequestList', () => {
 
         const thirdRequest = await list.fetchNextRequest();
         expect(thirdRequest).not.toBe(null);
+    });
+
+    test('retry sitemap load on error', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.handledCount()).toBe(5);
+    });
+
+    test('teardown works', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+
+            if (list.handledCount() >= 2) {
+                await list.teardown();
+            }
+        }
+
+        expect(list.handledCount()).toBe(2);
+        expect(list.isFinished()).resolves.toBe(true);
+        expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
     test('draining the request list between sitemaps', async () => {
