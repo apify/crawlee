@@ -10,7 +10,7 @@ import { purgeDefaultStorages } from './utils';
 import { Request } from '../request';
 
 /** @internal */
-export const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
+const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
 
 export interface SitemapRequestListOptions {
     /**
