@@ -163,7 +163,7 @@ afterAll(async () => {
 // Storage emulator for persistence
 const emulator = new MemoryStorageEmulator();
 
-beforeAll(async () => {
+beforeEach(async () => {
     await emulator.init();
 });
 
