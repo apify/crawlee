@@ -214,7 +214,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
-        await this.mutex.wait();
+        await queue.mutex.wait();
 
         try {
             for (const storageEntry of queue.requests.values()) {
@@ -248,7 +248,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 items: items.map(({ json }) => this._jsonToRequest(json)!),
             };
         } finally {
-            this.mutex.shift();
+            queue.mutex.shift();
         }
     }
 
