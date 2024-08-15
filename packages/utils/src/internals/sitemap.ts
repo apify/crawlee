@@ -256,7 +256,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
                     let error: Error | null = null;
 
-                    if (sitemapStream.response!.statusCode === 200) {
+                    if (sitemapStream.response!.statusCode >= 200 && sitemapStream.response!.statusCode < 300) {
                         let contentType = sitemapStream.response!.headers['content-type'];
 
                         const streamWithType = await fileTypeStream(sitemapStream);
