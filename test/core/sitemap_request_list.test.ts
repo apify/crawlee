@@ -18,15 +18,14 @@ beforeAll(async () => {
 
     server = await startExpressAppPromise(app, 0);
     url = `http://localhost:${(server.address() as AddressInfo).port}`;
-    let throwError = true;
+    let attemptCount = 0;
 
     app.get('/sitemap-unreliable.xml', async (req, res) => {
-        if (throwError) {
-            throwError = !throwError;
+        attemptCount += 1;
+        if (attemptCount % 2 === 1) {
             res.status(500).end();
             return;
         }
-        throwError = !throwError;
 
         res.setHeader('content-type', 'text/xml');
         res.write(
@@ -108,6 +107,45 @@ beforeAll(async () => {
 
         await finished(Readable.from(stream()).pipe(res));
 
+        res.end();
+    });
+
+    app.get('/sitemap-unreliable-break-off.xml', async (req, res) => {
+        attemptCount += 1;
+        res.setHeader('content-type', 'text/xml');
+
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc>http://not-exists.com/</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=12&amp;desc=vacation_hawaii</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=73&amp;desc=vacation_new_zealand</loc>',
+            ].join('\n'),
+        );
+
+        if (attemptCount % 2 === 1) {
+            res.destroy();
+            return;
+        }
+
+        res.write(
+            [
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=74&amp;desc=vacation_newfoundland</loc>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/catalog?item=83&amp;desc=vacation_usa</loc>',
+                '</url>',
+                '</urlset>',
+            ].join('\n'),
+        );
         res.end();
     });
 
@@ -202,6 +240,28 @@ describe('SitemapRequestList', () => {
         expect(list.handledCount()).toBe(5);
     });
 
+    test('broken off sitemap load resurrects correctly and does not duplicate / lose requests', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`] });
+
+        const urls = new Set<string>();
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+            urls.add(request.url);
+        }
+
+        expect(list.handledCount()).toBe(5);
+        expect(urls).toEqual(
+            new Set([
+                'http://not-exists.com/',
+                'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+                'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+                'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+                'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+            ]),
+        );
+    });
+
     test('teardown works', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
@@ -253,7 +313,7 @@ describe('SitemapRequestList', () => {
         expect(list.handledCount()).toBe(7);
     });
 
-    test('for..await syntax works with requestIterator', async () => {
+    test('for..await syntax works with SitemapRequestList', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
         for await (const request of list) {

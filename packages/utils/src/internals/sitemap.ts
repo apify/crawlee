@@ -234,9 +234,9 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         if (source.type === 'url') {
             const sitemapUrl = new URL(source.url);
             visitedSitemapUrls.add(sitemapUrl.toString());
-            let retriesLeft = sitemapRetries;
+            let retriesLeft = sitemapRetries + 1;
 
-            while (--retriesLeft > 0) {
+            while (retriesLeft-- > 0) {
                 try {
                     const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>(
                         (resolve, reject) => {
