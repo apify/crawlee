@@ -5,6 +5,8 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import log from '@apify/log';
+// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types
+import type { Delays } from 'got-scraping';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
@@ -166,15 +168,23 @@ class SitemapXmlParser extends Transform {
     }
 }
 
-interface ParseSitemapOptions {
+export interface ParseSitemapOptions {
     /**
-     * If set to `true`, elements referring to other sitemaps will be emitted as special objects with a `bouba` property.
+     * If set to `true`, elements referring to other sitemaps will be emitted as special objects with `originSitemapUrl` set to `null`.
      */
     emitNestedSitemaps?: true | false;
     /**
      * Maximum depth of nested sitemaps to follow.
      */
     maxDepth?: number;
+    /**
+     * Number of retries for fetching sitemaps. The counter resets for each nested sitemap.
+     */
+    sitemapRetries?: number;
+    /**
+     * Network timeouts for sitemap fetching. See [Got documentation](https://github.com/sindresorhus/got/blob/main/documentation/6-timeout.md) for more details.
+     */
+    networkTimeouts?: Delays;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -184,6 +194,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 ): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl> {
     const { gotScraping } = await import('got-scraping');
     const { fileTypeStream } = await import('file-type');
+    const { emitNestedSitemaps = false, maxDepth = Infinity, sitemapRetries = 3, networkTimeouts } = options ?? {};
 
     const sources = [...initialSources];
     const visitedSitemapUrls = new Set<string>();
@@ -211,9 +222,9 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     while (sources.length > 0) {
         const source = sources.shift()!;
 
-        if ((source?.depth ?? 0) > (options?.maxDepth ?? Infinity)) {
+        if ((source?.depth ?? 0) > maxDepth) {
             log.debug(
-                `Skipping sitemap ${source.type === 'url' ? source.url : ''} because it reached max depth ${options!.maxDepth!}.`,
+                `Skipping sitemap ${source.type === 'url' ? source.url : ''} because it reached max depth ${maxDepth}.`,
             );
             continue;
         }
@@ -223,49 +234,75 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         if (source.type === 'url') {
             const sitemapUrl = new URL(source.url);
             visitedSitemapUrls.add(sitemapUrl.toString());
+            let retriesLeft = sitemapRetries + 1;
 
-            try {
-                const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>((resolve, reject) => {
-                    const request = gotScraping.stream({ url: sitemapUrl, proxyUrl, method: 'GET' });
-                    request.on('response', () => resolve(request));
-                    request.on('error', reject);
-                });
-
-                if (sitemapStream.response!.statusCode === 200) {
-                    let contentType = sitemapStream.response!.headers['content-type'];
-
-                    const streamWithType = await fileTypeStream(sitemapStream);
-                    if (streamWithType.fileType !== undefined) {
-                        contentType = streamWithType.fileType.mime;
-                    }
-
-                    let isGzipped = false;
-
-                    if (
-                        contentType !== undefined
-                            ? contentType === 'application/gzip'
-                            : sitemapUrl.pathname.endsWith('.gz')
-                    ) {
-                        isGzipped = true;
-
-                        if (sitemapUrl.pathname.endsWith('.gz')) {
-                            sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
-                        }
-                    }
-
-                    items = pipeline(
-                        streamWithType,
-                        isGzipped ? createGunzip() : new PassThrough(),
-                        createParser(contentType, sitemapUrl),
-                        (error) => {
-                            if (error !== undefined) {
-                                log.warning(`Malformed sitemap content: ${sitemapUrl}, ${error}`);
-                            }
+            while (retriesLeft-- > 0) {
+                try {
+                    const sitemapStream = await new Promise<ReturnType<typeof gotScraping.stream>>(
+                        (resolve, reject) => {
+                            const request = gotScraping.stream({
+                                url: sitemapUrl,
+                                proxyUrl,
+                                method: 'GET',
+                                timeout: networkTimeouts,
+                                headers: {
+                                    'accept': 'text/plain, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
+                                },
+                            });
+                            request.on('response', () => resolve(request));
+                            request.on('error', reject);
                         },
                     );
+
+                    let error: Error | null = null;
+
+                    if (sitemapStream.response!.statusCode >= 200 && sitemapStream.response!.statusCode < 300) {
+                        let contentType = sitemapStream.response!.headers['content-type'];
+
+                        const streamWithType = await fileTypeStream(sitemapStream);
+                        if (streamWithType.fileType !== undefined) {
+                            contentType = streamWithType.fileType.mime;
+                        }
+
+                        let isGzipped = false;
+
+                        if (
+                            contentType !== undefined
+                                ? contentType === 'application/gzip'
+                                : sitemapUrl.pathname.endsWith('.gz')
+                        ) {
+                            isGzipped = true;
+
+                            if (sitemapUrl.pathname.endsWith('.gz')) {
+                                sitemapUrl.pathname = sitemapUrl.pathname.substring(0, sitemapUrl.pathname.length - 3);
+                            }
+                        }
+
+                        items = pipeline(
+                            streamWithType,
+                            isGzipped ? createGunzip() : new PassThrough(),
+                            createParser(contentType, sitemapUrl),
+                            (e) => {
+                                if (e !== undefined) {
+                                    error = e;
+                                }
+                            },
+                        );
+                    } else {
+                        error = new Error(
+                            `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapStream.response!.statusCode}`,
+                        );
+                    }
+
+                    if (error !== null) {
+                        throw error;
+                    }
+                    break;
+                } catch (e) {
+                    log.warning(
+                        `Malformed sitemap content: ${sitemapUrl}, ${retriesLeft === 0 ? 'no retries left.' : 'retrying...'} (${e})`,
+                    );
                 }
-            } catch (e) {
-                log.warning(`Malformed sitemap content: ${sitemapUrl}, ${e}`);
             }
         } else if (source.type === 'raw') {
             items = pipeline(Readable.from([source.content]), createParser('text/xml'), (error) => {
@@ -282,7 +319,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                 sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
-                if (options?.emitNestedSitemaps) {
+                if (emitNestedSitemaps) {
                     // @ts-ignore
                     yield { loc: item.url, originSitemapUrl: null };
                 }
@@ -342,10 +379,15 @@ export class Sitemap {
      * @param urls sitemap URL(s)
      * @param proxyUrl URL of a proxy to be used for fetching sitemap contents
      */
-    static async load(urls: string | string[], proxyUrl?: string): Promise<Sitemap> {
+    static async load(
+        urls: string | string[],
+        proxyUrl?: string,
+        parseSitemapOptions?: ParseSitemapOptions,
+    ): Promise<Sitemap> {
         return await this.parse(
             (Array.isArray(urls) ? urls : [urls]).map((url) => ({ type: 'url', url })),
             proxyUrl,
+            parseSitemapOptions,
         );
     }
 
@@ -358,11 +400,15 @@ export class Sitemap {
         return await this.parse([{ type: 'raw', content }], proxyUrl);
     }
 
-    protected static async parse(sources: SitemapSource[], proxyUrl?: string): Promise<Sitemap> {
+    protected static async parse(
+        sources: SitemapSource[],
+        proxyUrl?: string,
+        parseSitemapOptions?: ParseSitemapOptions,
+    ): Promise<Sitemap> {
         const urls: string[] = [];
 
         try {
-            for await (const item of parseSitemap(sources, proxyUrl)) {
+            for await (const item of parseSitemap(sources, proxyUrl, parseSitemapOptions)) {
                 urls.push(item.loc);
             }
         } catch (e) {
