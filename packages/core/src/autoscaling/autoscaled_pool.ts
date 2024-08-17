@@ -348,7 +348,7 @@ export class AutoscaledPool {
     }
 
     /**
-     * Gets the the number of parallel tasks currently running in the pool.
+     * Gets the number of parallel tasks currently running in the pool.
      */
     get currentConcurrency(): number {
         return this._currentConcurrency;
