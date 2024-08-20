@@ -318,7 +318,7 @@ Downsides include:
 
 This is a good framework for quickly building a web scraper based on browser automation. It lacks flexibility and support for HTTP clients, which is crutias for users like me.
 
-### [Crawlee-python](https://crawlee.dev/python/)
+### [Crawlee for Python](https://www.crawlee.dev/python/)
 
 A new framework for web scraping in the Python ecosystem. The initial commit was made on Jan 10, 2024, with a release in the media space on July 5, 2024.
 
