@@ -89,7 +89,7 @@ pip install httpx[brotli]
 
 By the way, adding the `brotli` dependency was my first contribution to [`crawlee-python`](https://github.com/apify/crawlee-python). They use `httpx` as the base HTTP client.
 
-You may have also noticed that a new supported data compression format [`zstd`](https://github.com/facebook/zstd) appeared some time ago I haven't seen any backends that use it yet, but `httpx` will support decompression in versions above 0.28.0. I already use it to compress server response dumps in my projects; it shows incredible efficiency in asynchronous solutions with [`aiofiles`](https://github.com/Tinche/aiofiles).
+You may have also noticed that a new supported data compression format [`zstd`](https://github.com/facebook/zstd) appeared some time ago. I haven't seen any backends that use it yet, but `httpx` will support decompression in versions above 0.28.0. I already use it to compress server response dumps in my projects; it shows incredible efficiency in asynchronous solutions with [`aiofiles`](https://github.com/Tinche/aiofiles).
 
 The most common solution to this situation that I've seen is for developers to simply stop using the `Accept-Encoding` header, thus getting an uncompressed response from the server. Why is that bad? The [main page of Wayfair](https://www.wayfair.com/) takes about 1 megabyte uncompressed and about 0.165 megabytes compressed.
 
