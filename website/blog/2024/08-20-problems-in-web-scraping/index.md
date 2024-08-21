@@ -89,7 +89,7 @@ pip install httpx[brotli]
 
 By the way, adding the `brotli` dependency was my first contribution to [`crawlee-python`](https://github.com/apify/crawlee-python). They use `httpx` as the base HTTP client.
 
-You may have also noticed that, a new supported data compression format [`zstd`](https://github.com/facebook/zstd) appeared some time ago I haven't seen any backends that use it yet, but `httpx` will support decompression in versions above 0.28.0. I already use it to compress server response dumps in my projects; it shows incredible efficiency in asynchronous solutions with [`aiofiles`](https://github.com/Tinche/aiofiles).
+You may have also noticed that a new supported data compression format [`zstd`](https://github.com/facebook/zstd) appeared some time ago I haven't seen any backends that use it yet, but `httpx` will support decompression in versions above 0.28.0. I already use it to compress server response dumps in my projects; it shows incredible efficiency in asynchronous solutions with [`aiofiles`](https://github.com/Tinche/aiofiles).
 
 The most common solution to this situation that I've seen is for developers to simply stop using the `Accept-Encoding` header, thus getting an uncompressed response from the server. Why is that bad? The [main page of Wayfair](https://www.wayfair.com/) takes about 1 megabyte uncompressed and about 0.165 megabytes compressed.
 
@@ -328,7 +328,13 @@ If you like the blog so far, please consider [giving Crawlee a star on GitHub](h
 
 Developed by [Apify](https://apify.com/), it is a Python adaptation of their famous JS framework [`crawlee`](https://github.com/apify/crawlee), first released on Jul 9, 2019.
 
-As this is a completely new solution on the market, it is now in an active design and development stage. The community is also actively involved in its development. So,we can see that the use of [curl_cffi](https://github.com/apify/crawlee-python/issues/292) is already being discussed. The possibility of creating their own Rust-based client was [previously discussed](https://github.com/apify/crawlee-python/issues/80). I hope the company doesn't abandon the idea, as I personally would like to see an HTTP client for Python developed and maintained by a major company. And Rust shows itself very well as a library language for Python. Let's remember at least [`Ruff`](https://docs.astral.sh/ruff/) and [`Pydantic`](https://docs.pydantic.dev/latest/) v2.
+As this is a completely new solution on the market, it is now in an active design and development stage. The community is also actively involved in its development. So,we can see that the use of [curl_cffi](https://github.com/apify/crawlee-python/issues/292) is already being discussed. The possibility of creating their own Rust-based client was [previously discussed](https://github.com/apify/crawlee-python/issues/80). I hope the company doesn't abandon the idea.
+
+:::note Crawlee team
+"Yeah, for sure we will keep improving Crawlee for Python for years to come."
+:::
+
+As I personally would like to see an HTTP client for Python developed and maintained by a major company. And Rust shows itself very well as a library language for Python. Let's remember at least [`Ruff`](https://docs.astral.sh/ruff/) and [`Pydantic`](https://docs.pydantic.dev/latest/) v2.
 
 Advantages:
 
