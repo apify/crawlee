@@ -2,20 +2,15 @@ import { Transform } from 'node:stream';
 
 import defaultLog from '@apify/log';
 import { type ParseSitemapOptions, parseSitemap } from '@crawlee/utils';
+import { minimatch } from 'minimatch';
 import ow from 'ow';
 
 import { KeyValueStore } from './key_value_store';
 import type { IRequestList } from './request_list';
 import { purgeDefaultStorages } from './utils';
+import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
+import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
 import { Request } from '../request';
-import {
-    GlobInput,
-    RegExpInput,
-    UrlPatternObject,
-    constructGlobObjectsFromGlobs,
-    constructRegExpObjectsFromRegExps,
-} from '../enqueue_links';
-import { minimatch } from 'minimatch';
 
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
