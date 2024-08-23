@@ -52,8 +52,8 @@ interface UrlConstraints {
      *
      * The plain objects must include at least the `regexp` property, which holds the regular expression.
      *
-     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the function
-     * enqueues the links with the same subdomain.
+     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the `SitemapRequestList`
+     * includes all the URLs from the sitemap.
      */
     regexps?: readonly RegExpInput[];
 }
