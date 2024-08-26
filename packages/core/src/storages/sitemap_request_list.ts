@@ -2,17 +2,58 @@ import { Transform } from 'node:stream';
 
 import defaultLog from '@apify/log';
 import { type ParseSitemapOptions, parseSitemap } from '@crawlee/utils';
+import { minimatch } from 'minimatch';
 import ow from 'ow';
 
 import { KeyValueStore } from './key_value_store';
 import type { IRequestList } from './request_list';
 import { purgeDefaultStorages } from './utils';
+import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
+import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
 import { Request } from '../request';
 
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LIST_STATE';
 
-export interface SitemapRequestListOptions {
+interface UrlConstraints {
+    /**
+     * An array of glob pattern strings or plain objects
+     * containing glob pattern strings matching the URLs to be enqueued.
+     *
+     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
+     *
+     * The matching is always case-insensitive.
+     * If you need case-sensitive matching, use `regexps` property directly.
+     *
+     * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the `SitemapRequestList`
+     * includes all the URLs from the sitemap.
+     */
+    globs?: readonly GlobInput[];
+
+    /**
+     * An array of glob pattern strings, regexp patterns or plain objects
+     * containing patterns matching URLs that will **never** be included.
+     *
+     * The plain objects must include either the `glob` property or the `regexp` property.
+     *
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, provide a regexp.
+     */
+    exclude?: readonly (GlobInput | RegExp)[];
+
+    /**
+     * An array of regular expressions or plain objects
+     * containing regular expressions matching the URLs to be enqueued.
+     *
+     * The plain objects must include at least the `regexp` property, which holds the regular expression.
+     *
+     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the `SitemapRequestList`
+     * includes all the URLs from the sitemap.
+     */
+    regexps?: readonly RegExpInput[];
+}
+
+export interface SitemapRequestListOptions extends UrlConstraints {
     /**
      * List of sitemap URLs to parse.
      */
@@ -138,6 +179,9 @@ export class SitemapRequestList implements IRequestList {
      */
     private log = defaultLog.child({ prefix: 'SitemapRequestList' });
 
+    private urlExcludePatternObjects: UrlPatternObject[] = [];
+    private urlPatternObjects: UrlPatternObject[] = [];
+
     /** @internal */
     private constructor(options: SitemapRequestListOptions) {
         ow(
@@ -150,8 +194,33 @@ export class SitemapRequestList implements IRequestList {
                 timeoutMillis: ow.optional.number,
                 maxBufferSize: ow.optional.number,
                 parseSitemapOptions: ow.optional.object,
+                globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
+                exclude: ow.optional.array.ofType(
+                    ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
+                ),
+                regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
             }),
         );
+
+        const { globs, exclude, regexps } = options;
+
+        if (exclude?.length) {
+            for (const excl of exclude) {
+                if (typeof excl === 'string' || 'glob' in excl) {
+                    this.urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
+                } else if (excl instanceof RegExp || 'regexp' in excl) {
+                    this.urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
+                }
+            }
+        }
+
+        if (globs?.length) {
+            this.urlPatternObjects.push(...constructGlobObjectsFromGlobs(globs));
+        }
+
+        if (regexps?.length) {
+            this.urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
+        }
 
         this.persistStateKey = options.persistStateKey;
         this.proxyUrl = options.proxyUrl;
@@ -166,13 +235,41 @@ export class SitemapRequestList implements IRequestList {
     }
 
     /**
+     * Returns a function that checks whether the provided pattern matches the closure URL.
+     * @param url URL to be checked.
+     * @returns A matcher function that checks whether the pattern matches the closure URL.
+     */
+    private matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
+        return (patternObject) => {
+            const { regexp, glob } = patternObject;
+
+            const matchesRegex = (regexp && url.match(regexp)) || false;
+            const matchesGlob = (glob && minimatch(url, glob, { nocase: true })) || false;
+
+            return Boolean(matchesRegex || matchesGlob);
+        };
+    }
+
+    /**
+     * Checks whether the URL matches the `globs` / `regexps` / `exclude` provided in the `options`.
+     * @param url URL to be checked.
+     * @returns `true` if the URL matches the patterns, `false` otherwise.
+     */
+    private isUrlMatchingPatterns(url: string): boolean {
+        return (
+            !this.urlExcludePatternObjects.some(this.matchesUrl(url)) &&
+            (this.urlPatternObjects.length === 0 || this.urlPatternObjects.some(this.matchesUrl(url)))
+        );
+    }
+
+    /**
      * Adds a URL to the queue of parsed URLs.
      *
      * Blocks if the stream is full until it is drained.
      */
     private async pushNextUrl(url: string | null) {
         return new Promise<void>((resolve) => {
-            if (this.closed) {
+            if (this.closed || (url && !this.isUrlMatchingPatterns(url))) {
                 return resolve();
             }
 

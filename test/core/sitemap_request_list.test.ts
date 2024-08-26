@@ -278,6 +278,45 @@ describe('SitemapRequestList', () => {
         expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
+    test('globs filtering works', async () => {
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap.xml`],
+            globs: ['http://not-exists.com/catalog**'],
+        });
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.handledCount()).toBe(4);
+    });
+
+    test('regexps filtering works', async () => {
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap.xml`],
+            regexps: [/desc=vacation_new.+/],
+        });
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.handledCount()).toBe(2);
+    });
+
+    test('exclude filtering works', async () => {
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap.xml`],
+            exclude: [/desc=vacation_new/],
+        });
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+        }
+
+        expect(list.handledCount()).toBe(3);
+    });
+
     test('draining the request list between sitemaps', async () => {
         const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
 
