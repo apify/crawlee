@@ -601,7 +601,7 @@ __metadata:
     json5: "npm:^2.2.3"
     minimatch: "npm:^9.0.0"
     ow: "npm:^0.28.1"
-    stream-chain: "npm:^2.2.5"
+    stream-chain: "npm:^3.0.0"
     stream-json: "npm:^1.7.4"
     tldts: "npm:^6.0.0"
     tough-cookie: "npm:^4.0.0"
@@ -11404,6 +11404,13 @@ __metadata:
   version: 2.2.5
   resolution: "stream-chain@npm:2.2.5"
   checksum: 10c0/c512f50190d7c92d688fa64e7af540c51b661f9c2b775fc72bca38ea9bca515c64c22c2197b1be463741daacbaaa2dde8a8ea24ebda46f08391224f15249121a
+  languageName: node
+  linkType: hard
+
+"stream-chain@npm:^3.0.0":
+  version: 3.0.1
+  resolution: "stream-chain@npm:3.0.1"
+  checksum: 10c0/b50c2f5bc27edda2c836ff106f4693dc76b8511309748afc18c552b1ca0e68e3061ffdc001e88647a38944e31573196e040315e9792306b9782b869d42b05806
   languageName: node
   linkType: hard
 

@@ -71,7 +71,7 @@
         "json5": "^2.2.3",
         "minimatch": "^9.0.0",
         "ow": "^0.28.1",
-        "stream-chain": "^2.2.5",
+        "stream-chain": "^3.0.0",
         "stream-json": "^1.7.4",
         "tldts": "^6.0.0",
         "tough-cookie": "^4.0.0",
