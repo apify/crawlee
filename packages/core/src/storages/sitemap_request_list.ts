@@ -234,17 +234,31 @@ export class SitemapRequestList implements IRequestList {
         this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
     }
 
+    /**
+     * Returns a function that checks whether the provided pattern matches the closure URL.
+     * @param url URL to be checked.
+     * @returns A matcher function that checks whether the pattern matches the closure URL.
+     */
+    private matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
+        return (patternObject) => {
+            const { regexp, glob } = patternObject;
+
+            const matchesRegex = (regexp && url.match(regexp)) || false;
+            const matchesGlob = (glob && minimatch(url, glob, { nocase: true })) || false;
+
+            return Boolean(matchesRegex || matchesGlob);
+        };
+    }
+
+    /**
+     * Checks whether the URL matches the `globs` / `regexps` / `exclude` provided in the `options`.
+     * @param url URL to be checked.
+     * @returns `true` if the URL matches the patterns, `false` otherwise.
+     */
     private isUrlMatchingPatterns(url: string): boolean {
         return (
-            !this.urlExcludePatternObjects.some((patternObject) => {
-                const { regexp, glob } = patternObject;
-                return (regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }));
-            }) &&
-            (this.urlPatternObjects.length === 0 ||
-                this.urlPatternObjects.some((patternObject) => {
-                    const { regexp, glob } = patternObject;
-                    return (regexp && url.match(regexp)) || (glob && minimatch(url, glob, { nocase: true }));
-                }))
+            !this.urlExcludePatternObjects.some(this.matchesUrl(url)) &&
+            (this.urlPatternObjects.length === 0 || this.urlPatternObjects.some(this.matchesUrl(url)))
         );
     }
 
