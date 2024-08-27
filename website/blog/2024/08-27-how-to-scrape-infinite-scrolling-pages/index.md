@@ -74,7 +74,7 @@ The final code will look like this:
 ```python
 import asyncio
 
-from crawlee.playwright_crawler.playwright_crawler import PlaywrightCrawler
+from crawlee.playwright_crawler import PlaywrightCrawler
 
 from .routes import router
 
@@ -118,7 +118,7 @@ We can handle the cookie dialog by going to Chrome dev tools and looking at the 
 Now, let’s remove the `context.push_data` call that was left there from the project template and add the code to accept the dialog in routes.py. The updated code will look like this:
 
 ```python
-from crawlee.basic_crawler import Router
+from crawlee.router import Router
 from crawlee.playwright_crawler import PlaywrightCrawlingContext
 
 router = Router[PlaywrightCrawlingContext]()
@@ -202,6 +202,8 @@ We'll need to check for cookies on every page, as each one may be opened with a 
 To solve this problem, we'll try to deal with the dialog in a parallel task that will run in the background. A context manager is a nice abstraction that will allow us to reuse this logic in all the router handlers. So, let's build a context manager:
 
 ```python
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
 @asynccontextmanager
 async def accept_cookies(page: Page):
     task = asyncio.create_task(page.get_by_test_id('dialog-accept-button').click())
