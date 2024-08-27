@@ -67,7 +67,7 @@ After all the necessary installations, we'll start looking into the files and co
 
 When you look into the folder, you'll see many files, but for now, let’s focus on `main.py` and `routes.py`.
 
-In `main.py`, let's change the target location to the Nike website. Then, just to see how scraping will happen, we'll add `headless = False` to the `PlaywrightCrawler` parameters. Let's also increase the maximum requests per crawl option to 100 to see the power of parallel scraping in Crawlee for Python.
+In `__main__.py`, let's change the target location to the Nike website. Then, just to see how scraping will happen, we'll add `headless = False` to the `PlaywrightCrawler` parameters. Let's also increase the maximum requests per crawl option to 100 to see the power of parallel scraping in Crawlee for Python.
 
 The final code will look like this:
 
