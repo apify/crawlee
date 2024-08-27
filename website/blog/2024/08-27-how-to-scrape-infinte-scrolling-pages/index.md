@@ -31,6 +31,13 @@ Let’s start the tutorial by installing Crawlee for Python with this command:
 ```bash
 pipx run crawlee create nike-crawler
 ```
+
+:::note
+
+Before going ahead if you like reading this blog, we would be really happy if you gave [Crawlee for Python a star on GitHub!](https://github.com/apify/crawlee-python/)
+
+:::
+
 We will scrape using headless browsers. Select `PlaywrightCrawler` in the terminal when Crawlee for Python asks for it.
 
 After installation, Crawlee for Python will create boilerplate code for you. Redirect into the project folder and then run this command for all the dependencies installation:
