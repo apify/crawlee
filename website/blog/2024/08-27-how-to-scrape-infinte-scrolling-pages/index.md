@@ -110,12 +110,12 @@ Now, if you run the crawler using the command:
 
 ```bash
 poetry run python -m nike-crawler
-````
-As the cookie dialog is blocking us from crawling more than one shoe, let’s get it out of our way through the `context_manager`.
+```
+As the cookie dialog is blocking us from crawling more than one page's worth of shoes, let’s get it out of our way.
 
-We can handle the cookie dialog by going to Chrome dev tools and looking at the `test_id` to accept cookies, which is the `dialog-accept-button`.
+We can handle the cookie dialog by going to Chrome dev tools and looking at the `test_id` of the "accept cookies" button, which is `dialog-accept-button`.
 
-Now, let’s remove the `context.push_data` call and add the code to accept the dialog in routes.py. The updated code will look like this:
+Now, let’s remove the `context.push_data` call that was left there from the project template and add the code to accept the dialog in routes.py. The updated code will look like this:
 
 ```python
 from crawlee.basic_crawler import Router
@@ -161,8 +161,8 @@ We'll extract each shoe's URL, title, price, and description. Again, let's go to
 ```python
 
 @router.handler('listing')
-async def listing_handler(context: PlaywrightCrawlingContext) -> None:	async def listing_handler(context: PlaywrightCrawlingContext) -> None:
-    """Handler for shoe listings."""	    """Handler for shoe listings."""
+async def listing_handler(context: PlaywrightCrawlingContext) -> None:
+    """Handler for shoe listings."""	    
 
     await context.enqueue_links(selector='a.product-card__link-overlay', label='detail')
 
@@ -197,9 +197,9 @@ async def detail_handler(context: PlaywrightCrawlingContext) -> None:
 
 Since we're dealing with multiple browser pages with multiple links and we want to do infinite scrolling, we may encounter an accept cookie dialog on each page. This will prevent loading more shoes via infinite scroll.
 
-We'll need to check for cookies on every page, as each one may be opened with a fresh session (no stored cookies) and we'll get the accept cookie dialog even though we already accepted it.
+We'll need to check for cookies on every page, as each one may be opened with a fresh session (no stored cookies) and we'll get the accept cookie dialog even though we already accepted it in another browser window. However, if we don't get the dialog, we want the request handler to work as usual.
 
-The context manager will solve this problem. So, let's build a context manager:
+To solve this problem, we'll try to deal with the dialog in a parallel task that will run in the background. A context manager is a nice abstraction that will allow us to reuse this logic in all the router handlers. So, let's build a context manager:
 
 ```python
 @asynccontextmanager
@@ -257,4 +257,3 @@ If you have any doubts regarding this tutorial or using Crawlee for Python, feel
 ---
 
 This tutorial is taken from the webinar held on August 5th where Jan Buchar, Senior Python Engineer at Apify, gave a live demo about this use case. Watch the whole webinar [here](https://www.youtube.com/live/ip8Ii0eLfRY?si=XoiwdRM6eldKgw-Z).
-
