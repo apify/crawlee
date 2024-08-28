@@ -1,6 +1,6 @@
 import type { CheerioRoot } from '@crawlee/utils';
 import { htmlToText } from '@crawlee/utils';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 import * as htmlToTextData from '../shared/data/html_to_text_test_data';
 
