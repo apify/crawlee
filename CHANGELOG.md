@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.11.2](https://github.com/apify/crawlee/compare/v3.11.1...v3.11.2) (2024-08-28)
+
+
+### Bug Fixes
+
+* **RequestQueueV2:** remove `inProgress` cache, rely solely on locked states ([#2601](https://github.com/apify/crawlee/issues/2601)) ([57fcb08](https://github.com/apify/crawlee/commit/57fcb0804a9f1268039d1e2b246c515ceca7e405))
+* use namespace imports for cheerio to be compatible with v1 ([#2641](https://github.com/apify/crawlee/issues/2641)) ([f48296f](https://github.com/apify/crawlee/commit/f48296f6cba7b81fe102d4b874505c27f93d9fc1))
+* Use the correct mutex in memory storage RequestQueueClient ([#2623](https://github.com/apify/crawlee/issues/2623)) ([2fa8a29](https://github.com/apify/crawlee/commit/2fa8a29b815689f041f3d06cc0563e77e02e05f4))
+
+
+### Features
+
+* `globs` & `regexps` for `SitemapRequestList` ([#2631](https://github.com/apify/crawlee/issues/2631)) ([b5fd3a9](https://github.com/apify/crawlee/commit/b5fd3a9e3f6b189b86c0fb89a37b66c08ff3fe5d))
+* resilient sitemap loading ([#2619](https://github.com/apify/crawlee/issues/2619)) ([1dd7660](https://github.com/apify/crawlee/commit/1dd76601e03de4541964116b3a77376e233ea22b))
+
+
+
+
+
 ## [3.11.1](https://github.com/apify/crawlee/compare/v3.11.0...v3.11.1) (2024-07-24)
 
 
