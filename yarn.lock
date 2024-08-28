@@ -755,7 +755,7 @@ __metadata:
     "@types/lodash.isequal": "npm:^4.5.8"
     "@types/lodash.merge": "npm:^4.6.7"
     "@types/mime-types": "npm:^2.1.1"
-    "@types/node": "npm:^20.0.0"
+    "@types/node": "npm:^22.5.1"
     "@types/proper-lockfile": "npm:^4.1.2"
     "@types/ps-tree": "npm:^1.1.2"
     "@types/rimraf": "npm:^4.0.0"
@@ -791,8 +791,8 @@ __metadata:
     puppeteer: "npm:22.12.0"
     rimraf: "npm:^6.0.0"
     tsx: "npm:^4.4.0"
-    turbo: "npm:1.13.3"
-    typescript: "npm:^5.4.3"
+    turbo: "npm:^2.1.0"
+    typescript: "npm:^5.5.4"
     vite-tsconfig-paths: "npm:^4.3.2"
     vitest: "npm:^2.0.0"
   languageName: unknown
@@ -2484,21 +2484,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
+"@types/node@npm:*, @types/node@npm:^22.5.1":
   version: 22.5.1
   resolution: "@types/node@npm:22.5.1"
   dependencies:
     undici-types: "npm:~6.19.2"
   checksum: 10c0/35373176d8a1d4e16004a1ed303e68d39e4c6341024dc056f2577982df98c1a045a6b677f12ed557796f09bbf7d621f428f6874cc37ed28f7b336fa604b5f6a6
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^20.0.0":
-  version: 20.16.2
-  resolution: "@types/node@npm:20.16.2"
-  dependencies:
-    undici-types: "npm:~6.19.2"
-  checksum: 10c0/74fac185dbd2c6b301cde75747c1cd6c9ca1ad7266147ea107a798837f40b8a05991177ebd7925fc7450d51334096259d186afad6e0d22864b7c97f8afef6ba7
   languageName: node
   linkType: hard
 
@@ -12093,58 +12084,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo-darwin-64@npm:1.13.3"
+"turbo-darwin-64@npm:2.1.0":
+  version: 2.1.0
+  resolution: "turbo-darwin-64@npm:2.1.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo-darwin-arm64@npm:1.13.3"
+"turbo-darwin-arm64@npm:2.1.0":
+  version: 2.1.0
+  resolution: "turbo-darwin-arm64@npm:2.1.0"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo-linux-64@npm:1.13.3"
+"turbo-linux-64@npm:2.1.0":
+  version: 2.1.0
+  resolution: "turbo-linux-64@npm:2.1.0"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo-linux-arm64@npm:1.13.3"
+"turbo-linux-arm64@npm:2.1.0":
+  version: 2.1.0
+  resolution: "turbo-linux-arm64@npm:2.1.0"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo-windows-64@npm:1.13.3"
+"turbo-windows-64@npm:2.1.0":
+  version: 2.1.0
+  resolution: "turbo-windows-64@npm:2.1.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo-windows-arm64@npm:1.13.3"
+"turbo-windows-arm64@npm:2.1.0":
+  version: 2.1.0
+  resolution: "turbo-windows-arm64@npm:2.1.0"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:1.13.3":
-  version: 1.13.3
-  resolution: "turbo@npm:1.13.3"
+"turbo@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "turbo@npm:2.1.0"
   dependencies:
-    turbo-darwin-64: "npm:1.13.3"
-    turbo-darwin-arm64: "npm:1.13.3"
-    turbo-linux-64: "npm:1.13.3"
-    turbo-linux-arm64: "npm:1.13.3"
-    turbo-windows-64: "npm:1.13.3"
-    turbo-windows-arm64: "npm:1.13.3"
+    turbo-darwin-64: "npm:2.1.0"
+    turbo-darwin-arm64: "npm:2.1.0"
+    turbo-linux-64: "npm:2.1.0"
+    turbo-linux-arm64: "npm:2.1.0"
+    turbo-windows-64: "npm:2.1.0"
+    turbo-windows-arm64: "npm:2.1.0"
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -12160,7 +12151,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: 10c0/0382cc88f65a6690e97d30a6ad5d9b9ede7705f5f57edea27629408b166eff4a5938824746ce2cbcd50d2b64ebdbd359160e2cbe009f0bfd6f144997f9f6705b
+  checksum: 10c0/e57c58f07424f2f49d8d3a603a7338474f124299fbdfdaf034ca82fe2f08c686de5e050d33b175cf2b5a6b8a38117778a7e9bc6a78ec588ea3f708c3ab864acb
   languageName: node
   linkType: hard
 
@@ -12298,7 +12289,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:>=3 < 6, typescript@npm:^5.4.3":
+"typescript@npm:>=3 < 6, typescript@npm:^5.5.4":
   version: 5.5.4
   resolution: "typescript@npm:5.5.4"
   bin:
@@ -12308,7 +12299,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A>=3 < 6#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.4.3#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A>=3 < 6#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.5.4#optional!builtin<compat/typescript>":
   version: 5.5.4
   resolution: "typescript@patch:typescript@npm%3A5.5.4#optional!builtin<compat/typescript>::version=5.5.4&hash=379a07"
   bin:
