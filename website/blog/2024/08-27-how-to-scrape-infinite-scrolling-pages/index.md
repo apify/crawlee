@@ -133,7 +133,7 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
 
 ### Adding request of all shoes links
 
-Now, if you hover over the top bar and see all the sections, i.e., man, woman, and kids, you'll notice the “All shoes” section. As we want to scrape all the sneakers, this section interests us. Let’s use `get_by_test_id` with the filter of `has_text=’All shoes’ and add all the links with the text “All shoes” to the request handler. Let’s add this code to the existing `routes.py` file:
+Now, if you hover over the top bar and see all the sections, i.e., man, woman, and kids, you'll notice the “All shoes” section. As we want to scrape all the sneakers, this section interests us. Let’s use `get_by_test_id` with the filter of `has_text=’All shoes’` and add all the links with the text “All shoes” to the request handler. Let’s add this code to the existing `routes.py` file:
 
 ```python
     shoe_listing_links = (
@@ -223,6 +223,11 @@ This context manager will make sure we're accepting the cookie dialog if it exis
 
 Now for the last and most interesting part of the tutorial! How to handle the infinite scroll of each shoe listing page and make sure our crawler is scrolling and scraping the data constantly.
 
+This tutorial is taken from the webinar held on August 5th where Jan Buchar, Senior Python Engineer at Apify, gave a live demo about this use case. Watch the tutorial here: 
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ip8Ii0eLfRY?si=7ZllUhMhuC7VC23B&amp;start=667" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
 To handle infinite scrolling in Crawlee for Python, we just need to make sure the page is loaded, which is done by waiting for the `network_idle` load state, and then use the `infinite_scroll` helper function which will keep scrolling to the bottom of the page as long as that makes additional items appear.
 
 Let’s add two lines of code to the `listing` handler:
@@ -256,6 +261,3 @@ You can find the complete working crawler code here on the [GitHub repository](h
 
 If you have any doubts regarding this tutorial or using Crawlee for Python, feel free to [join our discord community](https://apify.com/discord/) and ask fellow developers or the Crawlee team.
 
----
-
-This tutorial is taken from the webinar held on August 5th where Jan Buchar, Senior Python Engineer at Apify, gave a live demo about this use case. Watch the whole webinar [here](https://www.youtube.com/live/ip8Ii0eLfRY?si=XoiwdRM6eldKgw-Z).
