@@ -4,7 +4,7 @@ on:
     workflow_dispatch:
     schedule:
         # Runs at 2 am every day
-        - cron: '0 2 * * *'
+        -   cron: '0 2 * * *'
 
 env:
     YARN_IGNORE_NODE: 1
@@ -18,53 +18,53 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                storage: [LOCAL, MEMORY, PLATFORM]
+                storage: [ LOCAL, MEMORY, PLATFORM ]
 
         steps:
-            - name: Cancel Workflow Action
-              uses: styfle/cancel-workflow-action@0.12.1
-              with:
-                  access_token: ${{ github.token }}
+            -   name: Cancel Workflow Action
+                uses: styfle/cancel-workflow-action@0.12.1
+                with:
+                    access_token: ${{ github.token }}
 
-            - name: Checkout repository
-              uses: actions/checkout@v4
+            -   name: Checkout repository
+                uses: actions/checkout@v4
 
-            - name: Use Node.js 20
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
+            -   name: Use Node.js 20
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 20
 
-            - name: Enable corepack
-              run: |
-                  corepack enable
-                  corepack prepare yarn@stable --activate
+            -   name: Enable corepack
+                run: |
+                    corepack enable
+                    corepack prepare yarn@stable --activate
 
-            - name: Activate cache for Node.js 20
-              uses: actions/setup-node@v4
-              with:
-                  cache: 'yarn'
+            -   name: Activate cache for Node.js 20
+                uses: actions/setup-node@v4
+                with:
+                    cache: 'yarn'
 
-            - uses: microsoft/playwright-github-action@v1
+            -   uses: microsoft/playwright-github-action@v1
 
-            - name: Turbo cache
-              id: turbo-cache
-              uses: actions/cache@v4
-              with:
-                  path: .turbo
-                  key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-                  restore-keys: |
-                      turbo-${{ github.job }}-${{ github.ref_name }}-
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v4
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            - name: Login to Apify
-              run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
+            -   name: Login to Apify
+                run: npx -y apify-cli@beta login -t ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
 
-            - name: Install Dependencies
-              run: yarn
+            -   name: Install Dependencies
+                run: yarn
 
-            - name: Build
-              run: yarn ci:build
+            -   name: Build
+                run: yarn ci:build
 
-            - name: Test with storage ${{ matrix.storage }}
-              run: yarn test:e2e
-              env:
-                  STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
+            -   name: Test with storage ${{ matrix.storage }}
+                run: yarn test:e2e
+                env:
+                    STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
