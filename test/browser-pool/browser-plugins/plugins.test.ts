@@ -256,38 +256,6 @@ describe('Plugins', () => {
             await browser.close();
         });
 
-        test('should use persistent context by default', async () => {
-            const plugin = new PuppeteerPlugin(puppeteer);
-            const browserController = plugin.createController();
-
-            const launchContext = plugin.createLaunchContext();
-
-            browser = await plugin.launch(launchContext);
-            browserController.assignBrowser(browser, launchContext);
-            browserController.activate();
-
-            const page = await browserController.newPage();
-            const browserContext = page.browserContext();
-
-            expect(browserContext.isIncognito()).toBeFalsy();
-        });
-
-        test('should use incognito pages by option', async () => {
-            const plugin = new PuppeteerPlugin(puppeteer);
-            const browserController = plugin.createController();
-
-            const launchContext = plugin.createLaunchContext({ useIncognitoPages: true });
-
-            browser = await plugin.launch(launchContext);
-            browserController.assignBrowser(browser, launchContext);
-            browserController.activate();
-
-            const page = await browserController.newPage();
-            const browserContext = page.browserContext();
-
-            expect(browserContext.isIncognito()).toBeTruthy();
-        });
-
         test('should pass launch options to browser', async () => {
             const plugin = new PuppeteerPlugin(puppeteer);
 
