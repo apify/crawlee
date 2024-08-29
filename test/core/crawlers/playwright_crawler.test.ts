@@ -86,7 +86,12 @@ describe('PlaywrightCrawler', () => {
                 request.userData.title = await page.title();
                 processed.push(request);
                 expect(response.request().headers()['user-agent']).not.toMatch(/headless/i);
-                await expect(page.evaluate(() => window.navigator.webdriver)).resolves.toBeFalsy();
+
+                // firefox now also returns `webdriver: true` since playwright 1.45, we are masking this via fingerprints,
+                // but this test has them disabled, so we can check the default handling (= there is non-default UA even without them)
+                if (browser !== 'firefox') {
+                    await expect(page.evaluate(() => window.navigator.webdriver)).resolves.toBeFalsy();
+                }
             };
 
             const playwrightCrawler = new PlaywrightCrawler({
