@@ -3397,13 +3397,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.6.7, axios@npm:^1.7.4":
-  version: 1.7.6
-  resolution: "axios@npm:1.7.6"
+  version: 1.7.7
+  resolution: "axios@npm:1.7.7"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/8b4be67056f8f3895ebadbfce0708e5aa9c537a5a68e2da03bec49d35695e29b57f14ce38f20f55bb19946bd89787a839a7c3afa9e58e1152696c208046f8417
+  checksum: 10c0/4499efc89e86b0b49ffddc018798de05fab26e3bf57913818266be73279a6418c3ce8f9e934c7d2d707ab8c095e837fc6c90608fb7715b94d357720b5f568af7
   languageName: node
   linkType: hard
 
@@ -6068,22 +6068,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.54":
-  version: 2.1.54
-  resolution: "fingerprint-generator@npm:2.1.54"
+"fingerprint-generator@npm:^2.0.6, fingerprint-generator@npm:^2.1.55":
+  version: 2.1.55
+  resolution: "fingerprint-generator@npm:2.1.55"
   dependencies:
-    generative-bayesian-network: "npm:^2.1.54"
-    header-generator: "npm:^2.1.54"
+    generative-bayesian-network: "npm:^2.1.55"
+    header-generator: "npm:^2.1.55"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/ebc89f50aeb242524b24fb19960ecb3cafa71cc469f3ba5be791ab1610073e14094077017d866e40cf3da65270c22398e24cb4e5471df26d5d140e2f629df6bd
+  checksum: 10c0/f36e4167afda02dd8a0372f66d8a8c5d72b94901fc23c3c2f9d99f6baaf30515098fb31c1e5043efa4bbbf04a4b81c651bb157c293ed9bac0fd0168d577817bb
   languageName: node
   linkType: hard
 
 "fingerprint-injector@npm:^2.0.5":
-  version: 2.1.54
-  resolution: "fingerprint-injector@npm:2.1.54"
+  version: 2.1.55
+  resolution: "fingerprint-injector@npm:2.1.55"
   dependencies:
-    fingerprint-generator: "npm:^2.1.54"
+    fingerprint-generator: "npm:^2.1.55"
     tslib: "npm:^2.4.0"
   peerDependencies:
     playwright: ^1.22.2
@@ -6093,7 +6093,7 @@ __metadata:
       optional: true
     puppeteer:
       optional: true
-  checksum: 10c0/660d17a0f6c46bfbd8a6f64ad03b5d0282a6810dbcfc8a20fa2a2605df07893b17f83ac29500786cbf8188f2593d74ef2deccc88f31dd643ec51071c5f298ace
+  checksum: 10c0/494493263889e50cf84b8ff266eb82d6ce38c4103481c56bc83eb32980463bc8d99f28d8c5438b7572a9ee3bd7fad65e887a8277e9af0113d8ab9f826e184550
   languageName: node
   linkType: hard
 
@@ -6326,13 +6326,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"generative-bayesian-network@npm:^2.1.54":
-  version: 2.1.54
-  resolution: "generative-bayesian-network@npm:2.1.54"
+"generative-bayesian-network@npm:^2.1.55":
+  version: 2.1.55
+  resolution: "generative-bayesian-network@npm:2.1.55"
   dependencies:
     adm-zip: "npm:^0.5.9"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/6f1a4437c59b500734cc47bcc30990255cf59ddca8dee9df50b1ff3844451287fb2c83d89cb7418d11e3145afc1838b908b3095600296c38a157e3eeee02cea8
+  checksum: 10c0/ef43fe3cfab933bc471107e400daae0b33f3c5ab206df1d554cf425c5f55a5cc1e86c4c228d0bc2122c9eb13cbf622702367056b01c02107a39fa59553768571
   languageName: node
   linkType: hard
 
@@ -6857,15 +6857,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"header-generator@npm:^2.1.41, header-generator@npm:^2.1.54":
-  version: 2.1.54
-  resolution: "header-generator@npm:2.1.54"
+"header-generator@npm:^2.1.41, header-generator@npm:^2.1.55":
+  version: 2.1.55
+  resolution: "header-generator@npm:2.1.55"
   dependencies:
     browserslist: "npm:^4.21.1"
-    generative-bayesian-network: "npm:^2.1.54"
+    generative-bayesian-network: "npm:^2.1.55"
     ow: "npm:^0.28.1"
     tslib: "npm:^2.4.0"
-  checksum: 10c0/6fa48709a29d380eca894434d689ef0fb8fcecd19decb994bf0f09a58224e968cfbd581f05369d051fbe220531d6eb1b0f5f2a369344541cd8df900d0823caaf
+  checksum: 10c0/981137aaea303918c75a4dae62187e6381a0c55930f0bc4624aec3e916e10ed3a41ae9afdd16e856a641a89433456f1bc1a2be7365829cfbaa2575dd53db17ab
   languageName: node
   linkType: hard
 
@@ -10191,13 +10191,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.4.41":
-  version: 8.4.41
-  resolution: "postcss@npm:8.4.41"
+  version: 8.4.42
+  resolution: "postcss@npm:8.4.42"
   dependencies:
     nanoid: "npm:^3.3.7"
     picocolors: "npm:^1.0.1"
     source-map-js: "npm:^1.2.0"
-  checksum: 10c0/c1828fc59e7ec1a3bf52b3a42f615dba53c67960ed82a81df6441b485fe43c20aba7f4e7c55425762fd99c594ecabbaaba8cf5b30fd79dfec5b52a9f63a2d690
+  checksum: 10c0/ac4dd01b07b2b9db12c24284aed497d35436ed05e4944be6cf00eb8daa4914fd9fbc5ec729e47981b4f1a9c51847d043d1808c796b9440ae0c5e8ff7a29bc821
   languageName: node
   linkType: hard
 
@@ -11447,8 +11447,8 @@ __metadata:
   linkType: hard
 
 "streamx@npm:^2.15.0, streamx@npm:^2.18.0":
-  version: 2.19.1
-  resolution: "streamx@npm:2.19.1"
+  version: 2.20.0
+  resolution: "streamx@npm:2.20.0"
   dependencies:
     bare-events: "npm:^2.2.0"
     fast-fifo: "npm:^1.3.2"
@@ -11457,7 +11457,7 @@ __metadata:
   dependenciesMeta:
     bare-events:
       optional: true
-  checksum: 10c0/bbf0a95ed129f7ff9fd8fcccaf1074e69a20dcfad6ae7f2de0ce92df049d109ca591f40f465deeb9f5fb478b659fe8cb84127e6d505c15dcac6b8ab277bdabd2
+  checksum: 10c0/135d94dca174c0d169416d28449cd6dd6f2c9bb9cf380f73072ba2ec08ab042748b60f522b94badbaef721328313a885a4b6c51c9d4fa6f3538da733c3399831
   languageName: node
   linkType: hard
 
@@ -12014,8 +12014,8 @@ __metadata:
   linkType: hard
 
 "tsconfck@npm:^3.0.3":
-  version: 3.1.1
-  resolution: "tsconfck@npm:3.1.1"
+  version: 3.1.3
+  resolution: "tsconfck@npm:3.1.3"
   peerDependencies:
     typescript: ^5.0.0
   peerDependenciesMeta:
@@ -12023,7 +12023,7 @@ __metadata:
       optional: true
   bin:
     tsconfck: bin/tsconfck.js
-  checksum: 10c0/e133eb308ba37e8db8dbac1905bddaaf4a62f0e01aa88143e19867e274a877b86b35cf69c9a0172ca3e7d1a4bb32400381ac7f7a1429e34250a8d7ae55aee3e7
+  checksum: 10c0/64f7a8ed0a6d36b0902dfc0075e791d2242f7634644f124343ec0dec4f3f70092f929c5a9f59496d51883aa81bb1e595deb92a219593575d2e75b849064713d1
   languageName: node
   linkType: hard
 
