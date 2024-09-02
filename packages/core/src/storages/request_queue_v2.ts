@@ -177,12 +177,19 @@ export class RequestQueue extends RequestProvider {
 
         // Stop fetching if we are paused for migration
         if (this.queuePausedForMigration) {
+            this.log.debug('Queue is paused for migration, skipping fetching of new requests');
             return;
         }
 
         // We want to fetch ahead of time to minimize dead time
         if (this.queueHeadIds.length() > 1) {
+            // Not logging here because that'll be _real_ spammy
             return;
+        }
+
+        // TODO: if this logs multiple times in a row, we need to double check that we don't need a mutex!
+        if (!this._listHeadAndLockPromise) {
+            this.log.debug('Scheduling fetching of new requests from queue head');
         }
 
         this._listHeadAndLockPromise ??= this._listHeadAndLock().finally(() => {

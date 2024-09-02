@@ -57,6 +57,8 @@ export abstract class RequestProvider implements IStorage {
 
     protected isFinishedCalledWhileHeadWasNotEmpty = 0;
 
+    protected isFinishedWarningsEmitted = 0;
+
     constructor(
         options: InternalRequestProviderOptions,
         readonly config = Configuration.getGlobalConfig(),
@@ -612,6 +614,8 @@ export abstract class RequestProvider implements IStorage {
                         clientKey: this.clientKey,
                     },
                 );
+
+                this.isFinishedWarningsEmitted++;
             } else {
                 this.log.debug(
                     'Queue head still returned requests that need to be processed (or that are locked by other clients)',
@@ -620,6 +624,12 @@ export abstract class RequestProvider implements IStorage {
                     },
                 );
             }
+        }
+
+        // Temporary deadlock exit: somehow, we can end up in a state where the isEmpty function says its true, but then the head is not only not empty,
+        // but never empties either! This is a temporary fix to let crawlers exit after a while if they're stuck in this state.
+        if (this.isFinishedWarningsEmitted >= 3) {
+            return true;
         }
 
         return currentHead.items.length === 0;
