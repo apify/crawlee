@@ -571,6 +571,8 @@ export abstract class RequestProvider implements IStorage {
             });
 
             this.queueHeadIds.clear();
+            // This cache may be the bane of our existence, but it's still required for v1...
+            this.recentlyHandledRequestsCache.clear();
         }
 
         if (this.queueHeadIds.length() > 0) {
