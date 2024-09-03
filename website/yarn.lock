@@ -6026,8 +6026,8 @@ __metadata:
   linkType: hard
 
 "docusaurus-plugin-typedoc-api@npm:^4.2.0":
-  version: 4.2.1
-  resolution: "docusaurus-plugin-typedoc-api@npm:4.2.1"
+  version: 4.3.0
+  resolution: "docusaurus-plugin-typedoc-api@npm:4.3.0"
   dependencies:
     "@docusaurus/plugin-content-docs": "npm:^3.4.0"
     "@docusaurus/types": "npm:^3.4.0"
@@ -6041,7 +6041,7 @@ __metadata:
     "@docusaurus/mdx-loader": ^3.0.0
     react: ">=18.0.0"
     typescript: ^5.0.0
-  checksum: 10c0/c3cf4f2df11c30c0cd5f1d57df2ce856c2146b3f648f48bd8be00018d583e62b163a8b84abaf2199d4a626d45b21ac21371e86b1a323cfec1eb020a053690790
+  checksum: 10c0/c27a8d44234f52b7c25cb06d774a4c563d81f0b697a3bf151743dcfcdfd06f737636da61a1f7de2d0f168573422dfecffa8feb9abca6a4f8b04c9c061e83042b
   languageName: node
   linkType: hard
 
@@ -6650,8 +6650,8 @@ __metadata:
   linkType: hard
 
 "eslint-plugin-react@npm:^7.27.0, eslint-plugin-react@npm:^7.32.2, eslint-plugin-react@npm:^7.33.2":
-  version: 7.35.0
-  resolution: "eslint-plugin-react@npm:7.35.0"
+  version: 7.35.1
+  resolution: "eslint-plugin-react@npm:7.35.1"
   dependencies:
     array-includes: "npm:^3.1.8"
     array.prototype.findlast: "npm:^1.2.5"
@@ -6673,7 +6673,7 @@ __metadata:
     string.prototype.repeat: "npm:^1.0.0"
   peerDependencies:
     eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7
-  checksum: 10c0/eedcc33de4b2cda91d56ae517a4f771a0c76da9c1e26c95543969012871381e11d4d6cffdf6fa8423036585c289eb3500f3f93fb1d314fb2624e0aa1e463305e
+  checksum: 10c0/faaa2108543675951949685208d105d9c3efa0ac8f4d950851b8f20e065b8bf87fdd7e78abae9b0382090bc22e61c00709388f35bdab2a8b1d283f985d310ed7
   languageName: node
   linkType: hard
 
@@ -10000,8 +10000,8 @@ __metadata:
   linkType: hard
 
 "micromark-extension-mdx-jsx@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "micromark-extension-mdx-jsx@npm:3.0.0"
+  version: 3.0.1
+  resolution: "micromark-extension-mdx-jsx@npm:3.0.1"
   dependencies:
     "@types/acorn": "npm:^4.0.0"
     "@types/estree": "npm:^1.0.0"
@@ -10010,10 +10010,11 @@ __metadata:
     micromark-factory-mdx-expression: "npm:^2.0.0"
     micromark-factory-space: "npm:^2.0.0"
     micromark-util-character: "npm:^2.0.0"
+    micromark-util-events-to-acorn: "npm:^2.0.0"
     micromark-util-symbol: "npm:^2.0.0"
     micromark-util-types: "npm:^2.0.0"
     vfile-message: "npm:^4.0.0"
-  checksum: 10c0/18a81c8def7f3a2088dc435bba19e649c19f679464b1a01e2c680f9518820e70fb0974b8403c790aee8f44205833a280b56ba157fe5a5b2903b476c5de5ba353
+  checksum: 10c0/11e65abd6b57bcf82665469cd1ff238b7cfc4ebb4942a0361df2dc7dd4ab133681b2bcbd4c388dddf6e4db062665d31efeb48cc844ee61c8d8de9d167cc946d8
   languageName: node
   linkType: hard
 
@@ -10083,18 +10084,19 @@ __metadata:
   linkType: hard
 
 "micromark-factory-mdx-expression@npm:^2.0.0":
-  version: 2.0.1
-  resolution: "micromark-factory-mdx-expression@npm:2.0.1"
+  version: 2.0.2
+  resolution: "micromark-factory-mdx-expression@npm:2.0.2"
   dependencies:
     "@types/estree": "npm:^1.0.0"
     devlop: "npm:^1.0.0"
+    micromark-factory-space: "npm:^2.0.0"
     micromark-util-character: "npm:^2.0.0"
     micromark-util-events-to-acorn: "npm:^2.0.0"
     micromark-util-symbol: "npm:^2.0.0"
     micromark-util-types: "npm:^2.0.0"
     unist-util-position-from-estree: "npm:^2.0.0"
     vfile-message: "npm:^4.0.0"
-  checksum: 10c0/d9cf475a73a7fbfa09aba0d057e033d57e45b7adff78692be9efb4405c4a1717ece4594a632f92a4302e4f8f2ae96355785b616e3f5b2fe8599ec24cfdeee12d
+  checksum: 10c0/87372775ae06478ab754efa058a5e382972f634c14f0afa303111037c30abf733fe65329a7e59cda969266e63f82104d9ed8ff9ada39189eab0651b6540ca64a
   languageName: node
   linkType: hard
 
@@ -11319,9 +11321,9 @@ __metadata:
   linkType: hard
 
 "picocolors@npm:^1.0.0, picocolors@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "picocolors@npm:1.0.1"
-  checksum: 10c0/c63cdad2bf812ef0d66c8db29583802355d4ca67b9285d846f390cc15c2f6ccb94e8cb7eb6a6e97fc5990a6d3ad4ae42d86c84d3146e667c739a4234ed50d400
+  version: 1.1.0
+  resolution: "picocolors@npm:1.1.0"
+  checksum: 10c0/86946f6032148801ef09c051c6fb13b5cf942eaf147e30ea79edb91dd32d700934edebe782a1078ff859fb2b816792e97ef4dab03d7f0b804f6b01a0df35e023
   languageName: node
   linkType: hard
 
@@ -11791,13 +11793,13 @@ __metadata:
   linkType: hard
 
 "postcss@npm:^8.4.21, postcss@npm:^8.4.24, postcss@npm:^8.4.26, postcss@npm:^8.4.33, postcss@npm:^8.4.38":
-  version: 8.4.43
-  resolution: "postcss@npm:8.4.43"
+  version: 8.4.44
+  resolution: "postcss@npm:8.4.44"
   dependencies:
     nanoid: "npm:^3.3.7"
     picocolors: "npm:^1.0.1"
     source-map-js: "npm:^1.2.0"
-  checksum: 10c0/7cc9c6393ca00fcdca6fef8d119218df9357389b9fed30b6d4b463fc0e85159595a877f4ac0a2a565ea4c447cab1f424e527e68d8b7d40b8c94a6684663d45c5
+  checksum: 10c0/53c33338261a3d4f4198f8893e9dfe8b828d8d9186142ee85f02d228f04245c5bbe31239411a357a556ad20ed96f28db24d0921d63edc428fdc9133289371a1d
   languageName: node
   linkType: hard
 
