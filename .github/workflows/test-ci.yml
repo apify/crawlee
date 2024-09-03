@@ -56,18 +56,24 @@ jobs:
                 uses: actions/cache@v4
                 with:
                     path: .turbo
-                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    key: turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
-                        turbo-${{ github.job }}-${{ github.ref_name }}-
+                        turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-
 
             -   name: Install Dependencies
                 run: yarn
+                env:
+                    YARN_IGNORE_NODE: 1
 
             -   name: Build
                 run: yarn ci:build
+                env:
+                    YARN_IGNORE_NODE: 1
 
             -   name: Tests
                 run: yarn test
+                env:
+                    YARN_IGNORE_NODE: 1
 
     docs:
         name: Docs build
