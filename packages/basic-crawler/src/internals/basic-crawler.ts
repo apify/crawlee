@@ -26,6 +26,8 @@ import type {
     StatisticState,
     StatisticsOptions,
     LoadedContext,
+    BaseHttpClient,
+    HttpResponse,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -49,6 +51,7 @@ import {
     SessionPool,
     Statistics,
     validators,
+    GotScrapingHttpClient,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
 import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
@@ -351,6 +354,8 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * whether to output them to the Key-Value store.
      */
     statisticsOptions?: StatisticsOptions;
+
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -496,6 +501,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected crawlingContexts = new Map<string, Context>();
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
     protected events: EventManager;
+    protected httpClient: BaseHttpClient;
     protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
@@ -592,10 +598,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statusMessageCallback,
 
             statisticsOptions,
+            httpClient,
         } = options;
 
         this.requestList = requestList;
         this.requestQueue = requestQueue;
+        this.httpClient = httpClient ?? new GotScrapingHttpClient();
         this.log = log;
         this.statusMessageLoggingInterval = statusMessageLoggingInterval;
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -1270,7 +1278,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: async (overrideOptions?: OptionsInit) => {
+            sendRequest: async (overrideOptions?: OptionsInit): Promise<HttpResponse<'text'>> => {
                 const cookieJar = session
                     ? {
                           getCookieString: async (url: string) => session!.getCookieString(url),
@@ -1279,7 +1287,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                       }
                     : overrideOptions?.cookieJar;
 
-                return gotScraping({
+                return this.httpClient.sendRequest({
                     url: request!.url,
                     method: request!.method as Method, // Narrow type to omit CONNECT
                     body: request!.payload,
@@ -1288,10 +1296,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     sessionToken: session,
                     responseType: 'text',
                     ...overrideOptions,
-                    retry: {
-                        limit: 0,
-                        ...overrideOptions?.retry,
-                    },
                     cookieJar,
                 });
             },
