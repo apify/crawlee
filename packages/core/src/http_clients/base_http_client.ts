@@ -1,5 +1,6 @@
 import type { Readable } from 'stream';
-import { FormDataLike } from './form_data_like';
+
+import type { FormDataLike } from './form_data_like';
 
 type Timeout =
     | {
@@ -30,13 +31,13 @@ type Method =
     | 'options'
     | 'trace';
 
-export type ResponseTypes = {
+export interface ResponseTypes {
     'json': unknown;
     'text': string;
     'buffer': Buffer;
-};
+}
 
-type ToughCookieJar = {
+interface ToughCookieJar {
     getCookieString: ((
         currentUrl: string,
         options: Record<string, unknown>,
@@ -50,12 +51,12 @@ type ToughCookieJar = {
         callback: (error: Error | null, cookie: unknown) => void,
     ) => void) &
         ((rawCookie: string, url: string, callback: (error: Error | null, result: unknown) => void) => void);
-};
+}
 
-type PromiseCookieJar = {
+interface PromiseCookieJar {
     getCookieString: (url: string) => Promise<string>;
     setCookie: (rawCookie: string, url: string) => Promise<unknown>;
-};
+}
 
 // Omitted (https://github.com/sindresorhus/got/blob/main/documentation/2-options.md):
 //  - decompress,

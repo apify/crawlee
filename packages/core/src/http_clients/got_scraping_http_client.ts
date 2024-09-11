@@ -1,5 +1,8 @@
-import { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes } from './base_http_client';
 import { gotScraping } from '@crawlee/utils';
+
+import type { HttpRequest, HttpResponse, ResponseTypes } from './base_http_client';
+import { BaseHttpClient } from './base_http_client';
+
 
 export class GotScrapingHttpClient extends BaseHttpClient {
     override async sendRequest<TResponseType extends keyof ResponseTypes>(
