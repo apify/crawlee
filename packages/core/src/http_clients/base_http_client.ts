@@ -1,6 +1,5 @@
 import type { Readable } from 'stream';
-import type { Primitive } from 'type-fest';
-import type { CookieJar } from 'tough-cookie';
+import { FormDataLike } from './form_data_like';
 
 type Timeout =
     | {
@@ -37,6 +36,27 @@ export type ResponseTypes = {
     'buffer': Buffer;
 };
 
+type ToughCookieJar = {
+    getCookieString: ((
+        currentUrl: string,
+        options: Record<string, unknown>,
+        callback: (error: Error | null, cookies: string) => void,
+    ) => void) &
+        ((url: string, callback: (error: Error | null, cookieHeader: string) => void) => void);
+    setCookie: ((
+        cookieOrString: unknown,
+        currentUrl: string,
+        options: Record<string, unknown>,
+        callback: (error: Error | null, cookie: unknown) => void,
+    ) => void) &
+        ((rawCookie: string, url: string, callback: (error: Error | null, result: unknown) => void) => void);
+};
+
+type PromiseCookieJar = {
+    getCookieString: (url: string) => Promise<string>;
+    setCookie: (rawCookie: string, url: string) => Promise<unknown>;
+};
+
 // Omitted (https://github.com/sindresorhus/got/blob/main/documentation/2-options.md):
 //  - decompress,
 //  - resolveBodyOnly,
@@ -67,23 +87,23 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 
     url: string | URL;
     method?: Method;
-    searchParams?: string | URLSearchParams | Record<string, Primitive>;
+    searchParams?: string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
     signal?: AbortSignal;
-    headers?: Record<string, string>;
-    body?: string | Buffer | Readable | Generator | AsyncGenerator | FormData;
+    headers?: Record<string, string | string[] | undefined>;
+    body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
     form?: Record<string, string>;
     json?: unknown;
 
     username?: string;
     password?: string;
 
-    cookieJar?: Record<string, string> | CookieJar;
-    followRedirect?: boolean | ((response: HttpResponse<TResponseType>) => boolean);
+    cookieJar?: ToughCookieJar | PromiseCookieJar;
+    followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
     maxRedirects?: number;
 
-    timeout?: Timeout;
+    timeout?: Partial<Timeout>;
 
-    encoding?: string;
+    encoding?: BufferEncoding;
     responseType?: TResponseType;
     throwHttpErrors?: boolean;
 
@@ -98,7 +118,9 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     sessionToken?: object;
 }
 
-export interface HttpResponse<TResponseType extends keyof ResponseTypes> {
+export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof ResponseTypes> {
+    [k: string]: any; // TODO BC with got - remove in 4.0
+
     request: HttpRequest<TResponseType>;
 
     redirectUrls: URL[];
@@ -111,7 +133,7 @@ export interface HttpResponse<TResponseType extends keyof ResponseTypes> {
 }
 
 export abstract class BaseHttpClient {
-    abstract sendRequest<TResponseType extends keyof ResponseTypes>(
+    abstract sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>>;
 }

@@ -28,6 +28,8 @@ import type {
     LoadedContext,
     BaseHttpClient,
     HttpResponse,
+    HttpRequest,
+    ResponseTypes,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -54,7 +56,7 @@ import {
     GotScrapingHttpClient,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
+import { ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
@@ -1278,7 +1280,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: async (overrideOptions?: OptionsInit): Promise<HttpResponse<'text'>> => {
+            sendRequest: async <TResponseType extends keyof ResponseTypes = 'text'>(
+                overrideOptions?: Partial<HttpRequest<TResponseType>>,
+            ): Promise<HttpResponse<TResponseType>> => {
                 const cookieJar = session
                     ? {
                           getCookieString: async (url: string) => session!.getCookieString(url),
@@ -1287,14 +1291,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                       }
                     : overrideOptions?.cookieJar;
 
-                return this.httpClient.sendRequest({
+                return this.httpClient.sendRequest<TResponseType>({
                     url: request!.url,
                     method: request!.method as Method, // Narrow type to omit CONNECT
                     body: request!.payload,
                     headers: request!.headers,
                     proxyUrl: crawlingContext.proxyInfo?.url,
                     sessionToken: session,
-                    responseType: 'text',
                     ...overrideOptions,
                     cookieJar,
                 });
