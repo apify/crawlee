@@ -71,17 +71,17 @@ async def main() -> None:
     @crawler.router.default_handler
     async def request_handler(context: PlaywrightCrawlingContext) -> None:
         data = {
-            "request_url": context.request.url,
-            "page_url": context.page.url,
-            "page_title": await context.page.title(),
-            "page_content": (await context.page.content())[:10000],
+            'request_url': context.request.url,
+            'page_url': context.page.url,
+            'page_title': await context.page.title(),
+            'page_content': (await context.page.content())[:10000],
         }
         await context.push_data(data)
 
-    await crawler.run(["https://crawlee.dev"])
+    await crawler.run(['https://crawlee.dev'])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
 ```
 
