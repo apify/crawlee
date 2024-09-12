@@ -259,5 +259,7 @@ Now, we have a crawler ready that can scrape all the shoes from the Nike website
 
 You can find the complete working crawler code here on the [GitHub repository](https://github.com/janbuchar/crawlee-python-demo). 
 
+Learn more about Crawlee for Python from our latest step by step [tutorial](https://blog.apify.com/crawlee-for-python-tutorial/).
+
 If you have any doubts regarding this tutorial or using Crawlee for Python, feel free to [join our discord community](https://apify.com/discord/) and ask fellow developers or the Crawlee team.
 

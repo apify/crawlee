@@ -135,4 +135,6 @@ There’s still room for improvement. Feel free to open issues, make pull reques
 
 With such contributions, we’re excited and looking forward to building an amazing library for the Python community.
 
+Check out a step by step guide on how to use Crawlee for Python through one of our [latest tutorial](https://blog.apify.com/crawlee-for-python-tutorial/).
+
 [Join our Discord community](https://apify.com/discord) with nearly 8,000 web scraping developers, where our team would be happy to help you with any problems or discuss any use case for Crawlee for Python.
