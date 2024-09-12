@@ -10,20 +10,25 @@ authorURL: https://github.com/Mantisus
 authorImageURL: https://avatars.githubusercontent.com/u/34358312?v=4
 ---
 
-## Web Scraping of a dynamic website using Crawlee for Python  with HTTP client
+# Web scraping of a dynamic website using Crawlee for Python  with HTTP client
 
 Dynamic websites that use JavaScript for content rendering and backend interaction often create challenges for web scraping. The traditional approach to solving this problem is browser emulation, but it's not very efficient in terms of resource consumption.
+
 In this article, we'll explore an alternative method based on in-depth site analysis and the use of an HTTP client. We'll go through the entire process from analyzing a dynamic website to implementing an efficient web crawler using the [`Crawlee for Python`](https://crawlee.dev/python/) framework.
+
+## What you'll learn in this tutorial
+
 Our subject of study is the  [Accommodation for Students](https://www.accommodationforstudents.com)  website. Using this example, we'll examine the specifics of analyzing sites built with the Next.js framework and implement a crawler capable of efficiently extracting data without using browser emulation.
+
 By the end of this article, you will have:
-A clear understanding of how to analyze sites with dynamic content rendered using JavaScript.
-How to implement a crawler based on Crawlee for Python.
-Insight into some of the details of working with sites that use [`Next.js`](https://nextjs.org/).
-A link to a GitHub repository with the full crawler implementation code.
+- A clear understanding of how to analyze sites with dynamic content rendered using JavaScript.
+- How to implement a crawler based on Crawlee for Python.
+- Insight into some of the details of working with sites that use [`Next.js`](https://nextjs.org/).
+- A link to a GitHub repository with the full crawler implementation code.
 
-## Website Analysis
+## Website analysis
 
-To track all requests, open your dev tools and the `network` tab before entering the site. Some data may be transmitted only once when the site is first opened.
+To track all requests, open your Dev Tools and the `network` tab before entering the site. Some data may be transmitted only once the site is first opened.
 
 As the site is intended for students in the UK, let's go to London. We'll start the analysis from the [search page](https://www.accommodationforstudents.com/search-results?location=London&beds=0&occupancy=min&minPrice=0&maxPrice=500&latitude=51.509865&longitude=-0.118092&geo=false&page=1)
 
@@ -70,7 +75,7 @@ https://www.accommodationforstudents.com/search-results?location=London&beds=0&o
 
 In it, we see the coordinate parameters `latitude` and `longitude`, which don't participate in any way when interacting with the backend, and the `geo` parameter with a false value. This also confirms our hypothesis regarding the mode parameter. This is quite useful if you want to extract all data from the site.
 
-Great. We can get the site's search data in a convenient JSON format. We also have quite flexible parameters to guarantee data extraction, whether all are available on the site or for a specific city.
+Great. We can get the site's search data in a convenient JSON format. We also have flexible parameters to guarantee data extraction, whether all are available on the site or for a specific city.
 
 Let's move on to analyzing the property page.
 
@@ -94,7 +99,7 @@ Let's analyze the listing page again by refreshing it and analyzing the `.js` fi
 
 ![Javascript files](./img/javascript.webp)
 
-We're interested in the file containing `_buildManifest.js` in its name, the link to it will regularly change, so I'll just give an example:
+We're interested in the file containing `_buildManifest.js` in its name, the link to it will regularly change, so I'll provide an example:
 
 ```plaintext
 https://www.accommodationforstudents.com/_next/static/B5yLvSqNOvFysuIu10hQ5/_buildManifest.js
@@ -112,7 +117,7 @@ Let's form a link and study the result in the browser.
 ![Study the result in browser](./img/result.webp)
 
 
-As you can see, now we get the listing results in JSON format too. But after all, `Next.js` works for search too, let's get a link for it too, so that our future crawler interacts with only one API. It transforms from the link you see in the browser bar and will look like this:
+As you can see, now we get the listing results in JSON format. But after all, `Next.js` works for search, so let's get a link for it, so that our future crawler interacts with only one API. It transforms from the link you see in the browser bar and will look like this:
 
 ```plaintext
 https://www.accommodationforstudents.com/_next/data/[build_id]/search-results.json?location=[location]&page=[page]
@@ -127,11 +132,11 @@ Let's summarize our analysis.
 3. We need to get the `build_id`, let's use the main page of the site and a simple regular expression for this.
 4. We need an HTTP client that allows bypassing Cloudflare, and we don't need any HTML parsers, as we'll get all target data from JSON.
 
-## Crawler Implementation
+## Crawler implementation
 
-I'm using Crawlee for Python version `0.3.5`, this is quite important, as the library is developing quite actively and will have more capabilities in higher versions. But this is a good moment to show how we can work with it on complex projects.
+I'm using Crawlee for Python version `0.3.5`, this is important, as the library is developing actively and will have more capabilities in higher versions. But this is an ideal moment to show how we can work with it for complex projects.
 
-The library already has support for an HTTP client that allows bypassing Cloudflare - [`CurlImpersonateHttpClient`](https://github.com/apify/crawlee-python/blob/v0.3.6/src/crawlee/http_clients/curl_impersonate.py). Since we have to work with JSON responses we could use [`parsel_crawler`](https://github.com/apify/crawlee-python/tree/v0.3.5/src/crawlee/parsel_crawler) added in version `0.3.0`, but I think this is a bit of an overhead for such tasks, besides I like the high speed of [`orjson`](https://github.com/ijl/orjson).. Therefore, we'll need to implement our crawler rather than using one of the ready-made ones.
+The library already has support for an HTTP client that allows bypassing Cloudflare - [`CurlImpersonateHttpClient`](https://github.com/apify/crawlee-python/blob/v0.3.6/src/crawlee/http_clients/curl_impersonate.py). Since we have to work with JSON responses we could use [`parsel_crawler`](https://github.com/apify/crawlee-python/tree/v0.3.5/src/crawlee/parsel_crawler) added in version `0.3.0`, but I think this is excessive for such tasks, besides I like the high speed of [`orjson`](https://github.com/ijl/orjson).. Therefore, we'll need to implement our crawler rather than using one of the ready-made ones.
 
 As a sample crawler, we'll use [beautifulsoup_crawler](https://github.com/apify/crawlee-python/tree/v0.3.5/src/crawlee/beautifulsoup_crawler)
 
@@ -174,7 +179,7 @@ class CustomContext(HttpCrawlingResult, BasicCrawlingContext):
 
 ```
 
-Note that in my context, `enqueue_links` is just `Callable`, not [`EnqueueLinksFunction`](https://github.com/apify/crawlee-python/blob/v0.3.5/src/crawlee/_types.py#L162). This is because we won't be using selectors and extracting links from HTML, which violates the agreed protocol. Still, I want the syntax in my crawler to be as close to standardized as possible.
+Note that in my context, `enqueue_links` is just `Callable`, not [`EnqueueLinksFunction`](https://github.com/apify/crawlee-python/blob/v0.3.5/src/crawlee/_types.py#L162). This is because we won't be using selectors and extracting links from HTML, which violate the agreed protocol. Still, I want the syntax in my crawler to be as close to standardized as possible.
 
 Let's move on to the crawler functionality in the `CustomCrawler` class.
 
@@ -318,7 +323,9 @@ As you can see, if the server response comes in HTML, we get the `build_id` usin
 
 In `enqueue_links`, I create logic for generating links based on string templates and input parameters.
 
-That's it: our custom Crawler Class for Crawlee for Python is ready, it's based on the `CurlImpersonateHttpClient` client, works with JSON responses instead of HTML, and implements the link generation logic we need. Let's finalize it by defining public classes for import.
+That's it: our custom Crawler Class for Crawlee for Python is ready, it's based on the `CurlImpersonateHttpClient` client, works with JSON responses instead of HTML, and implements the link generation logic we need.
+
+ Let's finalize it by defining public classes for import.
 
 ```python
 # init.py
@@ -446,4 +453,4 @@ If you are looking out to how to start scraping using Crawlee for Python, check 
 
 You can find me on the following platforms: [Github](https://github.com/Mantisus), [Linkedin](https://www.linkedin.com/in/max-bohomolov/), [Apify](https://apify.com/mantisus), [Upwork](https://www.upwork.com/freelancers/mantisus), [Contra](https://contra.com/mantisus).
 
-Thank you for your attention :)
+Thank you for your attention. I hope you found this information useful.
