@@ -10,7 +10,7 @@ authorURL: https://github.com/Mantisus
 authorImageURL: https://avatars.githubusercontent.com/u/34358312?v=4
 ---
 
-# Web scraping of a dynamic website using Crawlee for Python  with HTTP client
+# Web scraping of a dynamic website using Crawlee for Python with HTTP client
 
 Dynamic websites that use JavaScript for content rendering and backend interaction often create challenges for web scraping. The traditional approach to solving this problem is browser emulation, but it's not very efficient in terms of resource consumption.
 
