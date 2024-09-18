@@ -76,7 +76,7 @@ module.exports = {
                     // eslint-disable-next-line max-len
                     blogDescription: 'Guides and tutorials on using Crawlee, the most reliable open-source web scraping and browser automation library for JavaScript and Node.js developers.',
                     blogSidebarTitle: 'All posts',
-                    blogSidebarCount: 'ALL',          
+                    blogSidebarCount: 'ALL',
                 },
                 theme: {
                     customCss: '/src/css/custom.css',
