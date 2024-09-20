@@ -450,6 +450,8 @@ export class SitemapRequestList implements IRequestList {
             urlQueue.push(url);
         }
 
+        // Create a new stream, as we have read all the URLs from the current one.
+        // Pushing the urls back to the original stream might not be possible if it has been ended.
         const newStream = this.createNewStream(this.urlQueueStream.readableHighWaterMark);
 
         for (const url of urlQueue) {
