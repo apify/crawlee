@@ -235,11 +235,9 @@ describe('PuppeteerCrawler', () => {
             requestHandler,
         });
 
-        // @ts-expect-error Overriding protected method
         const logWarningSpy = vitest.spyOn(crawler.log, 'warning');
         logWarningSpy.mockImplementation(() => {});
 
-        // @ts-expect-error Overriding protected method
         const logErrorSpy = vitest.spyOn(crawler.log, 'error');
         logErrorSpy.mockImplementation(() => {});
 
@@ -280,11 +278,9 @@ describe('PuppeteerCrawler', () => {
             requestHandler,
         });
 
-        // @ts-expect-error Overriding protected method
         const logWarningSpy = vitest.spyOn(crawler.log, 'warning');
         logWarningSpy.mockImplementation(() => {});
 
-        // @ts-expect-error Overriding protected method
         const logErrorSpy = vitest.spyOn(crawler.log, 'error');
         logErrorSpy.mockImplementation(() => {});
 

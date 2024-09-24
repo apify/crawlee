@@ -341,7 +341,7 @@ export class SitemapRequestList implements IRequestList {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
                 this.sitemapParsingProgress.inProgressSitemapUrl ??
-                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value;
+                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value!;
 
             try {
                 for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
@@ -514,7 +514,7 @@ export class SitemapRequestList implements IRequestList {
      */
     async fetchNextRequest(): Promise<Request | null> {
         // Try to return a reclaimed request first
-        let nextUrl: string | null = this.reclaimed.values().next().value;
+        let nextUrl: string | undefined | null = this.reclaimed.values().next().value;
         if (nextUrl) {
             this.reclaimed.delete(nextUrl);
         } else {

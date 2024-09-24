@@ -176,7 +176,10 @@ export class PlaywrightPlugin extends BrowserPlugin<
                     });
                 }
 
-                browser = new PlaywrightBrowserWithPersistentContext({ browserContext, version: this._browserVersion });
+                browser = new PlaywrightBrowserWithPersistentContext({
+                    browserContext,
+                    version: this._browserVersion,
+                }) as unknown as PlaywrightBrowser;
             }
         } catch (error) {
             await close();
