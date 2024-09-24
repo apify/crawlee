@@ -269,7 +269,7 @@ describe('Plugins', () => {
             const page = await browserController.newPage();
             const browserContext = page.browserContext();
 
-            expect(browserContext.isIncognito()).toBeFalsy();
+            expect(browserContext.id).toBeFalsy();
         });
 
         test('should use incognito pages by option', async () => {
@@ -285,7 +285,7 @@ describe('Plugins', () => {
             const page = await browserController.newPage();
             const browserContext = page.browserContext();
 
-            expect(browserContext.isIncognito()).toBeTruthy();
+            expect(browserContext.id).toBeTruthy();
         });
 
         test('should pass launch options to browser', async () => {
