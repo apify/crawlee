@@ -71,17 +71,17 @@ async def main() -> None:
     @crawler.router.default_handler
     async def request_handler(context: PlaywrightCrawlingContext) -> None:
         data = {
-            "request_url": context.request.url,
-            "page_url": context.page.url,
-            "page_title": await context.page.title(),
-            "page_content": (await context.page.content())[:10000],
+            'request_url': context.request.url,
+            'page_url': context.page.url,
+            'page_title': await context.page.title(),
+            'page_content': (await context.page.content())[:10000],
         }
         await context.push_data(data)
 
-    await crawler.run(["https://crawlee.dev"])
+    await crawler.run(['https://crawlee.dev'])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
 ```
 
@@ -134,5 +134,7 @@ There’s still room for improvement. Feel free to open issues, make pull reques
 **We will award the first 10 pieces of feedback** that add value and are accepted by our team with an exclusive Crawlee for Python swag (The first Crawlee for Python swag ever). Check out the [GitHub issue here](https://github.com/apify/crawlee-python/issues/269/).
 
 With such contributions, we’re excited and looking forward to building an amazing library for the Python community.
+
+Check out a step by step guide on how to use Crawlee for Python through one of our [latest tutorial](https://blog.apify.com/crawlee-for-python-tutorial/).
 
 [Join our Discord community](https://apify.com/discord) with nearly 8,000 web scraping developers, where our team would be happy to help you with any problems or discuss any use case for Crawlee for Python.

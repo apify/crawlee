@@ -1,6 +1,6 @@
 import type { Dictionary } from '@crawlee/types';
 import type { load, CheerioAPI } from 'cheerio';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls';
 
@@ -32,7 +32,7 @@ const BLOCK_TAGS_REGEX =
  * with the `decodeEntities` option set to `true`. For example:
  *
  * ```javascript
- * import cheerio from 'cheerio';
+ * import * as cheerio from 'cheerio';
  * const html = '<html><body>Some text</body></html>';
  * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
  * ```

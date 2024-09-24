@@ -77,7 +77,7 @@ export function weightedAvg(arrValues: number[], arrWeights: number[]): number {
  * @param millis Period of time to sleep, in milliseconds. If not a positive number, the returned promise resolves immediately.
  */
 export async function sleep(millis?: number): Promise<void> {
-    return setTimeout(millis);
+    return setTimeout(millis ?? undefined);
 }
 
 /**
