@@ -501,6 +501,18 @@ describe('SitemapRequestList', () => {
         expect(newList.handledCount()).toBe(2);
     });
 
+    test("calling `persistState` doesn't throw", async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+
+            if (list.handledCount() >= 2) break;
+        }
+
+        await expect(list.persistState()).resolves.toBe(undefined);
+    });
+
     test('state persistence tracks user changes', async () => {
         const options = {
             sitemapUrls: [`${url}/sitemap-stream.xml`],

@@ -12,11 +12,11 @@ authorTwitter: Sauain
 
 # How to scrape infinite scrolling webpages with Python
 
-Hello, Crawlee Devs, and welcome back to another tutorial on the Crawlee Blog. This tutorial will teach you how to scrape infinite-scrolling websites using Crawlee for Python. 
+Hello, Crawlee Devs, and welcome back to another tutorial on the Crawlee Blog. This tutorial will teach you how to scrape infinite-scrolling websites using Crawlee for Python.
 
 For context, infinite-scrolling pages are a modern alternative to classic pagination. When users scroll to the bottom of the webpage instead of choosing the next page, the page automatically loads more data, and users can scroll more.
 
-As a big sneakerhead, I'll take the Nike shoes infinite-scrolling [website](https://www.nike.com/) as an example, and we'll scrape thousands of sneakers from it. 
+As a big sneakerhead, I'll take the Nike shoes infinite-scrolling [website](https://www.nike.com/) as an example, and we'll scrape thousands of sneakers from it.
 
 ![How to scrape infinite scrolling pages with Python](./img/infinite-scroll.webp)
 
@@ -26,7 +26,7 @@ Crawlee for Python has some amazing initial features, such as a unified interfac
 
 ## Prerequisites and bootstrapping the project
 
-Let’s start the tutorial by installing Crawlee for Python with this command:
+Let's start the tutorial by installing Crawlee for Python with this command:
 
 ```bash
 pipx run crawlee create nike-crawler
@@ -49,13 +49,13 @@ poetry install
 ## How to scrape infinite scrolling webpages
 
 1.  Handling accept cookie dialog
-    
+
 2.  Adding request of all shoes links
-    
+
 3.  Extract data from product details
-        
+
 4.  Accept Cookies context manager
-    
+
 5.  Handling infinite scroll on the listing page
 
 6.  Exporting data to CSV format
@@ -65,15 +65,13 @@ poetry install
 
 After all the necessary installations, we'll start looking into the files and configuring them accordingly.
 
-When you look into the folder, you'll see many files, but for now, let’s focus on `main.py` and `routes.py`.
+When you look into the folder, you'll see many files, but for now, let's focus on `main.py` and `routes.py`.
 
-In `__main__.py`, let's change the target location to the Nike website. Then, just to see how scraping will happen, we'll add `headless = False` to the `PlaywrightCrawler` parameters. Let's also increase the maximum requests per crawl option to 100 to see the power of parallel scraping in Crawlee for Python.
+In `main.py`, let's change the target location to the Nike website. Then, just to see how scraping will happen, we'll add `headless = False` to the `PlaywrightCrawler` parameters. Let's also increase the maximum requests per crawl option to 100 to see the power of parallel scraping in Crawlee for Python.
 
 The final code will look like this:
 
 ```python
-import asyncio
-
 from crawlee.playwright_crawler import PlaywrightCrawler
 
 from .routes import router
@@ -92,30 +90,25 @@ async def main() -> None:
             'https://nike.com/,
         ]
     )
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
-
 ```
 
-Now coming to `routes.py`, let’s remove:
+Now coming to `routes.py`, let's remove:
 
 ```python
 await context.enqueue_links()
 ```
-As we don’t want to scrape the whole website. 
+As we don't want to scrape the whole website.
 
 Now, if you run the crawler using the command:
 
 ```bash
 poetry run python -m nike-crawler
 ```
-As the cookie dialog is blocking us from crawling more than one page's worth of shoes, let’s get it out of our way.
+As the cookie dialog is blocking us from crawling more than one page's worth of shoes, let's get it out of our way.
 
 We can handle the cookie dialog by going to Chrome dev tools and looking at the `test_id` of the "accept cookies" button, which is `dialog-accept-button`.
 
-Now, let’s remove the `context.push_data` call that was left there from the project template and add the code to accept the dialog in routes.py. The updated code will look like this:
+Now, let's remove the `context.push_data` call that was left there from the project template and add the code to accept the dialog in routes.py. The updated code will look like this:
 
 ```python
 from crawlee.router import Router
@@ -133,7 +126,7 @@ async def default_handler(context: PlaywrightCrawlingContext) -> None:
 
 ### Adding request of all shoes links
 
-Now, if you hover over the top bar and see all the sections, i.e., man, woman, and kids, you'll notice the “All shoes” section. As we want to scrape all the sneakers, this section interests us. Let’s use `get_by_test_id` with the filter of `has_text=’All shoes’` and add all the links with the text “All shoes” to the request handler. Let’s add this code to the existing `routes.py` file:
+Now, if you hover over the top bar and see all the sections, i.e., man, woman, and kids, you'll notice the “All shoes” section. As we want to scrape all the sneakers, this section interests us. Let's use `get_by_test_id` with the filter of `has_text='All shoes'` and add all the links with the text “All shoes” to the request handler. Let's add this code to the existing `routes.py` file:
 
 ```python
     shoe_listing_links = (
@@ -150,7 +143,7 @@ Now, if you hover over the top bar and see all the sections, i.e., man, woman, a
 @router.handler('listing')
 async def listing_handler(context: PlaywrightCrawlingContext) -> None:
     """Handler for shoe listings."""
-``` 
+```
 
 ### Extract data from product details
 
@@ -162,7 +155,7 @@ We'll extract each shoe's URL, title, price, and description. Again, let's go to
 
 @router.handler('listing')
 async def listing_handler(context: PlaywrightCrawlingContext) -> None:
-    """Handler for shoe listings."""	    
+    """Handler for shoe listings."""
 
     await context.enqueue_links(selector='a.product-card__link-overlay', label='detail')
 
@@ -191,7 +184,7 @@ async def detail_handler(context: PlaywrightCrawlingContext) -> None:
             'description': description,
         }
     )
-``` 
+```
 
 ### Accept Cookies context manager
 
@@ -217,20 +210,20 @@ async def accept_cookies(page: Page):
             await task
 ```
 
-This context manager will make sure we're accepting the cookie dialog if it exists before scrolling and scraping the page. Let’s implement it in the `routes.py` file, and the updated code is [here](https://github.com/janbuchar/crawlee-python-demo/blob/6ca6f7f1d1bbbf789a3b86f14bec492cf756251e/crawlee-python-webinar/routes.py)
+This context manager will make sure we're accepting the cookie dialog if it exists before scrolling and scraping the page. Let's implement it in the `routes.py` file, and the updated code is [here](https://github.com/janbuchar/crawlee-python-demo/blob/6ca6f7f1d1bbbf789a3b86f14bec492cf756251e/crawlee-python-webinar/routes.py)
 
 ### Handling infinite scroll on the listing page
 
 Now for the last and most interesting part of the tutorial! How to handle the infinite scroll of each shoe listing page and make sure our crawler is scrolling and scraping the data constantly.
 
-This tutorial is taken from the webinar held on August 5th where Jan Buchar, Senior Python Engineer at Apify, gave a live demo about this use case. Watch the tutorial here: 
+This tutorial is taken from the webinar held on August 5th where Jan Buchar, Senior Python Engineer at Apify, gave a live demo about this use case. Watch the tutorial here:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/ip8Ii0eLfRY?si=7ZllUhMhuC7VC23B&amp;start=667" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 
 To handle infinite scrolling in Crawlee for Python, we just need to make sure the page is loaded, which is done by waiting for the `network_idle` load state, and then use the `infinite_scroll` helper function which will keep scrolling to the bottom of the page as long as that makes additional items appear.
 
-Let’s add two lines of code to the `listing` handler:
+Let's add two lines of code to the `listing` handler:
 
 ```python
 @router.handler('listing')
@@ -247,7 +240,7 @@ async def listing_handler(context: PlaywrightCrawlingContext) -> None:
 
 ## Exporting data to CSV format
 
-As we want to store all the shoe data into a CSV file, we can just add a call to the `export_data` helper into the `__main__.py` file just after the crawler run:
+As we want to store all the shoe data into a CSV file, we can just add a call to the `export_data` helper into the `main.py` file just after the crawler run:
 
 ```python
     await crawler.export_data('shoes.csv')
@@ -257,7 +250,8 @@ As we want to store all the shoe data into a CSV file, we can just add a call to
 
 Now, we have a crawler ready that can scrape all the shoes from the Nike website while handling infinite scrolling and many other problems, like the cookies dialog.
 
-You can find the complete working crawler code here on the [GitHub repository](https://github.com/janbuchar/crawlee-python-demo). 
+You can find the complete working crawler code here on the [GitHub repository](https://github.com/janbuchar/crawlee-python-demo).
+
+Learn more about Crawlee for Python from our latest step by step [tutorial](https://blog.apify.com/crawlee-for-python-tutorial/).
 
 If you have any doubts regarding this tutorial or using Crawlee for Python, feel free to [join our discord community](https://apify.com/discord/) and ask fellow developers or the Crawlee team.
-

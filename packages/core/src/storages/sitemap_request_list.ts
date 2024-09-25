@@ -137,7 +137,7 @@ export class SitemapRequestList implements IRequestList {
          */
         inProgressEntries: new Set<string>(),
         /**
-         * Set of sitemap URLs that have not been fully parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
+         * Set of sitemap URLs that have not been parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
          */
         pendingSitemapUrls: new Set<string>(),
     };
@@ -225,13 +225,21 @@ export class SitemapRequestList implements IRequestList {
         this.persistStateKey = options.persistStateKey;
         this.proxyUrl = options.proxyUrl;
 
-        this.urlQueueStream = new Transform({
-            objectMode: true,
-            highWaterMark: options.maxBufferSize ?? 200,
-        });
-        this.urlQueueStream.pause();
+        this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
         this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
+    }
+
+    /**
+     * Creates a new object stream with the specified highWaterMark.
+     * @param highWaterMark High water mark for the stream (the maximum number of objects the stream will buffer).
+     * @returns A new object stream.
+     */
+    private createNewStream(highWaterMark: number): Transform {
+        return new Transform({
+            objectMode: true,
+            highWaterMark,
+        }).pause();
     }
 
     /**
@@ -333,7 +341,7 @@ export class SitemapRequestList implements IRequestList {
         while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
             const sitemapUrl =
                 this.sitemapParsingProgress.inProgressSitemapUrl ??
-                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value;
+                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value!;
 
             try {
                 for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
@@ -361,7 +369,7 @@ export class SitemapRequestList implements IRequestList {
             this.sitemapParsingProgress.inProgressSitemapUrl = null;
         }
 
-        await this.pushNextUrl(null);
+        this.urlQueueStream.end();
     }
 
     /**
@@ -442,9 +450,19 @@ export class SitemapRequestList implements IRequestList {
             urlQueue.push(url);
         }
 
+        // Create a new stream, as we have read all the URLs from the current one.
+        // Pushing the urls back to the original stream might not be possible if it has been ended.
+        const newStream = this.createNewStream(this.urlQueueStream.readableHighWaterMark);
+
         for (const url of urlQueue) {
-            this.urlQueueStream.push(url);
+            newStream.push(url);
         }
+
+        if (this.urlQueueStream.writableEnded) {
+            newStream.end();
+        }
+
+        this.urlQueueStream = newStream;
 
         await this.store.setValue(this.persistStateKey, {
             sitemapParsingProgress: {
@@ -496,7 +514,7 @@ export class SitemapRequestList implements IRequestList {
      */
     async fetchNextRequest(): Promise<Request | null> {
         // Try to return a reclaimed request first
-        let nextUrl: string | null = this.reclaimed.values().next().value;
+        let nextUrl: string | undefined | null = this.reclaimed.values().next().value;
         if (nextUrl) {
             this.reclaimed.delete(nextUrl);
         } else {
