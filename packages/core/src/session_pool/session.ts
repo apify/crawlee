@@ -8,11 +8,11 @@ import type { Cookie } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
 import { EVENT_SESSION_RETIRED } from './events';
+import type { ResponseLike } from '../cookie_utils';
 import {
     browserPoolCookieToToughCookie,
     getCookiesFromResponse,
     getDefaultCookieExpirationDate,
-    ResponseLike,
     toughCookieToBrowserPoolCookie,
 } from '../cookie_utils';
 import { log as defaultLog } from '../log';

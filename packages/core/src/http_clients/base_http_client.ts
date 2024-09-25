@@ -58,6 +58,8 @@ interface PromiseCookieJar {
     setCookie: (rawCookie: string, url: string) => Promise<unknown>;
 }
 
+type SimpleHeaders = Record<string, string | string[] | undefined>;
+
 // Omitted (https://github.com/sindresorhus/got/blob/main/documentation/2-options.md):
 //  - decompress,
 //  - resolveBodyOnly,
@@ -90,7 +92,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     method?: Method;
     searchParams?: string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
     signal?: AbortSignal;
-    headers?: Record<string, string | string[] | undefined>;
+    headers?: SimpleHeaders;
     body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
     form?: Record<string, string>;
     json?: unknown;
@@ -119,22 +121,49 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     sessionToken?: object;
 }
 
-export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof ResponseTypes> {
-    [k: string]: any; // TODO BC with got - remove in 4.0
-
-    request: HttpRequest<TResponseType>;
-
+interface BaseHttpResponseData {
     redirectUrls: URL[];
     url: string;
 
     ip?: string;
     statusCode: number;
+    statusMessage?: string;
+
+    headers: SimpleHeaders;
+    trailers: SimpleHeaders; // Populated after the whole message is processed
+
+    complete: boolean;
+    httpVersion: string;
+
+    rawHeaders: string[];
+    rawTrailers: string[];
+}
+
+interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
+    extends BaseHttpResponseData {
+    request: HttpRequest<TResponseType>;
+}
+
+export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
+    extends HttpResponseWithoutBody<TResponseType> {
+    [k: string]: any; // TODO BC with got - remove in 4.0
 
     body: ResponseTypes[TResponseType];
 }
+
+export interface StreamingHttpResponse extends HttpResponseWithoutBody {
+    stream: Readable;
+}
+
+export type RedirectHandler = (
+    redirectResponse: BaseHttpResponseData,
+    updatedRequest: { url?: string | URL; headers: SimpleHeaders },
+) => void;
 
 export abstract class BaseHttpClient {
     abstract sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>>;
+
+    abstract stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
 }
