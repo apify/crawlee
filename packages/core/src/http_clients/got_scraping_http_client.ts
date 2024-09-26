@@ -60,6 +60,12 @@ export class GotScrapingHttpClient extends BaseHttpClient {
                     httpVersion: response.httpVersion,
                     rawHeaders: response.rawHeaders,
                     rawTrailers: response.rawTrailers,
+                    get downloadProgress() {
+                        return stream.downloadProgress;
+                    },
+                    get uploadProgress() {
+                        return stream.uploadProgress;
+                    },
                 };
 
                 Object.assign(result, response); // TODO BC - remove in 4.0

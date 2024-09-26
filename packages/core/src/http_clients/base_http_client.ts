@@ -37,6 +37,12 @@ export interface ResponseTypes {
     'buffer': Buffer;
 }
 
+type Progress = {
+    percent: number;
+    transferred: number;
+    total?: number;
+};
+
 interface ToughCookieJar {
     getCookieString: ((
         currentUrl: string,
@@ -153,6 +159,8 @@ export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof 
 
 export interface StreamingHttpResponse extends HttpResponseWithoutBody {
     stream: Readable;
+    readonly downloadProgress: Progress;
+    readonly uploadProgress: Progress;
 }
 
 export type RedirectHandler = (
