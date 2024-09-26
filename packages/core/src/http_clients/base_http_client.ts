@@ -37,11 +37,11 @@ export interface ResponseTypes {
     'buffer': Buffer;
 }
 
-type Progress = {
+interface Progress {
     percent: number;
     transferred: number;
     total?: number;
-};
+}
 
 interface ToughCookieJar {
     getCookieString: ((
