@@ -60,6 +60,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     pendingRequestCount = 0;
     requestQueueDirectory: string;
     private readonly mutex = new AsyncQueue();
+    private forefrontRequestIds: string[] = [];
 
     private readonly requests = new Map<string, RequestQueueFileSystemEntry | RequestQueueMemoryEntry>();
     private readonly client: MemoryStorage;
@@ -169,10 +170,20 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
-        for (const storageEntry of existingQueueById.requests.values()) {
+        const seenRequestIds = new Set<string>();
+
+        for (const requestId of [...this.forefrontRequestIds.toReversed(), ...existingQueueById.requests.keys()]) {
             if (items.length === limit) {
                 break;
             }
+
+            if (seenRequestIds.has(requestId)) {
+                continue;
+            }
+
+            seenRequestIds.add(requestId);
+
+            const storageEntry = existingQueueById.requests.get(requestId)!;
 
             let { orderNo } = storageEntry;
             let loaded: InternalRequest;
@@ -187,6 +198,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // Have an order no -> fetch from fs/memory and return
             if (orderNo) {
                 items.push(await storageEntry.get());
+            } else if (this.forefrontRequestIds.includes(requestId)) {
+                this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => id !== requestId);
             }
         }
 
@@ -363,6 +376,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             existingQueueById.pendingRequestCount += 1;
         } else {
             existingQueueById.handledRequestCount += 1;
+        }
+
+        if (options.forefront) {
+            this.forefrontRequestIds.push(requestModel.id);
         }
 
         return {
@@ -547,6 +564,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             stats: {},
             totalRequestCount: this.requests.size,
             userId: '1',
+            forefrontRequestIds: this.forefrontRequestIds,
         };
     }
 
