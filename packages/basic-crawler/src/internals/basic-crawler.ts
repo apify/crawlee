@@ -538,6 +538,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         statusMessageCallback: ow.optional.function,
 
         retryOnBlocked: ow.optional.boolean,
+        httpClient: ow.optional.object,
 
         // AutoscaledPool shorthands
         minConcurrency: ow.optional.number,
