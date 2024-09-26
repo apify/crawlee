@@ -530,6 +530,7 @@ export abstract class BrowserCrawler<
                  */
                 newPageOptions.pageOptions = {
                     ignoreHTTPSErrors: true,
+                    acceptInsecureCerts: true,
                 };
             }
         }
@@ -747,6 +748,7 @@ export abstract class BrowserCrawler<
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
                  */
                 (launchContext.launchOptions as Dictionary).ignoreHTTPSErrors = true;
+                (launchContext.launchOptions as Dictionary).acceptInsecureCerts = true;
             }
         }
 
