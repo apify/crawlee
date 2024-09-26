@@ -3,7 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { MemoryStorage } from '@crawlee/memory-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
-describe('RequestQueue forefront should be respected when listing head', () => {
+describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
     const storage = new MemoryStorage({
         persistStorage: false,
     });
@@ -19,7 +19,7 @@ describe('RequestQueue forefront should be respected when listing head', () => {
         await requestQueue.delete();
     });
 
-    test('adding two requests without one being in the forefront should be added in sequential order', async () => {
+    test('requests without `forefront` respect sequential order', async () => {
         await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
         // Waiting a few ms is required since we use Date.now() to compute orderNo
         await sleep(2);
@@ -28,11 +28,10 @@ describe('RequestQueue forefront should be respected when listing head', () => {
         const { items } = await requestQueue.listHead();
 
         expect(items).toHaveLength(2);
-        expect(items[0].url).toBe('http://example.com/1');
-        expect(items[1].url).toBe('http://example.com/2');
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
     });
 
-    test('adding two requests with one being in the forefront should ensure the forefront request is first', async () => {
+    test('`forefront` requests are prioritized', async () => {
         await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
         // Waiting a few ms is required since we use Date.now() to compute orderNo
         await sleep(2);
@@ -41,20 +40,75 @@ describe('RequestQueue forefront should be respected when listing head', () => {
         const { items } = await requestQueue.listHead();
 
         expect(items).toHaveLength(2);
-        expect(items[0].url).toBe('http://example.com/2');
-        expect(items[1].url).toBe('http://example.com/1');
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/1']);
     });
 
-    test('adding two requests where both are in the forefront should ensure the latest one is added first', async () => {
-        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
+    test('`limit` retains the global `forefront` ordering', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' }, { forefront: true });
+
+        // List only 2 items (smaller than the total queue size)
+        const { items } = await requestQueue.listHead({ limit: 2 });
+
+        expect(items).toHaveLength(2);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/2']);
+    });
+});
+
+describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
+    const storage = new MemoryStorage({
+        persistStorage: false,
+    });
+
+    let requestQueue: RequestQueueClient;
+
+    beforeEach(async () => {
+        const { id } = await storage.requestQueues().getOrCreate('forefront-v2');
+        requestQueue = storage.requestQueue(id);
+    });
+
+    afterEach(async () => {
+        await requestQueue.delete();
+    });
+
+    test('requests without `forefront` respect sequential order', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        // Waiting a few ms is required since we use Date.now() to compute orderNo
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+
+        const { items } = await requestQueue.listAndLockHead({ lockSecs: 10 });
+
+        expect(items).toHaveLength(2);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
+    });
+
+    test('`forefront` requests are prioritized', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
         // Waiting a few ms is required since we use Date.now() to compute orderNo
         await sleep(2);
         await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
 
-        const { items } = await requestQueue.listHead();
+        const { items } = await requestQueue.listAndLockHead({ lockSecs: 10 });
 
         expect(items).toHaveLength(2);
-        expect(items[0].url).toBe('http://example.com/2');
-        expect(items[1].url).toBe('http://example.com/1');
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/1']);
+    });
+
+    test('`limit` retains the global `forefront` ordering', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' }, { forefront: true });
+
+        // List only 2 items (smaller than the total queue size)
+        const { items } = await requestQueue.listAndLockHead({ limit: 2, lockSecs: 10 });
+
+        expect(items).toHaveLength(2);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/2']);
     });
 });
