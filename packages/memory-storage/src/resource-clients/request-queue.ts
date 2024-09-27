@@ -9,13 +9,13 @@ import { move } from 'fs-extra';
 import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs';
 import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory';
 
-import { BaseClient } from './common/base-client';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 import type { MemoryStorage } from '../index';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
+import { BaseClient } from './common/base-client';
 
 const requestShape = s.object({
     id: s.string,
