@@ -153,6 +153,16 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
+    private *requestKeyIterator(rqClient: RequestQueueClient): IterableIterator<string> {
+        for (let i = this.forefrontRequestIds.length - 1; i >= 0; i--) {
+            yield this.forefrontRequestIds[i];
+        }
+
+        for (const key of rqClient.requests.keys()) {
+            yield key;
+        }
+    }
+
     async listHead(options: storage.ListOptions = {}): Promise<storage.QueueHead> {
         const { limit } = s
             .object({
@@ -172,7 +182,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const seenRequestIds = new Set<string>();
 
-        for (const requestId of [...[...this.forefrontRequestIds].reverse(), ...existingQueueById.requests.keys()]) {
+        for (const requestId of this.requestKeyIterator(existingQueueById)) {
             if (items.length === limit) {
                 break;
             }
@@ -232,7 +242,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         try {
             const seenRequestIds = new Set<string>();
 
-            for (const requestId of [...[...this.forefrontRequestIds].reverse(), ...queue.requests.keys()]) {
+            for (const requestId of this.requestKeyIterator(queue)) {
                 if (items.length === limit) {
                     break;
                 }
