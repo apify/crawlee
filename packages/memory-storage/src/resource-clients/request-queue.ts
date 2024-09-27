@@ -172,7 +172,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const seenRequestIds = new Set<string>();
 
-        for (const requestId of [...this.forefrontRequestIds.toReversed(), ...existingQueueById.requests.keys()]) {
+        for (const requestId of [...[...this.forefrontRequestIds].reverse(), ...existingQueueById.requests.keys()]) {
             if (items.length === limit) {
                 break;
             }
