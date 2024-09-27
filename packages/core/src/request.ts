@@ -20,7 +20,7 @@ const requestOptionalPredicates = {
     loadedUrl: ow.optional.string.url,
     uniqueKey: ow.optional.string,
     method: ow.optional.string,
-    payload: ow.optional.any(ow.string, ow.buffer, ow.uint8Array),
+    payload: ow.optional.any(ow.string, ow.uint8Array),
     noRetry: ow.optional.boolean,
     retryCount: ow.optional.number,
     sessionRotationCount: ow.optional.number,

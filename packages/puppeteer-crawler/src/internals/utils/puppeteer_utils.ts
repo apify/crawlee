@@ -465,7 +465,7 @@ export async function gotoExtended(
             url: ow.string.url,
             method: ow.optional.string,
             headers: ow.optional.object,
-            payload: ow.optional.any(ow.string, ow.buffer, ow.uint8Array),
+            payload: ow.optional.any(ow.string, ow.uint8Array),
         }),
     );
     ow(gotoOptions, ow.object);

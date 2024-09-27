@@ -80,7 +80,7 @@ export async function serializeArray<T>(data: T[]): Promise<Buffer> {
  * @internal
  */
 export async function deserializeArray<T extends string | Buffer>(compressedData: Buffer | Uint8Array): Promise<T[]> {
-    ow(compressedData, ow.any(ow.buffer, ow.uint8Array));
+    ow(compressedData, ow.uint8Array);
     const { chunks, collector } = createChunkCollector<T>({ fromValuesStream: true });
     await pipeline(Readable.from([compressedData]), zlib.createGunzip(), StreamArray.withParser(), collector);
 
@@ -97,7 +97,7 @@ export async function deserializeArray<T extends string | Buffer>(compressedData
  * @internal
  */
 export function createDeserialize(compressedData: Buffer | Uint8Array): Readable {
-    ow(compressedData, ow.any(ow.buffer, ow.uint8Array));
+    ow(compressedData, ow.uint8Array);
     const streamArray = StreamArray.withParser();
     const destination = pluckValue(streamArray);
 
