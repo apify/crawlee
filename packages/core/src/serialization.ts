@@ -3,10 +3,11 @@ import zlib from 'node:zlib';
 import { pipeline as streamPipeline, Readable, Writable } from 'stream';
 
 import ow from 'ow';
-import type Chain from 'stream-chain';
 import StreamArray from 'stream-json/streamers/StreamArray';
 
 const pipeline = util.promisify(streamPipeline);
+
+type Chain = ReturnType<typeof StreamArray.withParser>;
 
 /**
  * Transforms an array of items to a JSON in a streaming
