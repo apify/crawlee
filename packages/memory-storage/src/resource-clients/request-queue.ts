@@ -443,6 +443,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 existingQueueById.handledRequestCount += 1;
             }
 
+            if (options.forefront) {
+                this.forefrontRequestIds.push(requestModel.id);
+            }
+
             result.processedRequests.push({
                 requestId: requestModel.id,
                 uniqueKey: requestModel.uniqueKey,
