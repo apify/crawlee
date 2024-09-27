@@ -100,6 +100,59 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
             ['/1', '/2'],
         ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
     });
+
+    test('`updateRequest` respects `forefront` (with `limit`)', async () => {
+        const req1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await sleep(2);
+        const req2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+        await sleep(2);
+        const req3 = await requestQueue.addRequest(
+            { url: 'http://example.com/3', uniqueKey: '3' },
+            { forefront: true },
+        );
+
+        let { items } = await requestQueue.listHead();
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/1', '/2']);
+
+        await requestQueue.updateRequest(
+            {
+                id: req2.requestId,
+                url: 'http://example.com/2',
+                uniqueKey: '2',
+            },
+            { forefront: true },
+        );
+
+        ({ items } = await requestQueue.listHead());
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/1']);
+
+        await requestQueue.updateRequest(
+            {
+                id: req3.requestId,
+                url: 'http://example.com/3',
+                uniqueKey: '3',
+            },
+            { forefront: true },
+        );
+
+        await requestQueue.updateRequest(
+            {
+                id: req1.requestId,
+                url: 'http://example.com/1',
+                uniqueKey: '1',
+            },
+            { forefront: true },
+        );
+
+        ({ items } = await requestQueue.listHead({ limit: 2 }));
+
+        expect(items).toHaveLength(2);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/3']);
+    });
 });
 
 describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
@@ -198,5 +251,66 @@ describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
             ['/2', '/1'],
             ['/1', '/2'],
         ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
+    });
+
+    test('`updateRequest` respects `forefront` (with `limit`)', async () => {
+        vitest.useFakeTimers();
+
+        const req1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await sleep(2);
+        const req2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
+        await sleep(2);
+        const req3 = await requestQueue.addRequest(
+            { url: 'http://example.com/3', uniqueKey: '3' },
+            { forefront: true },
+        );
+
+        let { items } = await requestQueue.listAndLockHead({ lockSecs: 1 });
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/1', '/2']);
+
+        vitest.advanceTimersByTime(1001);
+
+        await requestQueue.updateRequest(
+            {
+                id: req2.requestId,
+                url: 'http://example.com/2',
+                uniqueKey: '2',
+            },
+            { forefront: true },
+        );
+
+        ({ items } = await requestQueue.listAndLockHead({ lockSecs: 1 }));
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/1']);
+
+        vitest.advanceTimersByTime(1001);
+
+        await requestQueue.updateRequest(
+            {
+                id: req3.requestId,
+                url: 'http://example.com/3',
+                uniqueKey: '3',
+            },
+            { forefront: true },
+        );
+
+        await requestQueue.updateRequest(
+            {
+                id: req1.requestId,
+                url: 'http://example.com/1',
+                uniqueKey: '1',
+            },
+            { forefront: true },
+        );
+
+        ({ items } = await requestQueue.listAndLockHead({ lockSecs: 1, limit: 2 }));
+
+        expect(items).toHaveLength(2);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/3']);
+
+        vitest.useRealTimers();
     });
 });
