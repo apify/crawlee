@@ -56,6 +56,50 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
         expect(items).toHaveLength(2);
         expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/2']);
     });
+
+    test('`batchAddRequests` respects `forefront`', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+
+        await sleep(2);
+
+        await requestQueue.batchAddRequests(
+            [
+                { url: 'http://example.com/1', uniqueKey: '1' },
+                { url: 'http://example.com/2', uniqueKey: '2' },
+            ],
+            { forefront: true },
+        );
+
+        const { items } = await requestQueue.listHead();
+
+        expect(items).toHaveLength(3);
+        expect([
+            ['/2', '/1', '/3'],
+            ['/1', '/2', '/3'],
+        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
+    });
+
+    test('`batchAddRequests` respects `forefront` (with `limit`)', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+
+        await sleep(2);
+
+        await requestQueue.batchAddRequests(
+            [
+                { url: 'http://example.com/1', uniqueKey: '1' },
+                { url: 'http://example.com/2', uniqueKey: '2' },
+            ],
+            { forefront: true },
+        );
+
+        const { items } = await requestQueue.listHead({ limit: 2 });
+
+        expect(items).toHaveLength(2);
+        expect([
+            ['/2', '/1'],
+            ['/1', '/2'],
+        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
+    });
 });
 
 describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
@@ -110,5 +154,49 @@ describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
 
         expect(items).toHaveLength(2);
         expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/2']);
+    });
+
+    test('`batchAddRequests` respects `forefront`', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+
+        await sleep(2);
+
+        await requestQueue.batchAddRequests(
+            [
+                { url: 'http://example.com/1', uniqueKey: '1' },
+                { url: 'http://example.com/2', uniqueKey: '2' },
+            ],
+            { forefront: true },
+        );
+
+        const { items } = await requestQueue.listAndLockHead({ lockSecs: 10 });
+
+        expect(items).toHaveLength(3);
+        expect([
+            ['/2', '/1', '/3'],
+            ['/1', '/2', '/3'],
+        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
+    });
+
+    test('`batchAddRequests` respects `forefront` (with `limit`)', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+
+        await sleep(2);
+
+        await requestQueue.batchAddRequests(
+            [
+                { url: 'http://example.com/1', uniqueKey: '1' },
+                { url: 'http://example.com/2', uniqueKey: '2' },
+            ],
+            { forefront: true },
+        );
+
+        const { items } = await requestQueue.listAndLockHead({ limit: 2, lockSecs: 10 });
+
+        expect(items).toHaveLength(2);
+        expect([
+            ['/2', '/1'],
+            ['/1', '/2'],
+        ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
     });
 });
