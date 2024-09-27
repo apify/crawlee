@@ -546,7 +546,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         existingQueueById.updateTimestamps(true);
 
-        if (options.forefront) {
+        if (options.forefront && !requestIsHandledAfterUpdate) {
             this.forefrontRequestIds.push(requestModel.id);
         }
 
