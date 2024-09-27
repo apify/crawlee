@@ -153,6 +153,42 @@ describe('RequestQueueV1 respects `forefront` in `listHead`', () => {
         expect(items).toHaveLength(2);
         expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/3']);
     });
+
+    test('handling `forefront` requests works as expected', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await sleep(2);
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' }, { forefront: true });
+
+        let { items } = await requestQueue.listHead();
+
+        expect(items).toHaveLength(3);
+        for (const item of items.slice(0, 2)) {
+            await requestQueue.updateRequest({
+                id: item.id,
+                url: item.url,
+                uniqueKey: item.uniqueKey,
+                handledAt: new Date().toISOString(),
+            });
+        }
+
+        await requestQueue.updateRequest(
+            {
+                id: items[2].id,
+                url: items[2].url,
+                uniqueKey: items[2].uniqueKey,
+                handledAt: new Date().toISOString(),
+            },
+            {
+                forefront: true,
+            },
+        );
+
+        ({ items } = await requestQueue.listHead());
+
+        expect(items).toHaveLength(0);
+    });
 });
 
 describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
