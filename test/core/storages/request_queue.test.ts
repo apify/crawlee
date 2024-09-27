@@ -5,6 +5,7 @@ import {
     API_PROCESSED_REQUESTS_DELAY_MILLIS,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
     RequestQueueV1 as RequestQueue,
+    RequestQueueV2,
     Request,
     Configuration,
     ProxyConfiguration,
@@ -622,6 +623,36 @@ describe('RequestQueue remote', () => {
         expect(listHeadMock).toHaveBeenLastCalledWith({ limit: QUERY_HEAD_MIN_LENGTH });
     });
 
+    test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
+        const emulator = new MemoryStorageEmulator();
+
+        await emulator.init();
+        const queue = await RequestQueue.open();
+
+        const retrievedUrls: string[] = [];
+
+        await queue.addRequests([
+            { url: 'http://example.com/1' },
+            { url: 'http://example.com/4' },
+            { url: 'http://example.com/5' },
+        ]);
+
+        retrievedUrls.push((await queue.fetchNextRequest()).url);
+
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        let req = await queue.fetchNextRequest();
+
+        while (req) {
+            retrievedUrls.push(req.url);
+            req = await queue.fetchNextRequest();
+        }
+
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+        await emulator.destroy();
+    });
+
     test('getInfo() should work', async () => {
         const queue = new RequestQueue({ id: 'some-id', name: 'some-name', client: storageClient });
 
@@ -826,9 +857,9 @@ describe('RequestQueue v2', () => {
     }
 
     async function getEmptyQueue(name: string) {
-        const queue = await RequestQueue.open(name);
+        const queue = await RequestQueueV2.open(name);
         await queue.drop();
-        return RequestQueue.open(name);
+        return RequestQueueV2.open(name);
     }
 
     function getUniqueRequests(count: number) {
@@ -902,5 +933,32 @@ describe('RequestQueue v2', () => {
         const { items: secondFetch } = await queue.client.listAndLockHead({ limit: 1, lockSecs: 60 });
 
         expect(secondFetch[0]).toEqual(firstFetch[0]);
+    });
+
+    test.only('`fetchNextRequest` order respects `forefront` enqueues', async () => {
+        const queue = await getEmptyQueue('fetch-next-request-order');
+
+        const retrievedUrls: string[] = [];
+
+        await queue.addRequests([
+            { url: 'http://example.com/1' },
+            ...Array.from({ length: 25 }, (_, i) => ({ url: `http://example.com/${i + 4}` })),
+        ]);
+
+        retrievedUrls.push((await queue.fetchNextRequest()).url);
+
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        let req = await queue.fetchNextRequest();
+
+        while (req) {
+            retrievedUrls.push(req.url);
+            req = await queue.fetchNextRequest();
+        }
+
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual([
+            Array.from({ length: 28 }, (_, i) => `/${i + 1}`),
+        ]);
     });
 });
