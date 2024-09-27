@@ -230,13 +230,26 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await queue.mutex.wait();
 
         try {
-            for (const storageEntry of queue.requests.values()) {
+            const seenRequestIds = new Set<string>();
+
+            for (const requestId of [...[...this.forefrontRequestIds].reverse(), ...queue.requests.keys()]) {
                 if (items.length === limit) {
                     break;
                 }
 
+                if (seenRequestIds.has(requestId)) {
+                    continue;
+                }
+
+                seenRequestIds.add(requestId);
+
+                const storageEntry = queue.requests.get(requestId)!;
+
                 // This is set to null when the request has been handled, so we don't need to re-fetch from fs
                 if (storageEntry.orderNo === null) {
+                    if (this.forefrontRequestIds.includes(requestId)) {
+                        this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => id !== requestId);
+                    }
                     continue;
                 }
 
