@@ -204,7 +204,6 @@ export interface RequestQueueInfo {
     actRunId?: string;
     hadMultipleClients?: boolean;
     stats?: RequestQueueStats;
-    forefrontRequestIds?: string[];
 }
 
 export interface RequestQueueStats {

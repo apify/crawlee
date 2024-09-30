@@ -605,7 +605,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             stats: {},
             totalRequestCount: this.requests.size,
             userId: '1',
-            forefrontRequestIds: this.forefrontRequestIds,
         };
     }
 
@@ -616,7 +615,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             this.modifiedAt = new Date();
         }
 
-        const data = this.toRequestQueueInfo();
+        const data = {
+            ...this.toRequestQueueInfo(),
+            forefrontRequestIds: this.forefrontRequestIds,
+        };
+
         scheduleBackgroundTask({
             action: 'update-metadata',
             data,
