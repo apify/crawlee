@@ -180,7 +180,9 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
+        // Tracks processed request IDs to avoid duplicates when a request is in both `forefrontRequestIds` and `requests`.
         const seenRequestIds = new Set<string>();
+        // Tracks handled request IDs from `forefrontRequestIds` to be removed.
         const handledForefrontIds = new Set<string>();
 
         for (const requestId of this.requestKeyIterator(existingQueueById)) {
@@ -239,12 +241,14 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             !request.orderNo || request.orderNo > start || request.orderNo < -start;
 
         const items = [];
-        const handledForefrontIds = new Set<string>();
 
         await queue.mutex.wait();
 
         try {
+            // Tracks processed request IDs to avoid duplicates (when a request is in both `forefrontRequestIds` and `requests`).
             const seenRequestIds = new Set<string>();
+            // Tracks handled request IDs from `forefrontRequestIds` (to be all removed at once).
+            const handledForefrontIds = new Set<string>();
 
             for (const requestId of this.requestKeyIterator(queue)) {
                 if (items.length === limit) {
