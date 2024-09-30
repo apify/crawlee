@@ -57,9 +57,6 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                     headers: response.headers,
                     trailers: response.trailers,
                     complete: response.complete,
-                    httpVersion: response.httpVersion,
-                    rawHeaders: response.rawHeaders,
-                    rawTrailers: response.rawTrailers,
                     get downloadProgress() {
                         return stream.downloadProgress;
                     },
@@ -78,8 +75,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                     result.trailers ??= {};
                     Object.assign(result.trailers, response.trailers);
 
-                    result.rawTrailers ??= [];
-                    Object.assign(result.rawTrailers, response.rawTrailers);
+                    (result as any)['rawTrailers'] ??= []; // TODO BC - remove in 4.0
+                    Object.assign((result as any)['rawTrailers'], response.rawTrailers);
                 });
             });
         });

@@ -959,7 +959,7 @@ interface RequestFunctionOptions {
  * @internal
  */
 function addResponsePropertiesToStream(stream: Readable, response: StreamingHttpResponse) {
-    const properties: (keyof StreamingHttpResponse)[] = [
+    const properties: (keyof PlainResponse)[] = [
         'statusCode',
         'statusMessage',
         'headers',
@@ -974,7 +974,7 @@ function addResponsePropertiesToStream(stream: Readable, response: StreamingHttp
 
     stream.on('end', () => {
         // @ts-expect-error
-        stream.rawTrailers = response.rawTrailers;
+        stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
 
         // @ts-expect-error
         stream.trailers = response.trailers;
@@ -985,7 +985,7 @@ function addResponsePropertiesToStream(stream: Readable, response: StreamingHttp
 
     for (const prop of properties) {
         if (!(prop in stream)) {
-            (stream as any)[prop] = response[prop];
+            (stream as any)[prop] = (response as any)[prop];
         }
     }
 

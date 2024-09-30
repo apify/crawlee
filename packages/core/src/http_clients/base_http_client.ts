@@ -139,10 +139,6 @@ interface BaseHttpResponseData {
     trailers: SimpleHeaders; // Populated after the whole message is processed
 
     complete: boolean;
-    httpVersion: string;
-
-    rawHeaders: string[];
-    rawTrailers: string[];
 }
 
 interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
