@@ -2,7 +2,7 @@
 slug: scrape-using-jsdom
 title: 'Optimizing web scraping: Transitioning from browser-based to JSDOM'
 description: 'Learn how to scrape using JSDOM, alternative to Cheerio and browser based scraping.'
-image: https://raw.githubusercontent.com/souravjain540/crawlee-first-blog/main/og-image.webp
+image: ./img/jsdom.webp
 author: Saurav Jain
 authorTitle: Developer Community Manager
 authorURL: https://github.com/souravjain540
@@ -28,7 +28,7 @@ When you visit on this URL:
 
 You will see a list of hashtags with their live ranking, number of posts they have, trend chart, creators and their analytics. You can also notice that we can filter the industry, set the time period, and and a check box to filter if trend is new to top 100 or not.
 
-![tiktok-trends](./images/tiktok-trends.webp)
+![tiktok-trends](./img/tiktok-trends.webp)
 
 Our goal here is to extract top 100 hashtags from the list with the given filters. 
 
@@ -216,7 +216,7 @@ In this particular example we just made one request and a single session, but yo
 To make things more clear, here is how code flow looks:
 
 
-![code flow](./images/code-flow.webp)
+![code flow](./img/code-flow.webp)
 
 ## Conclusion
 
