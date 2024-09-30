@@ -977,9 +977,9 @@ function addResponsePropertiesToStream(stream: GotRequest) {
 
     response.on('end', () => {
         // @ts-expect-error
-        Object.assign(stream.rawTrailers, response.rawTrailers);
+        if (stream.rawTrailers) Object.assign(stream.rawTrailers, response.rawTrailers);
         // @ts-expect-error
-        Object.assign(stream.trailers, response.trailers);
+        if (stream.trailers) Object.assign(stream.trailers, response.trailers);
 
         // @ts-expect-error
         stream.complete = response.complete;
