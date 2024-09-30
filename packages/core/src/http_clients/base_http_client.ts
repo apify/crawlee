@@ -168,10 +168,10 @@ export type RedirectHandler = (
     updatedRequest: { url?: string | URL; headers: SimpleHeaders },
 ) => void;
 
-export abstract class BaseHttpClient {
-    abstract sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
+export interface BaseHttpClient {
+    sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>>;
 
-    abstract stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
+    stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
 }

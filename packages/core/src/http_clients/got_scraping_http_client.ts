@@ -11,8 +11,8 @@ import type {
 } from './base_http_client';
 import { BaseHttpClient } from './base_http_client';
 
-export class GotScrapingHttpClient extends BaseHttpClient {
-    override async sendRequest<TResponseType extends keyof ResponseTypes>(
+export class GotScrapingHttpClient implements BaseHttpClient {
+    async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>> {
         const gotResult = await gotScraping({
@@ -30,7 +30,7 @@ export class GotScrapingHttpClient extends BaseHttpClient {
         };
     }
 
-    override async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
+    async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {
             const stream = await Promise.resolve(gotScraping({ ...request, isStream: true }));
