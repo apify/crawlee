@@ -181,6 +181,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         const items = [];
 
         const seenRequestIds = new Set<string>();
+        const handledForefrontIds = new Set<string>();
 
         for (const requestId of this.requestKeyIterator(existingQueueById)) {
             if (items.length === limit) {
@@ -209,9 +210,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             if (orderNo) {
                 items.push(await storageEntry.get());
             } else if (this.forefrontRequestIds.includes(requestId)) {
-                this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => id !== requestId);
+                handledForefrontIds.add(requestId);
             }
         }
+
+        this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
         return {
             limit,
@@ -236,6 +239,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             !request.orderNo || request.orderNo > start || request.orderNo < -start;
 
         const items = [];
+        const handledForefrontIds = new Set<string>();
 
         await queue.mutex.wait();
 
@@ -258,7 +262,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 // This is set to null when the request has been handled, so we don't need to re-fetch from fs
                 if (storageEntry.orderNo === null) {
                     if (this.forefrontRequestIds.includes(requestId)) {
-                        this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => id !== requestId);
+                        handledForefrontIds.add(requestId);
                     }
                     continue;
                 }
@@ -275,6 +279,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
                 items.push(request);
             }
+
+            this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
             return {
                 limit,
