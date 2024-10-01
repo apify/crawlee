@@ -957,8 +957,8 @@ describe('RequestQueue v2', () => {
             req = await queue.fetchNextRequest();
         }
 
-        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual([
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(
             Array.from({ length: 28 }, (_, i) => `/${i + 1}`),
-        ]);
+        );
     });
 });
