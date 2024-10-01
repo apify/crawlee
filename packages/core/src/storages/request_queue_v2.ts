@@ -55,6 +55,17 @@ const RECENTLY_HANDLED_CACHE_SIZE = 1000;
 export class RequestQueue extends RequestProvider {
     private _listHeadAndLockPromise: Promise<void> | null = null;
 
+    /**
+     * Returns `true` if there are any requests in the queue that were enqueued to the forefront.
+     *
+     * Can return false negatives, but never false positives.
+     * @returns `true` if there are `forefront` requests in the queue.
+     */
+    private async hasPendingForefrontRequests(): Promise<boolean> {
+        const queueInfo = await this.client.get();
+        return this.assumedForefrontCount > 0 && !queueInfo?.hadMultipleClients;
+    }
+
     constructor(options: RequestProviderOptions, config = Configuration.getGlobalConfig()) {
         super(
             {
@@ -164,6 +175,8 @@ export class RequestQueue extends RequestProvider {
             // Try to delete the request lock if possible
             try {
                 await this.client.deleteRequestLock(request.id!, { forefront: options?.forefront ?? false });
+
+                this.assumedForefrontCount++;
             } catch (err) {
                 this.log.debug(`Failed to delete request lock for request ${request.id}`, { err });
             }
@@ -181,7 +194,7 @@ export class RequestQueue extends RequestProvider {
         }
 
         // We want to fetch ahead of time to minimize dead time
-        if (this.queueHeadIds.length() > 1) {
+        if (this.queueHeadIds.length() > 1 && !(await this.hasPendingForefrontRequests())) {
             return;
         }
 
@@ -193,11 +206,25 @@ export class RequestQueue extends RequestProvider {
     }
 
     private async _listHeadAndLock(): Promise<void> {
-        const headData = await this.client.listAndLockHead({ limit: 25, lockSecs: this.requestLockSecs });
+        const forefront = await this.hasPendingForefrontRequests();
+
+        const headData = await this.client.listAndLockHead({
+            limit: Math.min(forefront ? this.assumedForefrontCount : 25, 25),
+            lockSecs: this.requestLockSecs,
+        });
+
+        const headIdBuffer = [];
 
         for (const { id, uniqueKey } of headData.items) {
             // Queue head index might be behind the main table, so ensure we don't recycle requests
-            if (!id || !uniqueKey || this.recentlyHandledRequestsCache.get(id)) {
+            if (
+                !id ||
+                !uniqueKey ||
+                this.recentlyHandledRequestsCache.get(id) ||
+                // If we tried to read new forefront requests, but another client appeared in the meantime, we can't be sure we'll only read our requests.
+                // To retain the correct queue ordering, we rollback this head read.
+                (forefront && headData.hadMultipleClients)
+            ) {
                 this.log.debug(`Skipping request from queue head as it's invalid or recently handled`, {
                     id,
                     uniqueKey,
@@ -215,13 +242,18 @@ export class RequestQueue extends RequestProvider {
                 continue;
             }
 
-            this.queueHeadIds.add(id, id, false);
+            headIdBuffer.push(id);
+            this.assumedForefrontCount = Math.max(0, this.assumedForefrontCount - 1);
             this._cacheRequest(getRequestId(uniqueKey), {
                 requestId: id,
                 uniqueKey,
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: false,
             });
+        }
+
+        for (const id of forefront ? headIdBuffer.reverse() : headIdBuffer) {
+            this.queueHeadIds.add(id, id, forefront);
         }
     }
 

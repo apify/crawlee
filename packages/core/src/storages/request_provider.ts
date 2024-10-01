@@ -44,6 +44,15 @@ export abstract class RequestProvider implements IStorage {
     assumedTotalCount = 0;
     assumedHandledCount = 0;
 
+    /**
+     * Counts enqueued `forefront` requests. This is used to invalidate the local head cache.
+     * We can trust these numbers only in a case that queue is used by a single client.
+     *
+     * Note that this number does not have to be persisted, as the local head cache is dropped
+     * on a migration event.
+     */
+    protected assumedForefrontCount = 0;
+
     private initialCount = 0;
 
     protected queueHeadIds = new ListDictionary<string>();
@@ -163,6 +172,8 @@ export abstract class RequestProvider implements IStorage {
         if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
 
+            this.assumedForefrontCount += forefront ? 1 : 0;
+
             // Performance optimization: add request straight to head if possible
             this._maybeAddRequestToQueueHead(requestId, forefront);
         }
@@ -279,6 +290,8 @@ export abstract class RequestProvider implements IStorage {
 
             if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
+
+                this.assumedForefrontCount += forefront ? 1 : 0;
 
                 // Performance optimization: add request straight to head if possible
                 this._maybeAddRequestToQueueHead(requestId, forefront);
@@ -874,6 +887,11 @@ export interface RequestQueueOperationOptions {
      *   - while reclaiming the request: the request will be placed to the beginning of the queue, so that it's returned
      *   in the next call to {@apilink RequestQueue.fetchNextRequest}.
      * By default, it's put to the end of the queue.
+     *
+     * In case the request is already present in the queue, this option has no effect.
+     *
+     * If more requests are added with this option at once, their order in the following `fetchNextRequest` call
+     * is arbitrary.
      * @default false
      */
     forefront?: boolean;
