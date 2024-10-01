@@ -633,23 +633,29 @@ describe('RequestQueue remote', () => {
 
         await queue.addRequests([
             { url: 'http://example.com/1' },
-            { url: 'http://example.com/4' },
             { url: 'http://example.com/5' },
+            { url: 'http://example.com/6' },
         ]);
 
         retrievedUrls.push((await queue.fetchNextRequest()).url);
 
+        await queue.addRequest({ url: 'http://example.com/4' }, { forefront: true });
         await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+
         await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
 
         let req = await queue.fetchNextRequest();
+
+        expect(req.url).toBe('http://example.com/2');
+
+        await queue.reclaimRequest(req, { forefront: true });
 
         while (req) {
             retrievedUrls.push(req.url);
             req = await queue.fetchNextRequest();
         }
 
-        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
         await emulator.destroy();
     });
 
@@ -961,5 +967,35 @@ describe('RequestQueue v2', () => {
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(
             Array.from({ length: 28 }, (_, i) => `/${i + 1}`),
         );
+    });
+
+    test('`reclaimRequest` with `forefront` respects the request ordering', async () => {
+        const queue = await getEmptyQueue('fetch-next-request-order-reclaim');
+
+        const retrievedUrls: string[] = [];
+
+        await queue.addRequests([
+            { url: 'http://example.com/1' },
+            { url: 'http://example.com/4' },
+            { url: 'http://example.com/5' },
+        ]);
+
+        retrievedUrls.push((await queue.fetchNextRequest()).url);
+
+        await queue.addRequest({ url: 'http://example.com/3' }, { forefront: true });
+        await queue.addRequest({ url: 'http://example.com/2' }, { forefront: true });
+
+        let req = await queue.fetchNextRequest();
+
+        expect(req.url).toBe('http://example.com/2');
+
+        await queue.reclaimRequest(req, { forefront: true });
+
+        while (req) {
+            retrievedUrls.push(req.url);
+            req = await queue.fetchNextRequest();
+        }
+
+        expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(Array.from({ length: 5 }, (_, i) => `/${i + 1}`));
     });
 });
