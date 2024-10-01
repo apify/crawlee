@@ -97,7 +97,6 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 
     url: string | URL;
     method?: Method;
-    searchParams?: string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
     signal?: AbortSignal;
     headers?: SimpleHeaders;
     body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;

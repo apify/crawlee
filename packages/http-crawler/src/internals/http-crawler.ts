@@ -31,7 +31,7 @@ import {
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { RETRY_CSS_SELECTORS, type CheerioRoot } from '@crawlee/utils';
+import { applySearchParams, RETRY_CSS_SELECTORS, type CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
@@ -922,12 +922,16 @@ export class HttpCrawler<
      * @internal wraps public utility for mocking purposes
      */
     private _requestAsBrowser = async (
-        options: OptionsInit & { url: string | URL; isStream: true },
+        { searchParams, url, ...options }: OptionsInit & { url: string | URL; isStream: true },
         session?: Session,
     ) => {
+        const requestUrl = new URL(url);
+        applySearchParams(requestUrl, searchParams);
+
         const response = await this.httpClient.stream(
             {
                 ...options,
+                url: requestUrl,
                 cookieJar: options.cookieJar as any, // HACK - the type of ToughCookieJar in got is wrong
                 responseType: 'text',
             },

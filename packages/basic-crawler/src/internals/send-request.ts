@@ -1,9 +1,10 @@
 import type { Session, Request, HttpRequest, BaseHttpClient } from '@crawlee/core';
+import { applySearchParams, type SearchParams } from '@crawlee/utils';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { OptionsInit, Method, GotResponse } from 'got-scraping';
 
 interface SendRequestOptions extends HttpRequest<any> {
-    searchParams: string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
+    searchParams: SearchParams;
 }
 
 /**
@@ -17,7 +18,7 @@ export function createSendRequest(
 ) {
     return async <Response = string>(
         // TODO the type information here (and in crawler_commons) is outright wrong... for BC - replace this with generic HttpResponse in v4
-        overrideOptions?: Partial<SendRequestOptions>,
+        { searchParams, ...overrideOptions }: Partial<SendRequestOptions> = {},
     ): Promise<GotResponse<Response>> => {
         const cookieJar = session
             ? {
@@ -28,6 +29,7 @@ export function createSendRequest(
             : overrideOptions?.cookieJar;
 
         const url = new URL(request.url);
+        applySearchParams(url, searchParams);
 
         return httpClient.sendRequest<any>({
             url,

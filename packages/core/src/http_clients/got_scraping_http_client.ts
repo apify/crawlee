@@ -8,8 +8,8 @@ import type {
     RedirectHandler,
     ResponseTypes,
     StreamingHttpResponse,
+    BaseHttpClient,
 } from './base_http_client';
-import { BaseHttpClient } from './base_http_client';
 
 export class GotScrapingHttpClient implements BaseHttpClient {
     async sendRequest<TResponseType extends keyof ResponseTypes>(
@@ -75,8 +75,8 @@ export class GotScrapingHttpClient implements BaseHttpClient {
                     result.trailers ??= {};
                     Object.assign(result.trailers, response.trailers);
 
-                    (result as any)['rawTrailers'] ??= []; // TODO BC - remove in 4.0
-                    Object.assign((result as any)['rawTrailers'], response.rawTrailers);
+                    (result as any).rawTrailers ??= []; // TODO BC - remove in 4.0
+                    Object.assign((result as any).rawTrailers, response.rawTrailers);
                 });
             });
         });

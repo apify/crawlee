@@ -62,6 +62,7 @@ import type { OptionsInit, Method, GotResponse } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+
 import { createSendRequest } from './send-request';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
