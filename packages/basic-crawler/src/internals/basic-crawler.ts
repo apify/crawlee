@@ -62,6 +62,7 @@ import type { OptionsInit, Method, GotResponse } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+import { createSendRequest } from './send-request';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {
@@ -1279,30 +1280,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             addRequests: this.addRequests.bind(this),
             pushData: this.pushData.bind(this),
             useState: this.useState.bind(this),
-            sendRequest: async <Response = string>(
-                // TODO the type information here (and in crawler_commons) is outright wrong... for BC - replace this with generic HttpResponse in v4
-                overrideOptions?: Partial<HttpRequest<any>>,
-            ): Promise<GotResponse<Response>> => {
-                const cookieJar = session
-                    ? {
-                          getCookieString: async (url: string) => session!.getCookieString(url),
-                          setCookie: async (rawCookie: string, url: string) => session!.setCookie(rawCookie, url),
-                          ...overrideOptions?.cookieJar,
-                      }
-                    : overrideOptions?.cookieJar;
-
-                return this.httpClient.sendRequest<any>({
-                    url: request!.url,
-                    method: request!.method as Method, // Narrow type to omit CONNECT
-                    body: request!.payload,
-                    headers: request!.headers,
-                    proxyUrl: crawlingContext.proxyInfo?.url,
-                    sessionToken: session,
-                    responseType: 'text',
-                    ...overrideOptions,
-                    cookieJar,
-                });
-            },
+            sendRequest: createSendRequest(this.httpClient, request!, session, () => crawlingContext.proxyInfo?.url),
             getKeyValueStore: async (idOrName?: string) => KeyValueStore.open(idOrName, { config: this.config }),
         };
 
