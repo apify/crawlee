@@ -935,7 +935,7 @@ describe('RequestQueue v2', () => {
         expect(secondFetch[0]).toEqual(firstFetch[0]);
     });
 
-    test.only('`fetchNextRequest` order respects `forefront` enqueues', async () => {
+    test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
         const queue = await getEmptyQueue('fetch-next-request-order');
 
         const retrievedUrls: string[] = [];
@@ -957,6 +957,7 @@ describe('RequestQueue v2', () => {
             req = await queue.fetchNextRequest();
         }
 
+        // 28 requests exceed the RQv2 batch size limit of 25, so we can examine the request ordering
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(
             Array.from({ length: 28 }, (_, i) => `/${i + 1}`),
         );
