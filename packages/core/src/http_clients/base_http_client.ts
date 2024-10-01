@@ -100,8 +100,6 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     signal?: AbortSignal;
     headers?: SimpleHeaders;
     body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
-    form?: Record<string, string>;
-    json?: unknown;
 
     username?: string;
     password?: string;

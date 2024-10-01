@@ -27,7 +27,6 @@ import type {
     StatisticsOptions,
     LoadedContext,
     BaseHttpClient,
-    HttpRequest,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
