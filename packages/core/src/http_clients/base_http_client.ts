@@ -43,13 +43,14 @@ interface Progress {
     total?: number;
 }
 
+// TODO BC with got - remove the options and callback parameters in 4.0
 interface ToughCookieJar {
     getCookieString: ((
         currentUrl: string,
         options: Record<string, unknown>,
         callback: (error: Error | null, cookies: string) => void,
-    ) => void) &
-        ((url: string, callback: (error: Error | null, cookieHeader: string) => void) => void);
+    ) => string) &
+        ((url: string, callback: (error: Error | null, cookieHeader: string) => void) => string);
     setCookie: ((
         cookieOrString: unknown,
         currentUrl: string,
@@ -127,7 +128,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     sessionToken?: object;
 }
 
-interface BaseHttpResponseData {
+export interface BaseHttpResponseData {
     redirectUrls: URL[];
     url: string;
 

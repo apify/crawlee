@@ -926,7 +926,11 @@ export class HttpCrawler<
         session?: Session,
     ) => {
         const response = await this.httpClient.stream(
-            { ...options, responseType: 'text' },
+            {
+                ...options,
+                cookieJar: options.cookieJar as any, // HACK - the type of ToughCookieJar in got is wrong
+                responseType: 'text',
+            },
             (redirectResponse, updatedRequest) => {
                 if (this.persistCookiesPerSession) {
                     session!.setCookiesFromResponse(redirectResponse);
