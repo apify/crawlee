@@ -2,7 +2,7 @@ import { dirname } from 'node:path';
 
 import type { Log } from '@apify/log';
 import defaultLog, { LogLevel } from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { TimeoutError, addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AddRequestsBatchedOptions,
@@ -25,22 +25,19 @@ import type {
     Session,
     SessionPoolOptions,
     Source,
-    StatisticsOptions,
     StatisticState,
+    StatisticsOptions,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
     Configuration,
     CriticalError,
     Dataset,
-    enqueueLinks,
     EnqueueStrategy,
     EventType,
     KeyValueStore,
-    mergeCookies,
     Monitor,
     NonRetryableError,
-    purgeDefaultStorages,
     RequestProvider,
     RequestQueue,
     RequestQueueV1,
@@ -50,10 +47,13 @@ import {
     SessionError,
     SessionPool,
     Statistics,
+    enqueueLinks,
+    mergeCookies,
+    purgeDefaultStorages,
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
-import { gotScraping, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
@@ -550,6 +550,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
+        monitor: ow.optional.boolean,
     };
 
     /**
@@ -600,6 +601,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statusMessageCallback,
 
             statisticsOptions,
+            monitor,
         } = options;
 
         this.requestList = requestList;
@@ -916,7 +918,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
-        const monitor = this.monitor ? new Monitor(this.stats, this.log) : null;
+        const monitor = this.monitor ? new Monitor(this.stats, this.autoscaledPool, this.requestQueue) : null;
         monitor?.start();
 
         try {
