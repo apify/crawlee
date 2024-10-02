@@ -45,6 +45,7 @@ jobs:
                     cache: 'yarn'
 
             -   uses: microsoft/playwright-github-action@v1
+                if: (matrix.storage != 'PLATFORM')
 
             -   name: Turbo cache
                 id: turbo-cache

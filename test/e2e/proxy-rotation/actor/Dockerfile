@@ -15,6 +15,8 @@ COPY --from=builder /package*.json ./
 COPY /.actor ./.actor
 COPY /main.js ./
 
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+g
 RUN echo "Installed NPM packages:" \
     && (npm list --only=prod --no-optional --all || true) \
     && echo "Node.js version:" \
