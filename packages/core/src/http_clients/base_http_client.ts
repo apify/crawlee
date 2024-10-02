@@ -1,5 +1,7 @@
 import type { Readable } from 'stream';
 
+import { applySearchParams, type SearchParams } from '@crawlee/utils';
+
 import type { FormDataLike } from './form_data_like';
 
 type Timeout =
@@ -97,22 +99,18 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 
     url: string | URL;
     method?: Method;
-    signal?: AbortSignal;
     headers?: SimpleHeaders;
     body?: string | Buffer | Readable | Generator | AsyncGenerator | FormDataLike;
 
-    username?: string;
-    password?: string;
+    signal?: AbortSignal;
+    timeout?: Partial<Timeout>;
 
     cookieJar?: ToughCookieJar | PromiseCookieJar;
     followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
     maxRedirects?: number;
 
-    timeout?: Partial<Timeout>;
-
     encoding?: BufferEncoding;
     responseType?: TResponseType;
-    throwHttpErrors?: boolean;
 
     // from got-scraping Context
     proxyUrl?: string;
@@ -123,6 +121,18 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     };
     insecureHTTPParser?: boolean;
     sessionToken?: object;
+}
+
+export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>
+    extends HttpRequest<TResponseType> {
+    searchParams?: SearchParams;
+
+    form?: Record<string, string>;
+    json?: unknown;
+
+    username?: string;
+    password?: string;
+    throwHttpErrors?: boolean;
 }
 
 export interface BaseHttpResponseData {
@@ -168,4 +178,49 @@ export interface BaseHttpClient {
     ): Promise<HttpResponse<TResponseType>>;
 
     stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
+}
+
+export function processHttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>({
+    searchParams,
+    form,
+    json,
+    username,
+    password,
+    ...request
+}: HttpRequestOptions<TResponseType>): HttpRequest<TResponseType> {
+    const url = new URL(request.url);
+    const headers = { ...request.headers };
+
+    applySearchParams(url, searchParams);
+
+    if ([request.body, form, json].filter((value) => value !== undefined).length > 1) {
+        throw new Error('At most one of `body`, `form` and `json` may be specified in sendRequest arguments');
+    }
+
+    const body = (() => {
+        if (form !== undefined) {
+            return new URLSearchParams(form).toString();
+        }
+
+        if (json !== undefined) {
+            return JSON.stringify(json);
+        }
+
+        return request.body;
+    })();
+
+    if (form !== undefined) {
+        headers['content-type'] ??= 'application/x-www-form-urlencoded';
+    }
+
+    if (json !== undefined) {
+        headers['content-type'] ??= 'application/json';
+    }
+
+    if (username !== undefined || password !== undefined) {
+        const encodedAuth = Buffer.from(`${username ?? ''}:${password ?? ''}`).toString('base64');
+        headers.authorization = `Basic ${encodedAuth}`;
+    }
+
+    return { ...request, body, url, headers };
 }

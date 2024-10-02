@@ -28,6 +28,7 @@ import {
     Configuration,
     RequestState,
     SessionError,
+    processHttpRequestOptions,
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
@@ -922,19 +923,15 @@ export class HttpCrawler<
      * @internal wraps public utility for mocking purposes
      */
     private _requestAsBrowser = async (
-        { searchParams, url, ...options }: OptionsInit & { url: string | URL; isStream: true },
+        options: OptionsInit & { url: string | URL; isStream: true },
         session?: Session,
     ) => {
-        const requestUrl = new URL(url);
-        applySearchParams(requestUrl, searchParams);
-
         const response = await this.httpClient.stream(
-            {
+            processHttpRequestOptions({
                 ...options,
-                url: requestUrl,
                 cookieJar: options.cookieJar as any, // HACK - the type of ToughCookieJar in got is wrong
                 responseType: 'text',
-            },
+            }),
             (redirectResponse, updatedRequest) => {
                 if (this.persistCookiesPerSession) {
                     session!.setCookiesFromResponse(redirectResponse);
