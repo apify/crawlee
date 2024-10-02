@@ -60,6 +60,7 @@ import type { OptionsInit, Method } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+import { Monitor } from '@crawlee/core/src/monitor';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {
@@ -367,6 +368,13 @@ export interface CrawlerExperiments {
      * - set `requestLocking` to `false` in the `experiments` option of the crawler
      */
     requestLocking?: boolean;
+    /**
+     * Experimental cli output monitor mode
+     * If you encounter issues due to this change, please:
+     * - report it to us: https://github.com/apify/crawlee
+     * - set `requestLocking` to `false` in the `experiments` option of the crawler
+     */
+    monitor?: boolean;
 }
 
 /**
@@ -904,11 +912,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
+        const monitor = this.experiments.monitor ? new Monitor(this.stats, this.log) : null;
+        monitor?.start();
+
         try {
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
             await this.stats.stopCapturing();
+            monitor?.stop();
 
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
