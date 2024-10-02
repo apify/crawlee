@@ -60,7 +60,7 @@ import type { OptionsInit, Method } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
-import { Monitor } from '@crawlee/core/src/monitor';
+import { Monitor } from '@crawlee/core';
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
     extends CrawlingContext<BasicCrawler, UserData> {
