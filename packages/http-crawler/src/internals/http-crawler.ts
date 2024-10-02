@@ -32,7 +32,7 @@ import {
 } from '@crawlee/basic';
 import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
-import { applySearchParams, RETRY_CSS_SELECTORS, type CheerioRoot } from '@crawlee/utils';
+import { RETRY_CSS_SELECTORS, type CheerioRoot } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
