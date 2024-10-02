@@ -1,6 +1,8 @@
-import { log as defaultLog, Log } from './log';
-import { Statistics } from './crawlers/statistics';
 import os from 'os';
+
+import type { Statistics } from './crawlers/statistics';
+import type { Log } from './log';
+import { log as defaultLog } from './log';
 
 export class Monitor {
     private log: Log;
@@ -36,7 +38,11 @@ export class Monitor {
         this.log.info(`
 Start: ${startTime}
 Now: ${now} (running for ${elapsedTime / 1000}s)
-Progress: ${this.statistics.state.requestsFinished} / ${stats.requestsTotal} (${(this.statistics.state.requestsFinished / stats.requestsTotal) * 100}%), failed: ${this.statistics.state.requestsFailed} (${(this.statistics.state.requestsFailed / stats.requestsTotal) * 100}%)
+Progress: ${this.statistics.state.requestsFinished} / ${stats.requestsTotal} (${
+            (this.statistics.state.requestsFinished / stats.requestsTotal) * 100
+        }%), failed: ${this.statistics.state.requestsFailed} (${
+            (this.statistics.state.requestsFailed / stats.requestsTotal) * 100
+        }%)
 Remaining: ${this.estimateRemainingTime(stats)} (${stats.requestsFinishedPerMinute} req/min)
 Sys. load: ${cpuLoad.toFixed(2)} / ${(memLoad * 100).toFixed(2)}%
 Concurrencies: ${this.statistics.state.requestsRetries}
