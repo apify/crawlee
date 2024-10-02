@@ -542,6 +542,7 @@ export abstract class RequestProvider implements IStorage {
             forefront,
         })) as RequestQueueOperationInfo;
         queueOperationInfo.uniqueKey = request.uniqueKey;
+        this.assumedForefrontCount += forefront ? 1 : 0;
         this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;

@@ -991,6 +991,8 @@ describe('RequestQueue v2', () => {
 
         await queue.reclaimRequest(req, { forefront: true });
 
+        req = await queue.fetchNextRequest();
+
         while (req) {
             retrievedUrls.push(req.url);
             req = await queue.fetchNextRequest();

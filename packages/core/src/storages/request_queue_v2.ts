@@ -175,8 +175,6 @@ export class RequestQueue extends RequestProvider {
             // Try to delete the request lock if possible
             try {
                 await this.client.deleteRequestLock(request.id!, { forefront: options?.forefront ?? false });
-
-                this.assumedForefrontCount += options?.forefront ? 1 : 0;
             } catch (err) {
                 this.log.debug(`Failed to delete request lock for request ${request.id}`, { err });
             }
