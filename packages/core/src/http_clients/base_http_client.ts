@@ -111,6 +111,7 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
 
     encoding?: BufferEncoding;
     responseType?: TResponseType;
+    throwHttpErrors?: boolean;
 
     // from got-scraping Context
     proxyUrl?: string;
@@ -132,7 +133,6 @@ export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 
 
     username?: string;
     password?: string;
-    throwHttpErrors?: boolean;
 }
 
 export interface BaseHttpResponseData {
