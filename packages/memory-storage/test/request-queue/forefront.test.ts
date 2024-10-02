@@ -289,13 +289,169 @@ describe('RequestQueueV2 respects `forefront` in `listAndLockHead`', () => {
         ]).toContainEqual(items.map((x) => new URL(x.url).pathname));
     });
 
+    test('requests with expired locks keep the original ordering', async () => {
+        vitest.useFakeTimers();
+
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
+
+        await requestQueue.batchAddRequests([
+            { url: 'http://example.com/4', uniqueKey: '4' },
+            { url: 'http://example.com/5', uniqueKey: '5' },
+        ]);
+
+        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+
+        expect(items).toHaveLength(5);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+        expect(items).toHaveLength(0);
+
+        vitest.advanceTimersByTime(10001);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+
+        expect(items).toHaveLength(5);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+
+        vitest.useRealTimers();
+    });
+
+    test('`deleteRequestLock` keeps the original ordering', async () => {
+        await requestQueue.addRequest({ url: 'http://example.com/3', uniqueKey: '3' });
+
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
+
+        await requestQueue.batchAddRequests([
+            { url: 'http://example.com/4', uniqueKey: '4' },
+            { url: 'http://example.com/5', uniqueKey: '5' },
+        ]);
+
+        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+
+        expect(items).toHaveLength(5);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+
+        await Promise.all([
+            requestQueue.deleteRequestLock(items[0].id),
+            requestQueue.deleteRequestLock(items[1].id),
+            requestQueue.deleteRequestLock(items[2].id),
+        ]);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3']);
+    });
+
+    test('`prolongRequestLock` keeps the original ordering', async () => {
+        vitest.useFakeTimers();
+
+        await requestQueue.batchAddRequests([
+            { url: 'http://example.com/3', uniqueKey: '3' },
+            { url: 'http://example.com/4', uniqueKey: '4' },
+            { url: 'http://example.com/5', uniqueKey: '5' },
+        ]);
+
+        await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' }, { forefront: true });
+        await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' }, { forefront: true });
+
+        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+
+        expect(items).toHaveLength(5);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+
+        vitest.advanceTimersByTime(9999);
+
+        await requestQueue.prolongRequestLock(items[0].id, { lockSecs: 10 });
+        await requestQueue.prolongRequestLock(items[3].id, { lockSecs: 10 });
+
+        vitest.advanceTimersByTime(1001);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/5']);
+
+        vitest.advanceTimersByTime(10001);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+        expect(items).toHaveLength(5);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5']);
+
+        vitest.useRealTimers();
+    });
+
+    test('`deleteRequestLock.forefront` works as expected', async () => {
+        vitest.useFakeTimers();
+
+        await requestQueue.batchAddRequests([
+            { url: 'http://example.com/1', uniqueKey: '1' },
+            { url: 'http://example.com/2', uniqueKey: '2' },
+            { url: 'http://example.com/3', uniqueKey: '3' },
+        ]);
+
+        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3']);
+
+        await requestQueue.deleteRequestLock(items[2].id, { forefront: true });
+        await requestQueue.deleteRequestLock(items[1].id, { forefront: true });
+
+        vitest.advanceTimersByTime(10001);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+        expect(items).toHaveLength(3);
+
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/2', '/3', '/1']);
+
+        vitest.useRealTimers();
+    });
+
+    test('`prolongRequestLock.forefront` works as expected', async () => {
+        vitest.useFakeTimers();
+
+        await requestQueue.batchAddRequests([
+            { url: 'http://example.com/1', uniqueKey: '1' },
+            { url: 'http://example.com/2', uniqueKey: '2' },
+            { url: 'http://example.com/3', uniqueKey: '3' },
+        ]);
+
+        let { items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 });
+
+        expect(items).toHaveLength(3);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2', '/3']);
+
+        vitest.advanceTimersByTime(1000);
+
+        await requestQueue.prolongRequestLock(items[2].id, { lockSecs: 10, forefront: true });
+
+        vitest.advanceTimersByTime(9001);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+
+        expect(items).toHaveLength(2);
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/1', '/2']);
+
+        vitest.advanceTimersByTime(10001);
+
+        ({ items } = await requestQueue.listAndLockHead({ limit: 25, lockSecs: 10 }));
+        expect(items).toHaveLength(3);
+
+        expect(items.map((x) => new URL(x.url).pathname)).toEqual(['/3', '/1', '/2']);
+
+        vitest.useRealTimers();
+    });
+
     test('`updateRequest` respects `forefront` (with `limit`)', async () => {
         vitest.useFakeTimers();
 
         const req1 = await requestQueue.addRequest({ url: 'http://example.com/1', uniqueKey: '1' });
-        await sleep(2);
         const req2 = await requestQueue.addRequest({ url: 'http://example.com/2', uniqueKey: '2' });
-        await sleep(2);
         const req3 = await requestQueue.addRequest(
             { url: 'http://example.com/3', uniqueKey: '3' },
             { forefront: true },
