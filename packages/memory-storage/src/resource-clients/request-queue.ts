@@ -329,6 +329,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         internalRequest.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
 
         await request?.update(internalRequest);
+        if (forefront) this.forefrontRequestIds.push(id);
 
         return {
             lockExpiresAt: new Date(unlockTimestamp),
@@ -361,6 +362,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
 
         internalRequest.orderNo = forefront ? -start : start;
+        if (forefront) this.forefrontRequestIds.push(id);
 
         await request?.update(internalRequest);
     }
