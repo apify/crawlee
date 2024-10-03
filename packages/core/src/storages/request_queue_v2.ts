@@ -223,10 +223,11 @@ export class RequestQueue extends RequestProvider {
                 // To retain the correct queue ordering, we rollback this head read.
                 (forefront && headData.hadMultipleClients)
             ) {
-                this.log.debug(`Skipping request from queue head as it's invalid or recently handled`, {
+                this.log.debug(`Skipping request from queue head as it's potentially invalid or recently handled`, {
                     id,
                     uniqueKey,
                     recentlyHandled: !!this.recentlyHandledRequestsCache.get(id),
+                    inconsistentForefrontRead: forefront && headData.hadMultipleClients,
                 });
 
                 // Remove the lock from the request for now, so that it can be picked up later
