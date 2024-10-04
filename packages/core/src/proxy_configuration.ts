@@ -284,8 +284,8 @@ export class ProxyConfiguration {
         return {
             sessionId,
             url,
-            username,
-            password,
+            username: decodeURIComponent(username),
+            password: decodeURIComponent(password),
             hostname,
             port: port!,
             proxyTier: tier,
