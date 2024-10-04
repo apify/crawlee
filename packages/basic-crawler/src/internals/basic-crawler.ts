@@ -1523,7 +1523,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
-            ? error.stack ?? [error.message || error, ...stackLines].join('\n')
+            ? (error.stack ?? [error.message || error, ...stackLines].join('\n'))
             : [error.message || error, userLine].join('\n');
     }
 
