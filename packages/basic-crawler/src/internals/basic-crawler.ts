@@ -27,6 +27,7 @@ import type {
     StatisticsOptions,
     LoadedContext,
     BaseHttpClient,
+    RestrictedCrawlingContext,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -103,14 +104,13 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary>
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
-export type RequestHandler<Context extends CrawlingContext = BasicCrawlingContext> = (
-    inputs: LoadedContext<Context>,
-) => Awaitable<void>;
+export type RequestHandler<
+    Context extends CrawlingContext = LoadedContext<BasicCrawlingContext & RestrictedCrawlingContext>,
+> = (inputs: LoadedContext<Context>) => Awaitable<void>;
 
-export type ErrorHandler<Context extends CrawlingContext = BasicCrawlingContext> = (
-    inputs: LoadedContext<Context>,
-    error: Error,
-) => Awaitable<void>;
+export type ErrorHandler<
+    Context extends CrawlingContext = LoadedContext<BasicCrawlingContext & RestrictedCrawlingContext>,
+> = (inputs: LoadedContext<Context>, error: Error) => Awaitable<void>;
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
@@ -1148,7 +1148,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * and RequestQueue is present then enqueues it to the queue first.
      */
     protected async _fetchNextRequest() {
-        if (!this.requestList) return this.requestQueue!.fetchNextRequest();
+        if (!this.requestList || (await this.requestList.isFinished())) {
+            return this.requestQueue?.fetchNextRequest();
+        }
+
         const request = await this.requestList.fetchNextRequest();
         if (!this.requestQueue) return request;
         if (!request) return this.requestQueue.fetchNextRequest();
@@ -1430,13 +1433,12 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         if (shouldRetryRequest) {
             await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
+            await this._tagUserHandlerError(() =>
+                this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
+            );
 
             if (error instanceof SessionError) {
                 await this._rotateSession(crawlingContext);
-            } else {
-                await this._tagUserHandlerError(() =>
-                    this.errorHandler?.(this._augmentContextWithDeprecatedError(crawlingContext, error), error),
-                );
             }
 
             if (!request.noRetry) {

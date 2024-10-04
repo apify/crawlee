@@ -9,13 +9,13 @@ import { move } from 'fs-extra';
 import type { RequestQueueFileSystemEntry } from 'packages/memory-storage/src/fs/request-queue/fs';
 import type { RequestQueueMemoryEntry } from 'packages/memory-storage/src/fs/request-queue/memory';
 
-import { BaseClient } from './common/base-client';
 import { scheduleBackgroundTask } from '../background-handler';
 import { findRequestQueueByPossibleId } from '../cache-helpers';
 import { StorageTypes } from '../consts';
 import { createRequestQueueStorageImplementation } from '../fs/request-queue';
 import type { MemoryStorage } from '../index';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils';
+import { BaseClient } from './common/base-client';
 
 const requestShape = s.object({
     id: s.string,
@@ -60,6 +60,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     pendingRequestCount = 0;
     requestQueueDirectory: string;
     private readonly mutex = new AsyncQueue();
+    private forefrontRequestIds: string[] = [];
 
     private readonly requests = new Map<string, RequestQueueFileSystemEntry | RequestQueueMemoryEntry>();
     private readonly client: MemoryStorage;
@@ -152,6 +153,16 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
+    private *requestKeyIterator(rqClient: RequestQueueClient): IterableIterator<string> {
+        for (let i = this.forefrontRequestIds.length - 1; i >= 0; i--) {
+            yield this.forefrontRequestIds[i];
+        }
+
+        for (const key of rqClient.requests.keys()) {
+            yield key;
+        }
+    }
+
     async listHead(options: storage.ListOptions = {}): Promise<storage.QueueHead> {
         const { limit } = s
             .object({
@@ -169,10 +180,23 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         const items = [];
 
-        for (const storageEntry of existingQueueById.requests.values()) {
+        // Tracks processed request IDs to avoid duplicates when a request is in both `forefrontRequestIds` and `requests`.
+        const seenRequestIds = new Set<string>();
+        // Tracks handled request IDs from `forefrontRequestIds` to be removed.
+        const handledForefrontIds = new Set<string>();
+
+        for (const requestId of this.requestKeyIterator(existingQueueById)) {
             if (items.length === limit) {
                 break;
             }
+
+            if (seenRequestIds.has(requestId)) {
+                continue;
+            }
+
+            seenRequestIds.add(requestId);
+
+            const storageEntry = existingQueueById.requests.get(requestId)!;
 
             let { orderNo } = storageEntry;
             let loaded: InternalRequest;
@@ -187,8 +211,12 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // Have an order no -> fetch from fs/memory and return
             if (orderNo) {
                 items.push(await storageEntry.get());
+            } else if (this.forefrontRequestIds.includes(requestId)) {
+                handledForefrontIds.add(requestId);
             }
         }
+
+        this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
         return {
             limit,
@@ -217,13 +245,29 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await queue.mutex.wait();
 
         try {
-            for (const storageEntry of queue.requests.values()) {
+            // Tracks processed request IDs to avoid duplicates (when a request is in both `forefrontRequestIds` and `requests`).
+            const seenRequestIds = new Set<string>();
+            // Tracks handled request IDs from `forefrontRequestIds` (to be all removed at once).
+            const handledForefrontIds = new Set<string>();
+
+            for (const requestId of this.requestKeyIterator(queue)) {
                 if (items.length === limit) {
                     break;
                 }
 
+                if (seenRequestIds.has(requestId)) {
+                    continue;
+                }
+
+                seenRequestIds.add(requestId);
+
+                const storageEntry = queue.requests.get(requestId)!;
+
                 // This is set to null when the request has been handled, so we don't need to re-fetch from fs
                 if (storageEntry.orderNo === null) {
+                    if (this.forefrontRequestIds.includes(requestId)) {
+                        handledForefrontIds.add(requestId);
+                    }
                     continue;
                 }
 
@@ -239,6 +283,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
                 items.push(request);
             }
+
+            this.forefrontRequestIds = this.forefrontRequestIds.filter((id) => !handledForefrontIds.has(id));
 
             return {
                 limit,
@@ -283,6 +329,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         internalRequest.orderNo = forefront ? -unlockTimestamp : unlockTimestamp;
 
         await request?.update(internalRequest);
+        if (forefront) this.forefrontRequestIds.push(id);
 
         return {
             lockExpiresAt: new Date(unlockTimestamp),
@@ -315,6 +362,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
 
         internalRequest.orderNo = forefront ? -start : start;
+        if (forefront) this.forefrontRequestIds.push(id);
 
         await request?.update(internalRequest);
     }
@@ -363,6 +411,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             existingQueueById.pendingRequestCount += 1;
         } else {
             existingQueueById.handledRequestCount += 1;
+        }
+
+        if (options.forefront) {
+            this.forefrontRequestIds.push(requestModel.id);
         }
 
         return {
@@ -424,6 +476,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
                 existingQueueById.pendingRequestCount += 1;
             } else {
                 existingQueueById.handledRequestCount += 1;
+            }
+
+            if (options.forefront) {
+                this.forefrontRequestIds.push(requestModel.id);
             }
 
             result.processedRequests.push({
@@ -502,6 +558,10 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         existingQueueById.updateTimestamps(true);
 
+        if (options.forefront && !requestIsHandledAfterUpdate) {
+            this.forefrontRequestIds.push(requestModel.id);
+        }
+
         return {
             requestId: requestModel.id,
             wasAlreadyHandled: requestWasHandledBeforeUpdate,
@@ -557,7 +617,11 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             this.modifiedAt = new Date();
         }
 
-        const data = this.toRequestQueueInfo();
+        const data = {
+            ...this.toRequestQueueInfo(),
+            forefrontRequestIds: this.forefrontRequestIds,
+        };
+
         scheduleBackgroundTask({
             action: 'update-metadata',
             data,

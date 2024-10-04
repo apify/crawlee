@@ -4,7 +4,7 @@ import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
 import ow from 'ow';
-import type { Cookie } from 'tough-cookie';
+import type { Cookie, SerializedCookieJar } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 
 import { EVENT_SESSION_RETIRED } from './events';
@@ -22,7 +22,7 @@ import { log as defaultLog } from '../log';
  */
 export interface SessionState {
     id: string;
-    cookieJar: CookieJar.Serialized;
+    cookieJar: SerializedCookieJar;
     userData: object;
     errorScore: number;
     maxErrorScore: number;
@@ -223,7 +223,7 @@ export class Session {
     getState(): SessionState {
         return {
             id: this.id,
-            cookieJar: this.cookieJar.toJSON(),
+            cookieJar: this.cookieJar.toJSON()!,
             userData: this.userData,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,

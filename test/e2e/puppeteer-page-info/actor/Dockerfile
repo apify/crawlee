@@ -21,3 +21,5 @@ RUN echo "Installed NPM packages:" \
     && node --version \
     && echo "NPM version:" \
     && npm --version
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome

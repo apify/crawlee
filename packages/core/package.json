@@ -63,7 +63,6 @@
         "@crawlee/types": "3.11.4",
         "@crawlee/utils": "3.11.4",
         "@sapphire/async-queue": "^1.5.1",
-        "@types/tough-cookie": "^4.0.2",
         "@vladfrangu/async_event_emitter": "^2.2.2",
         "csv-stringify": "^6.2.0",
         "fs-extra": "^11.0.0",
@@ -71,10 +70,9 @@
         "json5": "^2.2.3",
         "minimatch": "^9.0.0",
         "ow": "^0.28.1",
-        "stream-chain": "^3.0.0",
-        "stream-json": "^1.7.4",
+        "stream-json": "^1.8.0",
         "tldts": "^6.0.0",
-        "tough-cookie": "^4.0.0",
+        "tough-cookie": "^5.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"
     }

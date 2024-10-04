@@ -979,10 +979,10 @@ function addResponsePropertiesToStream(stream: Readable, response: StreamingHttp
 
     stream.on('end', () => {
         // @ts-expect-error
-        stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
+        if (stream.rawTrailers) stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
 
         // @ts-expect-error
-        stream.trailers = response.trailers;
+        if (stream.trailers) stream.trailers = response.trailers;
 
         // @ts-expect-error
         stream.complete = response.complete;
