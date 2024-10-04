@@ -1138,7 +1138,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * and RequestQueue is present then enqueues it to the queue first.
      */
     protected async _fetchNextRequest() {
-        if (!this.requestList) return this.requestQueue!.fetchNextRequest();
+        if (!this.requestList || (await this.requestList.isFinished())) {
+            return this.requestQueue?.fetchNextRequest();
+        }
+
         const request = await this.requestList.fetchNextRequest();
         if (!this.requestQueue) return request;
         if (!request) return this.requestQueue.fetchNextRequest();
