@@ -356,6 +356,10 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      */
     statisticsOptions?: StatisticsOptions;
 
+    /**
+     * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
+     * Defaults to a new instance of {@apilink GotScrapingHttpClient}
+     */
     httpClient?: BaseHttpClient;
 }
 

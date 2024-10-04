@@ -11,7 +11,13 @@ import type {
     BaseHttpClient,
 } from './base_http_client';
 
+/**
+ * A HTTP client implementation based on the `got-scraping` library.
+ */
 export class GotScrapingHttpClient implements BaseHttpClient {
+    /**
+     * @inheritDoc
+     */
     async sendRequest<TResponseType extends keyof ResponseTypes>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>> {
@@ -30,6 +36,9 @@ export class GotScrapingHttpClient implements BaseHttpClient {
         };
     }
 
+    /**
+     * @inheritDoc
+     */
     async stream(request: HttpRequest, handleRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
         // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve, reject) => {

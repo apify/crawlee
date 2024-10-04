@@ -33,6 +33,9 @@ type Method =
     | 'options'
     | 'trace';
 
+/**
+ * Maps permitted values of the `responseType` option on {@apilink HttpRequest} to the types that they produce.
+ */
 export interface ResponseTypes {
     'json': unknown;
     'text': string;
@@ -69,31 +72,9 @@ interface PromiseCookieJar {
 
 type SimpleHeaders = Record<string, string | string[] | undefined>;
 
-// Omitted (https://github.com/sindresorhus/got/blob/main/documentation/2-options.md):
-//  - decompress,
-//  - resolveBodyOnly,
-//  - allowGetBody,
-//  - dnsLookup,
-//  - dnsCache,
-//  - dnsLookupIpVersion,
-//  - retry,
-//  - hooks,
-//  - parseJson,
-//  - stringifyJson,
-//  - request,
-//  - cache,
-//  - cacheOptions,
-//  - http2
-//  - https
-//  - agent
-//  - localAddress
-//  - createConnection
-//  - pagination
-//  - setHost
-//  - maxHeaderSize
-//  - methodRewriting
-//  - enableUnixSockets
-//  - context
+/**
+ * HTTP Request as accepted by {@apilink BaseHttpClient} methods.
+ */
 export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'> {
     [k: string]: unknown; // TODO BC with got - remove in 4.0
 
@@ -124,17 +105,28 @@ export interface HttpRequest<TResponseType extends keyof ResponseTypes = 'text'>
     sessionToken?: object;
 }
 
+/**
+ * Additional options for HTTP requests that need to be handled separately before passing to {@apilink BaseHttpClient}.
+ */
 export interface HttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>
     extends HttpRequest<TResponseType> {
+    /** Search (query string) parameters to be appended to the request URL */
     searchParams?: SearchParams;
 
+    /** A form to be sent in the HTTP request body (URL encoding will be used) */
     form?: Record<string, string>;
+    /** Artbitrary object to be JSON-serialized and sent as the HTTP request body */
     json?: unknown;
 
+    /** Basic HTTP Auth username */
     username?: string;
+    /** Basic HTTP Auth password */
     password?: string;
 }
 
+/**
+ * HTTP response data, without a body, as returned by {@apilink BaseHttpClient} methods.
+ */
 export interface BaseHttpResponseData {
     redirectUrls: URL[];
     url: string;
@@ -154,6 +146,9 @@ interface HttpResponseWithoutBody<TResponseType extends keyof ResponseTypes = ke
     request: HttpRequest<TResponseType>;
 }
 
+/**
+ * HTTP response data as returned by the {@apilink BaseHttpClient.sendRequest} method.
+ */
 export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof ResponseTypes>
     extends HttpResponseWithoutBody<TResponseType> {
     [k: string]: any; // TODO BC with got - remove in 4.0
@@ -161,25 +156,43 @@ export interface HttpResponse<TResponseType extends keyof ResponseTypes = keyof 
     body: ResponseTypes[TResponseType];
 }
 
+/**
+ * HTTP response data as returned by the {@apilink BaseHttpClient.stream} method.
+ */
 export interface StreamingHttpResponse extends HttpResponseWithoutBody {
     stream: Readable;
     readonly downloadProgress: Progress;
     readonly uploadProgress: Progress;
 }
 
+/**
+ * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
+ */
 export type RedirectHandler = (
     redirectResponse: BaseHttpResponseData,
     updatedRequest: { url?: string | URL; headers: SimpleHeaders },
 ) => void;
 
+/**
+ * Interface for user-defined HTTP clients to be used for plain HTTP crawling and for sending additional requests during a crawl.
+ */
 export interface BaseHttpClient {
+    /**
+     * Perform an HTTP Request and return the complete response.
+     */
     sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
         request: HttpRequest<TResponseType>,
     ): Promise<HttpResponse<TResponseType>>;
 
+    /**
+     * Perform an HTTP Request and return after the response headers are received. The body may be read from a stream contained in the response.
+     */
     stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse>;
 }
 
+/**
+ * Converts {@apilink HttpRequestOptions} to a {@apilink HttpRequest}.
+ */
 export function processHttpRequestOptions<TResponseType extends keyof ResponseTypes = 'text'>({
     searchParams,
     form,
