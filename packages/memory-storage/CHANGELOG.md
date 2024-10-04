@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.11.5](https://github.com/apify/crawlee/compare/v3.11.4...v3.11.5) (2024-10-04)
+
+
+### Bug Fixes
+
+* `prolong-` and `deleteRequestLock` `forefront` option ([#2690](https://github.com/apify/crawlee/issues/2690)) ([cba8da3](https://github.com/apify/crawlee/commit/cba8da31312bcc4228662c79c4472e35278627c1)), closes [#2681](https://github.com/apify/crawlee/issues/2681) [#2689](https://github.com/apify/crawlee/issues/2689) [#2669](https://github.com/apify/crawlee/issues/2669)
+* respect `forefront` option in `MemoryStorage`'s `RequestQueue` ([#2681](https://github.com/apify/crawlee/issues/2681)) ([b0527f9](https://github.com/apify/crawlee/commit/b0527f948b73e3b74ac77e58f9184b34c1adab3a)), closes [#2669](https://github.com/apify/crawlee/issues/2669)
+
+
+
+
+
 ## [3.11.4](https://github.com/apify/crawlee/compare/v3.11.3...v3.11.4) (2024-09-23)
 
 **Note:** Version bump only for package @crawlee/memory-storage
