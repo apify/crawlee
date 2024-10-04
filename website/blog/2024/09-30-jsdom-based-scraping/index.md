@@ -226,4 +226,4 @@ To make things more clear, here is how code flow looks:
 
 This approach helps us to get a third way to extract the authentication data without actually using browser and pass the data to CheerioCrawler. This significantly improves the performance, reduces the RAM requirement by 50%, and while browser based scraping performance is 10 times slower than pure Cheerio, JSDOM do it just 3-4 times slower, which makes it 2-3 times faster than browser based scraping.
 
-We used our open source library Crawlee in this example, feel free to checkout the project and [give us a star](https://github.com/apify/crawlee). The codebase of the project is already [uploaded here](https://github.com/souravjain540/tiktok-trends), for any queries, [join our discord community](https://apify.com/discord).
+The codebase of the project is already [uploaded here](https://github.com/souravjain540/tiktok-trends).
