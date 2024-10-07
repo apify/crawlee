@@ -257,6 +257,6 @@ To make things more clear, here is how code flow looks:
 This approach helps us to get a third way to extract the authentication data without actually using a browser and pass the data to CheerioCrawler. This significantly improves the performance and reduces the RAM requirement by 50%, and while browser-based scraping performance is ten times slower than pure Cheerio, JSDOM does it just 3-4 times slower, which makes it 2-3 times faster than browser-based scraping.
 
 
-The project's codebase is already [uploaded here](https://github.com/souravjain540/tiktok-trends). The code is written as an Apify Actor; you can find more about it here, but you can also run it without using Apify SDK.
+The project's codebase is already [uploaded here](https://github.com/souravjain540/tiktok-trends). The code is written as an Apify Actor; you can find more about it [here](https://docs.apify.com/academy/getting-started/creating-actors), but you can also run it without using Apify SDK.
 
 If you have any doubts or questions about this approach, reach out to us on our [Discord server](https://apify.com/discord).
