@@ -40,7 +40,7 @@ Second approach can be using libraries like Puppeteer, Playwright, etc to do bro
 
 Now comes the new approach that we developed to make this process a lot better than browser based and very close to CheerioCrawler based crawling.
 
-## JSDOM Approach:
+## JSDOM Approach
 
 :::note
 
@@ -51,8 +51,6 @@ Before diving deep into this approach, I will like to give credits to [Alexey Ud
 In this approach we are going to make API calls to `https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list` to get the required data.
 
 Before making calls to this API, we will be needing few required headers (auth data, so we will first make the call to `https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en`
-
-
 We will start this approach by creating a function that will create the URL for the API call for us and make the call and get the data.
 
 ```js
@@ -99,11 +97,10 @@ export const createSessionFunction = async (sessionPool, proxyConfiguration) => 
     });
 };
 ```
+
 In this function, the main goal is to call `https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en` and get headers in return. To get the headers we are using `getApiUrlWithVerificationToken` function.
 
 Let’s see how we are going to create the `getApiUrlWithVerificationToken` function:
-
-
 ```js
 const getApiUrlWithVerificationToken = async (body, url) => {
     log.info(`Getting API session`);
@@ -113,7 +110,7 @@ const getApiUrlWithVerificationToken = async (body, url) => {
         contentType: 'text/html',
         runScripts: 'dangerously',
         resources: 'usable' || new CustomResourceLoader(),
-        // ^ 'usable' faster than custom and works wo canvas
+        // ^ 'usable' faster than custom and works without canvas
         pretendToBeVisual: false,
         virtualConsole,
     });
@@ -218,8 +215,6 @@ One important thing to note here is that we are making this code in a way that w
 In this particular example we just made one request and a single session, but you can make more if you need. When the first API call will be completed, it will create the second API call. Again, you can make more calls if needed, but we stopped at two.
 
 To make things more clear, here is how code flow looks:
-
-
 ![code flow](./img/code-flow.webp)
 
 ## Conclusion
