@@ -14,6 +14,12 @@ authorImageURL: https://avatars.githubusercontent.com/u/34358312?v=4
 
 Dynamic websites that use JavaScript for content rendering and backend interaction often create challenges for web scraping. The traditional approach to solving this problem is browser emulation, but it's not very efficient in terms of resource consumption.
 
+:::note
+
+One of our community members wrote this blog as a contribution to Crawlee Blog. If you want to contribute blogs like these to Crawlee Blog, please reach out to us on our [discord channel](https://apify.com/discord).
+
+:::
+
 In this article, we'll explore an alternative method based on in-depth site analysis and the use of an HTTP client. We'll go through the entire process from analyzing a dynamic website to implementing an efficient web crawler using the [`Crawlee for Python`](https://www.crawlee.dev/python/) framework.
 
 ![How to scrape dynamic websites in Python](./img/dynamic-websites.webp)
