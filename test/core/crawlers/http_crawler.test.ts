@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import { HttpCrawler } from '@crawlee/http';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { Readable } from 'node:stream';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
@@ -399,4 +400,58 @@ test('should work with cacheable-request', async () => {
         { url, uniqueKey: 'second' },
     ]);
     expect(isFromCache).toEqual({ first: false, second: true });
+});
+
+test('works with a custom HttpClient', async () => {
+    const results: string[] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        requestHandler: async ({ body, sendRequest }) => {
+            results.push(body as string);
+
+            results.push((await sendRequest()).body);
+        },
+        httpClient: {
+            async sendRequest(request) {
+                if (request.responseType !== 'text') {
+                    throw new Error('Not implemented');
+                }
+
+                return {
+                    body: 'Hello from sendRequest()' as any,
+                    request,
+                    url,
+                    redirectUrls: [],
+                    statusCode: 200,
+                    headers: {},
+                    trailers: {},
+                    complete: true,
+                };
+            },
+            async stream(request) {
+                const stream = new Readable();
+                stream.push('<html><head><title>Schmexample Domain</title></head></html>');
+                stream.push(null);
+
+                return {
+                    stream,
+                    downloadProgress: { percent: 100, transferred: 0 },
+                    uploadProgress: { percent: 100, transferred: 0 },
+                    request,
+                    url,
+                    redirectUrls: [],
+                    statusCode: 200,
+                    headers: { 'content-type': 'text/html; charset=utf-8' },
+                    trailers: {},
+                    complete: true,
+                };
+            },
+        },
+    });
+
+    await crawler.run([url]);
+
+    expect(results[0].includes('Schmexample Domain')).toBeTruthy();
+    expect(results[1].includes('Hello')).toBeTruthy();
 });
