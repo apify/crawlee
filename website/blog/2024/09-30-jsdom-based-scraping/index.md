@@ -50,20 +50,20 @@ Before diving deep into this approach, I would like to give credit to [Alexey Ud
 
 In this approach, we are going to make API calls to `https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list` to get the required data.
 
-Before making calls to this API, we will need few required headers (auth data, so we will first make the call to `https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en`
+Before making calls to this API, we will need few required headers (auth data), so we will first make the call to `https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en`
 We will start this approach by creating a function that will create the URL for the API call for us and, make the call and get the data.
 
 ```js
 export const createStartUrls = (input) => {
     const {
-        days = "7",
-        country = "",
+        days = '7',
+        country = '',
         resultsLimit = 100,
-        industry = "",
+        industry = '',
         isNewToTop100,
     } = input;
 
-    const filterBy = isNewToTop100 ? "new_on_board" : "";
+    const filterBy = isNewToTop100 ? 'new_on_board' : '';
     return [
         {
             url: `https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&period=${days}&country_code=${country}&filter_by=${filterBy}&sort_by=popular&industry_id=${industry}`,
@@ -78,7 +78,7 @@ export const createStartUrls = (input) => {
 
 In the above function, we create the start url for the API call that include various parameters as we talked about earlier. After creating the URL according to the parameters it will call the `creative_radar_api` and fetch all the results.
 
-But it won’t work until we get the headers. So, let’s create a function that will first create a session using sessionPool and proxyConfiguration.
+But it won’t work until we get the headers. So, let’s create a function that will first create a session using `sessionPool` and `proxyConfiguration`.
 
 ```js
 export const createSessionFunction = async (
@@ -87,7 +87,7 @@ export const createSessionFunction = async (
 ) => {
     const proxyUrl = await proxyConfiguration.newUrl(Math.random().toString());
     const url =
-        "https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en";
+        'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en';
     // need url with data to generate token
     const response = await gotScraping({ url, proxyUrl });
     const headers = await getApiUrlWithVerificationToken(
@@ -123,18 +123,18 @@ const getApiUrlWithVerificationToken = async (body, url) => {
     const virtualConsole = new VirtualConsole();
     const { window } = new JSDOM(body, {
         url,
-        contentType: "text/html",
-        runScripts: "dangerously",
-        resources: "usable" || new CustomResourceLoader(),
+        contentType: 'text/html',
+        runScripts: 'dangerously',
+        resources: 'usable' || new CustomResourceLoader(),
         // ^ 'usable' faster than custom and works without canvas
         pretendToBeVisual: false,
         virtualConsole,
     });
-    virtualConsole.on("error", () => {
+    virtualConsole.on('error', () => {
         // ignore errors cause by fake XMLHttpRequest
     });
 
-    const apiHeaderKeys = ["anonymous-user-id", "timestamp", "user-sign"];
+    const apiHeaderKeys = ['anonymous-user-id', 'timestamp', 'user-sign'];
     const apiValues = {};
     let retries = 10;
     // api calls made outside of fetch, hack below is to get URL without actual call
@@ -148,11 +148,11 @@ const getApiUrlWithVerificationToken = async (body, url) => {
     };
     window.XMLHttpRequest.prototype.open = (method, urlToOpen) => {
         if (
-            ["static", "scontent"].find((x) =>
+            ['static', 'scontent'].find((x) =>
                 urlToOpen.startsWith(`https://${x}`),
             )
         )
-        log.debug("urlToOpen", urlToOpen);
+        log.debug('urlToOpen', urlToOpen);
     };
     do {
         await sleep(4000);
@@ -204,7 +204,7 @@ async requestHandler(context) {
         const { userData } = request;
         const { itemsCounter = 0, resultsLimit = 0 } = userData;
         if (!json.data) {
-            throw new Error("BLOCKED");
+            throw new Error('BLOCKED');
         }
         const { data } = json;
         const items = data.list;
@@ -226,7 +226,7 @@ async requestHandler(context) {
             counter < Math.min(total, resultsLimit);
         if (isResultsLimitNotReached && data.pagination.has_more) {
             const nextUrl = new URL(request.url);
-            nextUrl.searchParams.set("page", page + 1);
+            nextUrl.searchParams.set('page', page + 1);
             await crawler.addRequests([
                 {
                     url: nextUrl.toString(),
