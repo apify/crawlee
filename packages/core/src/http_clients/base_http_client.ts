@@ -1,4 +1,4 @@
-import type { Readable } from 'stream';
+import type { Readable } from 'node:stream';
 
 import { applySearchParams, type SearchParams } from '@crawlee/utils';
 
