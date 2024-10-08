@@ -5,6 +5,7 @@ export type SearchParams = string | URLSearchParams | Record<string, string | nu
  *
  * @param url The URL to append to.
  * @param searchParams The search parameters to be appended.
+ * @internal
  */
 export function applySearchParams(url: URL, searchParams: SearchParams | undefined): void {
     if (searchParams === undefined) {
@@ -13,24 +14,25 @@ export function applySearchParams(url: URL, searchParams: SearchParams | undefin
 
     if (typeof searchParams === 'string') {
         url.search = searchParams;
-    } else {
-        let newSearchParams: URLSearchParams;
+        return;
+    }
 
-        if (searchParams instanceof URLSearchParams) {
-            newSearchParams = searchParams;
-        } else {
-            newSearchParams = new URLSearchParams();
-            for (const [key, value] of Object.entries(newSearchParams)) {
-                if (value === undefined) {
-                    newSearchParams.delete(key);
-                } else if (value === null) {
-                    newSearchParams.append(key, '');
-                } else {
-                    newSearchParams.append(key, value as string);
-                }
+    let newSearchParams: URLSearchParams;
+
+    if (searchParams instanceof URLSearchParams) {
+        newSearchParams = searchParams;
+    } else {
+        newSearchParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(newSearchParams)) {
+            if (value === undefined) {
+                newSearchParams.delete(key);
+            } else if (value === null) {
+                newSearchParams.append(key, '');
+            } else {
+                newSearchParams.append(key, value as string);
             }
         }
-
-        url.search = newSearchParams.toString();
     }
+
+    url.search = newSearchParams.toString();
 }
