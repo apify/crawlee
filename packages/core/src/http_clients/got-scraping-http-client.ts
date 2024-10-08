@@ -9,7 +9,7 @@ import type {
     ResponseTypes,
     StreamingHttpResponse,
     BaseHttpClient,
-} from './base_http_client';
+} from './base-http-client';
 
 /**
  * A HTTP client implementation based on the `got-scraping` library.
