@@ -50,7 +50,8 @@ Before diving deep into this approach, I would like to give credit to [Alexey Ud
 
 In this approach, we are going to make API calls to `https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list` to get the required data.
 
-Before making calls to this API, we will need few required headers (auth data), so we will first make the call to `https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en`
+Before making calls to this API, we will need few required headers (auth data), so we will first make the call to `https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pad/en`.
+
 We will start this approach by creating a function that will create the URL for the API call for us and, make the call and get the data.
 
 ```js
