@@ -1,9 +1,9 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { Readable } from 'node:stream';
 
 import { HttpCrawler } from '@crawlee/http';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
-import { Readable } from 'node:stream';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
