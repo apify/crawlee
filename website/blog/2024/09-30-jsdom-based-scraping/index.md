@@ -201,45 +201,45 @@ Finally in the request handler we make the call using the headers and make sure 
 
 ```js
 async requestHandler(context) {
-        const { log, request, json } = context;
-        const { userData } = request;
-        const { itemsCounter = 0, resultsLimit = 0 } = userData;
-        if (!json.data) {
-            throw new Error('BLOCKED');
-        }
-        const { data } = json;
-        const items = data.list;
-        const counter = itemsCounter + items.length;
-        const dataItems = items.slice(
-            0,
-            resultsLimit && counter > resultsLimit
-                ? resultsLimit - itemsCounter
-                : undefined,
-        );
-        await context.pushData(dataItems);
-        const {
-            pagination: { page, total },
-        } = data;
-        log.info(
-            `Scraped ${dataItems.length} results out of ${total} from search page ${page}`,
-        );
-        const isResultsLimitNotReached =
-            counter < Math.min(total, resultsLimit);
-        if (isResultsLimitNotReached && data.pagination.has_more) {
-            const nextUrl = new URL(request.url);
-            nextUrl.searchParams.set('page', page + 1);
-            await crawler.addRequests([
-                {
-                    url: nextUrl.toString(),
-                    headers: request.headers,
-                    userData: {
-                        ...request.userData,
-                        itemsCounter: itemsCounter + dataItems.length,
-                    },
-                },
-            ]);
-        }
+    const { log, request, json } = context;
+    const { userData } = request;
+    const { itemsCounter = 0, resultsLimit = 0 } = userData;
+    if (!json.data) {
+        throw new Error('BLOCKED');
     }
+    const { data } = json;
+    const items = data.list;
+    const counter = itemsCounter + items.length;
+    const dataItems = items.slice(
+        0,
+        resultsLimit && counter > resultsLimit
+            ? resultsLimit - itemsCounter
+            : undefined,
+    );
+    await context.pushData(dataItems);
+    const {
+        pagination: { page, total },
+    } = data;
+    log.info(
+        `Scraped ${dataItems.length} results out of ${total} from search page ${page}`,
+    );
+    const isResultsLimitNotReached =
+        counter < Math.min(total, resultsLimit);
+    if (isResultsLimitNotReached && data.pagination.has_more) {
+        const nextUrl = new URL(request.url);
+        nextUrl.searchParams.set('page', page + 1);
+        await crawler.addRequests([
+            {
+                url: nextUrl.toString(),
+                headers: request.headers,
+                userData: {
+                    ...request.userData,
+                    itemsCounter: itemsCounter + dataItems.length,
+                },
+            },
+        ]);
+    }
+}
 ```
 
 One important thing to note here is that we are making this code in a way that we can make any numbers of API calls.
@@ -247,6 +247,7 @@ One important thing to note here is that we are making this code in a way that w
 In this particular example we just made one request and a single session, but you can make more if you need. When the first API call will be completed, it will create the second API call. Again, you can make more calls if needed, but we stopped at two.
 
 To make things more clear, here is how code flow looks:
+
 ![code flow](./img/code-flow.webp)
 
 ## Conclusion
