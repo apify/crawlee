@@ -2,7 +2,7 @@
 	"root": true,
 	"extends": "../../.eslintrc.json",
 	"parserOptions": {
-		"project": "./test/e2e/cheerio-curl-impersonate/actor/tsconfig.json",
+		"project": "./test/e2e/cheerio-curl-impersonate-ts/actor/tsconfig.json",
 		"ecmaVersion": 2022
 	},
 	"rules": {
