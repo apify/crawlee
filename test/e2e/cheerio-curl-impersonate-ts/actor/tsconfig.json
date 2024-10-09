@@ -3,7 +3,9 @@
 	"compilerOptions": {
 		"module": "ES2022",
 		"target": "ES2022",
-		"lib": ["DOM"]
+		"lib": ["DOM"],
+		"skipLibCheck": true,
+		"incremental": false
 	},
 	"include": ["./**/*.ts"]
 }

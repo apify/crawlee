@@ -1,6 +1,6 @@
 {
 	"actorSpecification": 1,
-	"name": "test-cheerio-default-ts",
+	"name": "test-cheerio-curl-impersonate-ts",
 	"version": "0.0",
 	"buildTag": "latest",
 	"env": null

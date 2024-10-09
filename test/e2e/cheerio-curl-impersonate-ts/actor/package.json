@@ -1,5 +1,5 @@
 {
-    "name": "test-cheerio-curl-impersonate",
+    "name": "test-cheerio-curl-impersonate-ts",
     "version": "0.0.1",
     "description": "Cheerio Crawler Test - curl-impersonate HTTP client",
     "dependencies": {
