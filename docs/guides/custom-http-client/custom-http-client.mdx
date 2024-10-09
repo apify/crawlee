@@ -10,9 +10,9 @@ import CodeBlock from '@theme/CodeBlock';
 import ImplementationSource from '!!raw-loader!./implementation.ts';
 import UsageSource from '!!raw-loader!./usage.ts';
 
-The <ApiLink to="core/basic/BasicCrawler">`BasicCrawler`</ApiLink> class allows you to configure the HTTP client implementation using the `httpClient` constructor option. This might be useful for testing or if you need to swap out the default implementation based on `got-scraping` for something else, such as `curl-impersonate` or `axios`.
+The <ApiLink to="basic/classes/BasicCrawler">`BasicCrawler`</ApiLink> class allows you to configure the HTTP client implementation using the `httpClient` constructor option. This might be useful for testing or if you need to swap out the default implementation based on `got-scraping` for something else, such as `curl-impersonate` or `axios`.
 
-The HTTP client implementation needs to conform to the `BaseHttpClient` interface:
+The HTTP client implementation needs to conform to the <ApiLink to="core/interfaces/BaseHttpClient">`BaseHttpClient`</ApiLink> interface. For a rough idea on how it might look, see a skeleton implementation that uses the standard `fetch` interface:
 
 <CodeBlock language="ts">{ImplementationSource}</CodeBlock>
 
