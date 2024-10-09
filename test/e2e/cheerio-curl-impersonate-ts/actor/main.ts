@@ -173,8 +173,15 @@ const crawler = new CheerioCrawler({
             responseType: 'json',
         });
 
+        const { body: ua } = await context.sendRequest({
+            url: 'https://httpbin.org/user-agent',
+            responseType: 'json',
+        });
+
         await context.pushData({
-            userAgent: context.json['user-agent'],
+            body: context.body,
+            title: context.$('title').text(),
+            userAgent: ua['user-agent'],
             uuidTextResponse: text,
             uuidJsonResponse: json,
         });
@@ -182,6 +189,6 @@ const crawler = new CheerioCrawler({
     httpClient: new CurlImpersonateHttpClient({ impersonate: 'chrome-116' }),
 });
 
-await crawler.run(['https://httpbin.org/user-agent']);
+await crawler.run(['https://httpbin.org/']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

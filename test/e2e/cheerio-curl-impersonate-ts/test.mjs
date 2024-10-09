@@ -9,6 +9,9 @@ await expect(stats.requestsFinished > 0, 'All requests finished');
 await expect(datasetItems.length === 1, 'A dataset item was pushed');
 
 const result = datasetItems[0];
+
+expect(result.body.length > 1000, 'HTML response is not empty');
+expect(result.title === 'httpbin.org', 'HTML title is correct');
 expect(
     result.userAgent ===
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
