@@ -5,44 +5,19 @@ description: Use a custom HTTP client for `sendRequest` and plain-HTTP crawling
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import ImplementationSource from '!!raw-loader!./implementation.ts';
+import UsageSource from '!!raw-loader!./usage.ts';
 
 The <ApiLink to="core/basic/BasicCrawler">`BasicCrawler`</ApiLink> class allows you to configure the HTTP client implementation using the `httpClient` constructor option. This might be useful for testing or if you need to swap out the default implementation based on `got-scraping` for something else, such as `curl-impersonate` or `axios`.
 
 The HTTP client implementation needs to conform to the `BaseHttpClient` interface:
 
-```ts
-import {
-	BaseHttpClient,
-	HttpRequest,
-	HttpResponse,
-	RedirectHandler,
-	ResponseTypes,
-	StreamingHttpResponse,
-} from "@crawlee/core";
-
-class CustomHttpClient implements BaseHttpClient {
-	async sendRequest<TResponseType extends keyof ResponseTypes = "text">(
-		request: HttpRequest<TResponseType>,
-	): Promise<HttpResponse<TResponseType>> {
-        /* ... */
-    }
-
-	async stream(
-		request: HttpRequest,
-		onRedirect?: RedirectHandler,
-	): Promise<StreamingHttpResponse> {
-        /* ... */
-    }
-}
-```
+<CodeBlock language="ts">{ImplementationSource}</CodeBlock>
 
 You may then instantiate it and pass to a crawler constructor:
 
-```ts
-const crawler = new HttpCrawler({
-    httpClient: new CustomHttpClient(), 
-    async requestHandler() { /* ... */} 
-})
-```
+<CodeBlock language="ts">{UsageSource}</CodeBlock>
 
 Please note that the interface is experimental and it will likely change with Crawlee version 4.

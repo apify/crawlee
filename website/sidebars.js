@@ -45,7 +45,7 @@ module.exports = {
                 'guides/typescript-project',
                 'guides/docker-images',
                 'guides/parallel-scraping/parallel-scraping-guide',
-                'guides/custom-http-client'
+                'guides/custom-http-client/custom-http-client'
             ],
         },
         {
