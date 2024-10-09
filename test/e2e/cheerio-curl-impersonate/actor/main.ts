@@ -1,6 +1,6 @@
-import { CheerioCrawler } from '@crawlee/cheerio';
-import { Actor } from 'apify';
+import { Readable } from 'stream';
 
+import { CheerioCrawler } from '@crawlee/cheerio';
 import {
     BaseHttpClient,
     BaseHttpResponseData,
@@ -10,9 +10,8 @@ import {
     ResponseTypes,
     StreamingHttpResponse,
 } from '@crawlee/core';
-
+import { Actor } from 'apify';
 import { CurlImpersonate } from 'apify-node-curl-impersonate';
-import { Readable } from 'stream';
 
 if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
     // @ts-ignore
@@ -65,8 +64,8 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
     }
 
     protected async performRequest(request: HttpRequest<any>, onRedirect?: RedirectHandler) {
-        let response: CurlResponse | undefined = undefined;
-        let redirectUrls: URL[] = [];
+        let response: CurlResponse | undefined;
+        const redirectUrls: URL[] = [];
 
         const updatedRequest: Required<Pick<HttpRequest, 'url' | 'headers'>> = {
             url: request.url.toString(),
@@ -86,7 +85,7 @@ class CurlImpersonateHttpClient implements BaseHttpClient {
                     break;
                 }
 
-                updatedRequest.url = response.responseHeaders['location'];
+                updatedRequest.url = response.responseHeaders.location;
                 updatedRequest.headers = response.responseHeaders;
                 redirectUrls.push(new URL(updatedRequest.url));
                 onRedirect?.(this.transformResponse(response, redirectUrls), updatedRequest);
