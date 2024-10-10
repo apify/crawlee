@@ -65,7 +65,7 @@
         "@types/content-type": "^1.1.5",
         "@types/deep-equal": "^1.0.1",
         "@types/domhandler": "^2.4.2",
-        "@types/express": "^4.17.13",
+        "@types/express": "^5.0.0",
         "@types/fs-extra": "^11.0.0",
         "@types/htmlparser2": "^3.10.3",
         "@types/inquirer": "^8.2.1",
