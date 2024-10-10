@@ -291,7 +291,7 @@ async function copyPackages(dirName) {
     delete dependencies.playwright;
 
     for (const dependency of Object.values(dependencies)) {
-        const packageDirName = dependency.split('/').pop();
+        const packageDirName = dependency.startsWith('@crawlee/') ? dependency.split('/').pop() : dependency;
         const srcDir = join(srcPackagesDir, packageDirName, 'dist');
         const destDir = join(destPackagesDir, packageDirName, 'dist');
         await fs.copy(srcDir, destDir);
