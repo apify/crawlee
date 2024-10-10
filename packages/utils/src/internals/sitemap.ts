@@ -139,18 +139,22 @@ class SitemapXmlParser extends Transform {
     }
 
     private onText(text: string) {
-        if (this.currentTag === 'loc') {
-            if (this.rootTagName === 'sitemapindex') {
-                this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
-            }
+        text =text.trim();
 
-            if (this.rootTagName === 'urlset') {
-                this.url ??= {};
-                this.url.loc = text;
+        if (this.currentTag === 'loc') {
+            try {
+                if (this.rootTagName === 'sitemapindex') {
+                    this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
+                }
+
+                if (this.rootTagName === 'urlset') {
+                    this.url ??= {};
+                    this.url.loc = text;
+                }
+            } catch (e) {
+                
             }
         }
-
-        text = text.trim();
 
         if (this.currentTag === 'lastmod') {
             this.url.lastmod = new Date(text);
