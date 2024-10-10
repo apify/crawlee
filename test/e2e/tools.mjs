@@ -286,6 +286,7 @@ async function copyPackages(dirName) {
     delete dependencies['apify-client'];
     delete dependencies['deep-equal'];
     delete dependencies['playwright-core'];
+    delete dependencies['apify-node-curl-impersonate'];
     delete dependencies.apify;
     delete dependencies.puppeteer;
     delete dependencies.playwright;
