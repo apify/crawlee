@@ -1,19 +1,20 @@
-import type { IncomingMessage } from 'node:http';
-
-import type { BrowserLikeResponse, Dictionary, Cookie as CookieObject } from '@crawlee/types';
+import type { Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
 import { log } from './log';
 import { CookieParseError } from './session_pool/errors';
 
+export interface ResponseLike {
+    url?: string | (() => string);
+    headers?: Record<string, string | string[] | undefined> | (() => Record<string, string | string[] | undefined>);
+}
+
 /**
  * @internal
  */
-export function getCookiesFromResponse(
-    response: IncomingMessage | BrowserLikeResponse | { headers: Dictionary<string | string[]> },
-): Cookie[] {
+export function getCookiesFromResponse(response: ResponseLike): Cookie[] {
     const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
-    const cookieHeader = headers['set-cookie'] || '';
+    const cookieHeader = headers?.['set-cookie'] || '';
 
     try {
         return Array.isArray(cookieHeader)

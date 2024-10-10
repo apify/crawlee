@@ -764,6 +764,7 @@ __metadata:
     "@typescript-eslint/parser": "npm:^7.18.0"
     "@vitest/coverage-v8": "npm:^2.0.0"
     apify: "npm:*"
+    apify-node-curl-impersonate: "npm:^1.0.15"
     basic-auth-parser: "npm:^0.0.2"
     body-parser: "npm:^1.20.0"
     commitlint: "npm:^19.0.0"
@@ -3156,6 +3157,13 @@ __metadata:
     tslib: "npm:^2.5.0"
     type-fest: "npm:^4.0.0"
   checksum: 10c0/85737c814e71d127a1442ac4948c9a94c4454eb51940f1e21ab3c6ea74be4fa1ef1669aeb491387f3ae7f349cfa3ac463faf9f19eab9b1da0858e88c01516628
+  languageName: node
+  linkType: hard
+
+"apify-node-curl-impersonate@npm:^1.0.15":
+  version: 1.0.15
+  resolution: "apify-node-curl-impersonate@npm:1.0.15"
+  checksum: 10c0/41a691d015bff23dc58ea1559015d7e2f40eaa3ad2e8d6cb5076358ed19effc6ce064886c66dbd6d1ed7382f3caa5c4786c0860545e2ca12ddf32fefef0d7156
   languageName: node
   linkType: hard
 
