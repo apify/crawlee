@@ -2,22 +2,24 @@ import { dirname } from 'node:path';
 
 import type { Log } from '@apify/log';
 import defaultLog, { LogLevel } from '@apify/log';
-import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+import { TimeoutError, addTimeoutToPromise, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     CrawlingContext,
+    DatasetExportOptions,
     EnqueueLinksOptions,
     EventManager,
-    DatasetExportOptions,
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestList,
+    LoadedContext,
     ProxyInfo,
     Request,
     RequestOptions,
+    RestrictedCrawlingContext,
     RouterHandler,
     RouterRoutes,
     Session,
@@ -25,30 +27,29 @@ import type {
     Source,
     StatisticState,
     StatisticsOptions,
-    LoadedContext,
-    RestrictedCrawlingContext,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
     Configuration,
     CriticalError,
     Dataset,
-    enqueueLinks,
     EnqueueStrategy,
     EventType,
     KeyValueStore,
-    mergeCookies,
+    Monitor,
     NonRetryableError,
-    purgeDefaultStorages,
     RequestProvider,
-    RequestQueueV1,
     RequestQueue,
+    RequestQueueV1,
     RequestState,
     RetryRequestError,
     Router,
     SessionError,
     SessionPool,
     Statistics,
+    enqueueLinks,
+    mergeCookies,
+    purgeDefaultStorages,
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
@@ -56,7 +57,7 @@ import { ROTATE_PROXY_ERRORS, gotScraping } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeFile, writeJSON } from 'fs-extra';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { OptionsInit, Method } from 'got-scraping';
+import type { Method, OptionsInit } from 'got-scraping';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -351,6 +352,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * whether to output them to the Key-Value store.
      */
     statisticsOptions?: StatisticsOptions;
+
+    /**
+     * Track and display time estimation and concurrency status in the CLI output at regular intervals.
+     * @default false
+     */
+    monitor?: boolean;
 }
 
 /**
@@ -499,6 +506,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     private _closeEvents?: boolean;
 
+    private monitor?: boolean;
     private experiments: CrawlerExperiments;
     private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
 
@@ -542,6 +550,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
+        monitor: ow.optional.boolean,
     };
 
     /**
@@ -592,6 +601,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             statusMessageCallback,
 
             statisticsOptions,
+            monitor,
         } = options;
 
         this.requestList = requestList;
@@ -601,6 +611,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
         this.events = config.getEventManager();
         this.domainAccessedTime = new Map();
+        this.monitor = monitor;
         this.experiments = experiments;
 
         this._handlePropertyNameChange({
@@ -754,7 +765,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             log,
         };
 
-        this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+        this.autoscaledPoolOptions = {
+            ...autoscaledPoolOptions,
+            ...basicCrawlerAutoscaledPoolConfiguration,
+        };
     }
 
     /**
@@ -904,11 +918,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         this.events.on(EventType.MIGRATING, boundPauseOnMigration);
         this.events.on(EventType.ABORTING, boundPauseOnMigration);
 
+        const monitor = this.monitor ? new Monitor(this.stats, this.autoscaledPool, this.requestQueue) : null;
+        monitor?.start();
+
         try {
             await this.autoscaledPool!.run();
         } finally {
             await this.teardown();
             await this.stats.stopCapturing();
+            monitor?.stop();
 
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
@@ -949,9 +967,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         periodicLogger.stop();
         await this.setStatusMessage(
-            `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                this.stats.state.requestsFinished
-            } succeeded, ${this.stats.state.requestsFailed} failed.`,
+            `Finished! Total ${
+                this.stats.state.requestsFinished + this.stats.state.requestsFailed
+            } requests: ${this.stats.state.requestsFinished} succeeded, ${this.stats.state.requestsFailed} failed.`,
             { isStatusMessageTerminal: true, level: 'INFO' },
         );
         this.running = false;
@@ -1205,7 +1223,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 source['inProgress'].add(request.id!);
             }
 
-            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+            await source.reclaimRequest(request, {
+                forefront: request.userData?.__crawlee?.forefront,
+            });
         }, delay);
 
         return true;
@@ -1469,7 +1489,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     retryCount,
                 });
 
-                await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+                await source.reclaimRequest(request, {
+                    forefront: request.userData?.__crawlee?.forefront,
+                });
                 return;
             }
         }
@@ -1498,7 +1520,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             return (await cb()) as T;
         } catch (e: any) {
-            Object.defineProperty(e, 'triggeredFromUserHandler', { value: true });
+            Object.defineProperty(e, 'triggeredFromUserHandler', {
+                value: true,
+            });
             throw e;
         }
     }
@@ -1707,7 +1731,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return baseUrl.hostname === loadedBaseUrl.hostname;
             }
             case EnqueueStrategy.SameDomain: {
-                const baseUrlHostname = getDomain(baseUrl.hostname, { mixedInputs: false });
+                const baseUrlHostname = getDomain(baseUrl.hostname, {
+                    mixedInputs: false,
+                });
 
                 if (baseUrlHostname) {
                     const loadedBaseUrlHostname = getDomain(loadedBaseUrl.hostname, { mixedInputs: false });
