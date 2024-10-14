@@ -50,6 +50,12 @@ poetry install
 
 We are going to begin editing the files provided to us by Crawlee so we can build our scraper.
 
+:::note
+
+Before going ahead if you like reading this blog, we would be really happy if you gave [Crawlee for Python a star on GitHub](https://github.com/apify/crawlee-python/)!
+
+:::
+
 ## Building the LinkedIn job Scraper in Python with Crawlee
 
 In this section, we will be building the scraper using the Crawlee for Python package. To learn more about Crawlee, check out their [documentation](https://crawlee.dev/python/docs/quick-start).
