@@ -141,12 +141,12 @@ class SitemapXmlParser extends Transform {
     private onText(text: string) {
         if (this.currentTag === 'loc') {
             if (this.rootTagName === 'sitemapindex') {
-                this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
+                this.push({ type: 'sitemapUrl', url: text.trim() } satisfies SitemapItem);
             }
 
             if (this.rootTagName === 'urlset') {
                 this.url ??= {};
-                this.url.loc = text;
+                this.url.loc = text.trim();
             }
         }
 
