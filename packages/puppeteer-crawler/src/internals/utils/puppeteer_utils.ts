@@ -196,24 +196,38 @@ export async function parseWithCheerio(
     ow(page, ow.object.validate(validators.browserPage));
 
     if (page.frames().length > 1 && !ignoreIframes) {
-        const frames = await page.$$('iframe');
+        const frames = await page.$$('iframe'); 
 
         await Promise.all(
             frames.map(async (frame) => {
-                const iframe = await frame.contentFrame();
+                const iframe = await frame.contentFrame(); 
 
                 if (iframe) {
-                    const contents = await iframe.content();
+                    try {
+                        const contents = await iframe.content(); 
 
-                    await frame.evaluate((f, c) => {
-                        const replacementNode = document.createElement('div');
-                        replacementNode.innerHTML = c;
-                        replacementNode.className = 'crawlee-iframe-replacement';
+                        await frame.evaluate((f, c) => {
+                            const replacementNode = document.createElement('div');
+                            replacementNode.innerHTML = c;
+                            replacementNode.className = 'crawlee-iframe-replacement';
+    
+                            f.replaceWith(replacementNode); // Replace iframe with contents
+                        }, iframe, contents);
 
-                        f.replaceWith(replacementNode);
-                    }, contents);
+                    } catch (error) {
+                        console.warn("Failed to access iframe content:", error);
+    
+                        
+                        await frame.evaluate((f) => {
+                            const placeholderNode = document.createElement('div');
+                            placeholderNode.innerHTML = 'Iframe could not be loaded.';
+                            placeholderNode.className = 'iframe-placeholder';
+    
+                            f.replaceWith(placeholderNode); 
+                        }, iframe);
+                    }
                 }
-            }),
+            })
         );
     }
 
