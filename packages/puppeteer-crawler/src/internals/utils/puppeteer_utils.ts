@@ -200,10 +200,9 @@ export async function parseWithCheerio(
 
         await Promise.all(
             frames.map(async (frame) => {
-                const iframe = await frame.contentFrame();
-
-                if (iframe) {
-                    try{
+                try {
+                    const iframe = await frame.contentFrame();
+                    if (iframe) {
                         const contents = await iframe.content();
 
                         await frame.evaluate((f, c) => {
@@ -213,9 +212,9 @@ export async function parseWithCheerio(
 
                             f.replaceWith(replacementNode);
                         }, contents);
-                    } catch(error) {
-                        console.warn('Failed to extract iframe content:', error);
-                    }
+                    } 
+                } catch(error) {
+                    console.warn('Failed to extract iframe content:', error);
                 }
             }),
         );
