@@ -609,18 +609,22 @@ export async function parseWithCheerio(
 
         await Promise.all(
             frames.map(async (frame) => {
-                const iframe = await frame.contentFrame();
+                try {
+                    const iframe = await frame.contentFrame();
 
-                if (iframe) {
-                    const contents = await iframe.content();
+                    if (iframe) {
+                        const contents = await iframe.content();
 
-                    await frame.evaluate((f, c) => {
-                        const replacementNode = document.createElement('div');
-                        replacementNode.innerHTML = c;
-                        replacementNode.className = 'crawlee-iframe-replacement';
+                        await frame.evaluate((f, c) => {
+                            const replacementNode = document.createElement('div');
+                            replacementNode.innerHTML = c;
+                            replacementNode.className = 'crawlee-iframe-replacement';
 
-                        f.replaceWith(replacementNode);
-                    }, contents);
+                            f.replaceWith(replacementNode);
+                        }, contents);
+                    }
+                } catch (error) {
+                    log.warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
