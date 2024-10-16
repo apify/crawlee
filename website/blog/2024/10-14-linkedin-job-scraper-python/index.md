@@ -58,7 +58,7 @@ Before going ahead if you like reading this blog, we would be really happy if yo
 
 ## Building the LinkedIn job Scraper in Python with Crawlee
 
-In this section, we will be building the scraper using the Crawlee for Python package. To learn more about Crawlee, check out their [documentation](https://crawlee.dev/python/docs/quick-start).
+In this section, we will be building the scraper using the Crawlee for Python package. To learn more about Crawlee, check out their [documentation](https://www.crawlee.dev/python/docs/quick-start).
 
 ### 1. Inspecting the LinkedIn job Search Page
 
@@ -158,7 +158,7 @@ Now that we have the job listings, the next step is to scrape their details.
 
 We'll extract each job’s title, company's name, time of posting, and the link to the job post. Open your dev tools to extract each element using its CSS selector. 
 
-![Inspecting elements](./img/inspect.png)
+![Inspecting elements](./img/inspect.webp)
 
 After scraping each of the listings, we'll remove special characters from the text to make it clean and push the data to local storage using the `context.push_data` function.
 
